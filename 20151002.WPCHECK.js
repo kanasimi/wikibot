@@ -30,7 +30,7 @@ log_to = 'User:cewbot/log/' + check_section;
 
 function prepare_directory() {
 	var directories = [ base_directory ];
-	//embeddedin,page,redirects
+	// embeddedin,page,redirects
 	''.split(',').forEach(function(directory_name) {
 		directories.push(base_directory + directory_name);
 	});
@@ -328,6 +328,10 @@ if (false) {
 
 // ------------------------------------
 
+// fix_11: HTML named entities [[XML與HTML字符實體引用列表#HTML中的字符實體引用]]
+
+// ------------------------------------
+
 // 標記未首尾對應 tag. tags with no correct matchd.
 function tag_corresponding_repairer(tag, title, options) {
 	var chars = options && options.chars ? options.chars : '[\s\S]',
@@ -438,6 +442,32 @@ if (false) {
 	//
 	fix_13('<math>1+2+3=4<math> kkk <math>3+2+1</math>'));
 	only_check = [];
+}
+
+// ------------------------------------
+
+var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?\]\][\r\n]*/ig;
+
+fix_17.title = '頁面分類名稱重複';
+function fix_17(content, page_data, messages, options) {
+	var category_index_hash = {}, category_hash = {}, matched;
+	// search all category list
+	while (matched = PATTERN_category.exec(content)) {
+		// 經測試，排序索引會以後面出現者為主。
+		category_index_hash[matched[1]] = matched[2];
+	}
+
+	content = content
+	// fix error
+	// [[Help:分类]]
+	.replace(PATTERN_category, function(all, name, index) {
+		if ((name in category_hash) || index !== category_index_hash[name])
+			return '';
+		category_hash[name] = true;
+		return all;
+	});
+
+	return content;
 }
 
 // ------------------------------------
@@ -574,8 +604,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 93;
-// 處理頁面數 = 10;
+only_check = 17;
+處理頁面數 = 5;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {

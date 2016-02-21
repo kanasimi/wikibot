@@ -61,7 +61,7 @@ log_to = 'User:cewbot/log/' + check_section,
  * 
  * @see [[Category:刪除模板]]
  */
-須排除之維護模板名list = 'Notability|Merged|Merge|Merge from|Merge to|substub|notmandarin|OR|or'
+須排除之維護模板名list = 'Notability|Merged|Merge|Merge from|Merge to|substub|notmandarin|OR|or|in-universe'
 		.split('|'),
 
 // [ 維護模板名, 參數 ]
@@ -78,9 +78,7 @@ wiki = Wiki(true),
 //
 normalized_count = CeL.wiki.redirects.count.bind(null, 維護模板本名);
 
-
 // ---------------------------------------------------------------------//
-
 
 function prepare_directory() {
 	var directories = [ base_directory ];
@@ -90,9 +88,7 @@ function prepare_directory() {
 	CeL.fs_mkdir(directories);
 }
 
-
 // ---------------------------------------------------------------------//
-
 
 function show_模板(list) {
 	return list.map(function(page_data) {
@@ -285,7 +281,6 @@ function 處理須合併的條目(page_data, messages) {
 	// CeL.log(content.slice(0, 400));
 	return content;
 }
-
 
 // ---------------------------------------------------------------------//
 
