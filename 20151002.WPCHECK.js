@@ -448,7 +448,8 @@ if (false) {
 
 var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?\]\][\r\n]*/ig;
 
-fix_17.title = '頁面分類名稱重複';
+// 頁面分類名稱重複
+fix_17.title = '分類名稱重複';
 function fix_17(content, page_data, messages, options) {
 	var category_index_hash = {}, category_hash = {}, matched;
 	// search all category list
@@ -472,7 +473,118 @@ function fix_17(content, page_data, messages, options) {
 
 // ------------------------------------
 
+function add_quote(text, type) {
+	if (text = text.trim()) {
+		if (!type)
+			type = "'''";
+		return type + text + type;
+	}
+	return '';
+}
+
+// (''), (''') 不能跨行！
+
+fix_26.title = '使用HTML粗體 tag';
+function fix_26(content, page_data, messages, options) {
+	// 須注意因為模板或表格之特殊設計，造成錯誤結果的可能！
+	content = content
+	// fix error
+	// 不處理有指定 style 的。
+	// /<b(?:\s[^<>\n]+)?>([^<>]*)<\/b>/;
+	.replace(/<b>([^<>\n]*)<\/b>/gi, function(all, inner) {
+		return add_quote(inner);
+	})
+	// 處理表格中僅標示<b>的情況。
+	.replace(/<b>([^<>\n\|]*)(\|\||\n\|[\-}])/gi, function(all, inner, tail) {
+		return add_quote(inner) + " " + tail;
+	})
+	// <b>...<b>
+	.replace(/<b>([^<>\n]*)<b>(.*\n)/gi, function(all, inner, tail) {
+		if (/<\/b/i.test(tail))
+			return all;
+		return add_quote(inner) + tail;
+	});
+
+	// 檢查是否有剩下 <b>, </b> 的情況。
+	var matched = content.match(/<b(?:\s[^<>]+)?>|<\/b>/i);
+	if (matched)
+		messages.add('尚留有需要人工判別之HTML粗體 tag: <nowiki>' + matched[0]
+				+ '</nowiki>', page_data);
+
+	return content;
+}
+
+// ------------------------------------
+
+// (''), (''') 不能跨行！
+
+fix_38.title = '使用HTML斜體 tag';
+function fix_38(content, page_data, messages, options) {
+	// 須注意因為模板或表格之特殊設計，造成錯誤結果的可能！
+	content = content
+	// fix error
+	// 不處理有指定 style 的。
+	// /<i(?:\s[^<>\n]+)?>([^<>]*)<\/i>/;
+	.replace(/<i>([^<>\n]*)<\/i>/gi, function(all, inner) {
+		return add_quote(inner, "''");
+	})
+	// 處理表格中僅標示<b>的情況。
+	.replace(/<i>([^<>\n\|]*)(\|\||\n\|[\-}])/gi, function(all, inner, tail) {
+		return add_quote(inner, "''") + " " + tail;
+	})
+	// <i>...<i>
+	.replace(/<i>([^<>\n]*)<i>(.*\n)/gi, function(all, inner, tail) {
+		if (/<\/i/i.test(tail))
+			return all;
+		return add_quote(inner, "''") + tail;
+	});
+
+	// 檢查是否有剩下 <i>, </i> 的情況。
+	var matched = content.match(/<i(?:\s[^<>]+)?>|<\/i>/i);
+	if (matched)
+		messages.add('尚留有需要人工判別之HTML斜體 tag: <nowiki>' + matched[0]
+				+ '</nowiki>', page_data);
+
+	return content;
+}
+
+// ------------------------------------
+
 // fix_32 需考量在 <code>, <source>, <nowiki> 中之情況。
+
+// fix_50 合併至 fix_11
+
+// ------------------------------------
+
+fix_54.title = '列表內容最後加入分行號';
+function fix_54(content, page_data, messages, options) {
+	content = content
+	// fix error
+	.replace_till_stable(/(\*[^*\n]*?)<br(?:\s[^<>]+|\s*\/)?>\n/gi, function(
+			all, text) {
+		return text + '\n';
+	});
+
+	// 檢查是否有剩下出問題的情況。
+
+	return content;
+}
+
+// ------------------------------------
+
+fix_64.title = '內部連結顯示名稱和目標條目相同';
+function fix_64(content, page_data, messages, options) {
+	content = content
+	// fix error
+	.replace(/\[\[([^\[\]\|]+)\|('''?)?\1\2\]\]/g, function(all, link, quote) {
+		link = '[[' + link + ']]';
+		if (quote)
+			link = quote + link + quote;
+		return link;
+	});
+
+	return content;
+}
 
 // ------------------------------------
 
@@ -604,8 +716,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 17;
-處理頁面數 = 5;
+only_check = 64;
+處理頁面數 = 10;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
