@@ -588,6 +588,62 @@ function fix_64(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// 2016/2/24 20:30:57
+fix_65.title = '檔案或圖片的描述以換行結尾';
+function fix_65(content, page_data, messages, options) {
+	content = CeL.wiki.parser(content).parse()
+	//
+	.each('file', function(token, parent, index) {
+		return token.toString()
+		// fix error
+		.replace_till_stable(/(.)(?:\s|&nbsp;)*<br\s*[\/\\]?>\s*(\||\]\])/i,
+		//
+		function(all, head, tail) {
+			if (head === '}'
+			// ||head===']'
+			)
+				// 遇上 ...{{PDB|2AF8}}]] 會出現錯誤，得在中間放置間隔。
+				head += ' ';
+			return head + tail;
+		});
+	}, true).toString();
+
+	return content;
+}
+
+// ------------------------------------
+
+// 不可更改 parameter 為 "ISBN = ..." 的情況!
+fix_69.title = 'ISBN用法錯誤';
+function fix_69(content, page_data, messages, options) {
+	content = content
+			// fix error
+			.replace(
+					/([^\d])(1[03])?([\- ]*)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:\s#.]*([\dx\-\s]{10,})/gi,
+					function(all, head, head_1013, head_space, ISBN) {
+						if (!/\s/.test(head) && head_space.includes(' '))
+							// "ISBN" 與前面的文句間插入空格。
+							// 但 "/ISBN" 將變成 "/ ISBN"。
+							head += ' ';
+						var tail = ISBN.match(/\s$/);
+						ISBN = ISBN.replace(/\s/g, '');
+						var length = ISBN.replace(/-/g, '').length;
+						if (length === 10 || length === 13) {
+							if (tail)
+								// 保留最後的 \s
+								ISBN += tail[0];
+							return head + 'ISBN ' + ISBN;
+						}
+						return all;
+					});
+
+	// 檢查是否有剩下出問題的情況。
+
+	return content;
+}
+
+// ------------------------------------
+
 var
 // 因存在誤判 (false positive) 可能，因此限制 matched 長度。但這也造成漏判 (false negative) 的可能。
 // 誤判例: "[ftp://x.x d\n, so the regexp is /\]/..."
@@ -637,17 +693,19 @@ function fix_80(content, page_data, messages, options) {
 fix_93.title = '外部連結含有雙http(s)';
 function fix_93(content, page_data, messages, options) {
 	content = content
-			// fix error
-			// 以後面的 protocol 為主。
-			.replace(/(\[|url=|<ref[^>]*>)https?:?\/*(https?:)\/*/ig,
-					function(all, prefix, protocol) {
-						return prefix + protocol.toLowerCase() + '//';
-					})
-			.replace(
-					/https?:\/\/(web\.archive\.org\/[a-z\d*\/]+?\/)https?:\/\/(https?:\/\/)/ig,
-					function(all, prefix, protocol) {
-						return 'https://' + prefix + protocol.toLowerCase();
-					});
+	// fix error
+	// 以後面的 protocol 為主。
+	.replace(/(\[|url=|<ref[^>]*>)https?:?\/*(https?:)\/*/ig,
+	//
+	function(all, prefix, protocol) {
+		return prefix + protocol.toLowerCase() + '//';
+	}).replace(
+	//
+	/https?:\/\/(web\.archive\.org\/[a-z\d*\/]+?\/)https?:\/\/(https?:\/\/)/ig,
+	//
+	function(all, prefix, protocol) {
+		return 'https://' + prefix + protocol.toLowerCase();
+	});
 
 	// 檢查是否有剩下雙 http(s) 的情況。
 	var matched = content.match(/https?[:\/]*https?[:\/]*.{0,20}/i);
@@ -716,8 +774,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 64;
-處理頁面數 = 10;
+only_check = 69;
+處理頁面數 = 12;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
