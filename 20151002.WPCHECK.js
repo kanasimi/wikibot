@@ -51,7 +51,7 @@ function fix_2(content, page_data, messages, options) {
 	content = content
 	// <br></br> → <br>
 	.replace(/<br\s*>\s*<[\/\\]br\s*>/gi, '<br />').replace(
-			/(<br(?:\s[^<>]+)?>)\s*<[\/\\]br\s*>/gi, '$1')
+			/(<br(?:\s[^<>]*)?>)\s*<[\/\\]br\s*>/gi, '$1')
 	// '/' 在後
 	.replace(/<\s*br\s*(?:[\\.?a-z\d•]|br)\s*[\/\\]?>/gi, '<br />')
 	// '/' 在前
@@ -490,7 +490,7 @@ function fix_26(content, page_data, messages, options) {
 	content = content
 	// fix error
 	// 不處理有指定 style 的。
-	// /<b(?:\s[^<>\n]+)?>([^<>]*)<\/b>/;
+	// /<b(?:\s[^<>\n]*)?>([^<>]*)<\/b>/;
 	.replace(/<b>([^<>\n]*)<\/b>/gi, function(all, inner) {
 		return add_quote(inner);
 	})
@@ -506,7 +506,7 @@ function fix_26(content, page_data, messages, options) {
 	});
 
 	// 檢查是否有剩下 <b>, </b> 的情況。
-	var matched = content.match(/<b(?:\s[^<>]+)?>|<\/b>/i);
+	var matched = content.match(/<b(?:\s[^<>]*)?>|<\/b>/i);
 	if (matched)
 		messages.add('尚留有需要人工判別之HTML粗體 tag: <nowiki>' + matched[0]
 				+ '</nowiki>', page_data);
@@ -524,7 +524,7 @@ function fix_38(content, page_data, messages, options) {
 	content = content
 	// fix error
 	// 不處理有指定 style 的。
-	// /<i(?:\s[^<>\n]+)?>([^<>]*)<\/i>/;
+	// /<i(?:\s[^<>\n]*)?>([^<>]*)<\/i>/;
 	.replace(/<i>([^<>\n]*)<\/i>/gi, function(all, inner) {
 		return add_quote(inner, "''");
 	})
@@ -540,7 +540,7 @@ function fix_38(content, page_data, messages, options) {
 	});
 
 	// 檢查是否有剩下 <i>, </i> 的情況。
-	var matched = content.match(/<i(?:\s[^<>]+)?>|<\/i>/i);
+	var matched = content.match(/<i(?:\s[^<>]*)?>|<\/i>/i);
 	if (matched)
 		messages.add('尚留有需要人工判別之HTML斜體 tag: <nowiki>' + matched[0]
 				+ '</nowiki>', page_data);
@@ -596,7 +596,7 @@ function fix_65(content, page_data, messages, options) {
 	.each('file', function(token, parent, index) {
 		return token.toString()
 		// fix error
-		.replace_till_stable(/(.)(?:\s|&nbsp;)*<br\s*[\/\\]?>\s*(\||\]\])/i,
+		.replace_till_stable(/(.)(?:\s|&nbsp;)*<br\s*[\/\\]?>\s*(\||\]\])/ig,
 		//
 		function(all, head, tail) {
 			if (head === '}'
@@ -613,31 +613,47 @@ function fix_65(content, page_data, messages, options) {
 
 // ------------------------------------
 
+var PATTERN_ISBN = /([^\d])(1[03])?([\- ]*)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:\s#.]*([\dx\-\s]{10,})/gi;
 // 不可更改 parameter 為 "ISBN = ..." 的情況!
 fix_69.title = 'ISBN用法錯誤';
 function fix_69(content, page_data, messages, options) {
 	content = content
-			// fix error
-			.replace(
-					/([^\d])(1[03])?([\- ]*)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:\s#.]*([\dx\-\s]{10,})/gi,
-					function(all, head, head_1013, head_space, ISBN) {
-						if (!/\s/.test(head) && head_space.includes(' '))
-							// "ISBN" 與前面的文句間插入空格。
-							// 但 "/ISBN" 將變成 "/ ISBN"。
-							head += ' ';
-						var tail = ISBN.match(/\s$/);
-						ISBN = ISBN.replace(/\s/g, '');
-						var length = ISBN.replace(/-/g, '').length;
-						if (length === 10 || length === 13) {
-							if (tail)
-								// 保留最後的 \s
-								ISBN += tail[0];
-							return head + 'ISBN ' + ISBN;
-						}
-						return all;
-					});
+	// fix error
+	.replace(PATTERN_ISBN, function(all, head, head_1013, head_space, ISBN) {
+		if (!/\s/.test(head) && head_space.includes(' '))
+			// "ISBN" 與前面的文句間插入空格。
+			// 但 "/ISBN" 將變成 "/ ISBN"。
+			head += ' ';
+		var tail = ISBN.match(/\s$/);
+		ISBN = ISBN.replace(/\s/g, '');
+		var length = ISBN.replace(/-/g, '').length;
+		if (length === 10 || length === 13) {
+			if (tail)
+				// 保留最後的 \s
+				ISBN += tail[0];
+			return head + 'ISBN ' + ISBN;
+		}
+		return all;
+	});
 
 	// 檢查是否有剩下出問題的情況。
+
+	return content;
+}
+
+// ------------------------------------
+
+// CeL.wiki.parser.parse('[[File:a.jpg|thumb|d]]')
+fix_76.title = '檔案或圖片的連結中包含空格';
+function fix_76(content, page_data, messages, options) {
+	content = CeL.wiki.parser(content).parse()
+	//
+	.each('file', function(token, parent, index) {
+		// [0]: 僅處理連結部分。
+		token[0] = token[0].toString()
+		// fix error
+		.replace(/%20/gi, ' ');
+	}, true).toString();
 
 	return content;
 }
@@ -688,6 +704,55 @@ function fix_80(content, page_data, messages, options) {
 }
 
 // ------------------------------------
+
+// CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]')
+fix_86.title = '使用內部連結之雙括號表現外部連結';
+function fix_86(content, page_data, messages, options) {
+	content = CeL.wiki.parser(content).parse()
+	//
+	.each('link', function(token, parent, index) {
+		// 取得內部資料。
+		// e.g., 'http://www.wikipedia.org Wikipedia'
+		var text = token.toString().slice(2, -2);
+		if (!/^(?:https?:)?\/\//i.test(text))
+			// 正常內部連結。
+			return;
+
+		// [all, target, 說明]
+		var matched = text.match(/^([^\|]+)\|(.*)$/);
+		if (matched) {
+			if (matched[2].includes('|')) {
+				messages.add('存在兩個以上的 "|"，無法辨識: <nowiki>[['
+				//
+				+ text + ']]</nowiki>', page_data);
+				return;
+			}
+			text = matched[1].trim().replace(/ /g, '%20')
+			// 不需要 pipe
+			+ ' ' + matched[2].trim();
+		}
+		matched = text.match(
+		// [all, lang, 條目名稱, 說明]
+		/^(?:https?:)?\/\/([a-z]{2,9})\.wikipedia\.org\/wiki\/([^ ]+)( .+)?$/i
+		//
+		);
+		if (matched) {
+			matched[2] = decodeURIComponent(matched[2]);
+			return '[[' + (matched[1].toLowerCase()
+			//
+			=== 'zh' ? '' : ':' + matched[1] + ':') + matched[2] + (matched[3]
+			//
+			&& (matched[3] = matched[3].trim()) !== matched[2] ? '|'
+			//
+			+ matched[3] : '') + ']]';
+		}
+		return '[' + text + ']';
+	}, true).toString();
+
+	return content;
+}
+
+// ------------------------------------
 // 2016/2/19 22:9:6
 
 fix_93.title = '外部連結含有雙http(s)';
@@ -711,17 +776,64 @@ function fix_93(content, page_data, messages, options) {
 	var matched = content.match(/https?[:\/]*https?[:\/]*.{0,20}/i);
 	if (matched)
 		messages.add(
-				'尚留有需要人工判別之雙 http(s): <nowiki>' + matched[0] + '</nowiki>',
-				page_data);
+		//
+		'尚留有需要人工判別之雙 http(s): <nowiki>' + matched[0] + '</nowiki>', page_data);
 
 	return content;
 }
 
 // ------------------------------------
+
+/**
+ * <code>
+ CeL.wiki.parser('{| class="wikitable"\n|-\n! h1 !! h2\n|-\n| <sub>d1 || d2\n|}').parse().each('plain', function(token, parent, index){console.log(JSON.stringify(token));console.log(parent);})
+ CeL.wiki.parser('{{T|p=a<sub>s}}').parse().each('plain', function(token, parent, index){console.log(JSON.stringify(token));console.log(parent);})
+ </code>
+ * 
+ */
+
+fix_98.title = 'sub/sup tag 未首尾對應';
+function fix_98(content, page_data, messages, options) {
+	content = CeL.wiki.parser(content).parse()
+	//
+	.each('plain', function(token, parent, index) {
+		if (parent.table_type
+		// 在表格 td/th 或 template parameter 結束時，
+		// 似乎會自動重設部分 HTML font style tag 屬性，不會延續下去。
+		? parent.table_type !== 'td' && parent.table_type !== 'th'
+		//
+		: parent.type !== 'transclusion')
+			return;
+		// console.log(JSON.stringify(token));
+		// console.log(parent);
+		if (!token.match)
+			// for debug
+			console.log(token);
+
+		var matched = token.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
+		//
+		end_tag = matched && matched[1];
+		if (end_tag
+		// 檢查是否未包含 tag 結尾。
+		&& !new RegExp('</' + end_tag + '\\s*>', 'i').test(matched[2])) {
+			end_tag = '</' + end_tag + '>';
+			return token.replace(/\s*$/g, function(all) {
+				return end_tag + all;
+			})
+			// 去除內容為空的 tag。
+			.replace(/<(su[bp])(?:\s[^<>]*)?><\/\1\s*>/ig, '');
+		}
+	}, true).toString();
+
+	return content;
+}
+
+var fix_99 = fix_98;
+
+// ------------------------------------
 // [[:en:WP:PMID]]
 // https://www.mediawiki.org/wiki/Markup_spec/BNF/Magic_links
 // TODO: RFC, ISBN
-
 /** {RegExp}pattern to parse PMID. */
 var PATTERN_PMID_1 = /([^a-z])PMID(?:\s*[:：]\s*|)(\d{1,9})([^\d\]}\n][^\n]*)?\n/gi,
 /** {RegExp}pattern to parse PMID. */
@@ -774,8 +886,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 69;
-處理頁面數 = 12;
+only_check = 98;
+處理頁面數 = 10;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
