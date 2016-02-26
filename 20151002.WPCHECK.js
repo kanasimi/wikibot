@@ -788,8 +788,9 @@ function fix_93(content, page_data, messages, options) {
  * <code>
  CeL.wiki.parser('{| class="wikitable"\n|-\n! h1 !! h2\n|-\n| <sub>d1 || d2\n|}').parse().each('plain', function(token, parent, index){console.log(JSON.stringify(token));console.log(parent);})
  CeL.wiki.parser('{{T|p=a<sub>s}}').parse().each('plain', function(token, parent, index){console.log(JSON.stringify(token));console.log(parent);})
+ CeL.wiki.parser("{| class=\"wikitable sortable\" border=\"1\"\n|+ '''上海外国语大学'''外国语言专业布局<br><sub>（1949年——2011年）</sub>\n! <sub># !! <sub>语种名称 !! <sub>[[Language]] !! <sub>所属院系 !! <sub>设置时间 !! <sub>备注\n|-align=\"center\"\n| <sub>'''1'''\n|width=\"120\"| <sub>[[俄语]]\n|width=\"120\"| <sub>[[Русский]]\n|width=\"150\"| <sub>俄语系\n|width=\"100\"| <sub>1949年\n|width=\"250\"| \n|-align=\"center\"\n|  <sub>'''2''' \n|| <sub>[[英语]] || <sub>[[English]] || <sub>英语学院 || <sub>1950年  || <sub>1952年停办，1956年重设</sub>\n|}").parse()
+ CeL.wiki.page('上海外国语大学',function(page_data){CeL.wiki.parser(page_data).parse();})
  </code>
- * 
  */
 
 fix_98.title = 'sub/sup tag 未首尾對應';
@@ -798,9 +799,10 @@ function fix_98(content, page_data, messages, options) {
 	//
 	.each('plain', function(token, parent, index) {
 		if (parent.table_type
-		// 在表格 td/th 或 template parameter 結束時，
-		// 似乎會自動重設部分 HTML font style tag 屬性，不會延續下去。
+		//
 		? parent.table_type !== 'td' && parent.table_type !== 'th'
+		// TODO: 不為最後一個。
+		|| index < parent.length - 1
 		//
 		: parent.type !== 'transclusion')
 			return;
@@ -817,11 +819,12 @@ function fix_98(content, page_data, messages, options) {
 		// 檢查是否未包含 tag 結尾。
 		&& !new RegExp('</' + end_tag + '\\s*>', 'i').test(matched[2])) {
 			end_tag = '</' + end_tag + '>';
-			return token.replace(/\s*$/g, function(all) {
+			// 保留 \s$。
+			return token.replace(/\s*$/, function(all) {
 				return end_tag + all;
-			})
+			}).replace_till_stable(
 			// 去除內容為空的 tag。
-			.replace(/<(su[bp])(?:\s[^<>]*)?><\/\1\s*>/ig, '');
+			/<(su[bp])(?:\s[^<>]*)?>(\s*)<\/\1\s*>/ig, '$1');
 		}
 	}, true).toString();
 
@@ -887,7 +890,7 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
 only_check = 98;
-處理頁面數 = 10;
+處理頁面數 = [ 6, 7 ];
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {

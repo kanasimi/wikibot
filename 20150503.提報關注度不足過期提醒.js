@@ -48,7 +48,7 @@ message_set = {
 PATTERN_DO_NOT_NOTIFY = /請?勿(?:在討論頁?中?)?[加放]入關注度/i,
 // 提報關注度不足頁面中符合此 pattern 者將被 skip。
 // cewbot會以此判斷是否已提報過。若您需要手動提報，可在{{tl|Findsources}}條目後手動加上此註記，即可自動跳過提醒。
-PATTERN_SKIP = /於\d{1,2}(?:\.\d+)?天前提報/,
+PATTERN_SKIP = /於\d{1,2}(?:\.\d+)?天前提報|已經?(?:手動|通知|提醒)/,
 // 提報關注度不足頁面 [[WP:NP]], [[Wikipedia:關注度/提報]]
 notability_report = 'Wikipedia:关注度/提报',
 // 從第一個出現{{Findsources}}的line刪除到第一個未過期的line。
