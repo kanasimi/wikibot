@@ -626,13 +626,14 @@ function fix_69(content, page_data, messages, options) {
 			// "ISBN" 與前面的文句間插入空格。
 			// 但 "/ISBN" 將變成 "/ ISBN"。
 			head += ' ';
-		var tail = ISBN.match(/\s$/);
-		ISBN = ISBN.replace(/\s/g, '');
+		var tail = ISBN.match(/\s+$/);
+		ISBN = ISBN.replace(/\s+/g, '');
 		var length = ISBN.replace(/-/g, '').length;
 		if (length === 10 || length === 13) {
-			if (tail)
-				// 保留最後的 \s
-				ISBN += tail[0];
+			if (tail) {
+				// 保留最後的 \s+
+				ISBN += tail[0].replace(/ {2,}/g, ' ');
+			}
 			return head + 'ISBN ' + ISBN;
 		}
 		return all;
@@ -707,6 +708,13 @@ function fix_80(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// https://zh.wikipedia.org/wiki/條目#hash 說明
+// https://zh.wikipedia.org/zh-tw/條目#hash 說明
+// https://zh.wikipedia.org/w/index.php?title=條目
+// https://zh.wikipedia.org/w/index.php?uselang=zh-tw&title=條目
+// [ all, lang, 條目名稱, hash, 說明 ]
+var PATTERN_WIKI_LINK = /^(?:https?:)?\/\/([a-z]{2,9})\.wikipedia\.org\/(?:(?:wiki|zh-[a-z]{2})\/|w\/index\.php\?(?:uselang=zh-[a-z]{2}&)?title=)([^ #]+)(#[^ ]*)?( .+)?$/i;
+
 // CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]')
 fix_86.title = '使用內部連結之雙括號表現外部連結';
 function fix_86(content, page_data, messages, options) {
@@ -720,7 +728,7 @@ function fix_86(content, page_data, messages, options) {
 			// 正常內部連結。
 			return;
 
-		// [all, target, 說明]
+		// [ all, target, 說明 ]
 		var matched = text.match(/^([^\|]+)\|(.*)$/);
 		if (matched) {
 			if (matched[2].includes('|')) {
@@ -733,22 +741,23 @@ function fix_86(content, page_data, messages, options) {
 			// 不需要 pipe
 			+ ' ' + matched[2].trim();
 		}
-		matched = text.match(
-		// [all, lang, 條目名稱, 說明]
-		/^(?:https?:)?\/\/([a-z]{2,9})\.wikipedia\.org\/wiki\/([^ ]+)( .+)?$/i
-		//
-		);
+		matched = text.match(PATTERN_WIKI_LINK);
 		if (matched) {
 			matched[2] = decodeURIComponent(matched[2]);
+			matched[3] = decodeURIComponent(
+			//
+			(matched[3] || '').replace(/\./g, '%'));
 			return '[[' + (matched[1].toLowerCase()
+			// lang
+			=== 'zh' ? '' : ':' + matched[1] + ':')
 			//
-			=== 'zh' ? '' : ':' + matched[1] + ':') + matched[2] + (matched[3]
+			+ matched[2] + matched[3] + (matched[4]
 			//
-			&& (matched[3] = matched[3].trim()) !== matched[2] ? '|'
+			&& (matched[4] = matched[4].trim()) !== matched[2] ? '|'
 			//
-			+ matched[3] : '') + ']]';
+			+ matched[4] : '') + ']]';
 		}
-		return '[' + text + ']';
+		return '[' + text.trim() + ']';
 	}, true).toString();
 
 	return content;
@@ -968,8 +977,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 104;
-處理頁面數 = 10;
+only_check = [ 17, 26, 38, 54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 103, 104 ];
+處理頁面數 = 30;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
