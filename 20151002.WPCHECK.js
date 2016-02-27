@@ -793,6 +793,24 @@ function fix_93(content, page_data, messages, options) {
  </code>
  */
 
+function check_tag(token, parent) {
+	var matched = (parent ? parent.toString() : token)
+			.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
+	//
+	end_tag = matched && matched[1];
+	if (end_tag
+	// 檢查是否未包含 tag 結尾。
+	&& !new RegExp('</' + end_tag + '\\s*>', 'i').test(matched[2])) {
+		end_tag = '</' + end_tag + '>';
+		// 保留 \s$。
+		return token.replace(/\s*$/, function(all) {
+			return end_tag + all;
+		}).replace_till_stable(
+		// 去除內容為空的 tag。
+		/<(su[bp])(?:\s[^<>]*)?>(\s*)<\/\1\s*>/ig, '$2');
+	}
+}
+
 fix_98.title = 'sub/sup tag 未首尾對應';
 function fix_98(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
@@ -801,31 +819,30 @@ function fix_98(content, page_data, messages, options) {
 		if (parent.table_type
 		//
 		? parent.table_type !== 'td' && parent.table_type !== 'th'
-		// TODO: 不為最後一個。
+		// 此 token 不為最後一個。
 		|| index < parent.length - 1
 		//
 		: parent.type !== 'transclusion')
 			return;
+
 		// console.log(JSON.stringify(token));
 		// console.log(parent);
 		if (!token.match)
 			// for debug
 			console.log(token);
 
-		var matched = token.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
-		//
-		end_tag = matched && matched[1];
-		if (end_tag
-		// 檢查是否未包含 tag 結尾。
-		&& !new RegExp('</' + end_tag + '\\s*>', 'i').test(matched[2])) {
-			end_tag = '</' + end_tag + '>';
-			// 保留 \s$。
-			return token.replace(/\s*$/, function(all) {
-				return end_tag + all;
-			}).replace_till_stable(
-			// 去除內容為空的 tag。
-			/<(su[bp])(?:\s[^<>]*)?>(\s*)<\/\1\s*>/ig, '$1');
+		var replaced = check_tag(token);
+		if (replaced !== undefined)
+			return replaced;
+
+		if ((parent.table_type === 'td' || parent.table_type === 'th')
+		// 確認整個 cell 有首尾對應。
+		&& (replaced = check_tag(token, parent)) !== undefined) {
+			return replaced;
 		}
+
+		// TODO:末尾為 <ref> 時添加在前一個。
+
 	}, true).toString();
 
 	return content;
@@ -889,8 +906,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 98;
-處理頁面數 = [ 6, 7 ];
+only_check = 99;
+處理頁面數 = 2;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
