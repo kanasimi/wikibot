@@ -181,14 +181,16 @@ function fix_8(content, page_data, messages, options) {
 			// e.g., ==t==c
 			// → ==t==\nc
 			return '\n' + start_tag + ' '
-					+ title_token.slice(0, index + start_tag.length) + '\n'
-					+ title_token.slice(index + start_tag.length)
-					// 除掉不相符之 '='
-					.replace(/^=+/, '')
-					// ===<br />\n
-					// → ===\n
-					// 除掉 "<br />"
-					.replace(/<br ?[\/\\]?>\n*/i);
+			//
+			+ title_token.slice(0, index + start_tag.length) + '\n'
+			//
+			+ title_token.slice(index + start_tag.length)
+			// 除掉不相符之 '='
+			.replace(/^=+/, '')
+			// ===<br />\n
+			// → ===\n
+			// 除掉 "<br />"
+			.replace(/<br ?[\/\\]?>\n*/i);
 
 		if (title_token.length < 20) {
 			// 只在 title_token 不太長時，才將之當作章節標題而作最小修正。
@@ -883,6 +885,66 @@ function fix_102(content, page_data, messages, options) {
 	;
 }
 
+// ------------------------------------
+
+// 這種做法大多放在模板中。只是現在的 MediaWiki 版本已經不需要如此的避諱方法。
+fix_103.title = '連結中包含 pipe magic word';
+function fix_103(content, page_data, messages, options) {
+	content = CeL.wiki.parser(content).parse()
+	//
+	.each(
+			'link',
+			function(token, parent, index) {
+				var link;
+				if (token.length === 1 && token[0].length === 1
+						&& typeof (link = token[0][0]) === 'string'
+						&& link.split('{{!}}').length === 2)
+					token[0][0] = link.replace('{{!}}', '|');
+			}, true).toString();
+
+	return content;
+}
+
+// ------------------------------------
+
+fix_104.title = 'Unbalanced quotes in ref name';
+function fix_104(content, page_data, messages, options) {
+	content = content
+	// fix error
+	.replace(/<ref\s+name\s*=\s*(["'])([^>]*?)>/ig, function(all, quote, name) {
+		name = name.trim();
+		var single = /[^\/]\/$/.test(name);
+		if (single)
+			name = name.slice(0, -1).trim();
+		if (name.endsWith(quote) && !name.slice(0, -1).includes(quote))
+			// 正常無恙。
+			return all;
+		// 去尾。
+		while (name.endsWith(quote))
+			name = name.slice(0, -1);
+		// 去頭。
+		while (name.startsWith(quote))
+			name = name.slice(1);
+		name = name.trim();
+		if (name.includes(quote)) {
+			if (name.slice(0, -1).includes(quote))
+				messages.add('尚留有需要人工判別之 ref name: <nowiki>' + all
+						+ '</nowiki>', page_data);
+			return all;
+		}
+		// console.log(all);
+		if (name.endsWith(quote === '"' ? "'" : '"'))
+			name = name.slice(0, -1) + quote;
+		else
+			name += quote;
+		return '<ref name=' + quote + name + (single ? ' /' : '') + '>';
+	});
+
+	// 檢查是否有剩下出問題的情況。
+
+	return content;
+}
+
 // ---------------------------------------------------------------------//
 // main
 
@@ -906,8 +968,8 @@ only_check = [ 10, 80, 102 ];
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = 99;
-處理頁面數 = 2;
+only_check = 104;
+處理頁面數 = 10;
 
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
