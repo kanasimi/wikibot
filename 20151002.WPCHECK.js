@@ -562,7 +562,7 @@ fix_54.title = '列表內容最後加入分行號';
 function fix_54(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace_till_stable(/(\*[^*\n]*?)<br(?:\s[^<>]+|\s*\/)?>\n/gi, function(
+	.replace_till_stable(/(\*[^*\n]*?)<br(?:\s[^<>]*|\/)?>\n/gi, function(
 			all, text) {
 		return text + '\n';
 	});
