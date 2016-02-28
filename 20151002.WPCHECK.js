@@ -710,10 +710,11 @@ function fix_80(content, page_data, messages, options) {
 
 // https://zh.wikipedia.org/wiki/條目#hash 說明
 // https://zh.wikipedia.org/zh-tw/條目#hash 說明
+// https://zh.wikipedia.org/zh-hans/條目#hash 說明
 // https://zh.wikipedia.org/w/index.php?title=條目
 // https://zh.wikipedia.org/w/index.php?uselang=zh-tw&title=條目
 // [ all, lang, 條目名稱, hash, 說明 ]
-var PATTERN_WIKI_LINK = /^(?:https?:)?\/\/([a-z]{2,9})\.wikipedia\.org\/(?:(?:wiki|zh-[a-z]{2})\/|w\/index\.php\?(?:uselang=zh-[a-z]{2}&)?title=)([^ #]+)(#[^ ]*)?( .+)?$/i;
+var PATTERN_WIKI_LINK = /^(?:https?:)?\/\/([a-z]{2,9})\.wikipedia\.org\/(?:(?:wiki|zh-[a-z]{2,4})\/|w\/index\.php\?(?:uselang=zh-[a-z]{2}&)?title=)([^ #]+)(#[^ ]*)?( .+)?$/i;
 
 // CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]')
 fix_86.title = '使用內部連結之雙括號表現外部連結';
@@ -731,9 +732,9 @@ function fix_86(content, page_data, messages, options) {
 		// [ all, target, 說明 ]
 		var matched = text.match(/^([^\|]+)\|(.*)$/);
 		if (matched) {
-			if (matched[2].includes('|')) {
-				messages.add('存在兩個以上的 "|"，無法辨識: <nowiki>[['
-				//
+			if (/[\|\[\]]/.test(matched[2])) {
+				messages.add('存在 "[", "]" 或兩個以上的 "|"，無法辨識: <nowiki>[['
+				// 不處理。
 				+ text + ']]</nowiki>', page_data);
 				return;
 			}
