@@ -277,9 +277,11 @@ function 處理須合併的條目(page_data, messages) {
 // main
 
 // prepare directory: delete cache, reset base directory.
-CeL.fs_remove(base_directory, function() {
-	CeL.fs_mkdir(base_directory);
-});
+// TODO: use move
+if (false)
+	CeL.fs_remove(base_directory, function() {
+		CeL.fs_mkdir(base_directory);
+	});
 
 CeL.wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目
@@ -463,24 +465,22 @@ CeL.wiki.cache([ {
 			list = list.filter(function(page) {
 				return !page.includes(':');
 			});
-			return list.length > 0 ? '|-\n| ' + index
+			count += list.length;
+			return list.length > 0 ? '|-\n| ' + index + ' || 共'
 			//
-			+ ' || [[' + list.join(']], [[') + ']]\n' : '';
+			+ list.length + '條目。\n\n[[' + list.join(']], [[') + ']]\n' : '';
 		}).reverse().join('\n').replace(/\n{2,}/g, '\n');
 
 		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n{{see|' + log_to
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n' + content + '|}';
 
-		// 把「頁面」改成「條目」 by Jimmy Xu
-		wiki.page(title)
-		//
-		.edit(content, {
+		wiki.page(title).edit(content, {
 			summary : _summary
 		});
 
-		wiki.page(title + '/計數').edit(count, {
-			summary : _summary
+		wiki.page(title + '/計數').edit(String(count), {
+			summary : _summary + '數'
 		});
 
 		return 含有太多維護模板之頁面.map(function(list, index) {

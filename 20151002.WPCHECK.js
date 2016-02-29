@@ -954,6 +954,7 @@ function fix_104(content, page_data, messages, options) {
 // main
 
 // prepare directory: delete cache, reset base directory.
+// TODO: use move
 CeL.fs_remove(base_directory, function() {
 	CeL.fs_mkdir(base_directory);
 });
