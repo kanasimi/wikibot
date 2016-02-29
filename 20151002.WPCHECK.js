@@ -30,7 +30,7 @@ summary = '[[WP:WPCHECK|修正維基語法]]',
 /** {String}緊急停止作業將檢測之章節標題。 */
 check_section = '20151002',
 /** {String}運作記錄存放頁面。 */
-log_to = 'User:cewbot/log/' + check_section;
+log_to = 'User:' + user_name + '/log/' + check_section;
 
 // ---------------------------------------------------------------------//
 
@@ -953,7 +953,7 @@ function fix_104(content, page_data, messages, options) {
 // ---------------------------------------------------------------------//
 // main
 
-// prepare directory: reset base directory
+// prepare directory: delete cache, reset base directory.
 CeL.fs_remove(base_directory, function() {
 	CeL.fs_mkdir(base_directory);
 });

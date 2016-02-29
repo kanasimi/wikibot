@@ -33,7 +33,7 @@ summary = '規範多個問題模板',
 /** {String}緊急停止作業將檢測之章節標題。 */
 check_section = '20150916',
 /** {String}運作記錄存放頁面。 */
-log_to = 'User:cewbot/log/' + check_section,
+log_to = 'User:' + user_name + '/log/' + check_section,
 
 /** {String}{{多個問題}}模板名 */
 多個問題_模板名 = '多個問題',
@@ -276,7 +276,7 @@ function 處理須合併的條目(page_data, messages) {
 
 // main
 
-// prepare directory: reset base directory
+// prepare directory: delete cache, reset base directory.
 CeL.fs_remove(base_directory, function() {
 	CeL.fs_mkdir(base_directory);
 });
@@ -452,17 +452,35 @@ CeL.wiki.cache([ {
 			// 含有2個維護模板的條目。不動這些條目。
 		});
 
+		var count = 0,
+		//
+		title = 'User:' + user_name + '/含有太多維護模板之條目',
+		//
+		_summary = summary + ': 紀錄含有太多維護模板之條目',
+		//
+		content = 含有太多維護模板之頁面.map(function(list, index) {
+			// 僅紀錄條目命名空間。
+			list = list.filter(function(page) {
+				return !page.includes(':');
+			});
+			return list.length > 0 ? '|-\n| ' + index
+			//
+			+ ' || [[' + list.join(']], [[') + ']]\n' : '';
+		}).reverse().join('\n').replace(/\n{2,}/g, '\n');
+
+		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n{{see|' + log_to
+		//
+		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n' + content + '|}';
+
 		// 把「頁面」改成「條目」 by Jimmy Xu
-		wiki.page('User:cewbot/含有太多維護模板之條目')
+		wiki.page(title)
 		//
-		.edit('含有太多維護模板之頁面\n{{see|' + log_to
-		//
-		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之頁面\n'
-		//
-		+ 含有太多維護模板之頁面.map(function(list, index) {
-			return '|-\n| ' + index + ' || [[' + list.join(']], [[') + ']]\n';
-		}).reverse().join('\n').replace(/\n{2,}/g, '\n') + '|}', {
-			summary : summary + ': 紀錄含有太多維護模板之頁面'
+		.edit(content, {
+			summary : _summary
+		});
+
+		wiki.page(title + '/計數').edit(count, {
+			summary : _summary
 		});
 
 		return 含有太多維護模板之頁面.map(function(list, index) {

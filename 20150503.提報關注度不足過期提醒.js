@@ -21,7 +21,7 @@ summary = '提報關注度不足過期提醒',
 /** {String}緊急停止作業將檢測之章節標題。 */
 check_section = '20150503',
 /** {String}運作記錄存放頁面。 */
-log_to = 'User:cewbot/log/' + check_section,
+log_to = 'User:' + user_name + '/log/' + check_section,
 /** {Natural}確保關注度不足模板已掛上足夠長（至少30日）的時間。 */
 limit_days = 30,
 /**
@@ -47,7 +47,7 @@ message_set = {
 // e.g., {{Personal announcement|content=請勿在討論頁中加入關注度、動員令訊息}}
 PATTERN_DO_NOT_NOTIFY = /請?勿(?:在討論頁?中?)?[加放]入關注度/i,
 // 提報關注度不足頁面中符合此 pattern 者將被 skip。
-// cewbot會以此判斷是否已提報過。若您需要手動提報，可在{{tl|Findsources}}條目後手動加上此註記，即可自動跳過提醒。
+// 本bot會以此判斷是否已提報過。若您需要手動提報，可在{{tl|Findsources}}條目後手動加上此註記，即可自動跳過提醒。
 PATTERN_SKIP = /於\d{1,2}(?:\.\d+)?天前提報|已經?(?:手動|通知|提醒)/,
 // 提報關注度不足頁面 [[WP:NP]], [[Wikipedia:關注度/提報]]
 notability_report = 'Wikipedia:关注度/提报',

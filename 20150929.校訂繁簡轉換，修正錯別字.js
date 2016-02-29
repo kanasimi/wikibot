@@ -22,7 +22,7 @@ summary = '校訂繁簡轉換，修正錯別字',
 /** {String}緊急停止作業將檢測之章節標題。 */
 check_section = '20150929',
 /** {String}運作記錄存放頁面。 */
-log_to = 'User:cewbot/log/' + check_section,
+log_to = 'User:' + user_name + '/log/' + check_section,
 /** {Object}wiki 操作子. */
 wiki = Wiki(true, 'zh.wikisource');
 
