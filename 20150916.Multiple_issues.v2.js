@@ -23,11 +23,11 @@
 
 // var CeL_path = 'S:\\cgi-bin\\lib\\JS';
 require('./wiki loder.js');
-// for prepare_directory()
+// for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 
 /** {String}base directory */
-var base_directory = 'Multiple_issues/',
+var base_directory = home_directory + 'Multiple_issues/',
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 /** {String}緊急停止作業將檢測之章節標題。 */
@@ -48,7 +48,7 @@ log_to = 'User:cewbot/log/' + check_section,
  * 
  * @see [[Category:維基百科維護模板]], {{Ambox}}, [[WP:HAT#頂註模板]]
  */
-其他維護模板名 = ('Wikify|未完結|Lead section|專家|Veil|Non-free|plot|Almanac|Like-resume|cleanup-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Overly detailed|BLP unsourced|Notability Unreferenced|globalize|unreferenced'
+其他維護模板名 = ('Wikify|未完結|Lead section|專家|Veil|Non-free|plot|Almanac|Like-resume|cleanup-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|globalize|unreferenced'
 		+ '|Expand language|Expand English|Expand Japanese|Expand Spanish')
 		.split('|'),
 /**
@@ -77,16 +77,6 @@ wiki = Wiki(true),
 維護模板_by_pageid = [],
 //
 normalized_count = CeL.wiki.redirects.count.bind(null, 維護模板本名);
-
-// ---------------------------------------------------------------------//
-
-function prepare_directory() {
-	var directories = [ base_directory ];
-	'embeddedin,page,redirects'.split(',').forEach(function(directory_name) {
-		directories.push(base_directory + directory_name);
-	});
-	CeL.fs_mkdir(directories);
-}
 
 // ---------------------------------------------------------------------//
 
@@ -286,7 +276,10 @@ function 處理須合併的條目(page_data, messages) {
 
 // main
 
-prepare_directory();
+// prepare directory: reset base directory
+CeL.fs_remove(base_directory, function() {
+	CeL.fs_mkdir(base_directory);
+});
 
 CeL.wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目
@@ -459,7 +452,8 @@ CeL.wiki.cache([ {
 			// 含有2個維護模板的條目。不動這些條目。
 		});
 
-		wiki.page('User:cewbot/含有太多維護模板之頁面')
+		// 把「頁面」改成「條目」 by Jimmy Xu
+		wiki.page('User:cewbot/含有太多維護模板之條目')
 		//
 		.edit('含有太多維護模板之頁面\n{{see|' + log_to
 		//

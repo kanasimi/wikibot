@@ -7,17 +7,23 @@
  2016/2/2 20:4:48 上路前修正
  完善
 
+ TODO:
+ [[WP:維基化]]
+ https://en.wikipedia.org/wiki/Wikipedia:WikiProject_Check_Wikipedia
+ https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
+ https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
+
  */
 
 'use strict';
 
 // var CeL_path = 'S:\\cgi-bin\\lib\\JS';
 require('./wiki loder.js');
-// for prepare_directory()
+// for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 
 /** {String}base directory */
-var base_directory = 'WPCHECK/',
+var base_directory = home_directory + 'WPCHECK/',
 // 修正維基百科內容的語法錯誤。
 /** {String}編輯摘要。總結報告。 */
 summary = '[[WP:WPCHECK|修正維基語法]]',
@@ -25,17 +31,6 @@ summary = '[[WP:WPCHECK|修正維基語法]]',
 check_section = '20151002',
 /** {String}運作記錄存放頁面。 */
 log_to = 'User:cewbot/log/' + check_section;
-
-// ---------------------------------------------------------------------//
-
-function prepare_directory() {
-	var directories = [ base_directory ];
-	// embeddedin,page,redirects
-	''.split(',').forEach(function(directory_name) {
-		directories.push(base_directory + directory_name);
-	});
-	CeL.fs_mkdir(directories);
-}
 
 // ---------------------------------------------------------------------//
 
@@ -562,8 +557,8 @@ fix_54.title = '列表內容最後加入分行號';
 function fix_54(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace_till_stable(/(\*[^*\n]*?)<br(?:\s[^<>]*|\/)?>\n/gi, function(
-			all, text) {
+	.replace_till_stable(/(\*[^*\n]*?)<br(?:\s[^<>]*|\/)?>\n/gi, function(all,
+			text) {
 		return text + '\n';
 	});
 
@@ -902,15 +897,15 @@ fix_103.title = '連結中包含 pipe magic word';
 function fix_103(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
 	//
-	.each(
-			'link',
-			function(token, parent, index) {
-				var link;
-				if (token.length === 1 && token[0].length === 1
-						&& typeof (link = token[0][0]) === 'string'
-						&& link.split('{{!}}').length === 2)
-					token[0][0] = link.replace('{{!}}', '|');
-			}, true).toString();
+	.each('link', function(token, parent, index) {
+		var link;
+		if (token.length === 1 && token[0].length === 1
+		//
+		&& typeof (link = token[0][0]) === 'string'
+		//
+		&& link.split('{{!}}').length === 2)
+			token[0][0] = link.replace('{{!}}', '|');
+	}, true).toString();
 
 	return content;
 }
@@ -958,7 +953,10 @@ function fix_104(content, page_data, messages, options) {
 // ---------------------------------------------------------------------//
 // main
 
-prepare_directory();
+// prepare directory: reset base directory
+CeL.fs_remove(base_directory, function() {
+	CeL.fs_mkdir(base_directory);
+});
 
 var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
 		+ 'zhwiki' + '&view=bots&offset=0&id=',
@@ -1028,7 +1026,7 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 		}, page_list);
 
 	}, {
-		file_name : 'WPCHECK/list_' + checking_index + '.json',
+		file_name : base_directory + 'list_' + checking_index + '.json',
 		postprocessor : function(data) {
 			if (data.charAt(0) === '<')
 				// 僅取得 <pre> 間的 data。
