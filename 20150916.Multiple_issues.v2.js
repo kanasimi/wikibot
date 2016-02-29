@@ -27,7 +27,7 @@ require('./wiki loder.js');
 CeL.run('application.platform.nodejs');
 
 /** {String}base directory */
-var base_directory = home_directory + 'Multiple_issues/',
+var base_directory = bot_directory + 'Multiple_issues/',
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 /** {String}緊急停止作業將檢測之章節標題。 */

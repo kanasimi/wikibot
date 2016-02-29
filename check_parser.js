@@ -17,7 +17,7 @@ require('./wiki loder.js');
 CeL.run('application.platform.nodejs');
 
 /** {String}base directory */
-var base_directory = home_directory + 'WPCHECK/';
+var base_directory = bot_directory + 'WPCHECK/';
 
 // ---------------------------------------------------------------------//
 
