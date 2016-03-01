@@ -80,3 +80,16 @@ Function('return this')().Wiki = (function() {
 })();
 
 // ----------------------------------------------------------------------------
+
+// prepare directory: delete cache, reset base directory.
+// TODO: use move
+function prepare_directory(clean) {
+	function create_base() {
+		CeL.fs_mkdir(base_directory);
+	}
+	if (clean)
+		CeL.fs_remove(base_directory, create_base);
+	else
+		create_base();
+}
+

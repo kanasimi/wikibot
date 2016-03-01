@@ -276,12 +276,7 @@ function 處理須合併的條目(page_data, messages) {
 
 // main
 
-// prepare directory: delete cache, reset base directory.
-// TODO: use move
-if (false)
-	CeL.fs_remove(base_directory, function() {
-		CeL.fs_mkdir(base_directory);
-	});
+prepare_directory(true);
 
 CeL.wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目

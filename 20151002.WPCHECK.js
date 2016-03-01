@@ -953,11 +953,7 @@ function fix_104(content, page_data, messages, options) {
 // ---------------------------------------------------------------------//
 // main
 
-// prepare directory: delete cache, reset base directory.
-// TODO: use move
-CeL.fs_remove(base_directory, function() {
-	CeL.fs_mkdir(base_directory);
-});
+prepare_directory(true);
 
 var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
 		+ 'zhwiki' + '&view=bots&offset=0&id=',
