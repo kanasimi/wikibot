@@ -276,7 +276,7 @@ function 處理須合併的條目(page_data, messages) {
 
 // main
 
-prepare_directory(true);
+prepare_directory(base_directory, true);
 
 CeL.wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目

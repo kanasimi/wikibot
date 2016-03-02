@@ -446,7 +446,7 @@ if (false) {
 var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?\]\][\r\n]*/ig;
 
 // 頁面分類名稱重複
-fix_17.title = '分類名稱重複';
+fix_17.title = '分類名稱重複，排序索引以後出現者為主。';
 function fix_17(content, page_data, messages, options) {
 	var category_index_hash = {}, category_hash = {}, matched;
 	// search all category list
@@ -953,7 +953,7 @@ function fix_104(content, page_data, messages, options) {
 // ---------------------------------------------------------------------//
 // main
 
-prepare_directory(true);
+prepare_directory(base_directory, false);
 
 var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
 		+ 'zhwiki' + '&view=bots&offset=0&id=',
@@ -968,14 +968,15 @@ only_check,
 /** {Natural|Array}每一項最大處理頁面數。 */
 處理頁面數;
 
-only_check = [ 10, 80, 102 ];
+//only_check = [ 10, 80, 102 ];
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
 only_check = [ 17, 26, 38, 54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 103, 104 ];
-處理頁面數 = 30;
+處理頁面數 = [ 30, 40 ];
 
+// CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
 		if (Array.isArray(only_check)) {
