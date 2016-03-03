@@ -807,15 +807,22 @@ function fix_93(content, page_data, messages, options) {
  */
 
 function check_tag(token, parent) {
+	// console.log(JSON.stringify(token));
+	// console.log(parent);
+	if (!token.match)
+		// for debug
+		console.debug(token);
+
 	var matched = (parent ? parent.toString() : token)
 			.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
 	//
 	end_tag = matched && matched[1];
+
 	if (end_tag
 	// 檢查是否未包含 tag 結尾。
 	&& !new RegExp('</' + end_tag + '\\s*>', 'i').test(matched[2])) {
 		end_tag = '</' + end_tag + '>';
-		// 保留 \s$。
+		// 添加 end_tag，保留 \s$。
 		return token.replace(/\s*$/, function(all) {
 			return end_tag + all;
 		}).replace_till_stable(
@@ -824,6 +831,7 @@ function check_tag(token, parent) {
 	}
 }
 
+// TODO: <sub>...<sub>
 fix_98.title = 'sub/sup tag 未首尾對應';
 function fix_98(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
@@ -837,12 +845,6 @@ function fix_98(content, page_data, messages, options) {
 		//
 		: parent.type !== 'transclusion')
 			return;
-
-		// console.log(JSON.stringify(token));
-		// console.log(parent);
-		if (!token.match)
-			// for debug
-			console.log(token);
 
 		var replaced = check_tag(token);
 		if (replaced !== undefined)
@@ -970,7 +972,7 @@ NOT_FOUND = ''.indexOf('_'),
 /** {Object}wiki 操作子. */
 wiki = Wiki(true),
 /** {Array}已批准NO */
-approved = [ 10, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
+approved = [ 10, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
 only_check,
 /** {Natural|Array}每一項最大處理頁面數。 */
