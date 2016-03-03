@@ -445,6 +445,7 @@ if (false) {
 
 var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?\]\][\r\n]*/ig;
 
+// [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 // 頁面分類名稱重複
 fix_17.title = '分類名稱重複，排序索引以後出現者為主。';
 function fix_17(content, page_data, messages, options) {
@@ -480,6 +481,7 @@ function add_quote(text, type) {
 }
 
 // (''), (''') 不能跨行！
+// 現在只處理表格中標示<b>，<i>這種讀得懂，且已確認沒問題的情況。
 
 fix_26.title = '使用HTML粗體 tag';
 function fix_26(content, page_data, messages, options) {
@@ -514,6 +516,7 @@ function fix_26(content, page_data, messages, options) {
 // ------------------------------------
 
 // (''), (''') 不能跨行！
+// 現在只處理表格中標示<b>，<i>這種讀得懂，且已確認沒問題的情況。
 
 fix_38.title = '使用HTML斜體 tag';
 function fix_38(content, page_data, messages, options) {
@@ -525,7 +528,7 @@ function fix_38(content, page_data, messages, options) {
 	.replace(/<i>([^<>\n]*)<\/i>/gi, function(all, inner) {
 		return add_quote(inner, "''");
 	})
-	// 處理表格中僅標示<b>的情況。
+	// 處理表格中僅標示<i>的情況。
 	.replace(/<i>([^<>\n\|]*)(\|\||\n\|[\-}])/gi, function(all, inner, tail) {
 		return add_quote(inner, "''") + " " + tail;
 	})
@@ -569,6 +572,7 @@ function fix_54(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 fix_64.title = '內部連結顯示名稱和目標條目相同';
 function fix_64(content, page_data, messages, options) {
 	content = content
@@ -641,6 +645,7 @@ function fix_69(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 // CeL.wiki.parser.parse('[[File:a.jpg|thumb|d]]')
 fix_76.title = '檔案或圖片的連結中包含空格';
 function fix_76(content, page_data, messages, options) {
@@ -650,7 +655,7 @@ function fix_76(content, page_data, messages, options) {
 		// [0]: 僅處理連結部分。
 		token[0] = token[0].toString()
 		// fix error
-		.replace(/%20/gi, ' ');
+		.replace(/%20/g, ' ');
 	}, true).toString();
 
 	return content;
@@ -673,6 +678,7 @@ var
  */
 PATTERN_external_link = /([^\[])\[[\s\n]*([a-z]{3,5}:[^\[\]\s\n]{3,120})([\s\n]+[^\[\]]{0,80})\]/gi;
 
+// [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 fix_80.title = '外部連結中起新行或含有不必要的空格';
 function fix_80(content, page_data, messages, options) {
 	content = content
@@ -963,18 +969,20 @@ NOT_FOUND = ''.indexOf('_'),
 
 /** {Object}wiki 操作子. */
 wiki = Wiki(true),
+/** {Array}已批准NO */
+approved = [ 10, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
 only_check,
 /** {Natural|Array}每一項最大處理頁面數。 */
 處理頁面數;
 
-//only_check = [ 10, 80, 102 ];
+only_check = approved;
+// only_check = 99;
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
-only_check = [ 17, 26, 38, 54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 103, 104 ];
-處理頁面數 = [ 30, 40 ];
+// 處理頁面數 = [ 30, 40 ];
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
@@ -1018,8 +1026,8 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 			summary : summary + ' ' + checking_index
 			//
 			+ ': ' + fix_function.title,
-			log_to : log_to,
-			slice : 100
+			// slice : 100,
+			log_to : log_to
 		// only_check === 10 ? 100 : 0
 		}, page_list);
 
