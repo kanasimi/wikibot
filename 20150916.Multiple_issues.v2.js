@@ -450,7 +450,7 @@ CeL.wiki.cache([ {
 		});
 
 		var count = 0,
-		//
+		// 掛有/含有
 		title = 'User:' + user_name + '/含有太多維護模板之條目',
 		//
 		_summary = summary + ': 紀錄含有太多維護模板之條目',
@@ -468,7 +468,9 @@ CeL.wiki.cache([ {
 
 		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n{{see|' + log_to
 		//
-		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n' + content + '|}';
+		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
+		//
+		+ content + '|}\n\n[[Category:按月分类的维基百科维护分类]]\n';
 
 		wiki.page(title).edit(content, {
 			summary : _summary
