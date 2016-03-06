@@ -445,16 +445,18 @@ if (false) {
 // ------------------------------------
 
 // cf. "unicode other" （標籤：加入不可見字符）, "unicode pua" （標籤：含有Unicode私有區編碼）
+// https://zh.wikipedia.org/w/index.php?title=Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97&wpSearchFilter=180
+// 可能影響expand template的行為。e.g., {{n|p=<\u200Eb>}}
 fix_16.title = '在模板調用中使用Unicode控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace(/[\u200B\u200E\u2028\uFEFF]([^{}]*}})/g, function(all, inner) {
+	.replace_till_stable(/[\u200B\u200E\u2028\uFEFF]([^{}]*}[\u200B\u200E\u2028\uFEFF]*})/g, function(all, inner) {
 		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
 	})
-	.replace(/[\u200B\u200E\u2028\uFEFF]([^\[\]]*\]\])/g, function(all, inner) {
+	.replace_till_stable(/[\u200B\u200E\u2028\uFEFF]([^\[\]]*\][\u200B\u200E\u2028\uFEFF]*\])/g, function(all, inner) {
 		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
-	});
+	}).replace(/\[[\u200B\u200E\u2028\uFEFF]+\[/g , '').replace(/{[\u200B\u200E\u2028\uFEFF]+{/g , '');
 
 	// 檢查是否有剩下出問題的情況。
 
