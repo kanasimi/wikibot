@@ -115,6 +115,7 @@ function fix_5(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// 疑似
 // fix_7, fix_19, fix_83: 須注意是不是有被 transclusion，章節標題是否為年月日。
 
 // ------------------------------------
@@ -443,6 +444,25 @@ if (false) {
 
 // ------------------------------------
 
+// cf. "unicode other" （標籤：加入不可見字符）, "unicode pua" （標籤：含有Unicode私有區編碼）
+fix_16.title = '在模板調用中使用Unicode控制字符';
+function fix_16(content, page_data, messages, options) {
+	content = content
+	// fix error
+	.replace(/[\u200B\u200E\u2028\uFEFF]([^{}]*}})/g, function(all, inner) {
+		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
+	})
+	.replace(/[\u200B\u200E\u2028\uFEFF]([^\[\]]*\]\])/g, function(all, inner) {
+		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
+	});
+
+	// 檢查是否有剩下出問題的情況。
+
+	return content;
+}
+
+// ------------------------------------
+
 var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?\]\][\r\n]*/ig;
 
 // [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
@@ -714,6 +734,7 @@ function fix_80(content, page_data, messages, options) {
 // https://zh.wikipedia.org/zh-hans/條目#hash 說明
 // https://zh.wikipedia.org/w/index.php?title=條目
 // https://zh.wikipedia.org/w/index.php?uselang=zh-tw&title=條目
+// TODO: /wiki/條目#hash 說明
 // [ all, lang, 條目名稱, hash, 說明 ]
 var PATTERN_WIKI_LINK = /^(?:https?:)?\/\/([a-z]{2,9})\.wikipedia\.org\/(?:(?:wiki|zh-[a-z]{2,4})\/|w\/index\.php\?(?:uselang=zh-[a-z]{2}&)?title=)([^ #]+)(#[^ ]*)?( .+)?$/i;
 
@@ -979,12 +1000,14 @@ only_check,
 處理頁面數;
 
 only_check = approved;
+only_check = 16;
 // only_check = 99;
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
+處理頁面數 = 20;
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
