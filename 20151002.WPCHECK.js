@@ -451,12 +451,19 @@ fix_16.title = '在模板調用中使用Unicode控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace_till_stable(/[\u200B\u200E\u2028\uFEFF]([^{}]*}[\u200B\u200E\u2028\uFEFF]*})/g, function(all, inner) {
+	.replace(/\[[\u200B\u200E\u2028\uFEFF]+\[/g, '').replace(
+			/{[\u200B\u200E\u2028\uFEFF]+{/g, '')
+	//
+	.replace(/\][\u200B\u200E\u2028\uFEFF]+\]/g, '').replace(
+			/}[\u200B\u200E\u2028\uFEFF]+}/g, '')
+	//
+	.replace(/[\u200B\u200E\u2028\uFEFF]([^{}]*}})/g, function(all, inner) {
 		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
 	})
-	.replace_till_stable(/[\u200B\u200E\u2028\uFEFF]([^\[\]]*\][\u200B\u200E\u2028\uFEFF]*\])/g, function(all, inner) {
+	//
+	.replace(/[\u200B\u200E\u2028\uFEFF]([^\[\]]*\]\])/g, function(all, inner) {
 		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
-	}).replace(/\[[\u200B\u200E\u2028\uFEFF]+\[/g , '').replace(/{[\u200B\u200E\u2028\uFEFF]+{/g , '');
+	});
 
 	// 檢查是否有剩下出問題的情況。
 
@@ -1009,7 +1016,7 @@ only_check = 16;
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
-處理頁面數 = 20;
+處理頁面數 = [ 30, 50 ];
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
