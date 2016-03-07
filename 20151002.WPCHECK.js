@@ -446,24 +446,30 @@ if (false) {
 
 // cf. "unicode other" （標籤：加入不可見字符）, "unicode pua" （標籤：含有Unicode私有區編碼）
 // https://zh.wikipedia.org/w/index.php?title=Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97&wpSearchFilter=180
+// 模板調用中使用不可見字符: NG.
 // 可能影響expand template的行為。e.g., {{n|p=<\u200Eb>}}
-fix_16.title = '在模板調用中使用Unicode控制字符';
+fix_16.title = '在Category或link、重定向中使用Unicode控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace(/\[[\u200B\u200E\u2028\uFEFF]+\[/g, '').replace(
-			/{[\u200B\u200E\u2028\uFEFF]+{/g, '')
+	.replace(/\[[\u200B\u200E\u2028\uFEFF]+\[/g, '')
 	//
-	.replace(/\][\u200B\u200E\u2028\uFEFF]+\]/g, '').replace(
-			/}[\u200B\u200E\u2028\uFEFF]+}/g, '')
-	//
-	.replace(/[\u200B\u200E\u2028\uFEFF]([^{}]*}})/g, function(all, inner) {
-		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
-	})
+	.replace(/\][\u200B\u200E\u2028\uFEFF]+\]/g, '')
 	//
 	.replace(/[\u200B\u200E\u2028\uFEFF]([^\[\]]*\]\])/g, function(all, inner) {
 		return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
 	});
+
+	if (false)
+		content = content
+		// fix error
+		.replace(/{[\u200B\u200E\u2028\uFEFF]+{/g, '')
+		//
+		.replace(/}[\u200B\u200E\u2028\uFEFF]+}/g, '')
+		//
+		.replace(/[\u200B\u200E\u2028\uFEFF]([^{}]*}})/g, function(all, inner) {
+			return inner.replace(/[\u200B\u200E\u2028\uFEFF]+/g, '');
+		});
 
 	// 檢查是否有剩下出問題的情況。
 
@@ -1002,7 +1008,7 @@ NOT_FOUND = ''.indexOf('_'),
 /** {Object}wiki 操作子. */
 wiki = Wiki(true),
 /** {Array}已批准NO */
-approved = [ 10, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
+approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
 only_check,
 /** {Natural|Array}每一項最大處理頁面數。 */
@@ -1016,7 +1022,7 @@ only_check = 16;
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
-處理頁面數 = [ 30, 50 ];
+// 處理頁面數 = [ 50, 60 ];
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
