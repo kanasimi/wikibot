@@ -7,6 +7,8 @@
  2016/2/2 20:4:48 上路前修正
  完善
 
+ https://github.com/scfc/checkwiki/blob/pu/tools-migration/bin/checkwiki.pl
+
  TODO:
  [[WP:維基化]]
  https://en.wikipedia.org/wiki/Wikipedia:WikiProject_Check_Wikipedia
@@ -485,11 +487,11 @@ function fix_16(content, page_data, messages, options) {
 	// 檢查是否有剩下出問題的情況。
 	var matched = content.match(PATTERN_Unicode_invalid_wikitext);
 	if (matched)
-		messages.add('尚留有需要人工判別之不可見字符: '
+		messages.add('尚留有需要人工判別之不可見字符: <nowiki>'
 				+ content.slice(Math.max(0, matched.index - 10), matched.index)
-				+ "'''\\u" + matched[0].charCodeAt(0).toString(16) + "'''"
-				+ content.slice(matched.index + 1, matched.index + 11),
-				page_data);
+				+ "\\u" + matched[0].charCodeAt(0).toString(16)
+				+ content.slice(matched.index + 1, matched.index + 11)
+				+ '</nowiki>', page_data);
 
 	return content;
 }
@@ -1015,7 +1017,7 @@ function fix_104(content, page_data, messages, options) {
 // ---------------------------------------------------------------------//
 // main
 
-prepare_directory(base_directory, false);
+prepare_directory(base_directory, true);
 
 var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
 		+ 'zhwiki' + '&view=bots&offset=0&id=',
@@ -1041,7 +1043,6 @@ only_check = 16;
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
 // 處理頁面數 = [ 50, 60 ];
-// 處理頁面數 = [ 3127, 14000 ];
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
