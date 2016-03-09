@@ -446,19 +446,23 @@ if (false) {
 
 // ------------------------------------
 
+
 // !/^(?:[^\p{C}]|[\n\t])$/
 var PATTERN_Unicode_invalid_wikitext = new RegExp('['
 		+ CeL.RegExp.category.invalid + ']'),
 //
 PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]+\[/g),
 //
-PATTERN_invisible_end = CeL.RegExp(/\][\p{Cf}]+\]/g),
+PATTERN_invisible_end = CeL.RegExp(/\][\p{Cf}]+\][\p{Cf}]*/g),
+//
+PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]+}[\p{Cf}]*}[\p{Cf}]*/g),
 // [ all, inner ]
 PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\][\p{Cf}]*)/g),
 //
 PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g);
 
 // 可能遇上 413
+// 去除不可見字符 \p{Cf}，警告 \p{C}。
 // cf. "unicode other" （標籤：加入不可見字符）, "unicode pua" （標籤：含有Unicode私有區編碼）
 // unicode invisible character
 // https://zh.wikipedia.org/w/index.php?title=Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97&wpSearchFilter=180
@@ -467,7 +471,9 @@ fix_16.title = '在 category, link, redirect 中使用 Unicode 控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace(PATTERN_invisible_start, '').replace(PATTERN_invisible_end, '')
+	.replace(PATTERN_invisible_start, '[[').replace(PATTERN_invisible_end, ']]')
+	// 當前只刪 Unicode控制字符+"}}" 或LRM左右都不是RTL文本，之後每個pattern確認沒問題才刪。
+	.replace(PATTERN_invisible_end2, '}}')
 	//
 	.replace(PATTERN_invisible_inner, function(all, inner) {
 		return inner.replace(PATTERN_invisible_any, '');
