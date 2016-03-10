@@ -446,6 +446,11 @@ if (false) {
 
 // ------------------------------------
 
+// http://stackoverflow.com/questions/4330951/how-to-detect-whether-a-character-belongs-to-a-right-to-left-language
+// characters with bidirectional property "R" or "AL" (RandALCat).
+// A RandALCat character is a character with unambiguously right-to-left
+// directionality.
+CeL.RegExp.category.RandAL = '\u05BE\u05C0\u05C3\u05D0-\u05EA\u05F0-\u05F4\u061B\u061F\u0621-\u063A\u0640-\u064A\u066D-\u066F\u0671-\u06D5\u06DD\u06E5-\u06E6\u06FA-\u06FE\u0700-\u070D\u0710\u0712-\u072C\u0780-\u07A5\u07B1\u200F\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40-\uFB41\uFB43-\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFC\uFE70-\uFE74\uFE76-\uFEFC';
 
 // !/^(?:[^\p{C}]|[\n\t])$/
 var PATTERN_Unicode_invalid_wikitext = new RegExp('['
@@ -459,7 +464,9 @@ PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]+}[\p{Cf}]*}[\p{Cf}]*/g),
 // [ all, inner ]
 PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\][\p{Cf}]*)/g),
 //
-PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g);
+PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g),
+// https://en.wikipedia.org/wiki/Left-to-right_mark
+PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g);
 
 // 可能遇上 413
 // 去除不可見字符 \p{Cf}，警告 \p{C}。
@@ -471,10 +478,14 @@ fix_16.title = '在 category, link, redirect 中使用 Unicode 控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace(PATTERN_invisible_start, '[[').replace(PATTERN_invisible_end, ']]')
-	// 當前只刪 Unicode控制字符+"}}" 或LRM左右都不是RTL文本，之後每個pattern確認沒問題才刪。
-	.replace(PATTERN_invisible_end2, '}}')
+	.replace(PATTERN_invisible_start, '[[')
 	//
+	.replace(PATTERN_invisible_end, ']]')
+	// Unicode控制字符+'}}'
+	.replace(PATTERN_invisible_end2, '}}')
+	// LRM左右都不是RTL文本。
+	.replace_till_stable(PATTERN_RTL, '$1$2')
+	// ([[ ...) Unicode控制字符 ... ']]'
 	.replace(PATTERN_invisible_inner, function(all, inner) {
 		return inner.replace(PATTERN_invisible_any, '');
 	});
@@ -484,7 +495,7 @@ function fix_16(content, page_data, messages, options) {
 	if (false)
 		content = content
 		// fix error
-		.replace(/[\p{Cf}]*{[\p{Cf}]+{/g, '').replace(/}[\p{Cf}]+}/g, '')
+		.replace(/[\p{Cf}]*{[\p{Cf}]+{/g, '{{').replace(/}[\p{Cf}]+}/g, '}}')
 		//
 		.replace(/[\p{Cf}]([^{}]*}}[\p{Cf}]*)/g, function(all, inner) {
 			return inner.replace(/[\p{Cf}]+/g, '');

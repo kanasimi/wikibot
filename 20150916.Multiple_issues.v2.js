@@ -48,7 +48,7 @@ log_to = 'User:' + user_name + '/log/' + check_section,
  * 
  * @see [[Category:維基百科維護模板]], {{Ambox}}, [[WP:HAT#頂註模板]]
  */
-其他維護模板名 = ('Wikify|未完結|Lead section|專家|Veil|Non-free|plot|Almanac|Like-resume|cleanup-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|globalize|unreferenced'
+其他維護模板名 = ('Wikify|未完結|Lead section|專家|Veil|Non-free|plot|Almanac|Like-resume|cleanup-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|globalize|unreferenced|off-topic'
 		+ '|Expand language|Expand English|Expand Japanese|Expand Spanish')
 		.split('|'),
 /**
