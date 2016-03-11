@@ -11,7 +11,6 @@ $ npm install cejs
 
 ### Running
 ``` JavaScript
-// 
 require('cejs');
 
 // Load module.

@@ -460,7 +460,11 @@ PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]+\[/g),
 //
 PATTERN_invisible_end = CeL.RegExp(/\][\p{Cf}]+\][\p{Cf}]*/g),
 //
-PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]+}[\p{Cf}]*}[\p{Cf}]*/g),
+PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*{[\p{Cf}]+{/g),
+//
+PATTERN_invisible_end2 = CeL.RegExp(/}[\p{Cf}]+}[\p{Cf}]*/g),
+//
+PATTERN_invisible_end2_ = CeL.RegExp(/[\p{Cf}]+}[\p{Cf}]*}[\p{Cf}]*/g),
 // [ all, inner ]
 PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\][\p{Cf}]*)/g),
 //
@@ -481,8 +485,14 @@ function fix_16(content, page_data, messages, options) {
 	.replace(PATTERN_invisible_start, '[[')
 	//
 	.replace(PATTERN_invisible_end, ']]')
-	// Unicode控制字符+'}}'
+
+	//
+	.replace(PATTERN_invisible_start2, '{{')
+	//
 	.replace(PATTERN_invisible_end2, '}}')
+
+	// Unicode控制字符+'}}'
+	.replace(PATTERN_invisible_end2_, '}}')
 	// LRM左右都不是RTL文本。
 	.replace_till_stable(PATTERN_RTL, '$1$2')
 	// ([[ ...) Unicode控制字符 ... ']]'
@@ -495,8 +505,6 @@ function fix_16(content, page_data, messages, options) {
 	if (false)
 		content = content
 		// fix error
-		.replace(/[\p{Cf}]*{[\p{Cf}]+{/g, '{{').replace(/}[\p{Cf}]+}/g, '}}')
-		//
 		.replace(/[\p{Cf}]([^{}]*}}[\p{Cf}]*)/g, function(all, inner) {
 			return inner.replace(/[\p{Cf}]+/g, '');
 		});
