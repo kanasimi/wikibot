@@ -46,3 +46,4 @@ wiki
 * Support <code>{{bot}}</code>
 * Query of backlinks, embeddedin, imageusage, linkshere, fileusage list.
 * Parse wikitext.
+* Parse Wikimedia dump xml file.
