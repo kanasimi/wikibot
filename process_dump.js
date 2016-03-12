@@ -18,6 +18,7 @@ var start = Date.now(), count = 0,
 //
 file_stream = CeL.wiki.read_dump(function(page_data) {
 	if (++count % 10000 === 0)
+		// e.g., "2660000: 16.546 page/ms Wikipedia:优良条目/2015年8月23日"
 		CeL.log(count + ': ' + (count / (Date.now() - start)).toFixed(3)
 				+ ' page/ms\t' + page_data.title);
 	if (!page_data.title)
@@ -28,6 +29,7 @@ file_stream = CeL.wiki.read_dump(function(page_data) {
 }, {
 	directory : bot_directory + 'dumps/',
 	last : function() {
+		// e.g., "All 2755239 pages, 167.402 s."
 		CeL.log('All ' + count + ' pages, ' + (Date.now() - start) / 1000
 				+ ' s.');
 	}
