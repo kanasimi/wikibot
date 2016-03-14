@@ -478,10 +478,12 @@ PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g);
 // unicode invisible character
 // https://zh.wikipedia.org/w/index.php?title=Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97&wpSearchFilter=180
 // 防濫用過濾器180: added_lines rlike '[^\PC\n\t]'
-fix_16.title = '在 category, link, redirect 中使用 Unicode 控制字符';
+// TODO: {{PUA|\uf06e}}
+fix_16.title = '去除ns0頁面中之不可見字符與Unicode控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
+	// 在 category, link, redirect 中使用 Unicode 控制字符
 	.replace(PATTERN_invisible_start, '[[')
 	//
 	.replace(PATTERN_invisible_end, ']]')
@@ -512,11 +514,11 @@ function fix_16(content, page_data, messages, options) {
 	// 檢查是否有剩下出問題的情況。
 	var matched = content.match(PATTERN_Unicode_invalid_wikitext);
 	if (matched)
-		messages.add('尚留有需要人工判別之不可見字符: <nowiki>'
+		messages.add("尚留有需要人工判別之不可見字符: '''<nowiki>"
 				+ content.slice(Math.max(0, matched.index - 10), matched.index)
-				+ "\\u" + matched[0].charCodeAt(0).toString(16)
+				+ "\\u" + matched[0].charCodeAt(0).toString(16).pad(4, 0)
 				+ content.slice(matched.index + 1, matched.index + 11)
-				+ '</nowiki>', page_data);
+				+ "</nowiki>'''", page_data);
 
 	return content;
 }
