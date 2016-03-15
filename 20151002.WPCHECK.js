@@ -479,7 +479,7 @@ PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g);
 // https://zh.wikipedia.org/w/index.php?title=Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97&wpSearchFilter=180
 // 防濫用過濾器180: added_lines rlike '[^\PC\n\t]'
 // TODO: {{PUA|\uf06e}}
-fix_16.title = '去除ns0頁面中之不可見字符與Unicode控制字符';
+fix_16.title = '去除條目中之不可見字符與Unicode控制字符';
 function fix_16(content, page_data, messages, options) {
 	content = content
 	// fix error
@@ -1062,7 +1062,7 @@ only_check,
 處理頁面數;
 
 only_check = approved;
-only_check = 16;
+// only_check = 16;
 // only_check = 99;
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];

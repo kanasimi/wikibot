@@ -21,7 +21,7 @@ file_stream = CeL.wiki.read_dump(function(page_data) {
 		// e.g., "2660000: 16.546 page/ms Wikipedia:优良条目/2015年8月23日"
 		CeL.log(count + ': ' + (count / (Date.now() - start_time)).toFixed(3)
 				+ ' page/ms\t' + page_data.title);
-	//var title = page_data.title, content = page_data.revisions[0]['*'];
+	// var title = page_data.title, content = page_data.revisions[0]['*'];
 	// 似乎沒這種問題。
 	if (false && !page_data.title)
 		CeL.warn('* No title: [[' + page_data.id + ']]');
