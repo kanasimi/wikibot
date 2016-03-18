@@ -38,7 +38,7 @@ function import_data(error) {
 		if (title.includes('"'))
 			// escape
 			title = '"' + title.replace(/"/g, '""') + '"';
-		if (do_write_file)
+		if (do_write_file) {
 			file_stream.write([ page_data.pageid, page_data.ns, title,
 			//
 			page_data.revisions[0].timestamp,
@@ -46,6 +46,7 @@ function import_data(error) {
 			'"' + page_data.revisions[0]['*'].replace(/"/g, '""') + '"' ]
 			//
 			.join(',') + '\n');
+		}
 
 		// Write to database
 
@@ -70,7 +71,7 @@ function import_data(error) {
 		},
 		last : function() {
 			if (do_write_file)
-				file_stream.close();
+				file_stream.end();
 			// e.g., "All 2755239 pages, 167.402 s."
 			CeL.log('All ' + count + ' pages, ' + (Date.now() - start_time)
 					/ 1000 + ' s.');
@@ -81,8 +82,8 @@ function import_data(error) {
 var start_time = Date.now(), count = 0,
 /** {Boolean}import to database */
 do_import,
-/** {Boolean}write to CSV file. 使用時間約需近4小時。 */
-do_write_file, file_stream,
+/** {Boolean}write to CSV file. 使用時間約需近5小時。 */
+do_write_file = true, file_stream,
 //
 create_SQL = 'CREATE TABLE page(pageid int(8) unsigned , ns int(11), title varbinary(255) NOT NULL, timestamp varbinary(14), text mediumblob, PRIMARY KEY (pageid,title));',
 //
