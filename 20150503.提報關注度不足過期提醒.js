@@ -33,7 +33,7 @@ limit_days = 30,
 delete_days = 35,
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
-	notified : '已提醒用戶',
+	notified : '已提醒',
 	not_notified : '未提醒用戶',
 	do_not_notify : '用戶不想接受關注度不足提醒',
 	no_user_talk : '無用戶對話頁面',
@@ -249,8 +249,8 @@ wiki
 						+ (id_pages[user][title] | 0) + '天前提報，'
 						//
 						+ (no_notice ? status : user_denied[user]
-						//
-						|| message_set.notified + '[[User:' + user + '|]]')
+						// [[User:]]
+						|| message_set.notified + '[[用戶:' + user + ']]')
 						//
 						+ '。</span> --~~~~';
 					}
