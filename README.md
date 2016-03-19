@@ -43,6 +43,7 @@ wiki
 ```
 
 ## Features
+* Batch processing.
 * Support Flow page: Using the same way adding section to normal page and Flow page.
 * Support <code>{{bot}}</code> detection.
 * Query list of backlinks, embeddedin, imageusage, linkshere, fileusage.

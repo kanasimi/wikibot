@@ -1,4 +1,5 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node check_all_pages.js
+﻿// cd ~/wikibot && time node check_all_pages.js
+// 警告: 不在 Tool Labs 執行 allpages 速度太慢。但若在 Tool Labs，當改用 database。
 
 /*
 
@@ -28,6 +29,8 @@ CeL.wiki.cache([ {
 	type : 'allpages'
 }, {
 	type : 'page',
+	// 當設定 operation.cache: false 時，不寫入 cache。
+	cache : false,
 	operator : function(page_data) {
 	    var title = CeL.wiki.title_of(page_data),
 	    content = CeL.wiki.content_of(page_data);
