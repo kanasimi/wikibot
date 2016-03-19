@@ -40,7 +40,7 @@ function process_data(error) {
 		// [[Wikipedia:快速删除方针]]
 		if (revision['*']) {
 			max_length = Math.max(max_length, revision['*'].length);
-			if (revision['*'].includes('\u200E'))
+			if (false && revision['*'].includes('\u200E'))
 				list.push(page_data.title);
 		} else {
 			CeL.warn('* No content: [[' + page_data.title + ']]');

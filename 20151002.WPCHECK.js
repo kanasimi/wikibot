@@ -456,17 +456,15 @@ CeL.RegExp.category.RandAL = '\u05BE\u05C0\u05C3\u05D0-\u05EA\u05F0-\u05F4\u061B
 var PATTERN_Unicode_invalid_wikitext = new RegExp('['
 		+ CeL.RegExp.category.invalid + ']'),
 //
-PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]+\[/g),
+PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]*\[[\p{Cf}]*/g),
 //
-PATTERN_invisible_end = CeL.RegExp(/\][\p{Cf}]+\][\p{Cf}]*/g),
+PATTERN_invisible_end = CeL.RegExp(/[\p{Cf}]*\][\p{Cf}]*\][\p{Cf}]*/g),
 //
-PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*{[\p{Cf}]+{/g),
-//
-PATTERN_invisible_end2 = CeL.RegExp(/}[\p{Cf}]+}[\p{Cf}]*/g),
-//
-PATTERN_invisible_end2_ = CeL.RegExp(/[\p{Cf}]+}[\p{Cf}]*}[\p{Cf}]*/g),
+PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*{[\p{Cf}]*{[\p{Cf}]*/g),
+// '}}' 穿插Unicode控制字符
+PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]*}[\p{Cf}]*}[\p{Cf}]*/g),
 // [ all, inner ]
-PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\][\p{Cf}]*)/g),
+PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\])/g),
 //
 PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g),
 // https://en.wikipedia.org/wiki/Left-to-right_mark
@@ -493,8 +491,6 @@ function fix_16(content, page_data, messages, options) {
 	//
 	.replace(PATTERN_invisible_end2, '}}')
 
-	// Unicode控制字符+'}}'
-	.replace(PATTERN_invisible_end2_, '}}')
 	// LRM左右都不是RTL文本。
 	.replace_till_stable(PATTERN_RTL, '$1$2')
 	// ([[ ...) Unicode控制字符 ... ']]'
@@ -514,7 +510,8 @@ function fix_16(content, page_data, messages, options) {
 	// 檢查是否有剩下出問題的情況。
 	var matched = content.match(PATTERN_Unicode_invalid_wikitext);
 	if (matched)
-		messages.add("尚留有需要人工判別之不可見字符: '''<nowiki>"
+		// 不合規定的
+		messages.add("尚留有需要人工判別之違規字符: '''<nowiki>"
 				+ content.slice(Math.max(0, matched.index - 10), matched.index)
 				+ "\\u" + matched[0].charCodeAt(0).toString(16).pad(4, 0)
 				+ content.slice(matched.index + 1, matched.index + 11)
@@ -1090,6 +1087,11 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	CeL.debug('Add #' + checking_index, 2);
 	CeL.get_URL_cache(checkwiki_api_URL + checking_index, function(page_list) {
 		page_list = JSON.parse(page_list);
+		if (false)
+			page_list = require('fs').readFileSync(
+			// see process_dump.js
+			'/data/project/cewbot/wikibot/dumps/filtered.lst', 'utf8').split('\n');
+
 		// CeL.set_debug(3);
 		if (page_list.length === 0)
 			return;
