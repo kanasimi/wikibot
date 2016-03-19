@@ -1,4 +1,5 @@
 ﻿// cd ~/wikibot && time ../node/bin/node process_dump.js
+// Import Wikimedia database backup dumps data to user-created database on Tool Labs.
 
 // 2016/3/12 11:56:10	初版試營運
 
@@ -73,9 +74,18 @@ function process_data(error) {
 		directory : bot_directory + 'dumps/',
 		first : function(fn) {
 			var filename = fn.replace(/[^.]+$/, 'csv');
-			CeL.log('process_data: Write to [' + filename + ']');
-			if (do_write_file)
+			if (do_write_file === undefined)
+				try {
+					// check if file exists
+					do_write_file = !require('fs').statSync(filename);
+				} cache (e) {
+					do_write_file = true;
+				}
+
+			if (do_write_file) {
+				CeL.log('process_data: Write to [' + filename + ']');
 				file_stream = new require('fs').WriteStream(filename, 'utf8');
+			}
 		},
 		last : function() {
 			// e.g., "All 2755239 pages, 167.402 s."
@@ -131,7 +141,7 @@ function endding() {
 
 var start_time = Date.now(),
 /** {Boolean}write to CSV file. */
-do_write_file = true, file_stream,
+do_write_file, file_stream,
 /** {Boolean}import to database */
 do_realtime_import = false,
 // pageid,ns,title: https://www.mediawiki.org/wiki/Manual:Page_table

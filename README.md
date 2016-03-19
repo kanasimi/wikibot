@@ -43,7 +43,8 @@ wiki
 
 ## Features
 * Support Flow page: Using the same way adding section to normal page and Flow page.
-* Support <code>{{bot}}</code>
-* Query of backlinks, embeddedin, imageusage, linkshere, fileusage list.
-* Parse wikitext.
-* Parse Wikimedia dump xml file.
+* Support <code>{{bot}}</code> detection.
+* Query list of backlinks, embeddedin, imageusage, linkshere, fileusage.
+* Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
+* Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
+* Import [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html) data to user-created database on [Tool Labs](http://tools.wmflabs.org/). ([process_dump.js](https://github.com/kanasimi/wikibot/process_dump.js))
