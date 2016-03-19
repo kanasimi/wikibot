@@ -2,7 +2,7 @@
 // Import Wikimedia database backup dumps data to user-created database on Tool Labs.
 
 // 使用新版 node.js 能加快速度，降低 CPU 與 RAM 使用；
-// 2016/3/19 do_write_file 使用時間約需近 20 min，LOAD DATA 使用時間約需近 10 min。
+// 2016/3/19 do_write_file 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes。
 
 // 2016/3/12 11:56:10	初版試營運
 
@@ -38,10 +38,13 @@ function process_data(error) {
 		if (false && !page_data.title)
 			CeL.warn('* No title: [[' + page_data.id + ']]');
 		// [[Wikipedia:快速删除方针]]
-		if (revision['*'])
+		if (revision['*']) {
 			max_length = Math.max(max_length, revision['*'].length);
-		else
+			if (revision['*'].includes('\u200E'))
+				list.push(page_data.title);
+		} else {
 			CeL.warn('* No content: [[' + page_data.title + ']]');
+		}
 
 		// ----------------------------
 		// Write to .csv file.
@@ -74,7 +77,7 @@ function process_data(error) {
 					CeL.err(error);
 			});
 	}, {
-		directory : bot_directory + 'dumps/',
+		directory : base_directory,
 		first : function(fn) {
 			var filename = fn.replace(/[^.]+$/, 'csv');
 			if (do_write_file === undefined)
@@ -141,10 +144,16 @@ function setup_SQL(callback) {
 }
 
 function endding() {
-	CeL.log('endding: All ' + ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' min.');
+	CeL.log('endding: All ' + ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' minutes.');
+	if (list && list.length > 0) {
+		var filename = base_directory + 'filtered.lst';
+		CeL.info('endding: ' + list.length + ' pages filtered, write to [' + filename + '].');
+		require('fs').writeFileSync(filename, list.join('\n'), 'utf8');
+		// console.log(list.join('\n'));
+	}
 }
 
-var start_time = Date.now(),
+var start_time = Date.now(), list = [], base_directory = bot_directory + 'dumps/',
 /** {Boolean}write to CSV file. */
 do_write_file, file_stream,
 /** {Boolean}import to database */
