@@ -1,10 +1,10 @@
 ﻿// cd ~/wikibot && time ../node/bin/node process_dump.js
 // Import Wikimedia database backup dumps data to user-created database on Tool Labs.
 
-// 2016/3/12 11:56:10	初版試營運
-
 // 使用新版 node.js 能加快速度，降低 CPU 與 RAM 使用；
 // 2016/3/19 do_write_file 使用時間約需近 20 min，LOAD DATA 使用時間約需近 10 min。
+
+// 2016/3/12 11:56:10	初版試營運
 
 'use strict';
 
@@ -31,6 +31,7 @@ function process_data(error) {
 					+ ' page/ms\t' + page_data.title);
 		// var title = page_data.title, content = revision['*'];
 
+		// ----------------------------
 		// Check data.
 
 		// 似乎沒 !page_data.title 這種問題。
@@ -42,6 +43,7 @@ function process_data(error) {
 		else
 			CeL.warn('* No content: [[' + page_data.title + ']]');
 
+		// ----------------------------
 		// Write to .csv file.
 
 		if (do_write_file) {
@@ -56,6 +58,7 @@ function process_data(error) {
 			.join(',') + '\n');
 		}
 
+		// ----------------------------
 		// Write to database.
 
 		if (do_realtime_import)
@@ -78,7 +81,9 @@ function process_data(error) {
 				try {
 					// check if file exists
 					do_write_file = !require('fs').statSync(filename);
-				} cache (e) {
+					if (!do_write_file)
+						CeL.info('process_data: The CSV file exists, so I will not import data to database: [' + filename + ']');
+				} catch (e) {
 					do_write_file = true;
 				}
 
@@ -90,7 +95,7 @@ function process_data(error) {
 		last : function() {
 			// e.g., "All 2755239 pages, 167.402 s."
 			CeL.log('process_data: All ' + count + ' pages, ' + (Date.now() - start_read_time)
-					/ 1000 + ' s. Max page length: ' + max_length);
+					/ 1000 + ' s. Max page length: ' + max_length + ' characters');
 
 			if (do_write_file) {
 				file_stream.end();
@@ -136,7 +141,7 @@ function setup_SQL(callback) {
 }
 
 function endding() {
-	CeL.log('endding: All ' + (Date.now() - start_time) / 1000 / 60 + ' min.');
+	CeL.log('endding: All ' + ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' min.');
 }
 
 var start_time = Date.now(),

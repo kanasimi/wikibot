@@ -47,4 +47,4 @@ wiki
 * Query list of backlinks, embeddedin, imageusage, linkshere, fileusage.
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
-* Import [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html) data to user-created database on [Tool Labs](http://tools.wmflabs.org/). ([process_dump.js](https://github.com/kanasimi/wikibot/process_dump.js))
+* Import [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html) data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
