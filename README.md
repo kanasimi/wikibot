@@ -35,6 +35,7 @@ wiki
 .edit(function(page_data) {
 	var title = CeL.wiki.title_of(page_data),
 	content = CeL.wiki.content_of(page_data);
+	// append new section
 	return content + '\n== New section ==\n: text to add.';
 }, {
 	summary : 'summary'
