@@ -24,6 +24,8 @@ base_directory = bot_directory + script_name + '/';
 // prepare directory
 CeL.fs_mkdir(base_directory);
 
+// CeL.set_debug(6);
+
 var filtered = [];
 CeL.wiki.traversal({
 	wiki : wiki,
@@ -40,6 +42,6 @@ CeL.wiki.traversal({
 	content = CeL.wiki.content_of(page_data);
 	if (content && content.includes('\u200E')) {
 		filtered.push(title);
-		CeL.log(filtered.length + ': ' + title);
+		CeL.log(filtered.length + ': [[' + title + ']]');
 	}
 });
