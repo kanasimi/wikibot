@@ -2,7 +2,7 @@
 
 /*
 
- 2016/3/20 18:43:33	初版試營運，約耗時 1.5 hour。
+ 2016/3/20 18:43:33	初版試營運，約耗時 1 hour。
 
  */
 
@@ -32,8 +32,8 @@ CeL.wiki.traversal({
 	// cache path prefix
 	directory : base_directory,
 	after : function(messages, titles, pages) {
-		CeL.fs_write(base_directory + 'filtered.txt', filtered.join('\n'));
-		CeL.log(script_name + ': Done.');
+		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
+		CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	}
 }, function(page_data, messages) {
 	/** {String}page title */
