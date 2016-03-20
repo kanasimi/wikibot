@@ -24,7 +24,7 @@ require('./wiki loder.js');
 CeL.run('application.platform.nodejs');
 
 /** {String}base directory */
-var base_directory = bot_directory + 'WPCHECK/',
+var base_directory = bot_directory + script_name + '/',
 // 修正維基百科內容的語法錯誤。
 /** {String}編輯摘要。總結報告。 */
 summary = '[[WP:WPCHECK|修正維基語法]]',

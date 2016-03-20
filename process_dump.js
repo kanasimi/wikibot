@@ -156,8 +156,9 @@ function endding() {
 	}
 }
 
-var start_time = Date.now(), list = [], base_directory = bot_directory
-		+ 'dumps/',
+var start_time = Date.now(), list = [],
+/** {String}base directory */
+base_directory = bot_directory + 'dumps/',
 /** {Boolean}write to CSV file. */
 do_write_file, file_stream,
 /** {Boolean}import to database */
