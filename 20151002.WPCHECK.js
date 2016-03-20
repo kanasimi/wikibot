@@ -19,7 +19,6 @@
 
 'use strict';
 
-// var CeL_path = 'S:\\cgi-bin\\lib\\JS';
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
@@ -1090,7 +1089,9 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 		if (false)
 			page_list = require('fs').readFileSync(
 			// see process_dump.js
-			'/data/project/cewbot/wikibot/dumps/filtered.lst', 'utf8').split('\n');
+			'/data/project/cewbot/wikibot/dumps/filtered.lst',
+			//
+			'utf8').split('\n');
 
 		// CeL.set_debug(3);
 		if (page_list.length === 0)

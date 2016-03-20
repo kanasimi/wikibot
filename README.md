@@ -33,7 +33,9 @@ wiki
 
 // Modify the page content.
 .edit(function(page_data) {
+	/** {String}page title */
 	var title = CeL.wiki.title_of(page_data),
+	/** {String}page content */
 	content = CeL.wiki.content_of(page_data);
 	// append new section
 	return content + '\n== New section ==\n: text to add.';
