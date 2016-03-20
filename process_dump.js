@@ -71,7 +71,7 @@ function process_data(error) {
 				values : [ page_data.pageid, page_data.ns, page_data.title,
 				// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
 				revision.timestamp.slice(0, -1).replace('T', ' '),
-				revision['*'] ]
+						revision['*'] ]
 			}, function(error) {
 				if (error)
 					CeL.err(error);
@@ -85,7 +85,9 @@ function process_data(error) {
 					// check if file exists
 					do_write_file = !require('fs').statSync(filename);
 					if (!do_write_file)
-						CeL.info('process_data: The CSV file exists, so I will not import data to database: [' + filename + ']');
+						CeL.info('process_data: The CSV file exists, '
+								+ 'so I will not import data to database: ['
+								+ filename + ']');
 				} catch (e) {
 					do_write_file = true;
 				}
@@ -97,8 +99,9 @@ function process_data(error) {
 		},
 		last : function() {
 			// e.g., "All 2755239 pages, 167.402 s."
-			CeL.log('process_data: All ' + count + ' pages, ' + (Date.now() - start_read_time)
-					/ 1000 + ' s. Max page length: ' + max_length + ' characters');
+			CeL.log('process_data: All ' + count + ' pages, '
+					+ (Date.now() - start_read_time) / 1000
+					+ ' s. Max page length: ' + max_length + ' characters');
 
 			if (do_write_file) {
 				file_stream.end();
@@ -110,8 +113,7 @@ function process_data(error) {
 
 						CeL.info('process_data: Import data to database...');
 						var SQL = "LOAD DATA LOCAL INFILE '" + file_stream.path
-						//
-						+ "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' (pageid,ns,title,timestamp,text);";
+								+ LOAD_DATA_SQL;
 						CeL.log(SQL.replace(/\\n/g, '\\n'));
 						connection.query(SQL, function(error, rows) {
 							if (error)
@@ -128,7 +130,6 @@ function process_data(error) {
 	});
 }
 
-
 function setup_SQL(callback) {
 	CeL.info('setup_SQL: Re-creating database...');
 	SQL_session = new CeL.wiki.SQL('zhwiki', function(error) {
@@ -144,16 +145,19 @@ function setup_SQL(callback) {
 }
 
 function endding() {
-	CeL.log('endding: All ' + ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' minutes.');
+	CeL.log('endding: All '
+			+ ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' minutes.');
 	if (list && list.length > 0) {
 		var filename = base_directory + 'filtered.lst';
-		CeL.info('endding: ' + list.length + ' pages filtered, write to [' + filename + '].');
+		CeL.info('endding: ' + list.length + ' pages filtered, write to ['
+				+ filename + '].');
 		require('fs').writeFileSync(filename, list.join('\n'), 'utf8');
 		// console.log(list.join('\n'));
 	}
 }
 
-var start_time = Date.now(), list = [], base_directory = bot_directory + 'dumps/',
+var start_time = Date.now(), list = [], base_directory = bot_directory
+		+ 'dumps/',
 /** {Boolean}write to CSV file. */
 do_write_file, file_stream,
 /** {Boolean}import to database */
@@ -163,8 +167,9 @@ do_realtime_import = false,
 // text: https://www.mediawiki.org/wiki/Manual:Text_table
 create_SQL = 'CREATE TABLE page(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title))',
 //
+LOAD_DATA_SQL = "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' (pageid,ns,title,timestamp,text);"
+//
 SQL_session, connection;
-
 
 if (do_realtime_import) {
 	setup_SQL(function(error) {
