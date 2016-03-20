@@ -31,7 +31,7 @@ CeL.wiki.cache({
 	file_name : 'title list',
 	type : 'allpages',
 	operator : function(list) {
-		CeL.log('All ' + list.length + ' pages.');
+		// CeL.log('All ' + list.length + ' pages.');
 		return this.all_list = list;
 	}
 }, function() {
@@ -73,7 +73,7 @@ if (false)
 			var title = CeL.wiki.title_of(page_data),
 			/** {String}page content */
 			content = CeL.wiki.content_of(page_data);
-			if (content.includes('\u200E'))
+			if (content && content.includes('\u200E'))
 				this.filtered.push(title);
 		}
 	}, {
