@@ -26,6 +26,7 @@ CeL.fs_mkdir(base_directory);
 
 var filtered = [];
 CeL.wiki.traversal({
+	wiki : wiki,
 	// cache path prefix
 	directory : base_directory,
 	after : function(messages, titles, pages) {
@@ -42,37 +43,3 @@ CeL.wiki.traversal({
 		CeL.log(filtered.length + ': ' + title);
 	}
 });
-
-if (false)
-	CeL.wiki.cache({
-		file_name : 'title list',
-		type : 'allpages',
-		operator : function(list) {
-			// CeL.log('All ' + list.length + ' pages.');
-			return this.all_list = list;
-		}
-	}, function() {
-		var filtered = [];
-		wiki.work({
-			no_message : true,
-			no_edit : true,
-			each : function(page_data, messages) {
-				/** {String}page title */
-				var title = CeL.wiki.title_of(page_data),
-				/** {String}page content, maybe undefined. */
-				content = CeL.wiki.content_of(page_data);
-				if (content && content.includes('\u200E')) {
-					filtered.push(title);
-					CeL.log(filtered.length + ': ' + title);
-				}
-			},
-			after : function(messages, titles, pages) {
-				CeL.fs_write(base_directory + 'filtered.txt', filtered
-						.join('\n'));
-				CeL.log(script_name + ': Done.');
-			}
-		}, this.all_list);
-	}, {
-		// cache path prefix
-		prefix : base_directory
-	});
