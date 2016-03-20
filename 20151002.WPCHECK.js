@@ -1105,6 +1105,7 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 		// process pages
 		wiki.work({
 			each : function(page_data, messages, options) {
+				/** {String}page content, maybe undefined. */
 				var content = CeL.wiki.content_of(page_data);
 				// 預防有被刪之頁面。
 				if (!content)

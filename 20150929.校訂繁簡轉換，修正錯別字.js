@@ -31,6 +31,7 @@ var conversion_pair = new CeL.pair(CeL.get_file('校訂繁簡轉換，修正錯�
 // CeL.set_debug(3);
 wiki.work({
 	each : function(page_data) {
+		/** {String}page content, maybe undefined. */
 		var content = CeL.wiki.content_of(page_data);
 		// add 分類:原文為繁體中文, 分類:原文為简体中文
 		// 卷001 -> 卷1

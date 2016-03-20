@@ -94,7 +94,9 @@ function 處理須拆分的條目(page_data, messages) {
 		return [ CeL.wiki.edit.cancel, '條目已刪除' ];
 
 	// TODO: 處理把維護模板放在或注解中的條目。
-	var matched, content = CeL.wiki.content_of(page_data),
+	var matched,
+	/** {String}page content, maybe undefined. */
+	content = CeL.wiki.content_of(page_data),
 	//
 	多個問題_模板 = CeL.wiki.parser.template(content, 多個問題_模板別名_list, true);
 	if (!多個問題_模板)
@@ -212,6 +214,7 @@ function 處理須合併的條目(page_data, messages) {
 				2);
 
 	// TODO: 處理把維護模板放在或注解中的條目。
+	/** {String}page content, maybe undefined. */
 	var content = CeL.wiki.content_of(page_data),
 	// 若本來就已經含有{{多個問題}}模板，表示已經過編輯，則放棄之。
 	matched = CeL.wiki.parser.template(content, 多個問題_模板別名_list, true);
@@ -311,7 +314,7 @@ CeL.wiki.cache([ {
 		var template_hash = CeL.null_Object(),
 		//
 		TEMPLATE_PATTERN = /{{{([^{}\|]+)\|/g,
-		//
+		/** {String}page content, maybe undefined. */
 		content = CeL.wiki.content_of(page_data), matched;
 
 		while (matched = TEMPLATE_PATTERN.exec(content)) {

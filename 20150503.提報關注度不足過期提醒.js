@@ -135,6 +135,7 @@ wiki
 			id_pages[user] = CeL.null_Object();
 			// 在 wiki.work() 前檢測完所有 user talk。
 			wiki.page('User_talk:' + user, function(page_data) {
+				/** {String}page content, maybe undefined. */
 				var content = CeL.wiki.content_of(page_data, 'header'), denied;
 				if (false) {
 					CeL.log('test [[' + page_data.title + ']]: '
@@ -182,6 +183,7 @@ wiki
 			} else if ('missing' in page_data)
 				page_status[title][1] = message_set.deleted;
 			else {
+				/** {String}page content, maybe undefined. */
 				var content = CeL.wiki.content_of(page_data), matched;
 				if (CeL.wiki.parser.redirect(content))
 					page_status[title][1] = message_set.redirected;

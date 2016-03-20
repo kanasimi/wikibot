@@ -42,10 +42,12 @@ CeL.wiki.cache({
 		each : function(page_data, messages) {
 			/** {String}page title */
 			var title = CeL.wiki.title_of(page_data),
-			/** {String}page content */
+			/** {String}page content, maybe undefined. */
 			content = CeL.wiki.content_of(page_data);
-			if (content.includes('\u200E'))
+			if (content && content.includes('\u200E')) {
 				filtered.push(title);
+				CeL.log(filtered.length + ': ' + title);
+			}
 		},
 		after : function(messages, titles, pages) {
 			CeL.fs_write(base_directory + 'filtered.txt', filtered);
@@ -71,7 +73,7 @@ if (false)
 		operator : function(page_data) {
 			/** {String}page title */
 			var title = CeL.wiki.title_of(page_data),
-			/** {String}page content */
+			/** {String}page content, maybe undefined. */
 			content = CeL.wiki.content_of(page_data);
 			if (content && content.includes('\u200E'))
 				this.filtered.push(title);
