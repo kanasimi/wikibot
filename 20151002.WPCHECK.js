@@ -467,7 +467,9 @@ PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\])/g),
 //
 PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g),
 // https://en.wikipedia.org/wiki/Left-to-right_mark
-PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g);
+PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g),
+//
+PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》])/ig;
 
 // 可能遇上 413
 // 去除不可見字符 \p{Cf}，警告 \p{C}。
@@ -490,8 +492,14 @@ function fix_16(content, page_data, messages, options) {
 	//
 	.replace(PATTERN_invisible_end2, '}}')
 
+	// 處理特殊情況。
+	.replace(/([a-z]{2,})\u200e('|\s*\|)/ig, '$1$2').replace(
+			/('|\|\s*)\u200e([a-z]{2,})/ig, '$1$2').replace(
+			/((?:\]\]|}})\ )\u200e/g, '$1').replace(PATTERN_u200e, '$1$2')
+
 	// LRM左右都不是RTL文本。
 	.replace_till_stable(PATTERN_RTL, '$1$2')
+
 	// ([[ ...) Unicode控制字符 ... ']]'
 	.replace(PATTERN_invisible_inner, function(all, inner) {
 		return inner.replace(PATTERN_invisible_any, '');

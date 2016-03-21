@@ -1,10 +1,12 @@
 ﻿// cd ~/wikibot && time ../node/bin/node process_dump.js
 // Import Wikimedia database backup dumps data to user-created database on Tool Labs.
+// 應用工具: 遍歷所有 dumps data 之頁面，並將資料寫入 .csv file，進而匯入 database。
+// @see https://www.mediawiki.org/wiki/Manual:Importing_XML_dumps#Using_importDump.php.2C_if_you_have_shell_access
 
-// 使用新版 node.js 能加快速度，降低 CPU 與 RAM 使用；
-// 2016/3/19 do_write_file 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes。
+// 2016/3/12 11:56:10	初版試營運。純粹篩選約需近 3 minutes。
 
-// 2016/3/12 11:56:10	初版試營運
+// 使用新版 node.js 能加快寫入 .csv file 之速度，降低 CPU 與 RAM 使用；
+// 2016/3/19 do_write_file 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes 執行。
 
 'use strict';
 
@@ -17,7 +19,7 @@ function process_data(error) {
 		CeL.err(error);
 
 	var start_read_time = Date.now(), count = 0, max_length = 0;
-	CeL.wiki.read_dump(function(page_data, filename) {
+	CeL.wiki.read_dump(function(page_data) {
 		// filter
 		if (false && page_data.ns !== 0)
 			return;
@@ -40,7 +42,10 @@ function process_data(error) {
 		// [[Wikipedia:快速删除方针]]
 		if (revision['*']) {
 			max_length = Math.max(max_length, revision['*'].length);
+			// filter patterns
 			if (false && revision['*'].includes('\u200E'))
+				list.push(page_data.title);
+			if (/{{(?:[Nn]o)?[Bb]ot[^a-zA-Z]/.test(revision['*']))
 				list.push(page_data.title);
 		} else {
 			CeL.warn('* No content: [[' + page_data.title + ']]');
@@ -81,6 +86,7 @@ function process_data(error) {
 		first : function(fn) {
 			var filename = fn.replace(/[^.]+$/, 'csv');
 			if (do_write_file === undefined)
+				// auto detect
 				try {
 					// check if file exists
 					do_write_file = !require('fs').statSync(filename);
@@ -168,7 +174,7 @@ do_realtime_import = false,
 // text: https://www.mediawiki.org/wiki/Manual:Text_table
 create_SQL = 'CREATE TABLE page(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title))',
 //
-LOAD_DATA_SQL = "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' (pageid,ns,title,timestamp,text);"
+LOAD_DATA_SQL = "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' (pageid,ns,title,timestamp,text);",
 //
 SQL_session, connection;
 

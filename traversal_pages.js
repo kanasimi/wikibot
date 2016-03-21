@@ -1,8 +1,9 @@
 ﻿// cd ~/wikibot && time node traversal_pages.js
+// 遍歷所有頁面。
 
 /*
 
- 2016/3/20 18:43:33	初版試營運，約耗時 1 hour。
+ 2016/3/20 18:43:33	初版試營運，約耗時 1 hour 執行。
 
  */
 
@@ -40,6 +41,7 @@ CeL.wiki.traversal({
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
+
 	if (content && content.includes('\u200E')) {
 		filtered.push(title);
 		CeL.log(filtered.length + ': [[' + title + ']]');
