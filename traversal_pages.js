@@ -1,9 +1,9 @@
-﻿// cd ~/wikibot && time node traversal_pages.js
+﻿// cd ~/wikibot && date && time ../node/bin/node traversal_pages.js
 // 遍歷所有頁面。
 
 /*
 
- 2016/3/20 18:43:33	初版試營運，約耗時 1 hour 執行。
+ 2016/3/20 18:43:33	初版試營運，約耗時 1-2 hour 執行。
 
  */
 

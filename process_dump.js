@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && time ../node/bin/node process_dump.js
+﻿// cd ~/wikibot && date && time ../node/bin/node process_dump.js
 // Import Wikimedia database backup dumps data to user-created database on Tool Labs.
 // 應用工具: 遍歷所有 dumps data 之頁面，並將資料寫入 .csv file，進而匯入 database。
 // @see https://www.mediawiki.org/wiki/Manual:Importing_XML_dumps#Using_importDump.php.2C_if_you_have_shell_access

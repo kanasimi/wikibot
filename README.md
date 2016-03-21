@@ -16,6 +16,9 @@ require('cejs');
 // Load module.
 CeL.run('application.net.wiki');
 
+// Set default language. 改變預設之語言。
+CeL.wiki.set_language('en');
+
 // Set up wiki instance.
 var wiki = CeL.wiki.login(user_name, password, 'en');
 
@@ -44,10 +47,22 @@ wiki
 });
 ```
 
+
+## Screenshot
+Output on console:
+![On console](https://commons.wikimedia.org/wiki/File:20151002.WPCHECK.console.c.png)
+
+Log page:
+![Log page](https://commons.wikimedia.org/wiki/File:20151002.WPCHECK.log.c.png)
+
+The contributions:
+![Contributions](https://commons.wikimedia.org/wiki/File:20151002.WPCHECK.contributions.c.png)
+
+
 ## Features
 * Batch processing.
-* Support Flow page: Using the same way adding section to normal page and Flow page.
-* Support <code>{{bot}}</code> detection.
+* Support [Flow](https://www.mediawiki.org/wiki/Flow) page: Using the same way adding section to normal page and Flow page.
+* Support <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code> detection.
 * Query [list](https://www.mediawiki.org/wiki/API:Lists) of allpages, backlinks, embeddedin, imageusage, linkshere, fileusage, alllinks.
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
