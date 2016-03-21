@@ -18,7 +18,9 @@ function process_data(error) {
 	if (error)
 		CeL.err(error);
 
-	var start_read_time = Date.now(), count = 0, max_length = 0;
+	var start_read_time = Date.now(),
+	// max_length = 0,
+	count = 0;
 	CeL.wiki.read_dump(function(page_data) {
 		// filter
 		if (false && page_data.ns !== 0)
@@ -41,12 +43,13 @@ function process_data(error) {
 			CeL.warn('* No title: [[' + page_data.id + ']]');
 		// [[Wikipedia:快速删除方针]]
 		if (revision['*']) {
-			max_length = Math.max(max_length, revision['*'].length);
+			// max_length = Math.max(max_length, revision['*'].length);
+
 			// filter patterns
 			if (false && revision['*'].includes('\u200E'))
-				list.push(page_data.title);
-			if (/{{(?:[Nn]o)?[Bb]ot[^a-zA-Z]/.test(revision['*']))
-				list.push(page_data.title);
+				filtered.push(page_data.title);
+			if (false && /{{(?:[Nn]o)?[Bb]ots[} |]/.test(revision['*']))
+				filtered.push(page_data.title);
 		} else {
 			CeL.warn('* No content: [[' + page_data.title + ']]');
 		}
@@ -106,8 +109,11 @@ function process_data(error) {
 		last : function() {
 			// e.g., "All 2755239 pages, 167.402 s."
 			CeL.log('process_data: All ' + count + ' pages, '
-					+ (Date.now() - start_read_time) / 1000
-					+ ' s. Max page length: ' + max_length + ' characters');
+					+ (Date.now() - start_read_time) / 1000 + ' s.');
+			// 系統上限 2,048 KB
+			if (false)
+				CeL.log('process_data: Max page length: ' + max_length
+						+ ' characters.');
 
 			if (do_write_file) {
 				file_stream.end();
@@ -153,16 +159,19 @@ function setup_SQL(callback) {
 function endding() {
 	CeL.log('endding: All '
 			+ ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' minutes.');
-	if (list && list.length > 0) {
+	if (filtered && filtered.length > 0) {
 		var filename = base_directory + 'filtered.lst';
-		CeL.info('endding: ' + list.length + ' pages filtered, write to ['
+		CeL.info('endding: ' + filtered.length + ' pages filtered, write to ['
 				+ filename + '].');
-		require('fs').writeFileSync(filename, list.join('\n'), 'utf8');
-		// console.log(list.join('\n'));
+		require('fs').writeFileSync(filename,
+				filtered.sort().uniq().join('\n'), 'utf8');
+		// console.log(filtered.join('\n'));
 	}
 }
 
-var start_time = Date.now(), list = [],
+var start_time = Date.now(),
+// filtered list
+filtered = [],
 /** {String}base directory */
 base_directory = bot_directory + 'dumps/',
 /** {Boolean}write to CSV file. */

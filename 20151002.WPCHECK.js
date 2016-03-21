@@ -469,7 +469,7 @@ PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g),
 // https://en.wikipedia.org/wiki/Left-to-right_mark
 PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g),
 //
-PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》])/ig;
+PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])/ig;
 
 // 可能遇上 413
 // 去除不可見字符 \p{Cf}，警告 \p{C}。
@@ -1096,8 +1096,10 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 		page_list = JSON.parse(page_list);
 		if (false)
 			page_list = require('fs').readFileSync(
-			// see process_dump.js
-			'/data/project/cewbot/wikibot/dumps/filtered.lst',
+			// @see process_dump.js
+			// '/data/project/cewbot/wikibot/dumps/filtered.lst',
+			// @see traversal_pages.js
+			'/data/project/cewbot/wikibot/traversal_pages/filtered.lst',
 			//
 			'utf8').split('\n');
 
