@@ -49,14 +49,16 @@ wiki
 
 
 ## Screenshot
-Output on console:
-![On console](https://commons.wikimedia.org/wiki/File:20151002.WPCHECK.console.c.png)
+Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151002.WPCHECK.js):
 
-Log page:
-![Log page](https://commons.wikimedia.org/wiki/File:20151002.WPCHECK.log.c.png)
+* Output on console:
+![On console](https://upload.wikimedia.org/wikipedia/commons/7/7c/20151002.WPCHECK.console.c.png)
 
-The contributions:
-![Contributions](https://commons.wikimedia.org/wiki/File:20151002.WPCHECK.contributions.c.png)
+* Log page:
+![Log page](https://upload.wikimedia.org/wikipedia/commons/d/da/20151002.WPCHECK.log.c.png)
+
+* The contributions:
+![Contributions](https://upload.wikimedia.org/wikipedia/commons/f/f1/20151002.WPCHECK.contributions.c.png)
 
 
 ## Features
