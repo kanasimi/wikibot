@@ -1037,14 +1037,17 @@ NOT_FOUND = ''.indexOf('_'),
 wiki = Wiki(true),
 /** {Array}已批准NO */
 approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
+/** {Array}未批准NO */
+not_approved = [],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
-only_check,
+only_check = approved,
 /** {Natural|Array}每一項最大處理頁面數。 */
 處理頁面數;
 
-only_check = approved;
+//only_check = not_approved;
 // only_check = 16;
 // only_check = 99;
+//
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
@@ -1056,7 +1059,10 @@ only_check = approved;
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
 		if (Array.isArray(only_check)) {
-			if (!only_check.includes(checking_index))
+			if (only_check === not_approved) {
+				if (approved.includes(checking_index))
+					return;
+			} else if (!only_check.includes(checking_index))
 				return;
 		} else if (only_check > 0 && checking_index !== only_check)
 			return;
