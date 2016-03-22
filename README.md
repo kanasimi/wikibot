@@ -65,7 +65,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Batch processing.
 * Support [Flow](https://www.mediawiki.org/wiki/Flow) page: Using the same way adding section to normal page and Flow page.
 * Support <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code> detection.
-* Query [list](https://www.mediawiki.org/wiki/API:Lists) of allpages, backlinks, embeddedin, imageusage, linkshere, fileusage, alllinks.
+* Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, ...
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html) data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
