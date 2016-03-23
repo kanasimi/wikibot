@@ -80,6 +80,11 @@ function fix_2(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// fix_4.title = '條目中的章節標題內包含外部鏈接（例如「== 鏈接 ==」）。所有的外部鏈接應該包含在一個特定章節或參考文獻中。';
+// 
+
+// ------------------------------------
+
 var comment_tag_start = '<!--', comment_tag_end = '-->';
 
 fix_5.title = 'HTML注釋未首尾對應';
@@ -795,6 +800,16 @@ function fix_80(content, page_data, messages, options) {
 
 // ------------------------------------
 
+var PATTERN_empty_tags = /<(gallery|onlyinclude|includeonly|noinclude|ref|span|b|i)>[\s\n]*<\/\1>/ig;
+
+// CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]');
+fix_85.title = '含有空的 HTML tag';
+function fix_85(content, page_data, messages, options) {
+	return content.replace(PATTERN_empty_tags, '');
+}
+
+// ------------------------------------
+
 // CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_86.title = '使用內部連結之雙括號表現外部連結';
 function fix_86(content, page_data, messages, options) {
@@ -1044,7 +1059,7 @@ only_check = approved,
 /** {Natural|Array}每一項最大處理頁面數。 */
 處理頁面數;
 
-//only_check = not_approved;
+// only_check = not_approved;
 // only_check = 16;
 // only_check = 99;
 //
