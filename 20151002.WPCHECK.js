@@ -1080,7 +1080,7 @@ only_check = 85;
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
 // 處理頁面數 = [ 50, 60 ];
-處理頁面數 = 5;
+處理頁面數 = 50;
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {

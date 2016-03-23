@@ -35,10 +35,11 @@ title_prefix = 'User:' + user_name + '/log/20',
 PATTERN_LOG_TITLE = /^User:([^:\/]+)\/log\/(\d{8})$/,
 /** {String|RegExp}將移除此標記 後第一個章節開始所有的內容。 */
 last_preserve_mark = '運作記錄',
-/** {Natural}若是超過了這個長度則將會被搬移。 */
-min_length = 500,
-// {Boolean|String} e.g., '20160101'
-create_first = '20160401',
+/** {Natural}超過了這個長度才會被搬移。 */
+min_length = 5000,
+/** {Boolean|String} e.g., '20160101'. 當前設定 3個月前 */
+create_first = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 3)
+		.format('%4Y%2m%2d'),
 /** {Natural}記錄頁面的存檔起始編號。 */
 archive_index_starts = 1,
 // lastest_archive[title] = last index of archive
