@@ -81,7 +81,6 @@ function fix_2(content, page_data, messages, options) {
 // ------------------------------------
 
 // fix_4.title = '條目中的章節標題內包含外部鏈接（例如「== 鏈接 ==」）。所有的外部鏈接應該包含在一個特定章節或參考文獻中。';
-// 
 
 // ------------------------------------
 
@@ -805,7 +804,18 @@ var PATTERN_empty_tags = /<(gallery|onlyinclude|includeonly|noinclude|ref|span|b
 // CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_85.title = '含有空的 HTML tag';
 function fix_85(content, page_data, messages, options) {
-	return content.replace(PATTERN_empty_tags, '');
+	content = content
+	// fix error
+	.replace(PATTERN_empty_tags, '');
+
+	// 檢查是否有剩下出問題的情況。
+	var matched = content.match(/<([a-z]+)>[\s\n]*<\/\1>/);
+	if (matched)
+		// 不合規定的
+		messages.add("尚留有需要人工判別之空 HTML tag: '''"
+				+ matched[0].replace(/</g, '&lt;') + "'''", page_data);
+
+	return content;
 }
 
 // ------------------------------------
@@ -1062,6 +1072,7 @@ only_check = approved,
 // only_check = not_approved;
 // only_check = 16;
 // only_check = 99;
+only_check = 85;
 //
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];
@@ -1069,6 +1080,7 @@ only_check = approved,
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
 // 處理頁面數 = [ 50, 60 ];
+處理頁面數 = 5;
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {

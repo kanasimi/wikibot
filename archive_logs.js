@@ -4,7 +4,7 @@
 
 /*
 
- 2016/3/23 17:13:10	初版試營運。
+ 2016/3/23 20:16:46	初版試營運。
 
  */
 
@@ -222,7 +222,7 @@ get_log_pages(function(log_pages) {
 	var
 	/** {Array}filter log root. e.g., [[User:user_name/log/20010101]] */
 	log_root = log_pages.filter(function(title) {
-		if (!title.includes('20150916'))
+		if (false && !title.includes('20150916'))
 			return;
 		// 篩選出存檔頁面
 		var matched = title.match(PATTERN_log_archive);
