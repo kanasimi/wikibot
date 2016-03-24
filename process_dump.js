@@ -40,7 +40,7 @@ function process_data(error) {
 
 		// 似乎沒 !page_data.title 這種問題。
 		if (false && !page_data.title)
-			CeL.warn('* No title: [[' + page_data.id + ']]');
+			CeL.warn('* No title: [[' + page_data.pageid + ']]');
 		// [[Wikipedia:快速删除方针]]
 		if (revision['*']) {
 			// max_length = Math.max(max_length, revision['*'].length);
@@ -58,9 +58,10 @@ function process_data(error) {
 		// Write to .csv file.
 
 		if (do_write_file) {
+			// @see data_sequence
 			file_stream.write([ page_data.pageid, page_data.ns,
 			// escape ',', '"'
-			'"' + page_data.title.replace(/"/g, '""') + '"',
+			'"' + page_data.title.replace(/"/g, '""') + '"', revision.revid,
 			// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
 			revision.timestamp.slice(0, -1).replace('T', ' '),
 			//
@@ -74,11 +75,11 @@ function process_data(error) {
 
 		if (do_realtime_import)
 			connection.query({
-				sql : 'INSERT INTO `page`(pageid,ns,title,timestamp,text)'
-						+ ' VALUES (?, ?, ?, ?, ?);',
+				sql : INSERT_SQL,
 				values : [ page_data.pageid, page_data.ns, page_data.title,
-				// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
-				revision.timestamp.slice(0, -1).replace('T', ' '),
+						revision.revid,
+						// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
+						revision.timestamp.slice(0, -1).replace('T', ' '),
 						revision['*'] ]
 			}, function(error) {
 				if (error)
@@ -149,7 +150,7 @@ function setup_SQL(callback) {
 			CeL.err(error);
 
 		connection.query('DROP TABLE `page`', function(error) {
-			connection.query(create_SQL, callback);
+			connection.query(CREATE_SQL, callback);
 		});
 
 	});
@@ -178,12 +179,19 @@ base_directory = bot_directory + 'dumps/',
 do_write_file, file_stream,
 /** {Boolean}import to database */
 do_realtime_import = false,
+// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
+// page_data = {pageid,ns,title,revisions:[{revid,timestamp,'*'}]}
+data_sequence = '(pageid,ns,title,revid,timestamp,text)',
 // pageid,ns,title: https://www.mediawiki.org/wiki/Manual:Page_table
-// timestamp: https://www.mediawiki.org/wiki/Manual:Revision_table
+// revid,timestamp: https://www.mediawiki.org/wiki/Manual:Revision_table
 // text: https://www.mediawiki.org/wiki/Manual:Text_table
-create_SQL = 'CREATE TABLE page(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title))',
+CREATE_SQL = 'CREATE TABLE `page`(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, revid INT(10) UNSIGNED NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title));',
 //
-LOAD_DATA_SQL = "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' (pageid,ns,title,timestamp,text);",
+INSERT_SQL = 'INSERT INTO `page`' + data_sequence
+		+ ' VALUES (?, ?, ?, ?, ?, ?);',
+//
+LOAD_DATA_SQL = "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' "
+		+ data_sequence + ';',
 //
 SQL_session, connection;
 

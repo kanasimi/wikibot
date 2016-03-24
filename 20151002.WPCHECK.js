@@ -806,7 +806,7 @@ fix_85.title = '含有空的 HTML tag';
 function fix_85(content, page_data, messages, options) {
 	content = content
 	// fix error
-	.replace(PATTERN_empty_tags, '');
+	.replace_till_stable(PATTERN_empty_tags, '');
 
 	// 檢查是否有剩下出問題的情況。
 	var matched = content.match(/<([a-z]+)>[\s\n]*<\/\1>/);
