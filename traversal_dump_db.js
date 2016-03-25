@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time ../node/bin/node traversal_dump.js
+﻿// cd ~/wikibot && date && time ../node/bin/node traversal_dump_db.js
 // 遍歷所有頁面。
 
 /*
@@ -28,7 +28,7 @@ var dump_session = new CeL.wiki.SQL('zhwiki', function(error) {
 });
 var start_time = Date.now(),
 //
-query = dump_session.connection.query('SELECT title,text FROM `page`'),
+query = dump_session.connection.query('SELECT `title`,`text` FROM `page`'),
 //
 list = [], count = 0;
 query.on('error', function(error) {
@@ -51,38 +51,3 @@ query.on('error', function(error) {
 	CeL.log('All ' + list.length + '/' + count + ' pages filtered.');
 	dump_session.connection.end();
 });
-
-// --------------------------------------------------------
-
-// TODO
-function get_dump_rev_id(pageid, callback) {
-	var dump_session = new CeL.wiki.SQL('zhwiki', function(error) {
-		if (error)
-			CeL.err(error);
-	});
-	dump_session.SQL('SELECT revid,text FROM `page` WHERE pageid=' + pageid,
-	//
-	function(error, rows) {
-		if (error)
-			CeL.err(error);
-		else {
-			// console.log(pageid + ': ' + rows[0].revid);
-			callback(rows[0].revid);
-		}
-	});
-
-	return;
-
-	var replica_session = new CeL.wiki.SQL(function(error) {
-		if (error)
-			CeL.err(error);
-	}, 'zh');
-	replica_session.SQL('SELECT rev_id FROM `page` WHERE pageid=3233;',
-	//
-	function(error, rows) {
-		if (error)
-			CeL.err(error);
-		else
-			console.log(rows);
-	});
-}

@@ -40,7 +40,7 @@ replica_session = new CeL.wiki.SQL(function(error) {
 //
 mysql = require('mysql');
 
-function get_dump_data(id_list, callback, run_work) {
+function get_dump_data(run_work, callback, id_list, rev_list) {
 	var is_id = id_list.is_id;
 	if (!is_id) {
 		// lastest_revid[id] 僅能取得 pageid 之 revid。
@@ -63,20 +63,24 @@ function get_dump_data(id_list, callback, run_work) {
 		}
 
 		var id = id_list[index++];
-		if (!(id in lastest_revid)) {
+		if (index % 1e4 === 0) {
+			CeL.log('get_dump_data: ' + index + '/' + id_list.length + ' ('
+					+ (100 * index / id_list.length | 0) + '%)...');
+		}
+
+		if (rev_list[id] !== lastest_revid[id]) {
 			// skip this id
 			need_API.push(id);
 			next_id();
 			return;
 		}
 
-		var FROM_SQL = ' FROM `page` WHERE '
-				+ (is_id ? '`page_id`=' + id : '`page_title`='
-						+ mysql.escape(id));
-
-		// https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:page_table
-		// https://www.mediawiki.org/wiki/Manual:Page_title
-		replica_session.SQL('SELECT `rev_id`' + FROM_SQL,
+		// 若 revision 相同，從 dump 而不從 API 讀取。
+		dump_session.SQL(
+		//
+		'SELECT `pageid`,`ns`,`title`,`timestamp`,`text` FROM `page` WHERE '
+		//
+		+ (is_id ? '`pageid`=' + id : '`title`=' + mysql.escape(id)),
 		//
 		function(error, rows) {
 			if (error) {
@@ -84,30 +88,15 @@ function get_dump_data(id_list, callback, run_work) {
 				// skip this id
 				need_API.push(id);
 				next_id();
-			} else if (rows[0].rev_id === lastest_revid[id]) {
-				dump_session.SQL('SELECT pageid,ns,title,timestamp,text'
-						+ FROM_SQL, function(error, rows) {
-					if (error) {
-						CeL.err(error);
-						// skip this id
-						need_API.push(id);
-						next_id();
-					} else {
-						// 採用 dump
-						var page_data = rows[0];
-						page_data.revisions = {
-							timestamp : page_data.timestamp,
-							'*' : page_data.text
-						};
-						// page_data={pageid,ns,title,revisions:[{timestamp,'*'}]}
-						callback(page_data);
-						next_id();
-					}
-				});
-
 			} else {
-				// skip this id
-				need_API.push(id);
+				// 採用 dump
+				var page_data = rows[0];
+				page_data.revisions = {
+					timestamp : page_data.timestamp,
+					'*' : page_data.text
+				};
+				// page_data={pageid,ns,title,revisions:[{timestamp,'*'}]}
+				callback(page_data);
 				next_id();
 			}
 		});

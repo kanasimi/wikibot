@@ -212,7 +212,7 @@ do_realtime_import = false,
 database_name = CeL.wiki.language + 'wiki', table_name = 'page',
 // https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
 // page_data = {pageid,ns,title,revisions:[{revid,timestamp,'*'}]}
-data_structure = '(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, revid INT(10) UNSIGNED NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title))',
+data_structure = '(`pageid` INT(10) UNSIGNED NOT NULL, `ns` INT(11) NOT NULL, `title` VARBINARY(255) NOT NULL, `revid` INT(10) UNSIGNED NOT NULL, `timestamp` TIMESTAMP NOT NULL, `text` MEDIUMBLOB, PRIMARY KEY (`pageid`,`title`))',
 // pageid,ns,title: https://www.mediawiki.org/wiki/Manual:Page_table
 // revid,timestamp: https://www.mediawiki.org/wiki/Manual:Revision_table
 // text: https://www.mediawiki.org/wiki/Manual:Text_table
