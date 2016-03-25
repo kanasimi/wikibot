@@ -29,9 +29,11 @@ function process_data(error) {
 		var revision = page_data.revisions[0];
 
 		if (++count % 1e4 === 0) {
-			// e.g., "2660000: 16.546 page/ms Wikipedia:优良条目/2015年8月23日"
-			CeL.log('process_data: ' + count + ' ('
-					+ (100 * status.pos / status.size | 0) + '%): '
+			// e.g.,
+			// "2730000 (99%): 21.326 page/ms [[Category:大洋洲火山岛]]"
+			CeL.log(
+			// 'process_data: ' +
+			count + ' (' + (100 * status.pos / status.size | 0) + '%): '
 					+ (count / (Date.now() - start_read_time)).toFixed(3)
 					+ ' page/ms [[' + page_data.title + ']]');
 		}
@@ -52,6 +54,7 @@ function process_data(error) {
 				filtered.push(page_data.title);
 			if (false && /{{(?:[Nn]o)?[Bb]ots[} |]/.test(revision['*']))
 				filtered.push(page_data.title);
+
 		} else {
 			CeL.warn('* No content: [[' + page_data.title + ']]');
 		}
@@ -60,6 +63,7 @@ function process_data(error) {
 		// Write to .csv file.
 
 		if (do_write_file) {
+			lastest_revid[page_data.pageid] = revision.revid;
 			// @see data_structure
 			file_stream.write([ page_data.pageid, page_data.ns,
 			// escape ',', '"'
@@ -123,6 +127,9 @@ function process_data(error) {
 			if (do_write_file) {
 				file_stream.end();
 
+				CeL.fs_write(base_directory + 'lastest_revid.json', JSON
+						.stringify(lastest_revid), 'utf8');
+
 				if (!do_realtime_import) {
 					setup_SQL(function(error) {
 						if (error)
@@ -139,8 +146,9 @@ function process_data(error) {
 						});
 					});
 				}
-			} else
+			} else {
 				endding();
+			}
 		}
 	});
 }
@@ -219,7 +227,9 @@ LOAD_DATA_SQL_post = "' INTO TABLE `"
 		+ "` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' "
 		+ get_sequence(data_structure),
 //
-SQL_session, connection;
+SQL_session, connection,
+//
+lastest_revid = [];
 
 if (do_realtime_import) {
 	setup_SQL(function(error) {
@@ -237,26 +247,31 @@ if (do_realtime_import) {
 // --------------------------------------------------------
 
 // TODO
-function get_dump_rev_id(pageid) {
-	SQL_session = new CeL.wiki.SQL('zhwiki', function(error) {
+function get_dump_rev_id(pageid, callback) {
+	var dump_session = new CeL.wiki.SQL('zhwiki', function(error) {
 		if (error)
 			CeL.err(error);
 	});
-	SQL_session.SQL('SELECT revid,text FROM `page` WHERE pageid=' + pageid,
+	dump_session.SQL('SELECT revid,text FROM `page` WHERE pageid=' + pageid,
 	//
 	function(error, rows) {
 		if (error)
 			CeL.err(error);
-		else
-			console.log(rows[0].revid);
+		else {
+			// console.log(pageid + ': ' + rows[0].revid);
+			callback(rows[0].revid);
+		}
 	});
 
-	SQL_session = new CeL.wiki.SQL(function(error) {
+	return;
+
+	var replica_session = new CeL.wiki.SQL(function(error) {
 		if (error)
 			CeL.err(error);
 	}, 'zh');
-	SQL_session.SQL('SELECT rev_id FROM `page` WHERE pageid=3233;', function(
-			error, rows) {
+	replica_session.SQL('SELECT rev_id FROM `page` WHERE pageid=3233;',
+	//
+	function(error, rows) {
 		if (error)
 			CeL.err(error);
 		else
