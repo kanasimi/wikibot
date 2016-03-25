@@ -33,7 +33,7 @@ dump_session = new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(error) {
 		CeL.err(error);
 }),
 //
-replica_session = new CeL.wiki.SQL(function(error) {
+replica_session = false && new CeL.wiki.SQL(function(error) {
 	if (error)
 		CeL.err(error);
 }, CeL.wiki.language),
@@ -48,10 +48,12 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 		return;
 	}
 
+	// @see process_dump.js
 	var lastest_revid = JSON.parse(CeL.fs_read('dumps/lastest_revid.json',
 			'utf8')),
 	//
-	index = 0, need_API = Object.assign([], id_list);
+	index = 0, need_API = [];
+	need_API.is_id = is_id;
 
 	function next_id() {
 		if (index >= id_list.length) {
@@ -62,16 +64,23 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 			return;
 		}
 
-		var id = id_list[index++];
+		var id = id_list[index],
+		// id_list, rev_list 採用相同的 index。
+		revision = rev_list[index++];
 		if (index % 1e4 === 0) {
 			CeL.log('get_dump_data: ' + index + '/' + id_list.length + ' ('
-					+ (100 * index / id_list.length | 0) + '%)...');
+					+ (100 * index / id_list.length | 0)
+					+ '%), use dump data: ' + (index - 1 - need_API.length)
+					+ ' ('
+					+ (100 * (index - 1 - need_API.length) / (index - 1) | 0)
+					+ '%)');
 		}
 
-		if (rev_list[id] !== lastest_revid[id]) {
-			// skip this id
+		if (revision !== lastest_revid[id]) {
+			CeL.log('Skip id: ' + id + ', ' + revision + ' !== '
+					+ lastest_revid[id]);
 			need_API.push(id);
-			next_id();
+			setTimeout(next_id, 0);
 			return;
 		}
 
@@ -83,31 +92,34 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 		+ (is_id ? '`pageid`=' + id : '`title`=' + mysql.escape(id)),
 		//
 		function(error, rows) {
-			if (error) {
-				CeL.err(error);
+			var page_data;
+			if (error || !(page_data = rows[0])) {
+				CeL.err(error || 'No rows got: ' + id);
+				if (false && !error)
+					console.log(rows);
 				// skip this id
 				need_API.push(id);
-				next_id();
+				setTimeout(next_id, 0);
 			} else {
 				// 採用 dump
-				var page_data = rows[0];
 				page_data.revisions = {
 					timestamp : page_data.timestamp,
 					'*' : page_data.text
 				};
 				// page_data={pageid,ns,title,revisions:[{timestamp,'*'}]}
 				callback(page_data);
-				next_id();
+				setTimeout(next_id, 0);
 			}
 		});
 	}
-	next_id();
+	setTimeout(next_id, 0);
 }
 
 CeL.wiki.traversal({
 	wiki : wiki,
 	// cache path prefix
 	directory : base_directory,
+	// 若不想使用 tools-db，可 comment out 此行。
 	filter : get_dump_data,
 	after : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
