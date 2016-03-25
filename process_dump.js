@@ -21,18 +21,20 @@ function process_data(error) {
 	var start_read_time = Date.now(),
 	// max_length = 0,
 	count = 0;
-	CeL.wiki.read_dump(function(page_data) {
+	CeL.wiki.read_dump(function(page_data, status) {
 		// filter
 		if (false && page_data.ns !== 0)
 			return;
 
 		var revision = page_data.revisions[0];
 
-		if (++count % 10000 === 0)
+		if (++count % 1e4 === 0) {
 			// e.g., "2660000: 16.546 page/ms Wikipedia:优良条目/2015年8月23日"
-			CeL.log(count + ': '
+			CeL.log('process_data: ' + count + ' ('
+					+ (status.pos / status.size | 0) + '%): '
 					+ (count / (Date.now() - start_read_time)).toFixed(3)
-					+ ' page/ms\t' + page_data.title);
+					+ ' page/ms [[' + page_data.title + ']]');
+		}
 		// var title = page_data.title, content = revision['*'];
 
 		// ----------------------------
@@ -58,7 +60,7 @@ function process_data(error) {
 		// Write to .csv file.
 
 		if (do_write_file) {
-			// @see data_sequence
+			// @see data_structure
 			file_stream.write([ page_data.pageid, page_data.ns,
 			// escape ',', '"'
 			'"' + page_data.title.replace(/"/g, '""') + '"', revision.revid,
@@ -76,6 +78,7 @@ function process_data(error) {
 		if (do_realtime_import)
 			connection.query({
 				sql : INSERT_SQL,
+				// @see data_structure
 				values : [ page_data.pageid, page_data.ns, page_data.title,
 						revision.revid,
 						// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
@@ -103,7 +106,8 @@ function process_data(error) {
 				}
 
 			if (do_write_file) {
-				CeL.log('process_data: Write to [' + filename + ']');
+				CeL.log('process_data: Write conversed data to [' + filename
+						+ ']');
 				file_stream = new require('fs').WriteStream(filename, 'utf8');
 			}
 		},
@@ -111,8 +115,8 @@ function process_data(error) {
 			// e.g., "All 2755239 pages, 167.402 s."
 			CeL.log('process_data: All ' + count + ' pages, '
 					+ (Date.now() - start_read_time) / 1000 + ' s.');
-			// 系統上限 2,048 KB
 			if (false)
+				// 系統上限 2,048 KB
 				CeL.log('process_data: Max page length: ' + max_length
 						+ ' characters.');
 
@@ -125,14 +129,12 @@ function process_data(error) {
 							CeL.err(error);
 
 						CeL.info('process_data: Import data to database...');
-						var SQL = "LOAD DATA LOCAL INFILE '" + file_stream.path
-								+ LOAD_DATA_SQL;
-						CeL.log(SQL.replace(/\\n/g, '\\n'));
+						var SQL = LOAD_DATA_SQL + file_stream.path
+								+ LOAD_DATA_SQL_post;
+						CeL.log(SQL.replace(/\n/g, '\\n'));
 						connection.query(SQL, function(error, rows) {
 							if (error)
 								CeL.err(error);
-							else
-								CeL.log(rows);
 							endding();
 						});
 					});
@@ -145,11 +147,11 @@ function process_data(error) {
 
 function setup_SQL(callback) {
 	CeL.info('setup_SQL: Re-creating database...');
-	SQL_session = new CeL.wiki.SQL('zhwiki', function(error) {
+	SQL_session = new CeL.wiki.SQL(database_name, function(error) {
 		if (error)
 			CeL.err(error);
 
-		connection.query('DROP TABLE `page`', function(error) {
+		connection.query('DROP TABLE `' + table_name + '`', function(error) {
 			connection.query(CREATE_SQL, callback);
 		});
 
@@ -160,38 +162,62 @@ function setup_SQL(callback) {
 function endding() {
 	CeL.log('endding: All '
 			+ ((Date.now() - start_time) / 1000 / 60).toFixed(3) + ' minutes.');
-	if (filtered && filtered.length > 0) {
-		var filename = base_directory + 'filtered.lst';
-		CeL.info('endding: ' + filtered.length + ' pages filtered, write to ['
-				+ filename + '].');
-		require('fs').writeFileSync(filename,
-				filtered.sort().uniq().join('\n'), 'utf8');
-		// console.log(filtered.join('\n'));
-	}
+	if (filtered)
+		if (filtered.length > 0) {
+			var filename = base_directory + 'filtered.lst';
+			CeL.info('endding: ' + filtered.length
+					+ ' pages filtered, write to [' + filename + '].');
+			require('fs').writeFileSync(filename,
+					filtered.sort().uniq().join('\n'), 'utf8');
+			// console.log(filtered.join('\n'));
+		} else
+			CeL.info('endding: No page filtered.');
+}
+
+function get_sequence(structure) {
+	var sequence = [];
+	structure.replace(/\)$/, '').replace(/^\(/, '')
+	//
+	.replace(/\([^()]*\)/g, '').split(',')
+	//
+	.forEach(function(field) {
+		if (!/^\s*(?:PRIMARY\s+)?KEY\s+/i.test(field)) {
+			var matched = field.match(/^\s*([^\s]+)/);
+			if (matched)
+				sequence.push(matched[1]);
+		}
+	});
+	return '(' + sequence.join(',') + ')';
 }
 
 var start_time = Date.now(),
-// filtered list
+/** {Array filtered list */
 filtered = [],
 /** {String}base directory */
 base_directory = bot_directory + 'dumps/',
 /** {Boolean}write to CSV file. */
 do_write_file, file_stream,
-/** {Boolean}import to database */
+/** {Boolean}import to database realtime: 2016/3/19 Will cause fatal error! */
 do_realtime_import = false,
+/** {String}database name @ tools-db */
+database_name = CeL.wiki.language + 'wiki', table_name = 'page',
 // https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
 // page_data = {pageid,ns,title,revisions:[{revid,timestamp,'*'}]}
-data_sequence = '(pageid,ns,title,revid,timestamp,text)',
+data_structure = '(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, revid INT(10) UNSIGNED NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title))',
 // pageid,ns,title: https://www.mediawiki.org/wiki/Manual:Page_table
 // revid,timestamp: https://www.mediawiki.org/wiki/Manual:Revision_table
 // text: https://www.mediawiki.org/wiki/Manual:Text_table
-CREATE_SQL = 'CREATE TABLE `page`(pageid INT(10) UNSIGNED NOT NULL, ns INT(11) NOT NULL, title VARBINARY(255) NOT NULL, revid INT(10) UNSIGNED NOT NULL, timestamp TIMESTAMP NOT NULL, text MEDIUMBLOB, PRIMARY KEY (pageid,title));',
+CREATE_SQL = 'CREATE TABLE `' + table_name + '`' + data_structure,
 //
-INSERT_SQL = 'INSERT INTO `page`' + data_sequence
-		+ ' VALUES (?, ?, ?, ?, ?, ?);',
+INSERT_SQL = 'INSERT INTO `' + table_name + '`' + get_sequence(data_structure)
+		+ ' VALUES (?, ?, ?, ?, ?, ?)',
 //
-LOAD_DATA_SQL = "' INTO TABLE `page` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' "
-		+ data_sequence + ';',
+LOAD_DATA_SQL = "LOAD DATA LOCAL INFILE '",
+//
+LOAD_DATA_SQL_post = "' INTO TABLE `"
+		+ table_name
+		+ "` FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' "
+		+ get_sequence(data_structure),
 //
 SQL_session, connection;
 
@@ -206,4 +232,34 @@ if (do_realtime_import) {
 	});
 } else {
 	process_data();
+}
+
+// --------------------------------------------------------
+
+// TODO
+function get_dump_rev_id(pageid) {
+	SQL_session = new CeL.wiki.SQL('zhwiki', function(error) {
+		if (error)
+			CeL.err(error);
+	});
+	SQL_session.SQL('SELECT revid,text FROM `page` WHERE pageid=' + pageid,
+	//
+	function(error, rows) {
+		if (error)
+			CeL.err(error);
+		else
+			console.log(rows[0].revid);
+	});
+
+	SQL_session = new CeL.wiki.SQL(function(error) {
+		if (error)
+			CeL.err(error);
+	}, 'zh');
+	SQL_session.SQL('SELECT rev_id FROM `page` WHERE pageid=3233;', function(
+			error, rows) {
+		if (error)
+			CeL.err(error);
+		else
+			console.log(rows);
+	});
 }
