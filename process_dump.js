@@ -31,7 +31,7 @@ function process_data(error) {
 		if (++count % 1e4 === 0) {
 			// e.g., "2660000: 16.546 page/ms Wikipedia:优良条目/2015年8月23日"
 			CeL.log('process_data: ' + count + ' ('
-					+ (status.pos / status.size | 0) + '%): '
+					+ (100 * status.pos / status.size | 0) + '%): '
 					+ (count / (Date.now() - start_read_time)).toFixed(3)
 					+ ' page/ms [[' + page_data.title + ']]');
 		}
@@ -90,8 +90,8 @@ function process_data(error) {
 			});
 	}, {
 		directory : base_directory,
-		first : function(fn) {
-			var filename = fn.replace(/[^.]+$/, 'csv');
+		first : function(xml_filename) {
+			var filename = xml_filename.replace(/[^.]+$/, 'csv');
 			if (do_write_file === undefined)
 				// auto detect
 				try {
