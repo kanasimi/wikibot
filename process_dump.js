@@ -117,6 +117,7 @@ function process_data(error) {
 		},
 		last : function() {
 			// e.g., "All 2755239 pages, 167.402 s."
+			// includes redirection 包含重新導向頁面.
 			CeL.log('process_data: All ' + count + ' pages, '
 					+ (Date.now() - start_read_time) / 1000 + ' s.');
 			if (false)
@@ -228,7 +229,7 @@ LOAD_DATA_SQL_post = "' INTO TABLE `"
 		+ get_sequence(data_structure),
 //
 SQL_session, connection,
-//
+// 2016/3/25 當前採用 {Array} 會比 {Object} 更精簡: 37079536/51543528
 lastest_revid = [];
 
 if (do_realtime_import) {
@@ -242,39 +243,4 @@ if (do_realtime_import) {
 	});
 } else {
 	process_data();
-}
-
-// --------------------------------------------------------
-
-// TODO
-function get_dump_rev_id(pageid, callback) {
-	var dump_session = new CeL.wiki.SQL('zhwiki', function(error) {
-		if (error)
-			CeL.err(error);
-	});
-	dump_session.SQL('SELECT revid,text FROM `page` WHERE pageid=' + pageid,
-	//
-	function(error, rows) {
-		if (error)
-			CeL.err(error);
-		else {
-			// console.log(pageid + ': ' + rows[0].revid);
-			callback(rows[0].revid);
-		}
-	});
-
-	return;
-
-	var replica_session = new CeL.wiki.SQL(function(error) {
-		if (error)
-			CeL.err(error);
-	}, 'zh');
-	replica_session.SQL('SELECT rev_id FROM `page` WHERE pageid=3233;',
-	//
-	function(error, rows) {
-		if (error)
-			CeL.err(error);
-		else
-			console.log(rows);
-	});
 }
