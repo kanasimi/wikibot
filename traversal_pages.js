@@ -26,16 +26,105 @@ CeL.fs_mkdir(base_directory);
 
 // CeL.set_debug(6);
 
-var filtered = [];
+var filtered = [],
+//
+dump_session = new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(error) {
+	if (error)
+		CeL.err(error);
+}),
+//
+replica_session = new CeL.wiki.SQL(function(error) {
+	if (error)
+		CeL.err(error);
+}, CeL.wiki.language),
+//
+mysql = require('mysql');
+
+function get_dump_data(id_list, callback, run_work) {
+	var is_id = id_list.is_id;
+	if (!is_id) {
+		// lastest_revid[id] 僅能取得 pageid 之 revid。
+		run_work(need_API);
+		return;
+	}
+
+	var lastest_revid = JSON.parse(CeL.fs_read('dumps/lastest_revid.json',
+			'utf8')),
+	//
+	index = 0, need_API = Object.assign([], id_list);
+
+	function next_id() {
+		if (index >= id_list.length) {
+			// done.
+			CeL.log('get_dump_data: ' + (id_list.length - need_API.length)
+					+ '/' + id_list.length + ' use dump.');
+			run_work(need_API);
+			return;
+		}
+
+		var id = id_list[index++];
+		if (!(id in lastest_revid)) {
+			// skip this id
+			need_API.push(id);
+			next_id();
+			return;
+		}
+
+		var FROM_SQL = ' FROM `page` WHERE '
+				+ (is_id ? '`page_id`=' + id : '`page_title`='
+						+ mysql.escape(id));
+
+		// https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:page_table
+		// https://www.mediawiki.org/wiki/Manual:Page_title
+		replica_session.SQL('SELECT `rev_id`' + FROM_SQL,
+		//
+		function(error, rows) {
+			if (error) {
+				CeL.err(error);
+				// skip this id
+				need_API.push(id);
+				next_id();
+			} else if (rows[0].rev_id === lastest_revid[id]) {
+				dump_session.SQL('SELECT pageid,ns,title,timestamp,text'
+						+ FROM_SQL, function(error, rows) {
+					if (error) {
+						CeL.err(error);
+						// skip this id
+						need_API.push(id);
+						next_id();
+					} else {
+						// 採用 dump
+						var page_data = rows[0];
+						page_data.revisions = {
+							timestamp : page_data.timestamp,
+							'*' : page_data.text
+						};
+						// page_data={pageid,ns,title,revisions:[{timestamp,'*'}]}
+						callback(page_data);
+						next_id();
+					}
+				});
+
+			} else {
+				// skip this id
+				need_API.push(id);
+				next_id();
+			}
+		});
+	}
+	next_id();
+}
+
 CeL.wiki.traversal({
 	wiki : wiki,
 	// cache path prefix
 	directory : base_directory,
-	after : function(messages, titles, pages) {
+	filter : get_dump_data,
+	after : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
 		CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	}
-}, function(page_data, messages) {
+}, function(page_data) {
 	/** {String}page title */
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. */
