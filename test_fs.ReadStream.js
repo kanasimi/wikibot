@@ -24,7 +24,7 @@ file_stream = new node_fs.ReadStream(filename),
 // status = node_fs.fstatSync(file_stream.fd);
 status = node_fs.statSync(filename);
 // 若是預設 encoding，會造成 chunk.length 無法獲得正確的值。
-// 為了能掌握進度，因此不預設 encoding。
+// 若是為了能掌握進度，則不預設 encoding。但這會造成破碎/錯誤的編碼，只好放棄。
 file_stream.setEncoding('utf8');
 status.pos = 0;
 

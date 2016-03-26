@@ -27,7 +27,7 @@ CeL.fs_mkdir(base_directory);
 // CeL.set_debug(6);
 
 var filtered = [],
-//
+// 經測試發現讀取 tools-db 的 database 速度不會比較快。
 dump_session = false && new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(
 		error) {
 	if (error)
@@ -121,7 +121,7 @@ CeL.wiki.traversal({
 	wiki : wiki,
 	// cache path prefix
 	directory : base_directory,
-	// 若不想使用 tools-db，可 comment out 此行。
+	// 若不想使用 tools-db 的 database，可 comment out 此行。
 	filter : dump_session && get_dump_data,
 	after : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
