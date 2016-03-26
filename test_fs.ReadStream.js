@@ -9,9 +9,9 @@
 
 'use strict';
 
-require('./wiki loder.js');
+// require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
-CeL.run('application.platform.nodejs');
+// CeL.run('application.platform.nodejs');
 
 var node_fs = require('fs'), filename = 'test',
 //
@@ -30,7 +30,7 @@ status.pos = 0;
 
 file_stream.on('data', function(chunk) {
 	status.pos += chunk.length;
-	console.log(JSON.stringify(file_stream));
+	// console.log(JSON.stringify(file_stream));
 
 	/**
 	 * 當未採用 .setEncoding('utf8')，之後才 += chunk.toString('utf8')；
@@ -43,8 +43,8 @@ file_stream.on('data', function(chunk) {
 	 * 
 	 * @see https://nodejs.org/api/stream.html#stream_class_stream_readable
 	 */
-	// buffer += chunk.toString('utf8');
-	buffer += chunk;
+	buffer += chunk.toString('utf8');
+	// buffer += chunk;
 
 	// buffer = buffer.slice(buffer.length - 8);
 	buffer = buffer.replace(/[處理朱載]+/g, '');
@@ -53,6 +53,7 @@ file_stream.on('data', function(chunk) {
 			+ buffer.charCodeAt(buffer.length - 1) + ', ' + status.pos + '/'
 			+ status.size);
 });
+
 file_stream.on('end', function() {
 	console.log(status);
 });
