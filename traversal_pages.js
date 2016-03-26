@@ -28,7 +28,8 @@ CeL.fs_mkdir(base_directory);
 
 var filtered = [],
 //
-dump_session = new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(error) {
+dump_session = false && new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(
+		error) {
 	if (error)
 		CeL.err(error);
 }),
@@ -70,15 +71,16 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 		if (index % 1e4 === 0) {
 			CeL.log('get_dump_data: ' + index + '/' + id_list.length + ' ('
 					+ (100 * index / id_list.length | 0)
-					+ '%), use dump data: ' + (index - 1 - need_API.length)
+					+ '%), use dumped data: ' + (index - 1 - need_API.length)
 					+ ' ('
 					+ (100 * (index - 1 - need_API.length) / (index - 1) | 0)
 					+ '%)');
 		}
 
 		if (revision !== lastest_revid[id]) {
-			CeL.log('Skip id: ' + id + ', ' + revision + ' !== '
-					+ lastest_revid[id]);
+			if (false)
+				CeL.log('Skip id: ' + id + ', ' + revision + ' !== '
+						+ lastest_revid[id]);
 			need_API.push(id);
 			setTimeout(next_id, 0);
 			return;
@@ -120,7 +122,7 @@ CeL.wiki.traversal({
 	// cache path prefix
 	directory : base_directory,
 	// 若不想使用 tools-db，可 comment out 此行。
-	filter : get_dump_data,
+	filter : dump_session && get_dump_data,
 	after : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
 		CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
