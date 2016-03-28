@@ -21,7 +21,7 @@ function process_data(error) {
 	var start_read_time = Date.now(),
 	// max_length = 0,
 	count = 0;
-	CeL.wiki.read_dump(function(page_data, status) {
+	CeL.wiki.read_dump(function(page_data, position) {
 		// filter
 		if (false && page_data.ns !== 0)
 			return;
@@ -33,7 +33,7 @@ function process_data(error) {
 			// "2730000 (99%): 21.326 page/ms [[Category:大洋洲火山岛]]"
 			CeL.log(
 			// 'process_data: ' +
-			count + ' (' + (100 * status.pos / status.size | 0) + '%): '
+			count + ' (' + (100 * position / file_size | 0) + '%): '
 					+ (count / (Date.now() - start_read_time)).toFixed(3)
 					+ ' page/ms [[' + page_data.title + ']]');
 		}
@@ -95,6 +95,7 @@ function process_data(error) {
 	}, {
 		directory : base_directory,
 		first : function(xml_filename) {
+			file_size = node_fs.statSync(xml_filename).size;
 			var filename = xml_filename.replace(/[^.]+$/, 'csv');
 			if (do_write_file === undefined)
 				// auto detect
@@ -200,6 +201,8 @@ function get_sequence(structure) {
 }
 
 var start_time = Date.now(),
+/** {Natural}檔案長度。掌握進度用。 */
+file_size,
 /** {Array filtered list */
 filtered = [],
 /** {String}base directory */
