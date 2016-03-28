@@ -21,7 +21,7 @@ function process_data(error) {
 	var start_read_time = Date.now(),
 	// max_length = 0,
 	count = 0;
-	CeL.wiki.read_dump(function(page_data, position) {
+	CeL.wiki.read_dump(function(page_data, position, page_anchor) {
 		// filter
 		if (false && page_data.ns !== 0)
 			return;
@@ -63,7 +63,8 @@ function process_data(error) {
 		// Write to .csv file.
 
 		if (do_write_file) {
-			lastest_revid[page_data.pageid] = revision.revid;
+			lastest_revid[page_data.pageid] = [ revision.revid, page_anchor[0],
+					page_anchor[1] ];
 			// @see data_structure
 			file_stream.write([ page_data.pageid, page_data.ns,
 			// escape ',', '"'
@@ -116,7 +117,7 @@ function process_data(error) {
 				file_stream = new node_fs.WriteStream(filename, 'utf8');
 			}
 		},
-		last : function() {
+		last : function(anchor) {
 			// e.g., "All 2755239 pages, 167.402 s."
 			// includes redirection 包含重新導向頁面.
 			CeL.log('process_data: All ' + count + ' pages, '
@@ -125,6 +126,10 @@ function process_data(error) {
 				// 系統上限 2,048 KB
 				CeL.log('process_data: Max page length: ' + max_length
 						+ ' characters.');
+
+			if (false)
+				CeL.fs_write(base_directory + 'anchor.json', JSON
+						.stringify(anchor), 'utf8');
 
 			if (do_write_file) {
 				file_stream.end();
