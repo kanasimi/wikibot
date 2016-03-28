@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time ../node/bin/node process_dump.js
+﻿// cd ~/wikibot && date && time ../node/bin/node process_dump.js && date
 // Import Wikimedia database backup dumps data to user-created database on Tool Labs.
 // 應用工具: 遍歷所有 dumps data 之頁面，並將資料寫入 .csv file，進而匯入 database。
 // @see https://www.mediawiki.org/wiki/Manual:Importing_XML_dumps#Using_importDump.php.2C_if_you_have_shell_access
@@ -101,7 +101,7 @@ function process_data(error) {
 				// auto detect
 				try {
 					// check if file exists
-					do_write_file = !require('fs').statSync(filename);
+					do_write_file = !node_fs.statSync(filename);
 					if (!do_write_file)
 						CeL.info('process_data: The CSV file exists, '
 								+ 'so I will not import data to database: ['
@@ -113,7 +113,7 @@ function process_data(error) {
 			if (do_write_file) {
 				CeL.log('process_data: Write conversed data to [' + filename
 						+ ']');
-				file_stream = new require('fs').WriteStream(filename, 'utf8');
+				file_stream = new node_fs.WriteStream(filename, 'utf8');
 			}
 		},
 		last : function() {
@@ -177,8 +177,8 @@ function endding() {
 			var filename = base_directory + 'filtered.lst';
 			CeL.info('endding: ' + filtered.length
 					+ ' pages filtered, write to [' + filename + '].');
-			require('fs').writeFileSync(filename,
-					filtered.sort().uniq().join('\n'), 'utf8');
+			node_fs.writeFileSync(filename, filtered.sort().uniq().join('\n'),
+					'utf8');
 			// console.log(filtered.join('\n'));
 		} else
 			CeL.info('endding: No page filtered.');
@@ -200,7 +200,9 @@ function get_sequence(structure) {
 	return '(' + sequence.join(',') + ')';
 }
 
-var start_time = Date.now(),
+var node_fs = require('fs'),
+//
+start_time = Date.now(),
 /** {Natural}檔案長度。掌握進度用。 */
 file_size,
 /** {Array filtered list */
