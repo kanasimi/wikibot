@@ -6,7 +6,7 @@
 // 2016/3/12 11:56:10	初版試營運。純粹篩選約需近 3 minutes。
 
 // 使用新版 node.js 能加快寫入 .csv file 之速度，降低 CPU 與 RAM 使用；
-// 2016/3/19 do_write_file 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes 執行。
+// 2016/3/19 do_write_CSV 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes 執行。
 
 'use strict';
 
@@ -60,11 +60,17 @@ function process_data(error) {
 		}
 
 		// ----------------------------
-		// Write to .csv file.
+		// Write to rev file.
 
-		if (do_write_file) {
+		if (do_write_rev) {
 			lastest_revid[page_data.pageid] = [ revision.revid, page_anchor[0],
 					page_anchor[1] ];
+		}
+
+		// ----------------------------
+		// Write to .csv file.
+
+		if (do_write_CSV) {
 			// @see data_structure
 			file_stream.write([ page_data.pageid, page_data.ns,
 			// escape ',', '"'
@@ -98,20 +104,20 @@ function process_data(error) {
 		first : function(xml_filename) {
 			file_size = node_fs.statSync(xml_filename).size;
 			var filename = xml_filename.replace(/[^.]+$/, 'csv');
-			if (do_write_file === undefined)
+			if (do_write_CSV === undefined)
 				// auto detect
 				try {
 					// check if file exists
-					do_write_file = !node_fs.statSync(filename);
-					if (!do_write_file)
+					do_write_CSV = !node_fs.statSync(filename);
+					if (!do_write_CSV)
 						CeL.info('process_data: The CSV file exists, '
 								+ 'so I will not import data to database: ['
 								+ filename + ']');
 				} catch (e) {
-					do_write_file = true;
+					do_write_CSV = true;
 				}
 
-			if (do_write_file) {
+			if (do_write_CSV) {
 				CeL.log('process_data: Write conversed data to [' + filename
 						+ ']');
 				file_stream = new node_fs.WriteStream(filename, 'utf8');
@@ -131,11 +137,13 @@ function process_data(error) {
 				CeL.fs_write(base_directory + 'anchor.json', JSON
 						.stringify(anchor), 'utf8');
 
-			if (do_write_file) {
-				file_stream.end();
-
+			if (do_write_rev) {
 				CeL.fs_write(base_directory + 'lastest_revid.json', JSON
 						.stringify(lastest_revid), 'utf8');
+			}
+
+			if (do_write_CSV) {
+				file_stream.end();
 
 				if (!do_realtime_import) {
 					setup_SQL(function(error) {
@@ -214,8 +222,10 @@ file_size,
 filtered = [],
 /** {String}base directory */
 base_directory = bot_directory + 'dumps/',
+/** {Boolean}write to lastest revid file. */
+do_write_rev = true,
 /** {Boolean}write to CSV file. */
-do_write_file, file_stream,
+do_write_CSV, file_stream,
 /** {Boolean}import to database realtime: 2016/3/19 Will cause fatal error! */
 do_realtime_import = false,
 /** {String}database name @ tools-db */

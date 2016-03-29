@@ -26,7 +26,11 @@ CeL.fs_mkdir(base_directory);
 
 // CeL.set_debug(6);
 
-var filtered = [],
+var node_fs = require('fs'),
+//
+filename = 'dumps/zhwiki-20160305-pages-articles.xml',
+//
+filtered = [],
 // 經測試發現讀取 tools-db 的 database 速度不會比較快。
 dump_session = false && new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(
 		error) {
@@ -77,14 +81,46 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 					+ '%)');
 		}
 
-		if (revision !== lastest_revid[id]) {
+		// ------------------------------------------------
+		// 測試 dump xml file 是否有最新版本.
+
+		var position = lastest_revid[id];
+		if (!position || position[0] !== revision) {
 			if (false)
-				CeL.log('Skip id: ' + id + ', ' + revision + ' !== '
-						+ lastest_revid[id]);
+				CeL
+						.log('Skip id: ' + id + ', ' + revision + ' !== '
+								+ position);
 			need_API.push(id);
 			setTimeout(next_id, 0);
 			return;
 		}
+
+		// ------------------------------------------------
+		// 讀取 dump xml file.
+
+		var file_stream = new node_fs.ReadStream(filename, {
+			start : position[2],
+			end : position[2] + position[3],
+			// 一次全部讀取進來。
+			// 頁面大小系統上限 2,048 KB = 2 MB。
+			highWaterMark : 4 * 1024 * 1024
+		}), buffer;
+		file_stream.on('data', function(chunk) {
+			if (!buffer)
+				buffer = chunk;
+			else
+				buffer += chunk;
+		});
+		file_stream.on('end', function() {
+			// page_data={pageid,ns,title,revisions:[{timestamp,'*'}]}
+			callback(CeL.wiki.parse_dump_xml(buffer));
+			setTimeout(next_id, 0);
+		});
+
+		return;
+
+		// ------------------------------------------------
+		// 讀取 user database.
 
 		// 若 revision 相同，從 dump 而不從 API 讀取。
 		dump_session.SQL(
