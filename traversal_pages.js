@@ -162,9 +162,9 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 // ----------------------------------------------------------------------------
 
 function read_dump_file(run_work, callback, id_list, rev_list) {
-	var start_read_time = Date.now(),
+	var start_read_time = Date.now(), length = id_list.length,
 	// max_length = 0,
-	count = 0, file_size, rev_of_id = [];
+	count = 0, file_size, rev_of_id = [], is_id = id_list.is_id;
 
 	id_list.forEach(function(id, index) {
 		rev_of_id[id] = rev_list[index];
@@ -182,7 +182,7 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 			// e.g.,
 			// "2730000 (99%): 21.326 page/ms [[Category:大洋洲火山岛]]"
 			CeL.log(
-			// 'process_data: ' +
+			// 'read_dump_file: ' +
 			count + ' (' + (100 * position / file_size | 0) + '%): '
 					+ (count / (Date.now() - start_read_time)).toFixed(3)
 					+ ' page/ms [[' + page_data.title + ']]');
@@ -219,16 +219,26 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 		},
 		filter : function(pageid, revid) {
 			if ((pageid in rev_of_id) && rev_of_id[pageid] === revid) {
-				delete rev_of_id[pageid];
+				// 隨時 delete rev_of_id[] 會使速度極慢。
+				// delete rev_of_id[pageid];
+				rev_of_id[pageid] = null;
 				return true;
 			}
 		},
 		last : function() {
-			// e.g., "All 2755239 pages in dump xml file, 167.402 s."
+			// e.g., "All 1491092 pages in dump xml file, 198.165 s."
 			// includes redirection 包含重新導向頁面.
-			CeL.log('process_data: All ' + count + ' pages in dump xml file, '
+			CeL.log('read_dump_file: All ' + count + '/' + length
+					+ ' pages using dump xml file, '
 					+ (Date.now() - start_read_time) / 1000 + ' s.');
-			run_work(rev_of_id.keys());
+			var need_API = [];
+			need_API.is_id = is_id;
+			for ( var id in rev_of_id)
+				if (rev_of_id[id] !== null)
+					need_API.push(id);
+			// release
+			rev_of_id = null;
+			run_work(need_API);
 		}
 	});
 }
