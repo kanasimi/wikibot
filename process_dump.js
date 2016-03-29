@@ -26,8 +26,6 @@ function process_data(error) {
 		if (false && page_data.ns !== 0)
 			return;
 
-		var revision = page_data.revisions[0];
-
 		if (++count % 1e4 === 0) {
 			// e.g.,
 			// "2730000 (99%): 21.326 page/ms [[Category:大洋洲火山岛]]"
@@ -37,10 +35,12 @@ function process_data(error) {
 					+ (count / (Date.now() - start_read_time)).toFixed(3)
 					+ ' page/ms [[' + page_data.title + ']]');
 		}
-		// var title = page_data.title, content = revision['*'];
 
 		// ----------------------------
 		// Check data.
+
+		var revision = page_data.revisions[0];
+		// var title = page_data.title, content = revision['*'];
 
 		// 似乎沒 !page_data.title 這種問題。
 		if (false && !page_data.title)
@@ -86,7 +86,7 @@ function process_data(error) {
 		// ----------------------------
 		// Write to database.
 
-		if (do_realtime_import)
+		if (do_realtime_import) {
 			connection.query({
 				sql : INSERT_SQL,
 				// @see data_structure
@@ -99,6 +99,8 @@ function process_data(error) {
 				if (error)
 					CeL.err(error);
 			});
+		}
+
 	}, {
 		directory : base_directory,
 		first : function(xml_filename) {
