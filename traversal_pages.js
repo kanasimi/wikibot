@@ -45,6 +45,9 @@ replica_session = false && new CeL.wiki.SQL(function(error) {
 //
 mysql = require('mysql');
 
+// ----------------------------------------------------------------------------
+// 經測試速度過慢，以下方法廢棄 deprecated。
+
 function get_dump_data(run_work, callback, id_list, rev_list) {
 	var is_id = id_list.is_id;
 	if (!is_id) {
@@ -156,6 +159,8 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 	setTimeout(next_id, 0);
 }
 
+// ----------------------------------------------------------------------------
+
 function read_dump_file(run_work, callback, id_list, rev_list) {
 	var start_read_time = Date.now(),
 	// max_length = 0,
@@ -165,6 +170,7 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 		rev_of_id[id] = rev_list[index];
 	});
 
+	// release
 	id_list = rev_list = null;
 
 	CeL.wiki.read_dump(function(page_data, position, page_anchor) {
@@ -206,21 +212,28 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 		callback(page_data);
 
 	}, {
-		directory : base_directory,
-		filter : function(pageid, revid) {
-			return rev_of_id[pageid] === revid;
-		},
+		// directory : base_directory,
+		directory : bot_directory + 'dumps/',
 		first : function(xml_filename) {
 			file_size = node_fs.statSync(xml_filename).size;
 		},
+		filter : function(pageid, revid) {
+			if ((pageid in rev_of_id) && rev_of_id[pageid] === revid) {
+				delete rev_of_id[pageid];
+				return true;
+			}
+		},
 		last : function() {
-			// e.g., "All 2755239 pages, 167.402 s."
+			// e.g., "All 2755239 pages in dump xml file, 167.402 s."
 			// includes redirection 包含重新導向頁面.
-			CeL.log('process_data: All ' + count + ' pages, '
+			CeL.log('process_data: All ' + count + ' pages in dump xml file, '
 					+ (Date.now() - start_read_time) / 1000 + ' s.');
+			run_work(rev_of_id.keys());
 		}
 	});
 }
+
+// ----------------------------------------------------------------------------
 
 CeL.wiki.traversal({
 	wiki : wiki,

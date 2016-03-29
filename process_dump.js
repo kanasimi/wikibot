@@ -126,9 +126,9 @@ function process_data(error) {
 			}
 		},
 		last : function(anchor) {
-			// e.g., "All 2755239 pages, 167.402 s."
+			// e.g., "All 2755239 pages in dump xml file, 167.402 s."
 			// includes redirection 包含重新導向頁面.
-			CeL.log('process_data: All ' + count + ' pages, '
+			CeL.log('process_data: All ' + count + ' pages in dump xml file, '
 					+ (Date.now() - start_read_time) / 1000 + ' s.');
 			if (false)
 				// 系統上限 2,048 KB
