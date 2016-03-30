@@ -209,12 +209,17 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 			}
 		}
 
+		// 註記為 dump。
+		page_data.dump = true;
+		// page_data.dump = filename;
+
 		callback(page_data);
 
 	}, {
 		// directory : base_directory,
 		directory : bot_directory + 'dumps/',
 		first : function(xml_filename) {
+			filename = xml_filename;
 			file_size = node_fs.statSync(xml_filename).size;
 		},
 		filter : function(pageid, revid) {
@@ -245,21 +250,32 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 
 // ----------------------------------------------------------------------------
 
+var all_pages = [];
+
 CeL.wiki.traversal({
 	wiki : wiki,
 	// cache path prefix
 	directory : base_directory,
+	page_options : {
+		rvprop : 'ids|timestamp|content'
+	},
 	// 若不想使用 tools-db 的 database，可 comment out 此行。
 	filter : dump_session && get_dump_data || read_dump_file,
 	after : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
 		CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
+		CeL.fs_write(base_directory + 'all_pages.lst', all_pages.join('\n'));
 	}
 }, function(page_data) {
 	/** {String}page title */
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
+
+	all_pages[page_data.pageid] = [ page_data.pageid, title,
+			page_data.revisions.revid,
+			typeof content === 'string' ? content.length : content,
+			page_data.dump ].join('	');
 
 	if (content && content.includes('\u200E')) {
 		filtered.push(title);
