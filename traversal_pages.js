@@ -243,6 +243,7 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 					need_API.push(id);
 			// release
 			rev_of_id = null;
+			// CeL.set_debug(3);
 			run_work(need_API);
 		}
 	});
@@ -273,7 +274,7 @@ CeL.wiki.traversal({
 	content = CeL.wiki.content_of(page_data);
 
 	all_pages[page_data.pageid] = [ page_data.pageid, title,
-			page_data.revisions.revid,
+			page_data.revisions && page_data.revisions.revid,
 			typeof content === 'string' ? content.length : content,
 			page_data.dump ].join('	');
 
