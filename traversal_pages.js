@@ -1,6 +1,16 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node traversal_pages.js && date
 // 遍歷所有頁面。
 
+// 工作原理:
+// * 經測試，讀取 file 會比讀取 MariaDB 快，且又更勝於經 API 取得資料。
+// * 經測試，遍歷 xml dump file 會比隨機存取快得多。
+// * database replicas @ Tool Labs 無 `text` table，因此實際頁面內容不僅能經過 replicas 存取。
+// # 先將最新的 xml dump file 下載到本地(實為 network drive)並解開: read_dump()
+// # 由 Tool Labs database replication 讀取所有 ns0 且未被刪除頁面最新版本之版本號 rev_id (包含重定向): traversal_pages() + all_revision_SQL
+// # 遍歷 xml dump file，若 dump 中為最新版本，則先用之: get_dump_data()
+// # 經 API 讀取餘下 dump 後更動過的頁面內容: traversal_pages() + wiki_API.prototype.work
+// # 整個作業時間約 12分鐘。
+
 /*
 
  2016/3/20 18:43:33	初版試營運，約耗時 1-2 hour 執行。
@@ -238,8 +248,9 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 			// e.g., "All 1491092 pages in dump xml file, 198.165 s."
 			// includes redirection 包含重新導向頁面.
 			CeL.log('read_dump_file: All ' + count + '/' + length
-					+ ' pages using dump xml file, '
-					+ (Date.now() - start_read_time) / 1000 + ' s.');
+					+ ' pages using dump xml file ('
+					+ (1000 * count / length | 0) / 10 + '%), '
+					+ (Date.now() - start_read_time) / 1000 + ' s elapsed.');
 			var need_API = [];
 			need_API.is_id = is_id;
 			for ( var id in rev_of_id)
