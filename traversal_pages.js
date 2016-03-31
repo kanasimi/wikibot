@@ -46,6 +46,7 @@ replica_session = false && new CeL.wiki.SQL(function(error) {
 mysql = require('mysql');
 
 // ----------------------------------------------------------------------------
+// 使用 tools-db 的 database。
 // 經測試速度過慢，以下方法廢棄 deprecated。
 
 function get_dump_data(run_work, callback, id_list, rev_list) {
@@ -146,10 +147,11 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 				setTimeout(next_id, 0);
 			} else {
 				// 採用 dump
-				page_data.revisions = {
+				page_data.revisions = [ {
+					revid : page_data.revid,
 					timestamp : page_data.timestamp,
 					'*' : page_data.text
-				};
+				} ];
 				// page_data={pageid,ns,title,revisions:[{timestamp,'*'}]}
 				callback(page_data);
 				setTimeout(next_id, 0);
@@ -167,6 +169,8 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 	count = 0, file_size, rev_of_id = [], is_id = id_list.is_id;
 
 	id_list.forEach(function(id, index) {
+		if (id in rev_of_id)
+			CeL.warn('重複存在之id: ' + id);
 		rev_of_id[id] = rev_list[index];
 	});
 
@@ -243,7 +247,9 @@ function read_dump_file(run_work, callback, id_list, rev_list) {
 					need_API.push(id);
 			// release
 			rev_of_id = null;
+
 			// CeL.set_debug(3);
+			// 一般可以達到 95% 以上採用 dump file 的程度，10分鐘內跑完。
 			run_work(need_API);
 		}
 	});
@@ -260,7 +266,8 @@ CeL.wiki.traversal({
 	page_options : {
 		rvprop : 'ids|timestamp|content'
 	},
-	// 若不想使用 tools-db 的 database，可 comment out 此行。
+	// 若不想使用 dump，可 comment out 此行。
+	// 經測試，全部使用 API，最快可入50分鐘內，一般在 1-2 hours 左右。
 	filter : dump_session && get_dump_data || read_dump_file,
 	after : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
@@ -272,14 +279,21 @@ CeL.wiki.traversal({
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
+	var revision = page_data.revisions && page_data.revisions[0];
+
+	if (false && page_data.pageid === 18) {
+		CeL.fs_write(base_directory + 'page/' + title + '.wiki', content);
+		throw 'OK';
+	}
 
 	all_pages[page_data.pageid] = [ page_data.pageid, title,
-			page_data.revisions && page_data.revisions.revid,
+			revision && revision.revid,
 			typeof content === 'string' ? content.length : content,
 			page_data.dump ].join('	');
 
 	if (content && content.includes('\u200E')) {
 		filtered.push(title);
 		CeL.log(filtered.length + ': [[' + title + ']]');
+		CeL.fs_write(base_directory + 'page/' + title + '.wiki', content);
 	}
 });
