@@ -7,9 +7,9 @@
 // * database replicas @ Tool Labs 無 `text` table，因此實際頁面內容不僅能經過 replicas 存取。
 // # 先將最新的 xml dump file 下載到本地(實為 network drive)並解開: read_dump()
 // # 由 Tool Labs database replication 讀取所有 ns0 且未被刪除頁面最新版本之版本號 rev_id (包含重定向): traversal_pages() + all_revision_SQL
-// # 遍歷 xml dump file，若 dump 中為最新版本，則先用之: get_dump_data()
-// # 經 API 讀取餘下 dump 後更動過的頁面內容: traversal_pages() + wiki_API.prototype.work
-// # 整個作業時間約 12分鐘。
+// # 遍歷 xml dump file，若 dump 中為最新版本，則先用之 (約 95%): get_dump_data()
+// # 經 API 讀取餘下 dump 後近 5% 更動過的頁面內容: traversal_pages() + wiki_API.prototype.work
+// # 於 Tool Labs，自解開 xml 後整個作業時間約 12分鐘。
 
 /*
 
