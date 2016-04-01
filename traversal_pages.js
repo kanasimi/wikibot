@@ -36,8 +36,12 @@ CeL.wiki.traversal({
 	wiki : wiki,
 	// cache path prefix
 	directory : base_directory,
+	// 若 config.filter 非 function，則將之當作 dump file path，
+	// 並以 try_dump() 當作 filter()。
 	filter : true,
+	// 指定 dump file 放置的 directory。
 	dump_directory : bot_directory + 'dumps/',
+	// 取得多個頁面內容所用之 options。
 	page_options : {
 		rvprop : 'ids|timestamp|content'
 	},
