@@ -37,7 +37,7 @@ log_to = 'User:' + user_name + '/log/' + check_section,
 /** {String}{{多個問題}}模板名 */
 多個問題_模板名 = '多個問題',
 /** {{多個問題}}模板初始別名 alias */
-多個問題_模板別名_list = '問題條目'.split('|'),
+多個問題_模板別名_list = '问题条目'.split('|'),
 // assert: 須拆分模板數 < 須合併模板數
 須拆分模板數 = 1, 須合併模板數 = 3,
 /**
@@ -47,7 +47,7 @@ log_to = 'User:' + user_name + '/log/' + check_section,
  * 
  * @see [[Category:維基百科維護模板]], {{Ambox}}, [[WP:HAT#頂註模板]]
  */
-其他維護模板名 = ('Wikify|未完結|Lead section|專家|Veil|Non-free|plot|Almanac|Like-resume|cleanup-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|globalize|unreferenced|off-topic'
+其他維護模板名 = ('Wikify|未完結|Lead section|专家|Veil|Non-free|plot|Almanac|Like-resume|cleanup-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|globalize|unreferenced|off-topic|Bare URLs|Cleanup-list'
 		+ '|Expand language|Expand English|Expand Japanese|Expand Spanish')
 		.split('|'),
 /**
