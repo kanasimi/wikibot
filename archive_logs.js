@@ -159,14 +159,16 @@ function for_log_page(page_data) {
 
 	/** 寫入記錄頁面的存檔 */
 	function write_archive() {
-		var archive_page = archive_title(log_title), config = {
+		var archive_page = archive_title(log_title);
+		summary = '存檔作業: [[' + log_title + ']] → [[' + archive_page + ']] '
+				+ log_size + ' bytes';
+		CeL.info('for_log_page: ' + summary);
+
+		var config = {
 			summary : summary + ' #1/2 append log',
 			section : 'new',
 			sectiontitle : (new Date).format('%4Y%2m%2d') + '存檔'
 		};
-		summary = '存檔作業: [[' + log_title + ']] → [[' + archive_page + ']] '
-				+ log_size + ' bytes';
-		CeL.info('for_log_page: ' + summary);
 
 		if (!had_failed && (log_title in lastest_archive))
 			config.nocreate = 1;
