@@ -367,7 +367,7 @@ CeL.wiki.cache([ {
 		return 維護模板名;
 	},
 	operator : function(list) {
-		CeL.log('All ' + list.length + ' 維護模板名.');
+		CeL.log('總共有 ' + list.length + ' 個維護模板名.');
 		this.維護模板名 = list;
 	}
 }, {
@@ -397,7 +397,7 @@ CeL.wiki.cache([ {
 		return list;
 	},
 	operator : function(list) {
-		CeL.log('含有維護模板之頁面: ' + list.length + ' pages.');
+		CeL.log('含有維護模板之頁面: ' + list.length + ' page(s).');
 		this.含有維護模板之頁面 = list;
 	}
 }, {
