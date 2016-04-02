@@ -472,7 +472,9 @@ CeL.wiki.cache([ {
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
 		//
-		+ content + '|}\n\n[[Category:按月分类的维基百科维护分类]]\n';
+		+ content + '|}\n\n[[Category:按月分类的维基百科维护分类]]\n[[Category:维基百科维护]]'
+		//
+		+ '\n[[Category:需要清理的条目]]\n[[Category:维基百科条目清理]]\n';
 
 		wiki.page(title).edit(content, {
 			summary : _summary
