@@ -1,6 +1,6 @@
 ﻿// cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
 // cd ~/wikibot && date && time ../node/bin/node archive_logs.js
-// archive logs. 若紀錄超過1筆，而且長度過長，那麼就將所有的記錄搬到存檔中。
+// archive logs. 若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
 /*
 
@@ -37,7 +37,7 @@ PATTERN_LOG_TITLE = /^User:([^:\/]+)\/log\/(\d{8})$/,
 last_preserve_mark = '運作記錄',
 /** {Natural}超過了這個長度才會被搬移。 */
 min_length = 5000,
-/** {Boolean|String} e.g., '20160101'. 當前設定 3個月前 */
+/** {Boolean|String}超過了這個日期才會造出首個存檔。 e.g., '20160101'. 當前設定 3個月前 */
 create_first = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 3)
 		.format('%4Y%2m%2d'),
 /** {Natural}記錄頁面的存檔起始編號。 */
@@ -73,7 +73,7 @@ function archive_title(log_title, archive_index) {
  */
 function get_log_pages(callback) {
 	wiki.prefixsearch(title_prefix, function(title, titles, pages) {
-		CeL.log('get_log_pages: ' + titles.length + ' sub pages.');
+		CeL.log('get_log_pages: ' + titles.length + ' subpages.');
 		// console.log(titles);
 		callback(titles.sort());
 	}, {
@@ -97,7 +97,7 @@ function for_log_page(page_data) {
 
 	var matched = content && content.match(last_preserve_mark);
 	if (!matched) {
-		CeL.warn('for_log_page: Invalid log page? (未發現紀錄標記) [[' + log_title
+		CeL.warn('for_log_page: Invalid log page? (未發現程式運作紀錄標記) [[' + log_title
 				+ ']]');
 		return;
 	}
@@ -112,13 +112,13 @@ function for_log_page(page_data) {
 	matched = PATTERN_TITLE.exec(content);
 
 	if (!matched) {
-		needless_reason = '未發現紀錄章節標題';
+		needless_reason = '未發現程式運作紀錄章節標題';
 		// console.log(content);
 		// console.log(PATTERN_TITLE);
 	} else if (log_size < min_length)
-		needless_reason = '頁面紀錄過短 (' + log_size + ' bytes)';
+		needless_reason = '頁面程式運作紀錄過短 (' + log_size + ' bytes)';
 	else if (content.indexOf('\n==', matched.index + matched[0].length) === NOT_FOUND)
-		needless_reason = '僅有1筆紀錄';
+		needless_reason = '僅有1筆程式運作紀錄';
 	else if (!(log_title in lastest_archive)) {
 		if (!create_first)
 			needless_reason = true;
@@ -126,7 +126,7 @@ function for_log_page(page_data) {
 			needless_reason = create_first + '之前的紀錄';
 		if (needless_reason)
 			needless_reason = '原先不存在存檔子頁面，且已設定' + (needless_reason || '')
-					+ '不造出存檔子頁面(若需要自動存檔，您需要自己創建首個存檔子頁面)';
+					+ '不造出存檔子頁面(若需要自動存檔，您需要手動創建首個存檔子頁面)';
 	}
 
 	if (needless_reason) {
@@ -153,7 +153,7 @@ function for_log_page(page_data) {
 			if (error)
 				CeL.err('write_log_page: 無法寫入記錄頁面 [['
 				//
-				+ log_title + ']]! 您需要自行刪除舊紀錄!');
+				+ log_title + ']]! 您需要自行刪除舊程式運作紀錄!');
 		});
 	}
 
