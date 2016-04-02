@@ -847,7 +847,7 @@ function fix_86(content, page_data, messages, options) {
 			+ ' ' + matched[2].trim();
 		}
 
-		return CeL.wiki.wiki_URL(text);
+		return CeL.wiki.parser.wiki_URL(text);
 	}, true).toString();
 
 	return content;
@@ -1072,15 +1072,15 @@ only_check = approved,
 // only_check = not_approved;
 // only_check = 16;
 // only_check = 99;
-only_check = 85;
-//
+// only_check = 85;
+
 // 處理頁面數 = 50;
 // 處理頁面數 = [ 50, 100 ];
 // 處理頁面數 = [ 100, 150 ];
 // 處理頁面數 = [ 400, 500 ];
 // 處理頁面數 = [ 30, 40 ];
 // 處理頁面數 = [ 50, 60 ];
-處理頁面數 = 50;
+// 處理頁面數 = 50;
 
 // CeL.set_debug(3);
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
