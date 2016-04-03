@@ -23,7 +23,7 @@ summary = '校訂繁簡轉換，修正錯別字',
 check_section = '20150929',
 /** {String}運作記錄存放頁面。 */
 log_to = 'User:' + user_name + '/log/' + check_section,
-/** {Object}wiki 操作子. */
+/** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'zh.wikisource');
 
 var conversion_pair = new CeL.pair(CeL.get_file('校訂繁簡轉換，修正錯別字 轉換表.txt'));

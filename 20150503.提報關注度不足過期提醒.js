@@ -60,7 +60,7 @@ notability_report = 'Wikipedia:关注度/提报',
 空白月章節_PATTERN = /\n==\s*\d+月\s*==[\s\n]*?\n(==\s*\d+月\s*==|=\s*\d+年\s*=)[\s\n]*?\n/g,
 // [ , last date title ]
 空白年章節_PATTERN = /\n=\s*\d+年\s*=[\s\n]*?\n(=\s*\d+年\s*=)[\s\n]*?\n/g,
-/** {Object}wiki 操作子. */
+/** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 // copy from data.date.
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */

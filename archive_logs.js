@@ -1,5 +1,5 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
-// cd ~/wikibot && date && time ../node/bin/node archive_logs.js
+﻿// cd ~/wikibot && date && time ../node/bin/node archive_logs.js
+// cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
 // archive logs. 若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
 /*
@@ -15,7 +15,7 @@ require('./wiki loder.js');
 CeL.run('application.platform.nodejs');
 
 var
-/** {Object}wiki 操作子. */
+/** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {String}base directory */
 base_directory = bot_directory + script_name + '/';
@@ -116,7 +116,7 @@ function for_log_page(page_data) {
 		// console.log(content);
 		// console.log(PATTERN_TITLE);
 	} else if (log_size < min_length)
-		needless_reason = '頁面程式運作紀錄過短 (' + log_size + ' bytes)';
+		needless_reason = '頁面程式運作紀錄過短 (' + log_size + '字)';
 	else if (content.indexOf('\n==', matched.index + matched[0].length) === NOT_FOUND)
 		needless_reason = '僅有1筆程式運作紀錄';
 	else if (!(log_title in lastest_archive)) {
@@ -126,7 +126,7 @@ function for_log_page(page_data) {
 			needless_reason = create_first + '之前的紀錄';
 		if (needless_reason)
 			needless_reason = '原先不存在存檔子頁面，且已設定' + (needless_reason || '')
-					+ '不造出存檔子頁面(若需要自動存檔，您需要手動創建首個存檔子頁面)';
+					+ '不造出存檔子頁面（若需要自動存檔，您需要手動創建首個存檔子頁面）';
 	}
 
 	if (needless_reason) {
@@ -147,13 +147,14 @@ function for_log_page(page_data) {
 		wiki.page(log_title).edit(function(page_data) {
 			return content.slice(0, matched.index);
 		}, {
-			summary : summary + ' #2/2 remove log',
+			// remove log.
+			summary : summary + ' #2/2 移除記錄',
 			nocreate : had_failed ? 0 : 1
 		}, function(title, error) {
 			if (error)
 				CeL.err('write_log_page: 無法寫入記錄頁面 [['
 				//
-				+ log_title + ']]! 您需要自行刪除舊程式運作紀錄!');
+				+ log_title + ']]! 您需要自行刪除舊程式運作紀錄！');
 		});
 	}
 
@@ -161,11 +162,12 @@ function for_log_page(page_data) {
 	function write_archive() {
 		var archive_page = archive_title(log_title);
 		summary = '存檔作業: [[' + log_title + ']] → [[' + archive_page + ']] '
-				+ log_size + ' bytes';
+				+ log_size + '字';
 		CeL.info('for_log_page: ' + summary);
 
 		var config = {
-			summary : summary + ' #1/2 append log',
+			// append log.
+			summary : summary + ' #1/2 添附記錄',
 			section : 'new',
 			sectiontitle : (new Date).format('%4Y%2m%2d') + '存檔'
 		};
@@ -192,7 +194,7 @@ function for_log_page(page_data) {
 			if (!error)
 				write_log_page();
 			else if (had_failed) {
-				CeL.err('write_archive: 無法寫入存檔 [[' + archive_page + ']]!');
+				CeL.err('write_archive: 無法寫入存檔 [[' + archive_page + ']]！');
 				console.error(error);
 			} else {
 				if (log_title in lastest_archive)

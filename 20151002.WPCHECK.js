@@ -820,6 +820,8 @@ function fix_85(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// TODO: [[link]]（[[:en:link]]）→ [[link]]
+
 // CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_86.title = '使用內部連結之雙括號表現外部連結';
 function fix_86(content, page_data, messages, options) {
@@ -1058,7 +1060,7 @@ var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.c
 // const: 基本上與程式碼設計合一，僅表示名義，不可更改。(== -1)
 NOT_FOUND = ''.indexOf('_'),
 
-/** {Object}wiki 操作子. */
+/** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {Array}已批准NO */
 approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],

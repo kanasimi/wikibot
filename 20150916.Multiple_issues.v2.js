@@ -68,7 +68,7 @@ log_to = 'User:' + user_name + '/log/' + check_section,
 維護模板_PATTERN_old_start = /^([^{}=]+)=\s*(20[01]\d-[01]?\d(?:[^\d].*)?|{{CURRENTTIMESTAMP}})/i,
 // old style
 維護模板_PATTERN_old = new RegExp(維護模板_PATTERN_old_start.source + '$'),
-/** {Object}wiki 操作子. */
+/** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {Object} 維護模板本名[{String}維護模板別名/本名] = {String}root 維護模板本名 */
 維護模板本名 = CeL.null_Object(),

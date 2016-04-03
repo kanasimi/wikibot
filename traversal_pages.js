@@ -1,5 +1,5 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node traversal_pages.js && date
-// 遍歷所有頁面。
+// Traversal all pages. 遍歷所有頁面。
 
 /*
 
@@ -14,7 +14,7 @@ require('./wiki loder.js');
 CeL.run('application.platform.nodejs');
 
 var
-/** {Object}wiki 操作子. */
+/** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {String}base directory */
 base_directory = bot_directory + script_name + '/',
@@ -32,12 +32,12 @@ filtered = [];
  *            {pageid,ns,title,revisions:[{timestamp,'*'}]}
  */
 function for_each_page(page_data) {
-	/** {String}page title */
+	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
-	/** {String}page content, maybe undefined. */
+	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data);
-	// revision data. 版本資料。
-	// var revision = page_data.revisions && page_data.revisions[0];
+	/** {Object}revision data. 版本資料。 */
+	var revision = page_data.revisions && page_data.revisions[0];
 
 	if (content &&
 	// ↓ 約耗時 12分鐘執行。
