@@ -1,6 +1,7 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node 20160403.insert_navigation.插入導航模板.js && date
 // cd /d D:\USB\cgi-bin\program\wiki && node 20160403.insert_navigation.插入導航模板.js
-// Insert navigation template (navigation boxes, navboxes). 插入導航模板。
+// Insert navigation template (navigation boxes, navboxes).
+// 對指定之導航模板中所有列表頁面，都插入此導航模板。若有重定向頁，則回頭將導航模板中之連結改成重定向的目標。
 
 /*
 
@@ -27,7 +28,7 @@ log_to = 'User:' + user_name + '/log/' + check_section;
 // CeL.set_debug(0);
 
 var template_name = '广州';
-
+// 回頭將導航模板中之連結改成重定向的目標。
 var redirect_hash = CeL.null_Object(),
 //
 template_with_ns = 'Template:' + template_name,
@@ -67,6 +68,7 @@ function for_each_pages(page_data) {
 	}
 
 	if (title === template_with_ns) {
+		// 回頭將導航模板中之連結改成重定向的目標。
 		for (title in redirect_hash) {
 			content = content.replace(new RegExp(
 					'\\[\\[' + title + '([\\]\|])', 'g'), '[['
@@ -106,7 +108,7 @@ function for_each_pages(page_data) {
 	});
 }
 
-// 確保 [[template_with_ns]] 在最後一頁，以處理 redirect_hash。
+// 確保 [[template_with_ns]] 在最後一頁，以在最後處理 redirect_hash。
 // 注意: 一次取得大量頁面時，回傳內容不一定會按照原先輸入的次序排列！
 // 若有必要，此時得用 config.first 自行處理！
 function arrange_page(messages, titles, pages) {
@@ -148,7 +150,8 @@ wiki.links(template_with_ns, function(title, titles, pages) {
 	CeL.log('[[' + title + ']]: All ' + pages.length + ' links.');
 
 	/** 限制每一項最大處理頁面數。 */
-	titles = titles.slice(0, 5);
+	if (false)
+		titles = titles.slice(0, 5);
 
 	// for redirect_hash.
 	titles.push(template_with_ns = title);
