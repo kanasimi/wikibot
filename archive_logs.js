@@ -1,6 +1,6 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node archive_logs.js
 // cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
-// archive logs. 若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
+// archive logs. 存檔記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
 /*
 
@@ -184,16 +184,18 @@ function for_log_page(page_data) {
 			/** {String}page content, maybe undefined. */
 			log_page = CeL.wiki.content_of(page_data);
 
-			if (had_failed || log_page &&
+			if (had_failed || (log_page ?
 			// 頁面大小系統上限 2,048 KB = 2 MB。
-			log_page.length + log_size < 2e6)
+			log_page.length + log_size < 2e6 : !config.nocreate)) {
 				return '存檔長度' + log_size + '字元。\n\n'
 				//
 				+ content.slice(matched.index);
+			}
+
 		}, config, function(title, error) {
-			if (!error)
+			if (!error) {
 				write_log_page();
-			else if (had_failed) {
+			} else if (had_failed) {
 				CeL.err('write_archive: 無法寫入存檔 [[' + archive_page + ']]！');
 				console.error(error);
 			} else {
