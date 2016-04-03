@@ -25,7 +25,7 @@ filtered = [];
 // ----------------------------------------------------------------------------
 
 /**
- * 對每一個頁面都要執行的作業。
+ * Operation for each page. 對每一個頁面都要執行的作業。
  * 
  * @param {Object}page_data
  *            page data got from wiki API. =
@@ -57,7 +57,7 @@ function for_each_page(page_data) {
 }
 
 /**
- * 最後結束工作。
+ * Finish up. 最後結束工作。
  */
 function finish_work() {
 	CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));

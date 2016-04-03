@@ -47,6 +47,8 @@ wiki
 });
 ```
 
+For the "wiki loder.js" using in the examples, See [wiki loder.sample.js](https://github.com/kanasimi/wikibot/blob/master/archive/wiki%20loder.sample.js).
+
 
 ## Screenshot
 Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151002.WPCHECK.js) (fix_16 only):
@@ -54,7 +56,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Output on console:
 * ![On console](https://upload.wikimedia.org/wikipedia/commons/7/7c/20151002.WPCHECK.console.c.png)
 
-* Log page:
+* Log page on Wikipedia:
 * ![Log page](https://upload.wikimedia.org/wikipedia/commons/d/da/20151002.WPCHECK.log.c.png)
 
 * The contributions:
@@ -64,9 +66,9 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 ## Features
 * Batch processing.
 * Support [Flow](https://www.mediawiki.org/wiki/Flow) page: Using the same way adding section to normal page and Flow page.
-* Support <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code> detection.
+* Support detection of edit conflicts and <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code>.
 * Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, ...
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html) data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
-* Traversal all zhwiki pages in 12 minutes. (Must download xml dump file first, on Tool Labs. See [traversal_pages.js](https://github.com/kanasimi/wikibot/blob/master/traversal_pages.js)) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。）
+* Traversal all 1.5M pages of zhwiki in 12 minutes on Tool Labs. (Must download xml dump file first. See [traversal_pages.js](https://github.com/kanasimi/wikibot/blob/master/traversal_pages.js)) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。）
