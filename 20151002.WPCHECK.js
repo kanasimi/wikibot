@@ -1068,7 +1068,7 @@ approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 not_approved = [],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
 only_check = approved,
-/** {Natural|Array}每一項最大處理頁面數。 */
+/** {Natural|Array}限制每一項最大處理頁面數。 */
 處理頁面數;
 
 // only_check = not_approved;

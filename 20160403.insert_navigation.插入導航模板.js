@@ -59,9 +59,12 @@ function for_each_pages(page_data) {
 	content = CeL.wiki.content_of(page_data);
 	/** {Object}revision data. 版本資料。 */
 	// var revision = page_data.revisions && page_data.revisions[0];
-	if (!content)
-		return [ CeL.wiki.edit.cancel,
-				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+	if (!content) {
+		content = 'No contents: [[' + title + ']]! 沒有頁面內容！';
+		CeL.log(content);
+		return;
+		return [ CeL.wiki.edit.cancel, content ];
+	}
 
 	if (title === template_with_ns) {
 		for (title in redirect_hash) {
@@ -79,9 +82,13 @@ function for_each_pages(page_data) {
 	}
 
 	matched = CeL.wiki.parser.template(content, template_name, true);
-	if (matched)
+	if (matched) {
 		// 若已存在模板/兩者模板相同，則跳過不紀錄。
-		return [ CeL.wiki.edit.cancel, '已存在模板{{tlx|' + template_name + '}}' ];
+		matched = '已存在模板{{tlx|' + template_name + '}}';
+		CeL.log(matched);
+		return;
+		return [ CeL.wiki.edit.cancel, matched ];
+	}
 
 	// 某些條目把{{tl|Featured article}}或{{tl|Good article}}模板加至頁頂。
 	matched = content.match(PATTERN_GA);
@@ -140,6 +147,7 @@ function finish_work() {
 wiki.links(template_with_ns, function(title, titles, pages) {
 	CeL.log('[[' + title + ']]: All ' + pages.length + ' links.');
 
+	/** 限制每一項最大處理頁面數。 */
 	titles = titles.slice(0, 5);
 
 	// for redirect_hash.
