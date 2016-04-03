@@ -36,6 +36,7 @@ function for_each_page(page_data) {
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
+	// revision data. 版本資料。
 	// var revision = page_data.revisions && page_data.revisions[0];
 
 	if (content &&

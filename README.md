@@ -1,5 +1,5 @@
 ﻿# Wikipedia bots demo
-The Wikipedia bot examples using [CeJS library](https://github.com/kanasimi/CeJS).
+Some Wikipedia bot examples using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
 採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js)來製作維基百科機器人的範例。
 
 ## Node.js usage
@@ -69,4 +69,4 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html) data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
-* 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。） (See [traversal_pages.js](https://github.com/kanasimi/wikibot/blob/master/traversal_pages.js))
+* Traversal all zhwiki pages in 12 minutes. (Must download xml dump file first, on Tool Labs. See [traversal_pages.js](https://github.com/kanasimi/wikibot/blob/master/traversal_pages.js)) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。）
