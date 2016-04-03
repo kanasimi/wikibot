@@ -1,10 +1,10 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node 20160403.insert_navigation.插入導航模板.js && date
 // cd /d D:\USB\cgi-bin\program\wiki && node 20160403.insert_navigation.插入導航模板.js
-// Insert navigation template (navigation boxes, navboxes). 插入導航模板
+// Insert navigation template (navigation boxes, navboxes). 插入導航模板。
 
 /*
 
- 初版試營運。
+ 2016/4/3 21:24:7	初版試營運。
 
  */
 
@@ -28,7 +28,11 @@ log_to = 'User:' + user_name + '/log/' + check_section;
 
 var template_name = '广州';
 
-var template_transclusion = '{{' + template_name + '}}' + '\n',
+var redirect_hash = CeL.null_Object(),
+//
+template_with_ns = 'Template:' + template_name,
+//
+template_transclusion = '{{' + template_name + '}}' + '\n',
 // {{tl|Featured article}}或{{tl|Good article}}模板 pattern
 PATTERN_GA = /[\r\n]*{{(?:[Ff]eatured|[Gg]ood)[ _](?:article|list)(?:[\s\n\|][^{}]*?)?}}[\r\n]*/,
 // [[WP:ORDER]]
@@ -36,7 +40,8 @@ PATTERN_GA = /[\r\n]*{{(?:[Ff]eatured|[Gg]ood)[ _](?:article|list)(?:[\s\n\|][^{
 // [[WP:NAV]]
 // [[WP:小作品類別列表|(小)小作品模板]]: e.g., {{小小條目}}, {{Rubik's Cube-stub}},
 // {{F1-stub}}, {{Japan-Daimyō-stub}}, {{BDSM小作品}}, {{LGBT小作品}}
-PATTERN_AFTER = /{{Coord[}\s\|]|{{Coord[}\s\|]|{{Authority[ _]control[}\s\|]|{{\s*Persondata(?:[}\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\- _\d'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\n\|}]|<!--)|\n*$/
+// {{Coord[}\s\|]|{{Coord[}\s\|]| → 大多用在模板參數中，不用在文末，因此不予加入。
+PATTERN_AFTER = /{{Authority[ _]control[}\s\|]|{{\s*Persondata(?:[}\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\- _\d'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\n\|}]|<!--)|\n*$/
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -53,13 +58,27 @@ function for_each_pages(page_data) {
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data);
 	/** {Object}revision data. 版本資料。 */
-	var revision = page_data.revisions && page_data.revisions[0];
-
+	// var revision = page_data.revisions && page_data.revisions[0];
 	if (!content)
 		return [ CeL.wiki.edit.cancel,
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 
-	var matched = CeL.wiki.parser.template(content, template_name, true);
+	if (title === template_with_ns) {
+		for (title in redirect_hash) {
+			content = content.replace(new RegExp(
+					'\\[\\[' + title + '([\\]\|])', 'g'), '[['
+					+ redirect_hash[title] + '$1');
+		}
+		return content;
+	}
+
+	var matched;
+	if (matched = CeL.wiki.parser.redirect(content)) {
+		redirect_hash[title] = matched;
+		return [ CeL.wiki.edit.cancel, '為重定向頁: [[' + matched + ']]' ];
+	}
+
+	matched = CeL.wiki.parser.template(content, template_name, true);
 	if (matched)
 		// 若已存在模板/兩者模板相同，則跳過不紀錄。
 		return [ CeL.wiki.edit.cancel, '已存在模板{{tlx|' + template_name + '}}' ];
@@ -80,6 +99,36 @@ function for_each_pages(page_data) {
 	});
 }
 
+// 確保 [[template_with_ns]] 在最後一頁，以處理 redirect_hash。
+// 注意: 一次取得大量頁面時，回傳內容不一定會按照原先輸入的次序排列！
+// 若有必要，此時得用 config.first 自行處理！
+function arrange_page(messages, titles, pages) {
+	// console.log(pages);
+	if (template_with_ns ===
+	//
+	CeL.wiki.title_of(pages[pages.length - 1])) {
+		return;
+	}
+
+	// 應該從後面搜尋。
+	var index = pages.length, page_data;
+	while (true) {
+		if (--index < 0) {
+			throw new Error('Not found: [[' + template_with_ns + ']]');
+		}
+		page_data = pages[index];
+		if (template_with_ns === CeL.wiki.title_of(page_data)) {
+			break;
+		}
+	}
+	pages.splice(index, 1);
+	pages.push(page_data);
+	if (titles) {
+		titles.splice(index, 1);
+		titles.push(template_with_ns);
+	}
+}
+
 /**
  * Finish up. 最後結束工作。
  */
@@ -88,8 +137,13 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
-wiki.links('Template:' + template_name, function(title, titles, pages) {
-	CeL.log('All ' + pages.length + ' pages.');
+wiki.links(template_with_ns, function(title, titles, pages) {
+	CeL.log('[[' + title + ']]: All ' + pages.length + ' links.');
+
+	titles = titles.slice(0, 5);
+
+	// for redirect_hash.
+	titles.push(template_with_ns = title);
 
 	// callback
 	wiki.work({
@@ -97,8 +151,9 @@ wiki.links('Template:' + template_name, function(title, titles, pages) {
 		// 採用 {{tlx|template_name}} 時，[[Special:最近更改]]頁面無法自動解析成 link。
 		summary : summary + ': [[Template:' + template_name + ']]',
 		log_to : log_to,
+		first : arrange_page,
 		after : finish_work
-	}, titles.slice(0, 2));
+	}, titles);
 
 }, {
 	limit : 'max',
