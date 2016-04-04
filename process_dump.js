@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time ../node/bin/node process_dump.js && date
+﻿// cd ~/wikibot && date && time /shared/bin/node process_dump.js && date
 // Import Wikimedia database backup dumps data to user-created database on Tool Labs.
 // 應用工具: 遍歷所有 dumps data 之頁面，並將資料寫入 .csv file，進而匯入 database。
 // @see https://www.mediawiki.org/wiki/Manual:Importing_XML_dumps#Using_importDump.php.2C_if_you_have_shell_access
@@ -90,10 +90,11 @@ function process_data(error) {
 			connection.query({
 				sql : INSERT_SQL,
 				// @see data_structure
-				values : [ page_data.pageid, page_data.ns, page_data.title,
-						revision.revid,
-						// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
-						revision.timestamp.slice(0, -1).replace('T', ' '),
+				values : [ page_data.pageid, page_data.ns,
+				//
+				page_data.title, revision.revid,
+				// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
+				revision.timestamp.slice(0, -1).replace('T', ' '),
 						revision['*'] ]
 			}, function(error) {
 				if (error)
@@ -224,7 +225,7 @@ file_size,
 filtered = [],
 /** {String}base directory */
 base_directory = '/shared/dump/',
-//base_directory = bot_directory + 'dumps/',
+// base_directory = bot_directory + 'dumps/',
 /** {Boolean}write to lastest revid file. */
 do_write_rev = true,
 /** {Boolean}write to CSV file. */

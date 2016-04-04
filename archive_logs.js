@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time ../node/bin/node archive_logs.js
+﻿// cd ~/wikibot && date && time /shared/bin/node archive_logs.js && date
 // cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
 // archive logs. 封存機器人執行的記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
@@ -127,7 +127,7 @@ function for_log_page(page_data) {
 			needless_reason = true;
 		else if (log_title.replace(/^.+?(\d+)$/, '$1') <= create_first)
 			needless_reason = create_first + '之前的紀錄';
-		else if(log_size <= min_length_create)
+		else if (log_size <= min_length_create)
 			needless_reason = min_length_create + '字以下的紀錄';
 
 		if (needless_reason)
@@ -193,9 +193,9 @@ function for_log_page(page_data) {
 			if (had_failed || (log_page ?
 			// 頁面大小系統上限 2,048 KB = 2 MB。
 			log_page.length + log_size < 2e6 : !config.nocreate)) {
-				return "'''{{font color|#54f|#ff6|存檔長度" + log_size + "字元。}}'''\n"
+				return "'''{{font color|#54f|#ff6|存檔長度" + log_size
 				//
-				+ content.slice(matched.index).trim();
+				+ "字元。}}'''\n" + content.slice(matched.index).trim();
 			}
 
 		}, config, function(title, error) {
