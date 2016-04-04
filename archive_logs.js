@@ -132,11 +132,11 @@ function for_log_page(page_data) {
 
 		if (needless_reason)
 			needless_reason = '原先不存在存檔子頁面，且已設定' + (needless_reason || '')
-					+ '不造出存檔子頁面。若需要自動存檔，您需要手動創建首個存檔子頁面。';
+					+ '不造出存檔子頁面。（若需要自動封存，您需要手動創建首個存檔子頁面。）';
 	}
 
 	if (needless_reason) {
-		CeL.info('for_log_page: ' + needless_reason + '；不作存檔: [[' + log_title
+		CeL.info('for_log_page: ' + needless_reason + '；不作封存: [[' + log_title
 				+ ']]');
 		return;
 	}
@@ -167,7 +167,7 @@ function for_log_page(page_data) {
 	/** 寫入記錄頁面的存檔 */
 	function write_archive() {
 		var archive_page = archive_title(log_title);
-		summary = '存檔作業: [[' + log_title + ']] → [[' + archive_page + ']] '
+		summary = '封存作業: [[' + log_title + ']] → [[' + archive_page + ']] '
 				+ log_size + '字';
 		CeL.info('for_log_page: ' + summary);
 
@@ -175,7 +175,7 @@ function for_log_page(page_data) {
 			// append log.
 			summary : summary + ' #1/2 添附記錄',
 			section : 'new',
-			sectiontitle : (new Date).format('%4Y%2m%2d') + '存檔'
+			sectiontitle : (new Date).format('%4Y%2m%2d') + '封存'
 		};
 
 		if (!had_failed && (log_title in lastest_archive))
