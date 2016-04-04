@@ -1,4 +1,5 @@
 ﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20150916.Multiple_issues.v2.js
+// 合併/拆分{{多個問題}}模板
 
 /*
 
@@ -91,7 +92,7 @@ function 處理須拆分的條目(page_data, messages) {
 	if (page_data.ns !== 0)
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 	if ('missing' in page_data)
-		return [ CeL.wiki.edit.cancel, '條目已刪除' ];
+		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 
 	// TODO: 處理把維護模板放在或注解中的條目。
 	var matched,
@@ -196,7 +197,7 @@ function 處理須合併的條目(page_data, messages) {
 	if (page_data.ns !== 0)
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 	if ('missing' in page_data)
-		return [ CeL.wiki.edit.cancel, '條目已刪除' ];
+		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 
 	// 這邊 page_data 為自 API 重新得到，非((須合併的條目))之內容。
 	var title = page_data.title,
@@ -468,7 +469,9 @@ CeL.wiki.cache([ {
 			+ list.length + '條目。\n\n[[' + list.join(']], [[') + ']]\n' : '';
 		}).reverse().join('\n').replace(/\n{2,}/g, '\n');
 
-		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n{{see|' + log_to
+		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n'
+		//
+		+'* 本條目會每周更新，毋須手動修正。\n{{see|' + log_to
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
 		//

@@ -1,6 +1,6 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node archive_logs.js
 // cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
-// archive logs. 存檔記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
+// archive logs. 封存機器人執行的記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
 /*
 
@@ -37,6 +37,8 @@ PATTERN_LOG_TITLE = /^User:([^:\/]+)\/log\/(\d{8})$/,
 last_preserve_mark = '運作記錄',
 /** {Natural}超過了這個長度才會被搬移。 */
 min_length = 5000,
+/** {Natural}超過了這個長度，才會造出首個存檔。 */
+min_length_create = 100000,
 /** {Boolean|String}超過了這個日期才會造出首個存檔。 e.g., '20160101'. 當前設定 3個月前 */
 create_first = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 3)
 		.format('%4Y%2m%2d'),
@@ -119,14 +121,18 @@ function for_log_page(page_data) {
 		needless_reason = '頁面程式運作紀錄過短 (' + log_size + '字)';
 	else if (content.indexOf('\n==', matched.index + matched[0].length) === NOT_FOUND)
 		needless_reason = '僅有1筆程式運作紀錄';
+
 	else if (!(log_title in lastest_archive)) {
 		if (!create_first)
 			needless_reason = true;
 		else if (log_title.replace(/^.+?(\d+)$/, '$1') <= create_first)
 			needless_reason = create_first + '之前的紀錄';
+		else if(log_size <= min_length_create)
+			needless_reason = min_length_create + '字以下的紀錄';
+
 		if (needless_reason)
 			needless_reason = '原先不存在存檔子頁面，且已設定' + (needless_reason || '')
-					+ '不造出存檔子頁面（若需要自動存檔，您需要手動創建首個存檔子頁面）';
+					+ '不造出存檔子頁面。若需要自動存檔，您需要手動創建首個存檔子頁面。';
 	}
 
 	if (needless_reason) {
@@ -187,9 +193,9 @@ function for_log_page(page_data) {
 			if (had_failed || (log_page ?
 			// 頁面大小系統上限 2,048 KB = 2 MB。
 			log_page.length + log_size < 2e6 : !config.nocreate)) {
-				return '存檔長度' + log_size + '字元。\n\n'
+				return "'''{{font color|#54f|#ff6|存檔長度" + log_size + "字元。}}'''\n"
 				//
-				+ content.slice(matched.index);
+				+ content.slice(matched.index).trim();
 			}
 
 		}, config, function(title, error) {

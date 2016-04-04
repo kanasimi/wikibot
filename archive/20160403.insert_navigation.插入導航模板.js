@@ -1,7 +1,7 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node 20160403.insert_navigation.插入導航模板.js && date
 // cd /d D:\USB\cgi-bin\program\wiki && node 20160403.insert_navigation.插入導航模板.js
 // Insert navigation template (navigation boxes, navboxes).
-// 對指定之導航模板中所有列表頁面，都插入此導航模板。若有重定向頁，則回頭將導航模板中之連結改成重定向的目標。
+// 對指定之[[WP:導航模板|]]中所有列表頁面，都插入此導航模板。若有[[WP:重定向|]]頁，則回頭將導航模板中之連結改成重定向的目標。
 
 /*
 

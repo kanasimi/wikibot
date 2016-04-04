@@ -1,4 +1,5 @@
 ﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20150503.提報關注度不足過期提醒.js
+// 提報關注度不足過期提醒
 
 /*
 

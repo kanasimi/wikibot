@@ -15,6 +15,11 @@
  https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
  https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
 
+check:
+[[:en:XXX|YYY]]
+/gate/big5/, http://big5. [[User:Antigng-bot/url]]
+[https://zh.wikipedia.org/
+
  */
 
 'use strict';
