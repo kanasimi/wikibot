@@ -23,7 +23,9 @@ base_directory = bot_directory + script_name + '/',
 // filter function list
 filters = [],
 /** {Array}filtered list[item] = {Array}[ list ] */
-filtered = [];
+filtered = [],
+//
+log_limit = 400;
 
 // ----------------------------------------------------------------------------
 
@@ -39,7 +41,7 @@ function for_each_page(page_data) {
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data);
-	/** {Object}revision data. 版本資料。 */
+	/** {Object}revision data. 修訂版本資料。 */
 	var revision = page_data.revisions && page_data.revisions[0];
 
 	if (!content)
@@ -51,7 +53,7 @@ function for_each_page(page_data) {
 
 		filtered[index].push(title);
 		// filtered 太多則不顯示。
-		if (filtered[index].length < 400)
+		if (filtered[index].length < log_limit)
 			CeL.log('#' + index + '-' + filtered[index].length + ': [[' + title
 					+ ']]');
 		if (false) {
@@ -97,7 +99,7 @@ CeL.wiki.traversal({
 	// 指定 dump file 放置的 directory。
 	// dump_directory : bot_directory + 'dumps/',
 	dump_directory : '/shared/dump/',
-	// 若 config.filter 非 function，表示要先比對 dump，若版本號相同則使用之，否則自 API 擷取。
+	// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 	// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 	filter : true,
 	after : finish_work
@@ -117,32 +119,41 @@ function setup_filters() {
 		}
 	}
 
+	log_limit = log_limit / count | 0;
 	CeL.log('setup_filters: All ' + count + ' filters.');
 }
 
+// ↓ 0-4約耗時 30分鐘執行。
+;
+
+// 檢查文章中是否包含有 LRM [[左至右符號]] U+200E
 // ↓ 單獨約耗時 12分鐘執行。
 function filter_0(content) {
 	return content.includes('\u200E');
 }
 
 // check Wikimedia projects links
+// 檢查文章 link 中是否包含 Wikimedia projects link
 // e.g., [https://zh.wikipedia.org/
 // ↓ 單獨約耗時 15分鐘執行。
 function filter_1(content) {
 	return /\[[\s\n]*(?:(?:https?:)?\/\/)?[a-z]+\.wikipedia\./i.test(content);
 }
 
+// 檢查文章連結/外部連結中是否包含有跨維基計畫/跨語言連結
 // e.g., [[:en:XXX|YYY]]
 function filter_2(content) {
 	return /\[\[:[a-z]+:/i.test(content);
 }
 
+// 檢查文章中是否包含有控制所有機器人帳戶訪問的模板
 // check: {{nobots}}
 function filter_3(content) {
 	return /{{(?:[Nn]o)?[Bb]ot[^a-z]/i.test(content);
 }
 
 var filter_4_1 = /\/gate\/big5\//i;
+// 檢查文章外部連結中是否包含有字詞轉換/繁簡轉換網關的連結
 // /gate/big5/, http://big5. [[User:Antigng-bot/url]]
 function filter_4(content) {
 	return filter_4_1.test(content) || /http:\/\/big5\./i.test(content);

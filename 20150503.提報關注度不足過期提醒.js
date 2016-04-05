@@ -241,7 +241,8 @@ wiki
 						if (!user_denied[user] && !no_notice)
 							page_list.push(title);
 						// 若是最後反正必須通知，則一併加入 no_notice 的條目。
-						user_messages.push('{{Notability-talk|'
+						// 不加 ":" 的話，在多個提醒同列時，會擠在一起不分行。
+						user_messages.push(': {{Notability-talk|'
 						//
 						+ message + '}}');
 
