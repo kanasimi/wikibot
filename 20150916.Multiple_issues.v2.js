@@ -282,7 +282,7 @@ function 處理須合併的條目(page_data, messages) {
 
 prepare_directory(base_directory, true);
 
-// 不使用 Wikimedia Varnish Cache。速度較慢，但較有保障。
+// 2016/4/9 9:9:7	不使用 Wikimedia Varnish Cache。速度較慢，但較有保障。
 delete CeL.wiki.use_Varnish;
 
 
