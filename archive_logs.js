@@ -98,7 +98,9 @@ function for_log_page(page_data) {
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
 
-	CeL.log('for_log_page: 處理 [[' + log_title + ']]');
+	CeL.log('for_log_page: 處理 [[' + log_title + ']] '
+	//
+	+ (log_title in lastest_archive?'最後存檔'+lastest_archive[log_title]:'無存檔過'));
 
 	var matched = content && content.match(last_preserve_mark);
 	if (!matched) {
