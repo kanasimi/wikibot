@@ -282,6 +282,12 @@ function 處理須合併的條目(page_data, messages) {
 
 prepare_directory(base_directory, true);
 
+// 不使用 Wikimedia Varnish Cache。
+delete wiki_API.use_Varnish;
+
+
+// CeL.set_debug(6);
+
 CeL.wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目
 	file_name : '多個問題_模板別名',
