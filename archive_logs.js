@@ -22,7 +22,7 @@ base_directory = bot_directory + script_name + '/';
 
 // ---------------------------------------------------------------------//
 
-// 2016/4/9 9:9:7	不使用 Wikimedia Varnish Cache。速度較慢，但較有保障。
+// 2016/4/9 9:9:7 不使用 Wikimedia Varnish Cache。速度較慢，但較有保障。
 delete CeL.wiki.use_Varnish;
 
 var
@@ -100,7 +100,9 @@ function for_log_page(page_data) {
 
 	CeL.log('for_log_page: 處理 [[' + log_title + ']] '
 	//
-	+ (log_title in lastest_archive?'最後存檔'+lastest_archive[log_title]:'無存檔過'));
+	+ (log_title in lastest_archive ? '最後存檔'
+	//
+	+ lastest_archive[log_title] : '無存檔過'));
 
 	var matched = content && content.match(last_preserve_mark);
 	if (!matched) {
@@ -123,7 +125,7 @@ function for_log_page(page_data) {
 		// console.log(content);
 		// console.log(PATTERN_TITLE);
 	} else if (log_size < min_length)
-		needless_reason = '頁面程式運作紀錄過短 (' + log_size + '字)';
+		needless_reason = '頁面中之程式運作紀錄過短 (' + log_size + '字)';
 	else if (content.indexOf('\n==', matched.index + matched[0].length) === NOT_FOUND)
 		needless_reason = '僅有1筆程式運作紀錄';
 
