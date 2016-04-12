@@ -26,8 +26,13 @@ wiki
 // Select page and get the content of page.
 .page('Wikipedia:Sandbox')
 
-// Add a new section to normal page or Flow page.
+// Replace the contents of page.
 .edit('wikitext to replace', {
+	nocreate : 1
+})
+
+// Add a new section to normal page or Flow page.
+.edit(': text to add.', {
 	section : 'new',
 	sectiontitle : 'Sandbox test section',
 	summary : 'Sandbox test edit (section)',
