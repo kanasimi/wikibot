@@ -22,9 +22,6 @@ base_directory = bot_directory + script_name + '/';
 
 // ---------------------------------------------------------------------//
 
-// 2016/4/9 9:9:7 不使用 Wikimedia Varnish Cache。速度較慢，但較有保障。
-delete CeL.wiki.use_Varnish;
-
 var
 /** {String}只檢查這個命名空間下面的所有頁面。 20: for 20dd年 */
 title_prefix = 'User:' + user_name + '/log/20',

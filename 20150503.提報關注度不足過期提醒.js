@@ -67,9 +67,6 @@ wiki = Wiki(true),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
-// 2016/4/9 9:9:7 不使用 Wikimedia Varnish Cache。速度較慢，但較有保障。
-delete CeL.wiki.use_Varnish;
-
 CeL.log('開始處理 ' + summary + ' 作業', true);
 
 // CeL.set_debug(4);
