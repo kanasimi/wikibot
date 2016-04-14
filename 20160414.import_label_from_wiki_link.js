@@ -2,7 +2,7 @@
 
 /*
 
- 2016/4/14 22:57:45	初版試營運，約耗時 ?分鐘執行。
+ 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse）。
 
  */
 
@@ -11,8 +11,9 @@
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
+// 在非 Windows 平台上避免 fatal 錯誤。
 CeL.env.ignore_COM_error = true;
-// CeL.CN_to_TW('简体')
+// load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 
 var
@@ -45,7 +46,7 @@ PATTERN_en = /^[a-z,.;\-\d\s]+$/i;
  *            {pageid,ns,title,revisions:[{timestamp,'*'}]}
  */
 function for_each_page(page_data) {
-	if (count > test_limit) {
+	if (false && count > test_limit) {
 		return;
 	}
 
@@ -61,6 +62,8 @@ function for_each_page(page_data) {
 	while (matched = PATTERN_link.exec(content)) {
 		// wikt, wikisource
 		if (matched[1].includes('wik')
+		//
+		|| /^category/i.test(matched[1])
 		// 去除不能包含的字元。
 		|| matched[3].includes('/'))
 			continue;
@@ -168,7 +171,7 @@ function push_work(full_title) {
 		return data;
 	}, {
 		bot : 1,
-		summary : 'bot: import label from zhwiki link'
+		summary : 'bot test: import label from zhwiki link'
 	});
 }
 
