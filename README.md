@@ -76,4 +76,4 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import Wikimedia database backup dumps data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
-* Traversal all 1.5M pages of zhwiki in 12 minutes on Tool Labs. (See [traversal_pages.js](https://github.com/kanasimi/wikibot/blob/master/traversal_pages.js). Must download xml dump file first.) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。）
+* Traversal all 1.5M pages of zhwiki in 12 minutes on Tool Labs. (See [traversal_pages.clear.js](https://github.com/kanasimi/wikibot/blob/master/archive/traversal_pages.clear.js). Must download xml dump file first.) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。）

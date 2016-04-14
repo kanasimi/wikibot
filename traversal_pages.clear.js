@@ -1,5 +1,5 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node traversal_pages.js && date
-// Traversal all pages. 遍歷所有頁面。
+﻿// cd ~/wikibot && date && time /shared/bin/node traversal_pages.clear.js && date
+// Traversal all pages. 遍歷所有頁面。簡易版，用於展示概念。
 
 /*
 
