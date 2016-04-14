@@ -2,7 +2,7 @@
 
 /*
 
- 初版試營運，約耗時 12分鐘執行。
+ 2016/4/14 22:57:45	初版試營運，約耗時 ?分鐘執行。
 
  */
 
@@ -11,6 +11,9 @@
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
+CeL.env.ignore_COM_error = true;
+// CeL.CN_to_TW('简体')
+CeL.run('extension.zh_conversion');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -20,19 +23,28 @@ base_directory = bot_directory + script_name + '/';
 
 var
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 4000;
+log_limit = 400;
 
 // ----------------------------------------------------------------------------
 
 wiki.set_data();
 
-var count = 0,
+var count = 0, test_limit = 4,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]\|]+)\|([^\[\]\|]+)\]\]/g,
 //
 PATTERN_en = /^[a-z,.;\-\d\s]+$/i;
+
+label_hash = CeL.fs_read(base_directory + 'labels.json');
+if (label_hash) {
+	label_hash = JSON.parse(label_hash);
+	finish_work();
+	throw 'test done.';
+}
+
+label_hash = CeL.null_Object();
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -42,6 +54,10 @@ PATTERN_en = /^[a-z,.;\-\d\s]+$/i;
  *            {pageid,ns,title,revisions:[{timestamp,'*'}]}
  */
 function for_each_page(page_data) {
+	if (count > test_limit) {
+		return;
+	}
+
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
@@ -52,9 +68,21 @@ function for_each_page(page_data) {
 
 	var matched;
 	while (matched = PATTERN_link.exec(content)) {
+		// wikt, wikisource
+		if (matched[1].includes('wik')
+		// 去除不能包含的字元。
+		|| matched[3].includes('/'))
+			continue;
+
 		var foreign_title = matched[2]
-		// e.g., [[:en:wikt:a|a]],
-		.replace(/^[a-z\s]*:/, '').trim(), label = matched[3].trim();
+		// e.g., [[:en:wikt:t|t]]
+		.replace(/^[a-z\s]*:/, '').trim(),
+		//
+		label = CeL.CN_to_TW(matched[3]
+		// e.g., [[:en:t|''t'']], [[:en:t|《t》]]
+		.replace(/['》]+$|^['《]+/g, '')
+		// e.g., [[:en:t|t{{en}}]]
+		.replace(/{{[a-z]{2,3}}}/g, '').trim().replace(/\s{2,}/g, ' '));
 		if (!foreign_title || !label || (foreign_title.length > label.length
 		// 不處理各自包含者。
 		? foreign_title.includes(label) : label.includes(foreign_title))
@@ -62,11 +90,16 @@ function for_each_page(page_data) {
 		|| label.endsWith('文版') || PATTERN_en.test(label))
 			continue;
 
+		if (label.includes('·'))
+			// 為人名。
+			label = label.replace(/裡/g, '里');
+
 		foreign_title = matched[1] + ':' + foreign_title;
 		if (!(foreign_title in label_hash)) {
 			++count;
 			if (count < log_limit)
-				console.log(count + ': ' + matched[0] + ' @ [[' + title + ']]');
+				console.log(count + ': [[' + foreign_title + ']] ← [[' + label
+						+ ']] @ [[' + title + ']]: ' + matched[0]);
 			label_hash[foreign_title] = [ label ];
 			// source_hash[foreign_title] = [ title ];
 		} else if (!label_hash[foreign_title].includes(label)) {
@@ -98,13 +131,12 @@ function finish_work() {
 
 	count = 0;
 	for ( var full_title in label_hash) {
-		foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/);
-		var language = foreign_title[1];
+		var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/), language = foreign_title[1];
 		foreign_title = foreign_title[2];
 
 		wiki.data([ language, foreign_title ]).edit_data(function(entity) {
-			if (++count > 2)
-				throw 'test done';
+			if (++count > test_limit)
+				throw 'test done.';
 
 			if ('missing' in entity)
 				return;
@@ -137,7 +169,7 @@ function finish_work() {
 			}
 		}, {
 			bot : 1,
-			summary : 'import label from link'
+			summary : 'import label from zhwiki link'
 		});
 	}
 }
