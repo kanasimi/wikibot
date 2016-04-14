@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node 20160414.import_link_to_Wikidata_lable.js && date
+﻿// cd ~/wikibot && date && time /shared/bin/node 20160414.import_link_to_Wikidata_label.js && date
 
 /*
 
@@ -30,7 +30,9 @@ var count = 0,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
-PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]\|]+)\|([^\[\]\|]+)\]\]/g;
+PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]\|]+)\|([^\[\]\|]+)\]\]/g,
+//
+PATTERN_en = /^[a-z,.;\-\d\s]+$/i;
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -57,7 +59,7 @@ function for_each_page(page_data) {
 		// 不處理各自包含者。
 		? foreign_title.includes(label) : label.includes(foreign_title))
 		// e.g., 法文版, 義大利文版
-		|| label.endsWith('文版'))
+		|| label.endsWith('文版') || PATTERN_en.test(label))
 			continue;
 
 		foreign_title = matched[1] + ':' + foreign_title;
@@ -74,12 +76,16 @@ function for_each_page(page_data) {
 	}
 }
 
+var default_language = 'zh',
+/** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
+NOT_FOUND = ''.indexOf('_');
+
 function add_item(label) {
-	var language = /^[a-z\d\s]+$/i.test(label) ? 'en' : 'zh';
+	var language = PATTERN_en.test(label) ? 'en' : default_language;
 	return {
 		language : language,
 		value : label,
-		add : ''
+		add : 1
 	};
 }
 
@@ -90,11 +96,48 @@ function finish_work() {
 	CeL.log('All ' + count + ' labels.');
 	CeL.fs_write(base_directory + 'labels.json', JSON.stringify(label_hash));
 
-	for ( var foreign_title in label_hash) {
-		var matched = foreign_title.match(/^([a-z]{2,}):(.+)$/);
+	count = 0;
+	for ( var full_title in label_hash) {
+		foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/);
+		var language = foreign_title[1];
+		foreign_title = foreign_title[2];
 
-		wiki.data([ matched[1], matched[2] ]).edit_data({
-			aliases : label_hash[foreign_title].map(add_item)
+		wiki.data([ language, foreign_title ]).edit_data(function(entity) {
+			if (++count > 2)
+				throw 'test done';
+
+			if ('missing' in entity)
+				return;
+
+			var labels = label_hash[full_title], has_label;
+			if (entity.labels[default_language]) {
+				has_label = labels.indexOf(
+				// 去除重複 label。
+				entity.labels[default_language].value);
+				if (has_label !== NOT_FOUND) {
+					labels.splice(has_label, 1);
+					if (labels.length === 0)
+						return;
+					has_label = true;
+				}
+			}
+
+			var data;
+			// 若是本來已有 label，會被取代。
+			if (has_label) {
+				data = {};
+			} else {
+				data = {
+					labels : [ add_item(labels[0]) ]
+				};
+				labels.shift();
+			}
+			if (labels.length > 0) {
+				data.aliases = labels.map(add_item);
+			}
+		}, {
+			bot : 1,
+			summary : 'import label from link'
 		});
 	}
 }
