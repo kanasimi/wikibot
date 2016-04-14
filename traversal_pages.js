@@ -1,5 +1,5 @@
 ﻿// cd ~/wikibot && date && time /shared/bin/node traversal_pages.js && date
-// Traversal all pages. 遍歷所有頁面。
+// Traversal all pages. 遍歷所有頁面。執行任務版。
 
 /*
 
@@ -24,7 +24,7 @@ base_directory = bot_directory + script_name + '/',
 filters = [],
 /** {Array}filtered list[item] = {Array}[ list ] */
 filtered = [],
-//
+/** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 400;
 
 // ----------------------------------------------------------------------------
@@ -107,23 +107,36 @@ CeL.wiki.traversal({
 
 // ----------------------------------------------------------------------------
 
+var
+/** {Natural|Array}Only check the NO(s). 僅處理此項。 */
+only_check = [];
+
 function setup_filters() {
-	for (var index = 0, count = 0; index < 100; index++) {
-		var filter_function = eval('typeof filter_' + index
+	for (var checking_index = 0, count = 0; checking_index < 100; checking_index++) {
+		var filter_function = eval('typeof filter_' + checking_index
 		// global 無效。
-		+ ' === "function" && filter_' + index + ';');
-		if (filter_function) {
-			count++;
-			filters[index] = filter_function;
-			filtered[index] = [];
+		+ ' === "function" && filter_' + checking_index + ';');
+		if (!filter_function)
+			return;
+
+		if (only_check) {
+			if (Array.isArray(only_check)) {
+				if (!only_check.includes(checking_index))
+					continue;
+			} else if (only_check >= 0 && checking_index !== only_check)
+				continue;
 		}
+
+		count++;
+		filters[checking_index] = filter_function;
+		filtered[checking_index] = [];
 	}
 
 	log_limit = log_limit / count | 0;
 	CeL.log('setup_filters: All ' + count + ' filters.');
 }
 
-// ↓ 0-4約耗時 30分鐘執行。
+// ↓ 0-4約耗時 30分鐘執行。包含本地 dump，約耗時 35分鐘執行。
 ;
 
 // 檢查文章中是否包含有 LRM [[左至右符號]] U+200E
@@ -141,7 +154,7 @@ function filter_1(content) {
 }
 
 // 檢查文章連結/外部連結中是否包含有跨維基計畫/跨語言連結
-// e.g., [[:en:XXX|YYY]]
+// e.g., [[:en:XXX|YYY]], [[:en:XXX]]
 function filter_2(content) {
 	return /\[\[:[a-z]+:/i.test(content);
 }
