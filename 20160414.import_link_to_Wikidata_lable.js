@@ -24,6 +24,8 @@ log_limit = 4000;
 
 // ----------------------------------------------------------------------------
 
+wiki.set_data();
+
 var count = 0,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
@@ -52,32 +54,33 @@ function for_each_page(page_data) {
 		// e.g., [[:en:wikt:a|a]],
 		.replace(/^[a-z\s]*:/, '').trim(), label = matched[3].trim();
 		if (!foreign_title || !label || (foreign_title.length > label.length
-		//
+		// 不處理各自包含者。
 		? foreign_title.includes(label) : label.includes(foreign_title))
 		// e.g., 法文版, 義大利文版
 		|| label.endsWith('文版'))
 			continue;
+
 		foreign_title = matched[1] + ':' + foreign_title;
-		if (foreign_title in label_hash) {
-			var list = label_hash[foreign_title];
-			if (Array.isArray(list)) {
-				if (!list.includes(label)) {
-					list.push(label);
-					source_hash[foreign_title].push(title);
-				}
-			} else if (list !== label) {
-				label_hash[foreign_title] = [ list, label ];
-				source_hash[foreign_title] = [ source_hash[foreign_title],
-						title ];
-			}
-		} else {
+		if (!(foreign_title in label_hash)) {
 			++count;
 			if (count < log_limit)
 				console.log(count + ': ' + matched[0] + ' @ [[' + title + ']]');
-			label_hash[foreign_title] = label;
-			source_hash[foreign_title] = title;
+			label_hash[foreign_title] = [ label ];
+			// source_hash[foreign_title] = [ title ];
+		} else if (!label_hash[foreign_title].includes(label)) {
+			label_hash[foreign_title].push(label);
+			// source_hash[foreign_title].push(title);
 		}
 	}
+}
+
+function add_item(label) {
+	var language = /^[a-z\d\s]+$/i.test(label) ? 'en' : 'zh';
+	return {
+		language : language,
+		value : label,
+		add : ''
+	};
 }
 
 /**
@@ -86,6 +89,14 @@ function for_each_page(page_data) {
 function finish_work() {
 	CeL.log('All ' + count + ' labels.');
 	CeL.fs_write(base_directory + 'labels.json', JSON.stringify(label_hash));
+
+	for ( var foreign_title in label_hash) {
+		var matched = foreign_title.match(/^([a-z]{2,}):(.+)$/);
+
+		wiki.data([ matched[1], matched[2] ]).edit_data({
+			aliases : label_hash[foreign_title].map(add_item)
+		});
+	}
 }
 
 // ----------------------------------------------------------------------------
