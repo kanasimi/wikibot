@@ -29,22 +29,13 @@ log_limit = 400;
 
 wiki.set_data();
 
-var count = 0, test_limit = 4,
+var count = 0, test_limit = 20,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]\|]+)\|([^\[\]\|]+)\]\]/g,
 //
 PATTERN_en = /^[a-z,.;\-\d\s]+$/i;
-
-label_hash = CeL.fs_read(base_directory + 'labels.json');
-if (label_hash) {
-	label_hash = JSON.parse(label_hash);
-	finish_work();
-	throw 'test done.';
-}
-
-label_hash = CeL.null_Object();
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -122,77 +113,111 @@ function add_item(label) {
 	};
 }
 
+function push_work(full_title) {
+	var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/),
+	//
+	language = foreign_title[1];
+	foreign_title = foreign_title[2];
+
+	wiki.data([ language, foreign_title ], function(data) {
+		// console.log(data);
+	}).edit_data(function(entity) {
+		if (++count > test_limit) {
+			// throw 'Test done.';
+			return [ CeL.wiki.edit.cancel, 'Ignored: Test done.' ];
+		}
+
+		if (!entity || ('missing' in entity)) {
+			return [ CeL.wiki.edit.cancel,
+			//
+			'missing [' + (entity && entity.id) + ']' ];
+		}
+
+		var labels = label_hash[full_title], has_label;
+		if (entity.labels[default_language]) {
+			has_label = labels.indexOf(
+			// 去除重複 label。
+			entity.labels[default_language].value);
+			if (has_label !== NOT_FOUND) {
+				labels.splice(has_label, 1);
+				if (labels.length === 0)
+					return [ CeL.wiki.edit.cancel,
+					//
+					'No labels to set.' ];
+				has_label = true;
+			}
+		}
+
+		console.log(entity.id
+		//
+		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
+
+		var data;
+		// 若是本來已有 label，會被取代。
+		if (has_label) {
+			data = {};
+		} else {
+			data = {
+				labels : [ add_item(labels[0]) ]
+			};
+			labels.shift();
+		}
+		if (labels.length > 0) {
+			data.aliases = labels.map(add_item);
+		}
+		return data;
+	}, {
+		bot : 1,
+		summary : 'bot: import label from zhwiki link'
+	});
+}
+
 /**
  * Finish up. 最後結束工作。
  */
 function finish_work() {
-	CeL.log('All ' + count + ' labels.');
-	CeL.fs_write(base_directory + 'labels.json', JSON.stringify(label_hash));
+	if (count) {
+		CeL.log('All ' + count + ' labels.');
+		CeL.fs_write(
+		//
+		base_directory + 'labels.json', JSON.stringify(label_hash));
+		count = 0;
+	}
 
-	count = 0;
 	for ( var full_title in label_hash) {
-		var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/), language = foreign_title[1];
-		foreign_title = foreign_title[2];
-
-		wiki.data([ language, foreign_title ]).edit_data(function(entity) {
-			if (++count > test_limit)
-				throw 'test done.';
-
-			if ('missing' in entity)
-				return;
-
-			var labels = label_hash[full_title], has_label;
-			if (entity.labels[default_language]) {
-				has_label = labels.indexOf(
-				// 去除重複 label。
-				entity.labels[default_language].value);
-				if (has_label !== NOT_FOUND) {
-					labels.splice(has_label, 1);
-					if (labels.length === 0)
-						return;
-					has_label = true;
-				}
-			}
-
-			var data;
-			// 若是本來已有 label，會被取代。
-			if (has_label) {
-				data = {};
-			} else {
-				data = {
-					labels : [ add_item(labels[0]) ]
-				};
-				labels.shift();
-			}
-			if (labels.length > 0) {
-				data.aliases = labels.map(add_item);
-			}
-		}, {
-			bot : 1,
-			summary : 'import label from zhwiki link'
-		});
+		push_work(full_title);
 	}
 }
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory);
+label_hash = CeL.fs_read(base_directory + 'labels.json');
+if (label_hash) {
+	// read cache
+	label_hash = JSON.parse(label_hash);
+	finish_work();
 
-// share the xml dump file.
-if (typeof process === 'object') {
-	process.umask(parseInt('0022', 8));
+} else {
+	label_hash = CeL.null_Object();
+
+	prepare_directory(base_directory);
+
+	// share the xml dump file.
+	if (typeof process === 'object') {
+		process.umask(parseInt('0022', 8));
+	}
+
+	// CeL.set_debug(6);
+	CeL.wiki.traversal({
+		wiki : wiki,
+		// cache path prefix
+		directory : base_directory,
+		// 指定 dump file 放置的 directory。
+		// dump_directory : bot_directory + 'dumps/',
+		dump_directory : '/shared/dump/',
+		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
+		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
+		filter : true,
+		after : finish_work
+	}, for_each_page);
 }
-
-// CeL.set_debug(6);
-CeL.wiki.traversal({
-	wiki : wiki,
-	// cache path prefix
-	directory : base_directory,
-	// 指定 dump file 放置的 directory。
-	// dump_directory : bot_directory + 'dumps/',
-	dump_directory : '/shared/dump/',
-	// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
-	// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
-	filter : true,
-	after : finish_work
-}, for_each_page);
