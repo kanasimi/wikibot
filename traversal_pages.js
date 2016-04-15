@@ -10,7 +10,7 @@
 
 'use strict';
 
-// Load CeJS library and module.
+// Load CeJS library and modules.
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
@@ -43,7 +43,7 @@ function for_each_page(page_data) {
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data);
 	/** {Object}revision data. 修訂版本資料。 */
-	var revision = page_data.revisions && page_data.revisions[0];
+	// var revision = page_data.revisions && page_data.revisions[0];
 
 	if (!content)
 		return;
@@ -110,7 +110,7 @@ CeL.wiki.traversal({
 
 var
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
-only_check = [];
+only_check;
 
 function setup_filters() {
 	for (var checking_index = 0, count = 0; checking_index < 100; checking_index++) {
@@ -137,37 +137,37 @@ function setup_filters() {
 	CeL.log('setup_filters: All ' + count + ' filters.');
 }
 
-// ↓ 0-4約耗時 30分鐘執行。包含本地 dump，約耗時 35分鐘執行。
+// ↓ 0–4約耗時 18分鐘執行。包含本地 dump，約耗時 35分鐘執行。
 ;
 
-// 檢查文章中是否包含有 LRM [[左至右符號]] U+200E
+// 檢查文章中是否包含有 LRM [[左至右符號]] U+200E。
 // ↓ 單獨約耗時 12分鐘執行。
 function filter_0(content) {
 	return content.includes('\u200E');
 }
 
-// check Wikimedia projects links
-// 檢查文章 link 中是否包含 Wikimedia projects link
+// check Wikimedia projects links.
+// 檢查文章 link 中是否包含 Wikimedia projects link。
 // e.g., [https://zh.wikipedia.org/
 // ↓ 單獨約耗時 15分鐘執行。
 function filter_1(content) {
 	return /\[[\s\n]*(?:(?:https?:)?\/\/)?[a-z]+\.wikipedia\./i.test(content);
 }
 
-// 檢查文章連結/外部連結中是否包含有跨維基計畫/跨語言連結
+// 檢查文章連結/外部連結中是否包含有跨維基計畫/跨語言連結。
 // e.g., [[:en:XXX|YYY]], [[:en:XXX]]
 function filter_2(content) {
 	return /\[\[:[a-z]+:/i.test(content);
 }
 
-// 檢查文章中是否包含有控制所有機器人帳戶訪問的模板
+// 檢查文章中是否包含有控制所有機器人帳戶訪問的模板。
 // check: {{nobots}}
 function filter_3(content) {
-	return /{{(?:[Nn]o)?[Bb]ot[^a-z]/i.test(content);
+	return /{{(?:[Nn]o)?[Bb]ots[}\|\s]/.test(content);
 }
 
 var filter_4_1 = /\/gate\/big5\//i;
-// 檢查文章外部連結中是否包含有字詞轉換/繁簡轉換網關的連結
+// 檢查文章外部連結中是否包含有字詞轉換/繁簡轉換網關的連結。
 // /gate/big5/, http://big5. [[User:Antigng-bot/url]]
 function filter_4(content) {
 	return filter_4_1.test(content) || /http:\/\/big5\./i.test(content);

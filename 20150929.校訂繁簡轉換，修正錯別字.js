@@ -11,7 +11,7 @@
 
 'use strict';
 
-// Load CeJS library and module.
+// Load CeJS library and modules.
 require('./wiki loder.js');
 
 // [[維基百科:Unihan繁簡體對照表]]

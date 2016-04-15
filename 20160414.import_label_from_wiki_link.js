@@ -9,7 +9,7 @@
 
 'use strict';
 
-// Load CeJS library and module.
+// Load CeJS library and modules.
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
@@ -251,6 +251,7 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
+// read cache.
 label_hash = CeL.fs_read(base_directory + 'labels.json');
 if (label_hash) {
 	// read cache

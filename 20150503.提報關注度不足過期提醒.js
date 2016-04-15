@@ -12,7 +12,7 @@
 
 'use strict';
 
-// Load CeJS library and module.
+// Load CeJS library and modules.
 require('./wiki loder.js');
 
 // CeL.run([ 'interact.DOM', 'application.debug', 'application.net.wiki' ]);

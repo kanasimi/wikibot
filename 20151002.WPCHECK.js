@@ -20,7 +20,7 @@
 
 'use strict';
 
-// Load CeJS library and module.
+// Load CeJS library and modules.
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
