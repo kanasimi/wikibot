@@ -11,7 +11,7 @@
 
 'use strict';
 
-// var CeL_path = 'S:\\cgi-bin\\lib\\JS';
+// Load CeJS library and module.
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');

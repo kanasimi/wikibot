@@ -11,6 +11,7 @@ $ npm install cejs
 
 ### Running
 ``` JavaScript
+// Load CeJS library.
 require('cejs');
 
 // Load module.
@@ -70,6 +71,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 
 ## Features
 * Batch processing.
+* Wikidata access and edit.
 * Support [Flow](https://www.mediawiki.org/wiki/Flow) page: Using the same way adding section to normal page and Flow page.
 * Detection of edit conflicts and <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code>.
 * Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, ...

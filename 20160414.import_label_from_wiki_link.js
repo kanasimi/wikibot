@@ -2,12 +2,14 @@
 
 /*
 
- 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse）。約耗時 3.5 hours 執行（不包含 modufy Wikidata）。
+ 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 3.5 hours 執行（不包含 modufy Wikidata）。
+ TODO: [[認識論斷裂]]（[[:en:epistemological rupture|epistemological rupture]]）
 
  */
 
 'use strict';
 
+// Load CeJS library and module.
 require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
@@ -191,15 +193,17 @@ function push_work(full_title) {
 
 		var labels = label_hash[full_title], has_label;
 		if (entity.labels[default_language]) {
-			has_label = labels.indexOf(
+			var index = labels.indexOf(
 			// 去除重複 label。
 			entity.labels[default_language].value);
-			if (has_label !== NOT_FOUND) {
-				labels.splice(has_label, 1);
-				if (labels.length === 0)
+			if (index !== NOT_FOUND) {
+				if (labels.length === 1) {
+					// assert: index === 0
 					return [ CeL.wiki.edit.cancel,
 					//
 					'No labels to set.' ];
+				}
+				labels.splice(index, 1);
 				has_label = true;
 			}
 		}
