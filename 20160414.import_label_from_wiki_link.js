@@ -2,7 +2,7 @@
 
 /*
 
- 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse）。
+ 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse）。約耗時 3.5 hours 執行（不包含 modufy Wikidata）。
 
  */
 
@@ -24,7 +24,7 @@ base_directory = bot_directory + script_name + '/';
 
 var
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 400;
+log_limit = 4000;
 
 // ----------------------------------------------------------------------------
 
@@ -34,9 +34,9 @@ var count = 0, test_limit = 20,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
-PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]\|]+)\|([^\[\]\|]+)\]\]/g,
+PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
 //
-PATTERN_en = /^[a-z,.;\-\d\s]+$/i;
+PATTERN_en = /^[a-z,.:;'"\-\d\s\&]+$/i;
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -62,37 +62,90 @@ function for_each_page(page_data) {
 	while (matched = PATTERN_link.exec(content)) {
 		// wikt, wikisource
 		if (matched[1].includes('wik')
-		//
-		|| /^category/i.test(matched[1])
-		// 去除不能包含的字元。
-		|| matched[3].includes('/'))
+		// || /^category/i.test(matched[1])
+		)
 			continue;
 
-		var foreign_title = matched[2]
+		var foreign_title = matched[2].trim().replace(/_/g, ' ');
+
+		if (foreign_title.length < 2
 		// e.g., [[:en:wikt:t|t]]
-		.replace(/^[a-z\s]*:/, '').trim(),
+		|| /^[a-z\s]*:/.test(foreign_title)) {
+			continue;
+		}
+
+		var label = matched[3]
 		//
-		label = CeL.CN_to_TW(matched[3]
+		.replace(/-{([^{}]*)}-/g, function($0, $1) {
+			if (!$1.includes(':'))
+				return $1;
+			var matched = $1.match(/zh-tw:([^;]+)/i)
+			//
+			|| $1.match(/zh(?:-[a-z]+):([^;]+)/i);
+			return matched && matched[1].trim() || $0;
+		}).trim().replace(/_/g, ' ').replace(/\s{2,}/g, ' ');
+
+		if (label.length < 5
+		// && label.length > 1
+		// [[:en:Thirty-third government of Israel|第33届]] @ [[以色列总理]]
+		// [[en:1st Lok Sabha]] ← [[1屆]] @ [[印度总理]]: [[:en:1st Lok Sabha|1届]]
+		// [[en:First Gerbrandy cabinet]] ← [[第一屆]] @ [[荷兰首相]]: [[:en:First
+		// Gerbrandy cabinet|第一届]]
+		&& /[屆届]$/.test(label)) {
+			continue;
+		}
+
+		if (label.length > foreign_title.length) {
+			var index = label.indexOf(foreign_title);
+			if (index > 0 && /[(（]/.test(label.charAt(index - 1))
+					&& /[)）]/.test(label.charAt(index + foreign_title.length)))
+				label = (label.slice(0, index - 1) + label.slice(index
+						+ foreign_title.length + 1)).trim();
+		}
+
+		label = label
 		// e.g., [[:en:t|''t'']], [[:en:t|《t》]]
-		.replace(/['》]+$|^['《]+/g, '')
+		.replace(/['》]+$|^['《]+/g, '').replace(/'{2,}([^']+)'{2,}/g, '$1')
 		// e.g., [[:en:t|t{{en}}]]
-		.replace(/{{[a-z]{2,3}}}/g, '').trim().replace(/\s{2,}/g, ' '));
-		if (!foreign_title || !label || (foreign_title.length > label.length
+		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·');
+
+		// 篩除代表資訊過少的辭彙。
+		if (label.length < 2
 		// 不處理各自包含者。
-		? foreign_title.includes(label) : label.includes(foreign_title))
+		|| (foreign_title.length === label.length
+		//
+		? foreign_title == label
+		//
+		: foreign_title.length > label.length && foreign_title.includes(label))
+		// 去除不能包含的字元。
+		// || label.includes('/')
+		// || /^[\u0001-\u00ff英法義]$/.test(label)
 		// e.g., 法文版, 義大利文版
-		|| label.endsWith('文版') || PATTERN_en.test(label))
+		|| /[语語文]版?$/.test(label)
+		// || label.includes('-{')
+		|| PATTERN_en.test(label))
 			continue;
 
-		if (label.includes('·'))
-			// 為人名。
+		// 後期修正。
+		// label = label.replace(/（(.+)）$/, '($1)');
+		// TODO: CeL.CN_to_TW() is too slow...
+		var tmp = label;
+		label = CeL.CN_to_TW(label);
+		if (tmp !== label
+		// 為人名。
+		// || label.includes('·')
+		) {
+			// 詞條標題中，使用'里'這個字的機會大多了。
 			label = label.replace(/裡/g, '里');
+			if (foreign_title == label)
+				continue;
+		}
 
 		foreign_title = matched[1] + ':' + foreign_title;
 		if (!(foreign_title in label_hash)) {
 			++count;
-			if (count < log_limit)
-				console.log(count + ': [[' + foreign_title + ']] ← [[' + label
+			if (count <= log_limit)
+				console.log(count + ': ' + label + '→[[' + foreign_title
 						+ ']] @ [[' + title + ']]: ' + matched[0]);
 			label_hash[foreign_title] = [ label ];
 			// source_hash[foreign_title] = [ title ];
