@@ -273,7 +273,7 @@ function finish_work() {
 		CeL.log('All ' + count + ' labels.');
 		CeL.fs_write(
 		//
-		base_directory + 'labels.json', JSON.stringify(label_hash));
+		base_directory + 'labels.json', JSON.stringify([ label_hash, source_hash ]));
 		count = 0;
 	}
 
@@ -289,6 +289,8 @@ label_hash = CeL.fs_read(base_directory + 'labels.json');
 if (label_hash) {
 	// read cache
 	label_hash = JSON.parse(label_hash);
+	source_hash = label_hash[1];
+	label_hash = source_hash[0];
 	finish_work();
 
 } else {
