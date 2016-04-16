@@ -161,7 +161,7 @@ function filter_2(content) {
 }
 
 // 檢查文章中是否包含有控制所有機器人帳戶訪問的模板。
-// check: {{nobots}}
+// check: {{bots}}, {{nobots}}
 function filter_3(content) {
 	return /{{(?:[Nn]o)?[Bb]ots[}\|\s]/.test(content);
 }

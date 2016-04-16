@@ -32,7 +32,7 @@ log_limit = 4000;
 
 wiki.set_data();
 
-var count = 0, test_limit = 20,
+var count = 0, test_limit = 2,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
@@ -143,17 +143,18 @@ function for_each_page(page_data) {
 				continue;
 		}
 
-		foreign_title = matched[1] + ':' + foreign_title;
-		if (!(foreign_title in label_hash)) {
+		var full_title = matched[1] + ':' + foreign_title;
+		if (!(full_title in label_hash)) {
 			++count;
 			if (count <= log_limit)
-				console.log(count + ': ' + label + '→[[' + foreign_title
+				console.log(count + ': ' + label + '→[[' + full_title
 						+ ']] @ [[' + title + ']]: ' + matched[0]);
-			label_hash[foreign_title] = [ label ];
-			// source_hash[foreign_title] = [ title ];
-		} else if (!label_hash[foreign_title].includes(label)) {
-			label_hash[foreign_title].push(label);
-			// source_hash[foreign_title].push(title);
+			label_hash[full_title] = [ label ];
+			source_hash[full_title] = [ title ];
+
+		} else if (!label_hash[full_title].includes(label)) {
+			label_hash[full_title].push(label);
+			source_hash[full_title].push(title);
 		}
 	}
 }
@@ -177,12 +178,44 @@ function push_work(full_title) {
 	language = foreign_title[1];
 	foreign_title = foreign_title[2];
 
-	wiki.data([ language, foreign_title ], function(data) {
-		// console.log(data);
+	wiki.data([ language, foreign_title ], function(entity) {
+		if (count > test_limit)
+			return;
+
+		// console.log(entity);
+
+		// 使用Wikidata數據來清理跨語言連結。例如將[[:ja:日露戦争|日俄戰爭]]轉成[[日俄戰爭]]，避免「在條目頁面以管道連結的方式外連至其他語言維基頁面」。
+
+		var title = entity && entity.sitelinks
+		//
+		&& entity.sitelinks[default_language + 'wiki'];
+
+		if (title && (title = title.title)) {
+			// 標的語言wikipedia存在所欲連接的頁面。
+			source_hash[full_title].forEach(function(title) {
+				wiki.page(title).edit(function(page_data) {
+					var
+					/**
+					 * {String}page content, maybe undefined. 頁面內容 =
+					 * revision['*']
+					 */
+					content = CeL.wiki.content_of(page_data),
+					//
+					pattern = new RegExp('\\[\\[:' + language + ':'
+					//
+					+ foreign_title.replace(
+					//
+					/([\[\]{}*.])/g, '\\$1') + '\\]\\]', 'g');
+
+					return content.replace(pattern, '[[' + title + ']]');
+				});
+			});
+		}
+
 	}).edit_data(function(entity) {
 		if (++count > test_limit) {
-			// throw 'Test done.';
-			return [ CeL.wiki.edit.cancel, 'Ignored: Test done.' ];
+			// throw 'Ignored: Test done.';
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
 		if (!entity || ('missing' in entity)) {
