@@ -159,12 +159,12 @@ function for_each_page(page_data) {
 	}
 }
 
-var default_language = 'zh',
+var use_language = 'zh',
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_');
 
 function add_item(label) {
-	var language = PATTERN_en.test(label) ? 'en' : default_language;
+	var language = PATTERN_en.test(label) ? 'en' : use_language;
 	return {
 		language : language,
 		value : label,
@@ -188,7 +188,7 @@ function push_work(full_title) {
 
 		var title = entity && entity.sitelinks
 		//
-		&& entity.sitelinks[default_language + 'wiki'];
+		&& entity.sitelinks[use_language + 'wiki'];
 
 		if (title && (title = title.title)) {
 			// 標的語言wikipedia存在所欲連接的頁面。
@@ -224,11 +224,22 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		var labels = label_hash[full_title], has_label;
-		if (entity.labels[default_language]) {
+		var labels = label_hash[full_title],
+		// 注意: 若是本來已有某個值(例如 label)，採用 add 會被取代。或須偵測並避免之。
+		has_label = use_language in entity.labels,
+		// 要編輯（更改或創建）的資料。
+		data;
+
+		console.log(entity.id
+		//
+		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
+
+		if (has_label) {
+			data = {};
+
 			var index = labels.indexOf(
 			// 去除重複 label。
-			entity.labels[default_language].value);
+			entity.labels[use_language].value);
 			if (index !== NOT_FOUND) {
 				if (labels.length === 1) {
 					// assert: index === 0
@@ -237,28 +248,21 @@ function push_work(full_title) {
 					'No labels to set.' ];
 				}
 				labels.splice(index, 1);
-				has_label = true;
 			}
-		}
 
-		console.log(entity.id
-		//
-		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
-
-		var data;
-		// 若是本來已有 label，會被取代。
-		if (has_label) {
-			data = {};
 		} else {
 			data = {
 				labels : [ add_item(labels[0]) ]
 			};
 			labels.shift();
 		}
+
 		if (labels.length > 0) {
 			data.aliases = labels.map(add_item);
 		}
+
 		return data;
+
 	}, {
 		bot : 1,
 		summary : 'bot test: import label from zhwiki link'
