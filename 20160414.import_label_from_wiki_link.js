@@ -2,8 +2,8 @@
 
 /*
 
- 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 3.5 hours 執行（不包含 modufy Wikidata）。
- TODO: [[認識論斷裂]]（[[:en:epistemological rupture|epistemological rupture]]）
+ 2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
+ TODO: parse "[[local title]]（[[:en:foreign title]]）"
 
  */
 
@@ -32,13 +32,13 @@ log_limit = 4000;
 
 wiki.set_data();
 
-var count = 0, test_limit = 2,
+var count = 0, test_limit = 5,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
-//
-PATTERN_en = /^[a-z,.:;'"\-\d\s\&]+$/i;
+// TODO: 改為 non-Chinese
+PATTERN_en = /^[a-z,.:;'"\-\d\s\&<>\\\/]+$/i;
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -48,7 +48,7 @@ PATTERN_en = /^[a-z,.:;'"\-\d\s\&]+$/i;
  *            {pageid,ns,title,revisions:[{timestamp,'*'}]}
  */
 function for_each_page(page_data) {
-	if (false && count > test_limit) {
+	if (count > test_limit) {
 		return;
 	}
 
@@ -85,7 +85,8 @@ function for_each_page(page_data) {
 			//
 			|| $1.match(/zh(?:-[a-z]+):([^;]+)/i);
 			return matched && matched[1].trim() || $0;
-		}).trim().replace(/_/g, ' ').replace(/\s{2,}/g, ' ');
+		}).trim().replace(/_/g, ' ').replace(/<br[^<>]*>/ig, ' ').replace(
+				/[\s　]{2,}/g, ' ');
 
 		if (label.length < 5
 		// && label.length > 1
@@ -147,6 +148,7 @@ function for_each_page(page_data) {
 		if (!(full_title in label_hash)) {
 			++count;
 			if (count <= log_limit)
+				// 此 label 指向
 				console.log(count + ': ' + label + '→[[' + full_title
 						+ ']] @ [[' + title + ']]: ' + matched[0]);
 			label_hash[full_title] = [ label ];
@@ -186,12 +188,15 @@ function push_work(full_title) {
 
 		// 使用Wikidata數據來清理跨語言連結。例如將[[:ja:日露戦争|日俄戰爭]]轉成[[日俄戰爭]]，避免「在條目頁面以管道連結的方式外連至其他語言維基頁面」。
 
-		var title = entity && entity.sitelinks
+		// TODO: 檢查重定向頁
+
+		// local title
+		var local_title = entity && entity.sitelinks
 		//
 		&& entity.sitelinks[use_language + 'wiki'];
 
-		if (title && (title = title.title)) {
-			// 標的語言wikipedia存在所欲連接的頁面。
+		if (local_title && (local_title = local_title.title)) {
+			// 標的語言wikipedia存在所欲連接/指向的頁面。
 			source_hash[full_title].forEach(function(title) {
 				wiki.page(title).edit(function(page_data) {
 					var
@@ -201,13 +206,16 @@ function push_work(full_title) {
 					 */
 					content = CeL.wiki.content_of(page_data),
 					//
-					pattern = new RegExp('\\[\\[:' + language + ':'
+					pattern = new RegExp('\\[\\[:' + language + '\\s*:\\s*'
 					//
-					+ foreign_title.replace(
+					+ CeL.to_RegExp_pattern(foreign_title)
 					//
-					/([\[\]{}*.])/g, '\\$1') + '\\]\\]', 'g');
+					+ '(?:\\|[^\\[\\]]+)?\\]\\]', 'g');
 
-					return content.replace(pattern, '[[' + title + ']]');
+					return content.replace(pattern, '[[' + local_title + ']]');
+				}, {
+					bot : 1,
+					summary : 'bot test: 使用Wikidata數據來清理跨語言連結'
 				});
 			});
 		}
@@ -225,8 +233,6 @@ function push_work(full_title) {
 		}
 
 		var labels = label_hash[full_title],
-		// 注意: 若是本來已有某個值(例如 label)，採用 add 會被取代。或須偵測並避免之。
-		has_label = use_language in entity.labels,
 		// 要編輯（更改或創建）的資料。
 		data;
 
@@ -234,9 +240,8 @@ function push_work(full_title) {
 		//
 		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
 
-		if (has_label) {
-			data = {};
-
+		// 注意: 若是本來已有某個值（例如 label），採用 add 會被取代。或須偵測並避免更動原有值。
+		if (use_language in entity.labels) {
 			var index = labels.indexOf(
 			// 去除重複 label。
 			entity.labels[use_language].value);
@@ -250,7 +255,10 @@ function push_work(full_title) {
 				labels.splice(index, 1);
 			}
 
+			data = {};
+
 		} else {
+			// 直接登錄。
 			data = {
 				labels : [ add_item(labels[0]) ]
 			};
@@ -277,7 +285,8 @@ function finish_work() {
 		CeL.log('All ' + count + ' labels.');
 		CeL.fs_write(
 		//
-		base_directory + 'labels.json', JSON.stringify([ label_hash, source_hash ]));
+		base_directory + 'labels.json', JSON.stringify([ label_hash,
+				source_hash ]));
 		count = 0;
 	}
 
