@@ -4,6 +4,7 @@
 
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  TODO: parse "[[local title]]（[[:en:foreign title]]）"
+ TODO: parse "{{link-en|local title|foreign title}}"
 
  */
 
@@ -32,7 +33,7 @@ log_limit = 4000;
 
 wiki.set_data();
 
-var count = 0, test_limit = 5,
+var count = 0, test_limit = 20,
 // label_hash['language:title'] = {String}label || {Array}labels
 label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
@@ -47,9 +48,18 @@ PATTERN_en = /^[a-z,.:;'"\-\d\s\&<>\\\/]+$/i;
  *            page data got from wiki API. =
  *            {pageid,ns,title,revisions:[{timestamp,'*'}]}
  */
-function for_each_page(page_data) {
-	if (count > test_limit) {
-		return;
+function for_each_page(page_data, messages) {
+	// 有必要中途跳出時則須在 callback() 中設定：
+	// @ callback(page_data, messages):
+	if (false && count > test_limit) {
+		if (messages) {
+			// 當在 .work() 執行時。
+			messages.quit_operation = true;
+			// 在 .edit() 時不設定內容。但照理應該會在 .page() 中。
+			return;
+		}
+		// 當在本函數，下方執行時，不包含 messages。
+		return CeL.wiki.quit_operation;
 	}
 
 	/** {String}page title = page_data.title */
@@ -136,6 +146,7 @@ function for_each_page(page_data) {
 		label = CeL.CN_to_TW(label);
 		if (tmp !== label
 		// 為人名。
+		// "．"
 		// || label.includes('·')
 		) {
 			// 詞條標題中，使用'里'這個字的機會大多了。
@@ -196,6 +207,12 @@ function push_work(full_title) {
 		&& entity.sitelinks[use_language + 'wiki'];
 
 		if (local_title && (local_title = local_title.title)) {
+			// TODO: [[:en:t (d)|T]] → [​[T (d)|T]]
+			var matched = local_title.match(/ \(([^()]+)\)$/);
+			if (matched) {
+				local_title += '|';
+			}
+
 			// 標的語言wikipedia存在所欲連接/指向的頁面。
 			source_hash[full_title].forEach(function(title) {
 				wiki.page(title).edit(function(page_data) {
@@ -277,6 +294,8 @@ function push_work(full_title) {
 	});
 }
 
+var data_file_name = 'labels.json';
+
 /**
  * Finish up. 最後結束工作。
  */
@@ -285,7 +304,7 @@ function finish_work() {
 		CeL.log('All ' + count + ' labels.');
 		CeL.fs_write(
 		//
-		base_directory + 'labels.json', JSON.stringify([ label_hash,
+		base_directory + data_file_name, JSON.stringify([ label_hash,
 				source_hash ]));
 		count = 0;
 	}
@@ -298,7 +317,7 @@ function finish_work() {
 // ----------------------------------------------------------------------------
 
 // read cache.
-label_hash = CeL.fs_read(base_directory + 'labels.json');
+label_hash = CeL.fs_read(base_directory + data_file_name);
 if (label_hash) {
 	// read cache
 	label_hash = JSON.parse(label_hash);
