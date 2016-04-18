@@ -185,6 +185,45 @@ function add_item(label) {
 	};
 }
 
+var name_type_hash = {
+	5 : '人',
+	515 : '城市',
+
+}
+
+// name of person, place, work, book, ...
+function name_type(entity) {
+	var claims = entity && entity.claims;
+
+	// 作者
+	if (claims.P50)
+		return '作品名';
+
+	var type,
+	// 性質, instance of
+	property = claims && entity.claims.P31;
+	if (Array.isArray(property)) {
+		property.some(function(value) {
+			value = value.mainsnak.datavalue.value.value['numeric-id'];
+			if (value && (value in name_type_hash))
+				return type = name_type_hash[value];
+		});
+
+		if (type)
+			return type;
+
+		// TODO: 大學
+	}
+
+	// 接攘, 所在行政區, 面積
+	if (claims.P47 || claims.P131 || claims.P2046)
+		return '地名';
+}
+
+var summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
+//
+summary_sp = summary_postfix + ', ' + summary_prefix;
+
 function push_work(full_title) {
 	var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/),
 	//
@@ -229,6 +268,9 @@ function push_work(full_title) {
 						+ (local && !foreign_title.toLowerCase()
 						// [[:en:Day|地球日]] → [​[日|地球日]]
 						.includes(local.toLowerCase())
+						// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
+						// [​[中文全名]] (譯名已匯入 wikidata aliases)
+						&& !name_type(entity)
 						//
 						? '|' + local
 						// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
@@ -238,6 +280,7 @@ function push_work(full_title) {
 						// [[:en:Day]] → [​[日]]
 						// [[:en:Day|日]] → [​[日]]
 						// [[:en:Day|Day]] → [​[日]]
+						// [[:en:First Last]] → [​[中文全名]]
 						// [[:en:First Last|First]] → [​[中文全名]]
 						: '')
 						//
@@ -303,7 +346,11 @@ function push_work(full_title) {
 
 	}, {
 		bot : 1,
-		summary : 'bot test: import label from zhwiki link'
+		summary : 'bot test: import label from ' + summary_prefix
+		//
+		+ source_hash[full_title].slice(0, 8).join(summary_sp)
+		//
+		+ summary_postfix
 	});
 }
 
@@ -314,12 +361,14 @@ var data_file_name = 'labels.json';
  */
 function finish_work() {
 	if (count) {
-		CeL.log('All ' + count + ' labels.');
 		CeL.fs_write(
 		//
 		base_directory + data_file_name, JSON.stringify([ label_hash,
-				source_hash ]));
+				source_hash ]), 'utf8');
+		CeL.log('All ' + count + ' labels.');
 		count = 0;
+	} else {
+		CeL.log('All ' + Object.keys(label_hash).length + ' labels.');
 	}
 
 	for ( var full_title in label_hash) {
@@ -330,12 +379,12 @@ function finish_work() {
 // ----------------------------------------------------------------------------
 
 // read cache.
-label_hash = CeL.fs_read(base_directory + data_file_name);
+label_hash = CeL.fs_read(base_directory + data_file_name, 'utf8');
 if (label_hash) {
 	// read cache
 	label_hash = JSON.parse(label_hash);
 	source_hash = label_hash[1];
-	label_hash = source_hash[0];
+	label_hash = label_hash[0];
 	finish_work();
 
 } else {
