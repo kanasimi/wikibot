@@ -207,12 +207,6 @@ function push_work(full_title) {
 		&& entity.sitelinks[use_language + 'wiki'];
 
 		if (local_title && (local_title = local_title.title)) {
-			// TODO: [[:en:t (d)|T]] → [​[T (d)|T]]
-			var matched = local_title.match(/ \(([^()]+)\)$/);
-			if (matched) {
-				local_title += '|';
-			}
-
 			// 標的語言wikipedia存在所欲連接/指向的頁面。
 			source_hash[full_title].forEach(function(title) {
 				wiki.page(title).edit(function(page_data) {
@@ -222,14 +216,33 @@ function push_work(full_title) {
 					 * revision['*']
 					 */
 					content = CeL.wiki.content_of(page_data),
-					//
+					// [ link, local title ]
 					pattern = new RegExp('\\[\\[:' + language + '\\s*:\\s*'
 					//
 					+ CeL.to_RegExp_pattern(foreign_title)
 					//
-					+ '(?:\\|[^\\[\\]]+)?\\]\\]', 'g');
+					+ '(?:\\|([^\\[\\]]+))?\\]\\]', 'g');
 
-					return content.replace(pattern, '[[' + local_title + ']]');
+					return content.replace(pattern, function(link, local) {
+						return '[[' + local_title
+						//
+						+ (local && !foreign_title.toLowerCase()
+						// [[:en:Day|地球日]] → [​[日|地球日]]
+						.includes(local.toLowerCase())
+						//
+						? '|' + local
+						// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
+						// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
+						// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
+						: / \(([^()]+)\)$/.test(local_title) ? '|'
+						// [[:en:Day]] → [​[日]]
+						// [[:en:Day|日]] → [​[日]]
+						// [[:en:Day|Day]] → [​[日]]
+						// [[:en:First Last|First]] → [​[中文全名]]
+						: '')
+						//
+						+ ']]';
+					});
 				}, {
 					bot : 1,
 					summary : 'bot test: 使用Wikidata數據來清理跨語言連結'
