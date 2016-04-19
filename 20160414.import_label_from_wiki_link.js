@@ -55,7 +55,7 @@ PATTERN_en = /^[a-z,.:;'"\-\d\s\&<>\\\/]+$/i;
 function for_each_page(page_data, messages) {
 	// 有必要中途跳出時則須在 callback() 中設定：
 	// @ callback(page_data, messages):
-	if (false && count > test_limit) {
+	if (count > test_limit) {
 		if (messages) {
 			// 當在 .work() 執行時。
 			messages.quit_operation = true;
@@ -164,8 +164,9 @@ function for_each_page(page_data, messages) {
 			++count;
 			if (count <= log_limit)
 				// 此 label 指向
-				console.log(count + ': ' + label + '→[[' + full_title
-						+ ']] @ [[' + title + ']]: ' + matched[0]);
+				CeL.log([ count + ': ', 'fg=yellow', label, '-fg', '→',
+						'fg=cyan', '[[' + full_title + ']]', '-fg',
+						' @ [[' + title + ']]: ' + matched[0] ]);
 			label_data[full_title] = [ [ label ], [ title ] ];
 
 		} else if (!(data = label_data[full_title])[0].includes(label)) {
@@ -316,7 +317,7 @@ function push_work(full_title) {
 		// 要編輯（更改或創建）的資料。
 		var data;
 
-		console.log(entity.id
+		CeL.log(entity.id
 		//
 		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
 
