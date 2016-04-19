@@ -3,8 +3,7 @@
 
 /*
 
- 2016/4/1 21:16:32	初版試營運，約耗時 12分鐘執行。
- 2016/4/4 22:50:58	add filter function list
+ 初版試營運，約耗時 ?分鐘執行。
 
  */
 
@@ -55,7 +54,7 @@ function finish_work() {
 
 prepare_directory(base_directory, true);
 
-// share the xml dump file.
+// Set the umask to share the xml dump file.
 if (typeof process === 'object') {
 	process.umask(parseInt('0022', 8));
 }

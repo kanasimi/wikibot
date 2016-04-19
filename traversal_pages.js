@@ -44,7 +44,6 @@ function for_each_page(page_data) {
 	content = CeL.wiki.content_of(page_data);
 	/** {Object}revision data. 修訂版本資料。 */
 	// var revision = page_data.revisions && page_data.revisions[0];
-
 	if (!content)
 		return;
 
@@ -85,7 +84,7 @@ function finish_work() {
 
 prepare_directory(base_directory, true);
 
-// share the xml dump file.
+// Set the umask to share the xml dump file.
 if (typeof process === 'object') {
 	process.umask(parseInt('0022', 8));
 }

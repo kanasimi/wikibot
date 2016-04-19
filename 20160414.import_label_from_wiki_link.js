@@ -27,15 +27,19 @@ base_directory = bot_directory + script_name + '/';
 
 var
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 4000;
+log_limit = 4000,
+//
+count = 0, test_limit = 20,
+//
+use_language = 'zh', data_file_name = 'labels.json';
 
 // ----------------------------------------------------------------------------
 
 wiki.set_data();
 
-var count = 0, test_limit = 20,
-// label_hash['language:title'] = {String}label || {Array}labels
-label_hash = CeL.null_Object(), source_hash = CeL.null_Object(),
+var
+// label_data['language:title'] = [ {Array}labels, {Array}titles ]
+label_data = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
 // TODO: 改為 non-Chinese
@@ -155,24 +159,23 @@ function for_each_page(page_data, messages) {
 				continue;
 		}
 
-		var full_title = matched[1] + ':' + foreign_title;
-		if (!(full_title in label_hash)) {
+		var full_title = matched[1] + ':' + foreign_title, data;
+		if (!(full_title in label_data)) {
 			++count;
 			if (count <= log_limit)
 				// 此 label 指向
 				console.log(count + ': ' + label + '→[[' + full_title
 						+ ']] @ [[' + title + ']]: ' + matched[0]);
-			label_hash[full_title] = [ label ];
-			source_hash[full_title] = [ title ];
+			label_data[full_title] = [ [ label ], [ title ] ];
 
-		} else if (!label_hash[full_title].includes(label)) {
-			label_hash[full_title].push(label);
-			source_hash[full_title].push(title);
+		} else if (!(data = label_data[full_title])[0].includes(label)) {
+			data[0].push(label);
+			data[1].push(title);
 		}
 	}
 }
 
-var use_language = 'zh',
+var
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_');
 
@@ -187,8 +190,7 @@ function add_item(label) {
 
 var name_type_hash = {
 	5 : '人',
-	515 : '城市',
-
+	515 : '城市'
 }
 
 // name of person, place, work, book, ...
@@ -227,8 +229,12 @@ summary_sp = summary_postfix + ', ' + summary_prefix;
 function push_work(full_title) {
 	var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/),
 	//
-	language = foreign_title[1];
+	language = foreign_title[1],
+	//
+	labels = label_data[full_title], titles;
 	foreign_title = foreign_title[2];
+	titles = labels[1];
+	labels = labels[0];
 
 	wiki.data([ language, foreign_title ], function(entity) {
 		if (count > test_limit)
@@ -288,7 +294,9 @@ function push_work(full_title) {
 					});
 				}, {
 					bot : 1,
-					summary : 'bot test: 使用Wikidata數據來清理跨語言連結'
+					summary : 'bot test: 以[[d:' + entity.id
+					//
+					+ ']]來清理跨語言連結[[' + local_title + ']]'
 				});
 			});
 		}
@@ -305,9 +313,8 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		var labels = label_hash[full_title],
 		// 要編輯（更改或創建）的資料。
-		data;
+		var data;
 
 		console.log(entity.id
 		//
@@ -348,13 +355,11 @@ function push_work(full_title) {
 		bot : 1,
 		summary : 'bot test: import label from ' + summary_prefix
 		//
-		+ source_hash[full_title].slice(0, 8).join(summary_sp)
+		+ titles.slice(0, 8).join(summary_sp)
 		//
 		+ summary_postfix
 	});
 }
-
-var data_file_name = 'labels.json';
 
 /**
  * Finish up. 最後結束工作。
@@ -363,15 +368,14 @@ function finish_work() {
 	if (count) {
 		CeL.fs_write(
 		//
-		base_directory + data_file_name, JSON.stringify([ label_hash,
-				source_hash ]), 'utf8');
+		base_directory + data_file_name, JSON.stringify(label_data), 'utf8');
 		CeL.log('All ' + count + ' labels.');
 		count = 0;
 	} else {
-		CeL.log('All ' + Object.keys(label_hash).length + ' labels.');
+		CeL.log('All ' + Object.keys(label_data).length + ' labels.');
 	}
 
-	for ( var full_title in label_hash) {
+	for ( var full_title in label_data) {
 		push_work(full_title);
 	}
 }
@@ -379,20 +383,18 @@ function finish_work() {
 // ----------------------------------------------------------------------------
 
 // read cache.
-label_hash = CeL.fs_read(base_directory + data_file_name, 'utf8');
-if (label_hash) {
+label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
+if (label_data) {
 	// read cache
-	label_hash = JSON.parse(label_hash);
-	source_hash = label_hash[1];
-	label_hash = label_hash[0];
+	label_data = JSON.parse(label_data);
 	finish_work();
 
 } else {
-	label_hash = CeL.null_Object();
+	label_data = CeL.null_Object();
 
 	prepare_directory(base_directory);
 
-	// share the xml dump file.
+	// Set the umask to share the xml dump file.
 	if (typeof process === 'object') {
 		process.umask(parseInt('0022', 8));
 	}
