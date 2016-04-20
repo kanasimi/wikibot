@@ -30,7 +30,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 10,
+count = 0, test_limit = 20,
 //
 use_language = 'zh', data_file_name = 'labels.json';
 
@@ -377,11 +377,11 @@ function finish_work() {
 		CeL.fs_write(
 		//
 		base_directory + data_file_name, JSON.stringify(label_data), 'utf8');
-		CeL.log(script_name + ': All ' + count + ' labels.');
-		count = 0;
 	} else {
-		CeL.log('All ' + Object.keys(label_data).length + ' labels.');
+		count = Object.keys(label_data).length;
 	}
+	CeL.log(script_name + ': All ' + count + ' labels.');
+	count = 0;
 
 	for ( var full_title in label_data) {
 		push_work(full_title);
