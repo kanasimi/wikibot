@@ -30,7 +30,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 20,
+count = 0, test_limit = 50,
 //
 use_language = 'zh', data_file_name = 'labels.json';
 
@@ -392,6 +392,9 @@ function finish_work() {
 
 // CeL.set_debug();
 
+// rm import_label_from_wiki_link/labels.json
+prepare_directory(base_directory);
+
 // read cache.
 label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
 if (label_data) {
@@ -401,8 +404,6 @@ if (label_data) {
 
 } else {
 	label_data = CeL.null_Object();
-
-	prepare_directory(base_directory);
 
 	// Set the umask to share the xml dump file.
 	if (typeof process === 'object') {
