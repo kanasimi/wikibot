@@ -30,7 +30,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 50,
+count = 0, test_limit = 200,
 //
 use_language = 'zh', data_file_name = 'labels.json';
 
@@ -44,7 +44,7 @@ label_data = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
 // TODO: 改為 non-Chinese
-PATTERN_en = /^[a-z,.:;'"\-\d\s\&<>\\\/]+$/i;
+PATTERN_en = /^[a-z,.!:;'"\-\d\s\&<>\\\/]+$/i;
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -74,6 +74,9 @@ function for_each_page(page_data, messages) {
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data);
+
+	if (/^\d+月(\d+日)?$/.test(title) || /^\d+年(\d+月)?$/.test(title))
+		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
 
 	if (!content)
 		return;
