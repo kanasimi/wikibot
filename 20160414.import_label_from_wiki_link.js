@@ -5,6 +5,7 @@
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  TODO: parse "[[local title]]（[[:en:foreign title]]）"
  TODO: parse "{{link-en|local title|foreign title}}"
+ TODO: catch已經完成操作的label
 
  */
 
@@ -29,7 +30,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 20,
+count = 0, test_limit = 10,
 //
 use_language = 'zh', data_file_name = 'labels.json';
 
@@ -164,9 +165,9 @@ function for_each_page(page_data, messages) {
 			++count;
 			if (count <= log_limit)
 				// 此 label 指向
-				CeL.log([ count + ': ', 'fg=yellow', label, '-fg', '→',
-						'fg=cyan', '[[' + full_title + ']]', '-fg',
-						' @ [[' + title + ']]: ' + matched[0] ]);
+				CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
+						'fg=cyan', full_title, '-fg',
+						'@ [[' + title + ']]: ' + matched[0] ]);
 			label_data[full_title] = [ [ label ], [ title ] ];
 
 		} else if (!(data = label_data[full_title])[0].includes(label)) {
@@ -354,7 +355,7 @@ function push_work(full_title) {
 
 	}, {
 		bot : 1,
-		summary : 'bot test: import label from ' + summary_prefix
+		summary : 'bot test: import label/alias from ' + summary_prefix
 		//
 		+ titles.slice(0, 8).join(summary_sp)
 		//
@@ -382,6 +383,8 @@ function finish_work() {
 }
 
 // ----------------------------------------------------------------------------
+
+// CeL.set_debug();
 
 // read cache.
 label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
