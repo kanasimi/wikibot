@@ -67,6 +67,9 @@ function for_each_page(page_data, messages) {
 		return CeL.wiki.quit_operation;
 	}
 
+	if (page_data.ns !== 0)
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
@@ -229,6 +232,7 @@ var summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 summary_sp = summary_postfix + ', ' + summary_prefix;
 
 function push_work(full_title) {
+	// CeL.log(full_title);
 	var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/),
 	//
 	language = foreign_title[1],
@@ -238,10 +242,14 @@ function push_work(full_title) {
 	titles = labels[1];
 	labels = labels[0];
 
-	wiki.data([ language, foreign_title ], function(entity) {
+	wiki.data({
+		title : foreign_title,
+		language : language
+	}, function(entity) {
 		if (count > test_limit)
 			return;
 
+		// console.log([ language, foreign_title ]);
 		// console.log(entity);
 
 		// 使用Wikidata數據來清理跨語言連結。例如將[[:ja:日露戦争|日俄戰爭]]轉成[[日俄戰爭]]，避免「在條目頁面以管道連結的方式外連至其他語言維基頁面」。
@@ -249,9 +257,7 @@ function push_work(full_title) {
 		// TODO: 檢查重定向頁
 
 		// local title
-		var local_title = entity && entity.sitelinks
-		//
-		&& entity.sitelinks[use_language + 'wiki'];
+		var local_title = CeL.wiki.data.title_of(entity, use_language);
 
 		if (local_title && (local_title = local_title.title)) {
 			// 標的語言wikipedia存在所欲連接/指向的頁面。
@@ -331,8 +337,8 @@ function push_work(full_title) {
 				if (labels.length === 1) {
 					// assert: index === 0
 					return [ CeL.wiki.edit.cancel,
-					//
-					'No labels to set.' ];
+					// No labels to set.
+					'已無剩下需要設定之新 label。' ];
 				}
 				labels.splice(index, 1);
 			}
@@ -371,7 +377,7 @@ function finish_work() {
 		CeL.fs_write(
 		//
 		base_directory + data_file_name, JSON.stringify(label_data), 'utf8');
-		CeL.log('All ' + count + ' labels.');
+		CeL.log(script_name + ': All ' + count + ' labels.');
 		count = 0;
 	} else {
 		CeL.log('All ' + Object.keys(label_data).length + ' labels.');
