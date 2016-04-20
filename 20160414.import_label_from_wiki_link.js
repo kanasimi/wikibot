@@ -115,7 +115,9 @@ function for_each_page(page_data, messages) {
 		// [[en:1st Lok Sabha]] ← [[1屆]] @ [[印度总理]]: [[:en:1st Lok Sabha|1届]]
 		// [[en:First Gerbrandy cabinet]] ← [[第一屆]] @ [[荷兰首相]]: [[:en:First
 		// Gerbrandy cabinet|第一届]]
-		&& /[屆届]$/.test(label)) {
+		&& /[屆届]$/.test(label)
+		// 跳過日期 label
+		|| /^\d+月(\d+日)?$/.test(title) || /^\d+年(\d+月)?$/.test(title)) {
 			continue;
 		}
 
