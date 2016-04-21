@@ -66,7 +66,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 300,
+count = 0, test_limit = 500,
 //
 use_language = 'zh', data_file_name = 'labels.json';
 
@@ -491,6 +491,9 @@ function finish_work() {
 	for ( var full_title in label_data) {
 		push_work(full_title);
 	}
+	wiki.run(function() {
+		CeL.log('已更改完 Wikidata。');
+	});
 }
 
 // ----------------------------------------------------------------------------
