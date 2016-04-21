@@ -138,7 +138,7 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var original_label = matched[3], converted = use_language !== 'zh',
+		var original_label = matched[3], converted_to_zh_tw = use_language !== 'zh',
 		//
 		label = matched[3];
 
@@ -165,7 +165,7 @@ function for_each_page(page_data, messages) {
 			// 香港繁體, 澳門繁體
 			|| $1.match(/zh-(hk|hant[^a-z:]*|mo):([^;]+)/i);
 			if (matched) {
-				converted = true;
+				converted_to_zh_tw = true;
 				return matched[1].trim();
 			}
 			matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
@@ -223,15 +223,15 @@ function for_each_page(page_data, messages) {
 		// label = label.replace(/（(.+)）$/, '($1)');
 		// TODO: CeL.CN_to_TW() is too slow...
 		var label_before_convert = label;
-		if (!converted) {
+		if (!converted_to_zh_tw) {
 			label = CeL.CN_to_TW(label);
-			if (label_before_convert !== label
-			// 為人名。
-			// "．"
-			// || label.includes('·')
-			) {
+			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
 				label = label.replace(/裡/g, '里');
+				if (/[·．]/.test(label)) {
+					// 為人名。
+					label = label.replace(/託/g, '托');
+				}
 			}
 		}
 
