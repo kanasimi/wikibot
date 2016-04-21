@@ -66,7 +66,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 200,
+count = 0, test_limit = 300,
 //
 use_language = 'zh', data_file_name = 'labels.json';
 
@@ -152,7 +152,7 @@ function for_each_page(page_data, messages) {
 			.match(/\[\[([^\[\]:]+)\]\]\s*》?[（(\s]*$/);
 			if (!foregoing
 			//		
-			||PATTERN_none_used_title.test(label = foregoing[1];)) {
+			|| PATTERN_none_used_title.test(label = foregoing[1])) {
 				continue;
 			}
 		}
@@ -320,7 +320,7 @@ function name_type(entity) {
 // 去除重複連結用。
 // " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, text_2, title_2 ]
-var PATTERN_duplicate_title = /(《?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*》?)([（(\s]*\[\[\2(\|[^\[\]\|]+)?\]\][）) \t]*)/g,
+var PATTERN_duplicate_title = /(《?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*》?)\s*([（(]?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*[）)]?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
