@@ -3,9 +3,45 @@
 /*
 
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
- TODO: parse "[[local title]]（[[:en:foreign title]]）"
- TODO: parse "{{link-en|local title|foreign title}}"
  TODO: catch已經完成操作的label
+
+ https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
+
+ OK:
+ [[:en:Urban agriculture|城市農業]]	[[都市農業]]
+ [[:en:Time 100: The Most Important People of the Century|时代100：本世纪最重要的人]] [[时代100人：本世纪最重要的人物]]
+ [[:en:William Sadler (actor)|威廉·桑德勒]]	[[威廉·托马斯·桑德勒]]
+ [[:en:Clancy Brown|克藍西·布朗]]	[[克蘭西·布朗]]
+ [[:en:Gil Bellows|吉爾·貝羅斯]]	[[吉爾·貝羅斯]]
+ [[莫斯科]]的[[:en:State Historical Museum|國立歷史博物館]]]]	[[莫斯科]]的[[俄羅斯國家歷史博物館]]]]
+ [[:en:Pride Week (Toronto)|同性戀自豪節]]	[[骄傲周|同性戀自豪節]]
+ [[:en:Wilmslow|威姆斯洛]]	[[威姆斯洛]]
+ [[:en:Peshmerga|自由斗士]]	[[佩什梅格|自由斗士]]
+ [[:en:Jean-François Lyotard|利奥塔]]	[[让-弗朗索瓦·利奥塔]]
+ [[:en:Alexander II of Epirus|亞歷山大二世]]	[[亞歷山大二世 (伊庇魯斯)|亞歷山大二世]]
+ [[:en:Taranto|塔蘭托]]	[[塔兰托]]
+ [[:en:Piano Concerto No. 2 (Shostakovich)|F大調第2號鋼琴協奏曲]]	[[第2號鋼琴協奏曲 (蕭士達高維契)|F大調第2號鋼琴協奏曲]]
+ [[:en:John Flamsteed|弗拉姆斯蒂德]]	[[約翰·佛蘭斯蒂德]]
+ [[:en:Samuel Pepys|塞缪尔·匹普斯]]	[[塞缪尔·皮普斯]]
+ [[:en:Royal Observatory, Edinburgh|爱丁堡皇家天文台]]	[[愛丁堡皇家天文台]]
+ [[:en:Magdalen College, Oxford|牛津大学莫德林学院]]旧图书	[[牛津大学莫德林学院]]旧图书馆
+ [[:en:2006 Chinese Grand Prix|2006年中国大奖赛]]	[[2006年中国大奖赛]]
+ [[:en:2012 Brazilian Grand Prix|2012年巴西大奖赛]]	[[2012年巴西大奖赛]]
+ [[:en:Kármán line|卡門線]]	[[卡門線]]
+ [[:en:Colchis|科爾基斯]]	[[科爾基斯]]
+ [[:en:Benetton Formula|贝纳通车队]]	[[贝纳通车队]]
+
+
+ NG:
+ *《[[兄弟情人]]》（[[:en:From Beginning to End|''Do Começo ao Fim'']]），巴西（2009）	*《[[兄弟情人]]》（[[兄弟情人|''Do Começo ao Fim'']]），巴西（2009）
+ [[:en:German Labour Front|德意志勞動者陣線]]（1933~1945）{{en}}	[[德意志劳工阵线|德意志勞動者陣線]]（1933~1945）{{en}}
+ [[:en:Atropatene|亞特羅巴特那]]	[[阿特羅帕特尼王國|亞特羅巴特那]]
+ [[:en:Sheba|賽佰邑（示巴）]]	[[示巴王國|賽佰邑（示巴）]]
+ [[:en:Walking with Monsters|與巨獸共舞]]	[[与巨兽同行|與巨獸共舞]]
+
+ 不當使用:
+ [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
+ [[:en:Gambier Islands|甘比爾]]島	[[甘比爾群島]]島
 
  */
 
@@ -43,8 +79,14 @@ var
 label_data = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
-// TODO: 改為 non-Chinese
-PATTERN_en = /^[a-z,.!:;'"\-\d\s\&<>\\\/]+$/i;
+//
+PATTERN_none_used_title = /^[a-z,.!:;'"()\-\d\s\&<>\\\/]+$/i;
+
+// PATTERN_none_used_title = /^[a-z,.!:;'"()\-\d\s\&<>\\\/]+$/i;
+
+// 改為 non-Chinese
+// 2E80-2EFF 中日韓漢字部首補充 CJK Radicals Supplement
+PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i;
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -83,6 +125,8 @@ function for_each_page(page_data, messages) {
 
 	var matched;
 	while (matched = PATTERN_link.exec(content)) {
+		// TODO: parse "{{link-en|local title|foreign title}}"
+
 		// wikt, wikisource
 		if (matched[1].includes('wik')
 		// || /^category/i.test(matched[1])
@@ -97,14 +141,35 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var label = matched[3]
+		var original_label = matched[3], converted,
 		//
-		.replace(/-{([^{}]*)}-/g, function($0, $1) {
+		label = matched[3];
+
+		if (PATTERN_none_used_title.test(label)) {
+			// context 上下文
+			// 前面的 foregoing paragraphs, see above, previously stated, precedent
+			// 後面的 behind rearwards;back;posteriority;atergo;rearward
+			var foregoing = content.slice(matched.index - 80, matched.index)
+			// TODO: parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
+			.match(/\[\[([^\[\]:]+)\]\]\s*》?[（(\s]*$/);
+			if (!foregoing) {
+				continue;
+			}
+			label = foregoing[1];
+		}
+
+		label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
 			if (!$1.includes(':'))
 				return $1;
+			// 台灣正體
 			var matched = $1.match(/zh-tw:([^;]+)/i)
-			//
-			|| $1.match(/zh(?:-[a-z]+):([^;]+)/i);
+			// 香港繁體, 澳門繁體
+			|| $1.match(/zh-(hk|hant[^a-z:]*|mo):([^;]+)/i);
+			if (matched) {
+				converted = true;
+				return matched[1].trim();
+			}
+			matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
 			return matched && matched[1].trim() || $0;
 		}).trim().replace(/_/g, ' ').replace(/<br[^<>]*>/ig, ' ').replace(
 				/[\s　]{2,}/g, ' ');
@@ -117,7 +182,7 @@ function for_each_page(page_data, messages) {
 		// Gerbrandy cabinet|第一届]]
 		&& /[屆届]$/.test(label)
 		// 跳過日期 label
-		|| /^\d+月(\d+日)?$/.test(title) || /^\d+年(\d+月)?$/.test(title)) {
+		|| /^\d+月(\d+日)?$/.test(label) || /^\d+年(\d+月)?$/.test(label)) {
 			continue;
 		}
 
@@ -149,38 +214,51 @@ function for_each_page(page_data, messages) {
 		// e.g., 法文版, 義大利文版
 		|| /[语語文]版?$/.test(label)
 		// || label.includes('-{')
-		|| PATTERN_en.test(label))
+		) {
 			continue;
+		}
 
 		// 後期修正。
 		// label = label.replace(/（(.+)）$/, '($1)');
 		// TODO: CeL.CN_to_TW() is too slow...
-		var tmp = label;
-		label = CeL.CN_to_TW(label);
-		if (tmp !== label
-		// 為人名。
-		// "．"
-		// || label.includes('·')
-		) {
-			// 詞條標題中，使用'里'這個字的機會大多了。
-			label = label.replace(/裡/g, '里');
-			if (foreign_title == label)
-				continue;
+		var label_before_convert = label;
+		if (!converted) {
+			label = CeL.CN_to_TW(label);
+			if (label_before_convert !== label
+			// 為人名。
+			// "．"
+			// || label.includes('·')
+			) {
+				// 詞條標題中，使用'里'這個字的機會大多了。
+				label = label.replace(/裡/g, '里');
+			}
 		}
 
-		var full_title = matched[1] + ':' + foreign_title, data;
-		if (!(full_title in label_data)) {
-			++count;
-			if (count <= log_limit)
-				// 此 label 指向
-				CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
-						'fg=cyan', full_title, '-fg',
-						'@ [[' + title + ']]: ' + matched[0] ]);
-			label_data[full_title] = [ [ label ], [ title ] ];
+		if (foreign_title === label)
+			continue;
 
-		} else if (!(data = label_data[full_title])[0].includes(label)) {
-			data[0].push(label);
-			data[1].push(title);
+		function add_label(label) {
+			var data;
+			if (!(full_title in label_data)) {
+				++count;
+				if (count <= log_limit)
+					// 此 label 指向
+					CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
+							'fg=cyan', full_title, '-fg',
+							'@ [[' + title + ']]: ' + matched[0] ]);
+				label_data[full_title] = [ [ label ], [ title ] ];
+
+			} else if (!(data = label_data[full_title])[0].includes(label)) {
+				data[0].push(label);
+				data[1].push(title);
+			}
+		}
+
+		var full_title = matched[1] + ':' + foreign_title;
+		add_label(label);
+		if (label_before_convert !== label) {
+			// 加上 label_before_convert，照理應該是簡體 (zh-cn)。
+			add_label(label_before_convert);
 		}
 	}
 }
@@ -190,7 +268,7 @@ var
 NOT_FOUND = ''.indexOf('_');
 
 function add_item(label) {
-	var language = PATTERN_en.test(label) ? 'en' : use_language;
+	var language = PATTERN_none_used_title.test(label) ? 'en' : use_language;
 	return {
 		language : language,
 		value : label,
@@ -206,17 +284,23 @@ var name_type_hash = {
 // name of person, place, work, book, ...
 function name_type(entity) {
 	var claims = entity && entity.claims;
+	if (!claims)
+		return;
 
-	// 作者
+	// P50: 作者
 	if (claims.P50)
 		return '作品名';
 
+	// P57: 導演
+	if (claims.P57)
+		return '影片名';
+
 	var type,
-	// 性質, instance of
-	property = claims && entity.claims.P31;
+	// P31: 性質, instance of
+	property = claims.P31;
 	if (Array.isArray(property)) {
 		property.some(function(value) {
-			value = value.mainsnak.datavalue.value.value['numeric-id'];
+			value = value.mainsnak.datavalue.value['numeric-id'];
 			if (value && (value in name_type_hash))
 				return type = name_type_hash[value];
 		});
@@ -227,12 +311,16 @@ function name_type(entity) {
 		// TODO: 大學
 	}
 
-	// 接攘, 所在行政區, 面積
+	// P47: 接攘, P131: 所在行政區, P2046: 面積
 	if (claims.P47 || claims.P131 || claims.P2046)
 		return '地名';
 }
 
-var summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
+// 重複連結
+// [ all, text_1, link_1, title_1, text_2, title_2 ]
+var PATTERN_duplicate_title = /(《?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*》?)([（(\s]*\[\[\2(\|[^\[\]\|]+)?\]\][）)\s]*)/g,
+//
+summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
 summary_sp = summary_postfix + ', ' + summary_prefix;
 
@@ -259,14 +347,13 @@ function push_work(full_title) {
 
 		// 使用Wikidata數據來清理跨語言連結。例如將[[:ja:日露戦争|日俄戰爭]]轉成[[日俄戰爭]]，避免「在條目頁面以管道連結的方式外連至其他語言維基頁面」。
 
-		// TODO: 檢查重定向頁
-
+		var type = null,
 		// local title
-		var local_title = CeL.wiki.data.title_of(entity, use_language);
+		local_title = CeL.wiki.data.title_of(entity, use_language);
 
-		if (local_title && (local_title = local_title.title)) {
+		if (local_title) {
 			// 標的語言wikipedia存在所欲連接/指向的頁面。
-			source_hash[full_title].forEach(function(title) {
+			titles.forEach(function(title) {
 				wiki.page(title).edit(function(page_data) {
 					var
 					/**
@@ -282,16 +369,16 @@ function push_work(full_title) {
 					+ '(?:\\|([^\\[\\]]+))?\\]\\]', 'g');
 
 					return content.replace(pattern, function(link, local) {
-						return '[[' + local_title
+						var converted = '[[' + local_title
 						//
 						+ (local && !foreign_title.toLowerCase()
 						// [[:en:Day|地球日]] → [​[日|地球日]]
 						.includes(local.toLowerCase())
 						// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
 						// [​[中文全名]] (譯名已匯入 wikidata aliases)
-						&& !name_type(entity)
+						&& !(type === null ? (type = name_type(entity)) : type)
 						//
-						? '|' + local
+						? local === local_title ? '' : '|' + local
 						// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
 						// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
 						// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
@@ -304,12 +391,18 @@ function push_work(full_title) {
 						: '')
 						//
 						+ ']]';
-					});
+						CeL.log('replace ' + use_language
+						//
+						+ ': ' + link + ' → ' + converted);
+						return converted;
+					}).replace(PATTERN_duplicate_title, '$1');
 				}, {
 					bot : 1,
 					summary : 'bot test: 以[[d:' + entity.id
 					//
-					+ ']]來清理跨語言連結[[' + local_title + ']]'
+					+ ']]清理跨語言連結[[' + local_title + ']]'
+					//
+					+ (type ? ' (' + type + ')' : '')
 				});
 			});
 		}
@@ -368,7 +461,7 @@ function push_work(full_title) {
 		bot : 1,
 		summary : 'bot test: import label/alias from ' + summary_prefix
 		//
-		+ titles.slice(0, 8).join(summary_sp)
+		+ titles.uniq().slice(0, 8).join(summary_sp)
 		//
 		+ summary_postfix
 	});
