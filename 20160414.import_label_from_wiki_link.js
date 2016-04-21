@@ -171,8 +171,10 @@ function for_each_page(page_data, messages) {
 			}
 			matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
 			return matched && matched[1].trim() || $0;
-		}).trim().replace(/_/g, ' ').replace(/<br[^<>]*>/ig, ' ').replace(
-				/[\s　]{2,}/g, ' ');
+		})
+		// 去掉 "|..." 之後之 label。
+		.replace(/\|.*/, '').trim().replace(/_/g, ' ').replace(/<br[^<>]*>/ig,
+				' ').replace(/[\s　]{2,}/g, ' ');
 
 		if (label.length < 5
 		// && label.length > 1
