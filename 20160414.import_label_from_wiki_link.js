@@ -80,10 +80,7 @@ label_data = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
 //
-PATTERN_none_used_title = /^[a-z,.!:;'"()\-\d\s\&<>\\\/]+$/i;
-
-// PATTERN_none_used_title = /^[a-z,.!:;'"()\-\d\s\&<>\\\/]+$/i;
-
+PATTERN_en_title = /^[a-z,.!:;'"()\-\d\s\&<>\\\/]+$/i,
 // 改為 non-Chinese
 // 2E80-2EFF 中日韓漢字部首補充 CJK Radicals Supplement
 PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i;
@@ -141,7 +138,7 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var original_label = matched[3], converted,
+		var original_label = matched[3], converted = use_language !== 'zh',
 		//
 		label = matched[3];
 
@@ -150,12 +147,14 @@ function for_each_page(page_data, messages) {
 			// 前面的 foregoing paragraphs, see above, previously stated, precedent
 			// 後面的 behind rearwards;back;posteriority;atergo;rearward
 			var foregoing = content.slice(matched.index - 80, matched.index)
-			// TODO: parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
+			// parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
+			// @see PATTERN_duplicate_title
 			.match(/\[\[([^\[\]:]+)\]\]\s*》?[（(\s]*$/);
-			if (!foregoing) {
+			if (!foregoing
+			//		
+			||PATTERN_none_used_title.test(label = foregoing[1];)) {
 				continue;
 			}
-			label = foregoing[1];
 		}
 
 		label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
@@ -318,9 +317,10 @@ function name_type(entity) {
 		return '地名';
 }
 
-// 重複連結
+// 去除重複連結用。
+// " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, text_2, title_2 ]
-var PATTERN_duplicate_title = /(《?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*》?)([（(\s]*\[\[\2(\|[^\[\]\|]+)?\]\][）)\s]*)/g,
+var PATTERN_duplicate_title = /(《?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*》?)([（(\s]*\[\[\2(\|[^\[\]\|]+)?\]\][）) \t]*)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -397,7 +397,11 @@ function push_work(full_title) {
 						//
 						+ ': ' + link + ' → ' + converted);
 						return converted;
-					}).replace(PATTERN_duplicate_title, '$1');
+					})
+					// 去除重複連結。
+					// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
+					// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
+					.replace(PATTERN_duplicate_title, '$1');
 				}, {
 					bot : 1,
 					summary : 'bot test: 以[[d:' + entity.id
@@ -461,7 +465,7 @@ function push_work(full_title) {
 
 	}, {
 		bot : 1,
-		summary : 'bot test: import label/alias from ' + summary_prefix
+		summary : 'bot: import label/alias from ' + summary_prefix
 		//
 		+ titles.uniq().slice(0, 8).join(summary_sp)
 		//
