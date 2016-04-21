@@ -227,8 +227,9 @@ function for_each_page(page_data, messages) {
 			label = CeL.CN_to_TW(label);
 			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
-				label = label.replace(/裡/g, '里');
-				if (/[·．]/.test(label)) {
+				label = label.replace(/裡/g, '里').replace(/皇後/g, '皇后');
+				// 奧托二世
+				if (true || /[·．]/.test(label)) {
 					// 為人名。
 					label = label.replace(/託/g, '托');
 				}
