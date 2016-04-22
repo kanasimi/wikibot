@@ -68,7 +68,9 @@ log_limit = 4000,
 //
 count = 0, test_limit = 500,
 //
-use_language = 'zh', data_file_name = 'labels.json';
+use_language = 'zh', data_file_name = 'labels.json',
+// 是否要使用Wikidata數據來清理跨語言連結。
+modify_Wikipedia = false;
 
 // ----------------------------------------------------------------------------
 
@@ -138,7 +140,7 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var original_label = matched[3], converted_to_zh_tw = use_language !== 'zh',
+		var original_label = matched[3], converted_to_zh_tw = use_language !== 'zh', need_convert = use_language === 'zh', language,
 		//
 		label = matched[3];
 
@@ -161,12 +163,14 @@ function for_each_page(page_data, messages) {
 			if (!$1.includes(':'))
 				return $1;
 			// 台灣正體
-			var matched = $1.match(/zh-tw:([^;]+)/i)
+			var matched = $1.match(/(zh-tw):([^;]+)/i)
 			// 香港繁體, 澳門繁體
-			|| $1.match(/zh-(hk|hant[^a-z:]*|mo):([^;]+)/i);
+			|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
 			if (matched) {
 				converted_to_zh_tw = true;
-				return matched[1].trim();
+				need_convert = false;
+				language = matched[1].toLowerCase();
+				return matched[2].trim();
 			}
 			matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
 			return matched && matched[1].trim() || $0;
@@ -223,8 +227,9 @@ function for_each_page(page_data, messages) {
 		// label = label.replace(/（(.+)）$/, '($1)');
 		// TODO: CeL.CN_to_TW() is too slow...
 		var label_before_convert = label;
-		if (!converted_to_zh_tw) {
+		if (need_convert) {
 			label = CeL.CN_to_TW(label);
+			need_convert = false;
 			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
 				label = label.replace(/裡/g, '里').replace(/皇後/g, '皇后');
@@ -239,7 +244,7 @@ function for_each_page(page_data, messages) {
 		if (foreign_title === label)
 			continue;
 
-		function add_label(label) {
+		function add_label(label, language) {
 			var data;
 			if (!(full_title in label_data)) {
 				++count;
@@ -248,19 +253,23 @@ function for_each_page(page_data, messages) {
 					CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
 							'fg=cyan', full_title, '-fg',
 							'@ [[' + title + ']]: ' + matched[0] ]);
-				label_data[full_title] = [ [ label ], [ title ] ];
+				label_data[full_title] = [ [ label ], [ title ], [] ];
 
 			} else if (!(data = label_data[full_title])[0].includes(label)) {
 				data[0].push(label);
 				data[1].push(title);
 			}
+			// 增加特定語系註記
+			if (language) {
+				data[2].push([ language, label ]);
+			}
 		}
 
 		var full_title = matched[1] + ':' + foreign_title;
-		add_label(label);
+		add_label(label, !need_convert && 'zh-hant');
 		if (label_before_convert !== label) {
 			// 加上 label_before_convert，照理應該是簡體 (zh-cn)。
-			add_label(label_before_convert);
+			add_label(label_before_convert, !need_convert && 'zh-hans');
 		}
 	}
 }
@@ -269,8 +278,12 @@ var
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_');
 
-function add_item(label) {
-	var language = PATTERN_none_used_title.test(label) ? 'en' : use_language;
+function add_item(label, language) {
+	if (typeof language !== 'string')
+		language = PATTERN_en_title.test(label) ? 'en'
+				: PATTERN_none_used_title.test(label)
+				// TODO: 此處事實上為未知語言。
+				? use_language : use_language;
 	return {
 		language : language,
 		value : label,
@@ -333,15 +346,16 @@ function push_work(full_title) {
 	//
 	language = foreign_title[1],
 	//
-	labels = label_data[full_title], titles;
+	labels = label_data[full_title], titles = labels[1],
+	//
+	特定語系 = labels[2];
 	foreign_title = foreign_title[2];
-	titles = labels[1];
 	labels = labels[0];
 
 	wiki.data({
 		title : foreign_title,
 		language : language
-	}, function(entity) {
+	}, modify_Wikipedia && function(entity) {
 		if (count > test_limit)
 			return;
 
@@ -370,6 +384,32 @@ function push_work(full_title) {
 					+ CeL.to_RegExp_pattern(foreign_title)
 					//
 					+ '(?:\\|([^\\[\\]]+))?\\]\\]', 'g');
+
+					if (false)
+						// TODO: 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
+						// TODO: {{request translation | tfrom =
+						// [[:ru:Владивосток|俄文維基百科對應條目]]}}
+						while (matched = pattern.exec(content)) {
+							// context 上下文
+							// 前面的 foregoing paragraphs, see above, previously
+							// stated, precedent
+							// 後面的 behind
+							// rearwards;back;posteriority;atergo;rearward
+							var foregoing = content.slice(matched.index - 40,
+							//
+							matched.index),
+							//
+							behind = content.slice(
+							//
+							matched.index + matched[0].length,
+							//
+							matched.index + matched[0].length + 40);
+
+							if (/原名|[文簡简縮缩]|tfrom/.test(foregoing)
+							//
+							|| /原名|[文簡简縮缩]/.test(behind))
+								;
+						}
 
 					return content.replace(pattern, function(link, local) {
 						var converted = '[[' + local_title
@@ -462,6 +502,13 @@ function push_work(full_title) {
 			data.aliases = labels.map(add_item);
 		}
 
+		// 增加特定語系
+		if (特定語系.length > 0) {
+			data.aliases = data.aliases.concat(特定語系.map(function(item) {
+				add_item(item[1], item[0]);
+			}));
+		}
+
 		return data;
 
 	}, {
@@ -491,9 +538,12 @@ function finish_work() {
 	for ( var full_title in label_data) {
 		push_work(full_title);
 	}
-	wiki.run(function() {
-		CeL.log('已更改完 Wikidata。');
-	});
+	if (modify_Wikipedia) {
+		wiki.run(function() {
+			CeL.log(script_name + ': 已更改完 Wikidata。開始處理 ' + use_language
+					+ ' Wikipedia 上的頁面。');
+		});
+	}
 }
 
 // ----------------------------------------------------------------------------
