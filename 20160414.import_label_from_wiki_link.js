@@ -128,8 +128,8 @@ function for_each_page(page_data, messages) {
 
 		// wikt, wikisource
 		if (matched[1].includes('wik')
-		// || /^category/i.test(matched[1])
-		)
+		// 光是只有 "category"，代表還是在本 wiki 中，不算外語言。
+		|| /^category/i.test(matched[1]))
 			continue;
 
 		var foreign_title = matched[2].trim().replace(/_/g, ' ');
@@ -228,11 +228,11 @@ function for_each_page(page_data, messages) {
 		// TODO: CeL.CN_to_TW() is too slow...
 		var label_before_convert = label;
 		if (need_convert) {
-			label = CeL.CN_to_TW(label);
 			need_convert = false;
+			label = CeL.CN_to_TW(label);
 			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
-				label = label.replace(/裡/g, '里').replace(/皇後/g, '皇后');
+				label = label.replace(/裡/g, '里').replace(/([王皇太天])後/g, '$1后');
 				// 奧托二世
 				if (true || /[·．]/.test(label)) {
 					// 為人名。
@@ -389,6 +389,8 @@ function push_work(full_title) {
 						// TODO: 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
 						// TODO: {{request translation | tfrom =
 						// [[:ru:Владивосток|俄文維基百科對應條目]]}}
+						// TODO: 任[[:en:Island School|英童中學]] (Island
+						// School，今稱[[港島中學]]) 創校校長
 						while (matched = pattern.exec(content)) {
 							// context 上下文
 							// 前面的 foregoing paragraphs, see above, previously
@@ -505,11 +507,12 @@ function push_work(full_title) {
 		// 增加特定語系
 		if (特定語系.length > 0) {
 			特定語系 = 特定語系.map(function(item) {
-				add_item(item[1], item[0]);
+				return add_item(item[1], item[0]);
 			});
 			data.aliases = data.aliases ? data.aliases.concat(特定語系) : 特定語系;
 		}
 
+		// console.log(data);
 		return data;
 
 	}, {
