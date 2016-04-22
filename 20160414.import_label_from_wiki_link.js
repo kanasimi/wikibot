@@ -253,7 +253,7 @@ function for_each_page(page_data, messages) {
 					CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
 							'fg=cyan', full_title, '-fg',
 							'@ [[' + title + ']]: ' + matched[0] ]);
-				label_data[full_title] = [ [ label ], [ title ], [] ];
+				label_data[full_title] = data = [ [ label ], [ title ], [] ];
 
 			} else if (!(data = label_data[full_title])[0].includes(label)) {
 				data[0].push(label);
@@ -504,9 +504,10 @@ function push_work(full_title) {
 
 		// 增加特定語系
 		if (特定語系.length > 0) {
-			data.aliases = data.aliases.concat(特定語系.map(function(item) {
+			特定語系 = 特定語系.map(function(item) {
 				add_item(item[1], item[0]);
-			}));
+			});
+			data.aliases = data.aliases ? data.aliases.concat(特定語系) : 特定語系;
 		}
 
 		return data;
