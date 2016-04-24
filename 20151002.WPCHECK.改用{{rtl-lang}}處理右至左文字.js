@@ -18,10 +18,16 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {String}base directory */
-base_directory = bot_directory + script_name + '/';
-
+base_directory = bot_directory + script_name + '/',
+// 修正維基百科內容的語法錯誤。
+/** {String}編輯摘要。總結報告。 */
+summary = '[[WP:WPCHECK|修正維基語法]]',
+/** {String}緊急停止作業將檢測之章節標題。 */
+check_section = '20151002',
+/** {String}運作記錄存放頁面。 */
+log_to = 'User:' + user_name + '/log/' + check_section,
 /** {Array}filtered list = {Array}[ list ] */
-var filtered = [];
+filtered = [];
 
 // ----------------------------------------------------------------------------
 
@@ -43,8 +49,9 @@ function for_each_page(page_data) {
 	if (!content)
 		return;
 
-	// TODO: operations for each page
-	if (0) {
+	if (page_data.ns===0
+	//
+	&&/{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}])/i.test(content)) {
 		// need modify
 		filtered.push(title);
 	}
@@ -57,10 +64,23 @@ function finish_work() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		wiki.work({
-			summary : '',
+			summary : summary + ' 16: 改用[[Template:rtl-lang]]處理右至左文字如阿拉伯語及希伯來語',
+			log_to : log_to,
 			each : function(page_data) {
-				// TODO: operations for each page that filtered
-				return;
+				var content = CeL.wiki.content_of(page_data);
+				return content.replace(/{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig, function($0,$1,$2){
+					$2=$2.replace(/[\u200E\u200F]/g,'').trim();
+					var matched=$2.match(/^('+)([^']+)('+)$/);
+					if(matched){
+						$2=matched[2];
+						matched=matched[1];
+					}
+					$0='{{rtl-lang|'+$1+'|'+$2+'}}';
+					if(matched){
+						$0=matched+$0+matched;
+					}
+					return $0;
+				});
 			}
 		}, filtered);
 	}
