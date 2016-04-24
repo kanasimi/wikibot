@@ -508,8 +508,11 @@ function fix_16(content, page_data, messages, options) {
 
 	// ([[ ...) Unicode控制字符 ... ']]'
 	.replace(PATTERN_invisible_inner, function(all, inner) {
-		return inner.replace(PATTERN_invisible_any, '');
-	});
+		return inner.replace(PATTERN_invisible_any, '')
+	})
+	// 因為本函數 fix_16() 會消除 [[:en:left-to-right mark]] 這個符號，因此需要特別處理原先由右至左的文字。
+	// 應該改用{{tl|rtl-lang}}才對，請參見{{tl|lang}}的說明。
+	.replace(/{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}])/ig, '{{rtl-lang|$1|$2');
 
 	// 模板調用中使用不可見字符: NG.
 	// 可能影響 expand template 的行為。e.g., {{n|p=<\u200Eb>}}

@@ -4,6 +4,7 @@
 
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  TODO: catch已經完成操作的label
+ TODO: parse [[西利西利]]山（Mauga Silisili）
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -352,10 +353,11 @@ function push_work(full_title) {
 	foreign_title = foreign_title[2];
 	labels = labels[0];
 
+	// TODO: 一次取得多筆資料。
 	wiki.data({
 		title : foreign_title,
 		language : language
-	}, modify_Wikipedia && function(entity) {
+	}, 'labels|aliases|claims|sitelinks', modify_Wikipedia && function(entity) {
 		if (count > test_limit)
 			return;
 
@@ -505,6 +507,7 @@ function push_work(full_title) {
 		}
 
 		// 增加特定語系
+		// (labels, entity, language, options)
 		if (特定語系.length > 0) {
 			特定語系 = 特定語系.map(function(item) {
 				return add_item(item[1], item[0]);

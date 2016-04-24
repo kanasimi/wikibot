@@ -20,6 +20,9 @@ wiki = Wiki(true),
 /** {String}base directory */
 base_directory = bot_directory + script_name + '/';
 
+/** {Array}filtered list = {Array}[ list ] */
+var filtered = [];
+
 // ----------------------------------------------------------------------------
 
 /**
@@ -40,14 +43,26 @@ function for_each_page(page_data) {
 	if (!content)
 		return;
 
-	// TODO
-	;
+	// TODO: operations for each page
+	if (0) {
+		// need modify
+		filtered.push(title);
+	}
 }
 
 /**
  * Finish up. 最後結束工作。
  */
 function finish_work() {
+	if (filtered.length > 0) {
+		wiki.work({
+			summary : '',
+			each : function(page_data) {
+				// TODO: operations for each page that filtered
+				return;
+			}
+		}, filtered);
+	}
 }
 
 // ----------------------------------------------------------------------------
