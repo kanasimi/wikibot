@@ -1,9 +1,9 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node traversal_pages.clear.js && date
+﻿// cd ~/wikibot && date && time /shared/bin/node "traversal_pages.clear.js" && date
 // Traversal all pages. 遍歷所有頁面。簡易版，用於展示概念。
 
 /*
 
- 初版試營運，約耗時 ?分鐘執行。
+ 初版試營運，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
 
  */
 

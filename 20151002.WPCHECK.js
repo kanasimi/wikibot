@@ -475,9 +475,27 @@ PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g),
 // https://en.wikipedia.org/wiki/Left-to-right_mark
 PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g),
 //
-PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])/ig;
+PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])/ig,
+// 找出使用了由右至左文字的{{lang}}模板。
+// 應該改用{{tl|rtl-lang}}處理右至左文字如阿拉伯語及希伯來語，請參見{{tl|lang}}的說明。
+// [ all, language, text ]
+PATTERN_LTR_lang = /{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig;
 
-// 可能遇上 413
+function replace_to_rtl_lang(all, language, text){
+	text=text.replace(/[\u200E\u200F]/g,'').trim();
+	var matched=text.match(/^('+)([^']+)('+)$/);
+	if(matched){
+		text=matched[2];
+		matched=matched[1];
+	}
+	all='{{rtl-lang|'+language+'|'+text+'}}';
+	if(matched){
+		all=matched+all+matched;
+	}
+	return all;
+}
+
+// 可能遇上 HTTP code 413
 // 去除不可見字符 \p{Cf}，警告 \p{C}。
 // cf. "unicode other" （標籤：加入不可見字符）, "unicode pua" （標籤：含有Unicode私有區編碼）
 // unicode invisible character
@@ -511,8 +529,7 @@ function fix_16(content, page_data, messages, options) {
 		return inner.replace(PATTERN_invisible_any, '')
 	})
 	// 因為本函數 fix_16() 會消除 [[:en:left-to-right mark]] 這個符號，因此需要特別處理原先由右至左的文字。
-	// 應該改用{{tl|rtl-lang}}處理右至左文字如阿拉伯語及希伯來語，請參見{{tl|lang}}的說明。
-	.replace(/{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}])/ig, '{{rtl-lang|$1|$2');
+	.replace(PATTERN_LTR_lang, replace_to_rtl_lang);
 
 	// 模板調用中使用不可見字符: NG.
 	// 可能影響 expand template 的行為。e.g., {{n|p=<\u200Eb>}}

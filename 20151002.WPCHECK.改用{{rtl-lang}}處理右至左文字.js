@@ -1,9 +1,9 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node traversal_pages.clear.js && date
+﻿// cd ~/wikibot && date && time /shared/bin/node "20151002.WPCHECK.改用{{rtl-lang}}處理右至左文字.js" && date
 // Traversal all pages. 遍歷所有頁面。簡易版，用於展示概念。
 
 /*
 
- 初版試營運，約耗時 ?分鐘執行。
+ 2016/4/24 13:56:23	初版試營運，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
 
  */
 
@@ -57,6 +57,27 @@ function for_each_page(page_data) {
 	}
 }
 
+
+var
+// 找出使用了由右至左文字的{{lang}}模板。
+// 應該改用{{tl|rtl-lang}}處理右至左文字如阿拉伯語及希伯來語，請參見{{tl|lang}}的說明。
+// [ all, language, text ]
+PATTERN_LTR_lang = /{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig;
+
+function replace_to_rtl_lang(all, language, text){
+	text=text.replace(/[\u200E\u200F]/g,'').trim();
+	var matched=text.match(/^('+)([^']+)('+)$/);
+	if(matched){
+		text=matched[2];
+		matched=matched[1];
+	}
+	all='{{rtl-lang|'+language+'|'+text+'}}';
+	if(matched){
+		all=matched+all+matched;
+	}
+	return all;
+}
+
 /**
  * Finish up. 最後結束工作。
  */
@@ -68,19 +89,7 @@ function finish_work() {
 			log_to : log_to,
 			each : function(page_data) {
 				var content = CeL.wiki.content_of(page_data);
-				return content.replace(/{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig, function($0,$1,$2){
-					$2=$2.replace(/[\u200E\u200F]/g,'').trim();
-					var matched=$2.match(/^('+)([^']+)('+)$/);
-					if(matched){
-						$2=matched[2];
-						matched=matched[1];
-					}
-					$0='{{rtl-lang|'+$1+'|'+$2+'}}';
-					if(matched){
-						$0=matched+$0+matched;
-					}
-					return $0;
-				});
+				return content.replace(PATTERN_LTR_lang, replace_to_rtl_lang);
 			}
 		}, filtered);
 	}
@@ -88,7 +97,7 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
 // Set the umask to share the xml dump file.
 if (typeof process === 'object') {
