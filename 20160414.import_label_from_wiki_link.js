@@ -3,10 +3,12 @@
 /*
 
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
- TODO: catch已經完成操作的label
- TODO: parse [[西利西利]]山（Mauga Silisili）
- TODO: [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
- TODO: [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
+ TODO:
+ catch已經完成操作的label
+ parse [[西利西利]]山（Mauga Silisili）
+ [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
+ [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
+
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -73,7 +75,7 @@ count = 0, test_limit = 600,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
-modify_Wikipedia = false;
+modify_Wikipedia = true;
 
 // ----------------------------------------------------------------------------
 
@@ -247,6 +249,11 @@ function for_each_page(page_data, messages) {
 
 		// 增加特定語系註記
 		function add_label(label, language) {
+			if (!language) {
+				// 無法猜出則使用預設之語言。
+				language = CeL.wiki.guess_language(label) || use_language;
+			}
+
 			var data;
 			if (!(full_title in label_data)) {
 				++count;
@@ -263,9 +270,6 @@ function for_each_page(page_data, messages) {
 					data[1].push(title);
 				}
 			}
-
-			if (!language)
-				language = use_language;
 
 			if (!data[0][language]) {
 				data[0][language] = [ label ];
@@ -387,7 +391,7 @@ function push_work(full_title) {
 				// TODO: 任[[:en:Island School|英童中學]] (Island
 				// School，今稱[[港島中學]]) 創校校長
 
-				return content.replace_check_near(
+				var change_to = content.replace_check_near(
 				//
 				pattern, function(link, local) {
 					var converted = '[[' + local_title
@@ -429,6 +433,9 @@ function push_work(full_title) {
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
 				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
 				.replace(PATTERN_duplicate_title, '$1');
+
+				if (change_to !== content)
+					return change_to;
 
 			}, {
 				bot : 1,
