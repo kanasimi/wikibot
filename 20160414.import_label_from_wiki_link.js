@@ -71,7 +71,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 600,
+count = 0, test_limit = 700,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -143,7 +143,9 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var original_label = matched[3], 不須轉換成繁體 = use_language !== 'zh', language_guessed,
+		var original_label = matched[3], 不須轉換成繁體 = use_language !== 'zh',
+		// language of ((label))
+		language_guessed,
 		//
 		label = matched[3];
 
@@ -227,14 +229,16 @@ function for_each_page(page_data, messages) {
 
 		// 後期修正/繁簡修正。
 		// label = label.replace(/（(.+)）$/, '($1)');
-		// TODO: CeL.CN_to_TW() is too slow...
 		var label_before_convert;
 		if (!不須轉換成繁體
 		//
-		&& !(language_guessed = CeL.wiki.guess_language(label))) {
+		&& (!(language_guessed = CeL.wiki.guess_language(label))
+		//
+		|| language_guessed === 'zh-cn' || language_guessed === 'zh-hans')) {
 			不須轉換成繁體 = true;
 			language_guessed = 'zh-hant';
 			label_before_convert = label;
+			// TODO: CeL.CN_to_TW() is too slow...
 			label = CeL.CN_to_TW(label);
 			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
@@ -280,6 +284,7 @@ function for_each_page(page_data, messages) {
 		add_label(label, language_guessed || use_language);
 		if (不須轉換成繁體 && label_before_convert !== label) {
 			// 加上 label_before_convert，照理應該是簡體 (zh-cn)。
+			// treat zh-hans as zh-cn
 			add_label(label_before_convert, 'zh-cn');
 		}
 	}
