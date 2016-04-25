@@ -71,7 +71,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 700,
+count = 0, test_limit = 800,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -469,10 +469,7 @@ function push_work(full_title) {
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
 
-		if (false && data) {
-			console.log(data);
-			throw 1;
-		}
+		// console.log(data);
 
 		return data;
 
