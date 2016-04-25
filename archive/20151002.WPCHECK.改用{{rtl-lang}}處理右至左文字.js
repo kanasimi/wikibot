@@ -3,7 +3,7 @@
 
 /*
 
- 2016/4/24 13:56:23	初版試營運，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
+ 2016/4/24 13:56:23	初版試營運，採用模板：traversal_pages.clear.js，約耗時 110分鐘執行 1271 pages。
 
  */
 
@@ -49,14 +49,13 @@ function for_each_page(page_data) {
 	if (!content)
 		return;
 
-	if (page_data.ns===0
+	if (page_data.ns === 0
 	//
-	&&/{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}])/i.test(content)) {
+	&& /{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}])/i.test(content)) {
 		// need modify
 		filtered.push(title);
 	}
 }
-
 
 var
 // 找出使用了由右至左文字的{{lang}}模板。
@@ -64,16 +63,16 @@ var
 // [ all, language, text ]
 PATTERN_LTR_lang = /{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig;
 
-function replace_to_rtl_lang(all, language, text){
-	text=text.replace(/[\u200E\u200F]/g,'').trim();
-	var matched=text.match(/^('+)([^']+)('+)$/);
-	if(matched){
-		text=matched[2];
-		matched=matched[1];
+function replace_to_rtl_lang(all, language, text) {
+	text = text.replace(/[\u200E\u200F]/g, '').trim();
+	var matched = text.match(/^('+)([^']+)('+)$/);
+	if (matched) {
+		text = matched[2];
+		matched = matched[1];
 	}
-	all='{{rtl-lang|'+language+'|'+text+'}}';
-	if(matched){
-		all=matched+all+matched;
+	all = '{{rtl-lang|' + language + '|' + text + '}}';
+	if (matched) {
+		all = matched + all + matched;
 	}
 	return all;
 }
@@ -85,7 +84,9 @@ function finish_work() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		wiki.work({
-			summary : summary + ' 16: 改用[[Template:rtl-lang]]處理右至左文字如阿拉伯語及希伯來語',
+			summary : summary
+			//
+			+ ' 16: 改用[[Template:rtl-lang]]處理右至左文字如阿拉伯語及希伯來語',
 			log_to : log_to,
 			each : function(page_data) {
 				var content = CeL.wiki.content_of(page_data);

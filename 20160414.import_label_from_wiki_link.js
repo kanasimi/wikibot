@@ -78,7 +78,7 @@ modify_Wikipedia = false;
 wiki.set_data();
 
 var
-// label_data['language:title'] = [ {Array}labels, {Array}titles ]
+// label_data['language:title'] = [ { language: {Array}labels }, {Array}titles ]
 label_data = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
@@ -152,7 +152,7 @@ function for_each_page(page_data, messages) {
 			var foregoing = content.slice(matched.index - 80, matched.index)
 			// parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
 			// @see PATTERN_duplicate_title
-			.match(/\[\[([^\[\]:]+)\]\]\s*》?[（(\s]*$/);
+			.match(/\[\[([^\[\]:]+)\]\]\s*[》」]?[（(\s]*$/);
 			if (!foregoing
 			//		
 			|| PATTERN_none_used_title.test(label = foregoing[1])) {
@@ -202,7 +202,7 @@ function for_each_page(page_data, messages) {
 
 		label = label
 		// e.g., [[:en:t|''t'']], [[:en:t|《t》]]
-		.replace(/['》]+$|^['《]+/g, '').replace(/'{2,}([^']+)'{2,}/g, '$1')
+		.replace(/['》」]+$|^['《「]+/g, '').replace(/'{2,}([^']+)'{2,}/g, '$1')
 		// e.g., [[:en:t|t{{en}}]]
 		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·');
 
@@ -245,6 +245,7 @@ function for_each_page(page_data, messages) {
 		if (foreign_title === label)
 			continue;
 
+		// 增加特定語系註記
 		function add_label(label, language) {
 			var data;
 			if (!(full_title in label_data)) {
@@ -254,15 +255,22 @@ function for_each_page(page_data, messages) {
 					CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
 							'fg=cyan', full_title, '-fg',
 							'@ [[' + title + ']]: ' + matched[0] ]);
-				label_data[full_title] = data = [ [ label ], [ title ], [] ];
+				label_data[full_title] = data = [ {}, [ title ] ];
 
-			} else if (!(data = label_data[full_title])[0].includes(label)) {
-				data[0].push(label);
-				data[1].push(title);
+			} else {
+				data = label_data[full_title];
+				if (!data[1].includes(label)) {
+					data[1].push(title);
+				}
 			}
-			// 增加特定語系註記
-			if (language) {
-				data[2].push([ language, label ]);
+
+			if (!language)
+				language = use_language;
+
+			if (!data[0][language]) {
+				data[0][language] = [ label ];
+			} else if (!data[0][language].includes(label)) {
+				data[0][language].push(label);
 			}
 		}
 
@@ -335,7 +343,7 @@ function name_type(entity) {
 // 去除重複連結用。
 // " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, text_2, title_2 ]
-var PATTERN_duplicate_title = /(《?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*》?)\s*([（(]?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*[）)]?)/g,
+var PATTERN_duplicate_title = /([《「]?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*[》」]?)\s*([（(]?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*[）)]?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -347,9 +355,7 @@ function push_work(full_title) {
 	//
 	language = foreign_title[1],
 	//
-	labels = label_data[full_title], titles = labels[1],
-	//
-	特定語系 = labels[2];
+	labels = label_data[full_title], titles = labels[1];
 	foreign_title = foreign_title[2];
 	labels = labels[0];
 
@@ -366,97 +372,86 @@ function push_work(full_title) {
 
 		// 使用Wikidata數據來清理跨語言連結。例如將[[:ja:日露戦争|日俄戰爭]]轉成[[日俄戰爭]]，避免「在條目頁面以管道連結的方式外連至其他語言維基頁面」。
 
-		var type = null,
 		// local title
-		local_title = CeL.wiki.data.title_of(entity, use_language);
+		var local_title = CeL.wiki.data.title_of(entity, use_language);
 
-		if (local_title) {
-			// 標的語言wikipedia存在所欲連接/指向的頁面。
-			titles.forEach(function(title) {
-				wiki.page(title).edit(function(page_data) {
-					var
-					/**
-					 * {String}page content, maybe undefined. 頁面內容 =
-					 * revision['*']
-					 */
-					content = CeL.wiki.content_of(page_data),
-					// [ link, local title ]
-					pattern = new RegExp('\\[\\[:' + language + '\\s*:\\s*'
-					//
-					+ CeL.to_RegExp_pattern(foreign_title)
-					//
-					+ '(?:\\|([^\\[\\]]+))?\\]\\]', 'g');
-
-					if (false)
-						// TODO: 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
-						// TODO: {{request translation | tfrom =
-						// [[:ru:Владивосток|俄文維基百科對應條目]]}}
-						// TODO: 任[[:en:Island School|英童中學]] (Island
-						// School，今稱[[港島中學]]) 創校校長
-						while (matched = pattern.exec(content)) {
-							// context 上下文
-							// 前面的 foregoing paragraphs, see above, previously
-							// stated, precedent
-							// 後面的 behind
-							// rearwards;back;posteriority;atergo;rearward
-							var foregoing = content.slice(matched.index - 40,
-							//
-							matched.index),
-							//
-							behind = content.slice(
-							//
-							matched.index + matched[0].length,
-							//
-							matched.index + matched[0].length + 40);
-
-							if (/原名|[文簡简縮缩]|tfrom/.test(foregoing)
-							//
-							|| /原名|[文簡简縮缩]/.test(behind))
-								;
-						}
-
-					return content.replace(pattern, function(link, local) {
-						var converted = '[[' + local_title
-						//
-						+ (local && !foreign_title.toLowerCase()
-						// [[:en:Day|地球日]] → [​[日|地球日]]
-						.includes(local.toLowerCase())
-						// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
-						// [​[中文全名]] (譯名已匯入 wikidata aliases)
-						&& !(type === null ? (type = name_type(entity)) : type)
-						//
-						? local === local_title ? '' : '|' + local
-						// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
-						// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
-						// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
-						: / \(([^()]+)\)$/.test(local_title) ? '|'
-						// [[:en:Day]] → [​[日]]
-						// [[:en:Day|日]] → [​[日]]
-						// [[:en:Day|Day]] → [​[日]]
-						// [[:en:First Last]] → [​[中文全名]]
-						// [[:en:First Last|First]] → [​[中文全名]]
-						: '')
-						//
-						+ ']]';
-						CeL.log('replace ' + use_language
-						//
-						+ ': ' + link + ' → ' + converted);
-						return converted;
-					})
-					// 去除重複連結。
-					// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
-					// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
-					.replace(PATTERN_duplicate_title, '$1');
-				}, {
-					bot : 1,
-					summary : 'bot test: 以[[d:' + entity.id
-					//
-					+ ']]清理跨語言連結[[' + local_title + ']]'
-					//
-					+ (type ? ' (' + type + ')' : '')
-				});
-			});
+		if (!local_title) {
+			return;
 		}
+
+		// cache
+		var type = null;
+
+		// 標的語言wikipedia存在所欲連接/指向的頁面。
+		titles.forEach(function(title) {
+			wiki.page(title).edit(function(page_data) {
+				var
+				/**
+				 * {String}page content, maybe undefined. 頁面內容 = revision['*']
+				 */
+				content = CeL.wiki.content_of(page_data),
+				// [ link, local title ]
+				pattern = new RegExp('\\[\\[:' + language + '\\s*:\\s*'
+				//
+				+ CeL.to_RegExp_pattern(foreign_title)
+				//
+				+ '(?:\\|([^\\[\\]]+))?\\]\\]', 'g');
+
+				// TODO: 任[[:en:Island School|英童中學]] (Island
+				// School，今稱[[港島中學]]) 創校校長
+
+				return content.replace_check_near(
+				//
+				pattern, function(link, local) {
+					var converted = '[[' + local_title
+					//
+					+ (local && !foreign_title.toLowerCase()
+					// [[:en:Day|地球日]] → [​[日|地球日]]
+					.includes(local.toLowerCase())
+					// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
+					// [​[中文全名]] (譯名已匯入 wikidata aliases)
+					&& !(type === null ? (type = name_type(entity)) : type)
+					//
+					? local === local_title ? '' : '|' + local
+					// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
+					// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
+					// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
+					: / \(([^()]+)\)$/.test(local_title) ? '|'
+					// [[:en:Day]] → [​[日]]
+					// [[:en:Day|日]] → [​[日]]
+					// [[:en:Day|Day]] → [​[日]]
+					// [[:en:First Last]] → [​[中文全名]]
+					// [[:en:First Last|First]] → [​[中文全名]]
+					: '')
+					//
+					+ ']]';
+					CeL.log('replace ' + use_language
+					//
+					+ ': ' + link + ' → ' + converted);
+					return converted;
+
+				}, function(foregoing) {
+					// 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
+					// {{request translation | tfrom =
+					// [[:ru:Владивосток|俄文維基百科對應條目]]}}
+					return !/原名|[文簡简縮缩]|tfrom/.test(foregoing);
+				}, function(behind) {
+					return !/原名|[文簡简縮缩]/.test(behind);
+				})
+				// 去除重複連結。
+				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
+				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
+				.replace(PATTERN_duplicate_title, '$1');
+
+			}, {
+				bot : 1,
+				summary : 'bot test: 以[[d:' + entity.id
+				//
+				+ ']]清理跨語言連結[[' + local_title + ']]'
+				//
+				+ (type ? ' (' + type + ')' : '')
+			});
+		});
 
 	}).edit_data(function(entity) {
 		if (++count > test_limit) {
@@ -470,52 +465,16 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		// 要編輯（更改或創建）的資料。
-		var data;
-
 		CeL.log(entity.id
 		//
 		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
 
-		// 注意: 若是本來已有某個值（例如 label），採用 add 會被取代。或須偵測並避免更動原有值。
-		if (use_language in entity.labels) {
-			var index = labels.indexOf(
-			// 去除重複 label。
-			entity.labels[use_language].value);
-			if (index !== NOT_FOUND) {
-				if (labels.length === 1) {
-					// assert: index === 0
-					return [ CeL.wiki.edit.cancel,
-					// No labels to set.
-					'已無剩下需要設定之新 label。' ];
-				}
-				labels.splice(index, 1);
-			}
+		// 要編輯（更改或創建）的資料。
+		var data = CeL.wiki.edit_data.add_labels(labels, entity);
 
-			data = {};
+		console.log(data);
 
-		} else {
-			// 直接登錄。
-			data = {
-				labels : [ add_item(labels[0]) ]
-			};
-			labels.shift();
-		}
-
-		if (labels.length > 0) {
-			data.aliases = labels.map(add_item);
-		}
-
-		// 增加特定語系
-		// (labels, entity, language, options)
-		if (特定語系.length > 0) {
-			特定語系 = 特定語系.map(function(item) {
-				return add_item(item[1], item[0]);
-			});
-			data.aliases = data.aliases ? data.aliases.concat(特定語系) : 特定語系;
-		}
-
-		// console.log(data);
+		throw 1;
 		return data;
 
 	}, {

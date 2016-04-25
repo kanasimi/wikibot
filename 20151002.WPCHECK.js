@@ -481,16 +481,16 @@ PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\
 // [ all, language, text ]
 PATTERN_LTR_lang = /{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig;
 
-function replace_to_rtl_lang(all, language, text){
-	text=text.replace(/[\u200E\u200F]/g,'').trim();
-	var matched=text.match(/^('+)([^']+)('+)$/);
-	if(matched){
-		text=matched[2];
-		matched=matched[1];
+function replace_to_rtl_lang(all, language, text) {
+	text = text.replace(/[\u200E\u200F]/g, '').trim();
+	var matched = text.match(/^('+)([^']+)('+)$/);
+	if (matched) {
+		text = matched[2];
+		matched = matched[1];
 	}
-	all='{{rtl-lang|'+language+'|'+text+'}}';
-	if(matched){
-		all=matched+all+matched;
+	all = '{{rtl-lang|' + language + '|' + text + '}}';
+	if (matched) {
+		all = matched + all + matched;
 	}
 	return all;
 }
