@@ -82,8 +82,6 @@ var
 label_data = CeL.null_Object(),
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
-//
-PATTERN_en_title = /^[a-z,.!:;'"()\-\d\s\&<>\\\/]+$/i,
 // 改為 non-Chinese
 // 2E80-2EFF 中日韓漢字部首補充 CJK Radicals Supplement
 PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i;
@@ -287,19 +285,6 @@ var
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_');
 
-function add_item(label, language) {
-	if (typeof language !== 'string')
-		language = PATTERN_en_title.test(label) ? 'en'
-				: PATTERN_none_used_title.test(label)
-				// TODO: 此處事實上為未知語言。
-				? use_language : use_language;
-	return {
-		language : language,
-		value : label,
-		add : 1
-	};
-}
-
 var name_type_hash = {
 	5 : '人',
 	515 : '城市'
@@ -465,16 +450,18 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		CeL.log(entity.id
+		CeL.log(entity.id + ': [[' + language + ':' + foreign_title
 		//
-		+ ': [[' + language + ':' + foreign_title + ']]: ' + labels);
+		+ ']]: ' + JSON.stringify(labels));
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
 
-		console.log(data);
+		if (data) {
+			console.log(data);
+			throw 1;
+		}
 
-		throw 1;
 		return data;
 
 	}, {
