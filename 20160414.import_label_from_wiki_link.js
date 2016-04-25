@@ -5,6 +5,8 @@
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  TODO: catch已經完成操作的label
  TODO: parse [[西利西利]]山（Mauga Silisili）
+ TODO: [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
+ TODO: [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -67,7 +69,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 500,
+count = 0, test_limit = 600,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -150,7 +152,7 @@ function for_each_page(page_data, messages) {
 			var foregoing = content.slice(matched.index - 80, matched.index)
 			// parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
 			// @see PATTERN_duplicate_title
-			.match(/\[\[([^\[\]:]+)\]\]\s*[》」]?[（(\s]*$/);
+			.match(/\[\[([^\[\]:]+)\]\]\s*['》」]?[（(\s]*$/);
 			if (!foregoing
 			//		
 			|| PATTERN_none_used_title.test(label = foregoing[1])) {
@@ -276,7 +278,7 @@ function for_each_page(page_data, messages) {
 		add_label(label, !need_convert && 'zh-hant');
 		if (label_before_convert !== label) {
 			// 加上 label_before_convert，照理應該是簡體 (zh-cn)。
-			add_label(label_before_convert, !need_convert && 'zh-hans');
+			add_label(label_before_convert, !need_convert && 'zh-cn');
 		}
 	}
 }
@@ -328,7 +330,7 @@ function name_type(entity) {
 // 去除重複連結用。
 // " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, text_2, title_2 ]
-var PATTERN_duplicate_title = /([《「]?\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*[》」]?)\s*([（(]?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*[）)]?)/g,
+var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)\s*([（(]?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*[）)]?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -457,7 +459,7 @@ function push_work(full_title) {
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
 
-		if (data) {
+		if (false && data) {
 			console.log(data);
 			throw 1;
 		}
