@@ -143,12 +143,12 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var original_label = matched[3], converted_to_zh_tw = use_language !== 'zh', need_convert = use_language === 'zh', language,
+		var original_label = matched[3], 不須轉換成繁體 = use_language !== 'zh', language_guessed,
 		//
 		label = matched[3];
 
 		if (PATTERN_none_used_title.test(label)) {
-			// context 上下文
+			// context 上下文 前後文
 			// 前面的 foregoing paragraphs, see above, previously stated, precedent
 			// 後面的 behind rearwards;back;posteriority;atergo;rearward
 			var foregoing = content.slice(matched.index - 80, matched.index)
@@ -156,7 +156,7 @@ function for_each_page(page_data, messages) {
 			// @see PATTERN_duplicate_title
 			.match(/\[\[([^\[\]:]+)\]\]\s*['》」]?[（(\s]*$/);
 			if (!foregoing
-			//		
+			//
 			|| PATTERN_none_used_title.test(label = foregoing[1])) {
 				continue;
 			}
@@ -170,9 +170,8 @@ function for_each_page(page_data, messages) {
 			// 香港繁體, 澳門繁體
 			|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
 			if (matched) {
-				converted_to_zh_tw = true;
-				need_convert = false;
-				language = matched[1].toLowerCase();
+				不須轉換成繁體 = true;
+				language_guessed = matched[1].toLowerCase();
 				return matched[2].trim();
 			}
 			matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
@@ -226,12 +225,16 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		// 後期修正。
+		// 後期修正/繁簡修正。
 		// label = label.replace(/（(.+)）$/, '($1)');
 		// TODO: CeL.CN_to_TW() is too slow...
-		var label_before_convert = label;
-		if (need_convert) {
-			need_convert = false;
+		var label_before_convert;
+		if (!不須轉換成繁體
+		//
+		&& !(language_guessed = CeL.wiki.guess_language(label))) {
+			不須轉換成繁體 = true;
+			language_guessed = 'zh-hant';
+			label_before_convert = label;
 			label = CeL.CN_to_TW(label);
 			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
@@ -249,11 +252,6 @@ function for_each_page(page_data, messages) {
 
 		// 增加特定語系註記
 		function add_label(label, language) {
-			if (!language) {
-				// 無法猜出則使用預設之語言。
-				language = CeL.wiki.guess_language(label) || use_language;
-			}
-
 			var data;
 			if (!(full_title in label_data)) {
 				++count;
@@ -279,10 +277,10 @@ function for_each_page(page_data, messages) {
 		}
 
 		var full_title = matched[1] + ':' + foreign_title;
-		add_label(label, !need_convert && 'zh-hant');
-		if (label_before_convert !== label) {
+		add_label(label, language_guessed || use_language);
+		if (不須轉換成繁體 && label_before_convert !== label) {
 			// 加上 label_before_convert，照理應該是簡體 (zh-cn)。
-			add_label(label_before_convert, !need_convert && 'zh-cn');
+			add_label(label_before_convert, 'zh-cn');
 		}
 	}
 }
