@@ -71,7 +71,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 800,
+count = 0, test_limit = 1200,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -132,7 +132,9 @@ function for_each_page(page_data, messages) {
 		// wikt, wikisource
 		if (matched[1].includes('wik')
 		// 光是只有 "category"，代表還是在本 wiki 中，不算外語言。
-		|| /^category/i.test(matched[1]))
+		|| /^category/i.test(matched[1])
+		// e.g., "日语维基百科"
+		|| /[语語文][維维]基/.test(matched[3]))
 			continue;
 
 		var foreign_title = matched[2].trim().replace(/_/g, ' ');
@@ -143,7 +145,7 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var original_label = matched[3], 不須轉換成繁體 = use_language !== 'zh',
+		var 不須轉換成繁體 = use_language !== 'zh',
 		// language of ((label))
 		language_guessed,
 		//
