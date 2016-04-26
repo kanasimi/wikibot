@@ -71,7 +71,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1200,
+count = 0, test_limit = 1500,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -343,7 +343,12 @@ var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
-summary_sp = summary_postfix + ', ' + summary_prefix;
+summary_sp = summary_postfix + ', ' + summary_prefix,
+// 跨語言
+// 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
+// {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
+// {{求翻译}}
+PATTERN_interlanguage = /原名|[文簡简縮缩]|翻[译譯]|translation|language|tfrom/;
 
 function push_work(full_title) {
 	// CeL.log(full_title);
@@ -427,12 +432,9 @@ function push_work(full_title) {
 					return converted;
 
 				}, function(foregoing) {
-					// 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
-					// {{request translation | tfrom =
-					// [[:ru:Владивосток|俄文維基百科對應條目]]}}
-					return !/原名|[文簡简縮缩]|tfrom/.test(foregoing);
+					return !PATTERN_interlanguage.test(foregoing);
 				}, function(behind) {
-					return !/原名|[文簡简縮缩]/.test(behind);
+					return !PATTERN_interlanguage.test(behind);
 				})
 				// 去除重複連結。
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
