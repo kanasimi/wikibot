@@ -71,7 +71,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 2000,
+count = 0, test_limit = 2500,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -439,12 +439,21 @@ function push_work(full_title) {
 				// 去除重複連結。
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
 				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
-				.replace(PATTERN_duplicate_title, function(all, text_1, link_1, title_1, text_2, title_2, quote_start, quote_end){
-					return quote_start&&!quote_end?quote_start+text_1:text_1;
+				.replace(PATTERN_duplicate_title,
+				//
+				function(all, text_1, link_1, title_1, text_2, title_2,
+				//
+				quote_start, quote_end) {
+					return quote_start && !quote_end
+					//
+					? quote_start + text_1 : text_1;
 				});
 
-				if (change_to !== content)
-					return change_to;
+				if (change_to === content)
+					// 可能之前已更改過。
+					return [ CeL.wiki.edit.cancel, 'skip' ];
+
+				return change_to;
 
 			}, {
 				bot : 1,
@@ -476,6 +485,9 @@ function push_work(full_title) {
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
 
 		// console.log(data);
+
+		if (!data)
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 
 		return data;
 
