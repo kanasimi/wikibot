@@ -338,8 +338,8 @@ function name_type(entity) {
 
 // 去除重複連結用。
 // " \t": 直接採 "\s" 會包括 "\n"。
-// [ all, text_1, link_1, title_1, text_2, title_2 ]
-var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)\s*([（(]?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*[）)]?)/g,
+// [ all, text_1, link_1, title_1, text_2, title_2, quote_start, quote_end ]
+var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)\s*(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*([）)])?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -439,7 +439,9 @@ function push_work(full_title) {
 				// 去除重複連結。
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
 				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
-				.replace(PATTERN_duplicate_title, '$1');
+				.replace(PATTERN_duplicate_title, function(all, text_1, link_1, title_1, text_2, title_2, quote_start, quote_end){
+					return quote_start&&!quote_end?quote_start+text_1:text_1;
+				});
 
 				if (change_to !== content)
 					return change_to;
@@ -517,7 +519,7 @@ function finish_work() {
 // CeL.set_debug();
 
 // rm import_label_from_wiki_link/labels.json
-prepare_directory(base_directory);
+prepare_directory(base_directory, true);
 
 // read cache.
 label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
