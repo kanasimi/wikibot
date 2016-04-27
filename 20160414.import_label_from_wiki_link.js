@@ -43,6 +43,7 @@
  [[:en:Atropatene|亞特羅巴特那]]	[[阿特羅帕特尼王國|亞特羅巴特那]]
  [[:en:Sheba|賽佰邑（示巴）]]	[[示巴王國|賽佰邑（示巴）]]
  [[:en:Walking with Monsters|與巨獸共舞]]	[[与巨兽同行|與巨獸共舞]]
+ [[马克萨斯群岛]] Îles Marquises（也称“[[:en:Marquesas Islands|侯爵夫人群岛]]”）
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -349,7 +350,8 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
-PATTERN_interlanguage = /原[名文]|[英德日法][语語文]|[簡简縮缩]|翻[译譯]|translation|language|tfrom/;
+// 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
+PATTERN_interlanguage = /原[名文]|[英德日法][语語文]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/;
 
 function push_work(full_title) {
 	// CeL.log(full_title);
