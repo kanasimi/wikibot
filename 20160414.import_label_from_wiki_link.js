@@ -35,6 +35,10 @@
  [[:en:Kármán line|卡門線]]	[[卡門線]]
  [[:en:Colchis|科爾基斯]]	[[科爾基斯]]
  [[:en:Benetton Formula|贝纳通车队]]	[[贝纳通车队]]
+ [[:en:List of Romanian counties by population|排名羅馬尼亞第一]]	[[羅馬尼亞各縣人口列表|排名羅馬尼亞第一]]
+ [[:en:7400 series|7400系列]]	[[7400系列]]
+ *[[馬來西亞]]之[[:en:Law of Malaysia|法律]]	*[[馬來西亞]]之[[马来西亚法律制度|法律]]
+ 獲得'''[[:en:Institute of Engineering Education Taiwan|IEET認證]]'''	獲得'''[[中華工程教育學會|IEET認證]]'''
 
 
  NG:
@@ -44,6 +48,9 @@
  [[:en:Sheba|賽佰邑（示巴）]]	[[示巴王國|賽佰邑（示巴）]]
  [[:en:Walking with Monsters|與巨獸共舞]]	[[与巨兽同行|與巨獸共舞]]
  [[马克萨斯群岛]] Îles Marquises（也称“[[:en:Marquesas Islands|侯爵夫人群岛]]”）
+ ::1984年起[[朝日電視台]]曾播放[[:ja:ナイトライダー|霹靂遊俠]]
+ 詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。
+ 美国[[科罗拉多学院]]（[[:en:Colorado College|Colorado College]]）。	美国[[科罗拉多学院]]（[[科羅拉多學院]]）。
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -340,8 +347,8 @@ function name_type(entity) {
 
 // 去除重複連結用。
 // " \t": 直接採 "\s" 會包括 "\n"。
-// [ all, text_1, link_1, title_1, text_2, title_2, quote_start, quote_end ]
-var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)\s*(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\]\s*([）)])?)/g,
+// [ all, text_1, link_1, title_1, text_2, quote_start, title_2, quote_end ]
+var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)[\s,;.!?/，；。！？／]*(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -412,6 +419,8 @@ function push_work(full_title) {
 					+ (local && !foreign_title.toLowerCase()
 					// [[:en:Day|地球日]] → [​[日|地球日]]
 					.includes(local.toLowerCase())
+					// [[:en:Day|en:]] → [​[日 (消歧義)|日]]
+					&& !/^[a-z]{2,3}:$/i.test(local)
 					// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
 					// [​[中文全名]] (譯名已匯入 wikidata aliases)
 					&& !(type === null ? (type = name_type(entity)) : type)
@@ -420,7 +429,9 @@ function push_work(full_title) {
 					// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
 					// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
 					// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
-					: / \(([^()]+)\)$/.test(local_title) ? '|'
+					: / \([^()]+\)$/.test(local_title)
+					// 在 <gallery> 中，"[[t|]]" 無效。
+					? '|' + local_title.replace(/ \([^()]+\)$/, '')
 					// [[:en:Day]] → [​[日]]
 					// [[:en:Day|日]] → [​[日]]
 					// [[:en:Day|Day]] → [​[日]]
@@ -444,12 +455,12 @@ function push_work(full_title) {
 				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
 				.replace(PATTERN_duplicate_title,
 				//
-				function(all, text_1, link_1, title_1, text_2, title_2,
+				function(all, text_1, link_1, title_1, text_2,
 				//
-				quote_start, quote_end) {
-					return quote_start && !quote_end
-					//
-					? quote_start + text_1 : text_1;
+				quote_start, title_2, quote_end) {
+					if (quote_start ? quote_end : !quote_end)
+						return text_1;
+					return (quote_start || '') + text_1 + (quote_end || '');
 				});
 
 				if (change_to === content)
