@@ -71,7 +71,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 2500,
+count = 0, test_limit = 1000,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -244,7 +244,8 @@ function for_each_page(page_data, messages) {
 			label = CeL.CN_to_TW(label);
 			if (label_before_convert !== label) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
-				label = label.replace(/裡/g, '里').replace(/([王皇太天])後/g, '$1后');
+				label = label.replace(/裡/g, '里').replace(/佔/g, '占').replace(
+						/([王皇太天])後/g, '$1后');
 				// 奧托二世
 				if (true || /[·．]/.test(label)) {
 					// 為人名。
@@ -348,7 +349,7 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
-PATTERN_interlanguage = /原名|[文簡简縮缩]|翻[译譯]|translation|language|tfrom/;
+PATTERN_interlanguage = /原[名文]|[英德日法][语語文]|[簡简縮缩]|翻[译譯]|translation|language|tfrom/;
 
 function push_work(full_title) {
 	// CeL.log(full_title);
@@ -432,9 +433,9 @@ function push_work(full_title) {
 					return converted;
 
 				}, function(foregoing) {
-					return !PATTERN_interlanguage.test(foregoing);
+					return !PATTERN_interlanguage.test(foregoing.slice(-20));
 				}, function(behind) {
-					return !PATTERN_interlanguage.test(behind);
+					return !PATTERN_interlanguage.test(behind.slice(0, 20));
 				})
 				// 去除重複連結。
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
