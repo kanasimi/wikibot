@@ -167,7 +167,7 @@ function for_each_page(page_data, messages) {
 			var foregoing = content.slice(matched.index - 80, matched.index)
 			// parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
 			// @see PATTERN_duplicate_title
-			.match(/\[\[([^\[\]:]+)\]\]\s*['》」]?[（(\s]*$/);
+			.match(/\[\[([^\[\]:]+)\]\]\s*['》」』〉】〗〕]?[（(\s]*$/);
 			if (!foregoing
 			//
 			|| PATTERN_none_used_title.test(label = foregoing[1])) {
@@ -216,7 +216,8 @@ function for_each_page(page_data, messages) {
 
 		label = label
 		// e.g., [[:en:t|''t'']], [[:en:t|《t》]]
-		.replace(/['》」]+$|^['《「]+/g, '').replace(/'{2,}([^']+)'{2,}/g, '$1')
+		.replace(/['》」』〉】〗〕]+$|^['《「『〈【〖〔]+/g, '').replace(
+				/'{2,}([^']+)'{2,}/g, '$1')
 		// e.g., [[:en:t|t{{en}}]]
 		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·');
 
@@ -350,7 +351,7 @@ function name_type(entity) {
 // " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, middle, text_2, quote_start, title_2,
 // quote_end ]
-var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)([\s,;.!?\/，；。！？／]*)(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
+var PATTERN_duplicate_title = /(['《「『〈【〖〔]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」』〉】〗〕]*)([\s,;.!?\/，；。！？／]*)(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -360,7 +361,7 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /原[名文]|[英德日法][语語文]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/;
+PATTERN_interlanguage = /原[名文]|[英日德法西義韓俄][语語文]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/;
 
 function push_work(full_title) {
 	// CeL.log(full_title);
@@ -423,6 +424,10 @@ function push_work(full_title) {
 				var change_to = content.replace_check_near(
 				//
 				pattern, function(link, local) {
+					local = local.replace(
+					//
+					/(?:\s*\()?[英日德法西義韓俄][语語文]\)?$/g, '');
+
 					var converted = '[[' + local_title
 					//
 					+ (local && !foreign_title.toLowerCase()
