@@ -39,11 +39,11 @@
  [[:en:7400 series|7400系列]]	[[7400系列]]
  *[[馬來西亞]]之[[:en:Law of Malaysia|法律]]	*[[馬來西亞]]之[[马来西亚法律制度|法律]]
  獲得'''[[:en:Institute of Engineering Education Taiwan|IEET認證]]'''	獲得'''[[中華工程教育學會|IEET認證]]'''
-
+ [[:en:German Labour Front|德意志勞動者陣線]]（1933~1945）{{en}}	[[德意志劳工阵线|德意志勞動者陣線]]（1933~1945）{{en}}
+ 其他的[[:en:Alien language|外星語言]]{{en icon}}	其他的[[宇宙语言学|外星語言]]{{en icon}}
 
  NG:
  *《[[兄弟情人]]》（[[:en:From Beginning to End|''Do Começo ao Fim'']]），巴西（2009）	*《[[兄弟情人]]》（[[兄弟情人|''Do Começo ao Fim'']]），巴西（2009）
- [[:en:German Labour Front|德意志勞動者陣線]]（1933~1945）{{en}}	[[德意志劳工阵线|德意志勞動者陣線]]（1933~1945）{{en}}
  [[:en:Atropatene|亞特羅巴特那]]	[[阿特羅帕特尼王國|亞特羅巴特那]]
  [[:en:Sheba|賽佰邑（示巴）]]	[[示巴王國|賽佰邑（示巴）]]
  [[:en:Walking with Monsters|與巨獸共舞]]	[[与巨兽同行|與巨獸共舞]]
@@ -51,7 +51,7 @@
  ::1984年起[[朝日電視台]]曾播放[[:ja:ナイトライダー|霹靂遊俠]]
  詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。
  美国[[科罗拉多学院]]（[[:en:Colorado College|Colorado College]]）。	美国[[科罗拉多学院]]（[[科羅拉多學院]]）。
- 其他的[[:en:Alien language|外星語言]]{{en icon}}	其他的[[宇宙语言学|外星語言]]{{en icon}}
+ 詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。	詳細人物列表請見[[各大學諾貝爾獎得主列表|英文條目：各個大學的諾貝爾得獎主人物列表]]。
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -80,7 +80,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1100,
+count = 0, test_limit = 1200,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -350,7 +350,7 @@ function name_type(entity) {
 // " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, middle, text_2, quote_start, title_2,
 // quote_end ]
-var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)([\s,;.!?/，；。！？／]*)(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
+var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)([\s,;.!?\/，；。！？／]*)(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -380,6 +380,9 @@ function push_work(full_title) {
 		if (count > test_limit)
 			return;
 
+		if (CeL.wiki.data.is_DAB(entity))
+			return;
+
 		// console.log([ language, foreign_title ]);
 		// console.log(entity);
 
@@ -404,11 +407,15 @@ function push_work(full_title) {
 				 */
 				content = CeL.wiki.content_of(page_data),
 				// [ link, local title ]
-				pattern = new RegExp('\\[\\[:' + language + '\\s*:\\s*'
+				pattern = new RegExp('(?:{{' + language
+				//
+				+ '(?: icon)?}}\s*)?\\[\\[:' + language + '\\s*:\\s*'
 				//
 				+ CeL.to_RegExp_pattern(foreign_title)
 				//
-				+ '(?:\\|([^\\[\\]]+))?\\]\\]', 'g');
+				+ '(?:\\|([^\\[\\]]+))?\\]\\](?:\s*{{'
+				//
+				+ language + '(?: icon)?}})?', 'g');
 
 				// TODO: 任[[:en:Island School|英童中學]] (Island
 				// School，今稱[[港島中學]]) 創校校長
@@ -492,6 +499,9 @@ function push_work(full_title) {
 			// throw 'Ignored: Test done.';
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
+
+		if (CeL.wiki.data.is_DAB(entity))
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 
 		if (!entity || ('missing' in entity)) {
 			return [ CeL.wiki.edit.cancel,
