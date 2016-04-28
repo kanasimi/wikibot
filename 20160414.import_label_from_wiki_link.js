@@ -51,6 +51,7 @@
  ::1984年起[[朝日電視台]]曾播放[[:ja:ナイトライダー|霹靂遊俠]]
  詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。
  美国[[科罗拉多学院]]（[[:en:Colorado College|Colorado College]]）。	美国[[科罗拉多学院]]（[[科羅拉多學院]]）。
+ 其他的[[:en:Alien language|外星語言]]{{en icon}}	其他的[[宇宙语言学|外星語言]]{{en icon}}
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -79,7 +80,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1000,
+count = 0, test_limit = 1100,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -347,8 +348,9 @@ function name_type(entity) {
 
 // 去除重複連結用。
 // " \t": 直接採 "\s" 會包括 "\n"。
-// [ all, text_1, link_1, title_1, text_2, quote_start, title_2, quote_end ]
-var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)[\s,;.!?/，；。！？／]*(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
+// [ all, text_1, link_1, title_1, middle, text_2, quote_start, title_2,
+// quote_end ]
+var PATTERN_duplicate_title = /(['《「]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」]*)([\s,;.!?/，；。！？／]*)(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
 //
@@ -455,12 +457,18 @@ function push_work(full_title) {
 				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
 				.replace(PATTERN_duplicate_title,
 				//
-				function(all, text_1, link_1, title_1, text_2,
+				function(all, text_1, link_1, title_1, middle,
 				//
-				quote_start, title_2, quote_end) {
+				text_2, quote_start, title_2, quote_end) {
+					if (middle.trim() && !quote_start)
+						// e.g.,
+						// "相較於[[F404渦輪扇發動機|F404發動機]]，[[F404渦輪扇發動機|F412發動機]]的風扇直徑加大，"
+						return all;
 					if (quote_start ? quote_end : !quote_end)
+						// 皆有或皆無
 						return text_1;
-					return (quote_start || '') + text_1 + (quote_end || '');
+					// quote_start與quote_end僅有其一。
+					return text_1 + (quote_start || quote_end);
 				});
 
 				if (change_to === content)
