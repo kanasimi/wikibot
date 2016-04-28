@@ -80,7 +80,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1200,
+count = 0, test_limit = 1300,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -408,7 +408,7 @@ function push_work(full_title) {
 				content = CeL.wiki.content_of(page_data),
 				// [ link, local title ]
 				pattern = new RegExp('(?:{{' + language
-				//
+				// TODO: {{languageicon}}
 				+ '(?: icon)?}}\s*)?\\[\\[:' + language + '\\s*:\\s*'
 				//
 				+ CeL.to_RegExp_pattern(foreign_title)
