@@ -480,7 +480,7 @@ PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\
 // [[:en:right-to-left#RTL Wikipedia languages]]
 // 應該改用{{tl|rtl-lang}}處理右至左文字如阿拉伯語及希伯來語，請參見{{tl|lang}}的說明。
 // [ all, language, text ]
-PATTERN_LTR_lang = new RegExp('{{lang\\s*\\|\\s*(' + LTR_SCRIPTS
+PATTERN_LTR_lang = new RegExp('{{lang\\s*\\|\\s*(' + CeL.wiki.LTR_SCRIPTS
 		+ ')\\s*\\|\\s*([^{}\\|]+)}}', 'ig');
 
 function replace_to_rtl_lang(all, language, text) {
