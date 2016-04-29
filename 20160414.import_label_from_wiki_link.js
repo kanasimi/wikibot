@@ -56,6 +56,7 @@
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
  [[:en:Gambier Islands|甘比爾]]島	[[甘比爾群島]]島
+ 並同時包括鄰近的一些小島嶼和一塊在大陸上的[[:en:Marble Hill, Manhattan|飛地]]。	並同時包括鄰近的一些小島嶼和一塊在大陸上的飛地[[大理石山]]。
 
  */
 
@@ -424,9 +425,10 @@ function push_work(full_title) {
 				var change_to = content.replace_check_near(
 				//
 				pattern, function(link, local) {
-					local = local.replace(
-					//
-					/(?:\s*\()?[英日德法西義韓俄][语語文]\)?$/g, '');
+					if (local)
+						local = local.replace(
+						//
+						/(?:\s*\()?[英日德法西義韓俄][语語文]\)?$/g, '');
 
 					var converted = '[[' + local_title
 					//
@@ -464,6 +466,7 @@ function push_work(full_title) {
 				}, function(behind) {
 					return !PATTERN_interlanguage.test(behind.slice(0, 20));
 				})
+
 				// 去除重複連結。
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
 				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）

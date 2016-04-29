@@ -477,9 +477,11 @@ PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g),
 //
 PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])/ig,
 // 找出使用了由右至左文字的{{lang}}模板。
+// [[:en:right-to-left#RTL Wikipedia languages]]
 // 應該改用{{tl|rtl-lang}}處理右至左文字如阿拉伯語及希伯來語，請參見{{tl|lang}}的說明。
 // [ all, language, text ]
-PATTERN_LTR_lang = /{{lang\s*\|\s*(ar|he|kk|tg-Arab)\s*\|\s*([^{}\|]+)}}/ig;
+PATTERN_LTR_lang = new RegExp('{{lang\\s*\\|\\s*(' + LTR_SCRIPTS
+		+ ')\\s*\\|\\s*([^{}\\|]+)}}', 'ig');
 
 function replace_to_rtl_lang(all, language, text) {
 	text = text.replace(/[\u200E\u200F]/g, '').trim();
