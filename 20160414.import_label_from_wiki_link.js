@@ -239,6 +239,8 @@ function for_each_page(page_data, messages) {
 		// || /^[\u0001-\u00ff英法義]$/.test(label)
 		// e.g., 法文版, 義大利文版
 		|| /[语語文]版?$/.test(label)
+		// || label.endsWith('學家')
+		|| /[學学][家者]$/.test(label)
 		// || label.includes('-{')
 		) {
 			continue;
@@ -362,7 +364,9 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄][语語文字]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/;
+PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄][语語文字]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
+// e.g., {{lang|en|[[:en:T]]}}
+PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
 function push_work(full_title) {
 	// CeL.log(full_title);
@@ -422,9 +426,12 @@ function push_work(full_title) {
 				// TODO: 任[[:en:Island School|英童中學]] (Island
 				// School，今稱[[港島中學]]) 創校校長
 
-				var change_to = content.replace_check_near(
+				var change_to = content
+				// "{{lang|en|[[:en:Luke Air Force Base|Luke Field空军基地]]}}"
+				// → "[[:en:Luke Air Force Base|Luke Field空军基地]]"
+				.replace(PATTERN_lang_link, '$2')
 				//
-				pattern, function(link, local) {
+				.replace_check_near(pattern, function(link, local) {
 					if (local)
 						local = local.replace(
 						//
@@ -476,10 +483,13 @@ function push_work(full_title) {
 				function(all, text_1, link_1, title_1, middle,
 				//
 				text_2, quote_start, title_2, quote_end) {
-					if (middle.trim() && !quote_start)
-						// e.g.,
-						// "相較於[[F404渦輪扇發動機|F404發動機]]，[[F404渦輪扇發動機|F412發動機]]的風扇直徑加大，"
+					if (!quote_start && (
+					// "相較於[[F404渦輪扇發動機|F404發動機]]，[[F404渦輪扇發動機|F412發動機]]的風扇直徑加大，"
+					middle.trim()
+					// "{{Unicode|[[Ԓ]] [[Ԓ|ԓ]]}}"
+					|| link_1.toLowerCase() === title_2.toLowerCase())) {
 						return all;
+					}
 					if (quote_start ? quote_end : !quote_end) {
 						if (/[a-z\d,;.!]$/i.test(link_1)
 						// TODO: 檢查是否所接續之下文亦為英文。
