@@ -81,7 +81,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1400,
+count = 0, test_limit = 1500,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -94,6 +94,7 @@ wiki.set_data();
 var
 // label_data['language:title'] = [ { language: {Array}labels }, {Array}titles ]
 label_data = CeL.null_Object(),
+// @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
 // 改為 non-Chinese
@@ -138,10 +139,13 @@ function for_each_page(page_data, messages) {
 	var matched;
 	while (matched = PATTERN_link.exec(content)) {
 		// TODO: parse "{{link-en|local title|foreign title}}"
+		// TODO: parse "{{tsl}}"
+		// TODO: parse "{{illm}}"
 
-		// wikt, wikisource
+		// @see function language_to_project(language) @ application.net.wiki
+		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
-		// 光是只有 "category"，代表還是在本 wiki 中，不算外語言。
+		// 光是只有 "Category"，代表還是在本 wiki 中，不算外語言。
 		|| /^category/i.test(matched[1])
 		// e.g., "日语维基百科"
 		|| /[语語文][維维]基/.test(matched[3]))
@@ -258,7 +262,7 @@ function for_each_page(page_data, messages) {
 				label = label.replace(/裡/g, '里').replace(/佔/g, '占').replace(
 						/([王皇太天])後/g, '$1后');
 				// 奧托二世
-				if (true || /[·．]/.test(label)) {
+				if (true || /[·．˙]/.test(label)) {
 					// 為人名。
 					label = label.replace(/託/g, '托');
 				}
@@ -304,10 +308,6 @@ function for_each_page(page_data, messages) {
 	}
 }
 
-var
-/** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
-NOT_FOUND = ''.indexOf('_');
-
 var name_type_hash = {
 	5 : '人',
 	515 : '城市'
@@ -352,17 +352,17 @@ function name_type(entity) {
 // " \t": 直接採 "\s" 會包括 "\n"。
 // [ all, text_1, link_1, title_1, middle, text_2, quote_start, title_2,
 // quote_end ]
-var PATTERN_duplicate_title = /(['《「『〈【〖〔]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」』〉】〗〕]*)([\s,;.!?\/，；。！？／]*)(([（(])?\s*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?/，；。！？／]*([）)])?)/g,
+var PATTERN_duplicate_title = /(['《「『〈【〖〔]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」』〉】〗〕]*)([\s,;.!?\/，；。！？／]*)(([（(])?[\s']*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?\/，；。！？／']*([）)])?)/g,
 //
 summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
-//
+// separator
 summary_sp = summary_postfix + ', ' + summary_prefix,
 // 跨語言
 // 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /原[名文]|[英日德法西義韓俄][语語文]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/;
+PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄][语語文字]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/;
 
 function push_work(full_title) {
 	// CeL.log(full_title);
@@ -468,8 +468,9 @@ function push_work(full_title) {
 				})
 
 				// 去除重複連結。
+				// TODO: 處理 link_1 重定向至 link_2的情況。
+				// e.g., [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
-				// TODO: [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
 				.replace(PATTERN_duplicate_title,
 				//
 				function(all, text_1, link_1, title_1, middle,
@@ -479,9 +480,15 @@ function push_work(full_title) {
 						// e.g.,
 						// "相較於[[F404渦輪扇發動機|F404發動機]]，[[F404渦輪扇發動機|F412發動機]]的風扇直徑加大，"
 						return all;
-					if (quote_start ? quote_end : !quote_end)
-						// 皆有或皆無
+					if (quote_start ? quote_end : !quote_end) {
+						if (/[a-z\d,;.!]$/i.test(link_1)
+						// TODO: 檢查是否所接續之下文亦為英文。
+						// && /[a-z\d]$/i.test(接續之下文)
+						)
+							text_1 += ' ';
+						// 前後 quote 皆有或皆無。
 						return text_1;
+					}
 					// quote_start與quote_end僅有其一。
 					return text_1 + (quote_start || quote_end);
 				});
