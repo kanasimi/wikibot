@@ -99,7 +99,20 @@ label_data = CeL.null_Object(),
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
 // 改為 non-Chinese
 // 2E80-2EFF 中日韓漢字部首補充 CJK Radicals Supplement
-PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i;
+PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
+//
+PATTERN_language_label = CeL.null_Object(),
+// @see common_characters @ application.net.wiki
+lang_pattern_source = /^[\s\d_,.:;'"!()\-\&<>\\\/]*lang[\s\d_,.:;'"!()\-\&<>\\\/]*$/.source;
+
+function language_label(language) {
+	if (language in PATTERN_language_label)
+		return PATTERN_language_label[language];
+
+	return PATTERN_language_label[language]
+	//
+	= new RegExp(lang_pattern_source.replace('lang', language), 'i');
+}
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
@@ -180,11 +193,8 @@ function for_each_page(page_data, messages) {
 			}
 		}
 
-		// 排除 [[:en:Day|en]]
-		if (new RegExp(
-		// @see en_chars
-		/^[,.:;'"!()\-\&<>\\\/]*lang[,.:;'"!()\-\&<>\\\/]*$/.source.replace(
-				'lang', matched[1]), 'i').test(label))
+		// 排除 [[:en:Day|en]] 之類。
+		if (language_label(matched[1]).test(label))
 			continue;
 
 		label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
@@ -222,8 +232,8 @@ function for_each_page(page_data, messages) {
 			var index = label.indexOf(foreign_title);
 			if (index > 0 && /[(（]/.test(label.charAt(index - 1))
 					&& /[)）]/.test(label.charAt(index + foreign_title.length)))
-				label = (label.slice(0, index - 1) + label.slice(index
-						+ foreign_title.length + 1)).trim();
+				label = label.slice(0, index - 1)
+						+ label.slice(index + foreign_title.length + 1);
 		}
 
 		label = label
@@ -231,7 +241,7 @@ function for_each_page(page_data, messages) {
 		.replace(/['》」』〉】〗〕]+$|^['《「『〈【〖〔]+/g, '').replace(
 				/'{2,}([^']+)'{2,}/g, '$1')
 		// e.g., [[:en:t|t{{en}}]]
-		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·');
+		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·').trim();
 
 		// 篩除代表資訊過少的辭彙。
 		if (label.length < 2
