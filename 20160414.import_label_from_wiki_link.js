@@ -49,9 +49,9 @@
  [[:en:Walking with Monsters|與巨獸共舞]]	[[与巨兽同行|與巨獸共舞]]
  [[马克萨斯群岛]] Îles Marquises（也称“[[:en:Marquesas Islands|侯爵夫人群岛]]”）
  ::1984年起[[朝日電視台]]曾播放[[:ja:ナイトライダー|霹靂遊俠]]
- 詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。
  美国[[科罗拉多学院]]（[[:en:Colorado College|Colorado College]]）。	美国[[科罗拉多学院]]（[[科羅拉多學院]]）。
  詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。	詳細人物列表請見[[各大學諾貝爾獎得主列表|英文條目：各個大學的諾貝爾得獎主人物列表]]。
+ 見[[連鐵]]或[[:ja:大連都市交通|大連電氣鐵道]]。	見[[連鐵]]或[[連鐵|大連電氣鐵道]]。
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -81,7 +81,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1500,
+count = 0, test_limit = 1600,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -179,6 +179,13 @@ function for_each_page(page_data, messages) {
 				continue;
 			}
 		}
+
+		// 排除 [[:en:Day|en]]
+		if (new RegExp(
+		// @see en_chars
+		/^[,.:;'"!()\-\&<>\\\/]*lang[,.:;'"!()\-\&<>\\\/]*$/.source.replace(
+				'lang', matched[1]), 'i').test(label))
+			continue;
 
 		label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
 			if (!$1.includes(':'))
@@ -437,9 +444,9 @@ function push_work(full_title) {
 						//
 						/(?:\s*\()?[英日德法西義韓俄][语語文]\)?$/g, '');
 
-					var converted = '[[' + local_title
+					var converted = '[[' + local_title + (local
 					//
-					+ (local && !foreign_title.toLowerCase()
+					&& !foreign_title.toLowerCase()
 					// [[:en:Day|地球日]] → [​[日|地球日]]
 					.includes(local.toLowerCase())
 					// [[:en:Day|en:]] → [​[日 (消歧義)|日]]
@@ -447,8 +454,9 @@ function push_work(full_title) {
 					// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
 					// [​[中文全名]] (譯名已匯入 wikidata aliases)
 					&& !(type === null ? (type = name_type(entity)) : type)
-					//
+					// ↓採用原先之標籤。
 					? local === local_title ? '' : '|' + local
+					// ↓放棄原先之標籤，採用條目名稱。
 					// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
 					// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
 					// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
