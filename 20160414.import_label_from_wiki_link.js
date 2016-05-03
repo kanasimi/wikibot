@@ -81,11 +81,11 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = 1600,
+count = 0, test_limit = Infinity,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
-modify_Wikipedia = true;
+modify_Wikipedia = false;
 
 // ----------------------------------------------------------------------------
 
