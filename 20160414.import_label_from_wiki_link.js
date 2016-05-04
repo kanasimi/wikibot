@@ -111,7 +111,7 @@ PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
 PATTERN_language_label = CeL.null_Object(),
 // @see common_characters @ application.net.wiki
-lang_pattern_source = /^[\s\d_,.:;'"!()\-+\&<>\\\/]*lang[\s\d_,.:;'"!()\-+\&<>\\\/]*$/.source;
+lang_pattern_source = /^[\s\d_,.:;'"!()\-+\&<>\\\/@#$%^&*=]*lang[\s\d_,.:;'"!()\-+\&<>\\\/@#$%^&*=]*$/.source;
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
