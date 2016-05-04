@@ -157,17 +157,81 @@ function for_each_page(page_data, messages) {
 	if (!content)
 		return;
 
+	// 增加特定語系註記
+	function add_label(foreign_language, foreign_title, label, local_language) {
+		if (foreign_title === label)
+			return;
+
+		if (use_language === 'zh' && (!local_language
+		// assert: use_language === 'zh' 才有可能是簡體
+		|| local_language === 'zh-cn' || local_language === 'zh-hans')) {
+			// 後期修正/繁簡修正。繁體轉換成簡體比較不容易出錯，因此以繁體為主。
+
+			// TODO: CeL.CN_to_TW() is too slow...
+			var label_CHT = CeL.CN_to_TW(label);
+			if (label_CHT !== label) {
+				// 詞條標題中，使用'里'這個字的機會大多了。
+				label_CHT = label_CHT.replace(/裡/g, '里').replace(/佔/g, '占')
+						.replace(/([王皇太天])後/g, '$1后');
+				// 奧托二世
+				if (true || /[·．˙]/.test(label_CHT)) {
+					// 為人名。
+					label_CHT = label_CHT.replace(/託/g, '托');
+				}
+				if (label_CHT !== label) {
+					// 加上轉換成繁體的 label
+					add_label(foreign_language, foreign_title, label_CHT,
+							'zh-hant');
+					if (!local_language)
+						// label 照理應該是簡體 (zh-cn)。
+						// treat zh-hans as zh-cn
+						local_language = 'zh-cn';
+				}
+			}
+		}
+
+		var data, full_title = foreign_language + ':' + foreign_title;
+		if (!(full_title in label_data)) {
+			++count;
+			if (count <= log_limit)
+				// 此 label 指向
+				CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
+						'fg=cyan', full_title, '-fg',
+						'@ [[' + title + ']]: ' + matched[0] ]);
+			label_data[full_title] = data = [ {}, [ title ] ];
+
+		} else {
+			data = label_data[full_title];
+			if (!data[1].includes(title)) {
+				data[1].push(title);
+			}
+		}
+
+		if (!local_language)
+			local_language = use_language;
+
+		if (!data[0][local_language]) {
+			data[0][local_language] = [ label ];
+		} else if (!data[0][local_language].includes(label)) {
+			data[0][local_language].push(label);
+		}
+	}
+
 	var matched;
+
+	// ----------------------------------------------------
+
 	while (matched = PATTERN_link.exec(content)) {
 		// @see function language_to_project(language) @ application.net.wiki
 		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
-		// 光是只有 "Category"，代表還是在本 wiki 中，不算外語言。
+		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
 		|| /^category/i.test(matched[1])
 		// e.g., "日语维基百科"
 		|| /[语語文國国][維维]基/.test(matched[3]))
 			continue;
 
+		// 外國語言條目名
 		var foreign_title = matched[2].trim().replace(/_/g, ' ');
 
 		if (foreign_title.length < 2
@@ -176,10 +240,10 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		var 不須轉換成繁體 = use_language !== 'zh',
+		var
 		// language of ((label))
 		language_guessed,
-		//
+		// 本地條目名 or 本地實際顯示名
 		label = matched[3];
 
 		if (PATTERN_none_used_title.test(label)) {
@@ -187,7 +251,8 @@ function for_each_page(page_data, messages) {
 			// 前面的 foregoing paragraphs, see above, previously stated, precedent
 			// 後面的 behind rearwards;back;posteriority;atergo;rearward
 			var foregoing = content.slice(matched.index - 80, matched.index)
-			// parse "《[[local title]]》 （[[:en:foreign title|foreign]]）"
+			// parse 括號後附註
+			// "《[[local title]]》 （[[:en:foreign title|foreign]]）"
 			// @see PATTERN_duplicate_title
 			.match(/\[\[([^\[\]:]+)\]\]\s*['》」』〉】〗〕]?[（(\s]*$/);
 			if (!foregoing
@@ -211,7 +276,6 @@ function for_each_page(page_data, messages) {
 			// 香港繁體, 澳門繁體
 			|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
 			if (matched) {
-				不須轉換成繁體 = true;
 				language_guessed = matched[1].toLowerCase();
 				return matched[2].trim();
 			}
@@ -269,77 +333,62 @@ function for_each_page(page_data, messages) {
 			continue;
 		}
 
-		// 後期修正/繁簡修正。繁體轉換成簡體比較不容易出錯，因此以繁體為主。
 		// label = label.replace(/（(.+)）$/, '($1)');
-		var label_before_convert;
-		if (!不須轉換成繁體
-		//
-		&& (!(language_guessed = CeL.wiki.guess_language(label))
-		//
-		|| language_guessed === 'zh-cn' || language_guessed === 'zh-hans')) {
-			不須轉換成繁體 = true;
-			language_guessed = 'zh-hant';
-			label_before_convert = label;
-			// TODO: CeL.CN_to_TW() is too slow...
-			label = CeL.CN_to_TW(label);
-			if (label_before_convert !== label) {
-				// 詞條標題中，使用'里'這個字的機會大多了。
-				label = label.replace(/裡/g, '里').replace(/佔/g, '占').replace(
-						/([王皇太天])後/g, '$1后');
-				// 奧托二世
-				if (true || /[·．˙]/.test(label)) {
-					// 為人名。
-					label = label.replace(/託/g, '托');
-				}
-			}
-		}
 
-		if (foreign_title === label)
-			continue;
-
-		// 增加特定語系註記
-		function add_label(label, language) {
-			var data;
-			if (!(full_title in label_data)) {
-				++count;
-				if (count <= log_limit)
-					// 此 label 指向
-					CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
-							'fg=cyan', full_title, '-fg',
-							'@ [[' + title + ']]: ' + matched[0] ]);
-				label_data[full_title] = data = [ {}, [ title ] ];
-
-			} else {
-				data = label_data[full_title];
-				if (!data[1].includes(title)) {
-					data[1].push(title);
-				}
-			}
-
-			if (!data[0][language]) {
-				data[0][language] = [ label ];
-			} else if (!data[0][language].includes(label)) {
-				data[0][language].push(label);
-			}
-		}
-
-		var full_title = matched[1] + ':' + foreign_title;
-		add_label(label, language_guessed || use_language);
-		if (不須轉換成繁體 && label_before_convert !== label) {
-			// 加上 label_before_convert，照理應該是簡體 (zh-cn)。
-			// treat zh-hans as zh-cn
-			add_label(label_before_convert, 'zh-cn');
-		}
+		add_label(matched[1], foreign_title, label, language_guessed
+				|| CeL.wiki.guess_language(label));
 	}
 
-	// TODO: parse "{{link-en|local title|foreign title}}"
-	// TODO: parse "{{tsl}}"
-	// TODO: parse "{{illm}}"
-	if (false)
-		CeL.wiki.parse.every('{{link-[a-z]+|tsl|illm}}', content, function(
-				token) {
-			console.log(token);
-		})
+	// ----------------------------------------------------
+
+	// parse 跨語言連結模板
+	CeL.wiki.parse.every('{{link-[a-z]{2,3}|[a-z]{2,3}-link|tsl|illm}}',
+	//
+	content, function(token) {
+		// console.log(token);
+
+		var foreign_language, foreign_title, label,
+		//
+		template_name = token[1].toLowerCase();
+
+		// TODO: parse 跨語言連結模板 {{ilh}}
+		switch (template_name) {
+		case 'tsl':
+			// case 'translink':
+
+			// "{{tsl|en|foreign title|local title}}"
+			foreign_language = token[2][0];
+			foreign_title = token[2][1];
+			label = token[2][2];
+			break;
+
+		case 'illm':
+			// case 'interlanguage link multi':
+			// case '多語言連結':
+			label = token[2][0];
+			if (token[2].WD) {
+				// "{{illm|WD=Q1}}"
+				foreign_language = 'WD';
+				foreign_title = token[2].WD;
+			} else {
+				// "{{illm|local title|en|foreign title}}"
+				foreign_language = token[2][1];
+				foreign_title = token[2][2];
+			}
+			break;
+
+		default:
+			// "{{link-en|local title|foreign title}}"
+			foreign_language = template_name.startsWith('link-')
+			// 5: 'link-'.length, '-link'.length
+			? template_name.slice(5) : template_name.slice(0, -5);
+			foreign_title = token[2][1];
+			label = token[2][0];
+			break;
+		}
+
+		add_label(foreign_language, foreign_title, label);
+	})
 }
 
 // ----------------------------------------------------------------------------
@@ -437,7 +486,7 @@ function push_work(full_title) {
 	labels = labels[0];
 
 	// TODO: 一次取得多筆資料。
-	wiki.data({
+	wiki.data(language === 'WD' ? foreign_title : {
 		title : foreign_title,
 		language : language
 	}, 'labels|aliases|claims|sitelinks', modify_Wikipedia && function(entity) {
@@ -645,7 +694,8 @@ function finish_work() {
 // CeL.set_debug();
 
 // rm import_label_from_wiki_link/labels.json
-prepare_directory(base_directory, true);
+// prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
 label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
 if (label_data) {
