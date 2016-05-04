@@ -83,7 +83,7 @@ log_limit = 4000,
 //
 count = 0, length = 0,
 // Infinity for do all
-test_limit = 20,
+test_limit = 50,
 //
 use_language = 'zh',
 // labels.json
@@ -159,7 +159,9 @@ function for_each_page(page_data, messages) {
 
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language) {
-		if (foreign_title === label)
+		if (foreign_title === label
+		// 在遇到如 [[:ja:混合農業]] 時會被跳過。此處 'zh-hant' 表示已經過轉換，繁簡標題不相同之結果。
+		&& (foreign_language !== 'ja' || local_language !== 'zh-hant'))
 			return;
 
 		if (!local_language)
