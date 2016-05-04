@@ -101,7 +101,7 @@ function 處理須拆分的條目(page_data, messages) {
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data),
 	//
-	多個問題_模板 = CeL.wiki.parser.template(content, 多個問題_模板別名_list, true);
+	多個問題_模板 = CeL.wiki.parse.template(content, 多個問題_模板別名_list, true);
 	if (!多個問題_模板)
 		return [ CeL.wiki.edit.cancel, '條目中未發現{{tl|多個問題}}。已變更過，資料非最新？' ];
 
@@ -220,7 +220,7 @@ function 處理須合併的條目(page_data, messages) {
 	/** {String}page content, maybe undefined. */
 	var content = CeL.wiki.content_of(page_data),
 	// 若本來就已經含有{{多個問題}}模板，表示已經過編輯，則放棄之。
-	matched = CeL.wiki.parser.template(content, 多個問題_模板別名_list, true);
+	matched = CeL.wiki.parse.template(content, 多個問題_模板別名_list, true);
 
 	if (matched)
 		return [ CeL.wiki.edit.cancel, '已含有{{tl|多個問題}}模板' ];
@@ -228,7 +228,7 @@ function 處理須合併的條目(page_data, messages) {
 	// 抽取出所有維護模板，再於首個維護模板出現的地方插入{{多個問題}}模板
 	var less_index = Infinity, 多個問題_模板內容 = [], 章節維護模板_count = 0;
 	條目所含維護模板.forEach(function(template_name) {
-		var matched = CeL.wiki.parser.template(content, template_name, true);
+		var matched = CeL.wiki.parse.template(content, template_name, true);
 		if (!matched) {
 			// 當同時包含 Refimprove, RefImprove 時會算作兩個，但實質僅一個。
 			return;

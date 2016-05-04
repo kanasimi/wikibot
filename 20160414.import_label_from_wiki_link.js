@@ -81,7 +81,7 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, test_limit = Infinity,
+count = 0, length = 0, test_limit = Infinity,
 //
 use_language = 'zh', data_file_name = 'labels.json',
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -151,17 +151,13 @@ function for_each_page(page_data, messages) {
 
 	var matched;
 	while (matched = PATTERN_link.exec(content)) {
-		// TODO: parse "{{link-en|local title|foreign title}}"
-		// TODO: parse "{{tsl}}"
-		// TODO: parse "{{illm}}"
-
 		// @see function language_to_project(language) @ application.net.wiki
 		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
 		// 光是只有 "Category"，代表還是在本 wiki 中，不算外語言。
 		|| /^category/i.test(matched[1])
 		// e.g., "日语维基百科"
-		|| /[语語文][維维]基/.test(matched[3]))
+		|| /[语語文國国][維维]基/.test(matched[3]))
 			continue;
 
 		var foreign_title = matched[2].trim().replace(/_/g, ' ');
@@ -255,7 +251,7 @@ function for_each_page(page_data, messages) {
 		// || label.includes('/')
 		// || /^[\u0001-\u00ff英法義]$/.test(label)
 		// e.g., 法文版, 義大利文版
-		|| /[语語文]版?$/.test(label)
+		|| /[语語文國国]版?$/.test(label)
 		// || label.endsWith('學家')
 		|| /[學学][家者]$/.test(label)
 		// || label.includes('-{')
@@ -325,7 +321,18 @@ function for_each_page(page_data, messages) {
 			add_label(label_before_convert, 'zh-cn');
 		}
 	}
+
+	// TODO: parse "{{link-en|local title|foreign title}}"
+	// TODO: parse "{{tsl}}"
+	// TODO: parse "{{illm}}"
+	if (false)
+		CeL.wiki.parse.every('{{link-[a-z]+|tsl|illm}}', content, function(
+				token) {
+			console.log(token);
+		})
 }
+
+// ----------------------------------------------------------------------------
 
 var name_type_hash = {
 	5 : '人',
@@ -381,7 +388,7 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄][语語文字]|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
+PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄](?:字|[语語文國国]字)|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
@@ -452,7 +459,7 @@ function push_work(full_title) {
 					if (local)
 						local = local.replace(
 						//
-						/(?:\s*\()?[英日德法西義韓俄][语語文]\)?$/g, '');
+						/(?:\s*\()?[英日德法西義韓俄][语語文國国]\)?$/g, '');
 
 					var converted = '[[' + local_title + (local
 					//
@@ -569,7 +576,7 @@ function push_work(full_title) {
 	}, {
 		bot : 1,
 		summary : 'bot: import label/alias from ' + summary_prefix
-		//
+		// 一般到第5,6個就會被切掉。
 		+ titles.uniq().slice(0, 8).join(summary_sp)
 		//
 		+ summary_postfix

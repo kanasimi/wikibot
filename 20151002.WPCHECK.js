@@ -760,7 +760,7 @@ function fix_69(content, page_data, messages, options) {
 // ------------------------------------
 
 // [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
-// CeL.wiki.parser.parse('[[File:a.jpg|thumb|d]]')
+// CeL.wiki.parse('[[File:a.jpg|thumb|d]]')
 fix_76.title = '檔案或圖片的連結中包含空格';
 function fix_76(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
@@ -825,7 +825,7 @@ function fix_80(content, page_data, messages, options) {
 
 var PATTERN_empty_tags = /<(gallery|onlyinclude|includeonly|noinclude|ref|span|b|i)>[\s\n]*<\/\1>/ig;
 
-// CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]');
+// CeL.wiki.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_85.title = '含有空的 HTML tag';
 function fix_85(content, page_data, messages, options) {
 	content = content
@@ -846,7 +846,7 @@ function fix_85(content, page_data, messages, options) {
 
 // TODO: [[link]]（[[:en:link]]）→ [[link]]
 
-// CeL.wiki.parser.parse('[[http://www.wikipedia.org Wikipedia]]');
+// CeL.wiki.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_86.title = '使用內部連結之雙括號表現外部連結';
 function fix_86(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
@@ -873,7 +873,7 @@ function fix_86(content, page_data, messages, options) {
 			+ ' ' + matched[2].trim();
 		}
 
-		return CeL.wiki.parser.wiki_URL(text);
+		return CeL.wiki.parse.wiki_URL(text);
 	}, true).toString();
 
 	return content;

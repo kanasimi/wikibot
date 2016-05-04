@@ -99,7 +99,7 @@ wiki
 			return;
 		}
 
-		var token = CeL.wiki.parser.template(line, 'Findsources');
+		var token = CeL.wiki.parse.template(line, 'Findsources');
 		if (!token)
 			// 本 line 無提報資料。
 			return;
@@ -116,7 +116,7 @@ wiki
 			return;
 		}
 
-		var days = (Date.now() - CeL.wiki.parser.date(line
+		var days = (Date.now() - CeL.wiki.parse.date(line
 				.slice(token.lastIndex)))
 				/ ONE_DAY_LENGTH_VALUE | 0;
 		if (days < limit_days)
@@ -125,7 +125,7 @@ wiki
 		if (delete_days <= days)
 			移除過期_end_line = index;
 
-		var user = CeL.wiki.parser.user(line.slice(token.lastIndex));
+		var user = CeL.wiki.parse.user(line.slice(token.lastIndex));
 		if (!user) {
 			CeL.err('No user specified: [' + line + ']');
 			return;
@@ -187,9 +187,9 @@ wiki
 			else {
 				/** {String}page content, maybe undefined. */
 				var content = CeL.wiki.content_of(page_data), matched;
-				if (CeL.wiki.parser.redirect(content))
+				if (CeL.wiki.parse.redirect(content))
 					page_status[title][1] = message_set.redirected;
-				else if (matched = CeL.wiki.parser.template(content,
+				else if (matched = CeL.wiki.parse.template(content,
 						'vfd|afd|rfd|ffd|tfd|mfd')) {
 					// 已經提刪的就不再提醒提報者。
 					matched = (matched = matched[2].date)
