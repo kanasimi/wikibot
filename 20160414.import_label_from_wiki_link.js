@@ -83,7 +83,7 @@ log_limit = 4000,
 //
 count = 0, length = 0,
 // Infinity for do all
-test_limit = 10,
+test_limit = 20,
 //
 use_language = 'zh',
 // labels.json
@@ -162,6 +162,9 @@ function for_each_page(page_data, messages) {
 		if (foreign_title === label)
 			return;
 
+		if (!local_language)
+			local_language = CeL.wiki.guess_language(label);
+
 		if (use_language === 'zh' && (!local_language
 		// assert: use_language === 'zh' 才有可能是簡體
 		|| local_language === 'zh-cn' || local_language === 'zh-hans')) {
@@ -186,6 +189,8 @@ function for_each_page(page_data, messages) {
 						// label 照理應該是簡體 (zh-cn)。
 						// treat zh-hans as zh-cn
 						local_language = 'zh-cn';
+				} else {
+					// 繁簡標題相同，採用 local_language = 'zh' 即可。
 				}
 			}
 		}
@@ -335,17 +340,17 @@ function for_each_page(page_data, messages) {
 
 		// label = label.replace(/（(.+)）$/, '($1)');
 
-		add_label(matched[1], foreign_title, label, language_guessed
-				|| CeL.wiki.guess_language(label));
+		add_label(matched[1], foreign_title, label, language_guessed);
 	}
 
 	// ----------------------------------------------------
 
 	// parse 跨語言連結模板
-	CeL.wiki.parse.every('{{link-[a-z]{2,3}|[a-z]{2,3}-link|tsl|illm}}',
+	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|tsl|illm}}',
 	//
 	content, function(token) {
 		// console.log(token);
+		matched = token;
 
 		var foreign_language, foreign_title, label,
 		//
@@ -701,8 +706,10 @@ label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
 if (label_data) {
 	// read cache
 	label_data = JSON.parse(label_data);
-	PATTERN_common_title = CeL.fs_read(base_directory + 'common_title.js',
-			'utf8');
+	PATTERN_common_title = JSON.parse(CeL.fs_read(base_directory
+			+ 'common_title.json', 'utf8'));
+	PATTERN_common_title = new RegExp(PATTERN_common_title.source,
+			PATTERN_common_title.flags);
 	finish_work();
 
 } else {
@@ -736,9 +743,12 @@ if (label_data) {
 					'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'.replace('國名',
 							PATTERN_common_title.join('|')));
 
-			CeL.fs_write(base_directory + 'common_title.js',
+			CeL.fs_write(base_directory + 'common_title.json',
 			//
-			JSON.stringify(PATTERN_common_title), 'utf8');
+			JSON.stringify({
+				source : PATTERN_common_title.source,
+				flags : PATTERN_common_title.flags
+			}), 'utf8');
 
 			create_label_data();
 		});
