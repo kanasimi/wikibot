@@ -81,9 +81,13 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 4000,
 //
-count = 0, length = 0, test_limit = Infinity,
+count = 0, length = 0,
+// Infinity for do all
+test_limit = 10,
 //
-use_language = 'zh', data_file_name = 'labels.json',
+use_language = 'zh',
+// labels.json
+data_file_name = 'labels',
 // 是否要使用Wikidata數據來清理跨語言連結。
 modify_Wikipedia = false;
 
@@ -97,6 +101,10 @@ label_data = CeL.null_Object(),
 // @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
+
+// 去除國名或常用字詞。 @see [[瓦倫蒂諾·羅西]]
+PATTERN_common_title,
+
 // 改為 non-Chinese
 // 2E80-2EFF 中日韓漢字部首補充 CJK Radicals Supplement
 PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
@@ -330,6 +338,24 @@ function for_each_page(page_data, messages) {
 				token) {
 			console.log(token);
 		})
+}
+
+// ----------------------------------------------------------------------------
+
+function create_label_data() {
+	// CeL.set_debug(6);
+	CeL.wiki.traversal({
+		wiki : wiki,
+		// cache path prefix
+		directory : base_directory,
+		// 指定 dump file 放置的 directory。
+		// dump_directory : bot_directory + 'dumps/',
+		dump_directory : '/shared/dump/',
+		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
+		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
+		filter : true,
+		after : finish_work
+	}, for_each_page);
 }
 
 // ----------------------------------------------------------------------------
@@ -597,6 +623,8 @@ function finish_work() {
 	CeL.log(script_name + ': All ' + count + ' labels.');
 	count = 0;
 
+	console.log(PATTERN_common_title);
+
 	for ( var full_title in label_data) {
 		push_work(full_title);
 	}
@@ -615,7 +643,6 @@ function finish_work() {
 // rm import_label_from_wiki_link/labels.json
 prepare_directory(base_directory, true);
 
-// read cache.
 label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
 if (label_data) {
 	// read cache
@@ -630,17 +657,27 @@ if (label_data) {
 		process.umask(parseInt('0022', 8));
 	}
 
-	// CeL.set_debug(6);
-	CeL.wiki.traversal({
-		wiki : wiki,
-		// cache path prefix
-		directory : base_directory,
-		// 指定 dump file 放置的 directory。
-		// dump_directory : bot_directory + 'dumps/',
-		dump_directory : '/shared/dump/',
-		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
-		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
-		filter : true,
-		after : finish_work
-	}, for_each_page);
+	// prepare PATTERN_common_title
+	wiki.page('模块:CGroup/地名', function(page_data) {
+		PATTERN_common_title = [];
+		var matched, pattern = /, *rule *= *'([^']+)'/g,
+		/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
+		content = CeL.wiki.content_of(page_data);
+		while (matched = pattern.exec(content)) {
+			PATTERN_common_title.append(matched[1].split(/;|=>/).map(
+					function(name) {
+						return name.replace(/^[a-z\-\s]+:/, '').trim().replace(
+								/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
+					}));
+		}
+		PATTERN_common_title = PATTERN_common_title.sort().uniq();
+		// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
+		if (false && !PATTERN_common_title[0])
+			PATTERN_common_title = PATTERN_common_title.slice(1);
+		PATTERN_common_title = new RegExp(
+				'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'.replace('國名',
+						PATTERN_common_title.join('|')));
+
+		create_label_data();
+	});
 }
