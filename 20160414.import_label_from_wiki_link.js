@@ -83,7 +83,7 @@ log_limit = 4000,
 //
 count = 0, length = 0,
 // Infinity for do all
-test_limit = 50,
+test_limit = Infinity,
 //
 use_language = 'zh',
 // labels.json
@@ -111,7 +111,7 @@ PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
 PATTERN_language_label = CeL.null_Object(),
 // @see common_characters @ application.net.wiki
-lang_pattern_source = /^[\s\d_,.:;'"!()\-\&<>\\\/]*lang[\s\d_,.:;'"!()\-\&<>\\\/]*$/.source;
+lang_pattern_source = /^[\s\d_,.:;'"!()\-+\&<>\\\/]*lang[\s\d_,.:;'"!()\-+\&<>\\\/]*$/.source;
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
@@ -688,12 +688,13 @@ function finish_work() {
 	for ( var full_title in label_data) {
 		push_work(full_title);
 	}
-	if (modify_Wikipedia) {
-		wiki.run(function() {
-			CeL.log(script_name + ': 已更改完 Wikidata。開始處理 ' + use_language
-					+ ' Wikipedia 上的頁面。');
-		});
-	}
+
+	wiki.run(function() {
+		var message = script_name + ': 已更改完 Wikidata。';
+		if (modify_Wikipedia)
+			message += '開始處理 ' + use_language + ' Wikipedia 上的頁面。';
+		CeL.log(message);
+	});
 }
 
 // ----------------------------------------------------------------------------
