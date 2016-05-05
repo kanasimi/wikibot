@@ -79,7 +79,7 @@ base_directory = bot_directory + script_name + '/';
 
 var
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 400,
+log_limit = 200,
 //
 count = 0, length = 0,
 // Infinity for do all
@@ -111,7 +111,8 @@ PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
 PATTERN_language_label = CeL.null_Object(),
 //
-common_characters = CeL.wiki.PATTERN_common_characters.replace(/\+$/, '*');
+common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
+		'*');
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
@@ -718,8 +719,8 @@ function finish_work() {
 // CeL.set_debug();
 
 // rm import_label_from_wiki_link/labels.json
-// prepare_directory(base_directory, true);
 prepare_directory(base_directory);
+// prepare_directory(base_directory, true);
 
 label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
 if (label_data) {
