@@ -111,7 +111,7 @@ PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
 PATTERN_language_label = CeL.null_Object(),
 // @see common_characters @ application.net.wiki
-lang_pattern_source = /^[\s\d_,.:;'"!()\-+\&<>\\\/@#$%^&*=]*lang[\s\d_,.:;'"!()\-+\&<>\\\/@#$%^&*=]*$/.source;
+lang_pattern_source = /^[\s\d_,.:;'"!()\-+\&<>\\\/\?@#$%^&*=]*lang[\s\d_,.:;'"!()\-+\&<>\\\/\?@#$%^&*=]*$/.source;
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
@@ -164,8 +164,13 @@ function for_each_page(page_data, messages) {
 		&& (foreign_language !== 'ja' || local_language !== 'zh-hant'))
 			return;
 
-		if (!local_language)
+		if (!local_language) {
 			local_language = CeL.wiki.guess_language(label);
+			if (local_language === '') {
+				CeL.warn('add_label: Unknown language: [[:' + foreign_language
+						+ ':' + foreign_title + '|' + label + ']]');
+			}
+		}
 
 		if (use_language === 'zh' && (!local_language
 		// assert: use_language === 'zh' 才有可能是簡體
