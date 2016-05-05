@@ -159,7 +159,15 @@ function for_each_page(page_data, messages) {
 
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language) {
-		if (foreign_title === label
+		foreign_title = CeL.wiki.normalize_title(foreign_title);
+		label = CeL.wiki.normalize_title(label);
+		if (false) {
+			// done by CeL.wiki.normalize_title().
+			label = label.replace(/_/g, ' ');
+		}
+		if (foreign_title === label || foreign_title.startsWith(label)
+		// e.g., [[:en:Björn Eriksson (civil servant)|Björn Eriksson]]
+		&& /^\s*\(.+\)$/.test(foreign_title.slice(label.length))
 		// 在遇到如 [[:ja:混合農業]] 時會被跳過。此處 'zh-hant' 表示已經過轉換，繁簡標題不相同之結果。
 		&& (foreign_language !== 'ja' || local_language !== 'zh-hant'))
 			return;
@@ -295,8 +303,8 @@ function for_each_page(page_data, messages) {
 			return matched && matched[1].trim() || $0;
 		})
 		// 去掉 "|..." 之後之 label。
-		.replace(/\|.*/, '').trim().replace(/_/g, ' ').replace(/<br[^<>]*>/ig,
-				' ').replace(/[\s　]{2,}/g, ' ');
+		.replace(/\|.*/, '').trim().replace(/<br[^<>]*>/ig, ' ').replace(
+				/[\s　_]{2,}/g, ' ');
 
 		if (label.length < 5
 		// && label.length > 1
