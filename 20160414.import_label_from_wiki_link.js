@@ -79,7 +79,7 @@ base_directory = bot_directory + script_name + '/';
 
 var
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 4000,
+log_limit = 400,
 //
 count = 0, length = 0,
 // Infinity for do all
@@ -110,8 +110,8 @@ PATTERN_common_title,
 PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
 PATTERN_language_label = CeL.null_Object(),
-// @see common_characters @ application.net.wiki
-lang_pattern_source = /^[\s\d_,.:;'"!()\-+\&<>\\\/\?@#$%^&*=]*lang[\s\d_,.:;'"!()\-+\&<>\\\/\?@#$%^&*=]*$/.source;
+//
+common_characters = CeL.wiki.PATTERN_common_characters.replace(/\+$/, '*');
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
@@ -119,7 +119,8 @@ function language_label(language) {
 
 	return PATTERN_language_label[language]
 	//
-	= new RegExp(lang_pattern_source.replace('lang', language), 'i');
+	= new RegExp('^' + common_characters + language + common_characters + '$',
+			'i');
 }
 
 /**
@@ -165,18 +166,22 @@ function for_each_page(page_data, messages) {
 			// done by CeL.wiki.normalize_title().
 			label = label.replace(/_/g, ' ');
 		}
-		if (foreign_title === label || foreign_title.startsWith(label)
-		// e.g., [[:en:Björn Eriksson (civil servant)|Björn Eriksson]]
-		&& /^\s*\(.+\)$/.test(foreign_title.slice(label.length))
+
+		if ((foreign_language !== 'ja' || local_language !== 'zh-hant')
+		// 不處理各自包含者。
+		&& (foreign_title.length === label.length
 		// 在遇到如 [[:ja:混合農業]] 時會被跳過。此處 'zh-hant' 表示已經過轉換，繁簡標題不相同之結果。
-		&& (foreign_language !== 'ja' || local_language !== 'zh-hant'))
+		? foreign_title === label
+		// e.g., [[:en:Björn Eriksson (civil servant)|Björn Eriksson]]
+		: foreign_title.length > label.length && foreign_title.includes(label)))
 			return;
 
 		if (!local_language) {
 			local_language = CeL.wiki.guess_language(label);
 			if (local_language === '') {
 				CeL.warn('add_label: Unknown language: [[:' + foreign_language
-						+ ':' + foreign_title + '|' + label + ']]');
+						+ ':' + foreign_title + '|' + label + ']] @ [[' + title
+						+ ']]');
 			}
 		}
 
@@ -335,15 +340,9 @@ function for_each_page(page_data, messages) {
 
 		// 篩除代表資訊過少的辭彙。
 		if (label.length < 2
-		// 不處理各自包含者。
-		|| (foreign_title.length === label.length
-		//
-		? foreign_title == label
-		//
-		: foreign_title.length > label.length && foreign_title.includes(label))
 		// 去除不能包含的字元。
 		// || label.includes('/')
-		// || /^[\u0001-\u00ff英法義]$/.test(label)
+		// || /^[\u0001-\u00ff英日德法西義韓諺俄]$/.test(label)
 		// e.g., 法文版, 義大利文版
 		|| /[语語文國国]版?$/.test(label)
 		// || label.endsWith('學家')
@@ -407,7 +406,11 @@ function for_each_page(page_data, messages) {
 			break;
 		}
 
-		add_label(foreign_language, foreign_title, label);
+		if (label && foreign_title && foreign_language) {
+			add_label(foreign_language, foreign_title, label);
+		} else if (!label && !foreign_title || !foreign_language) {
+			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
+		}
 	})
 }
 
