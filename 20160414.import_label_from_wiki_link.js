@@ -161,6 +161,10 @@ function for_each_page(page_data, messages) {
 
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language) {
+		if (!/^(?:[a-z]{2,}|WD)$/.test(foreign_language)) {
+			CeL.warn('Invalid language: ' + foreign_language);
+			return;
+		}
 		foreign_title = CeL.wiki.normalize_title(foreign_title);
 		label = CeL.wiki.normalize_title(label);
 		if (false) {
@@ -180,9 +184,8 @@ function for_each_page(page_data, messages) {
 		if (!local_language) {
 			local_language = CeL.wiki.guess_language(label);
 			if (local_language === '') {
-				CeL.warn('add_label: Unknown language: [[:' + foreign_language
-						+ ':' + foreign_title + '|' + label + ']] @ [[' + title
-						+ ']]');
+				CeL.warn('add_label: Unknown language: ' + matched[0] + ' @ [['
+						+ title + ']]');
 			}
 		}
 
@@ -501,9 +504,12 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
 
 function push_work(full_title) {
 	// CeL.log(full_title);
-	var foreign_title = full_title.match(/^([a-z]{2,}):(.+)$/),
-	//
-	language = foreign_title[1],
+	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
+	if (!foreign_title) {
+		CeL.warn('Invalid title: ' + foreign_title);
+		return;
+	}
+	var language = foreign_title[1],
 	//
 	labels = label_data[full_title], titles = labels[1];
 	foreign_title = foreign_title[2];
