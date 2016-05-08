@@ -4,7 +4,6 @@
 
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  TODO:
- catch已經完成操作的label
  parse [[西利西利]]山（Mauga Silisili）
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
@@ -52,6 +51,7 @@
  美国[[科罗拉多学院]]（[[:en:Colorado College|Colorado College]]）。	美国[[科罗拉多学院]]（[[科羅拉多學院]]）。
  詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。	詳細人物列表請見[[各大學諾貝爾獎得主列表|英文條目：各個大學的諾貝爾得獎主人物列表]]。
  見[[連鐵]]或[[:ja:大連都市交通|大連電氣鐵道]]。	見[[連鐵]]或[[連鐵|大連電氣鐵道]]。
+ Q955618: [[en:Sentosa Express]]: {"zh-hant":["<small>'''聖淘沙捷運<br>（Sentosa Express）'''</small>"],"zh-cn":["<small>'''圣淘沙捷运<br>（Sentosa Express）'''</small>"]}
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -98,6 +98,10 @@ wiki.set_data();
 var
 // label_data['language:title'] = [ { language: {Array}labels }, {Array}titles ]
 label_data = CeL.null_Object(),
+// catch已經處理完成操作的label
+// processed[title] = last revisions
+processed = CeL.null_Object(),
+
 // @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
 PATTERN_link = /\[\[:\s*?([a-z]{2,})\s*:\s*([^\[\]|#]+)\|([^\[\]|#]+)\]\]/g,
@@ -151,7 +155,15 @@ function for_each_page(page_data, messages) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
-	content = CeL.wiki.content_of(page_data);
+	content = CeL.wiki.content_of(page_data),
+	//
+	revid = page_data.revisions[0].revid;
+
+	if (title in processed) {
+		if (processed[title] === revid)
+			return;
+		// assert: processed[title] < page_data.revisions[0].revid
+	}
 
 	if (/^\d+月(\d+日)?$/.test(title) || /^\d+年(\d+月)?$/.test(title))
 		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
@@ -161,9 +173,12 @@ function for_each_page(page_data, messages) {
 
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language) {
-		if (!/^(?:[a-z]{2,}|WD)$/.test(foreign_language)) {
-			CeL.warn('Invalid language: ' + foreign_language);
-			return;
+		if (foreign_language !== 'WD') {
+			foreign_language = foreign_language.toLowerCase();
+			if (!/^(?:[a-z]{2,})$/.test(foreign_language)) {
+				CeL.warn('Invalid language: ' + foreign_language);
+				return;
+			}
 		}
 		foreign_title = CeL.wiki.normalize_title(foreign_title);
 		label = CeL.wiki.normalize_title(label);
@@ -201,7 +216,7 @@ function for_each_page(page_data, messages) {
 				label_CHT = label_CHT.replace(/裡/g, '里').replace(/佔/g, '占')
 						.replace(/([王皇太天])後/g, '$1后');
 				// 奧托二世
-				if (true || /[·．˙]/.test(label_CHT)) {
+				if (true || /[·．˙•]/.test(label_CHT)) {
 					// 為人名。
 					label_CHT = label_CHT.replace(/託/g, '托');
 				}
@@ -251,13 +266,17 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	while (matched = PATTERN_link.exec(content)) {
+		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
+		if (revid)
+			processed[title] = revid, revid = 0;
+
 		// @see function language_to_project(language) @ application.net.wiki
 		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
 		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
 		|| /^category/i.test(matched[1])
 		// e.g., "日语维基百科"
-		|| /[语語文國国][維维]基/.test(matched[3]))
+		|| /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3]))
 			continue;
 
 		// 外國語言條目名
@@ -348,7 +367,7 @@ function for_each_page(page_data, messages) {
 		// || label.includes('/')
 		// || /^[\u0001-\u00ff英日德法西義韓諺俄]$/.test(label)
 		// e.g., 法文版, 義大利文版
-		|| /[语語文國国]版?$/.test(label)
+		|| /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(label)
 		// || label.endsWith('學家')
 		|| /[學学][家者]$/.test(label)
 		// || label.includes('-{')
@@ -364,9 +383,13 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	// parse 跨語言連結模板
-	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|tsl|illm}}',
+	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|tsl|illm|liw}}',
 	//
 	content, function(token) {
+		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
+		if (revid)
+			processed[title] = revid, revid = 0;
+
 		// console.log(token);
 		matched = token;
 
@@ -400,11 +423,27 @@ function for_each_page(page_data, messages) {
 			}
 			break;
 
+		case 'liw':
+			// {{liw|中文項目名|語言|其他語言頁面名|...}}
+			label = token[2][0];
+			foreign_language = token[2][1];
+			foreign_title = token[2][2];
+			break;
+
+		case 'link-interwiki':
+			// {{link-interwiki|zh=情比相助深|lang=en|lang_title=Beaches (film)}}
+			label = token[2].zh;
+			foreign_language = token[2].lang;
+			foreign_title = token[2][2].lang_title;
+			break;
+
 		default:
 			// "{{link-en|local title|foreign title}}"
 			foreign_language = template_name.startsWith('link-')
 			// 5: 'link-'.length, '-link'.length
-			? template_name.slice(5) : template_name.slice(0, -5);
+			? template_name.slice(5)
+			// assert: template_name.endsWith('-link')
+			: template_name.slice(0, -5);
 			foreign_title = token[2][1];
 			label = token[2][0];
 			break;
@@ -506,7 +545,7 @@ function push_work(full_title) {
 	// CeL.log(full_title);
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
-		CeL.warn('Invalid title: ' + foreign_title);
+		CeL.warn('Invalid title: ' + full_title);
 		return;
 	}
 	var language = foreign_title[1],
@@ -736,10 +775,15 @@ if (label_data) {
 			+ 'common_title.json', 'utf8'));
 	PATTERN_common_title = new RegExp(PATTERN_common_title.source,
 			PATTERN_common_title.flags);
+
+	processed = JSON.parse(CeL.fs_read(base_directory + 'processed.json',
+			processed, 'utf8'));
+
 	finish_work();
 
 } else {
 	label_data = CeL.null_Object();
+	CeL.wiki.page.rvprop += '|ids';
 
 	// Set the umask to share the xml dump file.
 	if (typeof process === 'object') {
@@ -749,7 +793,8 @@ if (label_data) {
 	if (use_language === 'zh')
 		wiki.page('模块:CGroup/地名', function(page_data) {
 			// prepare PATTERN_common_title
-			PATTERN_common_title = [];
+			PATTERN_common_title = '馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
+					+ '|伊莫拉|阿根廷|南非|土耳其'.split('|');
 			var matched, pattern = /, *rule *= *'([^']+)'/g,
 			/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 			content = CeL.wiki.content_of(page_data);
@@ -775,6 +820,9 @@ if (label_data) {
 				source : PATTERN_common_title.source,
 				flags : PATTERN_common_title.flags
 			}), 'utf8');
+
+			CeL.fs_write(base_directory + 'processed.json', JSON
+					.stringify(processed), 'utf8');
 
 			create_label_data();
 		});
