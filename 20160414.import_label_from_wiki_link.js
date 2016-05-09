@@ -383,7 +383,8 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	// parse 跨語言連結模板
-	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|tsl|illm|liw}}',
+	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|ill|interlanguage[ _]link'
+			+ '|tsl|translink|ilh|internal[ _]link[ _]helper|illm|liw}}',
 	//
 	content, function(token) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
@@ -391,54 +392,64 @@ function for_each_page(page_data, messages) {
 			processed[title] = revid, revid = 0;
 
 		// console.log(token);
-		matched = token;
 
 		var foreign_language, foreign_title, label,
 		//
-		template_name = token[1].toLowerCase();
+		template_name = token[1].toLowerCase().replace(/_/g, ' ');
 
-		// TODO: parse 跨語言連結模板 {{ilh}}
 		switch (template_name) {
+		case 'translink':
 		case 'tsl':
-			// case 'translink':
-
-			// "{{tsl|en|foreign title|local title}}"
+			// {{tsl|en|foreign title|local title}}
 			foreign_language = token[2][0];
 			foreign_title = token[2][1];
 			label = token[2][2];
 			break;
 
+		case 'ill':
+		case 'interlanguage link':
+			// {{ill|en|local title|foreign title}}
+			foreign_language = token[2][1];
+			label = token[2][2];
+			foreign_title = token[2][3];
+			break;
+
 		case 'illm':
+		case 'liw':
 			// case 'interlanguage link multi':
 			// case '多語言連結':
 			label = token[2][0];
 			if (token[2].WD) {
-				// "{{illm|WD=Q1}}"
+				// {{illm|WD=Q1}}
 				foreign_language = 'WD';
 				foreign_title = token[2].WD;
 			} else {
-				// "{{illm|local title|en|foreign title}}"
+				// {{illm|local title|en|foreign title}}
+				// {{liw|local title|en|foreign title}}
+				// {{liw|中文項目名|語言|其他語言頁面名|...}}
 				foreign_language = token[2][1];
 				foreign_title = token[2][2];
 			}
 			break;
 
-		case 'liw':
-			// {{liw|中文項目名|語言|其他語言頁面名|...}}
-			label = token[2][0];
-			foreign_language = token[2][1];
-			foreign_title = token[2][2];
-			break;
-
 		case 'link-interwiki':
-			// {{link-interwiki|zh=情比相助深|lang=en|lang_title=Beaches (film)}}
+			// {{link-interwiki|zh=local title|lang=en|lang_title=foreign
+			// title}}
 			label = token[2].zh;
 			foreign_language = token[2].lang;
 			foreign_title = token[2][2].lang_title;
 			break;
 
+		case 'ilh':
+		case 'internal link helper':
+			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
+			label = token[2][0];
+			foreign_title = token[2][1];
+			foreign_language = token[2]['lang-code'];
+			break;
+
 		default:
-			// "{{link-en|local title|foreign title}}"
+			// {{link-en|local title|foreign title}}
 			foreign_language = template_name.startsWith('link-')
 			// 5: 'link-'.length, '-link'.length
 			? template_name.slice(5)
@@ -450,6 +461,7 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (label && foreign_title && foreign_language) {
+			matched = token;
 			add_label(foreign_language, foreign_title, label);
 		} else if (!label && !foreign_title || !foreign_language) {
 			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
