@@ -138,7 +138,7 @@ function language_label(language) {
 function for_each_page(page_data, messages) {
 	// 有必要中途跳出時則須在 callback() 中設定：
 	// @ callback(page_data, messages):
-	if (count > test_limit) {
+	if (length > test_limit) {
 		if (messages) {
 			// 當在 .work() 執行時。
 			messages.quit_operation = true;
@@ -163,6 +163,7 @@ function for_each_page(page_data, messages) {
 		if (processed[title] === revid)
 			return;
 		// assert: processed[title] < page_data.revisions[0].revid
+		delete processed[title];
 	}
 
 	if (/^\d+月(\d+日)?$/.test(title) || /^\d+年(\d+月)?$/.test(title))
@@ -236,10 +237,10 @@ function for_each_page(page_data, messages) {
 
 		var data, full_title = foreign_language + ':' + foreign_title;
 		if (!(full_title in label_data)) {
-			++count;
-			if (count <= log_limit)
+			++length;
+			if (length <= log_limit)
 				// 此 label 指向
-				CeL.log([ count + ':', 'fg=yellow', label, '-fg', '→',
+				CeL.log([ length + ':', 'fg=yellow', label, '-fg', '→',
 						'fg=cyan', full_title, '-fg',
 						'@ [[' + title + ']]: ' + matched[0] ]);
 			label_data[full_title] = data = [ {}, [ title ] ];
@@ -267,6 +268,7 @@ function for_each_page(page_data, messages) {
 
 	while (matched = PATTERN_link.exec(content)) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
+		// TODO: 成功才登記。
 		if (revid)
 			processed[title] = revid, revid = 0;
 
@@ -383,6 +385,8 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	// parse 跨語言連結模板
+	// @see
+	// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|ill|interlanguage[ _]link'
 			+ '|tsl|translink|ilh|internal[ _]link[ _]helper|illm|liw}}',
 	//
@@ -723,9 +727,12 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		CeL.log(entity.id + ': [[' + language + ':' + foreign_title
-		//
-		+ ']]: ' + JSON.stringify(labels));
+		if (count % 1e3 === 0)
+			CeL.log(count + '/' + length + ': '
+			//
+			+ entity.id + ': [[' + language + ':' + foreign_title
+			//
+			+ ']]: ' + JSON.stringify(labels));
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
@@ -751,11 +758,10 @@ function push_work(full_title) {
  * Finish up. 最後結束工作。
  */
 function finish_work() {
-	if (!count) {
-		count = Object.keys(label_data).length;
+	if (!length) {
+		length = Object.keys(label_data).length;
 	}
-	CeL.log(script_name + ': All ' + count + ' labels.');
-	count = 0;
+	CeL.log(script_name + ': All ' + length + ' labels.');
 
 	// console.log(PATTERN_common_title);
 
