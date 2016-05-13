@@ -266,6 +266,30 @@ function for_each_page(page_data, messages) {
 
 	// ----------------------------------------------------
 
+	// TODO: 檢查 '''條目名''' {{lang-en|'''en title'''}}
+	// add_label(use_language, 條目名, en title, en)
+	matched = content
+	// 去除維護模板。
+	.replace(/^\s*{{[^{}]+}}/g, '')
+	// find {{lang|en|...}} or {{lang-en|...}}
+	.match(/\s*'''([^']+)'''[（(]([^(（）)]+)[）)]/);
+	if (matched) {
+		CeL.log('[[' + title + ']]: ' + matched[0]);
+		var label = matched[1];
+		matched = matched[2].match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
+		if (matched) {
+			matched[1] = matched[1].trim();
+			matched[2] = matched[2].replace(/['\s]+$|^['\s]+/g, '');
+			if (matched[1] && matched[2]) {
+				add_label(use_language, title, matched[2], matched[1]);
+			}
+		}
+	}
+
+	return;
+
+	// ----------------------------------------------------
+
 	while (matched = PATTERN_link.exec(content)) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
 		// TODO: 成功才登記。
