@@ -86,8 +86,15 @@ count = 0, length = 0,
 test_limit = Infinity,
 //
 use_language = 'zh',
+
 // labels.json
-data_file_name = 'labels.json',
+data_file_path = base_directory + 'labels.json',
+//
+common_title_file_path = base_directory + 'common_title.' + use_language
+		+ '.json',
+//
+processed_file_path = base_directory + 'processed.' + use_language + '.json',
+
 // 是否要使用Wikidata數據來清理跨語言連結。
 modify_Wikipedia = false;
 
@@ -512,9 +519,7 @@ function create_label_data() {
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
 		after : function() {
-			CeL.fs_write(base_directory + data_file_name,
-			//
-			JSON.stringify(label_data), 'utf8');
+			CeL.fs_write(data_file_path, JSON.stringify(label_data), 'utf8');
 
 			finish_work();
 		}
@@ -751,12 +756,14 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		if (count % 1e3 === 0)
+		if (count % 1e4 === 0) {
+			// CeL.append_file()
 			CeL.log(count + '/' + length + ': '
 			//
 			+ entity.id + ': [[' + language + ':' + foreign_title
 			//
 			+ ']]: ' + JSON.stringify(labels));
+		}
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
@@ -809,17 +816,16 @@ function finish_work() {
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
-label_data = CeL.fs_read(base_directory + data_file_name, 'utf8');
+label_data = CeL.fs_read(data_file_path, 'utf8');
 if (label_data) {
 	// read cache
 	label_data = JSON.parse(label_data);
-	PATTERN_common_title = JSON.parse(CeL.fs_read(base_directory
-			+ 'common_title.json', 'utf8'));
+	PATTERN_common_title = JSON.parse(CeL.fs_read(common_title_file_path,
+			'utf8'));
 	PATTERN_common_title = new RegExp(PATTERN_common_title.source,
 			PATTERN_common_title.flags);
 
-	processed = JSON.parse(CeL.fs_read(base_directory + 'processed.json',
-			processed, 'utf8'));
+	processed = JSON.parse(CeL.fs_read(processed_file_path, processed, 'utf8'));
 
 	finish_work();
 
@@ -841,12 +847,13 @@ if (label_data) {
 			/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 			content = CeL.wiki.content_of(page_data);
 			while (matched = pattern.exec(content)) {
-				PATTERN_common_title.append(matched[1].split(/;|=>/).map(
-						function(name) {
-							return name.replace(/^[a-z\-\s]+:/, '').trim()
-							//
-							.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
-						}));
+				PATTERN_common_title.append(matched[1].split(/;|=>/)
+				//
+				.map(function(name) {
+					return name.replace(/^[a-z\-\s]+:/, '').trim()
+					//
+					.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
+				}));
 			}
 			PATTERN_common_title = PATTERN_common_title.sort().uniq();
 			// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
@@ -856,15 +863,16 @@ if (label_data) {
 					'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'.replace('國名',
 							PATTERN_common_title.join('|')));
 
-			CeL.fs_write(base_directory + 'common_title.json',
+			CeL.fs_write(common_title_file_path,
 			//
 			JSON.stringify({
 				source : PATTERN_common_title.source,
 				flags : PATTERN_common_title.flags
 			}), 'utf8');
 
-			CeL.fs_write(base_directory + 'processed.json', JSON
-					.stringify(processed), 'utf8');
+			CeL.fs_write(processed_file_path,
+			//
+			JSON.stringify(processed), 'utf8');
 
 			create_label_data();
 		});
