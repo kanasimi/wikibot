@@ -873,7 +873,7 @@ function fix_86(content, page_data, messages, options) {
 			+ ' ' + matched[2].trim();
 		}
 
-		return CeL.wiki.parse.wiki_URL(text);
+		return CeL.wiki.parse.wiki_URL(text, true);
 	}, true).toString();
 
 	return content;
@@ -946,7 +946,7 @@ function check_tag(token, parent) {
 	}
 }
 
-// TODO: <sub>...<sub>
+// TODO: | <sub>...<sub> | → | <sub>...</sub> |
 fix_98.title = 'sub/sup tag 未首尾對應';
 function fix_98(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
