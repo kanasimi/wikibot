@@ -789,9 +789,11 @@ function push_work(full_title) {
 		}
 
 		CeL.set_debug(3);
-		if (language === 'WD' ? entity.id !== foreign_title
+		if (foreign_title !== (language === 'WD' ? entity.id
 		//
-		: entity.sitelinks[language + 'wiki'].title !== foreign_title) {
+		: entity.sitelinks[
+		//
+		(language === 'jp' ? 'ja' : language) + 'wiki'].title)) {
 			console.log(entity);
 			throw 1;
 		}
