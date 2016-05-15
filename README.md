@@ -62,7 +62,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Output on console:
 * ![On console](https://upload.wikimedia.org/wikipedia/commons/7/7c/20151002.WPCHECK.console.c.png)
 
-* Log page on Wikipedia:
+* Log page on Wikipedia (ページ上への作業ログ出力):
 * ![Log page](https://upload.wikimedia.org/wikipedia/commons/d/da/20151002.WPCHECK.log.c.png)
 
 * The contributions:

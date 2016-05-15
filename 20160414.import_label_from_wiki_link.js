@@ -103,7 +103,8 @@ modify_Wikipedia = false;
 wiki.set_data();
 
 var
-// label_data['language:title'] = [ { language: {Array}labels }, {Array}titles ]
+// label_data['foreign_language:foreign_title'] = [ { language: {Array}labels },
+// {Array}titles ]
 label_data = CeL.null_Object(),
 // catch已經處理完成操作的label
 // processed[title] = last revisions
@@ -180,7 +181,8 @@ function for_each_page(page_data, messages) {
 		return;
 
 	// 增加特定語系註記
-	function add_label(foreign_language, foreign_title, label, local_language) {
+	function add_label(foreign_language, foreign_title, label, local_language,
+			need_check) {
 		if (foreign_language !== 'WD') {
 			foreign_language = foreign_language.toLowerCase();
 			if (!/^(?:[a-z]{2,})$/.test(foreign_language)) {
@@ -231,7 +233,7 @@ function for_each_page(page_data, messages) {
 				if (label_CHT !== label) {
 					// 加上轉換成繁體的 label
 					add_label(foreign_language, foreign_title, label_CHT,
-							'zh-hant');
+							'zh-hant', need_check);
 					if (!local_language)
 						// label 照理應該是簡體 (zh-cn)。
 						// treat zh-hans as zh-cn
@@ -273,27 +275,40 @@ function for_each_page(page_data, messages) {
 
 	// ----------------------------------------------------
 
-	// TODO: 檢查 '''條目名''' {{lang-en|'''en title'''}}
+	// TODO: 必須先確定 en 無此條目!
+	// /public/dumps/public/enwiki/20160501/enwiki-20160501-all-titles-in-ns0.gz
+	// TODO: 此階段所加的，在 wikidata 階段需要確保目標 wiki 無此條目。
+
+if (false) {
 	// add_label(use_language, 條目名, en title, en)
 	matched = content
 	// 去除維護模板。
 	.replace(/^\s*{{[^{}]+}}/g, '')
 	// find {{lang|en|...}} or {{lang-en|...}}
-	.match(/\s*'''([^']+)'''[（(]([^(（）)]+)[）)]/);
+	.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
 	if (matched) {
 		CeL.log('[[' + title + ']]: ' + matched[0]);
-		var label = matched[1];
-		matched = matched[2].match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
+		var label = matched[2];
+		// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
+		matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
 		if (matched) {
 			matched[1] = matched[1].trim();
 			matched[2] = matched[2].replace(/['\s]+$|^['\s]+/g, '');
 			if (matched[1] && matched[2]) {
-				add_label(use_language, title, matched[2], matched[1]);
+				add_label(use_language, title, matched[2], matched[1], 1);
 			}
+		} else if (matched = label.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
+			// '''條目名'''（'''en title'''）
+			add_label(use_language, title, matched[1], 'en', 1);
+		} else {
+			CeL
+					.log('[[' + title + ']]: Unknown label pattern: [' + label
+							+ ']');
 		}
 	}
 
 	return;
+}
 
 	// ----------------------------------------------------
 
@@ -484,6 +499,7 @@ function for_each_page(page_data, messages) {
 			break;
 
 		default:
+			// {{Internal link helper}}系列模板
 			// {{link-en|local title|foreign title}}
 			foreign_language = template_name.startsWith('link-')
 			// 5: 'link-'.length, '-link'.length
