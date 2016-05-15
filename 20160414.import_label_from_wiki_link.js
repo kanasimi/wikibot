@@ -605,7 +605,7 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
 var _c = 0;
 
 function push_work(full_title) {
-	if (++_c < 22000)
+	if (++_c < 28000)
 		return;
 
 	// CeL.log(full_title);
@@ -767,6 +767,7 @@ function push_work(full_title) {
 
 	}, {
 		props : 'labels|aliases|claims|sitelinks'
+
 	}).edit_data(function(entity) {
 		if (++count > test_limit) {
 			// throw 'Ignored: Test done.';
@@ -795,13 +796,14 @@ function push_work(full_title) {
 			+ ']]: ' + JSON.stringify(labels));
 		}
 
-		CeL.set_debug(3);
 		if (CeL.is_debug()) {
 			if (foreign_title !==
 			//
 			(language === 'WD' ? entity.id : entity.sitelinks[
 			// 為日文特別處理。
-			(language === 'jp' ? 'ja' : language) + 'wiki'].title)) {
+			(language === 'jp' ? 'ja'
+			// 為粵文維基百科特別處理。
+			: language === 'yue' ? 'zh_yue' : language) + 'wiki'].title)) {
 				console.log(entity);
 				throw 1;
 			}
@@ -855,6 +857,7 @@ function finish_work() {
 // ----------------------------------------------------------------------------
 
 // CeL.set_debug();
+CeL.set_debug(2);
 
 // rm import_label_from_wiki_link/labels.json
 prepare_directory(base_directory);
