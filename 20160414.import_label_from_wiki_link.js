@@ -605,7 +605,7 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
 var _c = 0;
 
 function push_work(full_title) {
-	if (++_c < 2000)
+	if (++_c < 22000)
 		return;
 
 	// CeL.log(full_title);
@@ -624,11 +624,14 @@ function push_work(full_title) {
 	wiki.data(language === 'WD' ? foreign_title : {
 		title : foreign_title,
 		language : language
-	}, modify_Wikipedia && function(entity) {
+	},
+	// 不設定 property
+	null, modify_Wikipedia && function(entity) {
 		if (count > test_limit)
 			return;
 
 		if (CeL.wiki.data.is_DAB(entity))
+			// is Q4167410: Wikimedia disambiguation page 維基媒體消歧義頁
 			return;
 
 		// console.log([ language, foreign_title ]);
@@ -770,10 +773,14 @@ function push_work(full_title) {
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
-		if (CeL.wiki.data.is_DAB(entity))
+		if (CeL.wiki.data.is_DAB(entity)) {
+			// is Q4167410: Wikimedia disambiguation page 維基媒體消歧義頁
+			CeL.debug('跳過消歧義頁: ' + entity.id);
 			return [ CeL.wiki.edit.cancel, 'skip' ];
+		}
 
 		if (!entity || ('missing' in entity)) {
+			CeL.debug('跳過頁面不存在: ' + entity.id);
 			return [ CeL.wiki.edit.cancel,
 			//
 			'missing [' + (entity && entity.id) + ']' ];
@@ -781,7 +788,7 @@ function push_work(full_title) {
 
 		if (count % 1e4 === 0 || CeL.is_debug()) {
 			// CeL.append_file()
-			CeL.log(count + '/' + length + ': '
+			CeL.log(count + '/' + length + ' '
 			//
 			+ entity.id + ': [[' + language + ':' + foreign_title
 			//
@@ -789,13 +796,15 @@ function push_work(full_title) {
 		}
 
 		CeL.set_debug(3);
-		if (foreign_title !== (language === 'WD' ? entity.id
-		//
-		: entity.sitelinks[
-		//
-		(language === 'jp' ? 'ja' : language) + 'wiki'].title)) {
-			console.log(entity);
-			throw 1;
+		if (CeL.is_debug()) {
+			if (foreign_title !==
+			//
+			(language === 'WD' ? entity.id : entity.sitelinks[
+			// 為日文特別處理。
+			(language === 'jp' ? 'ja' : language) + 'wiki'].title)) {
+				console.log(entity);
+				throw 1;
+			}
 		}
 
 		// 要編輯（更改或創建）的資料。
@@ -803,8 +812,10 @@ function push_work(full_title) {
 
 		// console.log(data);
 
-		if (!data)
+		if (!data) {
+			CeL.debug('跳過無須變更: ' + entity.id);
 			return [ CeL.wiki.edit.cancel, 'skip' ];
+		}
 
 		return data;
 
