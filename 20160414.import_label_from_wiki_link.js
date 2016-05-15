@@ -279,36 +279,36 @@ function for_each_page(page_data, messages) {
 	// /public/dumps/public/enwiki/20160501/enwiki-20160501-all-titles-in-ns0.gz
 	// TODO: 此階段所加的，在 wikidata 階段需要確保目標 wiki 無此條目。
 
-if (false) {
-	// add_label(use_language, 條目名, en title, en)
-	matched = content
-	// 去除維護模板。
-	.replace(/^\s*{{[^{}]+}}/g, '')
-	// find {{lang|en|...}} or {{lang-en|...}}
-	.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
-	if (matched) {
-		CeL.log('[[' + title + ']]: ' + matched[0]);
-		var label = matched[2];
-		// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
-		matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
+	if (false) {
+		// add_label(use_language, 條目名, en title, en)
+		matched = content
+		// 去除維護模板。
+		.replace(/^\s*{{[^{}]+}}/g, '')
+		// find {{lang|en|...}} or {{lang-en|...}}
+		.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
 		if (matched) {
-			matched[1] = matched[1].trim();
-			matched[2] = matched[2].replace(/['\s]+$|^['\s]+/g, '');
-			if (matched[1] && matched[2]) {
-				add_label(use_language, title, matched[2], matched[1], 1);
+			CeL.log('[[' + title + ']]: ' + matched[0]);
+			var label = matched[2];
+			// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
+			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
+			if (matched) {
+				matched[1] = matched[1].trim();
+				matched[2] = matched[2].replace(/['\s]+$|^['\s]+/g, '');
+				if (matched[1] && matched[2]) {
+					add_label(use_language, title, matched[2], matched[1], 1);
+				}
+			} else if (matched = label
+					.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
+				// '''條目名'''（'''en title'''）
+				add_label(use_language, title, matched[1], 'en', 1);
+			} else {
+				CeL.log('[[' + title + ']]: Unknown label pattern: [' + label
+						+ ']');
 			}
-		} else if (matched = label.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
-			// '''條目名'''（'''en title'''）
-			add_label(use_language, title, matched[1], 'en', 1);
-		} else {
-			CeL
-					.log('[[' + title + ']]: Unknown label pattern: [' + label
-							+ ']');
 		}
-	}
 
-	return;
-}
+		return;
+	}
 
 	// ----------------------------------------------------
 
@@ -602,7 +602,12 @@ PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄](?:字|[语語
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
+var _c = 0;
+
 function push_work(full_title) {
+	if (++_c < 2000)
+		return;
+
 	// CeL.log(full_title);
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
@@ -619,7 +624,7 @@ function push_work(full_title) {
 	wiki.data(language === 'WD' ? foreign_title : {
 		title : foreign_title,
 		language : language
-	}, 'labels|aliases|claims|sitelinks', modify_Wikipedia && function(entity) {
+	}, modify_Wikipedia && function(entity) {
 		if (count > test_limit)
 			return;
 
@@ -757,6 +762,8 @@ function push_work(full_title) {
 			});
 		});
 
+	}, {
+		props : 'labels|aliases|claims|sitelinks'
 	}).edit_data(function(entity) {
 		if (++count > test_limit) {
 			// throw 'Ignored: Test done.';
@@ -772,7 +779,7 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		if (count % 1e4 === 0||CeL.is_debug()) {
+		if (count % 1e4 === 0 || CeL.is_debug()) {
 			// CeL.append_file()
 			CeL.log(count + '/' + length + ': '
 			//
@@ -781,8 +788,13 @@ function push_work(full_title) {
 			+ ']]: ' + JSON.stringify(labels));
 		}
 
-		CeL.set_debug(6);
-		if (language==='WD'?entity.id!==foreign_title:entity.sitelinks[language+'wiki'].title!==foreign_title){console.log(entity);throw 1;}
+		CeL.set_debug(3);
+		if (language === 'WD' ? entity.id !== foreign_title
+		//
+		: entity.sitelinks[language + 'wiki'].title !== foreign_title) {
+			console.log(entity);
+			throw 1;
+		}
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
