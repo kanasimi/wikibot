@@ -772,7 +772,7 @@ function push_work(full_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		if (count % 1e4 === 0) {
+		if (count % 1e4 === 0||CeL.is_debug()) {
 			// CeL.append_file()
 			CeL.log(count + '/' + length + ': '
 			//
@@ -780,6 +780,9 @@ function push_work(full_title) {
 			//
 			+ ']]: ' + JSON.stringify(labels));
 		}
+
+		CeL.set_debug(6);
+		if (language==='WD'?entity.id!==foreign_title:entity.sitelinks[language+'wiki'].title!==foreign_title){console.log(entity);throw 1;}
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
@@ -857,8 +860,8 @@ if (label_data) {
 	if (use_language === 'zh')
 		wiki.page('模块:CGroup/地名', function(page_data) {
 			// prepare PATTERN_common_title
-			PATTERN_common_title = '馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
-					+ '|伊莫拉|阿根廷|南非|土耳其'.split('|');
+			PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
+					+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
 			var matched, pattern = /, *rule *= *'([^']+)'/g,
 			/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 			content = CeL.wiki.content_of(page_data);
