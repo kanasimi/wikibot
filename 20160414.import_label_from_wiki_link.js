@@ -7,6 +7,7 @@
  parse [[西利西利]]山（Mauga Silisili）
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
+ https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
 
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
@@ -125,6 +126,15 @@ PATTERN_language_label = CeL.null_Object(),
 //
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*');
+
+function to_plain_text(wikitext) {
+	// TODO: "<small>（英文）</small>"
+	// 茶花女》维基百科词条'''(英语)
+	return wikitext.replace(/<\/?[a-z][^>]*>/g, '')
+	// e.g., "{{En icon}}"
+	.replace(/{{[a-z\s]+}}/g, '').replace(/'''?([^']+)'''?/g, '$1').trim()
+			.replace(/\s{2,}/g, ' ');
+}
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
@@ -293,7 +303,7 @@ function for_each_page(page_data, messages) {
 			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
 			if (matched) {
 				matched[1] = matched[1].trim();
-				matched[2] = matched[2].replace(/['\s]+$|^['\s]+/g, '');
+				matched[2] = to_plain_text(matched[2]);
 				if (matched[1] && matched[2]) {
 					add_label(use_language, title, matched[2], matched[1], 1);
 				}
@@ -511,7 +521,12 @@ function for_each_page(page_data, messages) {
 			break;
 		}
 
-		if (label && foreign_title && foreign_language) {
+		if (label && (label = to_plain_text(label)) && isNaN(label)
+				&& !label.includes('{{')
+				// e.g., [[道奇挑戰者]]
+				&& foreign_title && !foreign_title.includes('{{')
+				//
+				&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
 			matched = token;
 			add_label(foreign_language, foreign_title, label);
 		} else if (!label && !foreign_title || !foreign_language) {
@@ -525,7 +540,8 @@ function for_each_page(page_data, messages) {
 function create_label_data() {
 	// CeL.set_debug(6);
 	CeL.wiki.traversal({
-		wiki : wiki,
+		// [SESSION_KEY]
+		session : wiki,
 		// cache path prefix
 		directory : base_directory,
 		// 指定 dump file 放置的 directory。
@@ -602,11 +618,7 @@ PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄](?:字|[语語
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
-var _c = 0;
-
 function push_work(full_title) {
-	if (++_c < 28000)
-		return;
 
 	// CeL.log(full_title);
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
@@ -776,12 +788,16 @@ function push_work(full_title) {
 
 		if (CeL.wiki.data.is_DAB(entity)) {
 			// is Q4167410: Wikimedia disambiguation page 維基媒體消歧義頁
-			CeL.debug('跳過消歧義頁: ' + entity.id);
+			CeL.debug('跳過消歧義頁: '
+			//
+			+ entity.id + ': [[' + language + ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
 		if (!entity || ('missing' in entity)) {
-			CeL.debug('跳過頁面不存在: ' + entity.id);
+			CeL.debug('跳過不存在頁面: '
+			//
+			+ entity.id + ': [[' + language + ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel,
 			//
 			'missing [' + (entity && entity.id) + ']' ];
@@ -815,7 +831,7 @@ function push_work(full_title) {
 		// console.log(data);
 
 		if (!data) {
-			CeL.debug('跳過無須變更: ' + entity.id);
+			CeL.debug('跳過無須變更項目: ' + entity.id);
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
@@ -856,8 +872,7 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
-// CeL.set_debug();
-CeL.set_debug(2);
+// CeL.set_debug(2);
 
 // rm import_label_from_wiki_link/labels.json
 prepare_directory(base_directory);
