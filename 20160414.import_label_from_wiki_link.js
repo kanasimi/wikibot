@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js && date
+﻿// (cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js && date) > ../tmp/import_label_from_wiki_link.log &
 
 /*
 
@@ -83,7 +83,7 @@ var
 log_limit = 200,
 //
 count = 0, length = 0,
-// Infinity for do all
+// ((Infinity)) for do all
 test_limit = Infinity,
 //
 use_language = 'zh',
@@ -497,7 +497,7 @@ function for_each_page(page_data, messages) {
 			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
 			label = token[2][use_language];
 			foreign_language = token[2].lang;
-			foreign_title = token[2][2].lang_title;
+			foreign_title = token[2].lang_title;
 			break;
 
 		case 'ilh':
