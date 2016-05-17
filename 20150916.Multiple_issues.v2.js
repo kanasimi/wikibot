@@ -557,7 +557,8 @@ CeL.wiki.cache([ {
 	}, this.須拆分的條目);
 }, {
 	// default options === this
-	// wiki : wiki,
+	// [SESSION_KEY]
+	// session : wiki,
 	title_prefix : 'Template:',
 	// cache path prefix
 	prefix : base_directory,

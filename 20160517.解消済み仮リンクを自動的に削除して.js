@@ -38,7 +38,24 @@ test_limit = Infinity;
 
 wiki.set_data();
 
-wiki.categorymembers('解消済み仮リンクを含む記事', function(list) {
-	result = list;
-	console.log(list.length);
+prepare_directory(base_directory);
+
+CeL.wiki.cache({
+	type : 'categorymembers',
+	list : '解消済み仮リンクを含む記事',
+}, function(list) {
+	;
+}, {
+	// [SESSION_KEY]
+	session : wiki,
+	// title_prefix : 'Template:',
+	// cache path prefix
+	prefix : base_directory
 });
+
+if (false)
+	wiki.categorymembers('解消済み仮リンクを含む記事', function(title, titles, pages) {
+		console.log(pages.length);
+	}, {
+		limit : 'max'
+	});
