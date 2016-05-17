@@ -444,7 +444,8 @@ function for_each_page(page_data, messages) {
 	// @see
 	// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|ill|interlanguage[ _]link'
-			+ '|tsl|translink|ilh|internal[ _]link[ _]helper|illm|liw}}',
+			+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
+			+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw}}',
 	//
 	content, function(token) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
@@ -461,9 +462,9 @@ function for_each_page(page_data, messages) {
 		case 'translink':
 		case 'tsl':
 			// {{tsl|en|foreign title|local title}}
-			foreign_language = token[2][0];
-			foreign_title = token[2][1];
-			label = token[2][2];
+			foreign_language = token[2][1];
+			foreign_title = token[2][2];
+			label = token[2][3];
 			break;
 
 		case 'ill':
@@ -474,11 +475,11 @@ function for_each_page(page_data, messages) {
 			foreign_title = token[2][3];
 			break;
 
-		case 'illm':
 		case 'liw':
-			// case 'interlanguage link multi':
-			// case '多語言連結':
-			label = token[2][0];
+		case 'illm':
+		case 'interlanguage link multi':
+		case '多語言連結':
+			label = token[2][1];
 			if (token[2].WD) {
 				// {{illm|WD=Q1}}
 				foreign_language = 'WD';
@@ -487,15 +488,14 @@ function for_each_page(page_data, messages) {
 				// {{illm|local title|en|foreign title}}
 				// {{liw|local title|en|foreign title}}
 				// {{liw|中文項目名|語言|其他語言頁面名|...}}
-				foreign_language = token[2][1];
-				foreign_title = token[2][2];
+				foreign_language = token[2][2];
+				foreign_title = token[2][3];
 			}
 			break;
 
 		case 'link-interwiki':
-			// {{link-interwiki|zh=local title|lang=en|lang_title=foreign
-			// title}}
-			label = token[2].zh;
+			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
+			label = token[2][use_language];
 			foreign_language = token[2].lang;
 			foreign_title = token[2][2].lang_title;
 			break;
@@ -503,8 +503,8 @@ function for_each_page(page_data, messages) {
 		case 'ilh':
 		case 'internal link helper':
 			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
-			label = token[2][0];
-			foreign_title = token[2][1];
+			label = token[2][1];
+			foreign_title = token[2][2];
 			foreign_language = token[2]['lang-code'];
 			break;
 
@@ -516,8 +516,8 @@ function for_each_page(page_data, messages) {
 			? template_name.slice(5)
 			// assert: template_name.endsWith('-link')
 			: template_name.slice(0, -5);
-			foreign_title = token[2][1];
-			label = token[2][0];
+			label = token[2][1];
+			foreign_title = token[2][2];
 			break;
 		}
 
