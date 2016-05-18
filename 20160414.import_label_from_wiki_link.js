@@ -128,7 +128,7 @@ common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*');
 
 function to_plain_text(wikitext) {
-	// TODO: 茶花女》维基百科词条'''(英语)
+	// TODO: "《茶花女》维基百科词条'''(法语)'''"
 	return wikitext.replace(/<\/?[a-z][^>]*>/g, '')
 	// "<small>（英文）</small>"
 	.replace(/[(（][英日德法西義韓諺俄原][语語國国]?文?[名字]?[）)]/g, '')

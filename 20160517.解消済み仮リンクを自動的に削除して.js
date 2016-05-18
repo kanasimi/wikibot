@@ -49,13 +49,15 @@ CeL.wiki.cache([ {
 	type : 'categorymembers',
 	list : '解消済み仮リンクを含む記事'
 
-}, {
+}, false && {
+	// 使用 cache page 此法速度過慢!
 	type : 'page'
 
 } ], function(list) {
 	CeL.log('Get ' + list.length + ' item(s).');
-	list.slice(0, test_limit).forEach(function(title) {
-		wiki.page(title, function(page_data) {
+
+	wiki.work({
+		each : function(page_data, messages) {
 			/** {String}page title = page_data.title */
 			var title = CeL.wiki.title_of(page_data),
 			/**
@@ -75,8 +77,10 @@ CeL.wiki.cache([ {
 					console.log(token[2]);
 				}
 			});
-		});
-	});
+		},
+		no_edit : true,
+
+	}, list.slice(0, test_limit));
 
 }, {
 	// default options === this
