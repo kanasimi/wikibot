@@ -4,6 +4,9 @@
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
 
+ @see
+ https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
+
  */
 
 'use strict';
@@ -32,7 +35,9 @@ log_limit = 200,
 //
 count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = Infinity;
+test_limit = 1,
+//
+ill2_list = [];
 
 // ----------------------------------------------------------------------------
 
@@ -40,22 +45,45 @@ wiki.set_data();
 
 prepare_directory(base_directory);
 
-CeL.wiki.cache({
+CeL.wiki.cache([ {
 	type : 'categorymembers',
-	list : '解消済み仮リンクを含む記事',
-}, function(list) {
-	;
+	list : '解消済み仮リンクを含む記事'
+
 }, {
+	type : 'page'
+
+} ], function(list) {
+	CeL.log('Get ' + list.length + ' item(s).');
+	list.slice(0, test_limit).forEach(function(title) {
+		wiki.page(title, function(page_data) {
+			/** {String}page title = page_data.title */
+			var title = CeL.wiki.title_of(page_data),
+			/**
+			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 */
+			content = CeL.wiki.content_of(page_data);
+
+			CeL.wiki.parser(page_data).parse().each('template',
+			//
+			function(token) {
+				if (token[1] === '仮リンク'
+				// || token[1] === 'ill2' || token[1] === 'link-interwiki'
+				) {
+					// {{仮リンク|記事名|en|title}}
+					token[2].page_data = page_data;
+					ill2_list.push(token[2]);
+					console.log(token[2]);
+				}
+			});
+		});
+	});
+
+}, {
+	// default options === this
+	namespace : 0,
 	// [SESSION_KEY]
 	session : wiki,
 	// title_prefix : 'Template:',
 	// cache path prefix
 	prefix : base_directory
 });
-
-if (false)
-	wiki.categorymembers('解消済み仮リンクを含む記事', function(title, titles, pages) {
-		console.log(pages.length);
-	}, {
-		limit : 'max'
-	});

@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js && date) > ../tmp/import_label_from_wiki_link.log &
+﻿// (cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js && date) >> ../tmp/import_label_from_wiki_link.log &
 
 /*
 
@@ -128,12 +128,22 @@ common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*');
 
 function to_plain_text(wikitext) {
-	// TODO: "<small>（英文）</small>"
-	// 茶花女》维基百科词条'''(英语)
+	// TODO: 茶花女》维基百科词条'''(英语)
 	return wikitext.replace(/<\/?[a-z][^>]*>/g, '')
+	// "<small>（英文）</small>"
+	.replace(/[(（][英日德法西義韓諺俄原][语語國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
-	.replace(/{{[a-z\s]+}}/g, '').replace(/'''?([^']+)'''?/g, '$1').trim()
-			.replace(/\s{2,}/g, ' ');
+	.replace(/{{[a-z\s]+}}/ig, '').replace(/'''?([^']+)'''?/g, ' $1 ').trim()
+			.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g,
+					')');
+}
+
+if (false) {
+	to_plain_text('<font lang="ja">エアポート快特</font>') === 'エアポート快特';
+	to_plain_text("卡斯蒂利亞王后'''凱瑟琳'''") === "卡斯蒂利亞王后 凱瑟琳";
+	to_plain_text("'''MS 明朝''' ('''MS Mincho''') 及 '''MS P明朝''' ('''MS PMincho''')") === "MS 明朝 (MS Mincho) 及 MS P明朝 (MS PMincho)";
+	to_plain_text("洗腳風俗及儀式<small>（英文）</small>") === '洗腳風俗及儀式';
+	to_plain_text("節目列表 {{En icon}}") === '節目列表';
 }
 
 function language_label(language) {
@@ -350,7 +360,7 @@ function for_each_page(page_data, messages) {
 		// language of ((label))
 		language_guessed,
 		// 本地條目名 or 本地實際顯示名
-		label = matched[3];
+		label = to_plain_text(matched[3]);
 
 		if (PATTERN_none_used_title.test(label)) {
 			// context 上下文 前後文
@@ -423,9 +433,9 @@ function for_each_page(page_data, messages) {
 		if (label.length < 2
 		// 去除不能包含的字元。
 		// || label.includes('/')
-		// || /^[\u0001-\u00ff英日德法西義韓諺俄]$/.test(label)
+		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
 		// e.g., 法文版, 義大利文版
-		|| /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(label)
+		|| /[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
 		// || label.endsWith('學家')
 		|| /[學学][家者]$/.test(label)
 		// || label.includes('-{')
@@ -443,96 +453,106 @@ function for_each_page(page_data, messages) {
 	// parse 跨語言連結模板
 	// @see
 	// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
-	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|ill|interlanguage[ _]link'
-			+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
-			+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw}}',
-	//
-	content, function(token) {
-		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
-		if (revid)
-			processed[title] = revid, revid = 0;
+	CeL.wiki.parse.every(
+			'{{link-[a-z]+|[a-z]+-link|le|ill|interlanguage[ _]link'
+					+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
+					+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw}}',
+			//
+			content, function(token) {
+				// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
+				if (revid)
+					processed[title] = revid, revid = 0;
 
-		// console.log(token);
+				// console.log(token);
 
-		var foreign_language, foreign_title, label,
-		//
-		template_name = token[1].toLowerCase().replace(/_/g, ' ');
-
-		switch (template_name) {
-		case 'translink':
-		case 'tsl':
-			// {{tsl|en|foreign title|local title}}
-			foreign_language = token[2][1];
-			foreign_title = token[2][2];
-			label = token[2][3];
-			break;
-
-		case 'ill':
-		case 'interlanguage link':
-			// {{ill|en|local title|foreign title}}
-			foreign_language = token[2][1];
-			label = token[2][2];
-			foreign_title = token[2][3];
-			break;
-
-		case 'liw':
-		case 'illm':
-		case 'interlanguage link multi':
-		case '多語言連結':
-			label = token[2][1];
-			if (token[2].WD) {
-				// {{illm|WD=Q1}}
-				foreign_language = 'WD';
-				foreign_title = token[2].WD;
-			} else {
-				// {{illm|local title|en|foreign title}}
-				// {{liw|local title|en|foreign title}}
-				// {{liw|中文項目名|語言|其他語言頁面名|...}}
-				foreign_language = token[2][2];
-				foreign_title = token[2][3];
-			}
-			break;
-
-		case 'link-interwiki':
-			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
-			label = token[2][use_language];
-			foreign_language = token[2].lang;
-			foreign_title = token[2].lang_title;
-			break;
-
-		case 'ilh':
-		case 'internal link helper':
-			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
-			label = token[2][1];
-			foreign_title = token[2][2];
-			foreign_language = token[2]['lang-code'];
-			break;
-
-		default:
-			// {{Internal link helper}}系列模板
-			// {{link-en|local title|foreign title}}
-			foreign_language = template_name.startsWith('link-')
-			// 5: 'link-'.length, '-link'.length
-			? template_name.slice(5)
-			// assert: template_name.endsWith('-link')
-			: template_name.slice(0, -5);
-			label = token[2][1];
-			foreign_title = token[2][2];
-			break;
-		}
-
-		if (label && (label = to_plain_text(label)) && isNaN(label)
-				&& !label.includes('{{')
-				// e.g., [[道奇挑戰者]]
-				&& foreign_title && !foreign_title.includes('{{')
+				var foreign_language, foreign_title, label,
 				//
-				&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
-			matched = token;
-			add_label(foreign_language, foreign_title, label);
-		} else if (!label && !foreign_title || !foreign_language) {
-			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
-		}
-	})
+				template_name = token[1].toLowerCase().replace(/_/g, ' ');
+
+				switch (template_name) {
+				case 'translink':
+				case 'tsl':
+					// {{tsl|en|foreign title|local title}}
+					foreign_language = token[2][1];
+					foreign_title = token[2][2];
+					label = token[2][3];
+					break;
+
+				case 'ill':
+				case 'interlanguage link':
+					// {{ill|en|local title|foreign title}}
+					foreign_language = token[2][1];
+					label = token[2][2];
+					foreign_title = token[2][3];
+					break;
+
+				case 'liw':
+				case 'illm':
+				case 'interlanguage link multi':
+				case '多語言連結':
+					label = token[2][1];
+					if (token[2].WD) {
+						// {{illm|WD=Q1}}
+						foreign_language = 'WD';
+						foreign_title = token[2].WD;
+					} else {
+						// {{illm|local title|en|foreign title}}
+						// {{liw|local title|en|foreign title}}
+						// {{liw|中文項目名|語言|其他語言頁面名|...}}
+						foreign_language = token[2][2];
+						foreign_title = token[2][3];
+					}
+					break;
+
+				case 'link-interwiki':
+					// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
+					label = token[2][use_language];
+					foreign_language = token[2].lang;
+					foreign_title = token[2].lang_title;
+					break;
+
+				case 'ilh':
+				case 'internal link helper':
+					// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
+					label = token[2][1];
+					foreign_title = token[2][2];
+					foreign_language = token[2]['lang-code'];
+					break;
+
+				case 'le':
+					// {{le|local title|foreign title|show}}
+					label = token[2][1];
+					foreign_title = token[2][2];
+					foreign_language = 'en';
+					break;
+
+				default:
+					// {{Internal link helper}}系列模板
+					// {{link-en|local title|foreign title}}
+					foreign_language = template_name.startsWith('link-')
+					// 5: 'link-'.length, '-link'.length
+					? template_name.slice(5)
+					// assert: template_name.endsWith('-link')
+					: template_name.slice(0, -5);
+					label = token[2][1];
+					foreign_title = token[2][2];
+					break;
+				}
+
+				if (label && (label = to_plain_text(label)) && isNaN(label)
+						&& !label.includes('{{')
+						// e.g., [[道奇挑戰者]]
+						&& foreign_title && !foreign_title.includes('{{')
+						//
+						&& foreign_language
+						&& /^[a-z_]+$/.test(foreign_language)) {
+					matched = token;
+					add_label(foreign_language, foreign_title, label);
+				} else if (!label && !foreign_title || !foreign_language) {
+					CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
+							+ ']]');
+				}
+			})
 }
 
 // ----------------------------------------------------------------------------
@@ -614,7 +634,7 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /原[名文]|[英日德法西義韓諺俄](?:字|[语語文國国]字)|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
+PATTERN_interlanguage = /[英日德法西義韓諺俄原][语語國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
@@ -692,7 +712,7 @@ function push_work(full_title) {
 					if (local)
 						local = local.replace(
 						//
-						/(?:\s*\()?[英日德法西義韓俄][语語文國国]\)?$/g, '');
+						/(?:\s*\()?[英日德法西義韓諺俄原][语語國国]?文?[名字]?\)?$/g, '');
 
 					var converted = '[[' + local_title + (local
 					//
