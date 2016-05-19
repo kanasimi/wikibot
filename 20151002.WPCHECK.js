@@ -708,7 +708,7 @@ fix_65.title = '檔案或圖片的描述以換行結尾';
 function fix_65(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
 	//
-	.each('file', function(token, parent, index) {
+	.each('file', function(token, index, parent) {
 		return token.toString()
 		// fix error
 		.replace_till_stable(/(.)(?:\s|&nbsp;)*<br\s*[\/\\]?>\s*(\||\]\])/ig,
@@ -765,7 +765,7 @@ fix_76.title = '檔案或圖片的連結中包含空格';
 function fix_76(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
 	//
-	.each('file', function(token, parent, index) {
+	.each('file', function(token, index, parent) {
 		// [0]: 僅處理連結部分。
 		token[0] = token[0].toString()
 		// fix error
@@ -851,7 +851,7 @@ fix_86.title = '使用內部連結之雙括號表現外部連結';
 function fix_86(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
 	//
-	.each('link', function(token, parent, index) {
+	.each('link', function(token, index, parent) {
 		// 取得內部資料。
 		// e.g., 'http://www.wikipedia.org Wikipedia'
 		var text = token.toString().slice(2, -2);
@@ -914,8 +914,8 @@ function fix_93(content, page_data, messages, options) {
 
 /**
  * <code>
- CeL.wiki.parser('{| class="wikitable"\n|-\n! h1 !! h2\n|-\n| <sub>d1 || d2\n|}').parse().each('plain', function(token, parent, index){console.log(JSON.stringify(token));console.log(parent);})
- CeL.wiki.parser('{{T|p=a<sub>s}}').parse().each('plain', function(token, parent, index){console.log(JSON.stringify(token));console.log(parent);})
+ CeL.wiki.parser('{| class="wikitable"\n|-\n! h1 !! h2\n|-\n| <sub>d1 || d2\n|}').parse().each('plain', function(token, index, parent){console.log(JSON.stringify(token));console.log(parent);})
+ CeL.wiki.parser('{{T|p=a<sub>s}}').parse().each('plain', function(token, index, parent){console.log(JSON.stringify(token));console.log(parent);})
  CeL.wiki.parser("{| class=\"wikitable sortable\" border=\"1\"\n|+ '''上海外国语大学'''外国语言专业布局<br><sub>（1949年——2011年）</sub>\n! <sub># !! <sub>语种名称 !! <sub>[[Language]] !! <sub>所属院系 !! <sub>设置时间 !! <sub>备注\n|-align=\"center\"\n| <sub>'''1'''\n|width=\"120\"| <sub>[[俄语]]\n|width=\"120\"| <sub>[[Русский]]\n|width=\"150\"| <sub>俄语系\n|width=\"100\"| <sub>1949年\n|width=\"250\"| \n|-align=\"center\"\n|  <sub>'''2''' \n|| <sub>[[英语]] || <sub>[[English]] || <sub>英语学院 || <sub>1950年  || <sub>1952年停办，1956年重设</sub>\n|}").parse()
  CeL.wiki.page('上海外国语大学',function(page_data){CeL.wiki.parser(page_data).parse();})
  </code>
@@ -951,7 +951,7 @@ fix_98.title = 'sub/sup tag 未首尾對應';
 function fix_98(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
 	//
-	.each('plain', function(token, parent, index) {
+	.each('plain', function(token, index, parent) {
 		if (parent.table_type
 		//
 		? parent.table_type !== 'td' && parent.table_type !== 'th'
@@ -1020,7 +1020,7 @@ fix_103.title = '連結中包含 pipe magic word';
 function fix_103(content, page_data, messages, options) {
 	content = CeL.wiki.parser(content).parse()
 	//
-	.each('link', function(token, parent, index) {
+	.each('link', function(token, index, parent) {
 		var link;
 		if (token.length === 1 && token[0].length === 1
 		//

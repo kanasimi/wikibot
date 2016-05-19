@@ -85,7 +85,7 @@ log_limit = 200,
 count = 0, length = 0,
 // ((Infinity)) for do all
 test_limit = Infinity,
-//
+/** {String}本次任務使用的語言。 */
 use_language = 'zh',
 
 // labels.json
