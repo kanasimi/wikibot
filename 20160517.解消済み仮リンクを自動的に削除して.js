@@ -78,10 +78,15 @@ function for_each_page(page_data, messages) {
 					CeL.log(last_content);
 					return;
 				}
-				wiki.page(page_data && 'Wikipedia:サンドボックス').edit(last_content,
-						{
-							summary : 'bot test: 解消済み仮リンク' + _changed + 'を削除'
-						});
+				wiki.page(page_data && 'Wikipedia:サンドボックス')
+				//
+				.edit(last_content.slice(0, 460), {
+					section : 'new',
+					sectiontitle : 'Sandbox test section',
+					summary : 'bot test: 解消済み仮リンク' + _changed + 'を削除',
+					nocreate : 1,
+					bot : 1
+				});
 			}
 		}
 
@@ -102,15 +107,15 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			title = '[[' + title;
-			if (parameters.label)
-				title += '|' + parameters.label;
+			var link = '[[' + title;
+			if (parameters.label && parameters.label !== title)
+				link += '|' + parameters.label;
 			else if (title.endsWith(')'))
-				title += '|';
-			title += ']]';
+				link += '|';
+			link += ']]';
 			// 實際改變頁面結構。
-			parent[index] = title;
-			check(title);
+			parent[index] = link;
+			check(link);
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -171,6 +176,9 @@ function for_each_page(page_data, messages) {
 	}
 
 	var parser = CeL.wiki.parser(page_data).parse();
+	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		throw 'Parser error: [[' + title + ']]';
+	}
 	parser.each('template', for_each_template);
 }
 
@@ -188,7 +196,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	list = list.slice(0, test_limit);
+	list = list.slice(1).slice(0, test_limit);
 	CeL.log(list.slice(0, 8).map(function(page_data) {
 		return CeL.wiki.title_of(page_data);
 	}).join('\n'));
