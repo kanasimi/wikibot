@@ -55,18 +55,24 @@ function for_each_page(page_data, messages) {
 	title = CeL.wiki.title_of(page_data), changed;
 	// console.log(CeL.wiki.content_of(page_data));
 
-	function check(_changed) {
-		if (_changed)
-			changed = true;
-		if (--template_count > 0 || !changed)
-			return;
-
-		var last_content = parser.toString();
-		if (CeL.wiki.content_of(page_data) !== last_content)
-			wiki.page(page_data).edit(last_content);
-	}
-
 	function for_each_template(token, index, parent) {
+		function check(_changed) {
+			if (_changed) {
+				changed = true;
+			} else if (token.error) {
+				CeL.log(token.error);
+				if (token.message)
+					CeL.log(token.message);
+			}
+			if (--template_count > 0 || !changed)
+				return;
+
+			var last_content = parser.toString();
+			if (CeL.wiki.content_of(page_data) !== last_content)
+				wiki.page(page_data)
+				// .edit(last_content)
+				;
+		}
 
 		function for_local_page(title) {
 			if (!title) {
@@ -80,9 +86,7 @@ function for_each_page(page_data, messages) {
 			if (title !== parameters[1].toString()) {
 				// 日本語版項目名が違う記事なので、パス。
 				token.error = 'different local title';
-				token.message = [ parameters[1].toString(),
-				//
-				title ];
+				token.message = [ parameters[1].toString(), title ];
 				check();
 				return;
 			}
@@ -111,8 +115,7 @@ function for_each_page(page_data, messages) {
 				// 他言語版項目リンク先が違う記事なので、パス。
 				token.error = 'different foreign title';
 				token.message = [ parameters[3].toString(),
-				//
-				foreign_page_data.title ];
+						foreign_page_data.title ];
 				check();
 				return;
 			}
