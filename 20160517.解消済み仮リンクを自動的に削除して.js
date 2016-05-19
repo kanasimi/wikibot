@@ -39,7 +39,7 @@ log_limit = 200,
 //
 count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = 3,
+test_limit = 1,
 //
 ill2_list = [];
 
@@ -58,20 +58,31 @@ function for_each_page(page_data, messages) {
 	function for_each_template(token, index, parent) {
 		function check(_changed) {
 			if (_changed) {
-				changed = true;
-			} else if (token.error) {
-				CeL.log(token.error);
+				changed = _changed;
+				CeL.log('Adapt [[' + page_data.title + ']]: '
+						+ token.toString() + ' → ' + _changed);
+
+			} else if (token.error && token.error !== 'missing local') {
+				CeL.log(token.error + ': ' + token.toString());
 				if (token.message)
-					CeL.log(token.message);
+					CeL.log(String(token.message));
 			}
+
 			if (--template_count > 0 || !changed)
 				return;
 
 			var last_content = parser.toString();
-			if (CeL.wiki.content_of(page_data) !== last_content)
-				wiki.page(page_data)
-				// .edit(last_content)
-				;
+			if (CeL.wiki.content_of(page_data) !== last_content) {
+				if (false) {
+					CeL.log('[[' + page_data.title + ']]: ');
+					CeL.log(last_content);
+					return;
+				}
+				wiki.page(page_data && 'Wikipedia:サンドボックス').edit(last_content,
+						{
+							summary : 'bot test: 解消済み仮リンク' + _changed + 'を削除'
+						});
+			}
 		}
 
 		function for_local_page(title) {
@@ -83,16 +94,23 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			if (title !== parameters[1].toString()) {
+			if (title !== local_title) {
 				// 日本語版項目名が違う記事なので、パス。
 				token.error = 'different local title';
-				token.message = [ parameters[1].toString(), title ];
+				token.message = [ local_title, title ];
 				check();
 				return;
 			}
 
-			parent[index] = '[[' + title + ']]';
-			check(true);
+			title = '[[' + title;
+			if (parameters.label)
+				title += '|' + parameters.label;
+			else if (title.endsWith(')'))
+				title += '|';
+			title += ']]';
+			// 實際改變頁面結構。
+			parent[index] = title;
+			check(title);
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -111,39 +129,44 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			if (foreign_page_data.title !== parameters[3].toString()) {
+			if (foreign_page_data.title !== foreign_title) {
 				// 他言語版項目リンク先が違う記事なので、パス。
-				token.error = 'different foreign title';
-				token.message = [ parameters[3].toString(),
-						foreign_page_data.title ];
-				check();
+				// should be redirected.
+				CeL.log('different foreign title: [[:' + foreign_language + ':'
+						+ foreign_title + ']] → [[:' + foreign_language + ':'
+						+ foreign_page_data.title + ']]');
 				return;
 			}
 
-			CeL.wiki.langlinks([ parameters[2].toString(),
+			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
-			parameters[3].toString() ], for_local_page, use_language);
+			foreign_title ], for_local_page, use_language);
 
 		}
 
 		// template_name
-		if (token.name === '仮リンク'
-		// || token.name === 'ill2'
-		// || token.name === 'link-interwiki'
-		) {
+		if (token.name === '仮リンク' || token.name === 'ill2'
+				|| token.name === 'link-interwiki') {
 			template_count++;
-			// {{仮リンク|記事名|en|title}}
 			token.page_data = page_data;
 			ill2_list.push(token);
-			console.log(token);
-			var parameters = token.parameters;
-
-			CeL.wiki.page([ parameters[2].toString(),
+			// console.log(token);
+			var parameters = token.parameters,
+			// {{仮リンク|記事名|en|title}}
+			local_title = parameters[1] && parameters[1].toString(),
 			//
-			parameters[3].toString() ], for_foreign_page, {
-				redirects : 1,
-				query_props : 'pageprops'
-			});
+			foreign_language = parameters[2] && parameters[2].toString(),
+			//
+			foreign_title = parameters[3] && parameters[3].toString();
+
+			if (local_title && foreign_language && foreign_title) {
+				CeL.wiki.page([ foreign_language, foreign_title ],
+				//
+				for_foreign_page, {
+					redirects : 1,
+					query_props : 'pageprops'
+				});
+			}
 		}
 	}
 

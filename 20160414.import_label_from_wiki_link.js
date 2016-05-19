@@ -299,6 +299,12 @@ function for_each_page(page_data, messages) {
 	// /public/dumps/public/enwiki/20160501/enwiki-20160501-all-titles-in-ns0.gz
 	// TODO: 此階段所加的，在 wikidata 階段需要確保目標 wiki 無此條目。
 
+	/**
+	 * <code>
+	'''亨利·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（[[英文]]：Henry Alfred Kissinger，本名'''海因茨·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（Heinz Alfred Kissinger），{{bd|1923年|5月27日|}}）
+	</code>
+	 */
+
 	if (false) {
 		// add_label(use_language, 條目名, en title, en)
 		matched = content
