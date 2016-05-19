@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node 20160517.解消済み仮リンクを自動的に削除して.js && date
+﻿// cd ~/wikibot && date && time /shared/bin/node 20160517.解消済み仮リンクをリンクに置き換える.js && date
 
 /*
 
@@ -60,7 +60,7 @@ function for_each_page(page_data, messages) {
 			if (_changed) {
 				changed = _changed;
 				CeL.log('Adapt [[' + page_data.title + ']]: '
-						+ token.toString() + ' → ' + _changed);
+						+ token.toString() + ' → ' + changed);
 
 			} else if (token.error && token.error !== 'missing local') {
 				CeL.log(token.error + ': ' + token.toString());
@@ -68,26 +68,30 @@ function for_each_page(page_data, messages) {
 					CeL.log(String(token.message));
 			}
 
+			CeL.debug('template_count: ' + template_count, 4);
 			if (--template_count > 0 || !changed)
 				return;
 
 			var last_content = parser.toString();
-			if (CeL.wiki.content_of(page_data) !== last_content) {
-				if (false) {
-					CeL.log('[[' + page_data.title + ']]: ');
-					CeL.log(last_content);
-					return;
-				}
-				wiki.page(page_data && 'Wikipedia:サンドボックス')
-				//
-				.edit(last_content.slice(0, 460), {
-					section : 'new',
-					sectiontitle : 'Sandbox test section',
-					summary : 'bot test: 解消済み仮リンク' + _changed + 'を削除',
-					nocreate : 1,
-					bot : 1
-				});
+			if (CeL.wiki.content_of(page_data) === last_content) {
+				CeL.warn('The contents are the same.');
+				return;
 			}
+
+			if (false) {
+				CeL.log('[[' + page_data.title + ']]: ');
+				CeL.log(last_content);
+				return;
+			}
+			wiki.page(page_data && 'Wikipedia:サンドボックス')
+			//
+			.edit(last_content, {
+				section : 'new',
+				sectiontitle : 'Sandbox test section',
+				summary : 'bot test: 解消済み仮リンク' + changed + 'をリンクに置き換える',
+				nocreate : 1,
+				bot : 1
+			});
 		}
 
 		function for_local_page(title) {
@@ -140,7 +144,7 @@ function for_each_page(page_data, messages) {
 				CeL.log('different foreign title: [[:' + foreign_language + ':'
 						+ foreign_title + ']] → [[:' + foreign_language + ':'
 						+ foreign_page_data.title + ']]');
-				return;
+				foreign_title = foreign_page_data.title;
 			}
 
 			CeL.wiki.langlinks([ foreign_language,
@@ -152,7 +156,6 @@ function for_each_page(page_data, messages) {
 		// template_name
 		if (token.name === '仮リンク' || token.name === 'ill2'
 				|| token.name === 'link-interwiki') {
-			template_count++;
 			token.page_data = page_data;
 			ill2_list.push(token);
 			// console.log(token);
@@ -165,12 +168,15 @@ function for_each_page(page_data, messages) {
 			foreign_title = parameters[3] && parameters[3].toString();
 
 			if (local_title && foreign_language && foreign_title) {
+				template_count++;
 				CeL.wiki.page([ foreign_language, foreign_title ],
 				//
 				for_foreign_page, {
 					redirects : 1,
 					query_props : 'pageprops'
 				});
+			} else {
+				CeL.log('Invalid template: ' + token.toString());
 			}
 		}
 	}
