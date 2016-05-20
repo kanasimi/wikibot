@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js && date) >> ../tmp/import_label_from_wiki_link.log &
+﻿// (cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> ../tmp/import_label_from_wiki_link.log &
 
 /*
 
@@ -82,9 +82,9 @@ var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 200,
 //
-count = 0, length = 0,
+count = 0, length = 0, skipped_count = 0, add_label_count = 0,
 // ((Infinity)) for do all
-test_limit = Infinity,
+test_limit = 1000,
 /** {String}本次任務使用的語言。 */
 use_language = 'zh',
 
@@ -109,7 +109,8 @@ var
 label_data = CeL.null_Object(),
 // catch已經處理完成操作的label
 // processed[title] = last revisions
-processed = CeL.null_Object(),
+processed = JSON.parse(CeL.fs_read(processed_file_path, 'utf8') || '0')
+		|| CeL.null_Object(),
 
 // @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
@@ -187,22 +188,36 @@ function for_each_page(page_data, messages) {
 	//
 	revid = page_data.revisions[0].revid;
 
-	if (title in processed) {
-		if (processed[title] === revid)
-			return;
-		// assert: processed[title] < page_data.revisions[0].revid
-		delete processed[title];
-	}
-
-	if (/^\d+月(\d+日)?$/.test(title) || /^\d+年(\d+月)?$/.test(title))
-		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
-
 	if (!content)
 		return;
 
+	if (/^\d+月(\d+日)?/.test(title) || /^\d+年(\d+月)?$/.test(title))
+		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
+
+	if (title in processed) {
+		if (processed[title] === revid) {
+			skipped_count++;
+			CeL.debug('Skip [[' + title + ']] revid ' + revid, 1,
+					'for_each_page');
+			return;
+		}
+		// assert: processed[title] < page_data.revisions[0].revid
+		delete processed[title];
+
+	} else if (skipped_count > 0) {
+		if (skipped_count > 9) {
+			CeL.log('for_each_page: Skip ' + skipped_count + ' pages.');
+		}
+		skipped_count = 0;
+	}
+
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language,
-			need_check) {
+			token, need_check) {
+		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
+		if (revid)
+			processed[title] = revid, revid = 0;
+
 		if (foreign_language !== 'WD') {
 			foreign_language = foreign_language.toLowerCase();
 			if (!/^(?:[a-z]{2,})$/.test(foreign_language)) {
@@ -223,13 +238,14 @@ function for_each_page(page_data, messages) {
 		// 在遇到如 [[:ja:混合農業]] 時會被跳過。此處 'zh-hant' 表示已經過轉換，繁簡標題不相同之結果。
 		? foreign_title === label
 		// e.g., [[:en:Björn Eriksson (civil servant)|Björn Eriksson]]
-		: foreign_title.length > label.length && foreign_title.includes(label)))
+		: foreign_title.length > label.length && foreign_title.includes(label))) {
 			return;
+		}
 
 		if (!local_language) {
 			local_language = CeL.wiki.guess_language(label);
 			if (local_language === '') {
-				CeL.warn('add_label: Unknown language: ' + matched[0] + ' @ [['
+				CeL.warn('add_label: Unknown language: ' + token + ' @ [['
 						+ title + ']]');
 			}
 		}
@@ -253,7 +269,7 @@ function for_each_page(page_data, messages) {
 				if (label_CHT !== label) {
 					// 加上轉換成繁體的 label
 					add_label(foreign_language, foreign_title, label_CHT,
-							'zh-hant', need_check);
+							'zh-hant', token, need_check);
 					if (!local_language)
 						// label 照理應該是簡體 (zh-cn)。
 						// treat zh-hans as zh-cn
@@ -265,30 +281,66 @@ function for_each_page(page_data, messages) {
 		}
 
 		var data, full_title = foreign_language + ':' + foreign_title;
-		if (!(full_title in label_data)) {
-			++length;
-			if (length <= log_limit)
-				// 此 label 指向
-				CeL.log([ length + ':', 'fg=yellow', label, '-fg', '→',
-						'fg=cyan', full_title, '-fg',
-						'@ [[' + title + ']]: ' + matched[0] ]);
-			label_data[full_title] = data = [ {}, [ title ] ];
 
-		} else {
-			data = label_data[full_title];
-			if (!data[1].includes(title)) {
-				data[1].push(title);
+		add_label_count++;
+		CeL.wiki.page([ foreign_language, foreign_title ], function(page_data) {
+			add_label_count--;
+			if (!page_data || ('missing' in page_data)) {
+				CeL.info('add_label: missing [[' + full_title + ']]; ' + token
+						+ ' @ [[' + title + ']].');
+				return;
 			}
-		}
 
-		if (!local_language)
-			local_language = use_language;
+			if (foreign_title !== page_data.title) {
+				if (!page_data.title) {
+					CeL.warn('add_label: Error page_data:');
+					CeL.log(page_data);
+				}
+				if (length <= log_limit)
+					CeL.info('add_label: [[' + full_title + ']] → [['
+							+ page_data.title + ']].');
+				// TODO: 處理作品被連結/導向到作者的情況
+				foreign_title = page_data.title;
+				full_title = foreign_language + ':' + foreign_title;
+			}
 
-		if (!data[0][local_language]) {
-			data[0][local_language] = [ label ];
-		} else if (!data[0][local_language].includes(label)) {
-			data[0][local_language].push(label);
-		}
+			if (!(full_title in label_data)) {
+				++length;
+				if (length <= log_limit) {
+					// 此 label 指向
+					CeL.log([ length + ':', 'fg=yellow', label, '-fg', '→',
+							'fg=cyan', full_title, '-fg',
+							'@ [[' + title + ']]: ' + token ]);
+				}
+				label_data[full_title] = data = [ {}, [ title ] ];
+
+			} else {
+				data = label_data[full_title];
+				if (!data[1].includes(title)) {
+					data[1].push(title);
+				}
+			}
+
+			if (!local_language)
+				local_language = use_language;
+
+			if (!data[0][local_language]) {
+				data[0][local_language] = [ label ];
+			} else if (!data[0][local_language].includes(label)) {
+				data[0][local_language].push(label);
+			}
+
+		}, {
+			redirects : 1,
+			// 輸入 prop:'' 或再加上 redirects:1 可以僅僅確認頁面是否存在，以及頁面的正規標題。
+			prop : '',
+			get_URL_options : {
+				onfail : function(error) {
+					// 確保沒有漏網之魚。
+					add_label_count--;
+				}
+			}
+		});
 	}
 
 	var matched;
@@ -321,12 +373,13 @@ function for_each_page(page_data, messages) {
 				matched[1] = matched[1].trim();
 				matched[2] = to_plain_text(matched[2]);
 				if (matched[1] && matched[2]) {
-					add_label(use_language, title, matched[2], matched[1], 1);
+					add_label(use_language, title, matched[2], matched[1],
+							matched[0], 1);
 				}
 			} else if (matched = label
 					.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
 				// '''條目名'''（'''en title'''）
-				add_label(use_language, title, matched[1], 'en', 1);
+				add_label(use_language, title, matched[1], 'en', matched[0], 1);
 			} else {
 				CeL.log('[[' + title + ']]: Unknown label pattern: [' + label
 						+ ']');
@@ -339,11 +392,6 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	while (matched = PATTERN_link.exec(content)) {
-		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
-		// TODO: 成功才登記。
-		if (revid)
-			processed[title] = revid, revid = 0;
-
 		// @see function language_to_project(language) @ application.net.wiki
 		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
@@ -451,7 +499,8 @@ function for_each_page(page_data, messages) {
 
 		// label = label.replace(/（(.+)）$/, '($1)');
 
-		add_label(matched[1], foreign_title, label, language_guessed);
+		add_label(matched[1], foreign_title, label, language_guessed,
+				matched[0]);
 	}
 
 	// ----------------------------------------------------
@@ -459,111 +508,116 @@ function for_each_page(page_data, messages) {
 	// parse 跨語言連結模板
 	// @see
 	// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
-	CeL.wiki.parse.every(
-			'{{link-[a-z]+|[a-z]+-link|le|ill|interlanguage[ _]link'
-					+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
-					+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw}}',
-			//
-			content, function(token) {
-				// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
-				if (revid)
-					processed[title] = revid, revid = 0;
+	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|le'
+			+ '|ill|interlanguage[ _]link'
+			+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
+			+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw}}',
+	//
+	content, function(token) {
+		// console.log(token);
 
-				// console.log(token);
+		var foreign_language, foreign_title, label,
+		//
+		template_name = token[1].toLowerCase().replace(/_/g, ' ');
 
-				var foreign_language, foreign_title, label,
+		switch (template_name) {
+		case 'translink':
+		case 'tsl':
+			// {{tsl|en|foreign title|local title}}
+			foreign_language = token[2][1];
+			foreign_title = token[2][2];
+			label = token[2][3];
+			break;
+
+		case 'ill':
+		case 'interlanguage link':
+			// {{ill|en|local title|foreign title}}
+			foreign_language = token[2][1];
+			label = token[2][2];
+			foreign_title = token[2][3];
+			break;
+
+		case 'liw':
+		case 'illm':
+		case 'interlanguage link multi':
+		case '多語言連結':
+			label = token[2][1];
+			if (token[2].WD) {
+				// {{illm|WD=Q1}}
+				foreign_language = 'WD';
+				foreign_title = token[2].WD;
+			} else {
+				// {{illm|local title|en|foreign title}}
+				// {{liw|local title|en|foreign title}}
+				// {{liw|中文項目名|語言|其他語言頁面名|...}}
+				foreign_language = token[2][2];
+				foreign_title = token[2][3];
+			}
+			break;
+
+		case 'link-interwiki':
+			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
+			label = token[2][use_language];
+			foreign_language = token[2].lang;
+			foreign_title = token[2].lang_title;
+			break;
+
+		case 'ilh':
+		case 'internal link helper':
+			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
+			label = token[2][1];
+			foreign_title = token[2][2];
+			foreign_language = token[2]['lang-code'];
+			break;
+
+		case 'le':
+			// {{le|local title|foreign title|show}}
+			label = token[2][1];
+			foreign_title = token[2][2];
+			foreign_language = 'en';
+			break;
+
+		default:
+			// {{Internal link helper}}系列模板
+			// {{link-en|local title|foreign title}}
+			foreign_language = template_name.startsWith('link-')
+			// 5: 'link-'.length, '-link'.length
+			? template_name.slice(5)
+			// assert: template_name.endsWith('-link')
+			: template_name.slice(0, -5);
+			label = token[2][1];
+			foreign_title = token[2][2];
+			break;
+		}
+
+		if (label && (label = to_plain_text(label)) && isNaN(label)
+				&& !label.includes('{{')
+				// e.g., [[道奇挑戰者]]
+				&& foreign_title && !foreign_title.includes('{{')
 				//
-				template_name = token[1].toLowerCase().replace(/_/g, ' ');
-
-				switch (template_name) {
-				case 'translink':
-				case 'tsl':
-					// {{tsl|en|foreign title|local title}}
-					foreign_language = token[2][1];
-					foreign_title = token[2][2];
-					label = token[2][3];
-					break;
-
-				case 'ill':
-				case 'interlanguage link':
-					// {{ill|en|local title|foreign title}}
-					foreign_language = token[2][1];
-					label = token[2][2];
-					foreign_title = token[2][3];
-					break;
-
-				case 'liw':
-				case 'illm':
-				case 'interlanguage link multi':
-				case '多語言連結':
-					label = token[2][1];
-					if (token[2].WD) {
-						// {{illm|WD=Q1}}
-						foreign_language = 'WD';
-						foreign_title = token[2].WD;
-					} else {
-						// {{illm|local title|en|foreign title}}
-						// {{liw|local title|en|foreign title}}
-						// {{liw|中文項目名|語言|其他語言頁面名|...}}
-						foreign_language = token[2][2];
-						foreign_title = token[2][3];
-					}
-					break;
-
-				case 'link-interwiki':
-					// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
-					label = token[2][use_language];
-					foreign_language = token[2].lang;
-					foreign_title = token[2].lang_title;
-					break;
-
-				case 'ilh':
-				case 'internal link helper':
-					// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
-					label = token[2][1];
-					foreign_title = token[2][2];
-					foreign_language = token[2]['lang-code'];
-					break;
-
-				case 'le':
-					// {{le|local title|foreign title|show}}
-					label = token[2][1];
-					foreign_title = token[2][2];
-					foreign_language = 'en';
-					break;
-
-				default:
-					// {{Internal link helper}}系列模板
-					// {{link-en|local title|foreign title}}
-					foreign_language = template_name.startsWith('link-')
-					// 5: 'link-'.length, '-link'.length
-					? template_name.slice(5)
-					// assert: template_name.endsWith('-link')
-					: template_name.slice(0, -5);
-					label = token[2][1];
-					foreign_title = token[2][2];
-					break;
-				}
-
-				if (label && (label = to_plain_text(label)) && isNaN(label)
-						&& !label.includes('{{')
-						// e.g., [[道奇挑戰者]]
-						&& foreign_title && !foreign_title.includes('{{')
-						//
-						&& foreign_language
-						&& /^[a-z_]+$/.test(foreign_language)) {
-					matched = token;
-					add_label(foreign_language, foreign_title, label);
-				} else if (!label && !foreign_title || !foreign_language) {
-					CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
-							+ ']]');
-				}
-			})
+				&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
+			add_label(foreign_language, foreign_title, label, null, token[0]);
+		} else if (!label && !foreign_title || !foreign_language) {
+			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
+		}
+	})
 }
 
 // ----------------------------------------------------------------------------
 
 function create_label_data() {
+	function do_after() {
+		if (add_label_count > 0) {
+			CeL.log('尚有 ' + add_label_count + ' 個 add_label() 操作未完成，等待之...');
+			setTimeout(do_after, 200);
+			return;
+		}
+
+		CeL.fs_write(data_file_path, JSON.stringify(label_data), 'utf8');
+
+		finish_work();
+	}
+
 	// CeL.set_debug(6);
 	CeL.wiki.traversal({
 		// [SESSION_KEY]
@@ -576,11 +630,7 @@ function create_label_data() {
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
-		after : function() {
-			CeL.fs_write(data_file_path, JSON.stringify(label_data), 'utf8');
-
-			finish_work();
-		}
+		after : do_after
 	}, for_each_page);
 }
 
@@ -830,6 +880,9 @@ function push_work(full_title) {
 		}
 
 		if (count % 1e4 === 0 || CeL.is_debug()) {
+			// 可能中途 killed, crashed，因此尚不能 write_processed()。
+			// write_processed();
+
 			// CeL.append_file()
 			CeL.log(count + '/' + length + ' '
 			//
@@ -870,7 +923,36 @@ function push_work(full_title) {
 		+ titles.uniq().slice(0, 8).join(summary_sp)
 		//
 		+ summary_postfix
+
+	}, function(data, error) {
+		if (!error || 'skip' === (Array.isArray(error) ? error[0] : error))
+			return;
+
+		var skip;
+		if (typeof error === 'object') {
+			if (error.code === 'no_last_data') {
+				// 例如提供的 foreign title 錯誤，或是 foreign title 為 redirected。
+				error = error.message, skip = true;
+			} else {
+				error = JSON.stringify(error.error || error);
+			}
+		}
+
+		// 成功才登記。失敗則下次重試。
+		CeL.info('[[' + titles.join('|') + ']] failed: '
+		//
+		+ error + '.' + (skip ? '' : ' Retry next time.'));
+
+		if (!skip) {
+			titles.uniq().forEach(function(title) {
+				delete processed[title];
+			});
+		}
 	});
+}
+
+function write_processed() {
+	CeL.fs_write(processed_file_path, JSON.stringify(processed), 'utf8');
 }
 
 /**
@@ -889,7 +971,9 @@ function finish_work() {
 	}
 
 	wiki.run(function() {
-		var message = script_name + ': 已更改完 Wikidata。';
+		write_processed();
+
+		var message = script_name + ': 已處理完畢 Wikidata 部分。';
 		if (modify_Wikipedia)
 			message += '開始處理 ' + use_language + ' Wikipedia 上的頁面。';
 		CeL.log(message);
@@ -912,8 +996,6 @@ if (label_data) {
 			'utf8'));
 	PATTERN_common_title = new RegExp(PATTERN_common_title.source,
 			PATTERN_common_title.flags);
-
-	processed = JSON.parse(CeL.fs_read(processed_file_path, processed, 'utf8'));
 
 	finish_work();
 
@@ -957,10 +1039,6 @@ if (label_data) {
 				source : PATTERN_common_title.source,
 				flags : PATTERN_common_title.flags
 			}), 'utf8');
-
-			CeL.fs_write(processed_file_path,
-			//
-			JSON.stringify(processed), 'utf8');
 
 			create_label_data();
 		});

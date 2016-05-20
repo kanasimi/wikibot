@@ -106,7 +106,7 @@ function for_each_page(page_data, messages) {
 			if (title !== local_title) {
 				// 日本語版項目名が違う記事なので、パス。
 				token.error = 'different local title';
-				token.message = [ local_title, title ];
+				token.message = local_title + '\n' + title;
 				check();
 				return;
 			}
@@ -172,6 +172,7 @@ function for_each_page(page_data, messages) {
 				CeL.wiki.page([ foreign_language, foreign_title ],
 				//
 				for_foreign_page, {
+					// TODO: test REDIRECT [[title#section]]
 					redirects : 1,
 					query_props : 'pageprops'
 				});
@@ -202,7 +203,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	list = list.slice(1).slice(0, test_limit);
+	list = list.slice(0).slice(0, test_limit);
 	CeL.log(list.slice(0, 8).map(function(page_data) {
 		return CeL.wiki.title_of(page_data);
 	}).join('\n'));
