@@ -3,6 +3,7 @@
 /*
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
+ 2016/5/20 22:22:41	仮運用を行って
 
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -39,7 +40,7 @@ log_limit = 200,
 //
 count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = 1,
+test_limit = 5,
 //
 ill2_list = [];
 
@@ -52,15 +53,17 @@ prepare_directory(base_directory);
 function for_each_page(page_data, messages) {
 	var template_count = 0,
 	/** {String}page title = page_data.title */
-	title = CeL.wiki.title_of(page_data), changed;
+	title = CeL.wiki.title_of(page_data), changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
 	function for_each_template(token, index, parent) {
 		function check(_changed) {
 			if (_changed) {
-				changed = _changed;
-				CeL.log('Adapt [[' + page_data.title + ']]: '
-						+ token.toString() + ' → ' + changed);
+				if (!changed.includes(_changed)) {
+					changed.push(_changed);
+					CeL.log('Adapt [[' + page_data.title + ']]: '
+							+ token.toString() + ' → ' + _changed);
+				}
 
 			} else if (token.error && token.error !== 'missing local') {
 				CeL.log(token.error + ': ' + token.toString());
@@ -69,7 +72,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			CeL.debug('template_count: ' + template_count, 4);
-			if (--template_count > 0 || !changed)
+			if (--template_count > 0 || changed.length === 0)
 				return;
 
 			var last_content = parser.toString();
@@ -83,12 +86,16 @@ function for_each_page(page_data, messages) {
 				CeL.log(last_content);
 				return;
 			}
-			wiki.page(page_data && 'Wikipedia:サンドボックス')
+			wiki.page(page_data
+			// && 'Wikipedia:サンドボックス'
+			)
 			//
 			.edit(last_content, {
-				section : 'new',
-				sectiontitle : 'Sandbox test section',
-				summary : 'bot test: 解消済み仮リンク' + changed + 'をリンクに置き換える',
+				// section : 'new',
+				// sectiontitle : 'Sandbox test section',
+				summary : 'bot test: 解消済み仮リンク'
+				//
+				+ changed.join('、') + 'をリンクに置き換える',
 				nocreate : 1,
 				bot : 1
 			});
@@ -106,7 +113,7 @@ function for_each_page(page_data, messages) {
 			if (title !== local_title) {
 				// 日本語版項目名が違う記事なので、パス。
 				token.error = 'different local title';
-				token.message = local_title + '\n' + title;
+				token.message = ': ' + local_title + '\n: ' + title;
 				check();
 				return;
 			}
@@ -154,8 +161,11 @@ function for_each_page(page_data, messages) {
 		}
 
 		// template_name
-		if (token.name === '仮リンク' || token.name === 'ill2'
-				|| token.name === 'link-interwiki') {
+		if (token.name in {
+			'仮リンク' : true,
+			'ill2' : true,
+			'link-interwiki' : true
+		}) {
 			token.page_data = page_data;
 			ill2_list.push(token);
 			// console.log(token);
@@ -203,7 +213,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	list = list.slice(0).slice(0, test_limit);
+	list = list.slice(0, test_limit);
 	CeL.log(list.slice(0, 8).map(function(page_data) {
 		return CeL.wiki.title_of(page_data);
 	}).join('\n'));

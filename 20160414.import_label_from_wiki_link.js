@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> ../tmp/import_label_from_wiki_link.log &
+﻿// (cd ~/wikibot && date && nohup time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> ../tmp/import_label_from_wiki_link.log &
 
 /*
 
