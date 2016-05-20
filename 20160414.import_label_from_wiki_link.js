@@ -84,7 +84,7 @@ log_limit = 200,
 //
 count = 0, length = 0, skipped_count = 0, add_label_count = 0,
 // ((Infinity)) for do all.
-test_limit = 10000,
+test_limit = 5000,
 /** {String}本次任務使用的語言。 */
 use_language = 'zh',
 
@@ -283,7 +283,7 @@ function for_each_page(page_data, messages) {
 		var data, full_title = foreign_language + ':' + foreign_title;
 
 		add_label_count++;
-		CeL.wiki.page([ foreign_language, foreign_title ], function(page_data) {
+		wiki.page([ foreign_language, foreign_title ], function(page_data) {
 			add_label_count--;
 			if (!page_data || ('missing' in page_data)) {
 				CeL.info('add_label: missing [[' + full_title + ']]; ' + token
