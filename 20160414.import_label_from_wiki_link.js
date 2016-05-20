@@ -83,8 +83,8 @@ var
 log_limit = 200,
 //
 count = 0, length = 0, skipped_count = 0, add_label_count = 0,
-// ((Infinity)) for do all
-test_limit = 1000,
+// ((Infinity)) for do all.
+test_limit = 10000,
 /** {String}本次任務使用的語言。 */
 use_language = 'zh',
 
@@ -203,8 +203,8 @@ function for_each_page(page_data, messages) {
 		}
 		// assert: processed[title] < page_data.revisions[0].revid
 		delete processed[title];
-
-	} else if (skipped_count > 0) {
+	}
+	if (skipped_count > 0) {
 		if (skipped_count > 9) {
 			CeL.log('for_each_page: Skip ' + skipped_count + ' pages.');
 		}
@@ -336,7 +336,7 @@ function for_each_page(page_data, messages) {
 			prop : '',
 			get_URL_options : {
 				onfail : function(error) {
-					// 確保沒有漏網之魚。
+					// 確保沒有因特殊錯誤產生的漏網之魚。
 					add_label_count--;
 					delete processed[title];
 				}
@@ -609,7 +609,8 @@ function for_each_page(page_data, messages) {
 function create_label_data() {
 	function do_after() {
 		if (add_label_count > 0) {
-			CeL.log('尚有 ' + add_label_count + ' 個 add_label() 操作未完成，等待之...');
+			CeL.info('create_label_data: 尚有 ' + add_label_count
+					+ ' 個 add_label() 操作未完成，暫等待之...');
 			setTimeout(do_after, 1000);
 			return;
 		}
@@ -943,7 +944,7 @@ function push_work(full_title) {
 		// 成功才登記。失敗則下次重試。
 		CeL.info('[[' + titles.join('|') + ']] failed: '
 		//
-		+ error + '.' + (skip ? '' : ' Retry next time.'));
+		+ error + (skip ? '' : ' - Retry next time.'));
 
 		if (!skip) {
 			titles.uniq().forEach(function(title) {
