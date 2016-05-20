@@ -338,6 +338,7 @@ function for_each_page(page_data, messages) {
 				onfail : function(error) {
 					// 確保沒有漏網之魚。
 					add_label_count--;
+					delete processed[title];
 				}
 			}
 		});
@@ -609,7 +610,7 @@ function create_label_data() {
 	function do_after() {
 		if (add_label_count > 0) {
 			CeL.log('尚有 ' + add_label_count + ' 個 add_label() 操作未完成，等待之...');
-			setTimeout(do_after, 200);
+			setTimeout(do_after, 1000);
 			return;
 		}
 
@@ -900,7 +901,7 @@ function push_work(full_title) {
 			// 為粵文維基百科特別處理。
 			: language === 'yue' ? 'zh_yue' : language) + 'wiki'].title)) {
 				console.log(entity);
-				throw 1;
+				throw entity;
 			}
 		}
 
@@ -932,6 +933,7 @@ function push_work(full_title) {
 		if (typeof error === 'object') {
 			if (error.code === 'no_last_data') {
 				// 例如提供的 foreign title 錯誤，或是 foreign title 為 redirected。
+				// 抑或者存在 foreign title 頁面，但沒有 wikidata entity。
 				error = error.message, skip = true;
 			} else {
 				error = JSON.stringify(error.error || error);
