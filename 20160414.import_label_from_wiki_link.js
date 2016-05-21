@@ -972,12 +972,15 @@ function next_label_data_work() {
 
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
 	wiki.page([ foreign_language, foreign_title ], function(page_data) {
-		CeL.info('next_label_data_work.check_label: page_data:');
-		console.log(page_data);
+		// CeL.info('next_label_data_work.check_label: page_data:');
+		// console.log(page_data);
 
 		if (!page_data || ('missing' in page_data)) {
 			CeL.info('next_label_data_work.check_label: missing [['
-					+ full_title + ']]; ' + token + ' @ [[' + title + ']].');
+					+ full_title
+					// ↓ 無此 token, title 資訊可用。
+					// + ']]; ' + token + ' @ [[' + title + ']].'
+					+ ']] @ ' + label_data[full_title][1].join('|'));
 			// do next.
 			setTimeout(next_label_data_work, 0);
 			return;
