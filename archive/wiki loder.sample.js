@@ -135,10 +135,10 @@ if (bot_directory) {
 global.use_language = '';
 
 // Set default language. 改變預設之語言。
-function set_language(language) {
+global.set_language = function(language) {
 	use_language = language;
 	CeL.wiki.set_language(language);
-}
+};
 
 set_language('zh');
 

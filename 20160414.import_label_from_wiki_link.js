@@ -580,19 +580,6 @@ function for_each_page(page_data, messages) {
 // ----------------------------------------------------------------------------
 
 function create_label_data() {
-	function do_after() {
-		if (add_label_count > 0) {
-			CeL.info('create_label_data: 尚有 ' + add_label_count
-					+ ' 個 add_label() 操作未完成，暫等待之...');
-			setTimeout(do_after, 1000);
-			return;
-		}
-
-		CeL.fs_write(data_file_path, JSON.stringify(label_data), 'utf8');
-
-		finish_work();
-	}
-
 	// CeL.set_debug(6);
 	CeL.wiki.traversal({
 		// [SESSION_KEY]
@@ -605,7 +592,12 @@ function create_label_data() {
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
-		after : do_after
+		after : function do_after() {
+			CeL.fs_write(data_file_path, JSON.stringify(label_data), 'utf8');
+
+			finish_work();
+		}
+
 	}, for_each_page);
 }
 
