@@ -81,7 +81,7 @@ wiki = Wiki(true),
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = Infinity,
 //
-count = 0, length = 0, skipped_count = 0,
+skipped_count = 0,
 // ((Infinity)) for do all.
 test_limit = Infinity,
 
@@ -106,7 +106,7 @@ var
 label_data = CeL.null_Object(),
 // label_data_keys = Object.keys(label_data);
 // = ['foreign_language:foreign_title' , '', ...]
-label_data_keys, label_data_index = 0,
+label_data_keys, label_data_index = 0, label_data_length = 0,
 
 // catch已經處理完成操作的label
 // processed[title] = last revisions
@@ -168,7 +168,7 @@ function language_label(language) {
 function for_each_page(page_data, messages) {
 	// 有必要中途跳出時則須在 callback() 中設定：
 	// @ callback(page_data, messages):
-	if (length > test_limit) {
+	if (label_data_length > test_limit) {
 		if (messages) {
 			// 當在 .work() 執行時。
 			messages.quit_operation = true;
@@ -288,11 +288,11 @@ function for_each_page(page_data, messages) {
 		// 此法僅在少量文章時可使用。因此此處先推入 label_data[]，稍後再處理。
 
 		if (!(full_title in label_data)) {
-			++length;
-			if (length <= log_limit) {
+			++label_data_length;
+			if (label_data_length <= log_limit) {
 				// 此 label 指向
-				CeL.log([ length + ':', 'fg=yellow', label, '-fg', '→',
-						'fg=cyan', full_title, '-fg',
+				CeL.log([ label_data_length + ':', 'fg=yellow', label, '-fg',
+						'→', 'fg=cyan', full_title, '-fg',
 						'@ [[' + title + ']]: ' + token ]);
 			}
 			// 為防止有重複，在此不 push()。
@@ -673,7 +673,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	},
 	// 不設定 property
 	null, modify_Wikipedia && function(entity) {
-		if (count > test_limit)
+		if (label_data_index > test_limit)
 			return;
 
 		if (CeL.wiki.data.is_DAB(entity))
@@ -817,11 +817,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		props : 'labels|aliases|claims|sitelinks'
 
 	}).edit_data(function(entity) {
-		if (++count > test_limit) {
-			// throw 'Ignored: Test done.';
-			return [ CeL.wiki.edit.cancel, 'skip' ];
-		}
-
 		if (CeL.wiki.data.is_DAB(entity)) {
 			// is Q4167410: Wikimedia disambiguation page
 			// 維基媒體消歧義頁
@@ -844,12 +839,12 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			'missing [' + (entity && entity.id) + ']' ];
 		}
 
-		if (count % 1e4 === 0 || CeL.is_debug()) {
+		if (label_data_index % 1e4 === 0 || CeL.is_debug()) {
 			// 可能中途 killed, crashed，因此尚不能 write_processed()。
 			// write_processed();
 
 			// CeL.append_file()
-			CeL.log(count + '/' + length + ' '
+			CeL.log(label_data_index + '/' + label_data_length + ' '
 			//
 			+ entity.id + ': [['
 
@@ -937,7 +932,9 @@ function write_processed() {
 
 // 為降低 RAM 使用，不一次 push 進 queue，而是依 label_data 之 index 一個個慢慢來處理。
 function next_label_data_work() {
-	if (label_data_index === label_data_keys.length) {
+	if (label_data_index === label_data_length
+	// Test done.
+	|| label_data_index >= test_limit) {
 		wiki.run(function() {
 			write_processed();
 
@@ -955,7 +952,7 @@ function next_label_data_work() {
 
 	if (label_data_index % 1000 === 0) {
 		CeL.log('next_label_data_work: ' + label_data_index + '/'
-				+ label_data_keys.length + ' [[' + full_title + ']]');
+				+ label_data_length + ' [[' + full_title + ']]');
 	}
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
@@ -994,7 +991,7 @@ function next_label_data_work() {
 				CeL.warn('next_label_data_work.check_label: Error page_data:');
 				CeL.log(page_data);
 			}
-			if (length <= log_limit)
+			if (label_data_length <= log_limit)
 				CeL.info('next_label_data_work.check_label: [[' + full_title
 						+ ']] → [[' + page_data.title + ']].');
 			// TODO: 處理作品被連結/導向到作者的情況
@@ -1022,16 +1019,13 @@ function next_label_data_work() {
  * Finish up. 最後結束工作。
  */
 function finish_work() {
-	if (!length) {
-		length = Object.keys(label_data).length;
-	}
-	CeL.log(script_name + ': All ' + length + ' labels.');
-
 	// console.log(PATTERN_common_title);
 
 	// initialize: 不論是否為自 data_file_path 讀取，皆應有資料。
 	label_data_keys = Object.keys(label_data);
 	// label_data_index = 0;
+	label_data_length = label_data_keys.length;
+	CeL.log(script_name + ': All ' + label_data_length + ' labels.');
 
 	// do next.
 	setTimeout(next_label_data_work, 0);
