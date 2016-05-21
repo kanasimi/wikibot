@@ -917,6 +917,7 @@ function push_work(full_title) {
 
 	}, {
 		bot : 1,
+		// TODO: add [[Special:Redirect/revision/00000|版本]]
 		summary : 'bot: import label/alias from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。
 		+ titles.uniq().slice(0, 8).join(summary_sp)

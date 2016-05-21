@@ -82,8 +82,9 @@ global.log_to = '';
 /** {String}script name */
 global.script_name = CeL.get_script_name()
 // 去掉日期 prefix / task date。
-.replace(/^(\d{4,8})[. ]/g, function($0, $1) {
+.replace(/^(\d{4,8})[. ]/, function($0, $1) {
 	check_section = $1;
+	return '';
 })
 // 去掉 version。
 .replace(/[. ]v[\d.]+$/g, '');
