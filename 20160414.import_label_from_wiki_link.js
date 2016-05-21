@@ -106,7 +106,7 @@ var
 label_data = CeL.null_Object(),
 // label_data_keys = Object.keys(label_data);
 // = ['foreign_language:foreign_title' , '', ...]
-label_data_keys = [], label_data_index = 0,
+label_data_keys, label_data_index = 0,
 
 // catch已經處理完成操作的label
 // processed[title] = last revisions
@@ -295,7 +295,8 @@ function for_each_page(page_data, messages) {
 						'fg=cyan', full_title, '-fg',
 						'@ [[' + title + ']]: ' + token ]);
 			}
-			label_data_keys.push(full_title);
+			// 為防止有重複，在此不 push()。
+			// label_data_keys.push(full_title);
 			label_data[full_title] = data = [ {}, [ title ] ];
 
 		} else {
@@ -965,20 +966,23 @@ function next_label_data_work() {
 
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
 	wiki.page([ foreign_language, foreign_title ], function(page_data) {
+		CeL.info('next_label_data_work.check_label: page_data:');
+		console.log(page_data);
+
 		if (!page_data || ('missing' in page_data)) {
-			CeL.info('add_label: missing [[' + full_title + ']]; ' + token
-					+ ' @ [[' + title + ']].');
+			CeL.info('next_label_data_work.check_label: missing [['
+					+ full_title + ']]; ' + token + ' @ [[' + title + ']].');
 			return;
 		}
 
 		if (foreign_title !== page_data.title) {
 			if (!page_data.title) {
-				CeL.warn('add_label: Error page_data:');
+				CeL.warn('next_label_data_work.check_label: Error page_data:');
 				CeL.log(page_data);
 			}
 			if (length <= log_limit)
-				CeL.info('add_label: [[' + full_title + ']] → [['
-						+ page_data.title + ']].');
+				CeL.info('next_label_data_work.check_label: [[' + full_title
+						+ ']] → [[' + page_data.title + ']].');
 			// TODO: 處理作品被連結/導向到作者的情況
 			foreign_title = page_data.title;
 			// full_title 當作 key，不能改變。
@@ -993,7 +997,6 @@ function next_label_data_work() {
 		get_URL_options : {
 			onfail : function(error) {
 				// 確保沒有因特殊錯誤產生的漏網之魚。
-				add_label_count--;
 				delete processed[title];
 			}
 		}
@@ -1012,11 +1015,9 @@ function finish_work() {
 
 	// console.log(PATTERN_common_title);
 
-	if (label_data_keys.length === 0) {
-		// initialize: 應為自 data_file_path 讀取。
-		label_data_keys = Object.keys(label_data);
-		// label_data_index = 0;
-	}
+	// initialize: 不論是否為自 data_file_path 讀取，皆應有資料。
+	label_data_keys = Object.keys(label_data);
+	// label_data_index = 0;
 
 	// do next.
 	setTimeout(next_label_data_work, 0);
