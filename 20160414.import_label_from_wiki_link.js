@@ -79,11 +79,11 @@ var
 wiki = Wiki(true),
 
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 2e7,
+log_limit = Infinity,
 //
-count = 0, length = 0, skipped_count = 0, add_label_count = 0,
+count = 0, length = 0, skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = Infinity,
+test_limit = 100,
 
 // labels.json
 data_file_path = base_directory + 'labels.json',
@@ -101,9 +101,13 @@ modify_Wikipedia = false;
 wiki.set_data();
 
 var
-// label_data['foreign_language:foreign_title'] = [ { language: {Array}labels },
-// {Array}titles ]
+// label_data['foreign_language:foreign_title']
+// = [ { language: {Array}labels }, {Array}titles ]
 label_data = CeL.null_Object(),
+// label_data_keys = Object.keys(label_data);
+// = ['foreign_language:foreign_title' , '', ...]
+label_data_keys = [], label_data_index = 0,
+
 // catch已經處理完成操作的label
 // processed[title] = last revisions
 processed = JSON.parse(CeL.fs_read(processed_file_path, 'utf8') || '0')
@@ -132,8 +136,8 @@ function to_plain_text(wikitext) {
 	.replace(/[(（][英日德法西義韓諺俄原][语語國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
 	.replace(/{{[a-z\s]+}}/ig, '').replace(/'''?([^']+)'''?/g, ' $1 ').trim()
-			.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g,
-					')');
+	//
+	.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g, ')');
 }
 
 if (false) {
@@ -279,66 +283,37 @@ function for_each_page(page_data, messages) {
 
 		var data, full_title = foreign_language + ':' + foreign_title;
 
-		add_label_count++;
-		wiki.page([ foreign_language, foreign_title ], function(page_data) {
-			add_label_count--;
-			if (!page_data || ('missing' in page_data)) {
-				CeL.info('add_label: missing [[' + full_title + ']]; ' + token
-						+ ' @ [[' + title + ']].');
-				return;
+		// 在此採用 asynchronous 非循序執行的方法，如 wiki.page()，不能真正同時執行或穿插執行指令；
+		// 在文章數量大時會造成 JavaScript heap out of memory。
+		// 此法僅在少量文章時可使用。因此此處先推入 label_data[]，稍後再處理。
+
+		if (!(full_title in label_data)) {
+			++length;
+			if (length <= log_limit) {
+				// 此 label 指向
+				CeL.log([ length + ':', 'fg=yellow', label, '-fg', '→',
+						'fg=cyan', full_title, '-fg',
+						'@ [[' + title + ']]: ' + token ]);
 			}
+			label_data_keys.push(full_title);
+			label_data[full_title] = data = [ {}, [ title ] ];
 
-			if (foreign_title !== page_data.title) {
-				if (!page_data.title) {
-					CeL.warn('add_label: Error page_data:');
-					CeL.log(page_data);
-				}
-				if (length <= log_limit)
-					CeL.info('add_label: [[' + full_title + ']] → [['
-							+ page_data.title + ']].');
-				// TODO: 處理作品被連結/導向到作者的情況
-				foreign_title = page_data.title;
-				full_title = foreign_language + ':' + foreign_title;
+		} else {
+			data = label_data[full_title];
+			if (!data[1].includes(title)) {
+				data[1].push(title);
 			}
+		}
 
-			if (!(full_title in label_data)) {
-				++length;
-				if (length <= log_limit) {
-					// 此 label 指向
-					CeL.log([ length + ':', 'fg=yellow', label, '-fg', '→',
-							'fg=cyan', full_title, '-fg',
-							'@ [[' + title + ']]: ' + token ]);
-				}
-				label_data[full_title] = data = [ {}, [ title ] ];
+		if (!local_language)
+			local_language = use_language;
 
-			} else {
-				data = label_data[full_title];
-				if (!data[1].includes(title)) {
-					data[1].push(title);
-				}
-			}
+		if (!data[0][local_language]) {
+			data[0][local_language] = [ label ];
+		} else if (!data[0][local_language].includes(label)) {
+			data[0][local_language].push(label);
+		}
 
-			if (!local_language)
-				local_language = use_language;
-
-			if (!data[0][local_language]) {
-				data[0][local_language] = [ label ];
-			} else if (!data[0][local_language].includes(label)) {
-				data[0][local_language].push(label);
-			}
-
-		}, {
-			redirects : 1,
-			// 輸入 prop:'' 或再加上 redirects:1 可以僅僅確認頁面是否存在，以及頁面的正規標題。
-			prop : '',
-			get_URL_options : {
-				onfail : function(error) {
-					// 確保沒有因特殊錯誤產生的漏網之魚。
-					add_label_count--;
-					delete processed[title];
-				}
-			}
-		});
 	}
 
 	var matched;
@@ -352,6 +327,7 @@ function for_each_page(page_data, messages) {
 	/**
 	 * <code>
 	'''亨利·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（[[英文]]：Henry Alfred Kissinger，本名'''海因茨·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（Heinz Alfred Kissinger），{{bd|1923年|5月27日|}}）
+	'''动粒<ref>[http://www.term.gov.cn/pages/homepage/result2.jsp?id=171683&subid=10000633&subject=%E5%8C%BB%E5%AD%A6%E9%81%97%E4%BC%A0%E5%AD%A6&subsys=%E5%8C%BB%E5%AD%A6]</ref>'''或'''着丝点'''（{{lang-en|Kinetochore}}）
 	</code>
 	 */
 
@@ -693,24 +669,14 @@ PATTERN_interlanguage = /[英日德法西義韓諺俄原][语語國国]?文?[名
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
-function push_work(full_title) {
-
-	// CeL.log(full_title);
-	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
-	if (!foreign_title) {
-		CeL.warn('Invalid title: ' + full_title);
-		return;
-	}
-	var language = foreign_title[1],
-	//
-	labels = label_data[full_title], titles = labels[1];
-	foreign_title = foreign_title[2];
+function process_wikidata(full_title, foreign_language, foreign_title) {
+	var labels = label_data[full_title], titles = labels[1];
 	labels = labels[0];
 
 	// TODO: 一次取得多筆資料。
-	wiki.data(language === 'WD' ? foreign_title : {
+	wiki.data(foreign_language === 'WD' ? foreign_title : {
 		title : foreign_title,
-		language : language
+		language : foreign_language
 	},
 	// 不設定 property
 	null, modify_Wikipedia && function(entity) {
@@ -721,7 +687,7 @@ function push_work(full_title) {
 			// is Q4167410: Wikimedia disambiguation page 維基媒體消歧義頁
 			return;
 
-		// console.log([ language, foreign_title ]);
+		// console.log([ foreign_language, foreign_title ]);
 		// console.log(entity);
 
 		// 使用Wikidata數據來清理跨語言連結。例如將[[:ja:日露戦争|日俄戰爭]]轉成[[日俄戰爭]]，避免「在條目頁面以管道連結的方式外連至其他語言維基頁面」。
@@ -745,15 +711,17 @@ function push_work(full_title) {
 				 */
 				content = CeL.wiki.content_of(page_data),
 				// [ link, local title ]
-				pattern = new RegExp('(?:{{' + language
+				pattern = new RegExp('(?:{{' + foreign_language
 				// TODO: {{languageicon}}
-				+ '(?: icon)?}}\s*)?\\[\\[:' + language + '\\s*:\\s*'
+				+ '(?: icon)?}}\s*)?\\[\\[:'
+				//
+				+ foreign_language + '\\s*:\\s*'
 				//
 				+ CeL.to_RegExp_pattern(foreign_title)
 				//
 				+ '(?:\\|([^\\[\\]]+))?\\]\\](?:\s*{{'
 				//
-				+ language + '(?: icon)?}})?', 'g');
+				+ foreign_language + '(?: icon)?}})?', 'g');
 
 				// TODO: 任[[:en:Island School|英童中學]] (Island
 				// School，今稱[[港島中學]]) 創校校長
@@ -862,17 +830,22 @@ function push_work(full_title) {
 		}
 
 		if (CeL.wiki.data.is_DAB(entity)) {
-			// is Q4167410: Wikimedia disambiguation page 維基媒體消歧義頁
+			// is Q4167410: Wikimedia disambiguation page
+			// 維基媒體消歧義頁
 			CeL.debug('跳過消歧義頁: '
 			//
-			+ entity.id + ': [[' + language + ':' + foreign_title + ']]');
+			+ entity.id + ': [[' + foreign_language
+			//
+			+ ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
 		if (!entity || ('missing' in entity)) {
 			CeL.debug('跳過不存在頁面: '
 			//
-			+ entity.id + ': [[' + language + ':' + foreign_title + ']]');
+			+ entity.id + ': [[' + foreign_language
+			//
+			+ ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel,
 			//
 			'missing [' + (entity && entity.id) + ']' ];
@@ -885,7 +858,9 @@ function push_work(full_title) {
 			// CeL.append_file()
 			CeL.log(count + '/' + length + ' '
 			//
-			+ entity.id + ': [[' + language + ':' + foreign_title
+			+ entity.id + ': [['
+
+			+ foreign_language + ':' + foreign_title
 			//
 			+ ']]: ' + JSON.stringify(labels));
 		}
@@ -893,11 +868,15 @@ function push_work(full_title) {
 		if (CeL.is_debug()) {
 			if (foreign_title !==
 			//
-			(language === 'WD' ? entity.id : entity.sitelinks[
+			(foreign_language === 'WD'
+			//
+			? entity.id : entity.sitelinks[
 			// 為日文特別處理。
-			(language === 'jp' ? 'ja'
+			(foreign_language === 'jp' ? 'ja'
 			// 為粵文維基百科特別處理。
-			: language === 'yue' ? 'zh_yue' : language) + 'wiki'].title)) {
+			: foreign_language === 'yue' ? 'zh_yue'
+			//
+			: foreign_language) + 'wiki'].title)) {
 				console.log(entity);
 				throw entity;
 			}
@@ -931,7 +910,8 @@ function push_work(full_title) {
 		var skip;
 		if (typeof error === 'object') {
 			if (error.code === 'no_last_data') {
-				// 例如提供的 foreign title 錯誤，或是 foreign title 為 redirected。
+				// 例如提供的 foreign title 錯誤，或是 foreign title 為
+				// redirected。
 				// 抑或者存在 foreign title 頁面，但沒有 wikidata entity。
 				error = error.message, skip = true;
 			} else {
@@ -949,11 +929,84 @@ function push_work(full_title) {
 				delete processed[title];
 			});
 		}
+
+		// do next.
+		setTimeout(next_label_data_work, 0);
 	});
 }
 
 function write_processed() {
 	CeL.fs_write(processed_file_path, JSON.stringify(processed), 'utf8');
+}
+
+// 為降低 RAM 使用，不一次 push 進 queue，而是依 label_data 之 index 一個個慢慢來處理。
+function next_label_data_work() {
+	if (label_data_index === label_data_keys.length) {
+		wiki.run(function() {
+			write_processed();
+
+			var message = script_name + ': 已處理完畢 Wikidata 部分。';
+			if (modify_Wikipedia)
+				message += '開始處理 ' + use_language + ' Wikipedia 上的頁面。';
+			CeL.log(message);
+		});
+
+		return;
+	}
+
+	var full_title = label_data_keys[label_data_index++];
+
+	CeL.log('next_label_data_work: [[' + full_title + ']]');
+	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
+	if (!foreign_title) {
+		CeL.warn('Invalid title: ' + full_title);
+		return;
+	}
+
+	var foreign_language = foreign_title[1];
+	foreign_title = foreign_title[2];
+
+	if (foreign_language === 'WD') {
+		process_wikidata(full_title, foreign_language, foreign_title);
+		return;
+	}
+
+	// 檢查 [[foreign_language:foreign_title]] 是否存在。
+	wiki.page([ foreign_language, foreign_title ], function(page_data) {
+		if (!page_data || ('missing' in page_data)) {
+			CeL.info('add_label: missing [[' + full_title + ']]; ' + token
+					+ ' @ [[' + title + ']].');
+			return;
+		}
+
+		if (foreign_title !== page_data.title) {
+			if (!page_data.title) {
+				CeL.warn('add_label: Error page_data:');
+				CeL.log(page_data);
+			}
+			if (length <= log_limit)
+				CeL.info('add_label: [[' + full_title + ']] → [['
+						+ page_data.title + ']].');
+			// TODO: 處理作品被連結/導向到作者的情況
+			foreign_title = page_data.title;
+			// full_title 當作 key，不能改變。
+		}
+
+		process_wikidata(full_title, foreign_language, foreign_title);
+
+	}, {
+		redirects : 1,
+		// 輸入 prop:'' 或再加上 redirects:1 可以僅僅確認頁面是否存在，以及頁面的正規標題。
+		prop : '',
+		get_URL_options : {
+			onfail : function(error) {
+				// 確保沒有因特殊錯誤產生的漏網之魚。
+				add_label_count--;
+				delete processed[title];
+			}
+		}
+	});
+
 }
 
 /**
@@ -967,18 +1020,14 @@ function finish_work() {
 
 	// console.log(PATTERN_common_title);
 
-	for ( var full_title in label_data) {
-		push_work(full_title);
+	if (label_data_keys.length === 0) {
+		// initialize: 應為自 data_file_path 讀取。
+		label_data_keys = Object.keys(label_data);
+		// label_data_index = 0;
 	}
 
-	wiki.run(function() {
-		write_processed();
-
-		var message = script_name + ': 已處理完畢 Wikidata 部分。';
-		if (modify_Wikipedia)
-			message += '開始處理 ' + use_language + ' Wikipedia 上的頁面。';
-		CeL.log(message);
-	});
+	// do next.
+	setTimeout(next_label_data_work, 0);
 }
 
 // ----------------------------------------------------------------------------
