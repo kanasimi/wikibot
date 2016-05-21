@@ -98,17 +98,19 @@ wiki
 		}
 
 		var token = CeL.wiki.parse.template(line, 'Findsources');
-		if (!token)
+		if (!token) {
 			// 本 line 無提報資料。
 			return;
+		}
 
 		if (isNaN(移除過期_start_line))
 			移除過期_start_line = index;
 
-		last_title = token[2][0];
-		if (!last_title)
+		last_title = token[2][1];
+		if (!last_title) {
 			// 不合理之 title。
 			return;
+		}
 		if (last_title in notified_pages) {
 			CeL.log('重複提報關注度不足/已處理過 title: [[' + last_title + ']]。');
 			return;

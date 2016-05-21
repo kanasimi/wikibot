@@ -32,7 +32,7 @@ var base_directory = bot_directory + script_name + '/',
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 /** {String}緊急停止作業將檢測之章節標題。 */
-check_section = '20150916',
+check_section = task_date,
 /** {String}運作記錄存放頁面。 */
 log_to = 'User:' + user_name + '/log/' + check_section,
 
