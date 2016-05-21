@@ -83,7 +83,7 @@ log_limit = Infinity,
 //
 count = 0, length = 0, skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = 100,
+test_limit = Infinity,
 
 // labels.json
 data_file_path = base_directory + 'labels.json',
@@ -953,7 +953,10 @@ function next_label_data_work() {
 
 	var full_title = label_data_keys[label_data_index++];
 
-	CeL.log('next_label_data_work: [[' + full_title + ']]');
+	if (label_data_index % 1000 === 0) {
+		CeL.log('next_label_data_work: ' + label_data_index + '/'
+				+ label_data_keys.length + ' [[' + full_title + ']]');
+	}
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
 		CeL.warn('Invalid title: ' + full_title);
