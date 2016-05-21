@@ -25,15 +25,10 @@ require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 
-/** {String}base directory */
-var base_directory = bot_directory + script_name + '/',
+var
 // 修正維基百科內容的語法錯誤。
 /** {String}編輯摘要。總結報告。 */
-summary = '[[WP:WPCHECK|修正維基語法]]',
-/** {String}緊急停止作業將檢測之章節標題。 */
-check_section = task_date,
-/** {String}運作記錄存放頁面。 */
-log_to = 'User:' + user_name + '/log/' + check_section;
+summary = '[[WP:WPCHECK|修正維基語法]]';
 
 // ---------------------------------------------------------------------//
 
@@ -43,7 +38,8 @@ log_to = 'User:' + user_name + '/log/' + check_section;
 var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}]+}}|[^\[\]<>{}])+)<br\s*\/?>\s*\n[\s\n]*/gi;
 
 // fix incorrect tag <br />
-// The article contains one or more <br>, <center> or <small> tags with incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
+// The article contains one or more <br>, <center> or <small> tags with
+// incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
 fix_2.title = '修正不正確的 HTML tag 如 <br/> → <br />';
 function fix_2(content, page_data, messages, options) {
 	// fix error

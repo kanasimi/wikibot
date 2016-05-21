@@ -18,12 +18,6 @@ require('./wiki loder.js');
 // CeL.run([ 'interact.DOM', 'application.debug', 'application.net.wiki' ]);
 
 var
-/** {String}編輯摘要。總結報告。 */
-summary = '提報關注度不足過期提醒',
-/** {String}緊急停止作業將檢測之章節標題。 */
-check_section = task_date,
-/** {String}運作記錄存放頁面。 */
-log_to = 'User:' + user_name + '/log/' + check_section,
 /** {Natural}確保關注度不足模板已掛上足夠長（至少30日）的時間。 */
 limit_days = 30,
 /**

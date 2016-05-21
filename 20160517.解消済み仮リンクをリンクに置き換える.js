@@ -21,20 +21,13 @@ CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 
-var
-/** {String}本次任務使用的語言。 */
-use_language = 'ja';
-
 // Set default language. 改變預設之語言。
-CeL.wiki.set_language(use_language);
+set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-/** {String}base directory */
-base_directory = bot_directory + script_name + '/';
 
-var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 200,
 //

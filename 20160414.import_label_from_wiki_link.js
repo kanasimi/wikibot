@@ -71,22 +71,19 @@ CeL.run('application.platform.nodejs');
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
+// Set default language. 改變預設之語言。
+set_language('zh');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-/** {String}base directory */
-base_directory = bot_directory + script_name + '/';
 
-var
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 2e7,
 //
 count = 0, length = 0, skipped_count = 0, add_label_count = 0,
 // ((Infinity)) for do all.
 test_limit = Infinity,
-/** {String}本次任務使用的語言。 */
-use_language = 'zh',
 
 // labels.json
 data_file_path = base_directory + 'labels.json',

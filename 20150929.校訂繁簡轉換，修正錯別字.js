@@ -18,12 +18,6 @@ require('./wiki loder.js');
 // corresponding
 
 var
-/** {String}編輯摘要。總結報告。 */
-summary = '校訂繁簡轉換，修正錯別字',
-/** {String}緊急停止作業將檢測之章節標題。 */
-check_section = task_date,
-/** {String}運作記錄存放頁面。 */
-log_to = 'User:' + user_name + '/log/' + check_section,
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'zh.wikisource');
 

@@ -27,14 +27,9 @@ require('./wiki loder.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 
-/** {String}base directory */
-var base_directory = bot_directory + script_name + '/',
+var
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
-/** {String}緊急停止作業將檢測之章節標題。 */
-check_section = task_date,
-/** {String}運作記錄存放頁面。 */
-log_to = 'User:' + user_name + '/log/' + check_section,
 
 /** {String}{{多個問題}}模板名 */
 多個問題_模板名 = '多個問題',
