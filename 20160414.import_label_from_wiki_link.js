@@ -897,8 +897,11 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		+ summary_postfix
 
 	}, function(data, error) {
-		if (!error || 'skip' === (Array.isArray(error) ? error[0] : error))
+		if (!error || 'skip' === (Array.isArray(error) ? error[0] : error)) {
+			// do next.
+			setTimeout(next_label_data_work, 0);
 			return;
+		}
 
 		var skip;
 		if (typeof error === 'object') {
@@ -944,6 +947,7 @@ function next_label_data_work() {
 			CeL.log(message);
 		});
 
+		// done.
 		return;
 	}
 
@@ -953,6 +957,8 @@ function next_label_data_work() {
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
 		CeL.warn('Invalid title: ' + full_title);
+		// do next.
+		setTimeout(next_label_data_work, 0);
 		return;
 	}
 
@@ -972,6 +978,8 @@ function next_label_data_work() {
 		if (!page_data || ('missing' in page_data)) {
 			CeL.info('next_label_data_work.check_label: missing [['
 					+ full_title + ']]; ' + token + ' @ [[' + title + ']].');
+			// do next.
+			setTimeout(next_label_data_work, 0);
 			return;
 		}
 
