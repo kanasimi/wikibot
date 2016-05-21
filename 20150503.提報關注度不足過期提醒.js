@@ -21,7 +21,7 @@ var
 /** {String}編輯摘要。總結報告。 */
 summary = '提報關注度不足過期提醒',
 /** {String}緊急停止作業將檢測之章節標題。 */
-check_section = '20150503',
+check_section = task_date,
 /** {String}運作記錄存放頁面。 */
 log_to = 'User:' + user_name + '/log/' + check_section,
 /** {Natural}確保關注度不足模板已掛上足夠長（至少30日）的時間。 */
@@ -85,9 +85,7 @@ wiki
 		throw new Error('No contents get!');
 	關注度不足提報頁面內容 = 關注度不足提報頁面內容.split(/\r?\n/);
 
-	/**
-	 * 一行行分析提報關注度不足頁面。
-	 */
+	CeL.debug('一行行分析提報關注度不足頁面。');
 	關注度不足提報頁面內容.forEach(function(line, index) {
 		// 單一條目僅處理(提醒)一次。skip 已處理條目。
 		if (PATTERN_SKIP.test(line)) {

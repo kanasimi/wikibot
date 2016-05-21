@@ -43,18 +43,19 @@ log_to = 'User:' + user_name + '/log/' + check_section;
 var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}]+}}|[^\[\]<>{}])+)<br\s*\/?>\s*\n[\s\n]*/gi;
 
 // fix incorrect tag <br />
-fix_2.title = '包含不正確的<br />';
+// The article contains one or more <br>, <center> or <small> tags with incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
+fix_2.title = '修正不正確的 HTML tag 如 <br/> → <br />';
 function fix_2(content, page_data, messages, options) {
 	// fix error
 	content = content
 	// <br></br> → <br>
 	.replace(/<br\s*>\s*<[\/\\]br\s*>/gi, '<br />').replace(
 			/(<br(?:\s[^<>]*)?>)\s*<[\/\\]br\s*>/gi, '$1')
-	// '/' 在後
+	// '/' 在後, <br/>
 	.replace(/<\s*br\s*(?:[\\.?a-z\d•]|br)\s*[\/\\]?>/gi, '<br />')
-	// '/' 在前
+	// '/' 在前, </br>
 	.replace(/<\s*[\\\/]\s*br\s*>/gi, '<br />')
-	// 前後都有 '/'
+	// 前後都有 '/', </br/>
 	.replace(/<\s*[\\\/]\s*br\s*(?:[\\.?a-z\d•]|br)\s*[\/\\]?>/gi, '<br />')
 	// 除去不需要的 <br>
 	// 下一行為列表，或者表格 <td>, <th> 末為 <br>。
@@ -913,7 +914,7 @@ function fix_93(content, page_data, messages, options) {
 // ------------------------------------
 
 /**
- * <code>
+ * @example <code>
  CeL.wiki.parser('{| class="wikitable"\n|-\n! h1 !! h2\n|-\n| <sub>d1 || d2\n|}').parse().each('plain', function(token, index, parent){console.log(JSON.stringify(token));console.log(parent);})
  CeL.wiki.parser('{{T|p=a<sub>s}}').parse().each('plain', function(token, index, parent){console.log(JSON.stringify(token));console.log(parent);})
  CeL.wiki.parser("{| class=\"wikitable sortable\" border=\"1\"\n|+ '''上海外国语大学'''外国语言专业布局<br><sub>（1949年——2011年）</sub>\n! <sub># !! <sub>语种名称 !! <sub>[[Language]] !! <sub>所属院系 !! <sub>设置时间 !! <sub>备注\n|-align=\"center\"\n| <sub>'''1'''\n|width=\"120\"| <sub>[[俄语]]\n|width=\"120\"| <sub>[[Русский]]\n|width=\"150\"| <sub>俄语系\n|width=\"100\"| <sub>1949年\n|width=\"250\"| \n|-align=\"center\"\n|  <sub>'''2''' \n|| <sub>[[英语]] || <sub>[[English]] || <sub>英语学院 || <sub>1950年  || <sub>1952年停办，1956年重设</sub>\n|}").parse()
@@ -924,9 +925,10 @@ function fix_93(content, page_data, messages, options) {
 function check_tag(token, parent) {
 	// console.log(JSON.stringify(token));
 	// console.log(parent);
-	if (!token.match)
+	if (!token.match) {
 		// for debug
-		console.debug(token);
+		CeL.debug('No .match: ' + token, 1, 'check_tag');
+	}
 
 	var matched = (parent ? parent.toString() : token)
 			.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
