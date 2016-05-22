@@ -79,7 +79,7 @@ var
 wiki = Wiki(true),
 
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = Infinity,
+log_limit = 3000,
 //
 skipped_count = 0,
 // ((Infinity)) for do all.

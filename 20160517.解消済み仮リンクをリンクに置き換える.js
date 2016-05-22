@@ -33,7 +33,7 @@ log_limit = 200,
 //
 count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = 5,
+test_limit = 20,
 //
 ill2_list = [];
 
@@ -87,7 +87,7 @@ function for_each_page(page_data, messages) {
 				// section : 'new',
 				// sectiontitle : 'Sandbox test section',
 				summary : 'bot test: 解消済み仮リンク'
-				//
+				// 内部リンク
 				+ changed.join('、') + 'をリンクに置き換える',
 				nocreate : 1,
 				bot : 1
@@ -123,7 +123,7 @@ function for_each_page(page_data, messages) {
 		}
 
 		function for_foreign_page(foreign_page_data) {
-			if ('missing' in foreign_page_data) {
+			if (!foreign_page_data || ('missing' in foreign_page_data)) {
 				// 他言語版記事自体存在しないので、パス。
 				token.error = 'missing foreign';
 				token.message = token.toString();
@@ -143,7 +143,7 @@ function for_each_page(page_data, messages) {
 				// should be redirected.
 				CeL.log('different foreign title: [[:' + foreign_language + ':'
 						+ foreign_title + ']] → [[:' + foreign_language + ':'
-						+ foreign_page_data.title + ']]');
+						+ foreign_page_data.title + ']] (continue task)');
 				foreign_title = foreign_page_data.title;
 			}
 
@@ -151,6 +151,12 @@ function for_each_page(page_data, messages) {
 			// check the Interlanguage link.
 			foreign_title ], for_local_page, use_language);
 
+		}
+
+		function to_String(parameter) {
+			parameter = parameters[parameter];
+			// normalize
+			return parameter && parameter.toString().replace(/<!--.+?-->/g, '').trim();
 		}
 
 		// template_name
@@ -164,11 +170,11 @@ function for_each_page(page_data, messages) {
 			// console.log(token);
 			var parameters = token.parameters,
 			// {{仮リンク|記事名|en|title}}
-			local_title = parameters[1] && parameters[1].toString(),
+			local_title = to_String(1),
 			//
-			foreign_language = parameters[2] && parameters[2].toString(),
+			foreign_language = to_String(2),
 			//
-			foreign_title = parameters[3] && parameters[3].toString();
+			foreign_title = to_String(3);
 
 			if (local_title && foreign_language && foreign_title) {
 				template_count++;
@@ -180,7 +186,7 @@ function for_each_page(page_data, messages) {
 					query_props : 'pageprops'
 				});
 			} else {
-				CeL.log('Invalid template: ' + token.toString());
+				CeL.log('for_each_page: Invalid template @ [[' + title + ']]: ' + token.toString());
 			}
 		}
 	}
