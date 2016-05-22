@@ -33,7 +33,7 @@ log_limit = 200,
 //
 count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = 20,
+test_limit = 50,
 //
 ill2_list = [];
 
