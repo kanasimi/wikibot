@@ -28,14 +28,8 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-/** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 200,
-//
-count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = 200,
-//
-ill2_list = [];
+test_limit = 200;
 
 // ----------------------------------------------------------------------------
 
@@ -166,7 +160,6 @@ function for_each_page(page_data, messages) {
 			'link-interwiki' : true
 		}) {
 			token.page_data = page_data;
-			ill2_list.push(token);
 			// console.log(token);
 			var parameters = token.parameters,
 			// {{仮リンク|記事名|en|title}}

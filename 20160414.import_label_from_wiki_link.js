@@ -85,6 +85,9 @@ skipped_count = 0,
 // ((Infinity)) for do all.
 test_limit = Infinity,
 
+raw_data_file_path = base_directory + 'labels.csv',
+//
+raw_data_file_stream,
 // labels.json
 data_file_path = base_directory + 'labels.json',
 //
@@ -281,11 +284,21 @@ function for_each_page(page_data, messages) {
 			}
 		}
 
-		var data, full_title = foreign_language + ':' + foreign_title;
-
+		// 2016/5/21:
 		// 在此採用 asynchronous 非循序執行的方法，如 wiki.page()，不能真正同時執行或穿插執行指令；
 		// 在文章數量大時會造成 JavaScript heap out of memory。
 		// 此法僅在少量文章時可使用。因此此處先推入 label_data[]，稍後再處理。
+
+		// 2016/5/22 (using 21H):
+		// 由於zhwiki也有187K+筆紀錄，因此還是可能造成 FATAL ERROR:
+		// CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
+
+		raw_data_file_stream.write([ title, foreign_language, foreign_title,
+				local_language || use_language, label ].join('\t'));
+
+		// ----------------------------
+
+		var data, full_title = foreign_language + ':' + foreign_title;
 
 		if (!(full_title in label_data)) {
 			++label_data_length;
@@ -1039,6 +1052,52 @@ function finish_work() {
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
+CeL.wiki.cache({
+	type : 'manual',
+	file_name : 'common_title.json',
+	list : function(callback) {
+		CeL.wiki.wdq('claim[31:6256]', function(list) {
+			callback(list);
+		}, {
+			session : wiki,
+			props : 'labels|aliases|sitelinks'
+		});
+	}
+
+}, {
+	file_name : 'common_title.' + use_language + '.json',
+	list : function(list) {
+		var l = [], is_zh = use_language === 'zh';
+		function add_label(country_data, language) {
+			var label = CeL.wiki.data.label_of(country_data, language, true);
+			if (label)
+				l.push(label);
+		}
+		list.forEach(function(country_data) {
+			add_label(country_data, language);
+			if (is_zh) {
+				add_label(country_data, 'zh-tw');
+				add_label(country_data, 'zh-cn');
+				add_label(country_data, 'zh-hant');
+				add_label(country_data, 'zh-hans');
+			}
+		});
+		return l.sort().uniq();
+	}
+
+}, function() {
+	;
+}, {
+	// default options === this
+	// [SESSION_KEY]
+	session : wiki,
+	// title_prefix : 'Template:',
+	// cache path prefix
+	prefix : base_directory
+});
+
+return;
+
 label_data = CeL.fs_read(data_file_path, 'utf8');
 if (label_data) {
 	// read cache
@@ -1052,6 +1111,8 @@ if (label_data) {
 
 } else {
 	label_data = CeL.null_Object();
+	raw_data_file_stream = new require('fs').WriteStream(raw_data_file_path);
+
 	CeL.wiki.page.rvprop += '|ids';
 
 	// Set the umask to share the xml dump file.
