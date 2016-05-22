@@ -1053,8 +1053,8 @@ prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
 CeL.wiki.cache({
-	type : 'manual',
-	file_name : 'common_title.json',
+	type : 'callback',
+	file_name : 'common_title',
 	list : function(callback) {
 		CeL.wiki.wdq('claim[31:6256]', function(list) {
 			callback(list);
@@ -1065,7 +1065,7 @@ CeL.wiki.cache({
 	}
 
 }, {
-	file_name : 'common_title.' + use_language + '.json',
+	file_name : 'common_title.' + use_language,
 	list : function(list) {
 		var l = [], is_zh = use_language === 'zh';
 		function add_label(country_data, language) {
@@ -1074,7 +1074,7 @@ CeL.wiki.cache({
 				l.push(label);
 		}
 		list.forEach(function(country_data) {
-			add_label(country_data, language);
+			add_label(country_data, use_language);
 			if (is_zh) {
 				add_label(country_data, 'zh-tw');
 				add_label(country_data, 'zh-cn');
