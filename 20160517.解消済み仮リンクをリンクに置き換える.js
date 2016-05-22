@@ -33,7 +33,7 @@ log_limit = 200,
 //
 count = 0, length = 0,
 // ((Infinity)) for do all
-test_limit = 50,
+test_limit = 80,
 //
 ill2_list = [];
 
@@ -87,8 +87,8 @@ function for_each_page(page_data, messages) {
 				// section : 'new',
 				// sectiontitle : 'Sandbox test section',
 				summary : 'bot test: 解消済み仮リンク'
-				// 内部リンク
-				+ changed.join('、') + 'をリンクに置き換える',
+				//
+				+ changed.join('、') + 'を内部リンクに置き換える',
 				nocreate : 1,
 				bot : 1
 			});

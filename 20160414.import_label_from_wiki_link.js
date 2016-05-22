@@ -90,7 +90,7 @@ data_file_path = base_directory + 'labels.json',
 //
 common_title_file_path = base_directory + 'common_title.' + use_language
 		+ '.json',
-//
+// 記錄處理過的文章
 processed_file_path = base_directory + 'processed.' + use_language + '.json',
 
 // 是否要使用Wikidata數據來清理跨語言連結。
