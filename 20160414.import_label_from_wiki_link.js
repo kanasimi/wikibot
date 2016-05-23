@@ -298,7 +298,8 @@ function for_each_page(page_data, messages) {
 		// [ At what local page title,
 		// foreign_language, foreign_title, local_language, local_title ]
 		raw_data_file_stream.write([ title, foreign_language, foreign_title,
-				local_language || use_language, label ].join('\t'));
+				local_language || use_language, label ].join('\t')
+				+ '\n');
 	}
 
 	var matched;
@@ -1103,7 +1104,7 @@ CeL.wiki.cache([ {
 	}
 
 }, {
-	file_name : 'common_title.' + use_language,
+	file_name : 'common_title.' + use_language + '.json',
 	list : function(list) {
 		var l = [], is_zh = use_language === 'zh';
 		function add_label(country_data, language) {
