@@ -83,7 +83,7 @@ log_limit = 3000,
 //
 skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = Infinity,
+test_limit = 200,
 
 raw_data_file_path = base_directory + 'labels.csv',
 //
@@ -293,41 +293,12 @@ function for_each_page(page_data, messages) {
 		// 由於zhwiki也有187K+筆紀錄，因此還是可能造成 FATAL ERROR:
 		// CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
 
+		label_data_length++;
+
+		// [ At what local page title,
+		// foreign_language, foreign_title, local_language, local_title ]
 		raw_data_file_stream.write([ title, foreign_language, foreign_title,
 				local_language || use_language, label ].join('\t'));
-
-		// ----------------------------
-
-		var data, full_title = foreign_language + ':' + foreign_title;
-
-		if (!(full_title in label_data)) {
-			++label_data_length;
-			if (label_data_length <= log_limit) {
-				// 此 label 指向
-				CeL.log([ label_data_length + ':', 'fg=yellow', label, '-fg',
-						'→', 'fg=cyan', full_title, '-fg',
-						'@ [[' + title + ']]: ' + token ]);
-			}
-			// 為防止有重複，在此不 push()。
-			// label_data_keys.push(full_title);
-			label_data[full_title] = data = [ {}, [ title ] ];
-
-		} else {
-			data = label_data[full_title];
-			if (!data[1].includes(title)) {
-				data[1].push(title);
-			}
-		}
-
-		if (!local_language)
-			local_language = use_language;
-
-		if (!data[0][local_language]) {
-			data[0][local_language] = [ label ];
-		} else if (!data[0][local_language].includes(label)) {
-			data[0][local_language].push(label);
-		}
-
 	}
 
 	var matched;
@@ -593,7 +564,75 @@ function for_each_page(page_data, messages) {
 
 // ----------------------------------------------------------------------------
 
-function create_label_data() {
+function merge_label_data(callback) {
+
+	function parse_line(line) {
+		line = line.split('\t');
+
+		// [ At what local page title,
+		// foreign_language, foreign_title, local_language, local_title ]
+		var title = line[0], foreign_language = line[1], foreign_title = line[2], local_language = line[3], label = line[4];
+
+		var data, full_title = foreign_language + ':' + foreign_title;
+
+		if (!(full_title in label_data)) {
+			++label_data_length;
+			if (label_data_length <= log_limit) {
+				// 此 label 指向
+				CeL.log([ label_data_length + ':', 'fg=yellow', label, '-fg',
+						'→', 'fg=cyan', full_title, '-fg',
+						'@ [[' + title + ']]: ' + token ]);
+			}
+			// 為防止有重複，在此不 push()。
+			// label_data_keys.push(full_title);
+			label_data[full_title] = data = [ {}, [ title ] ];
+
+		} else {
+			data = label_data[full_title];
+			if (!data[1].includes(title)) {
+				data[1].push(title);
+			}
+		}
+
+		if (!local_language) {
+			local_language = use_language;
+		}
+
+		if (!data[0][local_language]) {
+			data[0][local_language] = [ label ];
+		} else if (!data[0][local_language].includes(label)) {
+			data[0][local_language].push(label);
+		}
+	}
+
+	label_data = CeL.null_Object();
+	// reset
+	label_data_length = 0;
+
+	// read-out data
+	raw_data_file_stream = new require('fs').ReadStream(raw_data_file_path,
+			'utf8');
+
+	var buffer = '';
+
+	raw_data_file_stream.on('data', function(chunk) {
+		chunk = (buffer + chunk).split('\n');
+		buffer = chunk.pop();
+		chunk.forEach(parse_line);
+	});
+
+	raw_data_file_stream.on('end', function() {
+		callback(label_data);
+		// finish_work();
+	});
+}
+
+function create_label_data(callback) {
+	// reset
+	label_data_length = 0;
+	raw_data_file_stream = new require('fs').WriteStream(raw_data_file_path,
+			'utf8');
+
 	// CeL.set_debug(6);
 	CeL.wiki.traversal({
 		// [SESSION_KEY]
@@ -606,10 +645,9 @@ function create_label_data() {
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
-		after : function do_after() {
-			CeL.fs_write(data_file_path, JSON.stringify(label_data), 'utf8');
-
-			finish_work();
+		after : function() {
+			raw_data_file_stream.close();
+			merge_label_data(callback);
 		}
 
 	}, for_each_page);
@@ -1052,7 +1090,7 @@ function finish_work() {
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
-CeL.wiki.cache({
+CeL.wiki.cache([ {
 	type : 'callback',
 	file_name : 'common_title',
 	list : function(callback) {
@@ -1082,12 +1120,27 @@ CeL.wiki.cache({
 				add_label(country_data, 'zh-hans');
 			}
 		});
-		return l.sort().uniq();
+
+		return {
+			pattern : new RegExp('^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
+			//
+			.replace('國名', l.sort().uniq().join('|')))
+		};
+	},
+	operator : function(data) {
+		PATTERN_common_title = data.pattern;
 	}
 
-}, function() {
-	;
 }, {
+	type : 'callback',
+	file_name : 'labels',
+	list : create_label_data,
+	operator : function(data) {
+		label_data = data;
+	}
+
+} ], finish_work, {
+
 	// default options === this
 	// [SESSION_KEY]
 	session : wiki,
@@ -1096,64 +1149,65 @@ CeL.wiki.cache({
 	prefix : base_directory
 });
 
-return;
+if (false) {
+	label_data = CeL.fs_read(data_file_path, 'utf8');
+	if (label_data) {
+		// read cache
+		label_data = JSON.parse(label_data);
+		PATTERN_common_title = JSON.parse(CeL.fs_read(common_title_file_path,
+				'utf8'));
+		PATTERN_common_title = new RegExp(PATTERN_common_title.source,
+				PATTERN_common_title.flags);
 
-label_data = CeL.fs_read(data_file_path, 'utf8');
-if (label_data) {
-	// read cache
-	label_data = JSON.parse(label_data);
-	PATTERN_common_title = JSON.parse(CeL.fs_read(common_title_file_path,
-			'utf8'));
-	PATTERN_common_title = new RegExp(PATTERN_common_title.source,
-			PATTERN_common_title.flags);
+		finish_work();
 
-	finish_work();
+	} else {
+		label_data = CeL.null_Object();
+		raw_data_file_stream = new require('fs')
+				.WriteStream(raw_data_file_path);
 
-} else {
-	label_data = CeL.null_Object();
-	raw_data_file_stream = new require('fs').WriteStream(raw_data_file_path);
+		CeL.wiki.page.rvprop += '|ids';
 
-	CeL.wiki.page.rvprop += '|ids';
+		// Set the umask to share the xml dump file.
+		if (typeof process === 'object') {
+			process.umask(parseInt('0022', 8));
+		}
 
-	// Set the umask to share the xml dump file.
-	if (typeof process === 'object') {
-		process.umask(parseInt('0022', 8));
-	}
-
-	if (use_language === 'zh')
-		wiki.page('模块:CGroup/地名', function(page_data) {
-			// prepare PATTERN_common_title
-			PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
-					+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
-			var matched, pattern = /, *rule *= *'([^']+)'/g,
-			/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
-			content = CeL.wiki.content_of(page_data);
-			while (matched = pattern.exec(content)) {
-				PATTERN_common_title.append(matched[1].split(/;|=>/)
-				//
-				.map(function(name) {
-					return name.replace(/^[a-z\-\s]+:/, '').trim()
+		if (use_language === 'zh')
+			wiki.page('模块:CGroup/地名', function(page_data) {
+				// prepare PATTERN_common_title
+				PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
+						+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
+				var matched, pattern = /, *rule *= *'([^']+)'/g,
+				/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
+				content = CeL.wiki.content_of(page_data);
+				while (matched = pattern.exec(content)) {
+					PATTERN_common_title.append(matched[1].split(/;|=>/)
 					//
-					.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
-				}));
-			}
-			PATTERN_common_title = PATTERN_common_title.sort().uniq();
-			// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
-			if (false && !PATTERN_common_title[0])
-				PATTERN_common_title = PATTERN_common_title.slice(1);
-			PATTERN_common_title = new RegExp(
-					'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'.replace('國名',
-							PATTERN_common_title.join('|')));
+					.map(function(name) {
+						return name.replace(/^[a-z\-\s]+:/, '').trim()
+						//
+						.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
+					}));
+				}
+				PATTERN_common_title = PATTERN_common_title.sort().uniq();
+				// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
+				if (false && !PATTERN_common_title[0])
+					PATTERN_common_title = PATTERN_common_title.slice(1);
+				PATTERN_common_title = new RegExp(
+						'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'.replace(
+								'國名', PATTERN_common_title.join('|')));
 
-			CeL.fs_write(common_title_file_path,
-			//
-			JSON.stringify({
-				source : PATTERN_common_title.source,
-				flags : PATTERN_common_title.flags
-			}), 'utf8');
+				CeL.fs_write(common_title_file_path,
+				//
+				JSON.stringify({
+					source : PATTERN_common_title.source,
+					flags : PATTERN_common_title.flags
+				}), 'utf8');
 
+				create_label_data();
+			});
+		else
 			create_label_data();
-		});
-	else
-		create_label_data();
+	}
 }
