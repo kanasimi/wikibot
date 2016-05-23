@@ -1122,14 +1122,19 @@ CeL.wiki.cache([ {
 			}
 		});
 
+		PATTERN_common_title
+		//
+		= new RegExp('^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
+		//
+		.replace('國名', l.sort().uniq().join('|')));
+
 		return {
-			pattern : new RegExp('^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
-			//
-			.replace('國名', l.sort().uniq().join('|')))
+			source : PATTERN_common_title.source,
+			flags : PATTERN_common_title.flags
 		};
 	},
 	operator : function(data) {
-		PATTERN_common_title = data.pattern;
+		PATTERN_common_title = new RegExp(data.source, data.flags);
 	}
 
 }, {
