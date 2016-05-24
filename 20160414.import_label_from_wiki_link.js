@@ -111,7 +111,7 @@ label_data = CeL.null_Object(),
 // = ['foreign_language:foreign_title' , '', ...]
 label_data_keys, label_data_index = 0, label_data_length = 0,
 
-// catch已經處理完成操作的label
+// cache已經處理完成操作的label，但其本身可能也會占用大量RAM。
 // processed[title] = last revisions
 processed = JSON.parse(CeL.fs_read(processed_file_path, 'utf8') || '0')
 		|| CeL.null_Object(),
@@ -295,10 +295,11 @@ function for_each_page(page_data, messages) {
 
 		label_data_length++;
 
-		// [ At what local page title,
+		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title ]
-		raw_data_file_stream.write([ title, foreign_language, foreign_title,
-				local_language || use_language, label ].join('\t')
+		raw_data_file_stream.write([ title, token, foreign_language,
+				foreign_title, local_language || use_language, label ]
+				.join('\t')
 				+ '\n');
 	}
 
@@ -318,7 +319,8 @@ function for_each_page(page_data, messages) {
 	 */
 
 	if (false) {
-		// add_label(use_language, 條目名, en title, en)
+		// add_label(foreign_language, foreign_title, label, local_language,
+		// token, need_check)
 		matched = content
 		// 去除維護模板。
 		.replace(/^\s*{{[^{}]+}}/g, '')
@@ -373,7 +375,7 @@ function for_each_page(page_data, messages) {
 		var
 		// language of ((label))
 		language_guessed,
-		// 本地條目名 or 本地實際顯示名
+		// 本地條目名 or 本地實際顯示名 . local_title
 		label = to_plain_text(matched[3]);
 
 		if (PATTERN_none_used_title.test(label)) {
@@ -570,9 +572,9 @@ function merge_label_data(callback) {
 	function parse_line(line) {
 		line = line.split('\t');
 
-		// [ At what local page title,
+		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title ]
-		var title = line[0], foreign_language = line[1], foreign_title = line[2], local_language = line[3], label = line[4];
+		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5];
 
 		var data, full_title = foreign_language + ':' + foreign_title;
 
@@ -1106,27 +1108,26 @@ CeL.wiki.cache([ {
 }, {
 	file_name : 'common_title.' + use_language + '.json',
 	list : function(list) {
-		var l = [], is_zh = use_language === 'zh';
-		function add_label(country_data, language) {
-			var label = CeL.wiki.data.label_of(country_data, language, true);
-			if (label)
-				l.push(label);
-		}
+		var countries = [], is_zh = use_language === 'zh';
 		list.forEach(function(country_data) {
-			add_label(country_data, use_language);
+			function add_label(language) {
+				countries.append(CeL.wiki.data
+				//
+				.label_of(country_data, language, true, true));
+			}
+
+			add_label(use_language);
 			if (is_zh) {
-				add_label(country_data, 'zh-tw');
-				add_label(country_data, 'zh-cn');
-				add_label(country_data, 'zh-hant');
-				add_label(country_data, 'zh-hans');
+				add_label('zh-tw');
+				add_label('zh-cn');
+				add_label('zh-hant');
+				add_label('zh-hans');
 			}
 		});
 
 		PATTERN_common_title
 		//
-		= new RegExp('^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
-		//
-		.replace('國名', l.sort().uniq().join('|')));
+		= new RegExp('^(?:' + countries.sort().uniq().join('|') + ')$');
 
 		return {
 			source : PATTERN_common_title.source,
