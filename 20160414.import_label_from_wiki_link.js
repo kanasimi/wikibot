@@ -83,7 +83,7 @@ log_limit = 3000,
 //
 skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = 200,
+test_limit = Infinity,
 
 raw_data_file_path = base_directory + 'labels.csv',
 //
@@ -1125,13 +1125,9 @@ CeL.wiki.cache([ {
 			}
 		});
 
-		PATTERN_common_title
-		//
-		= new RegExp('^(?:' + countries.sort().uniq().join('|') + ')$');
-
 		return {
-			source : PATTERN_common_title.source,
-			flags : PATTERN_common_title.flags
+			source : '^(?:' + countries.sort().uniq().join('|') + ')$',
+			flags : ''
 		};
 	},
 	operator : function(data) {
