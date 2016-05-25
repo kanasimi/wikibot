@@ -192,8 +192,10 @@ function for_each_page(page_data, messages) {
 	//
 	revid = page_data.revisions[0].revid;
 
-	if (!content)
+	if (!content) {
+		// 若是時間過長，失去 token 則會有空白頁面？此時不應計入已處理。
 		return;
+	}
 
 	if (/^\d+月(\d+日)?/.test(title) || /^\d+年(\d+月)?$/.test(title))
 		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
@@ -215,9 +217,11 @@ function for_each_page(page_data, messages) {
 		skipped_count = 0;
 	}
 
+	// ----------------------------------------------------
+
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language,
-			token, need_check) {
+			token, no_need_check) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
 		if (revid)
 			processed[title] = revid, revid = 0;
@@ -273,7 +277,7 @@ function for_each_page(page_data, messages) {
 				if (label_CHT !== label) {
 					// 加上轉換成繁體的 label
 					add_label(foreign_language, foreign_title, label_CHT,
-							'zh-hant', token, need_check);
+							'zh-hant', token, no_need_check);
 					if (!local_language)
 						// label 照理應該是簡體 (zh-cn)。
 						// treat zh-hans as zh-cn
@@ -296,10 +300,12 @@ function for_each_page(page_data, messages) {
 		label_data_length++;
 
 		// [ At what local page title, token,
-		// foreign_language, foreign_title, local_language, local_title ]
+		// foreign_language, foreign_title, local_language, local_title,
+		// no_need_check ]
 		raw_data_file_stream.write([ title, token, foreign_language,
-				foreign_title, local_language || use_language, label ]
-				.join('\t')
+				foreign_title, local_language || use_language, label,
+				// type no_need_check: 不需檢查 foreign_title 是否存在。
+				no_need_check || '' ].join('\t')
 				+ '\n');
 	}
 
@@ -318,16 +324,17 @@ function for_each_page(page_data, messages) {
 	</code>
 	 */
 
+	content = content
+	// 去除維護模板。
+	.replace(/^\s*{{[^{}]+}}/g, '');
+
 	if (false) {
-		// add_label(foreign_language, foreign_title, label, local_language,
-		// token, need_check)
 		matched = content
-		// 去除維護模板。
-		.replace(/^\s*{{[^{}]+}}/g, '')
 		// find {{lang|en|...}} or {{lang-en|...}}
 		.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
 		if (matched) {
-			CeL.log('[[' + title + ']]: ' + matched[0]);
+			// matched 量可能達數十萬！
+			CeL.debug('[[' + title + ']]: ' + matched[0]);
 			var label = matched[2];
 			// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
 			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
@@ -573,8 +580,9 @@ function merge_label_data(callback) {
 		line = line.split('\t');
 
 		// [ At what local page title, token,
-		// foreign_language, foreign_title, local_language, local_title ]
-		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5];
+		// foreign_language, foreign_title, local_language, local_title,
+		// no_need_check ]
+		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5], no_need_check = line[6];
 
 		var data, full_title = foreign_language + ':' + foreign_title;
 
@@ -595,6 +603,10 @@ function merge_label_data(callback) {
 			if (!data[1].includes(title)) {
 				data[1].push(title);
 			}
+		}
+
+		if (no_need_check) {
+			data[2] = true;
 		}
 
 		if (!local_language) {
@@ -1019,7 +1031,9 @@ function next_label_data_work() {
 	var foreign_language = foreign_title[1];
 	foreign_title = foreign_title[2];
 
-	if (foreign_language === 'WD') {
+	if (foreign_language === 'WD'
+	// type no_need_check: 不需檢查 foreign_title 是否存在。
+	|| label_data[full_title][2]) {
 		process_wikidata(full_title, foreign_language, foreign_title);
 		return;
 	}
@@ -1093,6 +1107,14 @@ function finish_work() {
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
+// Set the umask to share the xml dump file.
+if (typeof process === 'object') {
+	process.umask(parseInt('0022', 8));
+}
+
+// for_each_page() 需要用到 rev_id。
+CeL.wiki.page.rvprop += '|ids';
+
 CeL.wiki.cache([ {
 	type : 'callback',
 	file_name : 'common_title',
@@ -1110,20 +1132,51 @@ CeL.wiki.cache([ {
 	list : function(list) {
 		var countries = [], is_zh = use_language === 'zh';
 		list.forEach(function(country_data) {
-			function add_label(language) {
+			function add_country_label(language) {
 				countries.append(CeL.wiki.data
 				//
 				.label_of(country_data, language, true, true));
 			}
 
-			add_label(use_language);
+			add_country_label(use_language);
 			if (is_zh) {
-				add_label('zh-tw');
-				add_label('zh-cn');
-				add_label('zh-hant');
-				add_label('zh-hans');
+				add_country_label('zh-tw');
+				add_country_label('zh-cn');
+				add_country_label('zh-hant');
+				add_country_label('zh-hans');
 			}
 		});
+
+		// old:
+		if (false && is_zh) {
+			wiki.page('模块:CGroup/地名', function(page_data) {
+				// prepare PATTERN_common_title
+				PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
+				//
+				+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
+				var matched, pattern = /, *rule *= *'([^']+)'/g,
+				/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
+				content = CeL.wiki.content_of(page_data);
+				while (matched = pattern.exec(content)) {
+					PATTERN_common_title.append(matched[1].split(/;|=>/)
+					//
+					.map(function(name) {
+						return name.replace(/^[a-z\-\s]+:/, '').trim()
+						//
+						.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
+					}));
+				}
+				PATTERN_common_title = PATTERN_common_title.sort().uniq();
+				// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
+				if (false && !PATTERN_common_title[0])
+					PATTERN_common_title = PATTERN_common_title.slice(1);
+				PATTERN_common_title = new RegExp(
+				//
+				'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
+				//
+				.replace('國名', PATTERN_common_title.join('|')));
+			});
+		}
 
 		return {
 			source : '^(?:' + countries.sort().uniq().join('|') + ')$',
@@ -1151,66 +1204,3 @@ CeL.wiki.cache([ {
 	// cache path prefix
 	prefix : base_directory
 });
-
-if (false) {
-	label_data = CeL.fs_read(data_file_path, 'utf8');
-	if (label_data) {
-		// read cache
-		label_data = JSON.parse(label_data);
-		PATTERN_common_title = JSON.parse(CeL.fs_read(common_title_file_path,
-				'utf8'));
-		PATTERN_common_title = new RegExp(PATTERN_common_title.source,
-				PATTERN_common_title.flags);
-
-		finish_work();
-
-	} else {
-		label_data = CeL.null_Object();
-		raw_data_file_stream = new require('fs')
-				.WriteStream(raw_data_file_path);
-
-		CeL.wiki.page.rvprop += '|ids';
-
-		// Set the umask to share the xml dump file.
-		if (typeof process === 'object') {
-			process.umask(parseInt('0022', 8));
-		}
-
-		if (use_language === 'zh')
-			wiki.page('模块:CGroup/地名', function(page_data) {
-				// prepare PATTERN_common_title
-				PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
-						+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
-				var matched, pattern = /, *rule *= *'([^']+)'/g,
-				/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
-				content = CeL.wiki.content_of(page_data);
-				while (matched = pattern.exec(content)) {
-					PATTERN_common_title.append(matched[1].split(/;|=>/)
-					//
-					.map(function(name) {
-						return name.replace(/^[a-z\-\s]+:/, '').trim()
-						//
-						.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
-					}));
-				}
-				PATTERN_common_title = PATTERN_common_title.sort().uniq();
-				// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
-				if (false && !PATTERN_common_title[0])
-					PATTERN_common_title = PATTERN_common_title.slice(1);
-				PATTERN_common_title = new RegExp(
-						'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'.replace(
-								'國名', PATTERN_common_title.join('|')));
-
-				CeL.fs_write(common_title_file_path,
-				//
-				JSON.stringify({
-					source : PATTERN_common_title.source,
-					flags : PATTERN_common_title.flags
-				}), 'utf8');
-
-				create_label_data();
-			});
-		else
-			create_label_data();
-	}
-}
