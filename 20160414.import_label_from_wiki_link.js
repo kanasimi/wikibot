@@ -88,11 +88,6 @@ test_limit = Infinity,
 raw_data_file_path = base_directory + 'labels.csv',
 //
 raw_data_file_stream,
-// labels.json
-data_file_path = base_directory + 'labels.json',
-//
-common_title_file_path = base_directory + 'common_title.' + use_language
-		+ '.json',
 // 記錄處理過的文章
 processed_file_path = base_directory + 'processed.' + use_language + '.json',
 
@@ -648,6 +643,14 @@ function create_label_data(callback) {
 	raw_data_file_stream = new require('fs').WriteStream(raw_data_file_path,
 			'utf8');
 
+	// Set the umask to share the xml dump file.
+	if (typeof process === 'object') {
+		process.umask(parseInt('0022', 8));
+	}
+
+	// for_each_page() 需要用到 rev_id。
+	CeL.wiki.page.rvprop += '|ids';
+
 	// CeL.set_debug(6);
 	CeL.wiki.traversal({
 		// [SESSION_KEY]
@@ -1089,7 +1092,7 @@ function next_label_data_work() {
 function finish_work() {
 	// console.log(PATTERN_common_title);
 
-	// initialize: 不論是否為自 data_file_path 讀取，皆應有資料。
+	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
 	label_data_keys = Object.keys(label_data);
 	// label_data_index = 0;
 	label_data_length = label_data_keys.length;
@@ -1106,14 +1109,6 @@ function finish_work() {
 // rm import_label_from_wiki_link/labels.json
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
-
-// Set the umask to share the xml dump file.
-if (typeof process === 'object') {
-	process.umask(parseInt('0022', 8));
-}
-
-// for_each_page() 需要用到 rev_id。
-CeL.wiki.page.rvprop += '|ids';
 
 CeL.wiki.cache([ {
 	type : 'callback',
