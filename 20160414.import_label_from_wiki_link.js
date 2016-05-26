@@ -96,8 +96,6 @@ modify_Wikipedia = false;
 
 // ----------------------------------------------------------------------------
 
-wiki.set_data();
-
 var
 // label_data['foreign_language:foreign_title']
 // = [ { language: {Array}labels }, {Array}titles ]
@@ -107,7 +105,8 @@ label_data = CeL.null_Object(),
 label_data_keys, label_data_index = 0, label_data_length = 0,
 
 // cache已經處理完成操作的label，但其本身可能也會占用大量RAM。
-// processed[title] = last revisions
+// processed[local page title] = last revisions
+// 由於造出 label_data 的時間過長，可能丟失 token，因此 processed 應該放在 finish_work() 階段。
 processed = JSON.parse(CeL.fs_read(processed_file_path, 'utf8') || '0')
 		|| CeL.null_Object(),
 
@@ -218,8 +217,9 @@ function for_each_page(page_data, messages) {
 	function add_label(foreign_language, foreign_title, label, local_language,
 			token, no_need_check) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
-		if (revid)
+		if (revid) {
 			processed[title] = revid, revid = 0;
+		}
 
 		if (foreign_language !== 'WD') {
 			foreign_language = foreign_language.toLowerCase();
@@ -963,7 +963,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}, function(data, error) {
 		if (!error || 'skip' === (Array.isArray(error) ? error[0] : error)) {
 			// do next.
-			setTimeout(next_label_data_work, 0);
+			setImmediate(next_label_data_work);
 			return;
 		}
 
@@ -991,7 +991,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		}
 
 		// do next.
-		setTimeout(next_label_data_work, 0);
+		setImmediate(next_label_data_work);
 	});
 }
 
@@ -1001,6 +1001,9 @@ function write_processed() {
 
 // 為降低 RAM 使用，不一次 push 進 queue，而是依 label_data 之 index 一個個慢慢來處理。
 function next_label_data_work() {
+	CeL.debug('Start ' + label_data_index + '/' + label_data_length, 6,
+			'next_label_data_work');
+
 	if (label_data_index === label_data_length
 	// Test done.
 	|| label_data_index >= test_limit) {
@@ -1027,11 +1030,13 @@ function next_label_data_work() {
 	if (!foreign_title) {
 		CeL.warn('Invalid title: ' + full_title);
 		// do next.
-		setTimeout(next_label_data_work, 0);
+		setImmediate(next_label_data_work);
 		return;
 	}
 
-	var foreign_language = foreign_title[1];
+	var foreign_language = foreign_title[1],
+	//
+	titles = label_data[full_title][1];
 	foreign_title = foreign_title[2];
 
 	if (foreign_language === 'WD'
@@ -1040,6 +1045,9 @@ function next_label_data_work() {
 		process_wikidata(full_title, foreign_language, foreign_title);
 		return;
 	}
+
+	if (foreign_language === 'arxiv')
+		CeL.set_debug(6);
 
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
 	wiki.page([ foreign_language, foreign_title ], function(page_data) {
@@ -1051,9 +1059,9 @@ function next_label_data_work() {
 					+ full_title
 					// ↓ 無此 token, title 資訊可用。
 					// + ']]; ' + token + ' @ [[' + title + ']].'
-					+ ']] @ ' + label_data[full_title][1].join('|'));
+					+ ']] @ [[' + titles.join('|') + ']]');
 			// do next.
-			setTimeout(next_label_data_work, 0);
+			setImmediate(next_label_data_work);
 			return;
 		}
 
@@ -1078,8 +1086,15 @@ function next_label_data_work() {
 		prop : '',
 		get_URL_options : {
 			onfail : function(error) {
+				CeL.err('get_URL error: [[' + full_title + ']]:');
+				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。
-				delete processed[title];
+				titles.uniq().forEach(function(title) {
+					delete processed[title];
+				});
+				wiki.running = false;
+				// do next.
+				setImmediate(next_label_data_work);
 			}
 		}
 	});
@@ -1098,8 +1113,11 @@ function finish_work() {
 	label_data_length = label_data_keys.length;
 	CeL.log(script_name + ': All ' + label_data_length + ' labels.');
 
+	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
+	wiki = Wiki(true);
+
 	// do next.
-	setTimeout(next_label_data_work, 0);
+	setImmediate(next_label_data_work);
 }
 
 // ----------------------------------------------------------------------------
