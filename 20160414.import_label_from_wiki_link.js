@@ -980,9 +980,11 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		}
 
 		// 成功才登記。失敗則下次重試。
-		CeL.info('[[' + titles.join('|') + ']] failed: '
+		CeL.info('process_wikidata: '
 		//
-		+ error + (skip ? '' : ' - Retry next time.'));
+		+ (titles.length > 1 ? titles.join('|') : '[[' + titles + ']]')
+		//
+		+ ' failed: ' + error + (skip ? '' : ' - Retry next time.'));
 
 		if (!skip) {
 			titles.uniq().forEach(function(title) {
@@ -1046,9 +1048,6 @@ function next_label_data_work() {
 		return;
 	}
 
-	if (foreign_language === 'arxiv')
-		CeL.set_debug(6);
-
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
 	wiki.page([ foreign_language, foreign_title ], function(page_data) {
 		// CeL.info('next_label_data_work.check_label: page_data:');
@@ -1081,10 +1080,12 @@ function next_label_data_work() {
 		process_wikidata(full_title, foreign_language, foreign_title);
 
 	}, {
-		redirects : 1,
 		// 輸入 prop:'' 或再加上 redirects:1 可以僅僅確認頁面是否存在，以及頁面的正規標題。
 		prop : '',
+		redirects : 1,
 		get_URL_options : {
+			// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
+			// 例如可能得在最後自己執行 ((wiki.running = false))。
 			onfail : function(error) {
 				CeL.err('get_URL error: [[' + full_title + ']]:');
 				console.error(error);
