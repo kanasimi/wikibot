@@ -98,8 +98,8 @@ modify_Wikipedia = false;
 
 var
 // label_data['foreign_language:foreign_title']
-// = [ { language: {Array}labels }, {Array}titles ]
-label_data = CeL.null_Object(),
+// = [ { language: {Array}labels }, {Array}titles, {Array}revid ]
+label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
 // label_data_keys = Object.keys(label_data);
 // = ['foreign_language:foreign_title' , '', ...]
 label_data_keys, label_data_index = 0, label_data_length = 0,
@@ -107,8 +107,9 @@ label_data_keys, label_data_index = 0, label_data_length = 0,
 // cache已經處理完成操作的label，但其本身可能也會占用大量RAM。
 // processed[local page title] = last revisions
 // 由於造出 label_data 的時間過長，可能丟失 token，因此 processed 應該放在 finish_work() 階段。
-processed = JSON.parse(CeL.fs_read(processed_file_path, 'utf8') || '0')
-		|| CeL.null_Object(),
+processed = Object.seal(JSON.parse(CeL.fs_read(processed_file_path, 'utf8')
+		|| '0')
+		|| CeL.null_Object()),
 
 // @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
@@ -202,7 +203,7 @@ function for_each_page(page_data, messages) {
 			return;
 		}
 		// assert: processed[title] < page_data.revisions[0].revid
-		delete processed[title];
+		// delete processed[title];
 	}
 	if (skipped_count > 0) {
 		if (skipped_count > 9) {
@@ -217,7 +218,7 @@ function for_each_page(page_data, messages) {
 	function add_label(foreign_language, foreign_title, label, local_language,
 			token, no_need_check) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
-		if (revid) {
+		if (false && revid) {
 			processed[title] = revid, revid = 0;
 		}
 
@@ -296,11 +297,11 @@ function for_each_page(page_data, messages) {
 
 		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title,
-		// no_need_check ]
+		// no_need_check, revid ]
 		raw_data_file_stream.write([ title, token, foreign_language,
 				foreign_title, local_language || use_language, label,
 				// type no_need_check: 不需檢查 foreign_title 是否存在。
-				no_need_check || '' ].join('\t')
+				no_need_check || '', revid ].join('\t')
 				+ '\n');
 	}
 
@@ -576,8 +577,8 @@ function merge_label_data(callback) {
 
 		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title,
-		// no_need_check ]
-		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5], no_need_check = line[6];
+		// no_need_check, revid ]
+		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5], no_need_check = line[6], revid = line[7];
 
 		var data, full_title = foreign_language + ':' + foreign_title;
 
@@ -591,17 +592,18 @@ function merge_label_data(callback) {
 			}
 			// 為防止有重複，在此不 push()。
 			// label_data_keys.push(full_title);
-			label_data[full_title] = data = [ {}, [ title ] ];
+			label_data[full_title] = data = [ {}, [ title ], [ revid ] ];
 
 		} else {
 			data = label_data[full_title];
 			if (!data[1].includes(title)) {
 				data[1].push(title);
+				data[2].push(revid);
 			}
 		}
 
 		if (no_need_check) {
-			data[2] = true;
+			data[NO_NEED_CHECK_INDEX] = true;
 		}
 
 		if (!local_language) {
@@ -956,7 +958,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		// TODO: add [[Special:Redirect/revision/00000|版本]]
 		summary : 'bot: import label/alias from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。
-		+ titles.uniq().slice(0, 8).join(summary_sp)
+		+ titles.uniq().slice(0, 10).join(summary_sp)
 		//
 		+ summary_postfix
 
@@ -1038,12 +1040,17 @@ function next_label_data_work() {
 
 	var foreign_language = foreign_title[1],
 	//
-	titles = label_data[full_title][1];
+	titles = label_data[full_title][1], revids = label_data[full_title][2];
 	foreign_title = foreign_title[2];
+
+	// 登記 processed。
+	titles.forEach(function(title, index) {
+		processed[title] = revids[index];
+	});
 
 	if (foreign_language === 'WD'
 	// type no_need_check: 不需檢查 foreign_title 是否存在。
-	|| label_data[full_title][2]) {
+	|| label_data[full_title][NO_NEED_CHECK_INDEX]) {
 		process_wikidata(full_title, foreign_language, foreign_title);
 		return;
 	}
@@ -1082,19 +1089,21 @@ function next_label_data_work() {
 	}, {
 		// 輸入 prop:'' 或再加上 redirects:1 可以僅僅確認頁面是否存在，以及頁面的正規標題。
 		prop : '',
+		// TODO: 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		redirects : 1,
 		get_URL_options : {
 			// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
 			// 例如可能得在最後自己執行 ((wiki.running = false))。
 			onfail : function(error) {
-				CeL.err('get_URL error: [[' + full_title + ']]:');
+				CeL.err('next_label_data_work: get_URL error: [[' + full_title
+						+ ']]:');
 				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。
 				titles.uniq().forEach(function(title) {
 					delete processed[title];
 				});
-				wiki.running = false;
 				// do next.
+				wiki.running = false;
 				setImmediate(next_label_data_work);
 			}
 		}
@@ -1113,6 +1122,8 @@ function finish_work() {
 	// label_data_index = 0;
 	label_data_length = label_data_keys.length;
 	CeL.log(script_name + ': All ' + label_data_length + ' labels.');
+
+	processed = CeL.null_Object();
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
 	wiki = Wiki(true);

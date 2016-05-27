@@ -248,8 +248,9 @@ wiki
 						+ (id_pages[user][title] | 0) + '天前提報，'
 						//
 						+ (no_notice ? status : user_denied[user]
-						// [[User:]]
-						|| message_set.notified + '[[用戶:' + user + ']]')
+						// [[User:]], [[用戶:' + user + ']]
+						// [[Special:Diff/40279223]]
+						|| message_set.notified + '用戶:' + user)
 						//
 						+ '。</span> --~~~~';
 					}
