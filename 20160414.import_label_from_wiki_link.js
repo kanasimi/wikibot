@@ -1056,7 +1056,8 @@ function next_label_data_work() {
 	}
 
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
-	wiki.page([ foreign_language, foreign_title ], function(page_data) {
+	CeL.wiki.redirect_to([ foreign_language, foreign_title ], function(
+			redirect_data, page_data) {
 		// CeL.info('next_label_data_work.check_label: page_data:');
 		// console.log(page_data);
 
@@ -1065,7 +1066,18 @@ function next_label_data_work() {
 					+ full_title
 					// ↓ 無此 token, title 資訊可用。
 					// + ']]; ' + token + ' @ [[' + title + ']].'
-					+ ']] @ [[' + titles.join('|') + ']]');
+					+ ']] @ [[' + titles.join(', ') + ']]');
+			// do next.
+			setImmediate(next_label_data_work);
+			return;
+		}
+
+		// 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
+		if (typeof redirect_data === 'object') {
+			CeL.info('next_label_data_work.check_label: [[' + full_title
+					+ ']] redirected to [[' + redirect_data.to + '#'
+					+ redirect_data.tofragment + ']] @ [[' + titles.join(', ')
+					+ ']]');
 			// do next.
 			setImmediate(next_label_data_work);
 			return;
@@ -1087,10 +1099,6 @@ function next_label_data_work() {
 		process_wikidata(full_title, foreign_language, foreign_title);
 
 	}, {
-		// 輸入 prop:'' 或再加上 redirects:1 可以僅僅確認頁面是否存在，以及頁面的正規標題。
-		prop : '',
-		// TODO: 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
-		redirects : 1,
 		get_URL_options : {
 			// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
 			// 例如可能得在最後自己執行 ((wiki.running = false))。
