@@ -1068,8 +1068,8 @@ function next_label_data_work() {
 		return;
 	}
 
-	// 跳過之前已經處理過的
-	if (label_data_index < 195000) {
+	// 跳過之前已經處理過的。
+	if (false && label_data_index < 0) {
 		setImmediate(next_label_data_work);
 		return;
 	}
