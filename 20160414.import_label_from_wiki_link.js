@@ -86,7 +86,7 @@ log_limit = 3000,
 //
 skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = 100,
+test_limit = Infinity,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
@@ -99,7 +99,7 @@ modify_Wikipedia = false;
 
 // ----------------------------------------------------------------------------
 
-var
+var is_zh = use_language === 'zh',
 // label_data['foreign_language:foreign_title']
 // = [ { language: {Array}labels }, {Array}titles, {Array}revid ]
 label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
@@ -257,8 +257,8 @@ function for_each_page(page_data, messages) {
 			}
 		}
 
-		if (use_language === 'zh' && (!local_language
-		// assert: use_language === 'zh' 才有可能是簡體
+		if (is_zh && (!local_language
+		// assert: is_zh 才有可能是簡體
 		|| local_language === 'zh-cn' || local_language === 'zh-hans')) {
 			// 後期修正/繁簡修正。繁體轉換成簡體比較不容易出錯，因此以繁體為主。
 
@@ -367,8 +367,9 @@ function for_each_page(page_data, messages) {
 		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
 		|| /^category/i.test(matched[1])
 		// e.g., "日语维基百科"
-		|| /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3]))
+		|| is_zh && /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3])) {
 			continue;
+		}
 
 		// 外國語言條目名
 		var foreign_title = matched[2].trim().replace(/_/g, ' ');
@@ -407,23 +408,26 @@ function for_each_page(page_data, messages) {
 		|| PATTERN_common_title.test(label))
 			continue;
 
-		label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
-			if (!$1.includes(':'))
-				return $1;
-			// 台灣正體
-			var matched = $1.match(/(zh-tw):([^;]+)/i)
-			// 香港繁體, 澳門繁體
-			|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
-			if (matched) {
-				language_guessed = matched[1].toLowerCase();
-				return matched[2].trim();
-			}
-			matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
-			return matched && matched[1].trim() || $0;
-		})
+		if (is_zh) {
+			label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
+				if (!$1.includes(':'))
+					return $1;
+				// 台灣正體
+				var matched = $1.match(/(zh-tw):([^;]+)/i)
+				// 香港繁體, 澳門繁體
+				|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
+				if (matched) {
+					language_guessed = matched[1].toLowerCase();
+					return matched[2].trim();
+				}
+				matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
+				return matched && matched[1].trim() || $0;
+			});
+		}
+
 		// 去掉 "|..." 之後之 label。
-		.replace(/\|.*/, '').trim().replace(/<br[^<>]*>/ig, ' ').replace(
-				/[\s　_]{2,}/g, ' ');
+		label = label.replace(/\|.*/, '').trim().replace(/<br[^<>]*>/ig, ' ')
+				.replace(/[\s　_]{2,}/g, ' ');
 
 		if (label.length < 5
 		// && label.length > 1
@@ -431,7 +435,7 @@ function for_each_page(page_data, messages) {
 		// [[en:1st Lok Sabha]] ← [[1屆]] @ [[印度总理]]: [[:en:1st Lok Sabha|1届]]
 		// [[en:First Gerbrandy cabinet]] ← [[第一屆]] @ [[荷兰首相]]: [[:en:First
 		// Gerbrandy cabinet|第一届]]
-		&& /[屆届]$/.test(label)
+		&& is_zh && /[屆届]$/.test(label)
 		// 跳過日期 label
 		|| /^\d+月(\d+日)?$/.test(label) || /^\d+年(\d+月)?$/.test(label)) {
 			continue;
@@ -458,9 +462,9 @@ function for_each_page(page_data, messages) {
 		// || label.includes('/')
 		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
 		// e.g., 法文版, 義大利文版
-		|| /[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
+		|| is_zh && (/[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
 		// || label.endsWith('學家')
-		|| /[學学][家者]$/.test(label)
+		|| /[學学][家者]$/.test(label))
 		// || label.includes('-{')
 		) {
 			continue;
@@ -1193,7 +1197,7 @@ CeL.wiki.cache([ {
 }, {
 	file_name : 'common_title.' + use_language + '.json',
 	list : function(list) {
-		var countries = [], is_zh = use_language === 'zh';
+		var countries = [];
 		list.forEach(function(country_data) {
 			function add_country_label(language) {
 				countries.append(CeL.wiki.data
