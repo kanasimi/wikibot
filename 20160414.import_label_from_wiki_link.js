@@ -1156,7 +1156,8 @@ function finish_work() {
 	processed = CeL.null_Object();
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
-	wiki = Wiki(true);
+	// wiki = Wiki(true);
+	// need fix .lag
 
 	// do next.
 	setImmediate(next_label_data_work);
