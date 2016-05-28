@@ -86,7 +86,7 @@ log_limit = 3000,
 //
 skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = Infinity,
+test_limit = 100,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
@@ -588,7 +588,9 @@ function merge_label_data(callback) {
 		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title,
 		// no_need_check, revid ]
-		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5], no_need_check = line[6], revid = line[7];
+		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5], no_need_check = line[6],
+		// ((revid|0)) 可能出問題。
+		revid = Math.floor(line[7]);
 
 		var data, full_title = foreign_language + ':' + foreign_title;
 
