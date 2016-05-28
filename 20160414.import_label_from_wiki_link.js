@@ -8,7 +8,8 @@
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
  https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
-
+ 遊戲設計者[[艾德·格林伍德]](Ed Greenwood)所創造。
+ 美國白皮鬆 → 美國白皮松
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -268,7 +269,9 @@ function for_each_page(page_data, messages) {
 				// 奧托二世
 				if (true || /[·．˙•]/.test(label_CHT)) {
 					// 為人名。
-					label_CHT = label_CHT.replace(/託/g, '托');
+					label_CHT = label_CHT.replace(/託/g, '托')
+					.replace(/理察/g, '理查').replace(/伊麗/g, '伊莉')
+					;
 				}
 				if (label_CHT !== label) {
 					// 加上轉換成繁體的 label
@@ -721,7 +724,7 @@ function name_type(entity) {
 // quote_end ]
 var PATTERN_duplicate_title = /(['《「『〈【〖〔]*\s*\[\[([^\[\]:\|]+)(\|[^\[\]:]+)?\]\]\s*['》」』〉】〗〕]*)([\s,;.!?\/，；。！？／]*)(([（(])?[\s']*\[\[\2(\|[^\[\]\|]+)?\]\][\s,;.!?\/，；。！？／']*([）)])?)/g,
 //
-summary_prefix = '[[w:' + use_language + ':', summary_postfix = ']]',
+summary_prefix = '[[' + use_language + ':', summary_postfix = ']]',
 // separator
 summary_sp = summary_postfix + ', ' + summary_prefix,
 // 跨語言
@@ -982,11 +985,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		}
 
 		// 成功才登記。失敗則下次重試。
-		CeL.info('process_wikidata: '
+		CeL.info('process_wikidata: [[' + titles.join(']], [[')
 		//
-		+ (titles.length > 1 ? titles.join('|') : '[[' + titles + ']]')
-		//
-		+ ' failed: ' + error + (skip ? '' : ' - Retry next time.'));
+		+ ']] failed: ' + error + (skip ? '' : ' - Retry next time.'));
 
 		if (!skip) {
 			titles.uniq().forEach(function(title) {
@@ -1028,11 +1029,13 @@ function next_label_data_work() {
 
 	if (label_data_index % 1000 === 0) {
 		CeL.log('next_label_data_work: ' + label_data_index + '/'
-				+ label_data_length + ' [[' + full_title + ']]');
+				+ label_data_length +' ('+(100*label_data_index /
+				 label_data_length|0)+'%) [[' + full_title + ']]');
 	}
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
-		CeL.warn('Invalid title: ' + full_title);
+		CeL.warn('next_label_data_work: Invalid title: [[' + full_title
+				+ ']] @ [[' + titles.join(']], [[') + ']]');
 		// do next.
 		setImmediate(next_label_data_work);
 		return;
@@ -1062,11 +1065,11 @@ function next_label_data_work() {
 		// console.log(page_data);
 
 		if (!page_data || ('missing' in page_data)) {
-			CeL.info('next_label_data_work.check_label: missing [['
+			CeL.info('next_label_data_work.check_label: missing foreign page [['
 					+ full_title
 					// ↓ 無此 token, title 資訊可用。
 					// + ']]; ' + token + ' @ [[' + title + ']].'
-					+ ']] @ [[' + titles.join(', ') + ']]');
+					+ ']] @ [[' + titles.join(']], [[') + ']]');
 			// do next.
 			setImmediate(next_label_data_work);
 			return;
@@ -1074,9 +1077,9 @@ function next_label_data_work() {
 
 		// 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		if (typeof redirect_data === 'object') {
-			CeL.info('next_label_data_work.check_label: [[' + full_title
-					+ ']] redirected to [[' + redirect_data.to + '#'
-					+ redirect_data.tofragment + ']] @ [[' + titles.join(', ')
+			CeL.info('next_label_data_work.check_label: Skip [[' + full_title
+					+ ']]: redirected to [[' + redirect_data.to + '#'
+					+ redirect_data.tofragment + ']] @ [[' + titles.join(']], [[')
 					+ ']]');
 			// do next.
 			setImmediate(next_label_data_work);
