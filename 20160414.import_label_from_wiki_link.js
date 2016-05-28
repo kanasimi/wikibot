@@ -10,6 +10,8 @@
  https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
  遊戲設計者[[艾德·格林伍德]](Ed Greenwood)所創造。
  美國白皮鬆 → 美國白皮松
+ 相撲力士鬆太郎 → 相撲力士松太郎
+ 一千個小醜 → 一千個小丑
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -86,7 +88,7 @@ skipped_count = 0,
 // ((Infinity)) for do all.
 test_limit = Infinity,
 
-raw_data_file_path = base_directory + 'labels.csv',
+raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
 raw_data_file_stream,
 // 記錄處理過的文章
@@ -269,9 +271,8 @@ function for_each_page(page_data, messages) {
 				// 奧托二世
 				if (true || /[·．˙•]/.test(label_CHT)) {
 					// 為人名。
-					label_CHT = label_CHT.replace(/託/g, '托')
-					.replace(/理察/g, '理查').replace(/伊麗/g, '伊莉')
-					;
+					label_CHT = label_CHT.replace(/託/g, '托').replace(/理察/g,
+							'理查').replace(/伊麗/g, '伊莉');
 				}
 				if (label_CHT !== label) {
 					// 加上轉換成繁體的 label
@@ -476,99 +477,107 @@ function for_each_page(page_data, messages) {
 	// parse 跨語言連結模板
 	// @see
 	// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
-	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|le'
-			+ '|ill|interlanguage[ _]link'
-			+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
-			+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw}}',
-	//
-	content, function(token) {
-		// console.log(token);
+	CeL.wiki.parse.every(
+			'{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
+					+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
+					+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw'
+					+ '|仮リンク|ill2}}',
+			//
+			content, function(token) {
+				// console.log(token);
 
-		var foreign_language, foreign_title, label,
-		//
-		template_name = token[1].toLowerCase().replace(/_/g, ' ');
-
-		switch (template_name) {
-		case 'translink':
-		case 'tsl':
-			// {{tsl|en|foreign title|local title}}
-			foreign_language = token[2][1];
-			foreign_title = token[2][2];
-			label = token[2][3];
-			break;
-
-		case 'ill':
-		case 'interlanguage link':
-			// {{ill|en|local title|foreign title}}
-			foreign_language = token[2][1];
-			label = token[2][2];
-			foreign_title = token[2][3];
-			break;
-
-		case 'liw':
-		case 'illm':
-		case 'interlanguage link multi':
-		case '多語言連結':
-			label = token[2][1];
-			if (token[2].WD) {
-				// {{illm|WD=Q1}}
-				foreign_language = 'WD';
-				foreign_title = token[2].WD;
-			} else {
-				// {{illm|local title|en|foreign title}}
-				// {{liw|local title|en|foreign title}}
-				// {{liw|中文項目名|語言|其他語言頁面名|...}}
-				foreign_language = token[2][2];
-				foreign_title = token[2][3];
-			}
-			break;
-
-		case 'link-interwiki':
-			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
-			label = token[2][use_language];
-			foreign_language = token[2].lang;
-			foreign_title = token[2].lang_title;
-			break;
-
-		case 'ilh':
-		case 'internal link helper':
-			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
-			label = token[2][1];
-			foreign_title = token[2][2];
-			foreign_language = token[2]['lang-code'];
-			break;
-
-		case 'le':
-			// {{le|local title|foreign title|show}}
-			label = token[2][1];
-			foreign_title = token[2][2];
-			foreign_language = 'en';
-			break;
-
-		default:
-			// {{Internal link helper}}系列模板
-			// {{link-en|local title|foreign title}}
-			foreign_language = template_name.startsWith('link-')
-			// 5: 'link-'.length, '-link'.length
-			? template_name.slice(5)
-			// assert: template_name.endsWith('-link')
-			: template_name.slice(0, -5);
-			label = token[2][1];
-			foreign_title = token[2][2];
-			break;
-		}
-
-		if (label && (label = to_plain_text(label)) && isNaN(label)
-				&& !label.includes('{{')
-				// e.g., [[道奇挑戰者]]
-				&& foreign_title && !foreign_title.includes('{{')
+				var foreign_language, foreign_title, label,
 				//
-				&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
-			add_label(foreign_language, foreign_title, label, null, token[0]);
-		} else if (!label && !foreign_title || !foreign_language) {
-			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
-		}
-	})
+				template_name = token[1].toLowerCase().replace(/_/g, ' ');
+
+				switch (template_name) {
+				case 'translink':
+				case 'tsl':
+					// {{tsl|en|foreign title|local title}}
+					foreign_language = token[2][1];
+					foreign_title = token[2][2];
+					label = token[2][3];
+					break;
+
+				case 'ill':
+				case 'interlanguage link':
+					// {{ill|en|local title|foreign title}}
+					foreign_language = token[2][1];
+					label = token[2][2];
+					foreign_title = token[2][3];
+					break;
+
+				case 'liw':
+				case 'illm':
+				case 'ill2':
+				case 'interlanguage link multi':
+					// @see
+					// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
+				case '仮リンク':
+				case '多語言連結':
+					label = token[2][1];
+					if (token[2].WD) {
+						// {{illm|WD=Q1}}
+						foreign_language = 'WD';
+						foreign_title = token[2].WD;
+					} else {
+						// {{illm|local title|en|foreign title}}
+						// {{liw|local title|en|foreign title}}
+						// {{liw|中文項目名|語言|其他語言頁面名|...}}
+						foreign_language = token[2][2];
+						foreign_title = token[2][3];
+					}
+					break;
+
+				case 'link-interwiki':
+					// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
+					label = token[2][use_language];
+					foreign_language = token[2].lang;
+					foreign_title = token[2].lang_title;
+					break;
+
+				case 'ilh':
+				case 'internal link helper':
+					// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
+					label = token[2][1];
+					foreign_title = token[2][2];
+					foreign_language = token[2]['lang-code'];
+					break;
+
+				case 'le':
+					// {{le|local title|foreign title|show}}
+					label = token[2][1];
+					foreign_title = token[2][2];
+					foreign_language = 'en';
+					break;
+
+				default:
+					// {{Internal link helper}}系列模板
+					// {{link-en|local title|foreign title}}
+					foreign_language = template_name.startsWith('link-')
+					// 5: 'link-'.length, '-link'.length
+					? template_name.slice(5)
+					// assert: template_name.endsWith('-link')
+					: template_name.slice(0, -5);
+					label = token[2][1];
+					foreign_title = token[2][2];
+					break;
+				}
+
+				if (label && (label = to_plain_text(label)) && isNaN(label)
+						&& !label.includes('{{')
+						// e.g., [[道奇挑戰者]]
+						&& foreign_title && !foreign_title.includes('{{')
+						//
+						&& foreign_language
+						&& /^[a-z_]+$/.test(foreign_language)) {
+					add_label(foreign_language, foreign_title, label, null,
+							token[0]);
+				} else if (!label && !foreign_title || !foreign_language) {
+					CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
+							+ ']]');
+				}
+			})
 }
 
 // ----------------------------------------------------------------------------
@@ -1029,8 +1038,9 @@ function next_label_data_work() {
 
 	if (label_data_index % 1000 === 0) {
 		CeL.log('next_label_data_work: ' + label_data_index + '/'
-				+ label_data_length +' ('+(100*label_data_index /
-				 label_data_length|0)+'%) [[' + full_title + ']]');
+				+ label_data_length + ' ('
+				+ (100 * label_data_index / label_data_length | 0) + '%) [['
+				+ full_title + ']]');
 	}
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
 	if (!foreign_title) {
@@ -1058,67 +1068,91 @@ function next_label_data_work() {
 		return;
 	}
 
+	// 跳過之前已經處理過的
+	if (label_data_index < 195000) {
+		setImmediate(next_label_data_work);
+		return;
+	}
+
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
-	CeL.wiki.redirect_to([ foreign_language, foreign_title ], function(
-			redirect_data, page_data) {
-		// CeL.info('next_label_data_work.check_label: page_data:');
-		// console.log(page_data);
+	CeL.wiki
+			.redirect_to(
+					[ foreign_language, foreign_title ],
+					function(redirect_data, page_data) {
+						// CeL.info('next_label_data_work.check_label:
+						// page_data:');
+						// console.log(page_data);
 
-		if (!page_data || ('missing' in page_data)) {
-			CeL.info('next_label_data_work.check_label: missing foreign page [['
-					+ full_title
-					// ↓ 無此 token, title 資訊可用。
-					// + ']]; ' + token + ' @ [[' + title + ']].'
-					+ ']] @ [[' + titles.join(']], [[') + ']]');
-			// do next.
-			setImmediate(next_label_data_work);
-			return;
-		}
+						if (!page_data || ('missing' in page_data)) {
+							CeL
+									.info('next_label_data_work.check_label: missing foreign page [['
+											+ full_title
+											// ↓ 無此 token, title 資訊可用。
+											// + ']]; ' + token + ' @ [[' +
+											// title + ']].'
+											+ ']] @ [['
+											+ titles.join(']], [[')
+											+ ']]');
+							// do next.
+							setImmediate(next_label_data_work);
+							return;
+						}
 
-		// 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
-		if (typeof redirect_data === 'object') {
-			CeL.info('next_label_data_work.check_label: Skip [[' + full_title
-					+ ']]: redirected to [[' + redirect_data.to + '#'
-					+ redirect_data.tofragment + ']] @ [[' + titles.join(']], [[')
-					+ ']]');
-			// do next.
-			setImmediate(next_label_data_work);
-			return;
-		}
+						// 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
+						if (typeof redirect_data === 'object') {
+							CeL
+									.info('next_label_data_work.check_label: Skip [['
+											+ full_title
+											+ ']]: redirected to [['
+											+ redirect_data.to
+											+ '#'
+											+ redirect_data.tofragment
+											+ ']] @ [['
+											+ titles.join(']], [[')
+											+ ']]');
+							// do next.
+							setImmediate(next_label_data_work);
+							return;
+						}
 
-		if (foreign_title !== page_data.title) {
-			if (!page_data.title) {
-				CeL.warn('next_label_data_work.check_label: Error page_data:');
-				CeL.log(page_data);
-			}
-			if (label_data_length <= log_limit)
-				CeL.info('next_label_data_work.check_label: [[' + full_title
-						+ ']] → [[' + page_data.title + ']].');
-			// TODO: 處理作品被連結/導向到作者的情況
-			foreign_title = page_data.title;
-			// full_title 當作 key，不能改變。
-		}
+						if (foreign_title !== page_data.title) {
+							if (!page_data.title) {
+								CeL
+										.warn('next_label_data_work.check_label: Error page_data:');
+								CeL.log(page_data);
+							}
+							if (label_data_length <= log_limit)
+								CeL.info('next_label_data_work.check_label: [['
+										+ full_title + ']] → [['
+										+ page_data.title + ']].');
+							// TODO: 處理作品被連結/導向到作者的情況
+							foreign_title = page_data.title;
+							// full_title 當作 key，不能改變。
+						}
 
-		process_wikidata(full_title, foreign_language, foreign_title);
+						process_wikidata(full_title, foreign_language,
+								foreign_title);
 
-	}, {
-		get_URL_options : {
-			// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
-			// 例如可能得在最後自己執行 ((wiki.running = false))。
-			onfail : function(error) {
-				CeL.err('next_label_data_work: get_URL error: [[' + full_title
-						+ ']]:');
-				console.error(error);
-				// 確保沒有因特殊錯誤產生的漏網之魚。
-				titles.uniq().forEach(function(title) {
-					delete processed[title];
-				});
-				// do next.
-				wiki.running = false;
-				setImmediate(next_label_data_work);
-			}
-		}
-	});
+					},
+					{
+						get_URL_options : {
+							// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
+							// 例如可能得在最後自己執行 ((wiki.running = false))。
+							onfail : function(error) {
+								CeL
+										.err('next_label_data_work: get_URL error: [['
+												+ full_title + ']]:');
+								console.error(error);
+								// 確保沒有因特殊錯誤產生的漏網之魚。
+								titles.uniq().forEach(function(title) {
+									delete processed[title];
+								});
+								// do next.
+								wiki.running = false;
+								setImmediate(next_label_data_work);
+							}
+						}
+					});
 
 }
 
@@ -1150,6 +1184,10 @@ function finish_work() {
 // rm import_label_from_wiki_link/labels.json
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
+
+// 因為數量太多，只好增快速度。
+// wiki.lag=0;
+CeL.wiki.query.default_lag = 0;
 
 CeL.wiki.cache([ {
 	type : 'callback',
@@ -1225,7 +1263,7 @@ CeL.wiki.cache([ {
 
 }, {
 	type : 'callback',
-	file_name : 'labels',
+	file_name : 'labels.' + use_language + '.json',
 	list : create_label_data,
 	operator : function(data) {
 		label_data = data;

@@ -105,6 +105,8 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
+			// TODO: preserve=1 {{enlink}}
+
 			var link = '[[' + title;
 			if (parameters.label && parameters.label !== title)
 				link += '|' + parameters.label;
@@ -150,13 +152,17 @@ function for_each_page(page_data, messages) {
 		function to_String(parameter) {
 			parameter = parameters[parameter];
 			// normalize
-			return parameter && parameter.toString().replace(/<!--.+?-->/g, '').trim();
+			return parameter
+					&& parameter.toString().replace(/<!--.+?-->/g, '').trim();
 		}
 
 		// template_name
-		if (token.name in {
+		// @see
+		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
+		if (token.name.toLowerCase() in {
 			'仮リンク' : true,
 			'ill2' : true,
+			'illm' : true,
 			'link-interwiki' : true
 		}) {
 			token.page_data = page_data;
@@ -179,7 +185,8 @@ function for_each_page(page_data, messages) {
 					query_props : 'pageprops'
 				});
 			} else {
-				CeL.log('for_each_page: Invalid template @ [[' + title + ']]: ' + token.toString());
+				CeL.log('for_each_page: Invalid template @ [[' + title + ']]: '
+						+ token.toString());
 			}
 		}
 	}
