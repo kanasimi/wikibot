@@ -12,6 +12,9 @@
  美國白皮鬆 → 美國白皮松
  相撲力士鬆太郎 → 相撲力士松太郎
  一千個小醜 → 一千個小丑
+ NG: 英語版|古代アラム語|TI-30（Wikipedia英語版）|...
+ OK: アゼルバイジャンの言語
+ Q1148511
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -1046,7 +1049,9 @@ function next_label_data_work() {
 				+ (100 * label_data_index / label_data_length | 0) + '%) [['
 				+ full_title + ']]');
 	}
-	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/);
+	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/),
+	//
+	titles = label_data[full_title][1];
 	if (!foreign_title) {
 		CeL.warn('next_label_data_work: Invalid title: [[' + full_title
 				+ ']] @ [[' + titles.join(']], [[') + ']]');
@@ -1057,7 +1062,7 @@ function next_label_data_work() {
 
 	var foreign_language = foreign_title[1],
 	//
-	titles = label_data[full_title][1], revids = label_data[full_title][2];
+	revids = label_data[full_title][2];
 	foreign_title = foreign_title[2];
 
 	// 登記 processed。
