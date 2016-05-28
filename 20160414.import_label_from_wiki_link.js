@@ -75,7 +75,7 @@ CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 // Set default language. 改變預設之語言。
-set_language('zh');
+set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
