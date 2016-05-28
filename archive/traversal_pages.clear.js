@@ -82,7 +82,7 @@ CeL.wiki.traversal({
 	directory : base_directory,
 	// 指定 dump file 放置的 directory。
 	// dump_directory : bot_directory + 'dumps/',
-	dump_directory : '/shared/dump/',
+	dump_directory : dump_directory,
 	// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 	// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 	filter : true,

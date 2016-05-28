@@ -225,7 +225,7 @@ file_size,
 /** {Array filtered list */
 filtered = [],
 /** {String}base directory */
-base_directory = '/shared/dump/',
+base_directory = '/shared/dumps/',
 // base_directory = bot_directory + 'dumps/',
 /** {Boolean}write to lastest revid file. */
 do_write_rev = true,
