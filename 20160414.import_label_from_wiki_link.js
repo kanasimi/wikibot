@@ -1097,7 +1097,7 @@ function next_label_data_work() {
 		// 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		if (typeof redirect_data === 'object') {
 			CeL.info('next_label_data_work.check_label: Skip [[' + full_title
-					+ ']]: redirected to [[' + redirect_data.to + '#'
+					+ ']] → [[' + redirect_data.to + '#'
 					+ redirect_data.tofragment + ']] @ [['
 					+ titles.join(']], [[') + ']]');
 			// do next.
@@ -1171,8 +1171,11 @@ prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
 // 因為數量太多，只好增快速度。
-// wiki.lag=0;
-CeL.wiki.query.default_lag = 0;
+if (!modify_Wikipedia) {
+	CeL.wiki.query.default_lag =
+	// for ja
+	wiki.lag = 0;
+}
 
 CeL.wiki.cache([ {
 	type : 'callback',
