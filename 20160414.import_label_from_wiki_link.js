@@ -7,15 +7,18 @@
  parse [[西利西利]]山（Mauga Silisili）
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
- https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
  遊戲設計者[[艾德·格林伍德]](Ed Greenwood)所創造。
  美國白皮鬆 → 美國白皮松
  相撲力士鬆太郎 → 相撲力士松太郎
  一千個小醜 → 一千個小丑
- NG: 英語版|古代アラム語|TI-30（Wikipedia英語版）|...
- OK: アゼルバイジャンの言語
  Q1148511
+ KC&amp;ザ・サンシャイン・バンド
 
+ 蜂 (喜劇) → label 蜂 + 説明 喜劇
+ 蜂 (曖昧さ回避), 蜂 (曖昧さ) → label 蜂
+ 焼く (調理) | オスマン・サファヴィー戦争 (1623年–1639年) | 陸軍少将 (イギリス) | パンパン (マレー王朝) | リセット (筒井哲也)
+
+ https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
  OK:
@@ -131,7 +134,16 @@ PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 PATTERN_language_label = CeL.null_Object(),
 //
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
-		'*');
+		'*'),
+// @see https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
+parse_templates = '{{link-[a-z]+|[a-z]+-link|le'
+	+ '|ill|interlanguage[ _]link'
+	+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
+	+ '|illm|interlanguage[ _]link[ _]multi|liw'
+	//
+	+ (is_zh ? '|多語言連結' : use_language === 'ja' ? '|仮リンク|ill2' : '')
+	//
+	+ '}}';
 
 function to_plain_text(wikitext) {
 	// TODO: "《茶花女》维基百科词条'''(法语)'''"
@@ -197,9 +209,6 @@ function for_each_page(page_data, messages) {
 		// 若是時間過長，失去 token 則會有空白頁面？此時不應計入已處理。
 		return;
 	}
-
-	if (/^\d+月(\d+日)?/.test(title) || /^\d+年(\d+月)?$/.test(title))
-		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
 
 	if (title in processed) {
 		if (processed[title] === revid) {
@@ -312,186 +321,14 @@ function for_each_page(page_data, messages) {
 				+ '\n');
 	}
 
+	// ----------------------------------------------------
+
 	var matched;
 
 	// ----------------------------------------------------
 
-	// TODO: 必須先確定 en 無此條目!
-	// /public/dumps/public/enwiki/20160501/enwiki-20160501-all-titles-in-ns0.gz
-	// TODO: 此階段所加的，在 wikidata 階段需要確保目標 wiki 無此條目。
-
-	/**
-	 * <code>
-	'''亨利·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（[[英文]]：Henry Alfred Kissinger，本名'''海因茨·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（Heinz Alfred Kissinger），{{bd|1923年|5月27日|}}）
-	'''动粒<ref>[http://www.term.gov.cn/pages/homepage/result2.jsp?id=171683&subid=10000633&subject=%E5%8C%BB%E5%AD%A6%E9%81%97%E4%BC%A0%E5%AD%A6&subsys=%E5%8C%BB%E5%AD%A6]</ref>'''或'''着丝点'''（{{lang-en|Kinetochore}}）
-	</code>
-	 */
-
-	content = content
-	// 去除維護模板。
-	.replace(/^\s*{{[^{}]+}}/g, '');
-
-	if (false) {
-		matched = content
-		// find {{lang|en|...}} or {{lang-en|...}}
-		.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
-		if (matched) {
-			// matched 量可能達數十萬！
-			CeL.debug('[[' + title + ']]: ' + matched[0]);
-			var label = matched[2];
-			// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
-			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
-			if (matched) {
-				matched[1] = matched[1].trim();
-				matched[2] = to_plain_text(matched[2]);
-				if (matched[1] && matched[2]) {
-					add_label(use_language, title, matched[2], matched[1],
-							matched[0], 1);
-				}
-			} else if (matched = label
-					.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
-				// '''條目名'''（'''en title'''）
-				add_label(use_language, title, matched[1], 'en', matched[0], 1);
-			} else {
-				CeL.log('[[' + title + ']]: Unknown label pattern: [' + label
-						+ ']');
-			}
-		}
-
-		return;
-	}
-
-	// ----------------------------------------------------
-
-	while (matched = PATTERN_link.exec(content)) {
-		// @see function language_to_project(language) @ application.net.wiki
-		// 以防 incase wikt, wikisource
-		if (matched[1].includes('wik')
-		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
-		|| /^category/i.test(matched[1])
-		// e.g., "日语维基百科"
-		|| is_zh && /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3])) {
-			continue;
-		}
-
-		// 外國語言條目名
-		var foreign_title = matched[2].trim().replace(/_/g, ' ');
-
-		if (foreign_title.length < 2
-		// e.g., [[:en:wikt:t|t]]
-		|| /^[a-z\s]*:/.test(foreign_title)) {
-			continue;
-		}
-
-		var
-		// language of ((label))
-		language_guessed,
-		// 本地條目名 or 本地實際顯示名 . local_title
-		label = to_plain_text(matched[3]);
-
-		if (PATTERN_none_used_title.test(label)) {
-			// context 上下文 前後文
-			// 前面的 foregoing paragraphs, see above, previously stated, precedent
-			// 後面的 behind rearwards;back;posteriority;atergo;rearward
-			var foregoing = content.slice(matched.index - 80, matched.index)
-			// parse 括號後附註
-			// "《[[local title]]》 （[[:en:foreign title|foreign]]）"
-			// @see PATTERN_duplicate_title
-			.match(/\[\[([^\[\]:]+)\]\]\s*['》」』〉】〗〕]?[（(\s]*$/);
-			if (!foregoing
-			//
-			|| PATTERN_none_used_title.test(label = foregoing[1])) {
-				continue;
-			}
-		}
-
-		// 排除 [[:en:Day|en]] 之類。
-		if (language_label(matched[1]).test(label)
-		// 去除國名或常用字詞。 @see [[瓦倫蒂諾·羅西]]
-		|| PATTERN_common_title.test(label))
-			continue;
-
-		if (is_zh) {
-			label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
-				if (!$1.includes(':'))
-					return $1;
-				// 台灣正體
-				var matched = $1.match(/(zh-tw):([^;]+)/i)
-				// 香港繁體, 澳門繁體
-				|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
-				if (matched) {
-					language_guessed = matched[1].toLowerCase();
-					return matched[2].trim();
-				}
-				matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
-				return matched && matched[1].trim() || $0;
-			});
-		}
-
-		// 去掉 "|..." 之後之 label。
-		label = label.replace(/\|.*/, '').trim().replace(/<br[^<>]*>/ig, ' ')
-				.replace(/[\s　_]{2,}/g, ' ');
-
-		if (label.length < 5
-		// && label.length > 1
-		// [[:en:Thirty-third government of Israel|第33届]] @ [[以色列总理]]
-		// [[en:1st Lok Sabha]] ← [[1屆]] @ [[印度总理]]: [[:en:1st Lok Sabha|1届]]
-		// [[en:First Gerbrandy cabinet]] ← [[第一屆]] @ [[荷兰首相]]: [[:en:First
-		// Gerbrandy cabinet|第一届]]
-		&& is_zh && /[屆届]$/.test(label)
-		// 跳過日期 label
-		|| /^\d+月(\d+日)?$/.test(label) || /^\d+年(\d+月)?$/.test(label)) {
-			continue;
-		}
-
-		if (label.length > foreign_title.length) {
-			var index = label.indexOf(foreign_title);
-			if (index > 0 && /[(（]/.test(label.charAt(index - 1))
-					&& /[)）]/.test(label.charAt(index + foreign_title.length)))
-				label = label.slice(0, index - 1)
-						+ label.slice(index + foreign_title.length + 1);
-		}
-
-		label = label
-		// e.g., [[:en:t|''t'']], [[:en:t|《t》]]
-		.replace(/['》」』〉】〗〕]+$|^['《「『〈【〖〔]+/g, '').replace(
-				/'{2,}([^']+)'{2,}/g, '$1')
-		// e.g., [[:en:t|t{{en}}]]
-		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·').trim();
-
-		// 篩除代表資訊過少的辭彙。
-		if (label.length < 2
-		// 去除不能包含的字元。
-		// || label.includes('/')
-		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
-		// e.g., 法文版, 義大利文版
-		|| is_zh && (/[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
-		// || label.endsWith('學家')
-		|| /[學学][家者]$/.test(label))
-		// || label.includes('-{')
-		) {
-			continue;
-		}
-
-		// label = label.replace(/（(.+)）$/, '($1)');
-
-		add_label(matched[1], foreign_title, label, language_guessed,
-				matched[0]);
-	}
-
-	// ----------------------------------------------------
-
 	// parse 跨語言連結模板
-	// @see
-	// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
-	CeL.wiki.parse.every('{{link-[a-z]+|[a-z]+-link|le'
-			+ '|ill|interlanguage[ _]link'
-			+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
-			+ '|illm|interlanguage[ _]link[ _]multi|多語言連結|liw'
-			//
-			+ '|仮リンク|ill2}}',
-	//
-	content, function(token) {
+	CeL.wiki.parse.every(parse_templates, content, function(token) {
 		// console.log(token);
 
 		var foreign_language, foreign_title, label,
@@ -582,7 +419,181 @@ function for_each_page(page_data, messages) {
 		} else if (!label && !foreign_title || !foreign_language) {
 			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
 		}
-	})
+	});
+
+
+	// ----------------------------------------------------
+
+	if (/^\d+月(\d+日)?/.test(title) || /^\d+年(\d+月)?$/.test(title)) {
+		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
+	}
+
+	// ----------------------------------------------------
+
+	// TODO: 必須先確定 en 無此條目!
+	// /public/dumps/public/enwiki/20160501/enwiki-20160501-all-titles-in-ns0.gz
+	// TODO: 此階段所加的，在 wikidata 階段需要確保目標 wiki 無此條目。
+
+	/**
+	 * <code>
+	'''亨利·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（[[英文]]：Henry Alfred Kissinger，本名'''海因茨·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（Heinz Alfred Kissinger），{{bd|1923年|5月27日|}}）
+	'''动粒<ref>[http://www.term.gov.cn/pages/homepage/result2.jsp?id=171683&subid=10000633&subject=%E5%8C%BB%E5%AD%A6%E9%81%97%E4%BC%A0%E5%AD%A6&subsys=%E5%8C%BB%E5%AD%A6]</ref>'''或'''着丝点'''（{{lang-en|Kinetochore}}）
+	</code>
+	 */
+
+	content = content
+	// 去除維護模板。
+	.replace(/^\s*{{[^{}]+}}/g, '');
+
+	if (false) {
+		matched = content
+		// find {{lang|en|...}} or {{lang-en|...}}
+		.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
+		if (matched) {
+			// matched 量可能達數十萬！
+			CeL.debug('[[' + title + ']]: ' + matched[0]);
+			var label = matched[2];
+			// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
+			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
+			if (matched) {
+				matched[1] = matched[1].trim();
+				matched[2] = to_plain_text(matched[2]);
+				if (matched[1] && matched[2]) {
+					add_label(use_language, title, matched[2], matched[1],
+							matched[0], 1);
+				}
+			} else if (matched = label
+					.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
+				// '''條目名'''（'''en title'''）
+				add_label(use_language, title, matched[1], 'en', matched[0], 1);
+			} else {
+				CeL.log('[[' + title + ']]: Unknown label pattern: [' + label
+						+ ']');
+			}
+		}
+
+		return;
+	}
+
+	// ----------------------------------------------------
+
+	while (matched = PATTERN_link.exec(content)) {
+		// @see function language_to_project(language) @ application.net.wiki
+		// 以防 incase wikt, wikisource
+		if (matched[1].includes('wik')
+		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
+		|| /^category/i.test(matched[1])
+		// NG: 日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|...
+		// OK: アゼルバイジャンの言語|古代アラム語
+		|| /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3])) {
+			continue;
+		}
+
+		// 外國語言條目名
+		var foreign_title = matched[2].trim().replace(/_/g, ' ');
+
+		if (foreign_title.length < 2
+		// e.g., [[:en:wikt:title|title]]
+		|| /^[a-z\s]*:/.test(foreign_title)) {
+			continue;
+		}
+
+		var
+		// language of ((label))
+		language_guessed,
+		// 本地條目名 or 本地實際顯示名 . local_title
+		label = to_plain_text(matched[3]);
+
+		if (PATTERN_none_used_title.test(label)) {
+			// context 上下文 前後文
+			// 前面的 foregoing paragraphs, see above, previously stated, precedent
+			// 後面的 behind rearwards;back;posteriority;atergo;rearward
+			var foregoing = content.slice(matched.index - 80, matched.index)
+			// parse 括號後附註
+			// "《[[local title]]》 （[[:en:foreign title|foreign]]）"
+			// @see PATTERN_duplicate_title
+			.match(/\[\[([^\[\]:]+)\]\]\s*['》」』〉】〗〕]?[（(\s]*$/);
+			if (!foregoing
+			//
+			|| PATTERN_none_used_title.test(label = foregoing[1])) {
+				continue;
+			}
+		}
+
+		// 排除 [[:en:Day|en]] 之類。
+		if (language_label(matched[1]).test(label)
+		// 去除國名或常用字詞。 @see [[瓦倫蒂諾·羅西]]
+		|| PATTERN_common_title.test(label))
+			continue;
+
+		if (is_zh) {
+			label = label.replace(/-{([^{}]*)}-/g, function($0, $1) {
+				if (!$1.includes(':'))
+					return $1;
+				// 台灣正體
+				var matched = $1.match(/(zh-tw):([^;]+)/i)
+				// 香港繁體, 澳門繁體
+				|| $1.match(/(zh-(?:hk|hant[^a-z:]*|mo)):([^;]+)/i);
+				if (matched) {
+					language_guessed = matched[1].toLowerCase();
+					return matched[2].trim();
+				}
+				matched = $1.match(/zh(?:-[a-z]+):([^;]+)/i);
+				return matched && matched[1].trim() || $0;
+			});
+		}
+
+		// 去掉 "|..." 之後之 label。
+		label = label.replace(/\|.*/, '').trim().replace(/<br[^<>]*>/ig, ' ')
+				.replace(/[\s　_]{2,}/g, ' ');
+
+		if (label.length < 5
+		// && label.length > 1
+		// [[:en:Thirty-third government of Israel|第33届]] @ [[以色列总理]]
+		// [[en:1st Lok Sabha]] ← [[1屆]] @ [[印度总理]]: [[:en:1st Lok Sabha|1届]]
+		// [[en:First Gerbrandy cabinet]] ← [[第一屆]] @ [[荷兰首相]]: [[:en:First
+		// Gerbrandy cabinet|第一届]]
+		&& is_zh && /[屆届]$/.test(label)
+		// 跳過日期 label
+		|| /^\d+月(\d+日)?$/.test(label) || /^\d+年(\d+月)?$/.test(label)) {
+			continue;
+		}
+
+		if (label.length > foreign_title.length) {
+			var index = label.indexOf(foreign_title);
+			if (index > 0 && /[(（]/.test(label.charAt(index - 1))
+					&& /[)）]/.test(label.charAt(index + foreign_title.length)))
+				label = label.slice(0, index - 1)
+						+ label.slice(index + foreign_title.length + 1);
+		}
+
+		label = label
+		// e.g., [[:en:title|''title'']], [[:en:title|《title》]]
+		.replace(/['》」』〉】〗〕]+$|^['《「『〈【〖〔]+/g, '').replace(
+				/'{2,}([^']+)'{2,}/g, '$1')
+		// e.g., [[:en:title|title{{en}}]]
+		.replace(/{{[a-z]{2,3}}}/g, '').replace(/{{·}}/g, '·').trim();
+
+		// 篩除代表資訊過少的辭彙。
+		if (label.length < 2
+		// 去除不能包含的字元。
+		// || label.includes('/')
+		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
+		// e.g., 法文版, 義大利文版
+		|| is_zh && (/[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
+		// || label.endsWith('學家')
+		|| /[學学][家者]$/.test(label))
+		// || label.includes('-{')
+		) {
+			continue;
+		}
+
+		// label = label.replace(/（(.+)）$/, '($1)');
+
+		add_label(matched[1], foreign_title, label, language_guessed,
+				matched[0]);
+	}
+
 }
 
 // ----------------------------------------------------------------------------
@@ -836,9 +847,10 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 					// [[:en:Day (disambiguation)]] → [​[日 (消歧義)|日]]
 					// [[:en:Day (disambiguation)|日]] → [​[日 (消歧義)|日]]
 					// [[:en:Day (disambiguation)|Day]] → [​[日 (消歧義)|日]]
-					: / \([^()]+\)$/.test(local_title)
-					// 在 <gallery> 中，"[[t|]]" 無效。
-					? '|' + local_title.replace(/ \([^()]+\)$/, '')
+					: /\([^()]+\)$/.test(local_title)
+					// e.g., [[title (type)]] → [[title (type)|title]]
+					// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
+					? '|' + local_title.replace(/\s*\([^()]+\)$/, '')
 					// [[:en:Day]] → [​[日]]
 					// [[:en:Day|日]] → [​[日]]
 					// [[:en:Day|Day]] → [​[日]]
@@ -1070,16 +1082,16 @@ function next_label_data_work() {
 		processed[title] = revids[index];
 	});
 
+	// 跳過之前已經處理過的。
+	if (label_data_index < 0) {
+		setImmediate(next_label_data_work);
+		return;
+	}
+
 	if (foreign_language === 'WD'
 	// type no_need_check: 不需檢查 foreign_title 是否存在。
 	|| label_data[full_title][NO_NEED_CHECK_INDEX]) {
 		process_wikidata(full_title, foreign_language, foreign_title);
-		return;
-	}
-
-	// 跳過之前已經處理過的。
-	if (false && label_data_index < 0) {
-		setImmediate(next_label_data_work);
 		return;
 	}
 
@@ -1158,9 +1170,12 @@ function finish_work() {
 
 	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
 	label_data_keys = Object.keys(label_data);
-	// label_data_index = 0;
+	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed！
+	//label_data_index = 1000;
 	label_data_length = label_data_keys.length;
-	CeL.log(script_name + ': All ' + label_data_length + ' labels.');
+	CeL.log(script_name + ': All ' + label_data_length + ' labels'
+	//
+	+ (label_data_index ? ', starts from ' + label_data_index : '.'));
 
 	processed = CeL.null_Object();
 

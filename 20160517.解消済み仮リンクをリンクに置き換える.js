@@ -98,20 +98,29 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (title !== local_title) {
-				// 日本語版項目名が違う記事なので、パス。
-				token.error = 'different local title';
-				token.message = ': ' + local_title + '\n: ' + title;
-				check();
-				return;
+				if (parameters.label && parameters.label !== local_title) {
+					// 日本語版項目名が違う記事なので、パス。
+					token.error = 'different local title';
+					token.message = ': parameter: [[' + local_title + ']]\n: translated: [[' + title + ']]';
+					check();
+					return;
+				}
+
+				// {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
+				// → [[漁獲可能量|譲渡性個別割当制度]]
+				parameters.label = local_title;
 			}
 
 			// TODO: preserve=1 {{enlink}}
 
 			var link = '[[' + title;
-			if (parameters.label && parameters.label !== title)
+			if (parameters.label && parameters.label !== title) {
 				link += '|' + parameters.label;
-			else if (title.endsWith(')'))
-				link += '|';
+			} else if (/\([^()]+\)$/.test(title)) {
+				// e.g., [[title (type)]] → [[title (type)|title]]
+				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
+				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
+			}
 			link += ']]';
 			// 實際改變頁面結構。
 			parent[index] = link;
