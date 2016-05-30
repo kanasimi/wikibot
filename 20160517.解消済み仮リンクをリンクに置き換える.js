@@ -101,7 +101,8 @@ function for_each_page(page_data, messages) {
 				if (parameters.label && parameters.label !== local_title) {
 					// 日本語版項目名が違う記事なので、パス。
 					token.error = 'different local title';
-					token.message = ': parameter: [[' + local_title + ']]\n: translated: [[' + title + ']]';
+					token.message = ': parameter: [[' + local_title
+							+ ']]\n: translated: [[' + title + ']]';
 					check();
 					return;
 				}

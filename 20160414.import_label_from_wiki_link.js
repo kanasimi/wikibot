@@ -2,7 +2,19 @@
 
 /*
 
+ base_directory/
+ all_pages.*.json	存有當前語言維基百科當前所有的頁面id以及最新版本 (*:當前語言)
+ common_title.json	存有所有語言常用標題之資料維基數據
+ common_title.*.json	存有當前語言常用標題 pattern (*:當前語言)
+ labels.*.csv	存有當前語言維基百科所獲得之跨語言標籤資料，一行一個標籤 (*:當前語言)
+ labels.*.json	存有當前語言維基百科所獲得，已經過統整之跨語言標籤資料 (*:當前語言)
+ processed.*.json	存有當前語言維基百科已經處理過之頁面標題以及版本 (*:當前語言)
+
+
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
+ 2016/5/28	開始處理日語的部分。
+
+
  TODO:
  parse [[西利西利]]山（Mauga Silisili）
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
@@ -105,7 +117,7 @@ modify_Wikipedia = false;
 
 // ----------------------------------------------------------------------------
 
-var is_zh = use_language === 'zh',
+var is_zh = use_language === 'zh', is_CJK = is_zh || use_language === 'ja',
 // label_data['foreign_language:foreign_title']
 // = [ { language: {Array}labels }, {Array}titles, {Array}revid ]
 label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
@@ -135,15 +147,15 @@ PATTERN_language_label = CeL.null_Object(),
 //
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
-// @see https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
-parse_templates = '{{link-[a-z]+|[a-z]+-link|le'
-	+ '|ill|interlanguage[ _]link'
-	+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
-	+ '|illm|interlanguage[ _]link[ _]multi|liw'
-	//
-	+ (is_zh ? '|多語言連結' : use_language === 'ja' ? '|仮リンク|ill2' : '')
-	//
-	+ '}}';
+// @see
+// https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
+parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
+		+ '|tsl|translink|ilh|internal[ _]link[ _]helper'
+		+ '|illm|interlanguage[ _]link[ _]multi|liw'
+		//
+		+ (is_zh ? '|多語言連結' : use_language === 'ja' ? '|仮リンク|ill2' : '')
+		//
+		+ '}}';
 
 function to_plain_text(wikitext) {
 	// TODO: "《茶花女》维基百科词条'''(法语)'''"
@@ -410,17 +422,17 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (label && (label = to_plain_text(label)) && isNaN(label)
-				&& !label.includes('{{')
-				// e.g., [[道奇挑戰者]]
-				&& foreign_title && !foreign_title.includes('{{')
-				//
-				&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
+		// label, title 不可包含 {{}}[[]]。
+		&& !/[{}\[\]]{2}/.test(label)
+		//
+		&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
+		//
+		&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
 			add_label(foreign_language, foreign_title, label, null, token[0]);
 		} else if (!label && !foreign_title || !foreign_language) {
 			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
 		}
 	});
-
 
 	// ----------------------------------------------------
 
@@ -446,13 +458,14 @@ function for_each_page(page_data, messages) {
 	.replace(/^\s*{{[^{}]+}}/g, '');
 
 	if (false) {
+		// 從文章的開頭部分辨識出本地語言(本國語言)以及外國原文。
 		matched = content
 		// find {{lang|en|...}} or {{lang-en|...}}
 		.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
 		if (matched) {
 			// matched 量可能達數十萬！
 			CeL.debug('[[' + title + ']]: ' + matched[0]);
-			var label = matched[2];
+			var label = matched[2].trim(), token = matched[0];
 			// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
 			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
 			if (matched) {
@@ -463,9 +476,10 @@ function for_each_page(page_data, messages) {
 							matched[0], 1);
 				}
 			} else if (matched = label
-					.match(/^\s*(?:''')?([a-z\s,\-\d\s])'*$/i)) {
+					.match(/^(?:''')?([a-z\s,\-\d\s]+)(?:''')?$/i)) {
 				// '''條目名'''（'''en title'''）
-				add_label(use_language, title, matched[1], 'en', matched[0], 1);
+				add_label(use_language, title, matched[1].trim(), 'en', token,
+						1);
 			} else {
 				CeL.log('[[' + title + ']]: Unknown label pattern: [' + label
 						+ ']');
@@ -483,9 +497,9 @@ function for_each_page(page_data, messages) {
 		if (matched[1].includes('wik')
 		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
 		|| /^category/i.test(matched[1])
-		// NG: 日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|...
 		// OK: アゼルバイジャンの言語|古代アラム語
-		|| /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3])) {
+		// NG: 日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|...
+		|| is_CJK && /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3])) {
 			continue;
 		}
 
@@ -579,8 +593,8 @@ function for_each_page(page_data, messages) {
 		// 去除不能包含的字元。
 		// || label.includes('/')
 		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
-		// e.g., 法文版, 義大利文版
-		|| is_zh && (/[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
+		// e.g., 法文版, 義大利文版, "（英語版）"
+		|| is_CJK && (/[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
 		// || label.endsWith('學家')
 		|| /[學学][家者]$/.test(label))
 		// || label.includes('-{')
@@ -899,9 +913,10 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 					return text_1 + (quote_start || quote_end);
 				});
 
-				if (change_to === content)
+				if (change_to === content) {
 					// 可能之前已更改過。
 					return [ CeL.wiki.edit.cancel, 'skip' ];
+				}
 
 				return change_to;
 
@@ -1171,7 +1186,7 @@ function finish_work() {
 	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
 	label_data_keys = Object.keys(label_data);
 	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed！
-	//label_data_index = 1000;
+	// label_data_index = 1000;
 	label_data_length = label_data_keys.length;
 	CeL.log(script_name + ': All ' + label_data_length + ' labels'
 	//
