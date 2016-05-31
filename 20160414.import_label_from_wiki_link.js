@@ -29,6 +29,7 @@
  蜂 (喜劇) → label 蜂 + 説明 喜劇
  蜂 (曖昧さ回避), 蜂 (曖昧さ) → label 蜂
  焼く (調理) | オスマン・サファヴィー戦争 (1623年–1639年) | 陸軍少将 (イギリス) | パンパン (マレー王朝) | リセット (筒井哲也)
+ 追憶 (1941年の映画)
 
  Q3827723
  Q700499
@@ -162,7 +163,9 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 
 function to_plain_text(wikitext) {
 	// TODO: "《茶花女》维基百科词条'''(法语)'''"
-	return wikitext.replace(/<\/?[a-z][^>]*>/g, '')
+	return wikitext
+	// e.g., "親会社<!-- リダイレクト先の「[[子会社]]」は、[[:en:Subsidiary]] とリンク -->"
+	.replace(/<!--(.*)-->/g, '').replace(/<\/?[a-z][^>]*>/g, '')
 	// "<small>（英文）</small>"
 	.replace(/[(（][英日德法西義韓諺俄原][语語國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
@@ -1215,9 +1218,7 @@ prepare_directory(base_directory);
 
 // 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
-	CeL.wiki.query.default_lag =
-	// for ja
-	wiki.lag = 0;
+	CeL.wiki.query.default_lag = 0;
 }
 
 CeL.wiki.cache([ {

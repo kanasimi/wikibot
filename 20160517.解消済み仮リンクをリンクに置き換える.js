@@ -8,6 +8,8 @@
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 
+ TODO: [[:en:Category:Interlanguage link template existing link]]
+
  */
 
 'use strict';
@@ -139,9 +141,29 @@ function for_each_page(page_data, messages) {
 
 			if ('disambiguation' in foreign_page_data.pageprops) {
 				// 他言語版項目リンク先が曖昧さ回避ページなので、パス。
-				token.error = 'disambiguation';
+				token.error = 'foreign is disambiguation';
 				check();
 				return;
+			}
+
+			// @see wiki_API.redirect_to
+			// e.g., [ { from: 'AA', to: 'A', tofragment: 'aa' } ]
+			var redirect_data = foreign_page_data.response.query.redirects;
+			if (redirect_data) {
+				if (redirect_data.length !== 1) {
+					library_namespace.warn('for_foreign_page: Get '
+							+ redirect_data.length + ' redirect links for [['
+							+ title + ']]!');
+				}
+				// 僅取用第一筆資料。
+				redirect_data = redirect_data[0];
+				// test REDIRECT [[title#section]]
+				if (redirect_data.tofragment) {
+					// 他言語版項目リンク先が redirect to section なので、パス。
+					token.error = 'foreign redirect to section';
+					check();
+					return;
+				}
 			}
 
 			if (foreign_page_data.title !== foreign_title) {
@@ -190,9 +212,9 @@ function for_each_page(page_data, messages) {
 				CeL.wiki.page([ foreign_language, foreign_title ],
 				//
 				for_foreign_page, {
-					// TODO: test REDIRECT [[title#section]]
+					query_props : 'pageprops',
 					redirects : 1,
-					query_props : 'pageprops'
+					save_response : true
 				});
 			} else {
 				CeL.log('for_each_page: Invalid template @ [[' + title + ']]: '
