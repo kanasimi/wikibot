@@ -30,6 +30,9 @@
  蜂 (曖昧さ回避), 蜂 (曖昧さ) → label 蜂
  焼く (調理) | オスマン・サファヴィー戦争 (1623年–1639年) | 陸軍少将 (イギリス) | パンパン (マレー王朝) | リセット (筒井哲也)
 
+ Q3827723
+ Q700499
+
  https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
 
@@ -92,8 +95,8 @@ CeL.run('application.platform.nodejs');
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
-// Set default language. 改變預設之語言。
-set_language('ja');
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('zh');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -885,7 +888,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				})
 
 				// 去除重複連結。
-				// TODO: 處理 link_1 重定向至 link_2的情況。
+				// TODO: 處理 link_1 重定向至 link_2 的情況。
 				// e.g., [[率失真理論]]（[[率失真理论|Rate distortion theory]]）
 				// TODO: link_1 雖然可能不同於 link_2，也不存在此頁面，但可能已經被列入 alias。
 				.replace(PATTERN_duplicate_title,
