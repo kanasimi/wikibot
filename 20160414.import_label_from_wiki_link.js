@@ -162,22 +162,22 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 		//
 		+ '}}',
 
-// CJK 用 外國語言版本指示器
-// 注意: 採取寧缺勿濫原則
-PATTERN_CJK_foreign_language_indicator = /[英中日德法西義韓諺俄独原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+// CJK 用 外國語言版本指示器。
+// 注意: 採取寧缺勿濫原則。
+PATTERN_CJK_foreign_language_indicator = /^.{0,4}?[英中日德法西義韓諺俄独原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
 
+'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語'
 // should be OK:
-'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語'
-		.split('|').forEach(function(title) {
-			if (PATTERN_CJK_foreign_language_indicator.test(title))
-				throw title;
-		});
-// should be NG:
+.split('|').forEach(function(title) {
+	if (PATTERN_CJK_foreign_language_indicator.test(title))
+		throw title;
+});
 "日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版"
-		.split('|').forEach(function(title) {
-			if (!PATTERN_CJK_foreign_language_indicator.test(title))
-				throw title;
-		});
+// should be NG:
+.split('|').forEach(function(title) {
+	if (!PATTERN_CJK_foreign_language_indicator.test(title))
+		throw title;
+});
 
 function to_plain_text(wikitext) {
 	// TODO: "《茶花女》维基百科词条'''(法语)'''"
