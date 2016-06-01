@@ -1010,6 +1010,8 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			}
 		}
 
+		// --------------------------------------
+		// 2016/6/1 fix error
 		var original_labels = entity.labels && entity.labels[use_language],
 		//
 		original_label = original_labels && original_labels.value;
@@ -1036,14 +1038,14 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			// fix error.
 			// e.g., "（英語版）"
 
-			var matched = original_label.match(/（([^（）]+)）$/);
+			var matched = original_label.match(/[（(]([^（）()]+)[）)]$/);
 			if (matched
 			//
 			&& PATTERN_CJK_foreign_language_indicator.test(matched[1].trim())) {
 				original_labels.value
 				// e.g., "リトアニアの推理作家（リトアニア語版Wikipedia）"
-				= original_label.replace(/（[^（）]+）$/, '');
-				CeL.log('process_wikidata: fix error (CJK): '
+				= original_label.replace(/\s*[（(][^（）()]+[）)]$/, '');
+				CeL.log('process_wikidata: fix error (CJK版): '
 				//
 				+ entity.id + ': '
 				// → "リトアニアの推理作家"
@@ -1062,6 +1064,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			};
 		}
 		return [ CeL.wiki.edit.cancel, 'skip' ];
+		// --------------------------------------
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
