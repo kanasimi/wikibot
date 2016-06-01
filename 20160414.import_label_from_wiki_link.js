@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && nohup time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> ../tmp/import_label_from_wiki_link.log &
+﻿// (cd ~/wikibot && date && hostname && nohup time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> ../tmp/import_label_from_wiki_link.log &
 
 /*
 
@@ -34,8 +34,9 @@
  Q3827723
  Q700499
 
- https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
+ https://www.wikidata.org/w/index.php?title=Special:AbuseLog&offset=&limit=500&wpSearchUser=Cewbot&wpSearchTitle=&wpSearchFilter=69
+ https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
 
  OK:
  [[:en:Urban agriculture|城市農業]]	[[都市農業]]
@@ -97,7 +98,7 @@ CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('zh');
+set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -159,15 +160,34 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 		//
 		+ (is_zh ? '|多語言連結' : use_language === 'ja' ? '|仮リンク|ill2' : '')
 		//
-		+ '}}';
+		+ '}}',
+
+// CJK 用 外國語言版本指示器
+// 注意: 採取寧缺勿濫原則
+PATTERN_CJK_foreign_language_indicator = /[英日德法西義韓諺俄原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+
+// should be OK:
+'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国||アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語'
+		.split('|').forEach(function(title) {
+			if (PATTERN_CJK_foreign_language_indicator.test(title))
+				throw title;
+		});
+// should be NG:
+"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|英語版ウィキペディア\"Objectivism\"|中文版"
+		.split('|').forEach(function(title) {
+			if (!PATTERN_CJK_foreign_language_indicator.test(title))
+				throw title;
+		});
 
 function to_plain_text(wikitext) {
 	// TODO: "《茶花女》维基百科词条'''(法语)'''"
 	return wikitext
+	// 去除註解 comments。
 	// e.g., "親会社<!-- リダイレクト先の「[[子会社]]」は、[[:en:Subsidiary]] とリンク -->"
-	.replace(/<!--(.*)-->/g, '').replace(/<\/?[a-z][^>]*>/g, '')
+	// "ロイ・トーマス<!-- 曖昧さ回避ページ -->"
+	.replace(/<\!--[\s\S]*?-->/g, '').replace(/<\/?[a-z][^>]*>/g, '')
 	// "<small>（英文）</small>"
-	.replace(/[(（][英日德法西義韓諺俄原][语語國国]?文?[名字]?[）)]/g, '')
+	.replace(/[(（][英日德法西義韓諺俄原][語语國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
 	.replace(/{{[a-z\s]+}}/ig, '').replace(/'''?([^']+)'''?/g, ' $1 ').trim()
 	//
@@ -502,10 +522,8 @@ function for_each_page(page_data, messages) {
 		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
 		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
-		|| /^category/i.test(matched[1])
-		// OK: アゼルバイジャンの言語|古代アラム語
-		// NG: 日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|...
-		|| is_CJK && /[语語文國国](?:版|[維维]基|[頁页]面|$)/.test(matched[3])) {
+		|| /^category/i.test(matched[1]) || is_CJK
+				&& PATTERN_CJK_foreign_language_indicator.test(matched[3])) {
 			continue;
 		}
 
@@ -599,8 +617,7 @@ function for_each_page(page_data, messages) {
 		// 去除不能包含的字元。
 		// || label.includes('/')
 		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
-		// e.g., 法文版, 義大利文版, "（英語版）"
-		|| is_CJK && (/[语語國国文](?:版|[維维]基|[頁页]面|$)/.test(label)
+		|| is_CJK && (PATTERN_CJK_foreign_language_indicator.test(label)
 		// || label.endsWith('學家')
 		|| /[學学][家者]$/.test(label))
 		// || label.includes('-{')
@@ -779,7 +796,7 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /[英日德法西義韓諺俄原][语語國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
+PATTERN_interlanguage = /[英日德法西義韓諺俄原][語语國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
@@ -849,7 +866,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 					if (local)
 						local = local.replace(
 						//
-						/(?:\s*\()?[英日德法西義韓諺俄原][语語國国]?文?[名字]?\)?$/g, '');
+						/(?:\s*\()?[英日德法西義韓諺俄原][語语國国]?文?[名字]?\)?$/g, '');
 
 					var converted = '[[' + local_title + (local
 					//
@@ -992,6 +1009,59 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				throw entity;
 			}
 		}
+
+		var original_labels = entity.labels && entity.labels[use_language],
+		//
+		original_label = original_labels && original_labels.value;
+		if (original_label && original_label.includes('<!--')) {
+			original_labels.value
+			// 去除註解 comments。
+			= original_label.replace(/<\!--[\s\S]*?-->/g, '');
+
+			CeL.log('process_wikidata: fix error (comments): '
+			//
+			+ entity.id + ': '
+			//
+			+ original_label + ' → ' + original_labels.value);
+
+			return {
+				// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
+				labels : [ original_labels ]
+			};
+		}
+
+		if (is_CJK
+		//
+		&& PATTERN_CJK_foreign_language_indicator.test(original_label)) {
+			// fix error.
+			// e.g., "（英語版）"
+
+			var matched = original_label.match(/（([^（）]+)）$/);
+			if (matched
+			//
+			&& PATTERN_CJK_foreign_language_indicator.test(matched[1].trim())) {
+				original_labels.value
+				// e.g., "リトアニアの推理作家（リトアニア語版Wikipedia）"
+				= original_label.replace(/（[^（）]+）$/, '');
+				CeL.log('process_wikidata: fix error (CJK): '
+				//
+				+ entity.id + ': '
+				// → "リトアニアの推理作家"
+				+ original_label + ' → ' + original_labels.value);
+
+			} else {
+				CeL.log('process_wikidata: delete ' + entity.id + ': '
+				//
+				+ JSON.stringify(original_labels));
+				original_labels.remove = 1;
+			}
+
+			return {
+				// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
+				labels : [ original_labels ]
+			};
+		}
+		return [ CeL.wiki.edit.cancel, 'skip' ];
 
 		// 要編輯（更改或創建）的資料。
 		var data = CeL.wiki.edit_data.add_labels(labels, entity);
@@ -1253,7 +1323,7 @@ CeL.wiki.cache([ {
 			}
 		});
 
-		// old:
+		// old, deprecated:
 		if (false && is_zh) {
 			wiki.page('模块:CGroup/地名', function(page_data) {
 				// prepare PATTERN_common_title

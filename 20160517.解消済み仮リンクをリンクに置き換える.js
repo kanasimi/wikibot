@@ -184,8 +184,9 @@ function for_each_page(page_data, messages) {
 		function to_String(parameter) {
 			parameter = parameters[parameter];
 			// normalize
-			return parameter
-					&& parameter.toString().replace(/<!--.+?-->/g, '').trim();
+			return parameter && parameter.toString()
+			// 去除註解 comments。
+			.replace(/<\!--[\s\S]*?-->/g, '').trim();
 		}
 
 		// template_name
