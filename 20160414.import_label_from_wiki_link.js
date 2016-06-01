@@ -164,16 +164,16 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 
 // CJK 用 外國語言版本指示器
 // 注意: 採取寧缺勿濫原則
-PATTERN_CJK_foreign_language_indicator = /[英日德法西義韓諺俄原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+PATTERN_CJK_foreign_language_indicator = /[英中日德法西義韓諺俄独原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
 
 // should be OK:
-'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国||アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語'
+'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語'
 		.split('|').forEach(function(title) {
 			if (PATTERN_CJK_foreign_language_indicator.test(title))
 				throw title;
 		});
 // should be NG:
-"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|英語版ウィキペディア\"Objectivism\"|中文版"
+"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版"
 		.split('|').forEach(function(title) {
 			if (!PATTERN_CJK_foreign_language_indicator.test(title))
 				throw title;
@@ -187,7 +187,7 @@ function to_plain_text(wikitext) {
 	// "ロイ・トーマス<!-- 曖昧さ回避ページ -->"
 	.replace(/<\!--[\s\S]*?-->/g, '').replace(/<\/?[a-z][^>]*>/g, '')
 	// "<small>（英文）</small>"
-	.replace(/[(（][英日德法西義韓諺俄原][語语國国]?文?[名字]?[）)]/g, '')
+	.replace(/[(（][英中日德法西義韓諺俄独原][語语國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
 	.replace(/{{[a-z\s]+}}/ig, '').replace(/'''?([^']+)'''?/g, ' $1 ').trim()
 	//
@@ -616,7 +616,7 @@ function for_each_page(page_data, messages) {
 		if (label.length < 2
 		// 去除不能包含的字元。
 		// || label.includes('/')
-		// || /^[\u0001-\u00ff英日德法西義韓諺俄原]$/.test(label)
+		// || /^[\u0001-\u00ff英中日德法西義韓諺俄独原]$/.test(label)
 		|| is_CJK && (PATTERN_CJK_foreign_language_indicator.test(label)
 		// || label.endsWith('學家')
 		|| /[學学][家者]$/.test(label))
@@ -796,7 +796,7 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
 // {{求翻译}}
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
-PATTERN_interlanguage = /[英日德法西義韓諺俄原][語语國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
+PATTERN_interlanguage = /[英中日德法西義韓諺俄独原][語语國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
@@ -866,7 +866,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 					if (local)
 						local = local.replace(
 						//
-						/(?:\s*\()?[英日德法西義韓諺俄原][語语國国]?文?[名字]?\)?$/g, '');
+						/(?:\s*\()?[英中日德法西義韓諺俄独原][語语國国]?文?[名字]?\)?$/g, '');
 
 					var converted = '[[' + local_title + (local
 					//
