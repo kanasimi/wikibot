@@ -140,7 +140,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (!foreign_page_data.pageprops) {
-				library_namespace.warn(
+				CeL.warn(
 				//
 				'for_foreign_page: No foreign_page_data.pageprops: [[:'
 						+ foreign_language + ':' + foreign_title + ']] @ [['
@@ -181,7 +181,7 @@ function for_each_page(page_data, messages) {
 				foreign_title = foreign_page_data.title;
 			}
 
-			CeL.wiki.langlinks([ foreign_language,
+			wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
 			foreign_title ], for_local_page, use_language);
 
