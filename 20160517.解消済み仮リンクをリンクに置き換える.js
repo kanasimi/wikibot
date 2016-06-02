@@ -139,7 +139,13 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			if ('disambiguation' in foreign_page_data.pageprops) {
+			if (!foreign_page_data.pageprops) {
+				library_namespace.warn(
+				//
+				'for_foreign_page: No foreign_page_data.pageprops: [[:'
+						+ foreign_language + ':' + foreign_title + ']] @ [['
+						+ title + ']]');
+			} else if ('disambiguation' in foreign_page_data.pageprops) {
 				// 他言語版項目リンク先が曖昧さ回避ページなので、パス。
 				token.error = 'foreign is disambiguation';
 				check();
