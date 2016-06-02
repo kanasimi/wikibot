@@ -177,7 +177,8 @@ function for_each_page(page_data, messages) {
 				// should be redirected.
 				CeL.log('different foreign title: [[:' + foreign_language + ':'
 						+ foreign_title + ']] → [[:' + foreign_language + ':'
-						+ foreign_page_data.title + ']] (continue task)');
+						+ foreign_page_data.title + ']] @ [[' + title
+						+ ']] (continue task)');
 				foreign_title = foreign_page_data.title;
 			}
 
