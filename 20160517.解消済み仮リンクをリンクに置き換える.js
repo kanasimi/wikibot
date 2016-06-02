@@ -181,7 +181,7 @@ function for_each_page(page_data, messages) {
 				foreign_title = foreign_page_data.title;
 			}
 
-			wiki.langlinks([ foreign_language,
+			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
 			foreign_title ], for_local_page, use_language);
 
@@ -208,11 +208,11 @@ function for_each_page(page_data, messages) {
 			// console.log(token);
 			var parameters = token.parameters,
 			// {{仮リンク|記事名|en|title}}
-			local_title = to_String(1),
+			local_title = decodeURIComponent(to_String(1)),
 			//
 			foreign_language = to_String(2),
 			//
-			foreign_title = to_String(3);
+			foreign_title = decodeURIComponent(to_String(3));
 
 			if (local_title && foreign_language && foreign_title) {
 				template_count++;

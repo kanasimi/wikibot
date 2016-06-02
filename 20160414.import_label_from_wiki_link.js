@@ -455,7 +455,8 @@ function for_each_page(page_data, messages) {
 		&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
 		//
 		&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
-			add_label(foreign_language, foreign_title, label, null, token[0]);
+			add_label(foreign_language, decodeURIComponent(foreign_title),
+					decodeURIComponent(label), null, token[0]);
 		} else if (!label && !foreign_title || !foreign_language) {
 			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
 		}
