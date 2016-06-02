@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node 20160517.解消済み仮リンクをリンクに置き換える.js && date
+﻿// (cd ~/wikibot && date && hostname && nohup time /shared/bin/node 20160517.解消済み仮リンクをリンクに置き換える.js; date) >> 解消済み仮リンクをリンクに置き換える/log &
 
 /*
 
@@ -31,7 +31,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 200;
+test_limit = Infinity;
 
 // ----------------------------------------------------------------------------
 
@@ -82,7 +82,7 @@ function for_each_page(page_data, messages) {
 			.edit(last_content, {
 				// section : 'new',
 				// sectiontitle : 'Sandbox test section',
-				summary : 'bot test: 解消済み仮リンク'
+				summary : 'bot: 解消済み仮リンク'
 				//
 				+ changed.join('、') + 'を内部リンクに置き換える',
 				nocreate : 1,
@@ -210,7 +210,8 @@ function for_each_page(page_data, messages) {
 
 			if (local_title && foreign_language && foreign_title) {
 				template_count++;
-				CeL.wiki.page([ foreign_language, foreign_title ],
+				// 這裡用 CeL.wiki.page() 太多並列處理，會造成 error.code "EMFILE"。
+				wiki.page([ foreign_language, foreign_title ],
 				//
 				for_foreign_page, {
 					query_props : 'pageprops',
@@ -245,7 +246,8 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	list = list.slice(0, test_limit);
+	// 設定此初始值，可跳過之前已經處理過的。
+	list = list.slice(0 * test_limit, test_limit);
 	CeL.log(list.slice(0, 8).map(function(page_data) {
 		return CeL.wiki.title_of(page_data);
 	}).join('\n'));

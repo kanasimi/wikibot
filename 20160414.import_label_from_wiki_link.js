@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> ../tmp/import_label_from_wiki_link.log &
+﻿// (cd ~/wikibot && date && hostname && nohup time /shared/bin/node 20160414.import_label_from_wiki_link.js; date) >> import_label_from_wiki_link/log &
 
 /*
 
@@ -30,9 +30,6 @@
  蜂 (曖昧さ回避), 蜂 (曖昧さ) → label 蜂
  焼く (調理) | オスマン・サファヴィー戦争 (1623年–1639年) | 陸軍少将 (イギリス) | パンパン (マレー王朝) | リセット (筒井哲也)
  追憶 (1941年の映画)
-
- Q3827723
- Q700499
 
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
  https://www.wikidata.org/w/index.php?title=Special:AbuseLog&offset=&limit=500&wpSearchUser=Cewbot&wpSearchTitle=&wpSearchFilter=69
@@ -79,6 +76,9 @@
  詳細人物列表請見[[:en:List of Nobel laureates by university affiliation|英文條目：各個大學的諾貝爾得獎主人物列表]]。	詳細人物列表請見[[各大學諾貝爾獎得主列表|英文條目：各個大學的諾貝爾得獎主人物列表]]。
  見[[連鐵]]或[[:ja:大連都市交通|大連電氣鐵道]]。	見[[連鐵]]或[[連鐵|大連電氣鐵道]]。
  Q955618: [[en:Sentosa Express]]: {"zh-hant":["<small>'''聖淘沙捷運<br>（Sentosa Express）'''</small>"],"zh-cn":["<small>'''圣淘沙捷运<br>（Sentosa Express）'''</small>"]}
+ Q3827723
+ Q700499
+ [[:en:Mercedes Simplex|メルセデス・シンプレックス〈英語版〉]]
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -98,7 +98,7 @@ CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('ja');
+set_language('zh');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -114,7 +114,7 @@ test_limit = Infinity,
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
 raw_data_file_stream,
-// 記錄處理過的文章
+// 記錄處理過的文章。
 processed_file_path = base_directory + 'processed.' + use_language + '.json',
 
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -164,15 +164,16 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 
 // CJK 用 外國語言版本指示器。
 // 注意: 採取寧缺勿濫原則。
-PATTERN_CJK_foreign_language_indicator = /^.{0,4}?[英中日德法西義韓諺俄独原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+// TODO: [[:en:List of ISO 639-2 codes]]
+PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
 
-'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語'
-// should be OK:
+'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語|ケベック英語|法律英語'
+// TODO: should be OK: |英語版の有名人のリスト
 .split('|').forEach(function(title) {
 	if (PATTERN_CJK_foreign_language_indicator.test(title))
 		throw title;
 });
-"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版"
+"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版|英語版該当ページ|フランス語版|伊語版|アラビア語版|スペイン語版|英語版のサイト"
 // should be NG:
 .split('|').forEach(function(title) {
 	if (!PATTERN_CJK_foreign_language_indicator.test(title))
@@ -1012,58 +1013,67 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 		// --------------------------------------
 		// 2016/6/1 fix error
-		var original_labels = entity.labels && entity.labels[use_language],
-		//
-		original_label = original_labels && original_labels.value;
-		if (original_label && original_label.includes('<!--')) {
-			original_labels.value
-			// 去除註解 comments。
-			= original_label.replace(/<\!--[\s\S]*?-->/g, '');
-
-			CeL.log('process_wikidata: fix error (comments): '
+		if (false) {
+			var original_labels = entity.labels && entity.labels[use_language],
 			//
-			+ entity.id + ': '
-			//
-			+ original_label + ' → ' + original_labels.value);
-
-			return {
-				// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
-				labels : [ original_labels ]
-			};
-		}
-
-		if (is_CJK
-		//
-		&& PATTERN_CJK_foreign_language_indicator.test(original_label)) {
-			// fix error.
-			// e.g., "（英語版）"
-
-			var matched = original_label.match(/[（(]([^（）()]+)[）)]$/);
-			if (matched
-			//
-			&& PATTERN_CJK_foreign_language_indicator.test(matched[1].trim())) {
+			original_label = original_labels && original_labels.value;
+			if (original_label && original_label.includes('<!--')) {
 				original_labels.value
-				// e.g., "リトアニアの推理作家（リトアニア語版Wikipedia）"
-				= original_label.replace(/\s*[（(][^（）()]+[）)]$/, '');
-				CeL.log('process_wikidata: fix error (CJK版): '
-				//
-				+ entity.id + ': '
-				// → "リトアニアの推理作家"
-				+ original_label + ' → ' + original_labels.value);
+				// 去除註解 comments。
+				= original_label.replace(/<\!--[\s\S]*?-->/g, '');
 
-			} else {
-				CeL.log('process_wikidata: delete ' + entity.id + ': '
+				CeL.log('process_wikidata: fix error (comments): '
 				//
-				+ JSON.stringify(original_labels));
-				original_labels.remove = 1;
+				+ entity.id + ': ['
+				//
+				+ original_label + '] → [[' + original_labels.value + ']]');
+
+				return {
+					// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
+					labels : [ original_labels ]
+				};
 			}
 
-			return {
-				// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
-				labels : [ original_labels ]
-			};
+			if (is_CJK
+			//
+			&& PATTERN_CJK_foreign_language_indicator.test(original_label)) {
+				// fix error.
+				// e.g., "（英語版）"
+				var matched = original_label
+				//
+				.match(/^(.+?)\s*[（(]([^（）()]+)[）)]$/);
+				if (matched && (matched[1] = matched[1].trim())
+				// TODO: en + CeL.wiki.PATTERN_common_characters
+				&& !/^[a-z\s\d\-]$/.test(matched[1])
+				//
+				&& PATTERN_CJK_foreign_language_indicator
+				//
+				.test(matched[2].trim())) {
+					original_labels.value
+					// e.g., "リトアニアの推理作家（リトアニア語版Wikipedia）"
+					= matched[1];
+					CeL.log('process_wikidata: fix error (CJK版): '
+					//
+					+ entity.id + ': ['
+					// → "リトアニアの推理作家"
+					+ original_label + '] → [['
+					//
+					+ original_labels.value + ']]');
+
+				} else {
+					CeL.log('process_wikidata: fix error (delete CJK版): '
+					//
+					+ entity.id + ': ' + JSON.stringify(original_labels));
+					original_labels.remove = 1;
+				}
+
+				return {
+					// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
+					labels : [ original_labels ]
+				};
+			}
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
-		return [ CeL.wiki.edit.cancel, 'skip' ];
 		// --------------------------------------
 
 		// 要編輯（更改或創建）的資料。
