@@ -34,7 +34,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 10,
+test_limit = 20,
 
 Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 
@@ -53,7 +53,10 @@ message_set = {
 	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、パス。',
 	missing_local : '日本語版項目自体存在しないので、パス。',
 	different_local_title : '日本語版項目名が違う記事なので、パス。',
-	preserved : '強制表示引数(preserve)を指定するなので、パス。'
+	preserved : '強制表示引数(preserve)を指定するなので、パス。',
+	from_parameter : '引数から',
+	translated_from_foreign_title : '他言語版項目リンク先から',
+	not_exist : '存在しない'
 };
 
 // ----------------------------------------------------------------------------
@@ -67,6 +70,11 @@ function check_final_work() {
 		return;
 
 	// assert: page_remains === 0
+	if (page_remains !== 0 || check_final_work.done) {
+		throw page_remains;
+	}
+	check_final_work.done = true;
+
 	wiki.page('Wikipedia:サンドボックス').edit(function() {
 		var messages = [];
 		for ( var title in report) {
@@ -132,36 +140,49 @@ function for_each_page(page_data, messages) {
 
 				var parent = token,
 				// parameter[3]
-				index = 3, f_title = parent[index];
-				if (Array.isArray(f_title)) {
-					parent = f_title;
+				index = 3, foreign_title = parent[index];
+				if (Array.isArray(foreign_title)) {
+					parent = foreign_title;
 					index = 0;
-					f_title = parent[index];
+					foreign_title = parent[index];
 				}
 
 				// 格式化連結。
-				parent[index] = '[[:' + token[2] + ':' + f_title + '|'
-						+ f_title + ']]';
+				if (foreign_title && token[2]) {
+					parent[index] = '[[:' + token[2] + ':' + foreign_title
+							+ '|' + foreign_title + ']]';
+				}
 
-				report[title][error].push(': {<nowiki />{'
+				var local_title = token[1];
+				if (typeof local_title === 'string') {
+					token[1] = '[[' + local_title + ']]';
+				}
+				report[title][error].push(
 				// @see wiki_toString @ CeL.wiki
-				+ token.map(function(text) {
-					// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
-					return text.toString().replace(/</g, '&lt;');
-				}).join('<b style="color:#f40;padding:.2em">|</b>')
+				': <span style="color:#aaa;padding:.2em">{{</span>'
 				//
-				+ '}}');
+				+ token.map(function(text) {
+					return text.toString().replace(/^([a-z]+=)/i,
+					//
+					'<span style="color:#aaa;padding-right:.2em">$1</span>')
+					//
+					.replace(/</g, '&lt;');
+				}).join('<b style="color:#f40;padding:.2em">|</b>')
+						+ '<span style="color:#aaa;padding:.2em">}}</span>');
 				if (token.error_message) {
 					report[title][error].push(token.error_message);
 				}
 				// 回復 recover。
-				parent[index] = f_title;
+				parent[index] = foreign_title;
+				local_title = token[1];
 			}
 
 			CeL.debug('template_count: ' + template_count + ' / page_remains: '
 					+ page_remains, 4);
-			page_remains--;
-			if (--template_count > 0 || changed.length === 0) {
+			if (--template_count === 0)
+				--page_remains;
+
+			if (template_count > 0 || changed.length === 0) {
 				check_final_work();
 				return;
 			}
@@ -205,9 +226,36 @@ function for_each_page(page_data, messages) {
 
 			if (title !== local_title) {
 				if (parameters.label && parameters.label !== local_title) {
-					token.error_message = ': parameter: [[' + local_title
-							+ ']]　→ translated: [[' + title + ']]';
-					check_page(message_set.different_local_title);
+					// 檢查本地連結 local_title 是否最終也導向 title。
+					wiki.redirect_to(local_title, function(redirect_data,
+							page_data) {
+						if (Array.isArray(redirect_data)) {
+							// TODO: Array.isArray(redirect_data)
+							console.log(redirect_data);
+							throw 'Array.isArray(redirect_data)';
+						}
+						if (title === redirect_data) {
+							local_title = redirect_data;
+							// [[local_title]] redirect to:
+							// [[redirect_data]] = [[title]]
+							for_local_page(title);
+							return;
+						}
+
+						token.error_message = ':: '
+								+ message_set.from_parameter
+								+ ': [['
+								+ local_title
+								+ ']]'
+								+ (redirect_data ? '　→ [[' + redirect_data
+										+ ']]' : ': ' + message_set.not_exist)
+								+ '. '
+								+ message_set.translated_from_foreign_title
+								+ ': [[' + title + ']]';
+						// test:
+						// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
+						check_page(message_set.different_local_title);
+					});
 					return;
 				}
 
@@ -289,7 +337,9 @@ function for_each_page(page_data, messages) {
 
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
-			foreign_title ], for_local_page, use_language);
+			foreign_title ], for_local_page, use_language, {
+				redirects : 1
+			});
 
 		}
 
@@ -365,7 +415,7 @@ CeL.wiki.cache([ {
 		list = list.slice(0 * test_limit, test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
 			return CeL.wiki.title_of(page_data);
-		}).join('\n'));
+		}).join('\n') + '\n...');
 	}
 
 	page_remains = list.length;
