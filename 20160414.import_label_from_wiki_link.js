@@ -91,8 +91,6 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
-// for CeL.wiki.cache(), CeL.fs_mkdir()
-CeL.run('application.platform.nodejs');
 // 在非 Windows 平台上避免 fatal 錯誤。
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')

@@ -24,8 +24,6 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
-// for CeL.wiki.cache(), CeL.fs_mkdir()
-CeL.run('application.platform.nodejs');
 
 var
 /** {String}編輯摘要。總結報告。 */
