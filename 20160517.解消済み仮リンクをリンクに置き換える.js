@@ -3,7 +3,16 @@
 /*
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
+ [[:ja:Wikipedia:井戸端/subj/仮リンクの解消の作業手順について]]
  2016/5/20 22:22:41	仮運用を行って
+
+ Workflow 工作流程:
+ # 自維基百科 Category_has_local_page 取得所有包含本地連結的頁面標題文字/條目名稱。
+ # 以函數 for_each_page() + for_each_template() 檢查每一個頁面，找出所有跨語言模板。
+ # 以函數 for_foreign_page() 檢查跨語言模板模板所指引的外語言條目連結是否合適。
+ # 以函數 for_local_page() 檢查外語言條目連結所指向的本地條目連結是否合適。
+ # 以函數 check_page() 收尾每一個頁面的工作。
+ # 以函數 check_final_work()寫入報告。
 
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -31,7 +40,15 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = Infinity;
+test_limit = 6,
+
+Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
+
+// 剩下尚未處理完畢的頁面數
+page_remains,
+// 結果報告書 report[local title]
+// = { error : [ "error message", "error message", ...], ... }
+report = CeL.null_Object();
 
 // ----------------------------------------------------------------------------
 
@@ -39,47 +56,122 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(2);
 
+function check_final_work() {
+	if (page_remains > 0)
+		return;
+
+	// assert: page_remains === 0
+	wiki.page('Wikipedia:サンドボックス').edit(function() {
+		var messages = [];
+		for ( var title in report) {
+			messages.push('; [[' + title + ']]');
+			for ( var error in report[title]) {
+				messages.push(':; ' + error);
+				messages.append(report[title][error]);
+			}
+		}
+		return messages.join('\n');
+
+	}, {
+		section : 'new',
+		sectiontitle : '結果報告',
+		summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
+		nocreate : 1,
+		bot : 1
+	});
+}
+
 function for_each_page(page_data, messages) {
 	var template_count = 0,
 	/** {String}page title = page_data.title */
-	title = CeL.wiki.title_of(page_data), changed = [];
+	title = CeL.wiki.title_of(page_data),
+	// 記錄確認已經有改變的文字連結。
+	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
 	function for_each_template(token, index, parent) {
-		function check(_changed) {
+		/**
+		 * 每一個頁面的最終處理函數。需要用到 token。
+		 * 
+		 * 警告: 必須保證每個頁面都剛好執行一次 check_page。
+		 * 
+		 * @param {String}_changed
+		 *            當前處理的 token 已改成了這段文字。
+		 */
+		function check_page(_changed) {
 			if (_changed) {
 				if (!changed.includes(_changed)) {
+					// 記錄確認已經有改變的文字連結。
 					changed.push(_changed);
 					CeL.log('Adapt [[' + page_data.title + ']]: '
 							+ token.toString() + ' → ' + _changed);
 				}
 
-			} else if (token.error && token.error !== 'missing local') {
-				CeL.log(token.error + ': ' + token.toString());
-				if (token.message)
+			} else if (token.error && !token.skip_error) {
+				CeL.log('check_page: ' + token.error + ' @ [[' + title + ']]: '
+						+ token.toString());
+				if (token.message) {
 					CeL.log(String(token.message));
+				}
+
+				// 初始化報告。
+				if (!report[title]) {
+					report[title] = CeL.null_Object();
+				}
+				if (!report[title][token.error]) {
+					report[title][token.error] = [];
+				}
+
+				var parent = token,
+				// parameter[3]
+				index = 3, f_title = parent[index];
+				if (Array.isArray(f_title)) {
+					parent = f_title;
+					index = 0;
+					f_title = parent[index];
+				}
+
+				// 格式化連結。
+				parent[index] = '[[:' + token[2] + ':' + f_title + '|'
+						+ f_title + ']]';
+
+				report[title][token.error].push(': {<nowiki />{'
+				// @see wiki_toString @ CeL.wiki
+				+ token.map(function(text) {
+					// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
+					return text.toString().replace(/</g, '&lt;');
+				}).join('<b style="color:#f40;padding:.2em">|</b>')
+				//
+				+ '}}');
+				// 回復 recover。
+				parent[index] = f_title;
 			}
 
-			CeL.debug('template_count: ' + template_count, 4);
-			if (--template_count > 0 || changed.length === 0)
+			CeL.debug('template_count: ' + template_count + ' / page_remains: '
+					+ page_remains, 4);
+			page_remains--;
+			if (--template_count > 0 || changed.length === 0) {
+				check_final_work();
 				return;
+			}
 
 			var last_content = parser.toString();
 			if (CeL.wiki.content_of(page_data) === last_content) {
 				CeL.warn('The contents are the same.');
+				check_final_work();
 				return;
 			}
 
 			if (false) {
 				CeL.log('[[' + page_data.title + ']]: ');
 				CeL.log(last_content);
+				check_final_work();
 				return;
 			}
+
 			wiki.page(page_data
 			// && 'Wikipedia:サンドボックス'
-			)
-			//
-			.edit(last_content, {
+			).edit(last_content, {
 				// section : 'new',
 				// sectiontitle : 'Sandbox test section',
 				summary : 'bot: 解消済み仮リンク'
@@ -88,14 +180,18 @@ function for_each_page(page_data, messages) {
 				nocreate : 1,
 				bot : 1
 			});
+
+			check_final_work();
 		}
 
 		function for_local_page(title) {
 			if (!title) {
 				// 日本語版項目自体存在しないので、パス。
 				token.error = 'missing local';
+				// 忽略缺乏本地頁面的情況。
+				token.skip_error = true;
 				token.message = token.toString();
-				check();
+				check_page();
 				return;
 			}
 
@@ -105,7 +201,7 @@ function for_each_page(page_data, messages) {
 					token.error = 'different local title';
 					token.message = ': parameter: [[' + local_title
 							+ ']]\n: translated: [[' + title + ']]';
-					check();
+					check_page();
 					return;
 				}
 
@@ -114,7 +210,15 @@ function for_each_page(page_data, messages) {
 				parameters.label = local_title;
 			}
 
-			// TODO: preserve=1 {{enlink}}
+			// TODO: {{enlink}}
+
+			// preserve(強制表示)引数を指定する仮リンクはスルーする。
+			if (parameters.preserve) {
+				token.error = 'preserved';
+				token.skip_error = true;
+				check_page();
+				return;
+			}
 
 			var link = '[[' + title;
 			if (parameters.label && parameters.label !== title) {
@@ -125,9 +229,9 @@ function for_each_page(page_data, messages) {
 				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
 			}
 			link += ']]';
-			// 實際改變頁面結構。
+			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
 			parent[index] = link;
-			check(link);
+			check_page(link);
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -135,7 +239,7 @@ function for_each_page(page_data, messages) {
 				// 他言語版記事自体存在しないので、パス。
 				token.error = 'missing foreign';
 				token.message = token.toString();
-				check();
+				check_page();
 				return;
 			}
 
@@ -148,7 +252,7 @@ function for_each_page(page_data, messages) {
 			} else if ('disambiguation' in foreign_page_data.pageprops) {
 				// 他言語版項目リンク先が曖昧さ回避ページなので、パス。
 				token.error = 'foreign is disambiguation';
-				check();
+				check_page();
 				return;
 			}
 
@@ -167,18 +271,22 @@ function for_each_page(page_data, messages) {
 				if (redirect_data.tofragment) {
 					// 他言語版項目リンク先が redirect to section なので、パス。
 					token.error = 'foreign redirect to section';
-					check();
+					check_page();
 					return;
 				}
 			}
 
 			if (foreign_page_data.title !== foreign_title) {
-				// 他言語版項目リンク先が違う記事なので、パス。
-				// should be redirected.
-				CeL.log('different foreign title: [[:' + foreign_language + ':'
-						+ foreign_title + ']] → [[:' + foreign_language + ':'
-						+ foreign_page_data.title + ']] @ [[' + title
-						+ ']] (continue task)');
+				// 他言語版項目リンク先が違う記事。
+				// 照理來說應該是重定向頁面。
+				if (foreign_title.toLowerCase() !== foreign_page_data.title
+						.toLowerCase()) {
+					CeL.log('for_foreign_page: different foreign title: [[:'
+							+ foreign_language + ':' + foreign_title
+							+ ']] → [[:' + foreign_language + ':'
+							+ foreign_page_data.title + ']] @ [[' + title
+							+ ']] (continue task)');
+				}
 				foreign_title = foreign_page_data.title;
 			}
 
@@ -188,7 +296,8 @@ function for_each_page(page_data, messages) {
 
 		}
 
-		function to_String(parameter) {
+		// 自 parameter 取得頁面標題文字/條目名稱。
+		function get_title(parameter) {
 			parameter = parameters[parameter];
 			// normalize
 			return parameter && parameter.toString()
@@ -205,18 +314,18 @@ function for_each_page(page_data, messages) {
 			'illm' : true,
 			'link-interwiki' : true
 		}) {
+			template_count++;
 			token.page_data = page_data;
 			// console.log(token);
 			var parameters = token.parameters,
 			// {{仮リンク|記事名|en|title}}
-			local_title = decodeURIComponent(to_String(1)),
+			local_title = decodeURIComponent(get_title(1)),
 			//
-			foreign_language = to_String(2),
+			foreign_language = get_title(2),
 			//
-			foreign_title = decodeURIComponent(to_String(3));
+			foreign_title = decodeURIComponent(get_title(3));
 
 			if (local_title && foreign_language && foreign_title) {
-				template_count++;
 				// 這裡用 CeL.wiki.page() 太多並列處理，會造成 error.code "EMFILE"。
 				wiki.page([ foreign_language, foreign_title ],
 				//
@@ -226,14 +335,16 @@ function for_each_page(page_data, messages) {
 					save_response : true
 				});
 			} else {
-				CeL.log('for_each_page: Invalid template @ [[' + title + ']]: '
-						+ token.toString());
+				token.error = 'invalid template';
+				check_page();
 			}
 		}
 	}
 
+	// 這一步頗耗時間
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
 		throw 'Parser error: [[' + title + ']]';
 	}
 	parser.each('template', for_each_template);
@@ -241,7 +352,7 @@ function for_each_page(page_data, messages) {
 
 CeL.wiki.cache([ {
 	type : 'categorymembers',
-	list : 'Category:解消済み仮リンクを含む記事',
+	list : Category_has_local_page,
 	operator : function(list) {
 		this.list = list;
 	}
@@ -253,12 +364,15 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	// 設定此初始值，可跳過之前已經處理過的。
-	list = list.slice(0 * test_limit, test_limit);
-	CeL.log(list.slice(0, 8).map(function(page_data) {
-		return CeL.wiki.title_of(page_data);
-	}).join('\n'));
+	if (1) {
+		// 設定此初始值，可跳過之前已經處理過的。
+		list = list.slice(0 * test_limit, test_limit);
+		CeL.log(list.slice(0, 8).map(function(page_data) {
+			return CeL.wiki.title_of(page_data);
+		}).join('\n'));
+	}
 
+	page_remains = list.length;
 	wiki.work({
 		no_edit : true,
 		each : for_each_page
