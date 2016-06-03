@@ -34,7 +34,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 20,
+test_limit = 30,
 
 Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 
@@ -148,7 +148,9 @@ function for_each_page(page_data, messages) {
 				}
 
 				// 格式化連結。
-				if (foreign_title && token[2]) {
+				if (foreign_title && typeof foreign_title === 'string'
+						&& !foreign_title.includes('=') && token[2]
+						&& /^[a-z\-]{2,20}$/.test(token[2])) {
 					parent[index] = '[[:' + token[2] + ':' + foreign_title
 							+ '|' + foreign_title + ']]';
 				}
@@ -162,11 +164,11 @@ function for_each_page(page_data, messages) {
 				': <span style="color:#aaa;padding:.2em">{{</span>'
 				//
 				+ token.map(function(text) {
-					return text.toString().replace(/^([a-z]+=)/i,
+					return text.toString().replace(/</g, '&lt;')
 					//
-					'<span style="color:#aaa;padding-right:.2em">$1</span>')
+					.replace(/^([a-z]+=)/i,
 					//
-					.replace(/</g, '&lt;');
+					'<span style="color:#aaa;padding-right:.2em">$1</span>');
 				}).join('<b style="color:#f40;padding:.2em">|</b>')
 						+ '<span style="color:#aaa;padding:.2em">}}</span>');
 				if (token.error_message) {
