@@ -34,7 +34,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 6,
+test_limit = 10,
 
 Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 
@@ -42,7 +42,19 @@ Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 page_remains,
 // 結果報告書 report[local title]
 // = { error : [ "error message", "error message", ...], ... }
-report = CeL.null_Object();
+report = CeL.null_Object(),
+
+/** {Object}L10n messages. 符合當地語言的訊息內容。 */
+message_set = {
+	invalid_template : 'テンプレートの使用に誤りがある',
+	missing_foreign : '他言語版記事自体存在しないので、パス。',
+	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、パス。',
+	// [[ja:Help:セクション]]
+	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、パス。',
+	missing_local : '日本語版項目自体存在しないので、パス。',
+	different_local_title : '日本語版項目名が違う記事なので、パス。',
+	preserved : '強制表示引数(preserve)を指定するなので、パス。'
+};
 
 // ----------------------------------------------------------------------------
 
@@ -89,10 +101,12 @@ function for_each_page(page_data, messages) {
 		 * 
 		 * 警告: 必須保證每個頁面都剛好執行一次 check_page。
 		 * 
+		 * @param {String}error
+		 *            error message.
 		 * @param {String}_changed
 		 *            當前處理的 token 已改成了這段文字。
 		 */
-		function check_page(_changed) {
+		function check_page(error, _changed) {
 			if (_changed) {
 				if (!changed.includes(_changed)) {
 					// 記錄確認已經有改變的文字連結。
@@ -101,19 +115,19 @@ function for_each_page(page_data, messages) {
 							+ token.toString() + ' → ' + _changed);
 				}
 
-			} else if (token.error && !token.skip_error) {
-				CeL.log('check_page: ' + token.error + ' @ [[' + title + ']]: '
+			} else if (error && !token.skip_error) {
+				CeL.log('check_page: ' + error + ' @ [[' + title + ']]: '
 						+ token.toString());
-				if (token.message) {
-					CeL.log(String(token.message));
+				if (token.error_message) {
+					CeL.log(String(token.error_message));
 				}
 
 				// 初始化報告。
 				if (!report[title]) {
 					report[title] = CeL.null_Object();
 				}
-				if (!report[title][token.error]) {
-					report[title][token.error] = [];
+				if (!report[title][error]) {
+					report[title][error] = [];
 				}
 
 				var parent = token,
@@ -129,7 +143,7 @@ function for_each_page(page_data, messages) {
 				parent[index] = '[[:' + token[2] + ':' + f_title + '|'
 						+ f_title + ']]';
 
-				report[title][token.error].push(': {<nowiki />{'
+				report[title][error].push(': {<nowiki />{'
 				// @see wiki_toString @ CeL.wiki
 				+ token.map(function(text) {
 					// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
@@ -137,6 +151,9 @@ function for_each_page(page_data, messages) {
 				}).join('<b style="color:#f40;padding:.2em">|</b>')
 				//
 				+ '}}');
+				if (token.error_message) {
+					report[title][error].push(token.error_message);
+				}
 				// 回復 recover。
 				parent[index] = f_title;
 			}
@@ -180,22 +197,17 @@ function for_each_page(page_data, messages) {
 
 		function for_local_page(title) {
 			if (!title) {
-				// 日本語版項目自体存在しないので、パス。
-				token.error = 'missing local';
 				// 忽略缺乏本地頁面的情況。
 				token.skip_error = true;
-				token.message = token.toString();
-				check_page();
+				check_page(message_set.missing_local);
 				return;
 			}
 
 			if (title !== local_title) {
 				if (parameters.label && parameters.label !== local_title) {
-					// 日本語版項目名が違う記事なので、パス。
-					token.error = 'different local title';
-					token.message = ': parameter: [[' + local_title
-							+ ']]\n: translated: [[' + title + ']]';
-					check_page();
+					token.error_message = ': parameter: [[' + local_title
+							+ ']]　→ translated: [[' + title + ']]';
+					check_page(message_set.different_local_title);
 					return;
 				}
 
@@ -206,11 +218,9 @@ function for_each_page(page_data, messages) {
 
 			// TODO: {{enlink}}
 
-			// preserve(強制表示)引数を指定する仮リンクはスルーする。
 			if (parameters.preserve) {
-				token.error = 'preserved';
 				token.skip_error = true;
-				check_page();
+				check_page(message_set.preserved);
 				return;
 			}
 
@@ -225,15 +235,12 @@ function for_each_page(page_data, messages) {
 			link += ']]';
 			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
 			parent[index] = link;
-			check_page(link);
+			check_page(null, link);
 		}
 
 		function for_foreign_page(foreign_page_data) {
 			if (!foreign_page_data || ('missing' in foreign_page_data)) {
-				// 他言語版記事自体存在しないので、パス。
-				token.error = 'missing foreign';
-				token.message = token.toString();
-				check_page();
+				check_page(message_set.missing_foreign);
 				return;
 			}
 
@@ -244,9 +251,7 @@ function for_each_page(page_data, messages) {
 						+ foreign_language + ':' + foreign_title + ']] @ [['
 						+ title + ']]');
 			} else if ('disambiguation' in foreign_page_data.pageprops) {
-				// 他言語版項目リンク先が曖昧さ回避ページなので、パス。
-				token.error = 'foreign is disambiguation';
-				check_page();
+				check_page(message_set.foreign_is_disambiguation);
 				return;
 			}
 
@@ -263,9 +268,7 @@ function for_each_page(page_data, messages) {
 				redirect_data = redirect_data[0];
 				// test REDIRECT [[title#section]]
 				if (redirect_data.tofragment) {
-					// 他言語版項目リンク先が redirect to section なので、パス。
-					token.error = 'foreign redirect to section';
-					check_page();
+					check_page(message_set.foreign_redirect_to_section);
 					return;
 				}
 			}
@@ -329,8 +332,7 @@ function for_each_page(page_data, messages) {
 					save_response : true
 				});
 			} else {
-				token.error = 'invalid template';
-				check_page();
+				check_page(message_set.invalid_template);
 			}
 		}
 	}
