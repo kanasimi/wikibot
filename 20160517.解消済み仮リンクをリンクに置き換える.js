@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time /shared/bin/node 20160517.解消済み仮リンクをリンクに置き換える.js; date) >> 解消済み仮リンクをリンクに置き換える/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js; date) >> 解消済み仮リンクをリンクに置き換える/log &
 
 /*
 
@@ -100,7 +100,7 @@ function check_final_work() {
 		// section : 'new',
 		// sectiontitle : '結果報告',
 		summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
-		nocreate : 1,
+		// nocreate : 1,
 		bot : 1
 	});
 }
@@ -114,22 +114,6 @@ function for_each_page(page_data, messages) {
 	// console.log(CeL.wiki.content_of(page_data));
 
 	function for_each_template(token, index, parent) {
-
-		function to_link(title) {
-			var link = '[[' + title;
-			if (parameters.label) {
-				if (parameters.label !== title)
-					link += '|' + parameters.label;
-			} else if (/\([^()]+\)$/.test(title)) {
-				// e.g., [[title (type)]] → [[title (type)|title]]
-				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
-				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
-			}
-			link += ']]';
-			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
-			parent[index] = link;
-			check_page(null, link);
-		}
 
 		/**
 		 * 每一個頁面的最終處理函數。需要用到 token。
@@ -243,6 +227,22 @@ function for_each_page(page_data, messages) {
 			});
 
 			check_final_work();
+		}
+
+		function to_link(title) {
+			var link = '[[' + title;
+			if (parameters.label) {
+				if (parameters.label !== title)
+					link += '|' + parameters.label;
+			} else if (/\([^()]+\)$/.test(title)) {
+				// e.g., [[title (type)]] → [[title (type)|title]]
+				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
+				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
+			}
+			link += ']]';
+			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
+			parent[index] = link;
+			check_page(null, link);
 		}
 
 		function for_local_page(title) {
@@ -409,6 +409,7 @@ function for_each_page(page_data, messages) {
 									+ foreign_language + ':' + foreign_title
 									+ ']]:');
 							console.error(error);
+							CeL.set_debug(6);
 							if (error.code === 'ENOTFOUND'
 							//
 							&& CeL.wiki.wmflabs) {
@@ -475,7 +476,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
