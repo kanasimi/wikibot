@@ -46,14 +46,21 @@ report = CeL.null_Object(),
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
-	invalid_template : 'テンプレートの使用に誤りがある。人工修正が必要。',
+	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
+	// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
+	invalid_template : 'テンプレートの使用に誤りがある。',
+	// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
 	missing_foreign : '他言語版記事自体存在しないので、人工修正が必要。',
+	// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
 	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、人工修正が必要。',
 	// [[ja:Help:セクション]]
 	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、人工修正が必要。',
-	missing_local : '日本語版項目自体存在しないので、人工修正が必要。',
+	// リンク先が他言語版とリンクしていないもの
+	missing_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、人工修正が必要。',
+	// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
+	// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
 	different_local_title : '日本語版項目名が違う記事なので、人工修正が必要。',
-	preserved : '強制表示引数(preserve)を指定するなので、人工修正が必要。',
+	preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
 	from_parameter : '引数から',
 	translated_from_foreign_title : '他言語版項目リンク先から',
 	not_exist : '存在しない'
@@ -88,6 +95,7 @@ function check_final_work() {
 				break;
 			}
 		}
+		// [[Category:修正が必要な仮リンクを含む記事]]
 		return messages.join('\n');
 
 	}, {
@@ -178,9 +186,9 @@ function for_each_page(page_data, messages) {
 				if (token.error_message) {
 					report[title][error].push(token.error_message);
 				}
-				// 回復 recover。
+				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
+				token[1] = local_title;
 				parent[index] = foreign_title;
-				local_title = token[1];
 			}
 
 			CeL.debug('template_count: ' + template_count + ' / page_remains: '
@@ -273,6 +281,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			// TODO: {{enlink}}
+			// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
 
 			if (parameters.preserve) {
 				token.skip_error = true;
@@ -418,9 +427,9 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (false) {
 		// 設定此初始值，可跳過之前已經處理過的。
-		list = list.slice(0 * test_limit, test_limit);
+		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
 			return CeL.wiki.title_of(page_data);
 		}).join('\n') + '\n...');
