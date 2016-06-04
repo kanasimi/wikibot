@@ -69,13 +69,10 @@ message_set = {
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory);
-
-// CeL.set_debug(2);
-
 function check_final_work() {
-	if (page_remains > 0)
+	if (page_remains > 0) {
 		return;
+	}
 
 	// assert: page_remains === 0
 	if (page_remains !== 0 || check_final_work.done) {
@@ -239,7 +236,7 @@ function for_each_page(page_data, messages) {
 				// section : 'new',
 				// sectiontitle : 'Sandbox test section',
 				summary : 'bot: 解消済み仮リンク'
-				//
+				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
 				+ changed.join('、') + 'を内部リンクに置き換える',
 				nocreate : 1,
 				bot : 1
@@ -397,14 +394,13 @@ function for_each_page(page_data, messages) {
 			foreign_title = decodeURIComponent(get_title(3));
 
 			if (local_title && foreign_language && foreign_title) {
-				// 這裡用 CeL.wiki.page() 太多並列處理，會造成 error.code "EMFILE"。
+				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
 				wiki.page([ foreign_language, foreign_title ],
 				//
 				for_foreign_page, {
 					query_props : 'pageprops',
 					redirects : 1,
-					save_response : true
-				}, {
+					save_response : true,
 					get_URL_options : {
 						// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
 						// 例如可能得在最後自己執行 ((wiki.running = false))。
@@ -416,7 +412,7 @@ function for_each_page(page_data, messages) {
 							if (error.code === 'ENOTFOUND'
 							//
 							&& CeL.wiki.wmflabs) {
-								// 若在 Tool Labs 取得 wikipedia 資料，
+								// 若在 Tool Labs 取得 wikipedia 的資料，
 								// 卻遇上 domain name not found，
 								// 通常表示 language (API_URL) 設定錯誤。
 								check_page(message_set.invalid_template);
@@ -459,6 +455,12 @@ function for_each_page(page_data, messages) {
 	parser.each('template', for_each_template);
 }
 
+// ----------------------------------------------------------------------------
+
+prepare_directory(base_directory);
+
+// CeL.set_debug(2);
+
 CeL.wiki.cache([ {
 	type : 'categorymembers',
 	list : Category_has_local_page,
@@ -473,7 +475,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	if (false) {
+	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
