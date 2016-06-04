@@ -46,14 +46,14 @@ report = CeL.null_Object(),
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
-	invalid_template : 'テンプレートの使用に誤りがある',
-	missing_foreign : '他言語版記事自体存在しないので、パス。',
-	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、パス。',
+	invalid_template : 'テンプレートの使用に誤りがある。人工修正が必要。',
+	missing_foreign : '他言語版記事自体存在しないので、人工修正が必要。',
+	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、人工修正が必要。',
 	// [[ja:Help:セクション]]
-	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、パス。',
-	missing_local : '日本語版項目自体存在しないので、パス。',
-	different_local_title : '日本語版項目名が違う記事なので、パス。',
-	preserved : '強制表示引数(preserve)を指定するなので、パス。',
+	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、人工修正が必要。',
+	missing_local : '日本語版項目自体存在しないので、人工修正が必要。',
+	different_local_title : '日本語版項目名が違う記事なので、人工修正が必要。',
+	preserved : '強制表示引数(preserve)を指定するなので、人工修正が必要。',
 	from_parameter : '引数から',
 	translated_from_foreign_title : '他言語版項目リンク先から',
 	not_exist : '存在しない'
@@ -75,7 +75,7 @@ function check_final_work() {
 	}
 	check_final_work.done = true;
 
-	wiki.page('Wikipedia:サンドボックス').edit(function() {
+	wiki.page('User:cewbot/修正が必要な仮リンク').edit(function() {
 		var messages = [];
 		for ( var title in report) {
 			messages.push('; [[' + title + ']]');
@@ -83,14 +83,18 @@ function check_final_work() {
 				messages.push(':; ' + error);
 				messages.append(report[title][error]);
 			}
+			// log limit
+			if (messages.length > 2000) {
+				break;
+			}
 		}
 		return messages.join('\n');
 
 	}, {
-		section : 'new',
-		sectiontitle : '結果報告',
+		// section : 'new',
+		// sectiontitle : '結果報告',
 		summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
-		nocreate : 1,
+		// nocreate : 1,
 		bot : 1
 	});
 }
