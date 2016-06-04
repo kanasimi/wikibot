@@ -1246,8 +1246,6 @@ function next_label_data_work() {
 
 	}, {
 		get_URL_options : {
-			// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
-			// 例如可能得在最後自己執行 ((wiki.running = false))。
 			onfail : function(error) {
 				CeL.err('next_label_data_work: get_URL error: [[' + full_title
 						+ ']]:');
@@ -1256,7 +1254,9 @@ function next_label_data_work() {
 				titles.uniq().forEach(function(title) {
 					delete processed[title];
 				});
-				// do next.
+				// do next action.
+				// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
+				// 例如可能得在最後自行執行 ((wiki.running = false))。
 				wiki.running = false;
 				setImmediate(next_label_data_work);
 			}

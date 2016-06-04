@@ -402,14 +402,11 @@ function for_each_page(page_data, messages) {
 					redirects : 1,
 					save_response : true,
 					get_URL_options : {
-						// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
-						// 例如可能得在最後自己執行 ((wiki.running = false))。
 						onfail : function(error) {
 							CeL.err('for_each_page: get_URL error: [['
 									+ foreign_language + ':' + foreign_title
 									+ ']]:');
 							console.error(error);
-							CeL.set_debug(6);
 							if (error.code === 'ENOTFOUND'
 							//
 							&& CeL.wiki.wmflabs) {
@@ -420,6 +417,10 @@ function for_each_page(page_data, messages) {
 							} else {
 								check_page(message_set.retrive_foreign_error);
 							}
+							// do next action.
+							// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
+							// 例如可能得在最後自行執行 ((wiki.running = false))。
+							wiki.running = false;
 						}
 					}
 				});
