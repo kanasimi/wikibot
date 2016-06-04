@@ -17,6 +17,7 @@
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 
+ TODO: cache
  TODO: [[:en:Category:Interlanguage link template existing link]]
 
  */
@@ -254,45 +255,41 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (title !== local_title) {
-				if (parameters.label && parameters.label !== local_title) {
-					// 檢查本地連結 local_title 是否最終也導向 title。
-					wiki.redirect_to(local_title, function(redirect_data,
-							page_data) {
-						if (Array.isArray(redirect_data)) {
-							// TODO: Array.isArray(redirect_data)
-							console.log(redirect_data);
-							throw 'Array.isArray(redirect_data)';
-						}
-						if (title === redirect_data) {
-							local_title = redirect_data;
-							// [[local_title]] redirect to:
-							// [[redirect_data]] = [[title]]
-							for_local_page(title);
-							return;
-						}
-
-						token.error_message
-						//
-						= redirect_data ? redirect_data === local_title ? ''
-								: ' → [[' + redirect_data + ']]' : ': '
-								+ message_set.not_exist;
-
-						token.error_message = ':: '
-								+ message_set.from_parameter + ': [['
-								+ local_title + ']]' + token.error_message
-								+ '. '
-								+ message_set.translated_from_foreign_title
-								+ ': [[' + title + ']]';
-						// test:
-						// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
-						check_page(message_set.different_local_title);
-					});
-					return;
-				}
-
-				// {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
+				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
-				parameters.label = local_title;
+
+				wiki.redirect_to(local_title,
+				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向 title。
+				function(redirect_data, page_data) {
+					if (Array.isArray(redirect_data)) {
+						// TODO: Array.isArray(redirect_data)
+						console.log(redirect_data);
+						throw 'Array.isArray(redirect_data)';
+					}
+					if (title === redirect_data) {
+						// local_title 是否最終導向 redirect_data === title。
+						local_title = redirect_data;
+						// [[local_title]] redirect to:
+						// [[redirect_data]] = [[title]]
+						for_local_page(title);
+						return;
+					}
+
+					token.error_message
+					//
+					= redirect_data ? redirect_data === local_title ? ''
+							: ' → [[' + redirect_data + ']]' : ': '
+							+ message_set.not_exist;
+					token.error_message = ':: ' + message_set.from_parameter
+							+ ': [[' + local_title + ']]' + token.error_message
+							+ '. ' + message_set.translated_from_foreign_title
+							+ ': [[' + title + ']]';
+
+					// test:
+					// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
+					check_page(message_set.different_local_title);
+				});
+				return;
 			}
 
 			// TODO: {{enlink}}
@@ -419,7 +416,8 @@ function for_each_page(page_data, messages) {
 							}
 							// do next action.
 							// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
-							// 例如可能得在最後自行執行 ((wiki.running = false))。
+							// 例如可能得在最後自行執行 ((wiki.running = false))，
+							// 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
 							wiki.running = false;
 						}
 					}
@@ -477,7 +475,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {

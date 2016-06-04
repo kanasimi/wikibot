@@ -1256,7 +1256,8 @@ function next_label_data_work() {
 				});
 				// do next action.
 				// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
-				// 例如可能得在最後自行執行 ((wiki.running = false))。
+				// 例如可能得在最後自行執行 ((wiki.running = false))，
+				// 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
 				wiki.running = false;
 				setImmediate(next_label_data_work);
 			}
