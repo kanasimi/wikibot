@@ -63,7 +63,8 @@ message_set = {
 	preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
 	from_parameter : '引数から',
 	translated_from_foreign_title : '他言語版項目リンク先から',
-	not_exist : '存在しない'
+	not_exist : '存在しない',
+	retrive_foreign_error : 'Can not retrive foreign page. I will retry next time.'
 };
 
 // ----------------------------------------------------------------------------
@@ -102,7 +103,7 @@ function check_final_work() {
 		// section : 'new',
 		// sectiontitle : '結果報告',
 		summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
-		// nocreate : 1,
+		nocreate : 1,
 		bot : 1
 	});
 }
@@ -116,6 +117,23 @@ function for_each_page(page_data, messages) {
 	// console.log(CeL.wiki.content_of(page_data));
 
 	function for_each_template(token, index, parent) {
+
+		function to_link(title) {
+			var link = '[[' + title;
+			if (parameters.label) {
+				if (parameters.label !== title)
+					link += '|' + parameters.label;
+			} else if (/\([^()]+\)$/.test(title)) {
+				// e.g., [[title (type)]] → [[title (type)|title]]
+				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
+				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
+			}
+			link += ']]';
+			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
+			parent[index] = link;
+			check_page(null, link);
+		}
+
 		/**
 		 * 每一個頁面的最終處理函數。需要用到 token。
 		 * 
@@ -289,18 +307,7 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			var link = '[[' + title;
-			if (parameters.label && parameters.label !== title) {
-				link += '|' + parameters.label;
-			} else if (/\([^()]+\)$/.test(title)) {
-				// e.g., [[title (type)]] → [[title (type)|title]]
-				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
-				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
-			}
-			link += ']]';
-			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
-			parent[index] = link;
-			check_page(null, link);
+			to_link(title);
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -311,7 +318,7 @@ function for_each_page(page_data, messages) {
 
 			if (!foreign_page_data.pageprops) {
 				CeL.warn(
-				//
+				// 沒 .pageprops 的似乎大多是沒有 Wikidata entity 的？
 				'for_foreign_page: No foreign_page_data.pageprops: [[:'
 						+ foreign_language + ':' + foreign_title + ']] @ [['
 						+ title + ']]');
@@ -397,7 +404,46 @@ function for_each_page(page_data, messages) {
 					query_props : 'pageprops',
 					redirects : 1,
 					save_response : true
+				}, {
+					get_URL_options : {
+						// 警告: 若是自行設定 .onfail，則需要自己處理 callback。
+						// 例如可能得在最後自己執行 ((wiki.running = false))。
+						onfail : function(error) {
+							CeL.err('for_each_page: get_URL error: [['
+									+ foreign_language + ':' + foreign_title
+									+ ']]:');
+							console.error(error);
+							if (error.code === 'ENOTFOUND'
+							//
+							&& CeL.wiki.wmflabs) {
+								// 若在 Tool Labs 取得 wikipedia 資料，
+								// 卻遇上 domain name not found，
+								// 通常表示 language (API_URL) 設定錯誤。
+								check_page(message_set.invalid_template);
+							} else {
+								check_page(message_set.retrive_foreign_error);
+							}
+						}
+					}
 				});
+			} else if (local_title) {
+				wiki.redirect_to(local_title,
+				//
+				function(redirect_data, page_data) {
+					if (Array.isArray(redirect_data)) {
+						// TODO: Array.isArray(redirect_data)
+						console.log(redirect_data);
+						throw 'Array.isArray(redirect_data)';
+					}
+					if (!redirect_data) {
+						check_page(message_set.invalid_template);
+						return;
+					}
+
+					// e.g., {{仮リンク|存在する記事}}, {{仮リンク|存在する記事|en}}
+					to_link(redirect_data);
+				});
+
 			} else {
 				check_page(message_set.invalid_template);
 			}
