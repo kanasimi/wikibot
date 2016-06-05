@@ -108,13 +108,14 @@ function check_final_work() {
 				// no error
 				continue;
 			}
+
 			messages.push('; [[Special:Redirect/revision/'
 			//
 			+ report.revid + '|' + title
 			//
 			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
 
-			Object.keys(error_name_list).sort().forEach(function(error_name) {
+			Object.keys(error_messages).sort().forEach(function(error_name) {
 				messages.push(':; ' + error_name);
 				messages.append(error_messages[error_name]);
 			});
@@ -124,7 +125,9 @@ function check_final_work() {
 			}
 		}
 
-		messages.push('[[Category:修正が必要な仮リンクを含む記事]]');
+		if (messages.length > 0) {
+			messages.push('[[Category:修正が必要な仮リンクを含む記事]]');
+		}
 		return messages.join('\n');
 
 	}, {
@@ -151,7 +154,7 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
-	console.log('for_each_page: [[' + title + ']] revid ' + revid);
+	CeL.debug('[[' + title + ']] revid ' + revid, 3, 'for_each_page');
 	if (title in cached_processed_report) {
 		if (cached_processed_report[title].revid === revid) {
 			// copy old data. assert: processed_report[title] is modifiable.
