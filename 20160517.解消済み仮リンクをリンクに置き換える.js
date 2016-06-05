@@ -1,4 +1,5 @@
 ﻿// (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js; date) >> 解消済み仮リンクをリンクに置き換える/log &
+// cd ~/wikibot && rm 解消済み仮リンクをリンクに置き換える/categorymembers/Category_解消済み仮リンクを含む記事.json
 
 /*
 
@@ -100,20 +101,22 @@ function check_final_work() {
 	wiki.page('User:cewbot/修正が必要な仮リンク').edit(function() {
 		var messages = [];
 		for ( var title in processed_report) {
-			var error_name_list = Object.keys(processed_report[title].error);
-			if (error_name_list.length === 0) {
+			var report = processed_report[title],
+			//
+			error_messages = report.error;
+			if (!error_messages) {
 				// no error
 				continue;
 			}
 			messages.push('; [[Special:Redirect/revision/'
 			//
-			+ processed_report[title].revid + '|' + title
+			+ report.revid + '|' + title
 			//
 			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
 
-			error_name_list.sort().forEach(function(error_name) {
+			Object.keys(error_name_list).sort().forEach(function(error_name) {
 				messages.push(':; ' + error_name);
-				messages.append(processed_report[title].error[error_name]);
+				messages.append(error_messages[error_name]);
 			});
 			// log limit
 			if (messages.length > 800) {
@@ -148,6 +151,7 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
+	console.log('for_each_page: [[' + title + ']] revid ' + revid);
 	if (title in cached_processed_report) {
 		if (cached_processed_report[title].revid === revid) {
 			// copy old data. assert: processed_report[title] is modifiable.
@@ -171,42 +175,39 @@ function for_each_page(page_data, messages) {
 		 * 
 		 * 警告: 必須保證每個 template 結束處理時都剛好執行一次 check_page。
 		 * 
-		 * @param {String}error
+		 * @param {String}error_name
 		 *            error message.
-		 * @param {String}_changed
-		 *            當前處理的 token 已改成了這段文字。summary 用。
+		 * @param {String}is_information
+		 *            It's an information instead of error.
 		 */
-		function check_page(error, _changed) {
-			// 初始化報告。
-			if (!processed_report[title]) {
+		function check_page(error_name, is_information) {
+			// 初始化報告: 只要處理過，無論成功失敗都作登記。
+			var report = processed_report[title];
+			if (!report) {
 				// 登記 processed_report。
-				processed_report[title] = {
-					revid : revid,
-					// error message list
-					error : CeL.null_Object()
+				processed_report[title] = report = {
+					revid : revid
 				};
 			}
 
-			if (_changed) {
-				if (!changed.includes(_changed)) {
-					// 記錄確認已經有改變的文字連結。
-					changed.push(_changed);
-					CeL.log('check_page: Adapt @ [[' + page_data.title + ']]: '
-							+ token.toString() + ' → ' + _changed);
-				}
-
-			} else if (error && !token.skip_error) {
-				CeL.log('check_page: ' + error + ' @ [[' + title + ']]: '
+			if (error_name) {
+				CeL.log('check_page: ' + error_name + ' @ [[' + title + ']]: '
 						+ token.toString());
 				if (token.error_message) {
 					CeL.log(String(token.error_message));
 				}
 
 				// 初始化報告。
-				var error_list = processed_report[title].error[error];
+				// error message list
+				var error_list = report[is_information ? 'error' : 'info'];
 				if (!error_list) {
-					processed_report[title].error[error] = error_list = [];
+					report[is_information ? 'error' : 'info'] = error_list = CeL
+							.null_Object();
 				}
+				if (!error_list[error_name]) {
+					error_list[error_name] = [];
+				}
+				error_list = error_list[error_name];
 
 				var parent = token,
 				// parameter[3]
@@ -273,7 +274,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (false) {
-				CeL.log('[[' + page_data.title + ']]: ');
+				CeL.log('[[' + title + ']]: ');
 				CeL.log(last_content);
 				check_final_work();
 				return;
@@ -283,7 +284,7 @@ function for_each_page(page_data, messages) {
 			// && 'Wikipedia:サンドボックス'
 			).edit(last_content, {
 				// section : 'new',
-				// sectiontitle : 'Sandbox test section',
+				// sectiontitle : title,
 				summary : 'bot: 解消済み仮リンク'
 				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
 				+ changed.join('、') + 'を内部リンクに置き換える',
@@ -296,14 +297,15 @@ function for_each_page(page_data, messages) {
 
 		function modify_link(link_target) {
 			if (parameters.preserve) {
-				token.skip_error = true;
-				check_page(message_set.preserved);
+				check_page(message_set.preserved, true);
 				return;
 			}
 
-			if (link_target) {
+			if (!link_target) {
 				link_target = local_title;
 			}
+
+			/** {String}link 當前處理的 token 已改成了這段文字。summary 用。 */
 			var link = '[[' + link_target;
 			if (parameters.label) {
 				if (parameters.label !== link_target)
@@ -317,19 +319,28 @@ function for_each_page(page_data, messages) {
 				link += '|' + link_target.replace(/\s*\([^()]+\)$/, '');
 			}
 			link += ']]';
+
+			if (!changed.includes(link)) {
+				// 記錄確認已經有改變的文字連結。
+				changed.push(link);
+				CeL.log('modify_link: Adapt @ [[' + title + ']]: '
+						+ token.toString() + ' → ' + link);
+			}
+
 			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
 			token_parent[token_index] = link;
-			check_page(null, link);
+
+			check_page();
 		}
 
 		function for_local_page(title) {
 			if (!title) {
 				// 忽略缺乏本地頁面的情況。
-				token.skip_error = true;
-				check_page(message_set.missing_local);
+				check_page(message_set.missing_local, true);
 				return;
 			}
 
+			// title: foreign_title 所對應的本地條目。
 			if (title !== local_title) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
@@ -567,6 +578,7 @@ CeL.wiki.cache([ {
 
 } ], function() {
 	var list = this.list;
+	// list = [ ];
 	CeL.log('Get ' + list.length + ' pages.');
 	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
