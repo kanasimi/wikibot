@@ -308,7 +308,10 @@ function for_each_page(page_data, messages) {
 			if (parameters.label) {
 				if (parameters.label !== link_target)
 					link += '|' + parameters.label;
-			} else if (/\([^()]+\)$/.test(link_target)) {
+			} else if (false && /\([^()]+\)$/.test(link_target)) {
+				// ↑ 盡可能讓表現/顯示出的文字與原先相同。有必要的話，編輯者會使用 .label。
+				// e.g., [[Special:Diff/59967187]]
+
 				// e.g., [[title (type)]] → [[title (type)|title]]
 				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
 				link += '|' + link_target.replace(/\s*\([^()]+\)$/, '');
