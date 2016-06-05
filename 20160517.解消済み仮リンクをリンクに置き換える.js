@@ -44,9 +44,10 @@ page_remains,
 /** {String}記錄處理過的文章。 */
 processed_file_path = base_directory + 'processed.' + use_language + '.json',
 // 結果報告書
-// processed_report[local title] = { revid : 0,
+// processed_report[local title] = { revid : 0, error : {
 // "error name" : [ "error message", "error message", ...],
 // "error name" : [ ... ], ... }
+// }
 processed_report = CeL.null_Object(),
 // 為了預防 processed_report 肥大，舊資料放在 cached_processed_report，
 // 本次新處理的才放在 processed_report。
@@ -57,20 +58,22 @@ cached_processed_report = Object.seal(JSON.parse(CeL.fs_read(
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
+	no_template : 'no interwiki link template found',
 	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
 	// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
 	invalid_template : 'テンプレートの使用に誤りがある。',
 	// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
-	missing_foreign : '他言語版記事自体存在しないので、人工修正が必要。',
+	// manually
+	missing_foreign : '他言語版記事自体存在しないので、手動修正必要。',
 	// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
-	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、人工修正が必要。',
+	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、手動修正必要。',
 	// [[ja:Help:セクション]]
-	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、人工修正が必要。',
+	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、手動修正必要。',
 	// リンク先が他言語版とリンクしていないもの
-	missing_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、人工修正が必要。',
+	missing_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、手動修正必要。',
 	// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
 	// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
-	different_local_title : '日本語版項目名が違う記事なので、人工修正が必要。',
+	different_local_title : '日本語版項目名が違う記事なので、手動修正必要。',
 	not_exist : '存在しない',
 	from_parameter : '引数から',
 	translated_from_foreign_title : '他言語版項目リンク先から',
@@ -82,7 +85,9 @@ message_set = {
 // ----------------------------------------------------------------------------
 
 function check_final_work() {
-	if (page_remains > 0) {
+	CeL.debug('page_remains: ' + page_remains, 2, 'check_final_work');
+
+	if (--page_remains > 0) {
 		return;
 	}
 
@@ -95,31 +100,35 @@ function check_final_work() {
 	wiki.page('User:cewbot/修正が必要な仮リンク').edit(function() {
 		var messages = [];
 		for ( var title in processed_report) {
+			var error_name_list = Object.keys(processed_report[title].error);
+			if (error_name_list.length === 0) {
+				// no error
+				continue;
+			}
 			messages.push('; [[Special:Redirect/revision/'
 			//
 			+ processed_report[title].revid + '|' + title
 			//
 			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
-			for ( var error in processed_report[title]) {
-				if (error === 'revid') {
-					continue;
-				}
-				messages.push(':; ' + error);
-				messages.append(processed_report[title][error]);
-			}
+
+			error_name_list.sort().forEach(function(error_name) {
+				messages.push(':; ' + error_name);
+				messages.append(processed_report[title].error[error_name]);
+			});
 			// log limit
-			if (messages.length > 2000) {
+			if (messages.length > 800) {
 				break;
 			}
 		}
-		// [[Category:修正が必要な仮リンクを含む記事]]
+
+		messages.push('[[Category:修正が必要な仮リンクを含む記事]]');
 		return messages.join('\n');
 
 	}, {
 		// section : 'new',
 		// sectiontitle : '結果報告',
 		summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
-		// nocreate : 1,
+		nocreate : 1,
 		bot : 1
 	});
 
@@ -130,7 +139,7 @@ function for_each_page(page_data, messages) {
 	// page_data =
 	// {pageid:0,ns:0,title:'',revisions:[{revid:0,parentid:0,user:'',timestamp:''},...]}
 
-	var template_count = 0,
+	var template_count = 0, template_parsed,
 	/** {String}page title = page_data.title */
 	title = CeL.wiki.title_of(page_data),
 	/** {Natural}所取得之版本編號。 */
@@ -144,8 +153,9 @@ function for_each_page(page_data, messages) {
 			// copy old data. assert: processed_report[title] is modifiable.
 			processed_report[title] = cached_processed_report[title];
 			// skipped_count++;
-			CeL.debug('Skip [[' + title + ']] revid ' + revid, 1,
+			CeL.debug('Skip [[' + title + ']] revid ' + revid, 2,
 					'for_each_page');
+			check_final_work();
 			return;
 		}
 		// assert: cached_processed_report[title].revid < revid
@@ -153,13 +163,13 @@ function for_each_page(page_data, messages) {
 		// delete processed_report[title];
 	}
 
-	function for_each_template(token, index, parent) {
+	function for_each_template(token, token_index, token_parent) {
 		var parameters, local_title, foreign_language, foreign_title;
 
 		/**
 		 * 每一個頁面的最終處理函數。需要用到 token。
 		 * 
-		 * 警告: 必須保證每個頁面都剛好執行一次 check_page。
+		 * 警告: 必須保證每個 template 結束處理時都剛好執行一次 check_page。
 		 * 
 		 * @param {String}error
 		 *            error message.
@@ -171,7 +181,9 @@ function for_each_page(page_data, messages) {
 			if (!processed_report[title]) {
 				// 登記 processed_report。
 				processed_report[title] = {
-					revid : revid
+					revid : revid,
+					// error message list
+					error : CeL.null_Object()
 				};
 			}
 
@@ -179,7 +191,7 @@ function for_each_page(page_data, messages) {
 				if (!changed.includes(_changed)) {
 					// 記錄確認已經有改變的文字連結。
 					changed.push(_changed);
-					CeL.log('Adapt [[' + page_data.title + ']]: '
+					CeL.log('check_page: Adapt @ [[' + page_data.title + ']]: '
 							+ token.toString() + ' → ' + _changed);
 				}
 
@@ -191,8 +203,9 @@ function for_each_page(page_data, messages) {
 				}
 
 				// 初始化報告。
-				if (!processed_report[title][error]) {
-					processed_report[title][error] = [];
+				var error_list = processed_report[title].error[error];
+				if (!error_list) {
+					processed_report[title].error[error] = error_list = [];
 				}
 
 				var parent = token,
@@ -216,7 +229,7 @@ function for_each_page(page_data, messages) {
 				if (typeof local_title === 'string') {
 					token[1] = '[[' + local_title + ']]';
 				}
-				processed_report[title][error].push(
+				error_list.push(
 				// @see wiki_toString @ CeL.wiki
 				': <span style="color:#aaa;padding:.2em">{{</span>'
 				//
@@ -229,7 +242,7 @@ function for_each_page(page_data, messages) {
 				}).join('<b style="color:#f40;padding:.2em">|</b>')
 						+ '<span style="color:#aaa;padding:.2em">}}</span>');
 				if (token.error_message) {
-					processed_report[title][error].push(token.error_message);
+					error_list.push(token.error_message);
 				}
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
 				token[1] = local_title;
@@ -237,11 +250,17 @@ function for_each_page(page_data, messages) {
 			}
 
 			CeL.debug('template_count: ' + template_count + ' / page_remains: '
-					+ page_remains, 4);
-			if (--template_count === 0)
-				--page_remains;
+					+ page_remains, 2, 'check_page');
 
-			if (template_count > 0 || changed.length === 0) {
+			if (--template_count > 0 || !template_parsed) {
+				return;
+			}
+
+			CeL.debug('從這裡起，一個頁面應該只會執行一次: [[' + title + ']] / ' + page_remains,
+					2, 'check_page');
+
+			if (changed.length === 0) {
+				// check_final_work() 得要放在本函數 return 之前執行。
 				check_final_work();
 				return;
 			}
@@ -275,19 +294,28 @@ function for_each_page(page_data, messages) {
 			check_final_work();
 		}
 
-		function to_link(title) {
-			var link = '[[' + title;
+		function modify_link(link_target) {
+			if (parameters.preserve) {
+				token.skip_error = true;
+				check_page(message_set.preserved);
+				return;
+			}
+
+			if (link_target) {
+				link_target = local_title;
+			}
+			var link = '[[' + link_target;
 			if (parameters.label) {
-				if (parameters.label !== title)
+				if (parameters.label !== link_target)
 					link += '|' + parameters.label;
-			} else if (/\([^()]+\)$/.test(title)) {
+			} else if (/\([^()]+\)$/.test(link_target)) {
 				// e.g., [[title (type)]] → [[title (type)|title]]
 				// 在 <gallery> 中，"[[title (type)|]]" 無效，因此需要明確指定。
-				link += '|' + title.replace(/\s*\([^()]+\)$/, '');
+				link += '|' + link_target.replace(/\s*\([^()]+\)$/, '');
 			}
 			link += ']]';
 			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
-			parent[index] = link;
+			token_parent[token_index] = link;
 			check_page(null, link);
 		}
 
@@ -312,18 +340,24 @@ function for_each_page(page_data, messages) {
 						throw 'Array.isArray(redirect_data)';
 					}
 					if (title === redirect_data) {
+						// local_title 最終導向 redirect_data === title。
+						// 直接採用 parameters 指定的 title，不再多做改變；
+						// 盡可能讓表現/顯示出的文字與原先相同。
+						// e.g., [[Special:Diff/59964828]]
+						// TODO: [[Special:Diff/59964827]]
+						modify_link();
+						return;
+
+						// ↓ deprecated
 						if (!parameters.label) {
 							// 盡可能讓表現/顯示出的文字與原先相同。
-							// e.g., [[Special:Diff/59964828]]
-							// TODO: [[Special:Diff/59964827]]
 							parameters.label = local_title;
 						}
-						// local_title 是否最終導向 redirect_data === title。
+						// local_title 最終導向 redirect_data === title。
 						local_title = redirect_data;
 						// [[local_title]] redirect to:
 						// [[redirect_data]] = [[title]]
 						for_local_page(title);
-						return;
 					}
 
 					token.error_message
@@ -346,13 +380,7 @@ function for_each_page(page_data, messages) {
 			// TODO: {{enlink}}
 			// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
 
-			if (parameters.preserve) {
-				token.skip_error = true;
-				check_page(message_set.preserved);
-				return;
-			}
-
-			to_link(title);
+			modify_link();
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -492,11 +520,13 @@ function for_each_page(page_data, messages) {
 					}
 
 					// e.g., {{仮リンク|存在する記事}}, {{仮リンク|存在する記事|en}}
-					to_link(redirect_data);
+					modify_link();
 				});
 
 			} else {
-				check_page(message_set.invalid_template);
+				setImmediate(function() {
+					check_page(message_set.invalid_template);
+				});
 			}
 		}
 	}
@@ -508,6 +538,11 @@ function for_each_page(page_data, messages) {
 		throw 'Parser error: [[' + title + ']]';
 	}
 	parser.each('template', for_each_template);
+	template_parsed = true;
+	if (template_count === 0) {
+		// check_page(message_set.no_template);
+		check_final_work();
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -538,10 +573,14 @@ CeL.wiki.cache([ {
 		}).join('\n') + '\n...');
 	}
 
+	// setup ((page_remains))
 	page_remains = list.length;
 	wiki.work({
 		no_edit : true,
-		each : for_each_page
+		each : for_each_page,
+		page_options : {
+			rvprop : 'ids|content|timestamp'
+		}
 
 	}, list);
 
