@@ -154,6 +154,7 @@ function for_each_page(page_data, messages) {
 	}
 
 	function for_each_template(token, index, parent) {
+		var parameters, local_title, foreign_language, foreign_title;
 
 		/**
 		 * 每一個頁面的最終處理函數。需要用到 token。
@@ -311,6 +312,10 @@ function for_each_page(page_data, messages) {
 						throw 'Array.isArray(redirect_data)';
 					}
 					if (title === redirect_data) {
+						if (!parameters.label) {
+							// 盡可能讓顯示出的表現文字與原先相同。
+							parameters.label = local_title;
+						}
 						// local_title 是否最終導向 redirect_data === title。
 						local_title = redirect_data;
 						// [[local_title]] redirect to:
@@ -426,12 +431,10 @@ function for_each_page(page_data, messages) {
 			template_count++;
 			token.page_data = page_data;
 			// console.log(token);
-			var parameters = token.parameters,
+			parameters = token.parameters;
 			// {{仮リンク|記事名|en|title}}
-			local_title = decodeURIComponent(get_title(1)),
-			//
-			foreign_language = get_title(2),
-			//
+			local_title = decodeURIComponent(get_title(1));
+			foreign_language = get_title(2);
 			foreign_title = decodeURIComponent(get_title(3));
 
 			if (local_title && foreign_language && foreign_title) {
