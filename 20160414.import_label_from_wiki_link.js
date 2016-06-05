@@ -112,7 +112,7 @@ test_limit = Infinity,
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
 raw_data_file_stream,
-// 記錄處理過的文章。
+/** {String}記錄處理過的文章。 */
 processed_file_path = base_directory + 'processed.' + use_language + '.json',
 
 // 是否要使用Wikidata數據來清理跨語言連結。
@@ -129,9 +129,10 @@ label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
 label_data_keys, label_data_index = 0, label_data_length = 0,
 
 // cache已經處理完成操作的label，但其本身可能也會占用大量RAM。
-// processed[local page title] = last revisions
-// 由於造出 label_data 的時間過長，可能丟失 token，因此 processed 應該放在 finish_work() 階段。
-processed = Object.seal(JSON.parse(CeL.fs_read(processed_file_path, 'utf8')
+// processed_revid[local page title] = last revisions
+// 由於造出 label_data 的時間過長，可能丟失 token，因此 processed_revid 應該放在 finish_work() 階段。
+processed_revid = Object.seal(JSON.parse(CeL.fs_read(processed_file_path,
+		'utf8')
 		|| '0')
 		|| CeL.null_Object()),
 
@@ -239,7 +240,7 @@ function for_each_page(page_data, messages) {
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data),
-	//
+	/** {Natural}所取得之版本編號。 */
 	revid = page_data.revisions[0].revid;
 
 	if (!content) {
@@ -247,15 +248,18 @@ function for_each_page(page_data, messages) {
 		return;
 	}
 
-	if (title in processed) {
-		if (processed[title] === revid) {
+	if (title in processed_revid) {
+		if (processed_revid[title] === revid) {
+			// copy old data. assert: processed_report[title] is modifiable.
+			// processed_report[title] = cached_processed_report[title];
 			skipped_count++;
 			CeL.debug('Skip [[' + title + ']] revid ' + revid, 1,
 					'for_each_page');
 			return;
 		}
-		// assert: processed[title] < page_data.revisions[0].revid
-		// delete processed[title];
+		// assert: processed_revid[title] < revid
+		// rebuild data
+		// delete processed_revid[title];
 	}
 	if (skipped_count > 0) {
 		if (skipped_count > 9) {
@@ -271,7 +275,7 @@ function for_each_page(page_data, messages) {
 			token, no_need_check) {
 		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
 		if (false && revid) {
-			processed[title] = revid, revid = 0;
+			processed_revid[title] = revid, revid = 0;
 		}
 
 		if (foreign_language !== 'WD') {
@@ -1122,7 +1126,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 		if (!skip) {
 			titles.uniq().forEach(function(title) {
-				delete processed[title];
+				delete processed_revid[title];
 			});
 		}
 
@@ -1132,7 +1136,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 }
 
 function write_processed() {
-	CeL.fs_write(processed_file_path, JSON.stringify(processed), 'utf8');
+	CeL.fs_write(processed_file_path, JSON.stringify(processed_revid), 'utf8');
 }
 
 // 為降低 RAM 使用，不一次 push 進 queue，而是依 label_data 之 index 一個個慢慢來處理。
@@ -1180,9 +1184,9 @@ function next_label_data_work() {
 	revids = label_data[full_title][2];
 	foreign_title = foreign_title[2];
 
-	// 登記 processed。
+	// 登記 processed_revid。
 	titles.forEach(function(title, index) {
-		processed[title] = revids[index];
+		processed_revid[title] = revids[index];
 	});
 
 	// 跳過之前已經處理過的。
@@ -1252,7 +1256,7 @@ function next_label_data_work() {
 				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。
 				titles.uniq().forEach(function(title) {
-					delete processed[title];
+					delete processed_revid[title];
 				});
 				// do next action.
 				// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
@@ -1274,14 +1278,14 @@ function finish_work() {
 
 	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
 	label_data_keys = Object.keys(label_data);
-	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed！
+	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed_revid！
 	// label_data_index = 1000;
 	label_data_length = label_data_keys.length;
 	CeL.log(script_name + ': All ' + label_data_length + ' labels'
 	//
 	+ (label_data_index ? ', starts from ' + label_data_index : '.'));
 
-	processed = CeL.null_Object();
+	processed_revid = CeL.null_Object();
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
 	// wiki = Wiki(true);

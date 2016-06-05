@@ -17,7 +17,6 @@
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 
- TODO: cache
  TODO: [[:en:Category:Interlanguage link template existing link]]
 
  */
@@ -41,9 +40,20 @@ Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 
 // 剩下尚未處理完畢的頁面數
 page_remains,
-// 結果報告書 report[local title]
-// = { error : [ "error message", "error message", ...], ... }
-report = CeL.null_Object(),
+
+/** {String}記錄處理過的文章。 */
+processed_file_path = base_directory + 'processed.' + use_language + '.json',
+// 結果報告書
+// processed_report[local title] = { revid : 0,
+// "error name" : [ "error message", "error message", ...],
+// "error name" : [ ... ], ... }
+processed_report = CeL.null_Object(),
+// 為了預防 processed_report 肥大，舊資料放在 cached_processed_report，
+// 本次新處理的才放在 processed_report。
+cached_processed_report = Object.seal(JSON.parse(CeL.fs_read(
+		processed_file_path, 'utf8')
+		|| '0')
+		|| CeL.null_Object()),
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
@@ -61,10 +71,11 @@ message_set = {
 	// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
 	// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
 	different_local_title : '日本語版項目名が違う記事なので、人工修正が必要。',
-	preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
+	not_exist : '存在しない',
 	from_parameter : '引数から',
 	translated_from_foreign_title : '他言語版項目リンク先から',
-	not_exist : '存在しない',
+
+	preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
 	retrive_foreign_error : 'Can not retrive foreign page. I will retry next time.'
 };
 
@@ -83,11 +94,18 @@ function check_final_work() {
 
 	wiki.page('User:cewbot/修正が必要な仮リンク').edit(function() {
 		var messages = [];
-		for ( var title in report) {
-			messages.push('; [[' + title + ']]');
-			for ( var error in report[title]) {
+		for ( var title in processed_report) {
+			messages.push('; [[Special:Redirect/revision/'
+			//
+			+ processed_report[title].revid + '|' + title
+			//
+			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
+			for ( var error in processed_report[title]) {
+				if (error === 'revid') {
+					continue;
+				}
 				messages.push(':; ' + error);
-				messages.append(report[title][error]);
+				messages.append(processed_report[title][error]);
 			}
 			// log limit
 			if (messages.length > 2000) {
@@ -104,15 +122,36 @@ function check_final_work() {
 		// nocreate : 1,
 		bot : 1
 	});
+
+	CeL.fs_write(processed_file_path, JSON.stringify(processed_report), 'utf8');
 }
 
 function for_each_page(page_data, messages) {
+	// page_data =
+	// {pageid:0,ns:0,title:'',revisions:[{revid:0,parentid:0,user:'',timestamp:''},...]}
+
 	var template_count = 0,
 	/** {String}page title = page_data.title */
 	title = CeL.wiki.title_of(page_data),
+	/** {Natural}所取得之版本編號。 */
+	revid = page_data.revisions[0].revid,
 	// 記錄確認已經有改變的文字連結。
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
+
+	if (title in cached_processed_report) {
+		if (cached_processed_report[title].revid === revid) {
+			// copy old data. assert: processed_report[title] is modifiable.
+			processed_report[title] = cached_processed_report[title];
+			// skipped_count++;
+			CeL.debug('Skip [[' + title + ']] revid ' + revid, 1,
+					'for_each_page');
+			return;
+		}
+		// assert: cached_processed_report[title].revid < revid
+		// rebuild data
+		// delete processed_report[title];
+	}
 
 	function for_each_template(token, index, parent) {
 
@@ -127,6 +166,14 @@ function for_each_page(page_data, messages) {
 		 *            當前處理的 token 已改成了這段文字。
 		 */
 		function check_page(error, _changed) {
+			// 初始化報告。
+			if (!processed_report[title]) {
+				// 登記 processed_report。
+				processed_report[title] = {
+					revid : revid
+				};
+			}
+
 			if (_changed) {
 				if (!changed.includes(_changed)) {
 					// 記錄確認已經有改變的文字連結。
@@ -143,11 +190,8 @@ function for_each_page(page_data, messages) {
 				}
 
 				// 初始化報告。
-				if (!report[title]) {
-					report[title] = CeL.null_Object();
-				}
-				if (!report[title][error]) {
-					report[title][error] = [];
+				if (!processed_report[title][error]) {
+					processed_report[title][error] = [];
 				}
 
 				var parent = token,
@@ -171,7 +215,7 @@ function for_each_page(page_data, messages) {
 				if (typeof local_title === 'string') {
 					token[1] = '[[' + local_title + ']]';
 				}
-				report[title][error].push(
+				processed_report[title][error].push(
 				// @see wiki_toString @ CeL.wiki
 				': <span style="color:#aaa;padding:.2em">{{</span>'
 				//
@@ -184,7 +228,7 @@ function for_each_page(page_data, messages) {
 				}).join('<b style="color:#f40;padding:.2em">|</b>')
 						+ '<span style="color:#aaa;padding:.2em">}}</span>');
 				if (token.error_message) {
-					report[title][error].push(token.error_message);
+					processed_report[title][error].push(token.error_message);
 				}
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
 				token[1] = local_title;
@@ -419,6 +463,7 @@ function for_each_page(page_data, messages) {
 							// 例如可能得在最後自行執行 ((wiki.running = false))，
 							// 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
 							wiki.running = false;
+							wiki.next();
 						}
 					}
 				});
