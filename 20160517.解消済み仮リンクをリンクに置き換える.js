@@ -164,7 +164,7 @@ function for_each_page(page_data, messages) {
 		 * @param {String}error
 		 *            error message.
 		 * @param {String}_changed
-		 *            當前處理的 token 已改成了這段文字。
+		 *            當前處理的 token 已改成了這段文字。summary 用。
 		 */
 		function check_page(error, _changed) {
 			// 初始化報告。
@@ -313,7 +313,9 @@ function for_each_page(page_data, messages) {
 					}
 					if (title === redirect_data) {
 						if (!parameters.label) {
-							// 盡可能讓顯示出的表現文字與原先相同。
+							// 盡可能讓表現/顯示出的文字與原先相同。
+							// e.g., [[Special:Diff/59964828]]
+							// TODO: [[Special:Diff/59964827]]
 							parameters.label = local_title;
 						}
 						// local_title 是否最終導向 redirect_data === title。
@@ -461,11 +463,16 @@ function for_each_page(page_data, messages) {
 							} else {
 								check_page(message_set.retrive_foreign_error);
 							}
-							// do next action.
-							// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
-							// 例如可能得在最後自行執行 ((wiki.running = false))，
-							// 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
-							wiki.running = false;
+							/**
+							 * do next action. 警告: 若是自行設定 .onfail，則需要自行處理
+							 * callback。 例如可能得在最後自行執行 ((wiki.running = false))，
+							 * 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
+							 */
+							// wiki.running = false;
+							/**
+							 * 或者是當沒有自行設定 callback 時，手動呼叫 wiki.next()。
+							 * wiki.next() 會設定 wiki.running，因此兩方法二擇一。
+							 */
 							wiki.next();
 						}
 					}

@@ -1258,11 +1258,18 @@ function next_label_data_work() {
 				titles.uniq().forEach(function(title) {
 					delete processed_revid[title];
 				});
-				// do next action.
-				// 警告: 若是自行設定 .onfail，則需要自行處理 callback。
-				// 例如可能得在最後自行執行 ((wiki.running = false))，
-				// 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
+
+				/**
+				 * do next action. 警告: 若是自行設定 .onfail，則需要自行處理 callback。
+				 * 例如可能得在最後自行執行 ((wiki.running = false))， 使
+				 * wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
+				 */
 				wiki.running = false;
+				/**
+				 * 或者是當沒有自行設定 callback 時，手動呼叫 wiki.next()。 wiki.next() 會設定
+				 * wiki.running，因此兩方法二擇一。
+				 */
+				// wiki.next();
 				setImmediate(next_label_data_work);
 			}
 		}
