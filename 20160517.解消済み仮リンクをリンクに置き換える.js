@@ -139,6 +139,8 @@ function check_final_work() {
 	});
 
 	CeL.fs_write(processed_file_path, JSON.stringify(processed_report), 'utf8');
+
+	// done. 結束作業。
 }
 
 function for_each_page(page_data, messages) {
@@ -193,18 +195,20 @@ function for_each_page(page_data, messages) {
 				};
 			}
 
-			if (error_name) {
-				CeL.log('check_page: ' + error_name + ' @ [[' + title + ']]: '
-						+ token.toString());
-				if (token.error_message) {
-					CeL.log(String(token.error_message));
+			if (error_name && !is_information) {
+				if (!is_information) {
+					CeL.log('check_page: ' + error_name + ' @ [[' + title
+							+ ']]: ' + token.toString());
+					if (token.error_message) {
+						CeL.log(String(token.error_message));
+					}
 				}
 
 				// 初始化報告。
 				// error message list
-				var error_list = report[is_information ? 'error' : 'info'];
+				var error_list = report[is_information ? 'info' : 'error'];
 				if (!error_list) {
-					report[is_information ? 'error' : 'info'] = error_list = CeL
+					report[is_information ? 'info' : 'error'] = error_list = CeL
 							.null_Object();
 				}
 				if (!error_list[error_name]) {
