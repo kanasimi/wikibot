@@ -19,7 +19,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = Infinity,
+test_limit = 1,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -89,7 +89,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
