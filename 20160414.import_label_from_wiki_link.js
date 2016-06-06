@@ -107,7 +107,7 @@ log_limit = 3000,
 //
 skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = Infinity,
+test_limit = 20,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //

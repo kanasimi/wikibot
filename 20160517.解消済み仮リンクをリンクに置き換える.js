@@ -86,7 +86,7 @@ function check_final_work() {
 	}
 	check_final_work.done = true;
 
-	wiki.page('User:cewbot/修正が必要な仮リンク').edit(function() {
+	wiki.page('User:' + user_name + '/修正が必要な仮リンク').edit(function() {
 		var messages = [];
 		// processed_data.data: 結果報告
 		// data_to_cache[local title] = { revid : 0, error : {
@@ -105,7 +105,8 @@ function check_final_work() {
 			messages.push('; [[Special:Redirect/revision/'
 			//
 			+ report.revid + '|' + title
-			//
+			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
+			// an external link rather than as an internal link
 			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
 
 			Object.keys(error_messages).sort().forEach(function(error_name) {
@@ -119,7 +120,8 @@ function check_final_work() {
 		}
 
 		if (messages.length > 0) {
-			messages.push('[[Category:修正が必要な仮リンクを含む記事]]');
+			messages.unshift('<span class="plainlinks">');
+			messages.push('</span>', '[[Category:修正が必要な仮リンクを含む記事]]');
 		}
 		return messages.join('\n');
 
