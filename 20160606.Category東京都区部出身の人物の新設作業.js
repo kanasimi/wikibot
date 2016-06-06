@@ -2,7 +2,7 @@
 
 /*
 
- 2016/5/20 22:22:41	仮運用を行って
+ 2016/6/6 23:0:1	仮運用を行って
 
  */
 
@@ -19,7 +19,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 1,
+test_limit = 4,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -43,6 +43,10 @@ PATTERN_birth2 = /(?:世田谷|中央|中野|北|千代田|台東|品川|墨田|
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
+		return;
+	}
+
+	if (page_data.ns !== 0) {
 		return;
 	}
 
