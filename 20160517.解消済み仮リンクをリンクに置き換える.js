@@ -102,9 +102,10 @@ function check_final_work() {
 				continue;
 			}
 
-			messages.push('; [[Special:Redirect/revision/'
-			//
-			+ report.revid + '|' + title
+			// TODO: +'<span class="plainlinks">'
+			messages.push('; [['
+			// + 'Special:Redirect/revision/' + report.revid + '|'
+			+ title
 			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
 			// an external link rather than as an internal link
 			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
@@ -114,14 +115,13 @@ function check_final_work() {
 				messages.append(error_messages[error_name]);
 			});
 			// log limit
-			if (messages.length > 800) {
+			if (messages.length > 2000) {
 				break;
 			}
 		}
 
 		if (messages.length > 0) {
-			messages.unshift('<span class="plainlinks">');
-			messages.push('</span>', '[[Category:修正が必要な仮リンクを含む記事]]');
+			messages.push('[[Category:修正が必要な仮リンクを含む記事]]');
 		}
 		return messages.join('\n');
 

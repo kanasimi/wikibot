@@ -104,10 +104,8 @@ wiki = Wiki(true),
 
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 3000,
-//
-skipped_count = 0,
 // ((Infinity)) for do all.
-test_limit = 20,
+test_limit = Infinity,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
@@ -247,15 +245,7 @@ function for_each_page(page_data, messages) {
 
 	// Check if page_data had processed useing revid.
 	if (processed_data.had(page_data)) {
-		skipped_count++;
 		return;
-	}
-
-	if (skipped_count > 0) {
-		if (skipped_count > 9) {
-			CeL.log('for_each_page: Skip ' + skipped_count + ' pages.');
-		}
-		skipped_count = 0;
 	}
 
 	// ----------------------------------------------------
