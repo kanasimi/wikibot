@@ -31,7 +31,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 });
 
 /** {String}編輯摘要。總結報告。 */
-summary = 'bot test: [[:Category:東京都区部出身の人物]]新設に伴う貼り変え作業';
+summary = 'bot test: [[WP:BOTREQ]]: [[:Category:東京都区部出身の人物]]新設に伴う貼り変え作業';
 
 // ----------------------------------------------------------------------------
 

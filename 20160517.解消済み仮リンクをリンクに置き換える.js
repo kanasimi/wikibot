@@ -89,7 +89,7 @@ function check_final_work() {
 	wiki.page('User:' + user_name + '/修正が必要な仮リンク').edit(function() {
 		var messages = [], data = processed_data[processed_data.KEY_DATA];
 		// processed_data.data: 結果報告
-		// data_to_cache[local title] = { revid : 0, error : {
+		// data_to_cache[local title] = { id : 0, error : {
 		// "error name" : [ "error message", "error message", ...],
 		// "error name" : [ ... ], ... }
 		// }
@@ -104,7 +104,7 @@ function check_final_work() {
 
 			// TODO: +'<span class="plainlinks">'
 			messages.push('; [['
-			// + 'Special:Redirect/revision/' + report.revid + '|'
+			// + 'Special:Redirect/revision/' + report.id + '|'
 			+ title
 			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
 			// an external link rather than as an internal link
@@ -146,8 +146,6 @@ function for_each_page(page_data, messages) {
 	var template_count = 0, template_parsed,
 	/** {String}page title = page_data.title */
 	title = CeL.wiki.title_of(page_data),
-	/** {Natural}所取得之版本編號。 */
-	revid = page_data.revisions[0].revid,
 	// 記錄確認已經有改變的文字連結。
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));

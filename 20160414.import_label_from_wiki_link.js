@@ -207,6 +207,17 @@ function language_label(language) {
 			'i');
 }
 
+function try_decode(title) {
+	if (typeof title === 'string' && title.includes('%')) {
+		try {
+			 return decodeURIComponent(title);
+		} catch (e) {
+		}
+	}
+	return title;
+}
+
+
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。
  * 
@@ -433,8 +444,8 @@ function for_each_page(page_data, messages) {
 		&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
 		//
 		&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
-			add_label(foreign_language, decodeURIComponent(foreign_title),
-					decodeURIComponent(label), null, token[0]);
+			add_label(foreign_language, try_decode(foreign_title),
+					try_decode(label), null, token[0]);
 		} else if (!label && !foreign_title || !foreign_language) {
 			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
 		}
