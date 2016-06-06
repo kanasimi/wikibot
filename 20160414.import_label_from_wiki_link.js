@@ -128,7 +128,10 @@ label_data_keys, label_data_index = 0, label_data_length = 0,
 
 /** {revision_cacher}記錄處理過的文章。 */
 processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
-		+ use_language + '.json', true),
+		+ use_language + '.json', {
+	// preserve : true,
+	id_only : true
+}),
 
 // @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
