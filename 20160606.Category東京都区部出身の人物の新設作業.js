@@ -26,7 +26,9 @@ page_remains,
 
 /** {revision_cacher}記錄處理過的文章。 */
 processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
-		+ use_language + '.json');
+		+ use_language + '.json', {
+	id_only : true
+});
 
 /** {String}編輯摘要。總結報告。 */
 summary = '[[:Category:東京都区部出身の人物]]新設に伴う貼り変え作業';

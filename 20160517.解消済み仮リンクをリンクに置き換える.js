@@ -34,7 +34,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = Infinity,
+test_limit = 50,
 
 Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 
@@ -87,14 +87,14 @@ function check_final_work() {
 	check_final_work.done = true;
 
 	wiki.page('User:' + user_name + '/修正が必要な仮リンク').edit(function() {
-		var messages = [];
+		var messages = [], data = processed_data[processed_data.KEY_DATA];
 		// processed_data.data: 結果報告
 		// data_to_cache[local title] = { revid : 0, error : {
 		// "error name" : [ "error message", "error message", ...],
 		// "error name" : [ ... ], ... }
 		// }
-		for ( var title in processed_data.data) {
-			var report = processed_data.data[title],
+		for ( var title in data) {
+			var report = data[title],
 			//
 			error_messages = report.error;
 			if (!error_messages) {
