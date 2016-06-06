@@ -1,5 +1,4 @@
 ﻿// (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js; date) >> 解消済み仮リンクをリンクに置き換える/log &
-// cd ~/wikibot && rm 解消済み仮リンクをリンクに置き換える/categorymembers/Category_解消済み仮リンクを含む記事.json
 
 /*
 
@@ -27,7 +26,7 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-// Set default language. 改變預設之語言。
+// Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
 
 var
@@ -39,23 +38,12 @@ test_limit = Infinity,
 
 Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
 
-// 剩下尚未處理完畢的頁面數
+/** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
 
-/** {String}記錄處理過的文章。 */
-processed_file_path = base_directory + 'processed.' + use_language + '.json',
-// 結果報告書
-// processed_report[local title] = { revid : 0, error : {
-// "error name" : [ "error message", "error message", ...],
-// "error name" : [ ... ], ... }
-// }
-processed_report = CeL.null_Object(),
-// 為了預防 processed_report 肥大，舊資料放在 cached_processed_report，
-// 本次新處理的才放在 processed_report。
-cached_processed_report = Object.seal(JSON.parse(CeL.fs_read(
-		processed_file_path, 'utf8')
-		|| '0')
-		|| CeL.null_Object()),
+/** {revision_cacher}記錄處理過的文章。 */
+processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
+		+ use_language + '.json'),
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
@@ -100,8 +88,13 @@ function check_final_work() {
 
 	wiki.page('User:cewbot/修正が必要な仮リンク').edit(function() {
 		var messages = [];
-		for ( var title in processed_report) {
-			var report = processed_report[title],
+		// processed_data.data: 結果報告
+		// data_to_cache[local title] = { revid : 0, error : {
+		// "error name" : [ "error message", "error message", ...],
+		// "error name" : [ ... ], ... }
+		// }
+		for ( var title in processed_data.data) {
+			var report = processed_data.data[title],
 			//
 			error_messages = report.error;
 			if (!error_messages) {
@@ -138,7 +131,8 @@ function check_final_work() {
 		bot : 1
 	});
 
-	CeL.fs_write(processed_file_path, JSON.stringify(processed_report), 'utf8');
+	// Finally: Write to cache file.
+	processed_data.write();
 
 	// done. 結束作業。
 }
@@ -156,20 +150,9 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
-	CeL.debug('[[' + title + ']] revid ' + revid, 3, 'for_each_page');
-	if (title in cached_processed_report) {
-		if (cached_processed_report[title].revid === revid) {
-			// copy old data. assert: processed_report[title] is modifiable.
-			processed_report[title] = cached_processed_report[title];
-			// skipped_count++;
-			CeL.debug('Skip [[' + title + ']] revid ' + revid, 2,
-					'for_each_page');
-			check_final_work();
-			return;
-		}
-		// assert: cached_processed_report[title].revid < revid
-		// rebuild data
-		// delete processed_report[title];
+	// Check if page_data had processed useing revid.
+	if (processed_data.had(page_data)) {
+		return;
 	}
 
 	function for_each_template(token, token_index, token_parent) {
@@ -186,14 +169,8 @@ function for_each_page(page_data, messages) {
 		 *            It's an information instead of error.
 		 */
 		function check_page(error_name, is_information) {
-			// 初始化報告: 只要處理過，無論成功失敗都作登記。
-			var report = processed_report[title];
-			if (!report) {
-				// 登記 processed_report。
-				processed_report[title] = report = {
-					revid : revid
-				};
-			}
+			// 初始化本頁之 processed data: 只要處理過，無論成功失敗都作登記。
+			var data_to_cache = processed_data.data_of(page_data);
 
 			if (error_name && !is_information) {
 				if (!is_information) {
@@ -206,9 +183,10 @@ function for_each_page(page_data, messages) {
 
 				// 初始化報告。
 				// error message list
-				var error_list = report[is_information ? 'info' : 'error'];
+				var error_list = data_to_cache[is_information ? 'info'
+						: 'error'];
 				if (!error_list) {
-					report[is_information ? 'info' : 'error'] = error_list = CeL
+					data_to_cache[is_information ? 'info' : 'error'] = error_list = CeL
 							.null_Object();
 				}
 				if (!error_list[error_name]) {
@@ -513,14 +491,9 @@ function for_each_page(page_data, messages) {
 								check_page(message_set.retrive_foreign_error);
 							}
 							/**
-							 * do next action. 警告: 若是自行設定 .onfail，則需要自行處理
-							 * callback。 例如可能得在最後自行執行 ((wiki.running = false))，
-							 * 使 wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
-							 */
-							// wiki.running = false;
-							/**
-							 * 或者是當沒有自行設定 callback 時，手動呼叫 wiki.next()。
-							 * wiki.next() 會設定 wiki.running，因此兩方法二擇一。
+							 * do next action. 警告: 若是自行設定 .onfail，則需要自行善後。
+							 * 例如可能得在最後自行執行(手動呼叫) wiki.next()， 使
+							 * wiki_API.prototype.next() 知道應當重新啟動以處理 queue。
 							 */
 							wiki.next();
 						}
@@ -570,6 +543,19 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
+try {
+	// delete cache.
+	/**
+	 * <code>
+	 * cd ~/wikibot && rm 解消済み仮リンクをリンクに置き換える/categorymembers/Category_解消済み仮リンクを含む記事.json
+	 * </code>
+	 */
+	require('fs').unlinkSync(
+			base_directory + 'categorymembers/Category_解消済み仮リンクを含む記事.json');
+} catch (e) {
+	// TODO: handle exception
+}
+
 // CeL.set_debug(2);
 
 CeL.wiki.cache([ {
@@ -580,7 +566,7 @@ CeL.wiki.cache([ {
 	}
 
 }, false && {
-	// 使用 cache page 此法速度過慢!
+	// 使用 cache page 的方法速度過慢！
 	type : 'page'
 
 } ], function() {

@@ -112,8 +112,6 @@ test_limit = Infinity,
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
 raw_data_file_stream,
-/** {String}記錄處理過的文章。 */
-processed_file_path = base_directory + 'processed.' + use_language + '.json',
 
 // 是否要使用Wikidata數據來清理跨語言連結。
 modify_Wikipedia = false;
@@ -128,13 +126,9 @@ label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
 // = ['foreign_language:foreign_title' , '', ...]
 label_data_keys, label_data_index = 0, label_data_length = 0,
 
-// cache已經處理完成操作的label，但其本身可能也會占用大量RAM。
-// processed_revid[local page title] = last revisions
-// 由於造出 label_data 的時間過長，可能丟失 token，因此 processed_revid 應該放在 finish_work() 階段。
-processed_revid = Object.seal(JSON.parse(CeL.fs_read(processed_file_path,
-		'utf8')
-		|| '0')
-		|| CeL.null_Object()),
+/** {revision_cacher}記錄處理過的文章。 */
+processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
+		+ use_language + '.json', true),
 
 // @see PATTERN_link @ application.net.wiki
 // [ all link, foreign language, title in foreign language, local label ]
@@ -248,19 +242,12 @@ function for_each_page(page_data, messages) {
 		return;
 	}
 
-	if (title in processed_revid) {
-		if (processed_revid[title] === revid) {
-			// copy old data. assert: processed_report[title] is modifiable.
-			// processed_report[title] = cached_processed_report[title];
-			skipped_count++;
-			CeL.debug('Skip [[' + title + ']] revid ' + revid, 1,
-					'for_each_page');
-			return;
-		}
-		// assert: processed_revid[title] < revid
-		// rebuild data
-		// delete processed_revid[title];
+	// Check if page_data had processed useing revid.
+	if (processed_data.had(page_data)) {
+		skipped_count++;
+		return;
 	}
+
 	if (skipped_count > 0) {
 		if (skipped_count > 9) {
 			CeL.log('for_each_page: Skip ' + skipped_count + ' pages.');
@@ -273,10 +260,6 @@ function for_each_page(page_data, messages) {
 	// 增加特定語系註記
 	function add_label(foreign_language, foreign_title, label, local_language,
 			token, no_need_check) {
-		// 在耗費資源的操作後，登記已處理之 title/revid。其他為節省空間，不做登記。
-		if (false && revid) {
-			processed_revid[title] = revid, revid = 0;
-		}
 
 		if (foreign_language !== 'WD') {
 			foreign_language = foreign_language.toLowerCase();
@@ -984,9 +967,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		}
 
 		if (label_data_index % 1e4 === 0 || CeL.is_debug()) {
-			// 可能中途 killed, crashed，因此尚不能 write_processed()。
-			// write_processed();
-
 			// CeL.append_file()
 			CeL.log(label_data_index + '/' + label_data_length + ' '
 			//
@@ -1107,36 +1087,30 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			return;
 		}
 
-		var skip;
+		var may_skip;
 		if (typeof error === 'object') {
 			if (error.code === 'no_last_data') {
 				// 例如提供的 foreign title 錯誤，或是 foreign title 為
 				// redirected。
 				// 抑或者存在 foreign title 頁面，但沒有 wikidata entity。
-				error = error.message, skip = true;
+				error = error.message, may_skip = true;
 			} else {
 				error = JSON.stringify(error.error || error);
 			}
 		}
 
-		// 成功才登記。失敗則下次重試。
 		CeL.info('process_wikidata: [[' + titles.join(']], [[')
 		//
-		+ ']] failed: ' + error + (skip ? '' : ' - Retry next time.'));
+		+ ']] failed: ' + error + (may_skip ? '' : ' - Retry next time.'));
 
-		if (!skip) {
-			titles.uniq().forEach(function(title) {
-				delete processed_revid[title];
-			});
+		if (!may_skip) {
+			// 成功才登記。失敗則下次重試。
+			titles.uniq().forEach(processed_data.remove, processed_data);
 		}
 
 		// do next.
 		setImmediate(next_label_data_work);
 	});
-}
-
-function write_processed() {
-	CeL.fs_write(processed_file_path, JSON.stringify(processed_revid), 'utf8');
 }
 
 // 為降低 RAM 使用，不一次 push 進 queue，而是依 label_data 之 index 一個個慢慢來處理。
@@ -1148,7 +1122,8 @@ function next_label_data_work() {
 	// Test done.
 	|| label_data_index >= test_limit) {
 		wiki.run(function() {
-			write_processed();
+			// Finally: Write to cache file.
+			processed_data.write();
 
 			var message = script_name + ': 已處理完畢 Wikidata 部分。';
 			if (modify_Wikipedia)
@@ -1184,9 +1159,10 @@ function next_label_data_work() {
 	revids = label_data[full_title][2];
 	foreign_title = foreign_title[2];
 
-	// 登記 processed_revid。
-	titles.forEach(function(title, index) {
-		processed_revid[title] = revids[index];
+	// 由於造出 label_data 的時間過長，可能丟失 token，
+	// 因此將 processed_data 的建置放在 finish_work() 階段。
+	titles.uniq().forEach(function(title, index) {
+		processed_data.data_of(title, revids[index]);
 	});
 
 	// 跳過之前已經處理過的。
@@ -1255,21 +1231,15 @@ function next_label_data_work() {
 						+ ']]:');
 				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。
-				titles.uniq().forEach(function(title) {
-					delete processed_revid[title];
-				});
+				titles.uniq().forEach(processed_data.remove, processed_data);
 
 				/**
-				 * do next action. 警告: 若是自行設定 .onfail，則需要自行處理 callback。
-				 * 例如可能得在最後自行執行 ((wiki.running = false))， 使
-				 * wiki_API.prototype.next() 知道不應當做重複呼叫而跳出。
+				 * do next action. 警告: 若是自行設定 .onfail，則需要自行善後。
+				 * 例如可能得在最後自行執行(手動呼叫) wiki.next()， 使 wiki_API.prototype.next()
+				 * 知道應當重新啟動以處理 queue。
 				 */
-				wiki.running = false;
-				/**
-				 * 或者是當沒有自行設定 callback 時，手動呼叫 wiki.next()。 wiki.next() 會設定
-				 * wiki.running，因此兩方法二擇一。
-				 */
-				// wiki.next();
+				wiki.next();
+
 				setImmediate(next_label_data_work);
 			}
 		}
@@ -1285,14 +1255,12 @@ function finish_work() {
 
 	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
 	label_data_keys = Object.keys(label_data);
-	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed_revid！
+	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed_data！
 	// label_data_index = 1000;
 	label_data_length = label_data_keys.length;
 	CeL.log(script_name + ': All ' + label_data_length + ' labels'
 	//
 	+ (label_data_index ? ', starts from ' + label_data_index : '.'));
-
-	processed_revid = CeL.null_Object();
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
 	// wiki = Wiki(true);
