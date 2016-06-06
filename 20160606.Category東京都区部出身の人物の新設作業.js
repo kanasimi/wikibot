@@ -19,7 +19,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 4,
+test_limit = 6,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -43,16 +43,17 @@ PATTERN_birth2 = /(?:世田谷|中央|中野|北|千代田|台東|品川|墨田|
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
-		return;
+		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
 	if (page_data.ns !== 0) {
-		return;
+		return [ CeL.wiki.edit.cancel, 'skip' ];
+		return [ CeL.wiki.edit.cancel, '記事だけを編集する' ];
 	}
 
 	// Check if page_data had processed useing revid.
 	if (processed_data.had(page_data)) {
-		return;
+		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
 	/** {String}page title = page_data.title */
