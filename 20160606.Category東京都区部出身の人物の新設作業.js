@@ -31,7 +31,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 });
 
 /** {String}編輯摘要。總結報告。 */
-summary = '[[:Category:東京都区部出身の人物]]新設に伴う貼り変え作業';
+summary = 'bot test: [[:Category:東京都区部出身の人物]]新設に伴う貼り変え作業';
 
 // ----------------------------------------------------------------------------
 
@@ -47,7 +47,6 @@ function for_each_page(page_data, messages) {
 	}
 
 	if (page_data.ns !== 0) {
-		return [ CeL.wiki.edit.cancel, 'skip' ];
 		return [ CeL.wiki.edit.cancel, '記事だけを編集する' ];
 	}
 
