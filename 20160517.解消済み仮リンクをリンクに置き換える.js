@@ -114,11 +114,11 @@ function check_final_work() {
 				messages.push(':; ' + error_name);
 				var list = error_messages[error_name];
 				if (list.length > 20) {
-					messages.append(error_messages[error_name].slice(0, 20));
+					messages.append(list.slice(0, 20));
 					// Total n times occurred.
 					messages.push(':: ……合計' + list.length + '回発生した。');
 				} else {
-					messages.append(error_messages[error_name].length);
+					messages.append(list);
 				}
 			});
 			// log limit
@@ -159,6 +159,7 @@ function for_each_page(page_data, messages) {
 
 	// Check if page_data had processed useing revid.
 	if (processed_data.had(page_data)) {
+		check_final_work();
 		return;
 	}
 
