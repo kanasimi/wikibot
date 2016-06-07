@@ -210,13 +210,12 @@ function language_label(language) {
 function try_decode(title) {
 	if (typeof title === 'string' && title.includes('%')) {
 		try {
-			 return decodeURIComponent(title);
+			return decodeURIComponent(title);
 		} catch (e) {
 		}
 	}
 	return title;
 }
-
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。

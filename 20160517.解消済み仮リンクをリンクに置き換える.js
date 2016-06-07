@@ -88,11 +88,11 @@ function check_final_work() {
 
 	wiki.page('User:' + user_name + '/修正が必要な仮リンク').edit(function() {
 		var messages = [], data = processed_data[processed_data.KEY_DATA];
-		// processed_data.data: 結果報告
-		// data_to_cache[local title] = { id : 0, error : {
+		// data: 結果報告。
+		// data[local title] = { id : 0, error : {
 		// "error name" : [ "error message", "error message", ...],
 		// "error name" : [ ... ], ... }
-		// }
+		// })
 		for ( var title in data) {
 			var report = data[title],
 			//
@@ -112,7 +112,14 @@ function check_final_work() {
 
 			Object.keys(error_messages).sort().forEach(function(error_name) {
 				messages.push(':; ' + error_name);
-				messages.append(error_messages[error_name]);
+				var list = error_messages[error_name];
+				if (list.length > 20) {
+					messages.append(error_messages[error_name].slice(0, 20));
+					// Total n times occurred.
+					messages.push(':: ……合計' + list.length + '回発生した。');
+				} else {
+					messages.append(error_messages[error_name].length);
+				}
 			});
 			// log limit
 			if (messages.length > 2000) {
