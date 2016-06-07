@@ -70,6 +70,14 @@ function for_each_page(page_data, messages) {
 	// 注意: 只有經過 .data_of() 的才造出新實體。
 	// 因此即使沒有要取得資料，也需要呼叫一次 .data_of() 以造出新實體、登記 page_data 之 revid。
 	processed_data.data_of(page_data);
+
+	var matched = content.match(PATTERN_birth2);
+	if (matched) {
+		return [ CeL.wiki.edit.cancel,
+				matched[0].replace(/^(.+)\|/, '').replace(/^\]+/g, '') + '？' ];
+	}
+
+	return [ CeL.wiki.edit.cancel, 'skip' ];
 }
 
 // ----------------------------------------------------------------------------
