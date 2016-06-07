@@ -66,6 +66,10 @@ function for_each_page(page_data, messages) {
 		return content.replace(/\[\[Category:東京都出身の人物(|\])/,
 				'[[Category:東京都区部出身の人物$1');
 	}
+
+	// 注意: 只有經過 .data_of() 的才造出新實體。
+	// 因此即使沒有要取得資料，也需要呼叫一次 .data_of() 以造出新實體、登記 page_data 之 revid。
+	processed_data.data_of(page_data);
 }
 
 // ----------------------------------------------------------------------------

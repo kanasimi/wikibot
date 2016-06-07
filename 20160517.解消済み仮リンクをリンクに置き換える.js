@@ -147,6 +147,9 @@ function check_final_work() {
 }
 
 function for_each_page(page_data, messages) {
+	// TODO: 處理模板，並 action=purge&forcelinkupdate=1 更新所有包含模板的頁面
+	// https://doc.wikimedia.org/mediawiki-core/master/php/ApiPurge_8php_source.html
+
 	// page_data =
 	// {pageid:0,ns:0,title:'',revisions:[{revid:0,parentid:0,user:'',timestamp:''},...]}
 
@@ -386,6 +389,7 @@ function for_each_page(page_data, messages) {
 
 			// TODO: {{enlink}}
 			// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
+			// TODO: 檢查本地頁面是否創建夠久(10天)，並沒掛上刪除模板。
 
 			modify_link();
 		}
