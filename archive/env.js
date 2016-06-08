@@ -10,15 +10,22 @@
 
 console.log('============================================================================');
 console.log((new Date).toISOString());
+console.log('global');
 console.log(global);
 
 console.log('------------------------------------------------------------');
+console.log('process');
 console.log(process);
+console.log('process.env');
 console.log(process.env);
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('../wiki loder.js');
 
 console.log('--------------------------------------------------------------------------------');
-console.log('CeJS loaded');
+console.log('CeJS loaded. global:');
 console.log(global);
+
+console.log('------------------------------------------------------------');
+console.log('CeL.env.argv');
+console.log(CeL.env.argv);
