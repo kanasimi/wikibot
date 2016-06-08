@@ -1134,7 +1134,7 @@ function next_label_data_work() {
 			CeL.log(message);
 		});
 
-		// done.
+		// done: Wikidata 部分.
 		return;
 	}
 

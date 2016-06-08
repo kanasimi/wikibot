@@ -42,14 +42,10 @@ PATTERN_birth = new RegExp(
 		/(?:birth|origin|生誕|生地|誕生|出生|出身)[^=\|]*=[^=\|]*/.source
 				+ PATTERN_出生地.source, 'i'),
 // 可能取到他人資料。 e.g., 北区出身の○○とは友達です
-PATTERN_birth2 = new RegExp(PATTERN_出生地.source + /(?:誕生|出生|出身|生まれ)/.source);
+// e.g., 東京に生まれる
+PATTERN_birth2 = new RegExp(PATTERN_出生地.source + /に?(?:誕生|出生|出身|生まれ)/.source);
 
 function for_each_page(page_data, messages) {
-	if (!page_data || ('missing' in page_data)) {
-		// error?
-		return [ CeL.wiki.edit.cancel, 'skip' ];
-	}
-
 	// Check if page_data had processed useing revid.
 	if (processed_data.had(page_data)) {
 		return [ CeL.wiki.edit.cancel, 'skip' ];
@@ -78,10 +74,9 @@ function for_each_page(page_data, messages) {
 
 	var matched = content.match(PATTERN_birth2);
 	if (matched) {
-		return [
-				CeL.wiki.edit.cancel,
-				matched[0].replace(/^(.+)\|/, '').replace(/[\[\]{}]+/g, '')
-						+ '？' ];
+		return [ CeL.wiki.edit.cancel,
+		//
+		matched[0].replace(/^(.+)\|/, '').replace(/[\[\]{}]+/g, '') + '？' ];
 	}
 
 	return [ CeL.wiki.edit.cancel, 'skip' ];
