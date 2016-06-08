@@ -32,11 +32,16 @@ summary = '[[WP:BOTREQ]]: [[:Category:東京都区部出身の人物]]新設に�
 
 // ----------------------------------------------------------------------------
 
-// TODO: " 出生地 = {{flagicon|JPN}} [[東京府]][[東京市]][[蒲田区]]"
+// TODO: "出生地 = {{flagicon|JPN}} [[東京府]][[東京市]][[蒲田区]]"
+// TODO: "生、東京市○○区", 荏原郡、北多摩郡, 東京銀座生まれ
+// 注意: "西東京市": NG
+/** {RegExp}生誕地, 出生地。 */
 var PATTERN_出生地 = /(?:(?:下谷区|世田谷区|中野区|京橋区|北豊島郡|千代田区|南葛飾郡|南足立郡|台東区|向島区|品川区|四谷区|墨田区|大森区|大田区|小石川区|文京区|新宿区|日本橋区|本所区|本郷区|杉並区|板橋区|江戸川区|江東区|浅草区|淀橋区|深川区|渋谷区|滝野川区|牛込区|王子区|目黒区|砧村|神田区|練馬区|荏原区|荒川区|葛飾区|蒲田区|豊多摩郡|豊島区|赤坂区|足立区|麹町区|麻布区)|東京府\)\|(?:六郷町|千歳村|大井町|大崎町|大森町|松沢村|池上町|玉川村|目黒町)|東京都\)\|(?:中央区|北区|城東区|港区)|\[\[(?:世田ヶ谷町|入新井町|品川町|東京市|東調布町|矢口町|碑衾町|羽田町|芝区|荏原町|蒲田町|馬込町|駒沢町))\]\]/,
 /** {RegExp}人物出身的匹配模式。 */
-PATTERN_birth = new RegExp(/(?:birth|origin|生誕|生地|誕生|出生|出身)[^=\|]*=[^=\|]*/.source + PATTERN_出生地.source, 'i'),
-// 可能取到他人資料。 e.g., 北区出身のxxとは友達です
+PATTERN_birth = new RegExp(
+		/(?:birth|origin|生誕|生地|誕生|出生|出身)[^=\|]*=[^=\|]*/.source
+				+ PATTERN_出生地.source, 'i'),
+// 可能取到他人資料。 e.g., 北区出身の○○とは友達です
 PATTERN_birth2 = new RegExp(PATTERN_出生地.source + /(?:誕生|出生|出身|生まれ)/.source);
 
 function for_each_page(page_data, messages) {
@@ -73,8 +78,10 @@ function for_each_page(page_data, messages) {
 
 	var matched = content.match(PATTERN_birth2);
 	if (matched) {
-		return [ CeL.wiki.edit.cancel,
-				matched[0].replace(/^(.+)\|/, '').replace(/\]+/g, '') + '？' ];
+		return [
+				CeL.wiki.edit.cancel,
+				matched[0].replace(/^(.+)\|/, '').replace(/[\[\]{}]+/g, '')
+						+ '？' ];
 	}
 
 	return [ CeL.wiki.edit.cancel, 'skip' ];

@@ -24,7 +24,7 @@ CeL.wiki.set_language('en');
 var wiki = CeL.wiki.login(user_name, password, 'en');
 
 wiki
-// Select page and get the content of page.
+// Select page and get the contents of page.
 .page('Wikipedia:Sandbox')
 
 // Replace the contents of page.
@@ -40,7 +40,7 @@ wiki
 	nocreate : 1
 })
 
-// Modify the page content.
+// Modify the page contents.
 .edit(function(page_data) {
 	/** {String}page title */
 	var title = CeL.wiki.title_of(page_data),
@@ -74,8 +74,8 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Wikidata access and edit.
 * Support [Flow](https://www.mediawiki.org/wiki/Flow) page: Using the same way adding section to normal page and Flow page.
 * Detection of edit conflicts and <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code>.
-* Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, ...
+* Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, et al.
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext).
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import Wikimedia database backup dumps data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
-* Traversal all 1.5M pages of zhwiki in 12 minutes on Tool Labs. (See [traversal_pages.clear.js](https://github.com/kanasimi/wikibot/blob/master/archive/traversal_pages.clear.js). Must download xml dump file first.) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，需先下載 xml dump file。）
+* Traversal all 1.5M pages of zhwiki in 12 minutes on Tool Labs. (See [traversal_pages.clear.js](https://github.com/kanasimi/wikibot/blob/master/archive/traversal_pages.clear.js). Automatically download xml dump file first.) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，將自動先下載 xml dump file。）
