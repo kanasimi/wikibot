@@ -850,9 +850,10 @@ function fix_86(content, page_data, messages, options) {
 		// 取得內部資料。
 		// e.g., 'http://www.wikipedia.org Wikipedia'
 		var text = token.toString().slice(2, -2);
-		if (!/^(?:https?:)?\/\//i.test(text))
+		if (!/^(?:https?:)?\/\//i.test(text)) {
 			// 正常內部連結。
 			return;
+		}
 
 		// [ all, target, 說明 ]
 		var matched = text.match(/^([^\|]+)\|(.*)$/);

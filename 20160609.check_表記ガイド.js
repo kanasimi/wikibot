@@ -3,7 +3,8 @@
 
 /*
 
- 2016/6/9 6:14:18	初版試營運，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
+ 2016/6/9 6:14:18	初版試營運，採用模板：traversal_pages.clear.js，約耗時 5分鐘執行。
+ [[:ja:Special:Diff/60010095#「姉妹都市･提携都市」→「姉妹都市・提携都市」の置換 (中黒を半角から全角に)]]
 
  */
 
@@ -44,7 +45,7 @@ function for_each_page(page_data) {
 	while (matched = PATTERN_title.exec(content)) {
 		if (matched[1].includes('･')) {
 			CeL.log('[[' + title + ']]: ' + matched[1]);
-			filtered.push('[[' + title + ']]: ' + matched[1]);
+			filtered.push('; [[' + title + ']]: ' + matched[1]);
 			return;
 		}
 	}
@@ -57,7 +58,7 @@ function finish_work() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
-		wiki.page('User:' + user_name + '/節タイトルが半角の中黒を含んだ記事').edit(function () {
+		wiki.page('User:' + user_name + '/節タイトルに半角の中黒を含んだ記事').edit(function() {
 			filtered.join('\n');
 		});
 	}
