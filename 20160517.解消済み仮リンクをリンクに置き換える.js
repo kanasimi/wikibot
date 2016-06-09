@@ -17,8 +17,6 @@
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 
- TODO: [[:en:Category:Interlanguage link template existing link]]
-
  */
 
 'use strict';
@@ -28,6 +26,7 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
+set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -36,7 +35,10 @@ wiki = Wiki(true),
 // ((Infinity)) for do all
 test_limit = 50,
 
-Category_has_local_page = 'Category:解消済み仮リンクを含む記事',
+Category_has_local_page = {
+	en : 'Category:Interlanguage link template existing link',
+	ja : 'Category:解消済み仮リンクを含む記事'
+}[use_language],
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -47,6 +49,10 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
+	summary_prefix : 'bot: 解消済み仮リンク',
+	summary_separator : '、',
+	summary_postfix : 'を内部リンクに置き換える',
+
 	no_template : 'no interwiki link template found',
 	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
 	// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
@@ -281,9 +287,9 @@ function for_each_page(page_data, messages) {
 			).edit(last_content, {
 				// section : 'new',
 				// sectiontitle : title,
-				summary : 'bot: 解消済み仮リンク'
+				summary : summary_prefix
 				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
-				+ changed.join('、') + 'を内部リンクに置き換える',
+				+ changed.join(summary_separator) + summary_postfix,
 				nocreate : 1,
 				bot : 1
 			});
@@ -563,7 +569,8 @@ try {
 	 * </code>
 	 */
 	require('fs').unlinkSync(
-			base_directory + 'categorymembers/Category_解消済み仮リンクを含む記事.json');
+			base_directory + 'categorymembers/'
+					+ Category_has_local_page.replace(':', '_') + '.json');
 } catch (e) {
 	// TODO: handle exception
 }

@@ -851,7 +851,7 @@ function fix_86(content, page_data, messages, options) {
 		// e.g., 'http://www.wikipedia.org Wikipedia'
 		var text = token.toString().slice(2, -2);
 		if (!/^(?:https?:)?\/\//i.test(text)) {
-			// 正常內部連結。
+			// 當作正常內部連結 internal link。
 			return;
 		}
 
