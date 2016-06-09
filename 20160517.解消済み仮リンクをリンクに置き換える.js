@@ -33,7 +33,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 50,
+test_limit = 1,
 
 Category_has_local_page = {
 	en : 'Category:Interlanguage link template existing link',
@@ -75,7 +75,30 @@ message_set = {
 
 	preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
 	retrive_foreign_error : 'Can not retrive foreign page. I will retry next time.'
-};
+},
+
+// 次序
+template_orders = {
+	// local_title, foreign_language code, foreign_title
+	LcF : [ 1, 2, 3 ],
+	cLF : [ 2, 1, 3 ],
+},
+// @see
+// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
+template_order_of_name = {
+	en : {
+		ill : template_orders.cLF,
+		'interlanguage link' : template_orders.cLF,
+		illm : template_orders.LcF,
+		'interlanguage link multi' : template_orders.LcF
+	},
+	ja : {
+		仮リンク : template_orders.LcF,
+		ill2 : template_orders.LcF,
+		illm : template_orders.LcF,
+		'link-interwiki' : template_orders.LcF
+	}
+}[use_language];
 
 // ----------------------------------------------------------------------------
 
@@ -466,23 +489,18 @@ function for_each_page(page_data, messages) {
 			.replace(/<\!--[\s\S]*?-->/g, '').trim();
 		}
 
+		var order = template_order_of_name[
 		// template_name
-		// @see
-		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
-		if (token.name.toLowerCase() in {
-			'仮リンク' : true,
-			'ill2' : true,
-			'illm' : true,
-			'link-interwiki' : true
-		}) {
+		token.name.toLowerCase()];
+		if (order) {
 			template_count++;
 			token.page_data = page_data;
 			// console.log(token);
 			parameters = token.parameters;
 			// {{仮リンク|記事名|en|title}}
-			local_title = decodeURIComponent(get_title(1));
-			foreign_language = get_title(2);
-			foreign_title = decodeURIComponent(get_title(3));
+			local_title = decodeURIComponent(get_title(order[0]));
+			foreign_language = get_title(order[1]);
+			foreign_title = decodeURIComponent(get_title(order[2]));
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
@@ -592,7 +610,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
