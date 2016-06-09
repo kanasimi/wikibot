@@ -57,6 +57,9 @@ function finish_work() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
+		wiki.page('User:' + user_name + '/節タイトルが半角の中黒を含んだ記事').edit(function () {
+			filtered.join('\n');
+		});
 	}
 }
 
