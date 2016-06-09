@@ -1,9 +1,9 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node "traversal_pages.clear.js" && date
+﻿// cd ~/wikibot && date && hostname && time /shared/bin/node 20160609.check_表記ガイド.js && date
 // Traversal all pages. 遍歷所有頁面。簡易版，用於展示概念。
 
 /*
 
- 初版試營運，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
+ 2016/6/9 6:14:18	初版試營運，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
 
  */
 
@@ -11,6 +11,9 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
+
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -33,16 +36,17 @@ function for_each_page(page_data) {
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
 	content = CeL.wiki.content_of(page_data);
-	/** {Object}revision data. 修訂版本資料。 */
-	var revision = page_data.revisions && page_data.revisions[0];
 
 	if (!content)
 		return;
 
-	// TODO: operations for each page
-	if (0) {
-		// need modify
-		filtered.push(title);
+	var PATTERN_title = /\n(=+[^\n=]+=+)/g, matched;
+	while (matched = PATTERN_title.exec(content)) {
+		if (matched[1].includes('･')) {
+			CeL.log('[[' + title + ']]: ' + matched[1]);
+			filtered.push('[[' + title + ']]: ' + matched[1]);
+			return;
+		}
 	}
 }
 
@@ -53,19 +57,12 @@ function finish_work() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
-		wiki.work({
-			summary : '',
-			each : function(page_data) {
-				// TODO: operations for each page that filtered
-				return;
-			}
-		}, filtered);
 	}
 }
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
 // Set the umask to share the xml dump file.
 if (typeof process === 'object') {

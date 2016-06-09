@@ -15,9 +15,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true),
-/** {String}base directory */
-base_directory = bot_directory + script_name + '/';
+wiki = Wiki(true);
 
 // ---------------------------------------------------------------------//
 
@@ -33,7 +31,11 @@ title_prefix = 'User:' + user_name + '/log/20',
  */
 PATTERN_LOG_TITLE = /^User:([^:\/]+)\/log\/(\d{8})$/,
 /** {String|RegExp}將移除此標記 後第一個章節開始所有的內容。 */
-last_preserve_mark = '運作記錄',
+last_preserve_mark = {
+	zh : '運作記錄',
+	// 作業結果報告
+	ja : '結果'
+},
 /** {Natural}超過了這個長度才會被搬移。 */
 min_length = 5000,
 /** {Natural}超過了這個長度，才會造出首個存檔。 */
@@ -46,7 +48,7 @@ archive_index_starts = 1,
 // lastest_archive[title] = last index of archive
 lastest_archive = CeL.null_Object(),
 // archive prefix
-archive_prefix = '存檔|存档|Archive',
+archive_prefix = '存檔|存档|過去ログ|Archive',
 // 將第一個 archive_prefix 作為預設 archive_prefix。
 default_archive_prefix = archive_prefix.replace(/\|.+$/, ''),
 // archive_prefix_hash[title] = archive prefix of log page
@@ -100,7 +102,7 @@ function for_log_page(page_data) {
 	//
 	+ lastest_archive[log_title] : '無存檔過'));
 
-	var matched = content && content.match(last_preserve_mark);
+	var matched = content && content.match(last_preserve_mark[use_language]);
 	if (!matched) {
 		CeL.warn('for_log_page: Invalid log page? (未發現程式運作紀錄標記) [[' + log_title
 				+ ']]');

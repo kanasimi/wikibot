@@ -41,8 +41,8 @@ var PATTERN_出生地 = /(?:(?:下谷区|世田谷区|中野区|京橋区|北豊
 PATTERN_birth = new RegExp(
 		/(?:birth|origin|生誕|生地|誕生|出生|出身)[^=\|]*=[^=\|]*/.source
 				+ PATTERN_出生地.source, 'i'),
-// 可能取到他人資料。 e.g., 北区出身の○○とは友達です
-// e.g., 東京に生まれる
+// 可能取到他人資料。 e.g., ○○区出身の○○とは友達です, 父は○○区出身
+// e.g., 東京に生まれる 東京都に誕生
 PATTERN_birth2 = new RegExp(PATTERN_出生地.source + /に?(?:誕生|出生|出身|生まれ)/.source);
 
 function for_each_page(page_data, messages) {

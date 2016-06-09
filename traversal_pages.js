@@ -16,8 +16,6 @@ require('./wiki loder.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-/** {String}base directory */
-base_directory = bot_directory + script_name + '/',
 
 // filter function list
 filters = [],
