@@ -5,6 +5,7 @@
 /*
 
  2016/3/23 20:16:46	初版試營運。
+ 2016/6/9 9:36:17	adapt for jawiki
 
  */
 
@@ -25,11 +26,11 @@ title_prefix = 'User:' + user_name + '/log/20',
 /**
  * log_root (所有個別項目之記錄頁面) 的模式。其下視為子頁面，其上不被視作記錄頁面。
  * 
- * matched: [ all title, user, date ]
+ * matched: [ all title, name space (User, 利用者), user, date ]
  * 
  * @type {RegExp}
  */
-PATTERN_LOG_TITLE = /^User:([^:\/]+)\/log\/(\d{8})$/,
+PATTERN_LOG_TITLE = /^([^:]+):([^:\/]+)\/log\/(\d{8})$/,
 /** {String|RegExp}將移除此標記 後第一個章節開始所有的內容。 */
 last_preserve_mark = {
 	zh : '運作記錄',
@@ -236,16 +237,22 @@ function for_log_page(page_data) {
 	write_archive();
 }
 
+// CeL.set_debug(2);
+
 get_log_pages(function(log_pages) {
+	CeL.debug(
+	//
+	'PATTERN_log_archive: ' + PATTERN_log_archive, 1, 'get_log_pages');
 	var
 	/** {Array}filter log root. e.g., [[User:user_name/log/20010101]] */
 	log_root = log_pages.filter(function(title) {
-		if (false && !title.includes('20150916'))
+		if (false && !title.includes('20150916')) {
 			return;
+		}
 		// 篩選出存檔頁面
 		var matched = title.match(PATTERN_log_archive);
 		if (matched) {
-			// console.log(matched);
+			CeL.debug(matched, 1, 'get_log_pages');
 			var index = matched[3] | 0;
 			if (matched[1] in lastest_archive) {
 				if (archive_prefix_hash[matched[1]] !== matched[2]) {
