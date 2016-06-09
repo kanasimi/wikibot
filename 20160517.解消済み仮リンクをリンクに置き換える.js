@@ -310,9 +310,11 @@ function for_each_page(page_data, messages) {
 			).edit(last_content, {
 				// section : 'new',
 				// sectiontitle : title,
-				summary : summary_prefix
+				summary : message_set.summary_prefix
 				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
-				+ changed.join(summary_separator) + summary_postfix,
+				+ changed.join(message_set.summary_separator)
+				//
+				+ message_set.summary_postfix,
 				nocreate : 1,
 				bot : 1
 			});
