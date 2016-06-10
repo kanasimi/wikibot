@@ -238,8 +238,9 @@ function for_each_page(page_data, messages) {
 		return CeL.wiki.quit_operation;
 	}
 
-	if (page_data.ns !== 0)
+	if (page_data.ns !== 0) {
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+	}
 
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),

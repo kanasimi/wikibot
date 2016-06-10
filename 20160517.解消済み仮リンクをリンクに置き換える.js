@@ -26,14 +26,14 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
-set_language('en');
+// set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 20,
+test_limit = 30,
 
 Category_has_local_page = {
 	en : 'Category:Interlanguage link template existing link',
@@ -193,6 +193,10 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
+	if (page_data.ns !== 0) {
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+	}
+
 	// Check if page_data had processed useing revid.
 	if (processed_data.had(page_data)) {
 		check_final_work();
@@ -256,7 +260,7 @@ function for_each_page(page_data, messages) {
 				}
 
 				var local_title = token[1];
-				if (typeof local_title === 'string') {
+				if (local_title && (typeof local_title === 'string')) {
 					token[1] = '[[' + local_title + ']]';
 				}
 				error_list.push(
@@ -275,8 +279,12 @@ function for_each_page(page_data, messages) {
 					error_list.push(token.error_message);
 				}
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
-				token[1] = local_title;
-				parent[index] = foreign_title;
+				if (1 in token) {
+					token[1] = local_title;
+				}
+				if (index in parent) {
+					parent[index] = foreign_title;
+				}
 			}
 
 			CeL.debug('template_count: ' + template_count + ' / page_remains: '
@@ -342,9 +350,9 @@ function for_each_page(page_data, messages) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]],
 			// [[:en:Template:ill]]
 			/** {String}label text displayed */
-			text_displayed = order[3] !== undefined ? parameters[order[3]]
+			text_displayed = parameters[order[3]]
 			// default parameters
-			: parameters.lt || parameters.label || parameters.en_text;
+			|| parameters.lt || parameters.label || parameters.en_text;
 			if (text_displayed) {
 				if (text_displayed !== link_target)
 					link += '|' + text_displayed;
@@ -513,7 +521,9 @@ function for_each_page(page_data, messages) {
 			// {{仮リンク|記事名|en|title}}
 			local_title = decodeURIComponent(get_title(order[0]));
 			foreign_language = get_title(order[1]);
-			foreign_title = decodeURIComponent(get_title(order[2]));
+			foreign_title = decodeURIComponent(get_title(order[2]))
+			// || local_title
+			;
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
@@ -621,9 +631,9 @@ CeL.wiki.cache([ {
 
 } ], function() {
 	var list = this.list;
-	// list = [ ];
+	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
