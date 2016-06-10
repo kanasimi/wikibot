@@ -33,7 +33,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 1,
+test_limit = 2,
 
 Category_has_local_page = {
 	en : 'Category:Interlanguage link template existing link',
@@ -49,9 +49,12 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
-	summary_prefix : 'bot: 解消済み仮リンク',
-	summary_separator : '、',
-	summary_postfix : 'を内部リンクに置き換える',
+	// summary_prefix : 'bot: 解消済み仮リンク',
+	// summary_separator : '、',
+	// summary_postfix : 'を内部リンクに置き換える',
+	summary_prefix : 'bot test: Convert ',
+	summary_separator : ', ',
+	summary_postfix : ' to internal link',
 
 	no_template : 'no interwiki link template found',
 	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
