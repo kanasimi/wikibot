@@ -82,9 +82,10 @@ message_set = {
 
 // 次序
 template_orders = {
-	// local_title, foreign_language code, foreign_title
+	// local_title, foreign_language code, foreign_title,
+	// label text displayed, preserve foreign language link
 	LcF : [ 1, 2, 3 ],
-	cLF : [ 2, 1, 3 ],
+	cLF : [ 2, 1, 3, 4 ],
 },
 // @see
 // https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
@@ -326,7 +327,8 @@ function for_each_page(page_data, messages) {
 		}
 
 		function modify_link(link_target) {
-			if (parameters.preserve) {
+			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]]
+			if (parameters.preserve || parameters.display) {
 				check_page(message_set.preserved, true);
 				return;
 			}
@@ -336,10 +338,15 @@ function for_each_page(page_data, messages) {
 			}
 
 			/** {String}link 當前處理的 token 已改成了這段文字。summary 用。 */
-			var link = '[[' + link_target;
-			if (parameters.label) {
-				if (parameters.label !== link_target)
-					link += '|' + parameters.label;
+			var link = '[[' + link_target,
+			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]],
+			// [[:en:Template:ill]]
+			/** {String}label text displayed */
+			text_displayed = parameters.lt || parameters.label
+					|| parameters.en_text;
+			if (text_displayed) {
+				if (text_displayed !== link_target)
+					link += '|' + text_displayed;
 			} else if (false && /\([^()]+\)$/.test(link_target)) {
 				// ↑ 盡可能讓表現/顯示出的文字與原先相同。有必要的話，編輯者會使用 .label。
 				// e.g., [[Special:Diff/59967187]]
