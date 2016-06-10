@@ -33,7 +33,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 2,
+test_limit = 20,
 
 Category_has_local_page = {
 	en : 'Category:Interlanguage link template existing link',
@@ -342,8 +342,9 @@ function for_each_page(page_data, messages) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]],
 			// [[:en:Template:ill]]
 			/** {String}label text displayed */
-			text_displayed = parameters.lt || parameters.label
-					|| parameters.en_text;
+			text_displayed = order[3] !== undefined ? parameters[order[3]]
+			// default parameters
+			: parameters.lt || parameters.label || parameters.en_text;
 			if (text_displayed) {
 				if (text_displayed !== link_target)
 					link += '|' + text_displayed;
