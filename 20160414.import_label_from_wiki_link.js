@@ -210,7 +210,7 @@ function language_label(language) {
 function try_decode(title) {
 	if (typeof title === 'string' && title.includes('%')) {
 		try {
-			return decodeURIComponent(title);
+			return decodeURIComponent(title).replace(/<\!--[\s\S]*?-->/g, '');
 		} catch (e) {
 		}
 	}
