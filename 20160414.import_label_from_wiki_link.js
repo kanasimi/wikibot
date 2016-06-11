@@ -1202,9 +1202,9 @@ function next_label_data_work() {
 			return;
 		}
 
-		// 取消重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
+		// 取消 foreign page 重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		if (typeof redirect_data === 'object') {
-			CeL.info('next_label_data_work.check_label: Skip [[' + full_title
+			CeL.info('next_label_data_work.check_label: 重新導向到章節: Skip [[' + full_title
 					+ ']] → [[' + redirect_data.to + '#'
 					+ redirect_data.tofragment + ']] @ [['
 					+ titles.join(']], [[') + ']]');
