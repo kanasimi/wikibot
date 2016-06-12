@@ -1204,7 +1204,7 @@ function next_label_data_work() {
 
 		// 取消 foreign page 重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		if (typeof redirect_data === 'object') {
-			CeL.info('next_label_data_work.check_label: 重新導向到章節: Skip [[' + full_title
+			CeL.info('next_label_data_work.check_label: 重新導向到章節, skip [[' + full_title
 					+ ']] → [[' + redirect_data.to + '#'
 					+ redirect_data.tofragment + ']] @ [['
 					+ titles.join(']], [[') + ']]');
@@ -1281,6 +1281,14 @@ function finish_work() {
 // rm import_label_from_wiki_link/labels.json
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
+
+try {
+	// delete cache.
+	require('fs').unlinkSync(
+			base_directory + 'labels.' + use_language + '.json');
+} catch (e) {
+	// TODO: handle exception
+}
 
 // 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
