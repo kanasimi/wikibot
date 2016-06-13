@@ -1402,15 +1402,13 @@ CeL.wiki.cache([ {
 	type : 'callback',
 	file_name : 'en_titles.json',
 	list : function() {
-		return require('fs')
+		return CeL.fs_read('/shared/dumps/enwiki-20160601-all-titles-in-ns0',
 		/**
 		 * <code>
 		cd /shared/dumps/ && gzip -cd /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz > enwiki-20160601-all-titles-in-ns0
 		 * </code>
 		 */
-		.readFileSync('/shared/dumps/enwiki-20160601-all-titles-in-ns0')
-		//
-		.toLowerCase().split('\n').filter(function(title) {
+		'utf8').toLowerCase().split('\n').filter(function(title) {
 			return /^[a-z][a-z\-\s,\d]{3,}$/i.test(title);
 		}).sort();
 	},
