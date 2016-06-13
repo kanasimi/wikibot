@@ -105,7 +105,7 @@ wiki = Wiki(true),
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 3000,
 // ((Infinity)) for do all.
-test_limit = 10,
+test_limit = 200,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
@@ -147,10 +147,11 @@ PATTERN_language_label = CeL.null_Object(),
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
 
+en_titles,
 // match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
-// /[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
+// /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
 // [ all, including local title, including foreign title ]
-PATTERN_title_in_lead_section = /[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}[]\n]+)[（(]([^（()）{}[]\n]+)/,
+PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n]+)[（(]([^（()）{}\[\]\n]{3,})/,
 
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -365,101 +366,103 @@ function for_each_page(page_data, messages) {
 
 	// ----------------------------------------------------
 
-	// parse 跨語言連結模板
-	CeL.wiki.parse.every(parse_templates, content, function(token) {
-		// console.log(token);
+	if (0)
+		// parse 跨語言連結模板
+		CeL.wiki.parse.every(parse_templates, content, function(token) {
+			// console.log(token);
 
-		var foreign_language, foreign_title, label,
-		//
-		template_name = token[1].toLowerCase().replace(/_/g, ' ');
+			var foreign_language, foreign_title, label,
+			//
+			template_name = token[1].toLowerCase().replace(/_/g, ' ');
 
-		switch (template_name) {
-		case 'translink':
-		case 'tsl':
-			// {{tsl|en|foreign title|local title}}
-			foreign_language = token[2][1];
-			foreign_title = token[2][2];
-			label = token[2][3];
-			break;
+			switch (template_name) {
+			case 'translink':
+			case 'tsl':
+				// {{tsl|en|foreign title|local title}}
+				foreign_language = token[2][1];
+				foreign_title = token[2][2];
+				label = token[2][3];
+				break;
 
-		case 'ill':
-		case 'interlanguage link':
-			// {{ill|en|local title|foreign title}}
-			foreign_language = token[2][1];
-			label = token[2][2];
-			foreign_title = token[2][3];
-			break;
-
-		case 'liw':
-		case 'illm':
-		case 'ill2':
-		case 'interlanguage link multi':
-			// @see
-			// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
-		case '仮リンク':
-		case '多語言連結':
-			label = token[2][1];
-			if (token[2].WD) {
-				// {{illm|WD=Q1}}
-				foreign_language = 'WD';
-				foreign_title = token[2].WD;
-			} else {
-				// {{illm|local title|en|foreign title}}
-				// {{liw|local title|en|foreign title}}
-				// {{liw|中文項目名|語言|其他語言頁面名|...}}
-				foreign_language = token[2][2];
+			case 'ill':
+			case 'interlanguage link':
+				// {{ill|en|local title|foreign title}}
+				foreign_language = token[2][1];
+				label = token[2][2];
 				foreign_title = token[2][3];
+				break;
+
+			case 'liw':
+			case 'illm':
+			case 'ill2':
+			case 'interlanguage link multi':
+				// @see
+				// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
+			case '仮リンク':
+			case '多語言連結':
+				label = token[2][1];
+				if (token[2].WD) {
+					// {{illm|WD=Q1}}
+					foreign_language = 'WD';
+					foreign_title = token[2].WD;
+				} else {
+					// {{illm|local title|en|foreign title}}
+					// {{liw|local title|en|foreign title}}
+					// {{liw|中文項目名|語言|其他語言頁面名|...}}
+					foreign_language = token[2][2];
+					foreign_title = token[2][3];
+				}
+				break;
+
+			case 'link-interwiki':
+				// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
+				label = token[2][use_language];
+				foreign_language = token[2].lang;
+				foreign_title = token[2].lang_title;
+				break;
+
+			case 'ilh':
+			case 'internal link helper':
+				// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
+				label = token[2][1];
+				foreign_title = token[2][2];
+				foreign_language = token[2]['lang-code'];
+				break;
+
+			case 'le':
+				// {{le|local title|foreign title|show}}
+				label = token[2][1];
+				foreign_title = token[2][2];
+				foreign_language = 'en';
+				break;
+
+			default:
+				// {{Internal link helper}}系列模板
+				// {{link-en|local title|foreign title}}
+				foreign_language = template_name.startsWith('link-')
+				// 5: 'link-'.length, '-link'.length
+				? template_name.slice(5)
+				// assert: template_name.endsWith('-link')
+				: template_name.slice(0, -5);
+				label = token[2][1];
+				foreign_title = token[2][2];
+				break;
 			}
-			break;
 
-		case 'link-interwiki':
-			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
-			label = token[2][use_language];
-			foreign_language = token[2].lang;
-			foreign_title = token[2].lang_title;
-			break;
-
-		case 'ilh':
-		case 'internal link helper':
-			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
-			label = token[2][1];
-			foreign_title = token[2][2];
-			foreign_language = token[2]['lang-code'];
-			break;
-
-		case 'le':
-			// {{le|local title|foreign title|show}}
-			label = token[2][1];
-			foreign_title = token[2][2];
-			foreign_language = 'en';
-			break;
-
-		default:
-			// {{Internal link helper}}系列模板
-			// {{link-en|local title|foreign title}}
-			foreign_language = template_name.startsWith('link-')
-			// 5: 'link-'.length, '-link'.length
-			? template_name.slice(5)
-			// assert: template_name.endsWith('-link')
-			: template_name.slice(0, -5);
-			label = token[2][1];
-			foreign_title = token[2][2];
-			break;
-		}
-
-		if (label && (label = to_plain_text(label)) && isNaN(label)
-		// label, title 不可包含 {{}}[[]]。
-		&& !/[{}\[\]]{2}/.test(label)
-		//
-		&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
-		//
-		&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
-			add_label(foreign_language, try_decode(foreign_title),
-					try_decode(label), null, token[0]);
-		} else if (!label && !foreign_title || !foreign_language) {
-			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
-		}
-	});
+			if (label && (label = to_plain_text(label)) && isNaN(label)
+			// label, title 不可包含 {{}}[[]]。
+			&& !/[{}\[\]]{2}/.test(label)
+			//
+			&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
+			//
+			&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
+				add_label(foreign_language, try_decode(foreign_title),
+						try_decode(label), null, token[0]);
+			} else if (!label && !foreign_title || !foreign_language) {
+				CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
+						+ ']]');
+			}
+		});
 
 	// ----------------------------------------------------
 
@@ -489,34 +492,46 @@ function for_each_page(page_data, messages) {
 	) {
 		// matched 量可能達數十萬！
 		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
-		CeL.debug('[[' + title + ']]: ' + matched[0], 4);
+		CeL.debug('[[' + title + ']] lead: ' + matched[0], 4);
 		var label = matched[2].replace(/<[a-z][^<>]*>/g, ''), token = matched[0]
-				.trim(), foreign_title;
+				.trim(), foreign_title = null, foreign_language;
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
-		matched = label.match(/{{\s*[Ll]ang[-|]([a-z\-]+)\s*\|([^{}]+)}}/);
+		matched = label
+				.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,20})}}/);
 
 		if (matched
 		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
 		&& (foreign_title = to_plain_text(matched[2]))) {
-			add_label(use_language, title, foreign_title, matched[1],
-					matched[0], token, 1);
+			foreign_language = matched[1];
+			CeL.debug('title@lead type 1: [[' + title + ']] → [['
+					+ foreign_language + ':' + foreign_title + ']]', 0);
 
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
 		// 檢查 "'''條目名'''（en title，...）"
 		// "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
-		.match(/^[a-z\-\s,\d]*(''')?([a-z\-\s,\d]+)/i))
-				&& (foreign_title = (matched[1] ? matched[2] : matched[2]
-						.replace(/[（()），;；。].*$/, '')).trim())) {
-			add_label(use_language, title, foreign_title, 'en', token, 1);
+		.match(/^([a-z\-\s,\d]{0,8}''')?([a-z][a-z\-\s,\d]{3,})/i))
+				&& (foreign_title = to_plain_text(matched[1] ? matched[2]
+						: matched[2].replace(/[（()），;；。].*$/, '')))) {
+			foreign_language = 'en';
+			CeL.debug('title@lead type 2: [[' + title + ']] → en:[['
+					+ foreign_title + ']]', 0);
 
-		} else {
+		}
+
+		if (foreign_title) {
+			if (!en_titles.search_sorted(foreign_title))
+				add_label(use_language, title, foreign_title, foreign_language,
+						token, 1);
+		} else if (CeL.is_debug(2)) {
 			CeL.log(
 			//
 			'[[' + title + ']]: Unknown label pattern: [' + label + ']');
 		}
 	}
+
+	return;
 
 	// ----------------------------------------------------
 
@@ -1294,16 +1309,17 @@ function finish_work() {
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
-try {
-	// delete cache.
-	// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
-	require('fs').unlinkSync(
-			base_directory + 'all_pages.' + use_language + '.json');
-	require('fs').unlinkSync(
-			base_directory + 'labels.' + use_language + '.json');
-} catch (e) {
-	// TODO: handle exception
-}
+if (0)
+	try {
+		// delete cache.
+		// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
+		require('fs').unlinkSync(
+				base_directory + 'all_pages.' + use_language + '.json');
+		require('fs').unlinkSync(
+				base_directory + 'labels.' + use_language + '.json');
+	} catch (e) {
+		// TODO: handle exception
+	}
 
 // 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
@@ -1382,6 +1398,25 @@ CeL.wiki.cache([ {
 		PATTERN_common_title = new RegExp(data.source, data.flags);
 	}
 
+}, {
+	type : 'callback',
+	file_name : 'en_titles.json',
+	list : function() {
+		return require('fs')
+		/**
+		 * <code>
+		cd /shared/dumps/ && gzip -cd /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz > enwiki-20160601-all-titles-in-ns0
+		 * </code>
+		 */
+		.readFileSync('/shared/dumps/enwiki-20160601-all-titles-in-ns0')
+		//
+		.toLowerCase().split('\n').filter(function(title) {
+			return /^[a-z][a-z\-\s,\d]{3,}$/i.test(title);
+		}).sort();
+	},
+	operator : function(data) {
+		en_titles = data;
+	}
 }, {
 	type : 'callback',
 	file_name : 'labels.' + use_language + '.json',
