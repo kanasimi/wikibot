@@ -478,12 +478,12 @@ function for_each_page(page_data, messages) {
 
 	matched = content
 	// 去除一開始的維護模板。
-	.replace_till_stable(/^[\s\n]*{{[^{}]+}}/g, '')
 	// [ all, including local title, including foreign title ]
-	.match(/[\s\n]*([^（()）]+)[（(]([^（()）]+)/);
+	.match(/[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/);
 	if (matched
 	// 對此無效: [[卡尔·古斯塔夫 (伊森堡-比丁根)]], [[奥托二世 (萨尔姆-霍斯特马尔)]]
-	&& matched[1].includes("'''" + title + "'''")) {
+	// && matched[1].includes("'''" + title + "'''")
+	) {
 		// matched 量可能達數十萬！
 		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
 		CeL.debug('[[' + title + ']]: ' + matched[0], 4);
