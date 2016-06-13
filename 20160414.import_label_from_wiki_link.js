@@ -146,6 +146,12 @@ PATTERN_language_label = CeL.null_Object(),
 //
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
+
+// match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
+// /[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
+// [ all, including local title, including foreign title ]
+PATTERN_title_in_lead_section = /[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}[]\n]+)[（(]([^（()）{}[]\n]+)/,
+
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
@@ -476,10 +482,7 @@ function for_each_page(page_data, messages) {
 	 * @see /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz
 	 */
 
-	matched = content
-	// 去除一開始的維護模板。
-	// [ all, including local title, including foreign title ]
-	.match(/[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/);
+	matched = content.match(PATTERN_title_in_lead_section);
 	if (matched
 	// 對此無效: [[卡尔·古斯塔夫 (伊森堡-比丁根)]], [[奥托二世 (萨尔姆-霍斯特马尔)]]
 	// && matched[1].includes("'''" + title + "'''")
@@ -487,7 +490,8 @@ function for_each_page(page_data, messages) {
 		// matched 量可能達數十萬！
 		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
 		CeL.debug('[[' + title + ']]: ' + matched[0], 4);
-		var label = matched[2], token = matched[0].trim(), foreign_title;
+		var label = matched[2].replace(/<[a-z][^<>]*>/g, ''), token = matched[0]
+				.trim(), foreign_title;
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
 		matched = label.match(/{{\s*[Ll]ang[-|]([a-z\-]+)\s*\|([^{}]+)}}/);
@@ -498,13 +502,13 @@ function for_each_page(page_data, messages) {
 			add_label(use_language, title, foreign_title, matched[1],
 					matched[0], token, 1);
 
-		} else if (matched = label
+		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
 		// 檢查 "'''條目名'''（en title，...）"
 		// "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
-		.match(/^[a-z\s]*(''')?([a-z\s,\-\d\s]+)/i)
+		.match(/^[a-z\-\s,\d]*(''')?([a-z\-\s,\d]+)/i))
 				&& (foreign_title = (matched[1] ? matched[2] : matched[2]
-						.replace(/[（()），；。].*$/, '')).trim())) {
+						.replace(/[（()），;；。].*$/, '')).trim())) {
 			add_label(use_language, title, foreign_title, 'en', token, 1);
 
 		} else {
