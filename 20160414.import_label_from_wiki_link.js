@@ -105,7 +105,7 @@ wiki = Wiki(true),
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 3000,
 // ((Infinity)) for do all.
-test_limit = Infinity,
+test_limit = 10,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
@@ -208,9 +208,13 @@ function language_label(language) {
 }
 
 function try_decode(title) {
-	if (typeof title === 'string' && title.includes('%')) {
+	if (typeof title === 'string') {
+		// 對日文版，有必要刪除註解。
+		title = title.replace(/<\!--[\s\S]*?-->/g, '');
+
+		// if(title.includes('%'))
 		try {
-			return decodeURIComponent(title).replace(/<\!--[\s\S]*?-->/g, '');
+			return decodeURIComponent(title);
 		} catch (e) {
 		}
 	}
@@ -459,51 +463,55 @@ function for_each_page(page_data, messages) {
 
 	// ----------------------------------------------------
 
-	// TODO: 必須先確定 en 無此條目!
-	// /public/dumps/public/enwiki/20160501/enwiki-20160501-all-titles-in-ns0.gz
-	// TODO: 此階段所加的，在 wikidata 階段需要確保目標 wiki 無此條目。
-
 	/**
+	 * 從文章的開頭部分辨識出本地語言(本國語言)以及外國原文label。
+	 * 
+	 * TODO: 此階段所加的，必須先確定 en 無此條目。最晚在 wikidata 階段需要確保目標 wiki 無此條目。
+	 * 
 	 * <code>
 	'''亨利·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（[[英文]]：Henry Alfred Kissinger，本名'''海因茨·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（Heinz Alfred Kissinger），{{bd|1923年|5月27日|}}）
 	'''动粒<ref>[http://www.term.gov.cn/pages/homepage/result2.jsp?id=171683&subid=10000633&subject=%E5%8C%BB%E5%AD%A6%E9%81%97%E4%BC%A0%E5%AD%A6&subsys=%E5%8C%BB%E5%AD%A6]</ref>'''或'''着丝点'''（{{lang-en|Kinetochore}}）
 	</code>
+	 * 
+	 * @see /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz
 	 */
 
-	content = content
-	// 去除維護模板。
-	.replace(/^\s*{{[^{}]+}}/g, '');
-
-	if (false) {
-		// 從文章的開頭部分辨識出本地語言(本國語言)以及外國原文。
-		matched = content
+	matched = content
+	// 去除一開始的維護模板。
+	.replace_till_stable(/^[\s\n]*{{[^{}]+}}/g, '')
+	// [ all, including local title, including foreign title ]
+	.match(/[\s\n]*([^（()）]+)[（(]([^（()）]+)/);
+	if (matched
+	// 對此無效: [[卡尔·古斯塔夫 (伊森堡-比丁根)]], [[奥托二世 (萨尔姆-霍斯特马尔)]]
+	&& matched[1].includes("'''" + title + "'''")) {
+		// matched 量可能達數十萬！
+		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
+		CeL.debug('[[' + title + ']]: ' + matched[0], 4);
+		var label = matched[2], token = matched[0].trim(), foreign_title;
+		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
-		.match(/\s*'''([^']+)'''\s*[（(]([^（()）;，；{]+)/);
-		if (matched) {
-			// matched 量可能達數十萬！
-			CeL.debug('[[' + title + ']]: ' + matched[0]);
-			var label = matched[2].trim(), token = matched[0];
-			// 檢查 '''條目名'''（{{lang-en|'''en title'''}}...）
-			matched = label.match(/{{[Ll]ang[-|]([a-z\-]+)\|([^{}]+)}}/);
-			if (matched) {
-				matched[1] = matched[1].trim();
-				matched[2] = to_plain_text(matched[2]);
-				if (matched[1] && matched[2]) {
-					add_label(use_language, title, matched[2], matched[1],
-							matched[0], 1);
-				}
-			} else if (matched = label
-					.match(/^(?:''')?([a-z\s,\-\d\s]+)(?:''')?$/i)) {
-				// '''條目名'''（'''en title'''）
-				add_label(use_language, title, matched[1].trim(), 'en', token,
-						1);
-			} else {
-				CeL.log('[[' + title + ']]: Unknown label pattern: [' + label
-						+ ']');
-			}
-		}
+		matched = label.match(/{{\s*[Ll]ang[-|]([a-z\-]+)\s*\|([^{}]+)}}/);
 
-		return;
+		if (matched
+		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
+		&& (foreign_title = to_plain_text(matched[2]))) {
+			add_label(use_language, title, foreign_title, matched[1],
+					matched[0], token, 1);
+
+		} else if (matched = label
+		// 檢查 "'''條目名'''（'''en title'''）"
+		// 檢查 "'''條目名'''（en title，...）"
+		// "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
+		.match(/^[a-z\s]*(''')?([a-z\s,\-\d\s]+)/i)
+				&& (foreign_title = (matched[1] ? matched[2] : matched[2]
+						.replace(/[（()），；。].*$/, '')).trim())) {
+			add_label(use_language, title, foreign_title, 'en', token, 1);
+
+		} else {
+			CeL.log(
+			//
+			'[[' + title + ']]: Unknown label pattern: [' + label + ']');
+		}
 	}
 
 	// ----------------------------------------------------
@@ -1204,8 +1212,8 @@ function next_label_data_work() {
 
 		// 取消 foreign page 重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		if (typeof redirect_data === 'object') {
-			CeL.info('next_label_data_work.check_label: 重新導向到章節, skip [[' + full_title
-					+ ']] → [[' + redirect_data.to + '#'
+			CeL.info('next_label_data_work.check_label: 重新導向到章節, skip [['
+					+ full_title + ']] → [[' + redirect_data.to + '#'
 					+ redirect_data.tofragment + ']] @ [['
 					+ titles.join(']], [[') + ']]');
 			// do next.
@@ -1284,6 +1292,9 @@ prepare_directory(base_directory);
 
 try {
 	// delete cache.
+	// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
+	require('fs').unlinkSync(
+			base_directory + 'all_pages.' + use_language + '.json');
 	require('fs').unlinkSync(
 			base_directory + 'labels.' + use_language + '.json');
 } catch (e) {

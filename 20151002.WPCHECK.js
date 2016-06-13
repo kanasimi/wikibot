@@ -455,7 +455,7 @@ CeL.RegExp.category.RandAL = '\u05BE\u05C0\u05C3\u05D0-\u05EA\u05F0-\u05F4\u061B
 // !/^(?:[^\p{C}]|[\n\t])$/
 var PATTERN_Unicode_invalid_wikitext = new RegExp('['
 		+ CeL.RegExp.category.invalid + ']'),
-//
+// @see CeL.data.native for Unicode category (e.g., \p{Cf})
 PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]*\[[\p{Cf}]*/g),
 //
 PATTERN_invisible_end = CeL.RegExp(/[\p{Cf}]*\][\p{Cf}]*\][\p{Cf}]*/g),
@@ -498,6 +498,9 @@ function replace_to_rtl_lang(all, language, text) {
 // unicode invisible character
 // https://zh.wikipedia.org/w/index.php?title=Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97&wpSearchFilter=180
 // 防濫用過濾器180: added_lines rlike '[^\PC\n\t]'
+// [{{fullurl:Special:RecentChanges|tagfilter=unicode pua}} pua]
+// [{{fullurl:Special:RecentChanges|tagfilter=unicode other}} other]
+// [{{fullurl:Special:RecentChanges|tagfilter=unicode misc}} misc]
 // TODO: {{PUA|\uf06e}}
 fix_16.title = '去除條目中之不可見字符與Unicode控制字符';
 function fix_16(content, page_data, messages, options) {
