@@ -152,7 +152,7 @@ common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 // match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
 // [ all, token including local title, including foreign title ]
-PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n]+[（(]([^（()）{}\[\]\n]{3,}))/,
+PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n\t]+[（(]([^（()）{}\[\]\n\t]{3,}))/,
 
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -474,9 +474,10 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	/**
-	 * 從文章的開頭部分辨識出本地語言(本國語言)以及外國原文label。
+	 * 從文章的開頭部分辨識出本地語言(本國語言)以及外國原文label。 此階段所加的，必須先確定 en 無此條目。最晚在 wikidata
+	 * 階段需要確保目標 wiki 無此條目。
 	 * 
-	 * TODO: 此階段所加的，必須先確定 en 無此條目。最晚在 wikidata 階段需要確保目標 wiki 無此條目。
+	 * TODO: Q32956 之類 foreign_language 判別不當的情況。
 	 * 
 	 * <code>
 	'''亨利·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（[[英文]]：Henry Alfred Kissinger，本名'''海因茨·-{zh-cn:阿尔弗雷德;zh-tw:阿佛列;zh-hk:亞弗列;}-·基辛格'''（Heinz Alfred Kissinger），{{bd|1923年|5月27日|}}）
@@ -512,6 +513,9 @@ function for_each_page(page_data, messages) {
 		// 檢查 "'''條目名'''（'''en title'''）"
 		// 檢查 "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
 		.match(/^[a-z\-\s,\d]{0,8}'''([^:：{}<>()]{3,20})'''/i))
+		// e.g., [[zh:城域网]], [[zh:ISM频段]]: "'''A'''... '''B'''... '''C'''..."
+		// e.g., [[zh:电影手册]]
+		&& !matched[1].includes("''")
 				&& (foreign_title = to_plain_text(matched[1]))
 				&& (foreign_language = CeL.wiki.guess_language(foreign_title))) {
 			CeL.debug("title@lead type '''title''': [[' + title + ']] → [["
@@ -520,6 +524,7 @@ function for_each_page(page_data, messages) {
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（en title，...）"
 		// '''霍夫曼的故事'''（Les Contes d`Hoffmann）
+		// 注意: 此處已不可包含 "''"。
 		// @see common_characters
 		.match(/^([a-z][a-z\s\d,.\-–`]{3,})[)），;；。]/i))
 				&& (foreign_title = to_plain_text(matched[1]))) {
@@ -830,8 +835,16 @@ PATTERN_interlanguage = /[英中日德法西義韓諺俄独原][語语國国]?�
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
 
+function normalize_en_label(label) {
+	return label.toLowerCase().replace(/[\s\-]+/g, '')
+	// 去掉複數
+	.replace(/s$/g, '');
+}
+
 function process_wikidata(full_title, foreign_language, foreign_title) {
-	var labels = label_data[full_title], titles = labels[1];
+	var labels = label_data[full_title], titles = labels[1],
+	// no_need_check: 對於這些標籤，只在沒有英文的情況下才加入。
+	no_need_check = labels[NO_NEED_CHECK_INDEX];
 	labels = labels[0];
 
 	// TODO: 一次取得多筆資料。
@@ -840,7 +853,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		language : foreign_language
 	},
 	// 不設定 property
-	null, modify_Wikipedia && function(entity) {
+	null, modify_Wikipedia && !no_need_check && function(entity) {
 		if (label_data_index > test_limit)
 			return;
 
@@ -987,6 +1000,30 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		props : 'labels|aliases|claims|sitelinks'
 
 	}).edit_data(function(entity) {
+		if (no_need_check && entity.labels) {
+			var o_label = entity.labels[f_language],
+			// foreign language
+			f_language, f_label;
+			// assert: Object.keys(labels).length === 1
+			for (f_language in labels) {
+				f_label = labels[f_language][0];
+				break;
+			}
+			// assert: labels[f_language].length === 1
+			if (!f_label || o_label
+			// 測試正規化後是否等價。
+			&& normalize_en_label(o_label) === normalize_en_label(f_label)) {
+				CeL.debug('跳過從文章的開頭部分辨識出之外國原文label: '
+				// 確保目標 wiki 無等價之 label。
+				+ entity.id + ': [[' + foreign_language
+				//
+				+ ':' + foreign_title + ']]: 已存在 [' + o_label
+				//
+				+ ']，放棄 [' + f_label + ']');
+				return [ CeL.wiki.edit.cancel, 'skip' ];
+			}
+		}
+
 		if (CeL.wiki.data.is_DAB(entity)) {
 			// is Q4167410: Wikimedia disambiguation page
 			// 維基媒體消歧義頁
