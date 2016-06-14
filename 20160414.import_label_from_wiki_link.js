@@ -147,7 +147,7 @@ PATTERN_language_label = CeL.null_Object(),
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
 
-en_titles,
+// en_titles,
 // match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
 // [ all, including local title, including foreign title ]
@@ -521,9 +521,9 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (foreign_title) {
-			if (!en_titles.search_sorted(foreign_title))
-				add_label(use_language, title, foreign_title, foreign_language,
-						token, 1);
+			// if (!en_titles.search_sorted(foreign_title))
+			add_label(use_language, title, foreign_title, foreign_language,
+					token, 1);
 		} else if (CeL.is_debug(2)) {
 			CeL.log(
 			//
@@ -531,6 +531,7 @@ function for_each_page(page_data, messages) {
 		}
 	}
 
+	// 僅處理"從文章的開頭部分辨識出本地語言(本國語言)以及外國原文label"之部分。
 	return;
 
 	// ----------------------------------------------------
@@ -661,7 +662,9 @@ function merge_label_data(callback) {
 		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title,
 		// no_need_check, revid ]
-		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5], no_need_check = line[6],
+		var title = line[0], token = line[1], foreign_language = line[2], foreign_title = line[3], local_language = line[4], label = line[5],
+		// type no_need_check: 不需檢查 foreign_title 是否存在。
+		no_need_check = line[6],
 		// ((revid|0)) 可能出問題。
 		revid = Math.floor(line[7]);
 
@@ -1398,12 +1401,17 @@ CeL.wiki.cache([ {
 		PATTERN_common_title = new RegExp(data.source, data.flags);
 	}
 
-}, {
+}, false && {
 	type : 'callback',
 	file_name : 'en_titles.json',
 	list : function() {
 		return CeL.fs_read('/shared/dumps/enwiki-20160601-all-titles-in-ns0',
 		/**
+		 * 若直接讀入 all-titles-in-ns0，會出現 <code>
+		FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
+		 * </code>
+		 * 但若要每個查詢一次資料庫，不如乾脆列入排程。因此跳過此步。
+		 * 
 		 * <code>
 		cd /shared/dumps/ && gzip -cd /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz > enwiki-20160601-all-titles-in-ns0
 		 * </code>
