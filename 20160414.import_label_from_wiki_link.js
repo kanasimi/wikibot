@@ -19,6 +19,7 @@
  parse [[西利西利]]山（Mauga Silisili）
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
+ [[亨利·弗拉格勒]]（{{lang-en|Henry Flager}}）
  遊戲設計者[[艾德·格林伍德]](Ed Greenwood)所創造。
  美國白皮鬆 → 美國白皮松
  相撲力士鬆太郎 → 相撲力士松太郎
@@ -143,15 +144,15 @@ PATTERN_common_title,
 PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
 PATTERN_language_label = CeL.null_Object(),
-//
+// e.g., '[\\s\\d_,.:;\'"!()\\-+\\&<>\\\\\\/\\?–`@#$%^&*=~×☆★♪♫♬♩○●©®℗™℠]*'
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
 
 // en_titles,
 // match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
-// [ all, including local title, including foreign title ]
-PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n]+)[（(]([^（()）{}\[\]\n]{3,})/,
+// [ all, token including local title, including foreign title ]
+PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n]+[（(]([^（()）{}\[\]\n]{3,}))/,
 
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -492,31 +493,39 @@ function for_each_page(page_data, messages) {
 	) {
 		// matched 量可能達數十萬！
 		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
-		CeL.debug('[[' + title + ']] lead: ' + matched[0], 4);
-		var label = matched[2].replace(/<[a-z][^<>]*>/g, ''), token = matched[0]
+		var label = matched[2].replace(/<[a-z][^<>]*>/g, ''), token = matched[1]
 				.trim(), foreign_title = null, foreign_language;
+		CeL.debug('[[' + title + ']] lead: ' + token, 4);
+
+		if ((matched = label
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
-		matched = label
-				.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,20})}}/);
-
-		if (matched
+		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,20})}}/))
 		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
 		&& (foreign_title = to_plain_text(matched[2]))) {
 			foreign_language = matched[1];
-			CeL.debug('title@lead type 1: [[' + title + ']] → [['
-					+ foreign_language + ':' + foreign_title + ']]', 0);
+			CeL.debug(
+					'title@lead type {{lang-xx|title}}: [[' + title + ']] → [['
+							+ foreign_language + ':' + foreign_title + ']]', 0);
 
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
+		// 檢查 "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
+		.match(/^[a-z\-\s,\d]{0,8}'''([^:：{}<>()]{3,20})'''/i))
+				&& (foreign_title = to_plain_text(matched[1]))
+				&& (foreign_language = CeL.wiki.guess_language(foreign_title))) {
+			CeL.debug("title@lead type '''title''': [[' + title + ']] → [["
+					+ foreign_language + ':' + foreign_title + ']]', 0);
+
+		} else if ((matched = label
 		// 檢查 "'''條目名'''（en title，...）"
-		// "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
-		.match(/^([a-z\-\s,\d]{0,8}''')?([a-z][a-z\-\s,\d]{3,})/i))
-				&& (foreign_title = to_plain_text(matched[1] ? matched[2]
-						: matched[2].replace(/[（()），;；。].*$/, '')))) {
+		// '''霍夫曼的故事'''（Les Contes d`Hoffmann）
+		// @see common_characters
+		.match(/^([a-z][a-z\s\d,.\-–`]{3,})[)），;；。]/i))
+				&& (foreign_title = to_plain_text(matched[1]))) {
 			foreign_language = 'en';
-			CeL.debug('title@lead type 2: [[' + title + ']] → en:[['
-					+ foreign_title + ']]', 0);
+			CeL.debug('title@lead type （title，...）: [[' + title + ']] → [['
+					+ foreign_language + ':' + foreign_title + ']]', 0);
 
 		}
 
@@ -577,7 +586,7 @@ function for_each_page(page_data, messages) {
 			}
 		}
 
-		// 排除 [[:en:Day|en]] 之類。
+		// 排除 [[:en:Day|en]] 之類，label 僅包含 language 資訊者。
 		if (language_label(matched[1]).test(label)
 		// 去除國名或常用字詞。 @see [[瓦倫蒂諾·羅西]]
 		|| PATTERN_common_title.test(label))
@@ -674,9 +683,9 @@ function merge_label_data(callback) {
 			++label_data_length;
 			if (label_data_length <= log_limit) {
 				// 此 label 指向
-				CeL.log([ label_data_length + ':', 'fg=yellow', label, '-fg',
-						'→', 'fg=cyan', full_title, '-fg',
-						'@ [[' + title + ']]: ' + token ]);
+				CeL.log([ 'parse_line: ' + label_data_length + ':',
+						'fg=yellow', label, '-fg', '→', 'fg=cyan', full_title,
+						'-fg', '@ [[' + title + ']]: ' + token ]);
 			}
 			// 為防止有重複，在此不 push()。
 			// label_data_keys.push(full_title);
