@@ -97,7 +97,7 @@ CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 // Set default language. 改變預設之語言。 e.g., 'zh'
-// set_language('zh');
+set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -106,7 +106,7 @@ wiki = Wiki(true),
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 3000,
 // ((Infinity)) for do all.
-test_limit = 200,
+test_limit = 50,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
@@ -539,6 +539,7 @@ function for_each_page(page_data, messages) {
 			// if (!en_titles.search_sorted(foreign_title))
 			add_label(use_language, title, foreign_title, foreign_language,
 					token, 1);
+
 		} else if (CeL.is_debug(2)) {
 			CeL.log(
 			//
@@ -834,10 +835,55 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 // 日本稱{{lang|ja|'''[[:ja:知的財産権|知的財産法]]'''}}）
 PATTERN_interlanguage = /[英中日德法西義韓諺俄独原][語语國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
 // e.g., {{lang|en|[[:en:T]]}}
-PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g;
+PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g,
+/**
+ * 振り仮名 / 読み仮名 の正規表現。
+ * 
+ * @type {RegExp}
+ * @see [[d:Property:P1814|假名]]
+ */
+PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　]+$/);
+
+function 仮名_claim(仮名, imported_from) {
+	return {
+		"claims" : [ {
+			"mainsnak" : {
+				"snaktype" : "value",
+				// 改 Property:P1814
+				"property" : "P1814",
+				"datavalue" : {
+					"value" : 仮名,
+					"type" : "string"
+				},
+				"datatype" : "string"
+			},
+			// 必要
+			"type" : "statement",
+			// https://www.wikidata.org/wiki/Wikidata:Database_reports/Constraint_violations
+			"references" : [ {
+				"snaks" : {
+					"P143" : [ {
+						"snaktype" : "value",
+						"property" : "P143",
+						"datavalue" : {
+							"value" : {
+								"entity-type" : "item",
+								// Q177837: Japanese Wikipedia ウィキペディア日本語版
+								"numeric-id" : imported_from || 177837
+							},
+							"type" : "wikibase-entityid"
+						},
+						"datatype" : "wikibase-item"
+					} ]
+				},
+				"snaks-order" : [ "P143" ]
+			} ]
+		} ]
+	};
+}
 
 function normalize_en_label(label) {
-	return label.toLowerCase().replace(/[\s\-]+/g, '')
+	return label && label.toLowerCase().replace(/[\s\-]+/g, '')
 	// 去掉複數
 	.replace(/s$/g, '');
 }
@@ -1011,7 +1057,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				f_label = labels[f_language][0];
 				break;
 			}
-			var o_label = entity.labels[f_language].value;
+			var o_label = entity.labels[f_language]
+			//
+			&& entity.labels[f_language].value;
 			// assert: labels[f_language].length === 1
 			if (!f_label || o_label
 			// 測試正規化後是否等價。
@@ -1031,6 +1079,16 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				//
 				+ '!==' + JSON.stringify(normalize_en_label(f_label)));
 			}
+
+			if (use_language === foreign_language
+			//
+			&& use_language === 'ja') {
+				if (PATTERN_読み仮名.test(foreign_language)) {
+					// treat foreign_language as 読み仮名.
+					return 仮名_claim(foreign_language);
+				}
+			}
+
 		}
 
 		if (CeL.wiki.data.is_DAB(entity)) {
