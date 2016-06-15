@@ -227,7 +227,8 @@ function try_decode(title) {
 		} catch (e) {
 		}
 	}
-	return title;
+	// for '&#x0259;'
+	return CeL.HTML_to_Unicode(title);
 }
 
 /**
