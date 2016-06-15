@@ -1054,9 +1054,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			if (use_language === foreign_language
 			//
 			&& use_language === 'ja') {
-				if (PATTERN_読み仮名.test(foreign_language)) {
-					// treat foreign_language as 読み仮名.
-					return 仮名_claim(foreign_language);
+				if (PATTERN_読み仮名.test(foreign_title)) {
+					// treat foreign_title as 読み仮名.
+					return 仮名_claim(foreign_title);
 				}
 			}
 
