@@ -148,6 +148,7 @@ PATTERN_language_label = CeL.null_Object(),
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
 
+// @see 文章的開頭部分[[WP:LEAD|導言章節]] (lead section, introduction)
 // en_titles,
 // match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
@@ -474,8 +475,8 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	/**
-	 * 從文章的開頭部分辨識出本地語言(本國語言)以及外國原文label。 此階段所加的，必須先確定 en 無此條目。最晚在 wikidata
-	 * 階段需要確保目標 wiki 無此條目。
+	 * 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。 此階段所加的，必須先確定 en
+	 * 無此條目。最晚在 wikidata 階段需要確保目標 wiki 無此條目。
 	 * 
 	 * TODO: Q32956 之類 foreign_language 判別不當的情況。
 	 * 
@@ -526,7 +527,7 @@ function for_each_page(page_data, messages) {
 		// '''霍夫曼的故事'''（Les Contes d`Hoffmann）
 		// 注意: 此處已不可包含 "''"。
 		// @see common_characters
-		.match(/^([a-z][a-z\s\d,.\-–`]{3,})[)），;；。]/i))
+		.match(/^([a-z][a-z\s\d,.\-–`]{3,40})[)），;；。]/i))
 				&& (foreign_title = to_plain_text(matched[1]))) {
 			foreign_language = 'en';
 			CeL.debug('title@lead type （title，...）: [[' + title + ']] → [['
@@ -545,7 +546,7 @@ function for_each_page(page_data, messages) {
 		}
 	}
 
-	// 僅處理"從文章的開頭部分辨識出本地語言(本國語言)以及外國原文label"之部分。
+	// 僅處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
 	return;
 
 	// ----------------------------------------------------
@@ -1000,15 +1001,17 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		props : 'labels|aliases|claims|sitelinks'
 
 	}).edit_data(function(entity) {
+		// 處理: 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。
 		if (no_need_check && entity.labels) {
-			var o_label = entity.labels[f_language],
+			var f_label,
 			// foreign language
-			f_language, f_label;
+			f_language;
 			// assert: Object.keys(labels).length === 1
 			for (f_language in labels) {
 				f_label = labels[f_language][0];
 				break;
 			}
+			var o_label = entity.labels[f_language];
 			// assert: labels[f_language].length === 1
 			if (!f_label || o_label
 			// 測試正規化後是否等價。
@@ -1021,6 +1024,12 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				//
 				+ ']，放棄 [' + f_label + ']');
 				return [ CeL.wiki.edit.cancel, 'skip' ];
+			}
+
+			if (false) {
+				CeL.log(JSON.stringify(normalize_en_label(o_label))
+				//
+				+ '!==' + JSON.stringify(normalize_en_label(f_label)));
 			}
 		}
 
