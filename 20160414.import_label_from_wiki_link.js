@@ -97,7 +97,7 @@ CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('ja');
+// set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -106,7 +106,7 @@ wiki = Wiki(true),
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 3000,
 // ((Infinity)) for do all.
-test_limit = 50,
+test_limit = Infinity,
 
 raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
 //
