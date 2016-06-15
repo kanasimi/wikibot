@@ -1011,7 +1011,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				f_label = labels[f_language][0];
 				break;
 			}
-			var o_label = entity.labels[f_language];
+			var o_label = entity.labels[f_language].value;
 			// assert: labels[f_language].length === 1
 			if (!f_label || o_label
 			// 測試正規化後是否等價。
@@ -1026,7 +1026,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
 			}
 
-			if (false) {
+			if (0 && o_label) {
 				CeL.log(JSON.stringify(normalize_en_label(o_label))
 				//
 				+ '!==' + JSON.stringify(normalize_en_label(f_label)));
