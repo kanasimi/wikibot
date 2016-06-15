@@ -846,6 +846,7 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
 PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　]+$/);
 
 function 仮名_claim(仮名, imported_from) {
+	CeL.log('add 仮名 claim: [' + 仮名 + ']');
 	return {
 		"claims" : [ {
 			"mainsnak" : {
@@ -1050,6 +1051,15 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}).edit_data(function(entity) {
 		// 處理: 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。
 		if (no_need_check && entity.labels) {
+			if (use_language === foreign_language
+			//
+			&& use_language === 'ja') {
+				if (PATTERN_読み仮名.test(foreign_language)) {
+					// treat foreign_language as 読み仮名.
+					return 仮名_claim(foreign_language);
+				}
+			}
+
 			var f_label,
 			// foreign language
 			f_language;
@@ -1062,6 +1072,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			//
 			&& entity.labels[f_language].value;
 			// assert: labels[f_language].length === 1
+
 			if (!f_label || o_label
 			// 測試正規化後是否等價。
 			&& normalize_en_label(o_label) === normalize_en_label(f_label)) {
@@ -1079,15 +1090,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				CeL.log(JSON.stringify(normalize_en_label(o_label))
 				//
 				+ '!==' + JSON.stringify(normalize_en_label(f_label)));
-			}
-
-			if (use_language === foreign_language
-			//
-			&& use_language === 'ja') {
-				if (PATTERN_読み仮名.test(foreign_language)) {
-					// treat foreign_language as 読み仮名.
-					return 仮名_claim(foreign_language);
-				}
 			}
 
 		}
