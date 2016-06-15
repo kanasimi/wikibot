@@ -1051,15 +1051,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}).edit_data(function(entity) {
 		// 處理: 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。
 		if (no_need_check && entity.labels) {
-			if (use_language === foreign_language
-			//
-			&& use_language === 'ja') {
-				if (PATTERN_読み仮名.test(foreign_title)) {
-					// treat foreign_title as 読み仮名.
-					return 仮名_claim(foreign_title);
-				}
-			}
-
 			var f_label,
 			// foreign language
 			f_language;
@@ -1090,6 +1081,13 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				CeL.log(JSON.stringify(normalize_en_label(o_label))
 				//
 				+ '!==' + JSON.stringify(normalize_en_label(f_label)));
+			}
+
+			if (use_language === f_language && use_language === 'ja') {
+				if (PATTERN_読み仮名.test(f_label)) {
+					// treat foreign_title as 読み仮名.
+					return 仮名_claim(f_label);
+				}
 			}
 
 		}
