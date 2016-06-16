@@ -153,7 +153,7 @@ common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 // match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
 // [ all, token including local title, including foreign title ]
-PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n\t]+[（(]([^（()）{}\[\]\n\t]{3,}))/,
+PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n\t]+[（(]([^（()）\[\]\n\t]{3,}))/,
 
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -503,7 +503,7 @@ function for_each_page(page_data, messages) {
 		if ((matched = label
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
-		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,20})}}/))
+		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,40})}}/))
 		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
 		&& (foreign_title = to_plain_text(matched[2]))) {
 			foreign_language = matched[1];
@@ -514,7 +514,7 @@ function for_each_page(page_data, messages) {
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
 		// 檢查 "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
-		.match(/^[a-z\-\s,\d]{0,8}'''([^:：{}<>()]{3,20})'''/i))
+		.match(/^[a-z\-\s,\d]{0,8}'''([^:：{}<>()]{3,40})'''/i))
 		// e.g., [[zh:城域网]], [[zh:ISM频段]]: "'''A'''... '''B'''... '''C'''..."
 		// e.g., [[zh:电影手册]]
 		&& !matched[1].includes("''")
