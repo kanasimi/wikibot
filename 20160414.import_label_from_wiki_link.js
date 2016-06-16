@@ -509,7 +509,7 @@ function for_each_page(page_data, messages) {
 			foreign_language = matched[1];
 			CeL.debug(
 					'title@lead type {{lang-xx|title}}: [[' + title + ']] → [['
-							+ foreign_language + ':' + foreign_title + ']]', 0);
+							+ foreign_language + ':' + foreign_title + ']]', 3);
 
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
@@ -520,8 +520,8 @@ function for_each_page(page_data, messages) {
 		&& !matched[1].includes("''")
 				&& (foreign_title = to_plain_text(matched[1]))
 				&& (foreign_language = CeL.wiki.guess_language(foreign_title))) {
-			CeL.debug("title@lead type '''title''': [[' + title + ']] → [["
-					+ foreign_language + ':' + foreign_title + ']]', 0);
+			CeL.debug("title@lead type '''title''': [[" + title + "]] → [["
+					+ foreign_language + ':' + foreign_title + ']]', 3);
 
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（en title，...）"
@@ -532,7 +532,7 @@ function for_each_page(page_data, messages) {
 				&& (foreign_title = to_plain_text(matched[1]))) {
 			foreign_language = 'en';
 			CeL.debug('title@lead type （title，...）: [[' + title + ']] → [['
-					+ foreign_language + ':' + foreign_title + ']]', 0);
+					+ foreign_language + ':' + foreign_title + ']]', 3);
 
 		}
 
@@ -542,9 +542,9 @@ function for_each_page(page_data, messages) {
 					token, 1);
 
 		} else if (CeL.is_debug(2)) {
-			CeL.log(
+			CeL.debug(
 			//
-			'[[' + title + ']]: Unknown label pattern: [' + label + ']');
+			'[[' + title + ']]: Unknown label pattern: [' + label + ']', 3);
 		}
 	}
 
@@ -846,7 +846,7 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
 PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　]+$/);
 
 function 仮名_claim(仮名, imported_from) {
-	CeL.log('add 仮名 claim: [' + 仮名 + ']');
+	CeL.debug('add 仮名 claim: [' + 仮名 + ']', 3, '仮名_claim');
 	return {
 		"claims" : [ {
 			"mainsnak" : {
