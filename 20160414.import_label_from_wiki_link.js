@@ -148,12 +148,10 @@ PATTERN_language_label = CeL.null_Object(),
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
 
-// @see 文章的開頭部分[[WP:LEAD|導言章節]] (lead section, introduction)
 // en_titles,
-// match/去除一開始的維護模板。[[File:file|[[link]]...]] 因為不容易除盡，放棄處理。
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
 // [ all, token including local title, including foreign title ]
-PATTERN_title_in_lead_section = /^[\s\n]*(?:{{[^{}]+}}[\s\n]*)*([^（()）{}\[\]\n\t]+[（(]([^（()）\[\]\n\t]{3,}))/,
+PATTERN_title_in_lead_section = /^[\s\n]*([^（()）{}\[\]\n\t]+[（(]([^（()）\[\]\n\t]{3,}))/,
 
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -489,7 +487,13 @@ function for_each_page(page_data, messages) {
 	 * @see /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz
 	 */
 
-	matched = content.match(PATTERN_title_in_lead_section);
+	matched = CeL.wiki.lead_text(content).match(PATTERN_title_in_lead_section);
+	if (1) {
+		console.log('------------------------------');
+		console.log(PATTERN_title_in_lead_section);
+		console.log(matched);
+		console.log(content.slice(0, 20));
+	}
 	if (matched
 	// 對此無效: [[卡尔·古斯塔夫 (伊森堡-比丁根)]], [[奥托二世 (萨尔姆-霍斯特马尔)]]
 	// && matched[1].includes("'''" + title + "'''")
@@ -667,6 +671,13 @@ function for_each_page(page_data, messages) {
 				matched[0]);
 	}
 
+}
+
+if (1) {
+	// for debug
+	CeL.set_debug(2);
+	wiki.page('宋绮云', for_each_page);
+	return;
 }
 
 // ----------------------------------------------------------------------------
