@@ -150,8 +150,8 @@ common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 
 // en_titles,
 // /^[\s\n]*(?:(?:{{[^{}]+}}|\[\[[^\[\]]+\]\])[\s\n]*)*([^（()）\n]+)[（(]([^（()）\n]+)/
-// [ all, token including local title, including foreign title ]
-PATTERN_title_in_lead_section = /^[\s\n]*([^（()）{}\[\]\n\t]+[（(]([^（()）\[\]\n\t]{3,}))/,
+// [ all token including local title, including foreign title ]
+PATTERN_title_in_lead_section = /^[^（()）{}\[\]\n\t]+[（(]([^（()）\[\]\n\t]{3,})/,
 
 // @see
 // https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
@@ -488,11 +488,11 @@ function for_each_page(page_data, messages) {
 	 */
 
 	matched = CeL.wiki.lead_text(content).match(PATTERN_title_in_lead_section);
-	if (1) {
-		console.log('------------------------------');
+	if (0) {
+		console.log('-'.repeat(80));
 		console.log(PATTERN_title_in_lead_section);
 		console.log(matched);
-		console.log(content.slice(0, 20));
+		console.log(CeL.wiki.lead_text(content).slice(0, 20));
 	}
 	if (matched
 	// 對此無效: [[卡尔·古斯塔夫 (伊森堡-比丁根)]], [[奥托二世 (萨尔姆-霍斯特马尔)]]
@@ -500,7 +500,7 @@ function for_each_page(page_data, messages) {
 	) {
 		// matched 量可能達數十萬！
 		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
-		var label = matched[2].replace(/<[a-z][^<>]*>/g, ''), token = matched[1]
+		var label = matched[1].replace(/<[a-z][^<>]*>/g, ''), token = matched[0]
 				.trim(), foreign_title = null, foreign_language;
 		CeL.debug('[[' + title + ']] lead: ' + token, 4);
 
@@ -673,9 +673,9 @@ function for_each_page(page_data, messages) {
 
 }
 
-if (1) {
+if (0) {
 	// for debug
-	CeL.set_debug(2);
+	CeL.set_debug(4);
 	wiki.page('宋绮云', for_each_page);
 	return;
 }
