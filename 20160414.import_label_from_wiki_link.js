@@ -183,7 +183,7 @@ PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓�
 
 function to_plain_text(wikitext) {
 	// TODO: "《茶花女》维基百科词条'''(法语)'''"
-	return wikitext
+	wikitext = wikitext
 	// 去除註解 comments。
 	// e.g., "親会社<!-- リダイレクト先の「[[子会社]]」は、[[:en:Subsidiary]] とリンク -->"
 	// "ロイ・トーマス<!-- 曖昧さ回避ページ -->"
@@ -191,18 +191,30 @@ function to_plain_text(wikitext) {
 	// "<small>（英文）</small>"
 	.replace(/[(（][英中日德法西義韓諺俄独原][語语國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
-	.replace(/{{[a-z\s]+}}/ig, '').replace(/'''?([^']+)'''?/g, ' $1 ').trim()
+	.replace(/{{[a-z\s]+}}/ig, '');
+
+	// e.g., '''''title'''''
+	wikitext = CeL.wiki.remove_head_tail(CeL.wiki.remove_head_tail(wikitext,
+			"'''", 0, ' '), "''", 0, ' ');
+
+	wikitext = wikitext.trim()
 	//
 	.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g, ')');
+
+	return wikitext;
 }
 
-if (false) {
-	to_plain_text('<font lang="ja">エアポート快特</font>') === 'エアポート快特';
-	to_plain_text("卡斯蒂利亞王后'''凱瑟琳'''") === "卡斯蒂利亞王后 凱瑟琳";
-	to_plain_text("'''MS 明朝''' ('''MS Mincho''') 及 '''MS P明朝''' ('''MS PMincho''')") === "MS 明朝 (MS Mincho) 及 MS P明朝 (MS PMincho)";
-	to_plain_text("洗腳風俗及儀式<small>（英文）</small>") === '洗腳風俗及儀式';
-	to_plain_text("節目列表 {{En icon}}") === '節目列表';
-}
+var to_plain_text_cases = [
+		[ [ 'エアポート快特', to_plain_text('<font lang="ja">エアポート快特</font>') ] ],
+		[ [ "卡斯蒂利亞王后 凱瑟琳", to_plain_text("卡斯蒂利亞王后'''凱瑟琳'''") ] ],
+		[ [
+				"MS 明朝 (MS Mincho) 及 MS P明朝 (MS PMincho)",
+				to_plain_text("'''MS 明朝''' ('''MS Mincho''') 及 '''MS P明朝''' ('''MS PMincho''')") ] ],
+		[ [ '洗腳風俗及儀式', to_plain_text("洗腳風俗及儀式<small>（英文）</small>") ] ],
+		[ [ '節目列表', to_plain_text("節目列表 {{En icon}}") ] ],
+		[ [ "It's good", to_plain_text("''It's good''") ] ], ];
+
+CeL.test('to_plain_text() basic test', to_plain_text_cases);
 
 function language_label(language) {
 	if (language in PATTERN_language_label)
@@ -1100,6 +1112,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 			if (use_language === f_language && use_language === 'ja') {
 				if (PATTERN_読み仮名.test(f_label)) {
+					// TODO: 檢測重複。
 					// treat foreign_title as 読み仮名.
 					return 仮名_claim(f_label);
 				}
