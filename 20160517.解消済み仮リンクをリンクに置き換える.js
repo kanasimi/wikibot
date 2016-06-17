@@ -26,14 +26,14 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
-// set_language('en');
+set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 30,
+test_limit = 200,
 
 Category_has_local_page = {
 	en : 'Category:Interlanguage link template existing link',
@@ -330,9 +330,7 @@ function for_each_page(page_data, messages) {
 				//
 				+ message_set.summary_postfix,
 				nocreate : 1,
-				// 該編輯是一個小修訂 (minor edit)。
 				minor : 1,
-				// 標記此編輯為機器人編輯。[[WP:AL|機器人對其他使用者對話頁的小修改將不會觸發新訊息提示]]。
 				bot : 1
 			});
 
@@ -515,9 +513,7 @@ function for_each_page(page_data, messages) {
 			.replace(/<\!--[\s\S]*?-->/g, '').trim();
 		}
 
-		var order = template_order_of_name[
-		// template_name
-		token.name.toLowerCase()];
+		var template_name = token.name.toLowerCase(), order = template_order_of_name[template_name];
 		if (order) {
 			template_count++;
 			token.page_data = page_data;
@@ -526,9 +522,16 @@ function for_each_page(page_data, messages) {
 			// {{仮リンク|記事名|en|title}}
 			local_title = decodeURIComponent(get_title(order[0]));
 			foreign_language = get_title(order[1]);
-			foreign_title = decodeURIComponent(get_title(order[2]))
-			// || local_title
-			;
+			foreign_title = decodeURIComponent(get_title(order[2]));
+
+			if (!foreign_title && use_language === 'en'
+			// When article names would be the same in English and foreign
+			// language Wikipedia
+			&& (template_name === 'ill'
+			// @see [[:en:Template:Interlanguage link]]
+			|| template_name === 'interlanguage link')) {
+				foreign_title = local_title;
+			}
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
