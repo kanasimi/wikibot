@@ -54,7 +54,8 @@ message_set = {
 	// summary_postfix : 'を内部リンクに置き換える',
 	summary_prefix : 'bot test: Convert ',
 	summary_separator : ', ',
-	summary_postfix : ' to internal link',
+	// internal link
+	summary_postfix : ' to wikilink',
 
 	no_template : 'no interwiki link template found',
 	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
@@ -141,7 +142,7 @@ function check_final_work() {
 			// + 'Special:Redirect/revision/' + report.id + '|'
 			+ title
 			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
-			// an external link rather than as an internal link
+			// an external link rather than as an wikilink
 			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
 
 			Object.keys(error_messages).sort().forEach(function(error_name) {
@@ -329,6 +330,9 @@ function for_each_page(page_data, messages) {
 				//
 				+ message_set.summary_postfix,
 				nocreate : 1,
+				// 該編輯是一個小修訂 (minor edit)。
+				minor : 1,
+				// 標記此編輯為機器人編輯。[[WP:AL|機器人對其他使用者對話頁的小修改將不會觸發新訊息提示]]。
 				bot : 1
 			});
 
@@ -634,7 +638,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
