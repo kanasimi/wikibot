@@ -96,6 +96,9 @@ require('./wiki loder.js');
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
+// for CeL.test()
+CeL.run('application.debug.log');
+
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // set_language('ja');
 
@@ -191,13 +194,9 @@ function to_plain_text(wikitext) {
 	// "<small>（英文）</small>"
 	.replace(/[(（][英中日德法西義韓諺俄独原][語语國国]?文?[名字]?[）)]/g, '')
 	// e.g., "{{En icon}}"
-	.replace(/{{[a-z\s]+}}/ig, '');
-
+	.replace(/{{[a-z\s]+}}/ig, '')
 	// e.g., '''''title'''''
-	wikitext = CeL.wiki.remove_head_tail(CeL.wiki.remove_head_tail(wikitext,
-			"'''", 0, ' '), "''", 0, ' ');
-
-	wikitext = wikitext.trim()
+	.remove_head_tail("'''", 0, ' ').remove_head_tail("''", 0, ' ').trim()
 	//
 	.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g, ')');
 
@@ -212,7 +211,9 @@ var to_plain_text_cases = [
 				to_plain_text("'''MS 明朝''' ('''MS Mincho''') 及 '''MS P明朝''' ('''MS PMincho''')") ] ],
 		[ [ '洗腳風俗及儀式', to_plain_text("洗腳風俗及儀式<small>（英文）</small>") ] ],
 		[ [ '節目列表', to_plain_text("節目列表 {{En icon}}") ] ],
-		[ [ "It's good", to_plain_text("''It's good''") ] ], ];
+		[ [ "It's good", to_plain_text("''It's good''") ] ],
+//
+];
 
 CeL.test('to_plain_text() basic test', to_plain_text_cases);
 
