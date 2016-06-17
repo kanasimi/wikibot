@@ -104,7 +104,7 @@ var
 wiki = Wiki(true),
 
 /** {Natural}所欲紀錄的最大筆數。 */
-log_limit = 3000,
+log_limit = 1000,
 // ((Infinity)) for do all.
 test_limit = Infinity,
 
@@ -487,7 +487,8 @@ function for_each_page(page_data, messages) {
 	 * @see /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz
 	 */
 
-	matched = CeL.wiki.lead_text(content).match(PATTERN_title_in_lead_section);
+	var lead_text = CeL.wiki.lead_text(content);
+	matched = lead_text.match(PATTERN_title_in_lead_section);
 	if (0) {
 		console.log('-'.repeat(80));
 		console.log(PATTERN_title_in_lead_section);
@@ -550,6 +551,9 @@ function for_each_page(page_data, messages) {
 			//
 			'[[' + title + ']]: Unknown label pattern: [' + label + ']', 3);
 		}
+
+	} else if (matched = lead_text.match(/^[\s\n]*({{|\[\[)/)) {
+		CeL.warn('[[' + title + ']]: 有問題的 wikitext，例如有首 "' + matched + '" 無尾？');
 	}
 
 	// 僅處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
