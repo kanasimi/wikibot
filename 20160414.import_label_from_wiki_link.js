@@ -16,6 +16,7 @@
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  2016/5/28	開始處理日語的部分。
  2016/6/17	開始處理從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言部分。
+ 2016/6/19 6:3:1	上路
 
 
  TODO:
@@ -199,7 +200,9 @@ function to_plain_text(wikitext) {
 	// e.g., "{{En icon}}"
 	.replace(/{{[a-z\s]+}}/ig, '')
 	// e.g., '''''title'''''
-	.remove_head_tail("'''", 0, ' ').remove_head_tail("''", 0, ' ').trim()
+	.remove_head_tail("'''", 0, ' ').remove_head_tail("''", 0, ' ')
+	// 有時因為原先的文本有誤，還是會有 ''' 之類的東西留下來。
+	.replace(/'{2,}/g, ' ').trim()
 	//
 	.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g, ')');
 
@@ -383,103 +386,102 @@ function for_each_page(page_data, messages) {
 
 	// ----------------------------------------------------
 
-	if (0)
-		// parse 跨語言連結模板
-		CeL.wiki.parse.every(parse_templates, content, function(token) {
-			// console.log(token);
+	// parse 跨語言連結模板
+	CeL.wiki.parse.every(parse_templates, content, function(token) {
+		// console.log(token);
 
-			var foreign_language, foreign_title, label,
-			//
-			template_name = token[1].toLowerCase().replace(/_/g, ' ');
+		var foreign_language, foreign_title, label,
+		//
+		template_name = token[1].toLowerCase().replace(/_/g, ' ');
 
-			switch (template_name) {
-			case 'translink':
-			case 'tsl':
-				// {{tsl|en|foreign title|local title}}
-				foreign_language = token[2][1];
-				foreign_title = token[2][2];
-				label = token[2][3];
-				break;
+		switch (template_name) {
+		case 'translink':
+		case 'tsl':
+			// {{tsl|en|foreign title|local title}}
+			foreign_language = token[2][1];
+			foreign_title = token[2][2];
+			label = token[2][3];
+			break;
 
-			case 'ill':
-			case 'interlanguage link':
-				// {{ill|en|local title|foreign title}}
-				foreign_language = token[2][1];
-				label = token[2][2];
+		case 'ill':
+		case 'interlanguage link':
+			// {{ill|en|local title|foreign title}}
+			foreign_language = token[2][1];
+			label = token[2][2];
+			foreign_title = token[2][3];
+			break;
+
+		case 'liw':
+		case 'illm':
+		case 'ill2':
+		case 'interlanguage link multi':
+			// @see
+			// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
+		case '仮リンク':
+		case '多語言連結':
+			label = token[2][1];
+			if (token[2].WD) {
+				// {{illm|WD=Q1}}
+				foreign_language = 'WD';
+				foreign_title = token[2].WD;
+			} else {
+				// {{illm|local title|en|foreign title}}
+				// {{liw|local title|en|foreign title}}
+				// {{liw|中文項目名|語言|其他語言頁面名|...}}
+				foreign_language = token[2][2];
 				foreign_title = token[2][3];
-				break;
-
-			case 'liw':
-			case 'illm':
-			case 'ill2':
-			case 'interlanguage link multi':
-				// @see
-				// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
-			case '仮リンク':
-			case '多語言連結':
-				label = token[2][1];
-				if (token[2].WD) {
-					// {{illm|WD=Q1}}
-					foreign_language = 'WD';
-					foreign_title = token[2].WD;
-				} else {
-					// {{illm|local title|en|foreign title}}
-					// {{liw|local title|en|foreign title}}
-					// {{liw|中文項目名|語言|其他語言頁面名|...}}
-					foreign_language = token[2][2];
-					foreign_title = token[2][3];
-				}
-				break;
-
-			case 'link-interwiki':
-				// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
-				label = token[2][use_language];
-				foreign_language = token[2].lang;
-				foreign_title = token[2].lang_title;
-				break;
-
-			case 'ilh':
-			case 'internal link helper':
-				// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
-				label = token[2][1];
-				foreign_title = token[2][2];
-				foreign_language = token[2]['lang-code'];
-				break;
-
-			case 'le':
-				// {{le|local title|foreign title|show}}
-				label = token[2][1];
-				foreign_title = token[2][2];
-				foreign_language = 'en';
-				break;
-
-			default:
-				// {{Internal link helper}}系列模板
-				// {{link-en|local title|foreign title}}
-				foreign_language = template_name.startsWith('link-')
-				// 5: 'link-'.length, '-link'.length
-				? template_name.slice(5)
-				// assert: template_name.endsWith('-link')
-				: template_name.slice(0, -5);
-				label = token[2][1];
-				foreign_title = token[2][2];
-				break;
 			}
+			break;
 
-			if (label && (label = to_plain_text(label)) && isNaN(label)
-			// label, title 不可包含 {{}}[[]]。
-			&& !/[{}\[\]]{2}/.test(label)
-			//
-			&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
-			//
-			&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
-				add_label(foreign_language, try_decode(foreign_title),
-						try_decode(label), null, token[0]);
-			} else if (!label && !foreign_title || !foreign_language) {
-				CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
-						+ ']]');
-			}
-		});
+		case 'link-interwiki':
+			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
+			label = token[2][use_language];
+			foreign_language = token[2].lang;
+			foreign_title = token[2].lang_title;
+			break;
+
+		case 'ilh':
+		case 'internal link helper':
+			// {{internal link helper|本地條目名|外語條目名|lang-code=en|lang=語言}}
+			label = token[2][1];
+			foreign_title = token[2][2];
+			foreign_language = token[2]['lang-code'];
+			break;
+
+		case 'le':
+			// {{le|local title|foreign title|show}}
+			label = token[2][1];
+			foreign_title = token[2][2];
+			foreign_language = 'en';
+			break;
+
+		default:
+			// {{Internal link helper}}系列模板
+			// {{link-en|local title|foreign title}}
+			foreign_language = template_name.startsWith('link-')
+			// 5: 'link-'.length, '-link'.length
+			? template_name.slice(5)
+			// assert: template_name.endsWith('-link')
+			: template_name.slice(0, -5);
+			label = token[2][1];
+			foreign_title = token[2][2];
+			break;
+		}
+
+		if (label && (label = to_plain_text(label)) && isNaN(label)
+		// label, title 不可包含 {{}}[[]]。
+		&& !/[{}\[\]]{2}/.test(label)
+		//
+		&& foreign_title && !/[{}\[\]]{2}/.test(foreign_title)
+		//
+		&& foreign_language && /^[a-z_]+$/.test(foreign_language)) {
+			add_label(foreign_language, try_decode(foreign_title),
+					try_decode(label), null, token[0]);
+		} else if (!label && !foreign_title || !foreign_language) {
+			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
+					+ ']]');
+		}
+	});
 
 	// ----------------------------------------------------
 
@@ -505,7 +507,7 @@ function for_each_page(page_data, messages) {
 
 	var lead_text = CeL.wiki.lead_text(content);
 	matched = lead_text.match(PATTERN_title_in_lead_section);
-	if (0) {
+	if (false) {
 		console.log('-'.repeat(80));
 		console.log(PATTERN_title_in_lead_section);
 		console.log(matched);
@@ -577,8 +579,8 @@ function for_each_page(page_data, messages) {
 		CeL.warn('[[' + title + ']]: 有問題的 wikitext，例如有首 "' + matched + '" 無尾？');
 	}
 
-	// 僅處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
-	return;
+	// 若僅要處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
+	//return;
 
 	// ----------------------------------------------------
 
@@ -1469,17 +1471,16 @@ function finish_work() {
 prepare_directory(base_directory);
 // prepare_directory(base_directory, true);
 
-if (0)
-	try {
-		// delete cache.
-		// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
-		require('fs').unlinkSync(
-				base_directory + 'all_pages.' + use_language + '.json');
-		require('fs').unlinkSync(
-				base_directory + 'labels.' + use_language + '.json');
-	} catch (e) {
-		// TODO: handle exception
-	}
+try {
+	// delete cache.
+	// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
+	require('fs').unlinkSync(
+			base_directory + 'all_pages.' + use_language + '.json');
+	require('fs').unlinkSync(
+			base_directory + 'labels.' + use_language + '.json');
+} catch (e) {
+	// TODO: handle exception
+}
 
 // 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
