@@ -910,6 +910,8 @@ function 仮名_claim(仮名, imported_from) {
 						"datavalue" : {
 							"value" : {
 								"entity-type" : "item",
+								// @see
+								// https://www.wikidata.org/wiki/Wikidata:List_of_wikis
 								// Q177837: Japanese Wikipedia ウィキペディア日本語版
 								// Q30239: 中文維基百科
 								"numeric-id" : imported_from
@@ -1099,22 +1101,12 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				break;
 			}
 
-			if (f_language === 'ja' && PATTERN_読み仮名.test(f_label)) {
-				if (entity.claims && include_label(CeL.wiki.data.value_of(
-				// 檢測重複的読み仮名。
-				entity.claims[読み仮名_id]), f_label)) {
-					return [ CeL.wiki.edit.cancel, 'skip' ];
-				}
-
-				// treat foreign_title as 読み仮名.
-				return 仮名_claim(f_label);
-			}
-
 			// assert: labels[f_language].length === 1
 			var o_label = entity.labels[f_language]
 			//
 			&& entity.labels[f_language].value;
 
+			// 新舊 label 之檢測需置於檢測重複的読み仮名前，預防輸入等價的仮名。
 			if (include_label(o_label, f_label)) {
 				CeL.debug('跳過從文章的開頭部分辨識出之外國原文label: '
 				// 確保目標 wiki 無等價之 label。
@@ -1124,6 +1116,17 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				//
 				+ ']，放棄 [' + f_label + ']');
 				return [ CeL.wiki.edit.cancel, 'skip' ];
+			}
+
+			if (f_language === 'ja' && PATTERN_読み仮名.test(f_label)) {
+				if (entity.claims && include_label(CeL.wiki.data.value_of(
+				// 檢測重複的読み仮名。
+				entity.claims[読み仮名_id]), f_label)) {
+					return [ CeL.wiki.edit.cancel, 'skip' ];
+				}
+
+				// treat foreign_title as 読み仮名.
+				return 仮名_claim(f_label);
 			}
 
 		}
