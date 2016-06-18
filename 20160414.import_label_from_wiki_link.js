@@ -335,7 +335,7 @@ function for_each_page(page_data, messages) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
 				label_CHT = label_CHT.replace(/裡/g, '里').replace(/佔/g, '占')
 						.replace(/([王皇太天])後/g, '$1后');
-				// 奧托二世
+				// 奧托二世 ja:"・"
 				if (true || /[·．˙•]/.test(label_CHT)) {
 					// 為人名。
 					label_CHT = label_CHT.replace(/託/g, '托').replace(/理察/g,
@@ -925,32 +925,7 @@ function 仮名_claim(仮名, imported_from) {
 	};
 }
 
-function normalize_label(label) {
-	return label && String(label).toLowerCase().replace(/[\s\-]+/g, '')
-	// 去掉複數
-	.replace(/s$/g, '');
-}
-
-// 測試是否包含等價 label。
-function include_label(original, label_to_test) {
-	if (!label_to_test) {
-		return true;
-	}
-	if (!original) {
-		return false;
-	}
-
-	label_to_test = normalize_label(label_to_test);
-
-	if (Array.isArray(original)) {
-		return original.some(function(label) {
-			return normalize_label(label) === label_to_test;
-		});
-	}
-
-	// 測試正規化後是否等價。
-	return normalize_label(original) === label_to_test;
-}
+var include_label = CeL.wiki.data.include_label;
 
 function process_wikidata(full_title, foreign_language, foreign_title) {
 	var labels = label_data[full_title], titles = labels[1],
@@ -1135,12 +1110,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				//
 				+ ']，放棄 [' + f_label + ']');
 				return [ CeL.wiki.edit.cancel, 'skip' ];
-			}
-
-			if (0 && o_label) {
-				CeL.log(JSON.stringify(normalize_label(o_label))
-				//
-				+ '!==' + JSON.stringify(normalize_label(f_label)));
 			}
 
 			if (use_language === f_language && use_language === 'ja') {
