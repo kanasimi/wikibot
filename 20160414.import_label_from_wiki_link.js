@@ -1097,10 +1097,22 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				f_label = labels[f_language][0];
 				break;
 			}
+
+			if (f_language === 'ja' && PATTERN_読み仮名.test(f_label)) {
+				if (entity.claims && include_label(CeL.wiki.data.value_of(
+				// 檢測重複的読み仮名。
+				entity.claims[読み仮名_id]), f_label)) {
+					return [ CeL.wiki.edit.cancel, 'skip' ];
+				}
+
+				// treat foreign_title as 読み仮名.
+				return 仮名_claim(f_label);
+			}
+
+			// assert: labels[f_language].length === 1
 			var o_label = entity.labels[f_language]
 			//
 			&& entity.labels[f_language].value;
-			// assert: labels[f_language].length === 1
 
 			if (include_label(o_label, f_label)) {
 				CeL.debug('跳過從文章的開頭部分辨識出之外國原文label: '
@@ -1111,19 +1123,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				//
 				+ ']，放棄 [' + f_label + ']');
 				return [ CeL.wiki.edit.cancel, 'skip' ];
-			}
-
-			if (use_language === f_language && use_language === 'ja') {
-				if (PATTERN_読み仮名.test(f_label)) {
-					if (entity.claims && include_label(CeL.wiki.data.value_of(
-					// 檢測重複的読み仮名。
-					entity.claims[読み仮名_id]), f_label)) {
-						return [ CeL.wiki.edit.cancel, 'skip' ];
-					}
-
-					// treat foreign_title as 読み仮名.
-					return 仮名_claim(f_label);
-				}
 			}
 
 		}
