@@ -532,6 +532,7 @@ function for_each_page(page_data, messages) {
 							+ foreign_language + ':' + foreign_title + ']]', 3);
 			if (foreign_language === 'el') {
 				// [[zh:Special:Diff/40503472]] 無法分辨 grc (古希臘語) 與 el (希臘語)，放棄編輯。
+				// Stop import el to Wikidata.
 				foreign_title = '';
 			}
 
@@ -1248,7 +1249,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		// console.log(data);
 
 		if (!data) {
-			CeL.debug('跳過無須變更項目: ' + entity.id);
+			CeL.debug('跳過無須變更項目: [[d:' + entity.id + ']]');
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
