@@ -15,6 +15,7 @@
 
  2016/4/14 22:57:45	初版試營運，約耗時 18分鐘執行（不包含 modufy Wikidata，parse and filter page）。約耗時 105分鐘執行（不包含 modufy Wikidata）。
  2016/5/28	開始處理日語的部分。
+ 2016/6/17	開始處理從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言部分。
 
 
  TODO:
@@ -525,7 +526,7 @@ function for_each_page(page_data, messages) {
 		// find {{lang|en|...}} or {{lang-en|...}}
 		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,40})}}/))
 		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
-		&& (foreign_title = to_plain_text(matched[2]))) {
+		&& (foreign_title = to_plain_text(matched[2]).replace(/\|.*$/, ''))) {
 			foreign_language = matched[1];
 			CeL.debug(
 					'title@lead type {{lang-xx|title}}: [[' + title + ']] → [['
@@ -791,10 +792,10 @@ function create_label_data(callback) {
 		merge_label_data(callback);
 	}
 
-	if (1) {
+	if (0) {
 		// for debug specified pages: @ function create_label_data
 		CeL.set_debug(2);
-		wiki.page([ '室蘭IC', '大館能代機場' ], for_each_page).run(after_read_page);
+		wiki.page('', for_each_page).run(after_read_page);
 		return;
 	}
 
@@ -1075,7 +1076,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 			}, {
 				bot : 1,
-				summary : 'bot test: 以[[d:' + entity.id
+				summary : 'bot: 以[[d:' + entity.id
 				//
 				+ ']]清理跨語言連結[[' + local_title + ']]'
 				//
