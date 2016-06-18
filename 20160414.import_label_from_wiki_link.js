@@ -1,6 +1,6 @@
 ﻿// (cd ~/wikibot && date && hostname && nohup time node 20160414.import_label_from_wiki_link.js; date) >> import_label_from_wiki_link/log &
 
-// for debug specified page: @ function create_label_data
+// for debug specified pages: @ function create_label_data
 
 /*
 
@@ -792,9 +792,9 @@ function create_label_data(callback) {
 	}
 
 	if (1) {
-		// for debug specified page: @ function create_label_data
+		// for debug specified pages: @ function create_label_data
 		CeL.set_debug(2);
-		wiki.page([ '美唄IC' ], for_each_page).run(after_read_page);
+		wiki.page([ '室蘭IC', '大館能代機場' ], for_each_page).run(after_read_page);
 		return;
 	}
 
