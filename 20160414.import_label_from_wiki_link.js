@@ -790,9 +790,9 @@ function create_label_data(callback) {
 		merge_label_data(callback);
 	}
 
-	if (0) {
+	if (1) {
 		// for debug specified page: @ function create_label_data
-		CeL.set_debug(4);
+		CeL.set_debug(2);
 		wiki.page([ '美唄IC' ], for_each_page).run(after_read_page);
 		return;
 	}
@@ -873,11 +873,13 @@ summary_sp = summary_postfix + ', ' + summary_prefix,
 PATTERN_interlanguage = /[英中日德法西義韓諺俄独原][語语國国]?文?[名字]?|[簡简縮缩稱称]|翻[译譯]|translation|language|tfrom/,
 // e.g., {{lang|en|[[:en:T]]}}
 PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])\s*}}/g,
+
+// @see [[d:Property:P1814|假名]]
+読み仮名_id = 'P1814',
 /**
  * 振り仮名 / 読み仮名 の正規表現。
  * 
  * @type {RegExp}
- * @see [[d:Property:P1814|假名]]
  */
 PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　]+$/);
 
@@ -888,7 +890,7 @@ function 仮名_claim(仮名, imported_from) {
 			"mainsnak" : {
 				"snaktype" : "value",
 				// 改 Property:P1814
-				"property" : "P1814",
+				"property" : 読み仮名_id,
 				"datavalue" : {
 					"value" : 仮名,
 					"type" : "string"
@@ -907,7 +909,10 @@ function 仮名_claim(仮名, imported_from) {
 							"value" : {
 								"entity-type" : "item",
 								// Q177837: Japanese Wikipedia ウィキペディア日本語版
-								"numeric-id" : imported_from || 177837
+								// Q30239: 中文維基百科
+								"numeric-id" : imported_from
+										|| (use_language === 'zh' ? 30239
+												: 177837)
 							},
 							"type" : "wikibase-entityid"
 						},
@@ -920,10 +925,31 @@ function 仮名_claim(仮名, imported_from) {
 	};
 }
 
-function normalize_en_label(label) {
-	return label && label.toLowerCase().replace(/[\s\-]+/g, '')
+function normalize_label(label) {
+	return label && String(label).toLowerCase().replace(/[\s\-]+/g, '')
 	// 去掉複數
 	.replace(/s$/g, '');
+}
+
+// 測試是否包含等價 label。
+function include_label(original, label_to_test) {
+	if (!label_to_test) {
+		return true;
+	}
+	if (!original) {
+		return false;
+	}
+
+	label_to_test = normalize_label(label_to_test);
+
+	if (Array.isArray(original)) {
+		return original.some(function(label) {
+			return normalize_label(label) === label_to_test;
+		});
+	}
+
+	// 測試正規化後是否等價。
+	return normalize_label(original) === label_to_test;
 }
 
 function process_wikidata(full_title, foreign_language, foreign_title) {
@@ -1100,9 +1126,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			&& entity.labels[f_language].value;
 			// assert: labels[f_language].length === 1
 
-			if (!f_label || o_label
-			// 測試正規化後是否等價。
-			&& normalize_en_label(o_label) === normalize_en_label(f_label)) {
+			if (include_label(o_label, f_label)) {
 				CeL.debug('跳過從文章的開頭部分辨識出之外國原文label: '
 				// 確保目標 wiki 無等價之 label。
 				+ entity.id + ': [[' + foreign_language
@@ -1114,14 +1138,19 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			}
 
 			if (0 && o_label) {
-				CeL.log(JSON.stringify(normalize_en_label(o_label))
+				CeL.log(JSON.stringify(normalize_label(o_label))
 				//
-				+ '!==' + JSON.stringify(normalize_en_label(f_label)));
+				+ '!==' + JSON.stringify(normalize_label(f_label)));
 			}
 
 			if (use_language === f_language && use_language === 'ja') {
 				if (PATTERN_読み仮名.test(f_label)) {
-					// TODO: 檢測重複。
+					if (entity.claims && include_label(CeL.wiki.data.value_of(
+					// 檢測重複的読み仮名。
+					entity.claims[読み仮名_id]), f_label)) {
+						return [ CeL.wiki.edit.cancel, 'skip' ];
+					}
+
 					// treat foreign_title as 読み仮名.
 					return 仮名_claim(f_label);
 				}
