@@ -1261,7 +1261,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}, {
 		bot : 1,
 		// TODO: add [[Special:Redirect/revision/00000|版本]]
-		summary : 'bot test: import label/alias from ' + summary_prefix
+		summary : 'bot: import label/alias from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。
 		+ titles.uniq().slice(0, 10).join(summary_sp)
 		//
