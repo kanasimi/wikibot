@@ -883,7 +883,9 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
  * 
  * @type {RegExp}
  */
-PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　]+$/);
+PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　]+$/),
+// e.g., [[d:Q6157375]] "こくどう374ごう"
+PATTERN_読み仮名_need_skip = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ 　\d\-]+$/);
 
 function 仮名_claim(仮名, imported_from) {
 	CeL.debug('add 仮名 claim: [' + 仮名 + ']', 3, '仮名_claim');
@@ -1118,15 +1120,17 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
 			}
 
-			if (f_language === 'ja' && PATTERN_読み仮名.test(f_label)) {
-				if (entity.claims && include_label(CeL.wiki.data.value_of(
+			if (f_language === 'ja' && PATTERN_読み仮名_need_skip.test(f_label)) {
+				if (PATTERN_読み仮名.test(f_label)
 				// 檢測重複的読み仮名。
-				entity.claims[読み仮名_id]), f_label)) {
-					return [ CeL.wiki.edit.cancel, 'skip' ];
+				&& (!entity.claims || !include_label(CeL.wiki.data.value_of(
+				//
+				entity.claims[読み仮名_id]), f_label))) {
+					// treat foreign_title as 読み仮名.
+					return 仮名_claim(f_label);
 				}
 
-				// treat foreign_title as 読み仮名.
-				return 仮名_claim(f_label);
+				return [ CeL.wiki.edit.cancel, 'skip' ];
 			}
 
 		}
