@@ -1,5 +1,7 @@
 ﻿// (cd ~/wikibot && date && hostname && nohup time node 20160414.import_label_from_wiki_link.js; date) >> import_label_from_wiki_link/log &
 
+// for debug specified page: @ function create_label_data
+
 /*
 
  base_directory/
@@ -528,6 +530,10 @@ function for_each_page(page_data, messages) {
 			CeL.debug(
 					'title@lead type {{lang-xx|title}}: [[' + title + ']] → [['
 							+ foreign_language + ':' + foreign_title + ']]', 3);
+			if (foreign_language === 'el') {
+				// [[zh:Special:Diff/40503472]] 無法分辨 grc (古希臘語) 與 el (希臘語)，放棄編輯。
+				foreign_title = '';
+			}
 
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
@@ -690,13 +696,6 @@ function for_each_page(page_data, messages) {
 
 }
 
-if (0) {
-	// for debug
-	CeL.set_debug(4);
-	wiki.page('宋绮云', for_each_page);
-	return;
-}
-
 // ----------------------------------------------------------------------------
 
 function merge_label_data(callback) {
@@ -786,6 +785,18 @@ function create_label_data(callback) {
 	// for_each_page() 需要用到 rev_id。
 	CeL.wiki.page.rvprop += '|ids';
 
+	function after_read_page() {
+		raw_data_file_stream.close();
+		merge_label_data(callback);
+	}
+
+	if (0) {
+		// for debug specified page: @ function create_label_data
+		CeL.set_debug(4);
+		wiki.page([ '美唄IC' ], for_each_page).run(after_read_page);
+		return;
+	}
+
 	// CeL.set_debug(6);
 	CeL.wiki.traversal({
 		// [SESSION_KEY]
@@ -798,10 +809,7 @@ function create_label_data(callback) {
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
-		after : function() {
-			raw_data_file_stream.close();
-			merge_label_data(callback);
-		}
+		after : after_read_page
 
 	}, for_each_page);
 }
@@ -1160,7 +1168,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			(foreign_language === 'WD'
 			//
 			? entity.id : entity.sitelinks[
-			// 為日文特別處理。
+			// 為日文特別修正: 'jp' is wrong!
 			(foreign_language === 'jp' ? 'ja'
 			// 為粵文維基百科特別處理。
 			: foreign_language === 'yue' ? 'zh_yue'
@@ -1251,7 +1259,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}, {
 		bot : 1,
 		// TODO: add [[Special:Redirect/revision/00000|版本]]
-		summary : 'bot: import label/alias from ' + summary_prefix
+		summary : 'bot test: import label/alias from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。
 		+ titles.uniq().slice(0, 10).join(summary_sp)
 		//
