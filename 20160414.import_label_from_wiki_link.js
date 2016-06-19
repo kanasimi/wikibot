@@ -722,7 +722,7 @@ function merge_label_data(callback) {
 			++label_data_length;
 			if (label_data_length <= log_limit) {
 				// 此 label 指向
-				CeL.log([ 'parse_line: ' + label_data_length + ':',
+				CeL.slog([ 'parse_line: ' + label_data_length + ':',
 						'fg=yellow', label, '-fg', '→', 'fg=cyan', full_title,
 						'-fg', '@ [[' + title + ']]: ' + token ]);
 			}
@@ -1262,6 +1262,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
+		// TODO: this.summary = 'bot: import '+data.language+' '+label/alias+' from '+...;
 		return data;
 
 	}, {
