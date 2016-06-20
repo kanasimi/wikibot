@@ -478,8 +478,7 @@ function for_each_page(page_data, messages) {
 			add_label(foreign_language, try_decode(foreign_title),
 					try_decode(label), null, token[0]);
 		} else if (!label && !foreign_title || !foreign_language) {
-			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title
-					+ ']]');
+			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
 		}
 	});
 
@@ -580,7 +579,7 @@ function for_each_page(page_data, messages) {
 	}
 
 	// 若僅要處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
-	//return;
+	// return;
 
 	// ----------------------------------------------------
 
@@ -1262,7 +1261,8 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
-		// TODO: this.summary = 'bot: import '+data.language+' '+label/alias+' from '+...;
+		// TODO: this.summary = 'bot: import '+data.language+' '+label/alias+'
+		// from '+...;
 		return data;
 
 	}, {

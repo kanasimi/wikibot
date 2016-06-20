@@ -196,7 +196,7 @@ function for_each_page(page_data, messages) {
 	// console.log(CeL.wiki.content_of(page_data));
 
 	if (page_data.ns !== 0) {
-		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+		throw [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 	}
 
 	// Check if page_data had processed useing revid.
