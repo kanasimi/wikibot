@@ -49,13 +49,13 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
-	// summary_prefix : 'bot: 解消済み仮リンク',
-	// summary_separator : '、',
-	// summary_postfix : 'を内部リンクに置き換える',
-	summary_prefix : 'bot test: Convert ',
-	summary_separator : ', ',
+	summary_prefix : 'bot: 解消済み仮リンク',
+	summary_separator : '、',
+	summary_postfix : 'を内部リンクに置き換える',
+	// summary_prefix : 'bot test: Convert ',
+	// summary_separator : ', ',
 	// internal link
-	summary_postfix : ' to wikilink',
+	// summary_postfix : ' to wikilink',
 
 	no_template : 'no interwiki link template found',
 	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
