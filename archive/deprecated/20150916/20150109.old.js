@@ -12,7 +12,7 @@ var from_language = 'en',
 //CeL.set_debug(4);
 from_wiki
 // 取得連結到 [[Template:Authority control]] 的頁面。
-.backlinks('Authority control', function(title, titles, pages) {
+.backlinks('Authority control', function(pages, titles, title) {
 	if (CeL.is_debug(2))
 		CeL.show_value(pages, '[[Template:Authority control]] pages');
 	from_wiki.page(pages, function(page_data) {
@@ -77,7 +77,7 @@ from_wiki
 								return template_text[title] + '\n' + ($0 || '');
 							});
 					},
-					last: function(messages, titles, pages) {
+					last: function(messages, pages, titles) {
 						messages.add('後續檢索用索引值: ' + from_wiki.show_next());
 					},
 					write_to:'Wikipedia:沙盒',

@@ -111,7 +111,7 @@ function for_each_pages(page_data) {
 // 確保 [[template_with_ns]] 在最後一頁，以在最後處理 redirect_hash。
 // 注意: 一次取得大量頁面時，回傳內容不一定會按照原先輸入的次序排列！
 // 若有必要，此時得用 config.first 自行處理！
-function arrange_page(messages, titles, pages) {
+function arrange_page(messages, pages, titles) {
 	// console.log(pages);
 	if (template_with_ns ===
 	//
@@ -146,7 +146,7 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
-wiki.links(template_with_ns, function(title, titles, pages) {
+wiki.links(template_with_ns, function(pages, titles, title) {
 	CeL.log('[[' + title + ']]: All ' + pages.length + ' links.');
 
 	/** 限制每一項最大處理頁面數。 */

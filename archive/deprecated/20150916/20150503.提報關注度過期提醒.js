@@ -135,7 +135,7 @@ wiki
 				page_status[title][1] = message_set.deleted;
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		},
-		last : function(messages, titles, pages) {
+		last : function(messages, pages, titles) {
 			// reset messages.
 			messages.length = 0;
 			// 對每位用戶一頁頁處理。

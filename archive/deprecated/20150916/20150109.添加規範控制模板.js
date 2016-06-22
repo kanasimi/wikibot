@@ -84,7 +84,7 @@ config = {
 
 to_wiki.preserve_password = true;
 
-function for_source_pages(title, titles, pages) {
+function for_source_pages(pages, titles, title) {
 	if (CeL.is_debug(2))
 		CeL.show_value(pages, '[[Template:Authority control]] pages');
 	// console.log('titles: ' + titles);
