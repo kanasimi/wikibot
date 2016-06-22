@@ -280,7 +280,7 @@ CeL.wiki.traversal({
 	// 若不想使用 dump，可 comment out 此行。
 	// 經測試，全部使用 API，最快可入50分鐘內，一般在 1-2 hours 左右。
 	filter : dump_session && get_dump_data || read_dump_file,
-	after : function() {
+	last : function() {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
 		CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 		CeL.fs_write(base_directory + 'all_pages.lst', all_pages.join('\n'));

@@ -152,7 +152,7 @@ function for_source_pages(pages, titles, title) {
 }
 
 // CeL.set_debug(2);
-(config.after = function() {
+(config.last = function() {
 	from_wiki.embeddedin('Template:Authority_control', for_source_pages, {
 		// titles/pageids: Maximum number of values is 50 (500 for bots).
 		limit : 50,

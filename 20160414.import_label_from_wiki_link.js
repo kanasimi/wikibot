@@ -812,7 +812,7 @@ function create_label_data(callback) {
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
-		after : after_read_page
+		last : after_read_page
 
 	}, for_each_page);
 }

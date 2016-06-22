@@ -539,7 +539,7 @@ CeL.wiki.cache([ {
 		summary : summary + ':拆分維護模板',
 		log_to : log_to,
 		page_cache_prefix : base_directory + 'page/',
-		after : function() {
+		last : function() {
 			wiki.work({
 				each : 處理須合併的條目,
 				summary : summary + ':合併維護模板',

@@ -162,8 +162,8 @@ wiki.links(template_with_ns, function(pages, titles, title) {
 		// 採用 {{tlx|template_name}} 時，[[Special:最近更改]]頁面無法自動解析成 link。
 		summary : summary + ': [[Template:' + template_name + ']]',
 		log_to : log_to,
-		first : arrange_page,
-		after : finish_work
+		before : arrange_page,
+		last : finish_work
 	}, titles);
 
 }, {

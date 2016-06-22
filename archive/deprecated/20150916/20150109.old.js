@@ -77,7 +77,7 @@ from_wiki
 								return template_text[title] + '\n' + ($0 || '');
 							});
 					},
-					last: function(messages, pages, titles) {
+					after: function(messages, pages, titles) {
 						messages.add('後續檢索用索引值: ' + from_wiki.show_next());
 					},
 					write_to:'Wikipedia:沙盒',
