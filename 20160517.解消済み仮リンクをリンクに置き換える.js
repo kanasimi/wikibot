@@ -26,7 +26,7 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
-set_language('en');
+// set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
