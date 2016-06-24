@@ -340,7 +340,7 @@ function for_each_page(page_data, messages) {
 				label_CHT = label_CHT.replace(/裡/g, '里').replace(/佔/g, '占')
 						.replace(/([王皇太天])後/g, '$1后');
 				// 奧托二世 ja:"・"
-				if (true || /[·．˙•]/.test(label_CHT)) {
+				if (true || /[·･．˙•]/.test(label_CHT)) {
 					// 為人名。
 					label_CHT = label_CHT.replace(/託/g, '托').replace(/理察/g,
 							'理查').replace(/伊麗/g, '伊莉');

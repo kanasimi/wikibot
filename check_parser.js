@@ -14,13 +14,9 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-/** {String}base directory */
-var base_directory = bot_directory + 'WPCHECK/';
-
 // ---------------------------------------------------------------------//
 
-// prepare directory
-CeL.fs_mkdir(base_directory);
+prepare_directory(base_directory);
 
 if (false) {
 	var t = "{{Tl|a<ref>[http://a.a.a b|c {{!}} {{CURRENTHOUR}}]</ref>}}",
