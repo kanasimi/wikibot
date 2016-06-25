@@ -2,9 +2,9 @@
 
 /*
 
- check external link 
+ 2016/6/24	check external link 
 
- @see [[mw:Manual:Pywikibot/weblinkchecker.py]]
+ @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]]
 
  */
 
