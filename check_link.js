@@ -4,7 +4,7 @@
 
  2016/6/24	check external link 
 
- @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]]
+ @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]], [[en:Template:Dead link]], [[en:User:cyberbot II]]
 
  */
 
@@ -46,7 +46,7 @@ function check_external_link(title) {
 
 		// [http://...]
 		// {{|url=http://...}}
-		var matched, PATTERN_URL = /https?:\/\/[^\s\|{}]+/ig;
+		var matched, PATTERN_URL = /https?:\/\/[^\s\|{}<>[]]+/ig;
 
 		while (matched = PATTERN_URL.exec(content)) {
 			link_hash[matched[0]] = undefined;

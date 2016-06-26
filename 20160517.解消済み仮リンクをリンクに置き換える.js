@@ -7,7 +7,7 @@
  2016/5/20 22:22:41	仮運用を行って
 
  Workflow 工作流程:
- # 自維基百科 Category_has_local_page 取得所有包含本地連結的頁面標題文字/條目名稱。
+ # 自維基百科 message_set.Category_has_local_page 取得所有包含本地連結的頁面標題文字/條目名稱。
  # 以函數 for_each_page() + for_each_template() 檢查每一個頁面，找出所有跨語言模板。
  # 以函數 for_foreign_page() 檢查跨語言模板模板所指引的外語言條目連結是否合適。
  # 以函數 for_local_page() 檢查外語言條目連結所指向的本地條目連結是否合適。
@@ -25,62 +25,22 @@
 require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('ja');
+// set_language('ja');
 // set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-// ((Infinity)) for do all
-test_limit = 200,
-
-Category_has_local_page = {
-	en : 'Category:Interlanguage link template existing link',
-	ja : 'Category:解消済み仮リンクを含む記事'
-}[use_language],
-
-/** {Natural}剩下尚未處理完畢的頁面數。 */
-page_remains,
-
 /** {revision_cacher}記錄處理過的文章。 */
 processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
-/** {Object}L10n messages. 符合當地語言的訊息內容。 */
-message_set = {
-	summary_prefix : 'bot: 解消済み仮リンク',
-	summary_separator : '、',
-	summary_postfix : 'を内部リンクに置き換える',
-	// summary_prefix : 'bot test: Convert ',
-	// summary_separator : ', ',
-	// internal link
-	// summary_postfix : ' to wikilink',
+// ((Infinity)) for do all
+test_limit = 200,
 
-	no_template : 'no interwiki link template found',
-	// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
-	// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
-	invalid_template : 'テンプレートの使用に誤りがある。',
-	// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
-	// manually
-	missing_foreign : '他言語版記事自体存在しないので、手動修正必要。',
-	// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
-	foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、手動修正必要。',
-	// [[ja:Help:セクション]]
-	foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、手動修正必要。',
-	// リンク先が他言語版とリンクしていないもの
-	missing_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、手動修正必要。',
-	// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
-	// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
-	// TODO: Q6099744
-	different_local_title : '日本語版項目名が違う記事なので、手動修正必要。',
-	not_exist : '存在しない',
-	from_parameter : '引数から',
-	translated_from_foreign_title : '他言語版項目リンク先から',
-
-	preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
-	retrive_foreign_error : 'Can not retrive foreign page. I will retry next time.'
-},
+/** {Natural}剩下尚未處理完畢的頁面數。 */
+page_remains,
 
 // 次序
 template_orders = {
@@ -89,22 +49,98 @@ template_orders = {
 	LcF : [ 1, 2, 3 ],
 	cLF : [ 2, 1, 3, 4 ],
 },
-// @see
-// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
-template_order_of_name = {
-	en : {
-		ill : template_orders.cLF,
-		'interlanguage link' : template_orders.cLF,
-		illm : template_orders.LcF,
-		'interlanguage link multi' : template_orders.LcF
-	},
+
+/** {Object}L10n messages. 符合當地語言的訊息內容。 */
+message_set = {
 	ja : {
-		仮リンク : template_orders.LcF,
-		ill2 : template_orders.LcF,
-		illm : template_orders.LcF,
-		'link-interwiki' : template_orders.LcF
+		Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
+		report_page : '修正が必要な仮リンク',
+		fix_category : 'Category:修正が必要な仮リンクを含む記事',
+		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
+		edit : '編',
+		report_1 : ':: ……合計',
+		report_2 : '回発生した。',
+		// @see
+		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
+		template_order_of_name : {
+			仮リンク : template_orders.LcF,
+			ill2 : template_orders.LcF,
+			illm : template_orders.LcF,
+			'link-interwiki' : template_orders.LcF
+		},
+
+		summary_prefix : 'bot: 解消済み仮リンク',
+		summary_separator : '、',
+		summary_postfix : 'を内部リンクに置き換える',
+
+		no_template : 'テンプレートが存在しない。',
+		// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
+		// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
+		invalid_template : 'テンプレートの使用に誤りがある。',
+		// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
+		missing_foreign : '他言語版記事自体存在しないので、手動修正必要。',
+		// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
+		foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、手動修正必要。',
+		// [[ja:Help:セクション]]
+		foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、手動修正必要。',
+		// リンク先が他言語版とリンクしていないもの
+		missing_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、手動修正必要。',
+		// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
+		// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
+		// TODO: Q6099744
+		different_local_title : '日本語版項目名が違う記事なので、手動修正必要。',
+		not_exist : '存在しない',
+		from_parameter : '引数から',
+		translated_from_foreign_title : '他言語版項目リンク先から',
+
+		preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
+		retrive_foreign_error : '他言語版項目を取得できません。次回実行する時に再試行します。'
+	},
+
+	en : {
+		Category_has_local_page : 'Category:Interlanguage link template existing link',
+		template_order_of_name : {
+			ill : template_orders.cLF,
+			'interlanguage link' : template_orders.cLF,
+			illm : template_orders.LcF,
+			'interlanguage link multi' : template_orders.LcF
+		}
+	},
+
+	// default messages
+	'*' : {
+		report_page : 'Interlanguage link templates need to fix',
+		report_summary : 'Report of converting interlanguage link templates',
+		edit : 'E',
+		report_1 : ':: Total ',
+		report_2 : ' times occurred.',
+
+		summary_prefix : 'bot test: Convert ',
+		summary_separator : ', ',
+		// internal link
+		summary_postfix : ' to wikilink',
+
+		no_template : 'No interwiki link template found',
+		// 語法錯誤
+		invalid_template : 'Syntax error',
+		// manually
+		missing_foreign : 'Missing foreign page. Need check manually.',
+		foreign_is_disambiguation : 'Foreign page is disambiguation. Need check manually.',
+		foreign_redirect_to_section : 'Foreign page redirects to section. Need check manually.',
+		missing_local : 'Missing local page, or the local page is not link to wikidata. Need check manually.',
+		// gets form langlinks
+		different_local_title : 'The local title is different from title gets form wikidata. Need check manually.',
+		not_exist : 'Not exist',
+		from_parameter : 'From　the parameter',
+		translated_from_foreign_title : 'Translated from foreign title',
+
+		// always display
+		preserved : 'Preserve interlanguage links for the "preserve" parameter is set.',
+		retrive_foreign_error : 'Can not retrive foreign page. I will retry next time.'
 	}
-}[use_language];
+};
+
+message_set = Object.assign(message_set['*'], message_set[use_language]);
 
 // ----------------------------------------------------------------------------
 
@@ -121,7 +157,9 @@ function check_final_work() {
 	}
 	check_final_work.done = true;
 
-	wiki.page('User:' + user_name + '/修正が必要な仮リンク').edit(function() {
+	wiki.page('User:' + user_name + '/' + message_set.report_page)
+	//
+	.edit(function() {
 		var messages = [], data = processed_data[processed_data.KEY_DATA];
 		// data: 結果報告。
 		// data[local title] = { id : 0, error : {
@@ -143,15 +181,18 @@ function check_final_work() {
 			+ title
 			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
 			// an external link rather than as an wikilink
-			+ ']] ([{{fullurl:' + title + '|action=edit}} 編])');
+			+ ']] ([{{fullurl:' + title + '|action=edit}} '
+			//
+			+ message_set.edit + '])');
 
 			Object.keys(error_messages).sort().forEach(function(error_name) {
 				messages.push(':; ' + error_name);
 				var list = error_messages[error_name];
 				if (list.length > 20) {
 					messages.append(list.slice(0, 20));
-					// Total n times occurred.
-					messages.push(':: ……合計' + list.length + '回発生した。');
+					messages.push(message_set.report_1
+					//
+					+ list.length + message_set.report_2);
 				} else {
 					messages.append(list);
 				}
@@ -162,15 +203,15 @@ function check_final_work() {
 			}
 		}
 
-		if (messages.length > 0) {
-			messages.push('[[Category:修正が必要な仮リンクを含む記事]]');
+		if (messages.length > 0 && message_set.fix_category) {
+			messages.push('[[' + message_set.fix_category + ']]');
 		}
 		return messages.join('\n');
 
 	}, {
 		// section : 'new',
 		// sectiontitle : '結果報告',
-		summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
+		summary : message_set.report_summary,
 		nocreate : 1,
 		bot : 1
 	});
@@ -513,7 +554,7 @@ function for_each_page(page_data, messages) {
 			.replace(/<\!--[\s\S]*?-->/g, '').trim();
 		}
 
-		var template_name = token.name.toLowerCase(), order = template_order_of_name[template_name];
+		var template_name = token.name.toLowerCase(), order = message_set.template_order_of_name[template_name];
 		if (order) {
 			template_count++;
 			token.page_data = page_data;
@@ -619,7 +660,8 @@ try {
 	 */
 	require('fs').unlinkSync(
 			base_directory + 'categorymembers/'
-					+ Category_has_local_page.replace(':', '_') + '.json');
+					+ message_set.Category_has_local_page.replace(':', '_')
+					+ '.json');
 } catch (e) {
 	// TODO: handle exception
 }
@@ -628,7 +670,7 @@ try {
 
 CeL.wiki.cache([ {
 	type : 'categorymembers',
-	list : Category_has_local_page,
+	list : message_set.Category_has_local_page,
 	operator : function(list) {
 		this.list = list;
 	}
