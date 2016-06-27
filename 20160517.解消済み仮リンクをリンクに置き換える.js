@@ -37,7 +37,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 2,
+test_limit = 50,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -131,7 +131,7 @@ message_set = {
 		// gets form langlinks
 		different_local_title : 'The local title is different from title gets form wikidata. Need check manually.',
 		not_exist : 'Not exist',
-		from_parameter : 'From　the parameter',
+		from_parameter : 'From the parameter',
 		translated_from_foreign_title : 'Translated from foreign title',
 
 		// always display
@@ -145,7 +145,9 @@ message_set = Object.assign(message_set['*'], message_set[use_language]);
 // ----------------------------------------------------------------------------
 
 function check_final_work() {
-	CeL.debug('page_remains: ' + page_remains, 2, 'check_final_work');
+	if (CeL.is_debug(2)) {
+		CeL.debug('page_remains: ' + page_remains, 0, 'check_final_work');
+	}
 
 	if (--page_remains > 0) {
 		return;
@@ -160,8 +162,6 @@ function check_final_work() {
 	wiki.page('User:' + user_name + '/' + message_set.report_page)
 	//
 	.edit(function() {
-		// for test
-		return;
 		var messages = [], data = processed_data[processed_data.KEY_DATA];
 		// data: 結果報告。
 		// data[local title] = { id : 0, error : {
@@ -362,20 +362,21 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			wiki.page(page_data
-			// && 'Wikipedia:サンドボックス'
-			).edit(last_content, {
-				// section : 'new',
-				// sectiontitle : title,
-				summary : message_set.summary_prefix
-				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
-				+ changed.join(message_set.summary_separator)
-				//
-				+ message_set.summary_postfix,
-				nocreate : 1,
-				minor : 1,
-				bot : 1
-			});
+			if (0)
+				wiki.page(page_data
+				// && 'Wikipedia:サンドボックス'
+				).edit(last_content, {
+					// section : 'new',
+					// sectiontitle : title,
+					summary : message_set.summary_prefix
+					// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
+					+ changed.join(message_set.summary_separator)
+					//
+					+ message_set.summary_postfix,
+					nocreate : 1,
+					minor : 1,
+					bot : 1
+				});
 
 			check_final_work();
 		}
@@ -551,9 +552,9 @@ function for_each_page(page_data, messages) {
 		function get_title(parameter) {
 			parameter = parameters[parameter];
 			// normalize
-			return parameter && parameter.toString()
+			return parameter && decodeURIComponent(parameter.toString()
 			// 去除註解 comments。
-			.replace(/<\!--[\s\S]*?-->/g, '').trim();
+			.replace(/<\!--[\s\S]*?-->/g, '').trim());
 		}
 
 		var template_name = token.name.toLowerCase(), order = message_set.template_order_of_name[template_name];
@@ -563,9 +564,9 @@ function for_each_page(page_data, messages) {
 			// console.log(token);
 			parameters = token.parameters;
 			// {{仮リンク|記事名|en|title}}
-			local_title = decodeURIComponent(get_title(order[0]));
+			local_title = get_title(order[0]);
 			foreign_language = get_title(order[1]);
-			foreign_title = decodeURIComponent(get_title(order[2]));
+			foreign_title = get_title(order[2]);
 
 			if (!foreign_title && use_language === 'en'
 			// When article names would be the same in English and foreign
