@@ -37,7 +37,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 200,
+test_limit = 2,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -160,6 +160,8 @@ function check_final_work() {
 	wiki.page('User:' + user_name + '/' + message_set.report_page)
 	//
 	.edit(function() {
+		// for test
+		return;
 		var messages = [], data = processed_data[processed_data.KEY_DATA];
 		// data: 結果報告。
 		// data[local title] = { id : 0, error : {
