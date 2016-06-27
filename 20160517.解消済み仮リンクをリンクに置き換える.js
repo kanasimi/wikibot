@@ -37,7 +37,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 50,
+test_limit = 60,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
