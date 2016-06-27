@@ -289,7 +289,7 @@ function for_each_page(page_data, messages) {
 
 				var parent = token,
 				// parameter[3]
-				index = 3, foreign_title = parent[index];
+				index = order[2], foreign_title = parent[index];
 				if (Array.isArray(foreign_title)) {
 					parent = foreign_title;
 					index = 0;
@@ -298,15 +298,15 @@ function for_each_page(page_data, messages) {
 
 				// 格式化連結。
 				if (foreign_title && typeof foreign_title === 'string'
-						&& !foreign_title.includes('=') && token[2]
-						&& /^[a-z\-]{2,20}$/.test(token[2])) {
-					parent[index] = '[[:' + token[2] + ':' + foreign_title
-							+ '|' + foreign_title + ']]';
+						&& !foreign_title.includes('=') && token[order[1]]
+						&& /^[a-z\-]{2,20}$/.test(token[order[1]])) {
+					parent[index] = '[[:' + token[order[1]] + ':'
+							+ foreign_title + '|' + foreign_title + ']]';
 				}
 
-				var local_title = token[1];
+				var local_title = token[order[0]];
 				if (local_title && (typeof local_title === 'string')) {
-					token[1] = '[[' + local_title + ']]';
+					token[order[0]] = '[[' + local_title + ']]';
 				}
 				error_list.push(
 				// @see wiki_toString @ CeL.wiki
@@ -324,8 +324,8 @@ function for_each_page(page_data, messages) {
 					error_list.push(token.error_message);
 				}
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
-				if (1 in token) {
-					token[1] = local_title;
+				if (order[0] in token) {
+					token[order[0]] = local_title;
 				}
 				if (index in parent) {
 					parent[index] = foreign_title;
