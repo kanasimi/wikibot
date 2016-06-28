@@ -2,9 +2,7 @@
 
 /*
 
- 2016/5/20 22:22:41	セントルイス・ワシントン大学の記事名変更に伴う修正: 仮運用を行って
-
- 首先需要檢查前後文，確認可能出現的問題!
+ 2016/6/28 21:20:22	セントルイス・ワシントン大学の記事名変更に伴う修正: 仮運用を行って
 
  */
 
@@ -61,6 +59,7 @@ function for_each_page(page_data, messages) {
 	}
 
 	if (false) {
+		// 首先需要檢查前後文，確認可能出現的問題!
 		console.log(content.match(PATTERN_TO_REPLACE).join('\n').replace(
 				/\[\[\s*ワシントン大学[ _]\(セントルイス\)\s*/g, '~~~~~~~~~~'));
 	}
@@ -86,7 +85,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
