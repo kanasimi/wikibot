@@ -1127,6 +1127,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				&& (!entity.claims || !include_label(CeL.wiki.data.value_of(
 				//
 				entity.claims[読み仮名_id]), f_label))) {
+					this.summary = 'imported 仮名 from [[' + f_language + ':'
+					//
+					+ titles.uniq().slice(0, 10).join(summary_sp) + ']]';
 					// treat foreign_title as 読み仮名.
 					return 仮名_claim(f_label);
 				}
