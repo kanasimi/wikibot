@@ -322,9 +322,14 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
-	if (page_data.ns !== 0 && (page_data.ns !== 10
+	if (page_data.ns !== 0
+	// 可考慮去掉 message_set.Category_has_local_page
+	&& page_data.ns !== 14 && (page_data.ns !== 10
 	// 不處理跨語言連結模板系列。
-	|| (title.replace(/\/[\s\S]*$/, '') in message_set.template_order_of_name))) {
+	|| (title.replace(/\/[\s\S]*$/, '')
+	// 去掉 namespace。
+	.replace(/^[^:]+:/, '') in message_set.template_order_of_name))) {
+		check_final_work();
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板' ];
 	}
 
@@ -335,7 +340,7 @@ function for_each_page(page_data, messages) {
 	}
 
 	function for_each_template(token, token_index, token_parent) {
-		var parameters, local_title, foreign_language, foreign_title;
+		var parameters, normalized_param = normalize_parameter(token), local_title, foreign_language, foreign_title;
 
 		/**
 		 * 每一個頁面的最終處理函數。需要用到 token。
@@ -515,28 +520,39 @@ function for_each_page(page_data, messages) {
 			check_page();
 		}
 
-		function for_local_page(title) {
-			if (!title) {
-				// 忽略缺乏本地頁面的情況。
+		function for_local_page(converted_title) {
+			if (false && !converted_title) {
+				// 忽略從外語言條目連結無法取得本地頁面的情況。
+				// ** 但此時可能本地頁面仍然存在。
 				check_page(message_set.missing_local, true);
 				return;
 			}
 
-			// title: foreign_title 所對應的本地條目。
-			if (title !== local_title) {
+			// converted_title: foreign_title 所對應的本地條目。
+			if (!converted_title || converted_title !== local_title) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
 
 				wiki.redirect_to(local_title,
-				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向 title。
+				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向 converted_title。
 				function(redirect_data, page_data) {
+					if (!converted_title && !redirect_data) {
+						// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
+						// 此應屬正常。
+						check_page(message_set.missing_local, true);
+						return;
+					}
+
 					if (Array.isArray(redirect_data)) {
 						// TODO: Array.isArray(redirect_data)
 						console.log(redirect_data);
 						throw 'Array.isArray(redirect_data)';
 					}
-					if (title === redirect_data) {
-						// local_title 最終導向 redirect_data === title。
+
+					// assert: 若 ((converted_title === redirect_data))，
+					// 則本地頁面 converted_title 存在。
+					if (converted_title === redirect_data) {
+						// local_title 最終導向 redirect_data === converted_title。
 						// 直接採用 parameters 指定的 title，不再多做改變；
 						// 盡可能讓表現/顯示出的文字與原先相同。
 						// e.g., [[Special:Diff/59964828]]
@@ -549,11 +565,11 @@ function for_each_page(page_data, messages) {
 							// 盡可能讓表現/顯示出的文字與原先相同。
 							parameters.label = local_title;
 						}
-						// local_title 最終導向 redirect_data === title。
+						// local_title 最終導向 redirect_data === converted_title。
 						local_title = redirect_data;
 						// [[local_title]] redirect to:
-						// [[redirect_data]] = [[title]]
-						for_local_page(title);
+						// [[redirect_data]] = [[converted_title]]
+						for_local_page(converted_title);
 					}
 
 					token.error_message
@@ -561,10 +577,17 @@ function for_each_page(page_data, messages) {
 					= redirect_data ? redirect_data === local_title ? ''
 							: ' → [[' + redirect_data + ']]' : ': '
 							+ message_set.not_exist;
-					token.error_message = ':: ' + message_set.from_parameter
-							+ ': [[' + local_title + ']]' + token.error_message
-							+ '. ' + message_set.translated_from_foreign_title
-							+ ': [[' + title + ']]';
+					token.error_message = ':: '
+							+ message_set.from_parameter
+							+ ': [['
+							+ local_title
+							+ ']]'
+							+ token.error_message
+							+ '. '
+							+ message_set.translated_from_foreign_title
+							+ ': '
+							+ (converted_title ? '[[' + converted_title + ']]'
+									: message_set.not_exist);
 
 					// test:
 					// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
@@ -637,7 +660,6 @@ function for_each_page(page_data, messages) {
 
 		}
 
-		var normalized_param = normalize_parameter(token);
 		if (normalized_param) {
 			template_count++;
 			token.page_data = page_data;
@@ -646,9 +668,7 @@ function for_each_page(page_data, messages) {
 			local_title = normalized_param.local_title;
 			foreign_language = normalized_param.foreign_language;
 			foreign_title = normalized_param.foreign_title;
-			if (false) {
-				console.log([ local_title, foreign_language, foreign_title ]);
-			}
+			CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
@@ -762,11 +782,11 @@ CeL.wiki.cache([ {
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
 	if (1) {
+		CeL.log(list.slice(0, 8).map(function(page_data, index) {
+			return index + ': ' + CeL.wiki.title_of(page_data);
+		}).join('\n') + '\n...');
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
-		CeL.log(list.slice(0, 8).map(function(page_data) {
-			return CeL.wiki.title_of(page_data);
-		}).join('\n') + '\n...');
 	}
 
 	// setup ((page_remains))
@@ -782,7 +802,7 @@ CeL.wiki.cache([ {
 
 }, {
 	// default options === this
-	// namespace : '0|10',
+	// namespace : '0|10|14',
 	// [SESSION_KEY]
 	session : wiki,
 	// title_prefix : 'Template:',
