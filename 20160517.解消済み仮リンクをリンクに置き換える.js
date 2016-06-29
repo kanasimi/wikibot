@@ -37,15 +37,14 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 60,
+test_limit = Infinity,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
 
-// 預設index/次序集
-// default parameters
+// default parameters 預設index/次序集
 template_orders = {
-	LcF : {
+	LcF_ja : {
 		// local title
 		local_title : 1,
 		// foreign_language code
@@ -76,7 +75,7 @@ template_orders = {
 message_set = {
 	ja : {
 		Category_has_local_page : 'Category:解消済み仮リンクを含むページ',
-		//Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
+		// Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
 		report_page : '修正が必要な仮リンク',
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
@@ -88,15 +87,15 @@ message_set = {
 		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
 		template_order_of_name : {
 			// {{仮リンク|記事1|en|ABC|label|preserve=1}}
-			仮リンク : template_orders.LcF,
+			仮リンク : template_orders.LcF_ja,
 			// =仮リンク
-			ill2 : template_orders.LcF,
+			ill2 : template_orders.LcF_ja,
 			// =仮リンク
-			illm : template_orders.LcF,
+			illm : template_orders.LcF_ja,
 			// =仮リンク
-			'link-interwiki' : template_orders.LcF,
+			'link-interwiki' : template_orders.LcF_ja,
 
-			日本語版にない記事リンク : template_orders.LcF
+			日本語版にない記事リンク : template_orders.LcF_ja
 		},
 
 		summary_prefix : 'bot: 解消済み仮リンク',
@@ -783,7 +782,7 @@ CeL.wiki.cache([ {
 
 }, {
 	// default options === this
-	//namespace : 0,
+	// namespace : '0|10',
 	// [SESSION_KEY]
 	session : wiki,
 	// title_prefix : 'Template:',
