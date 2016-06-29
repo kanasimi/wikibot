@@ -73,7 +73,7 @@ message_set = {
 		summary_separator : '、',
 		summary_postfix : 'を内部リンクに置き換える',
 
-		no_template : 'テンプレートが存在しない。',
+		no_template : 'テンプレートを発見できません。',
 		// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
 		// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
 		invalid_template : 'テンプレートの使用に誤りがある。',
@@ -120,7 +120,7 @@ message_set = {
 		// internal link
 		summary_postfix : ' to wikilink',
 
-		no_template : 'No interwiki link template found',
+		no_template : 'No interwiki link template found.',
 		// 語法錯誤
 		invalid_template : 'Syntax error',
 		// manually
@@ -158,6 +158,8 @@ function check_final_work() {
 		throw page_remains;
 	}
 	check_final_work.done = true;
+	// for debug
+	return;
 
 	wiki.page('User:' + user_name + '/' + message_set.report_page)
 	//
@@ -362,6 +364,7 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
+			// for debug
 			if (0)
 				wiki.page(page_data
 				// && 'Wikipedia:サンドボックス'
@@ -645,6 +648,7 @@ function for_each_page(page_data, messages) {
 	parser.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
+		CeL.warn('for_each_page: [['++']]也許有尚未登記的 template?');
 		// check_page(message_set.no_template);
 		check_final_work();
 	}
