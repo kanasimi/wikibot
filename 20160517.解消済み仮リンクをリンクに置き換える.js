@@ -648,7 +648,7 @@ function for_each_page(page_data, messages) {
 	parser.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
-		CeL.warn('for_each_page: [['++']]也許有尚未登記的 template?');
+		CeL.warn('for_each_page: [[' + title + ']]也許有尚未登記的 template?');
 		// check_page(message_set.no_template);
 		check_final_work();
 	}
