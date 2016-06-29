@@ -323,8 +323,10 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
-	if (page_data.ns !== 0 && page_data.ns !== 10) {
-		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+	if (page_data.ns !== 0 && (page_data.ns !== 10
+	// 不處理跨語言連結模板系列。
+	|| (title.replace(/\/[\s\S]*$/, '') in message_set.template_order_of_name))) {
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板' ];
 	}
 
 	// Check if page_data had processed useing revid.
