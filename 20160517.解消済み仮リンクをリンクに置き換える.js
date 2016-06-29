@@ -42,12 +42,34 @@ test_limit = 60,
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
 
-// 次序
+// 預設index/次序集
+// default parameters
 template_orders = {
-	// local_title, foreign_language code, foreign_title,
-	// label text displayed, preserve foreign language link
-	LcF : [ 1, 2, 3 ],
-	cLF : [ 2, 1, 3, 4 ],
+	LcF : {
+		// local title
+		local_title : 1,
+		// foreign_language code
+		foreign_language : 2,
+		// foreign_title
+		foreign_title : 3,
+		// label text displayed
+		label : 'label',
+		// preserve foreign language link
+		preserve : [ 'preserve', 'display' ]
+	},
+	LcF_en : {
+		local_title : 1,
+		foreign_language : 2,
+		foreign_title : [ 3, 2 ],
+		label : 'lt',
+		preserve : [ 'preserve', 'display' ]
+	},
+	cLFl_en : {
+		foreign_language : [ 1, 'lang' ],
+		local_title : [ 2, 'en' ],
+		foreign_title : [ 3, 'lang_title', 2 ],
+		label : [ 4, 'lt', 'en_text' ]
+	}
 },
 
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
@@ -60,13 +82,20 @@ message_set = {
 		edit : '編',
 		report_1 : ':: ……合計',
 		report_2 : '回発生した。',
+		// 網羅所有 interlanguage link templates。
 		// @see
 		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
 		template_order_of_name : {
+			// {{仮リンク|記事1|en|ABC|label|preserve=1}}
 			仮リンク : template_orders.LcF,
+			// =仮リンク
 			ill2 : template_orders.LcF,
+			// =仮リンク
 			illm : template_orders.LcF,
-			'link-interwiki' : template_orders.LcF
+			// =仮リンク
+			'link-interwiki' : template_orders.LcF,
+
+			日本語版にない記事リンク : template_orders.LcF
 		},
 
 		summary_prefix : 'bot: 解消済み仮リンク',
@@ -100,10 +129,23 @@ message_set = {
 	en : {
 		Category_has_local_page : 'Category:Interlanguage link template existing link',
 		template_order_of_name : {
-			ill : template_orders.cLF,
-			'interlanguage link' : template_orders.cLF,
-			illm : template_orders.LcF,
-			'interlanguage link multi' : template_orders.LcF
+			// When article names would be the same in English and foreign
+			// language Wikipedia
+			// @see [[:en:Template:Interlanguage link]]
+			'interlanguage link' : template_orders.cLFl_en,
+			// =interlanguage link
+			ill : template_orders.cLFl_en,
+			// =interlanguage link
+			iii : template_orders.cLFl_en,
+			// =interlanguage link
+			link : template_orders.cLFl_en,
+			// =interlanguage link
+			'link-interwiki' : template_orders.cLFl_en,
+
+			// https://en.wikipedia.org/w/index.php?title=Special%3AWhatLinksHere&hidetrans=1&hidelinks=1&target=Template%3Ainterlanguage+link+multi&namespace=
+			'interlanguage link multi' : template_orders.LcF_en,
+			// =interlanguage link multi
+			illm : template_orders.LcF_en
 		}
 	},
 
@@ -141,6 +183,48 @@ message_set = {
 };
 
 message_set = Object.assign(message_set['*'], message_set[use_language]);
+
+function normalize_parameter(token) {
+	var template_name = token.name.toLowerCase(),
+	//
+	index_order = message_set.template_order_of_name[template_name];
+
+	if (!index_order) {
+		return;
+	}
+
+	var parameters = token.parameters,
+	// normalized_parameters
+	normalized = {
+		index_order : index_order
+	}, parameter_name;
+
+	// 自 parameter 取得頁面標題文字/條目名稱。
+	function set_title(index) {
+		var parameter = parameters[index];
+		if (parameter) {
+			normalized[parameter_name] =
+			// normalize
+			decodeURIComponent(parameter.toString()
+			// 去除註解 comments。
+			.replace(/<\!--[\s\S]*?-->/g, '').trim());
+			return true;
+		}
+	}
+
+	for (parameter_name in index_order) {
+		// {Number|String}index of
+		var index = index_order[parameter_name];
+		if (Array.isArray(index)) {
+			index.some(set_title);
+
+		} else {
+			set_title(index);
+		}
+	}
+
+	return normalized;
+}
 
 // ----------------------------------------------------------------------------
 
@@ -289,9 +373,7 @@ function for_each_page(page_data, messages) {
 				}
 				error_list = error_list[error_name];
 
-				var parent = token,
-				// parameter[3]
-				index = order[2], foreign_title = parent[index];
+				var parent = token, index = normalized_param.index_order.foreign_title, foreign_title = parent[index];
 				if (Array.isArray(foreign_title)) {
 					parent = foreign_title;
 					index = 0;
@@ -299,16 +381,22 @@ function for_each_page(page_data, messages) {
 				}
 
 				// 格式化連結。
-				if (foreign_title && typeof foreign_title === 'string'
-						&& !foreign_title.includes('=') && token[order[1]]
-						&& /^[a-z\-]{2,20}$/.test(token[order[1]])) {
-					parent[index] = '[[:' + token[order[1]] + ':'
-							+ foreign_title + '|' + foreign_title + ']]';
+				if (foreign_title
+						&& typeof foreign_title === 'string'
+						&& !foreign_title.includes('=')
+						&& normalized_param.foreign_language
+						&& /^[a-z\-]{2,20}$/
+								.test(normalized_param.foreign_language)) {
+					parent[index] = '[[:' + normalized_param.foreign_language
+							+ ':' + foreign_title + '|' + foreign_title + ']]';
 				}
 
-				var local_title = token[order[0]];
+				// cache 以在之後回復 recover 用。
+				var local_title = normalized_param.local_title,
+				//
+				local_title_index = normalized_param.index_order.local_title;
 				if (local_title && (typeof local_title === 'string')) {
-					token[order[0]] = '[[' + local_title + ']]';
+					token[local_title_index] = '[[' + local_title + ']]';
 				}
 				error_list.push(
 				// @see wiki_toString @ CeL.wiki
@@ -325,9 +413,10 @@ function for_each_page(page_data, messages) {
 				if (token.error_message) {
 					error_list.push(token.error_message);
 				}
+
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
-				if (order[0] in token) {
-					token[order[0]] = local_title;
+				if (local_title_index in token) {
+					token[local_title_index] = local_title;
 				}
 				if (index in parent) {
 					parent[index] = foreign_title;
@@ -400,9 +489,7 @@ function for_each_page(page_data, messages) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]],
 			// [[:en:Template:ill]]
 			/** {String}label text displayed */
-			text_displayed = parameters[order[3]]
-			// default parameters
-			|| parameters.lt || parameters.label || parameters.en_text;
+			text_displayed = normalized_param.label;
 			if (text_displayed) {
 				if (text_displayed !== link_target)
 					link += '|' + text_displayed;
@@ -551,34 +638,15 @@ function for_each_page(page_data, messages) {
 
 		}
 
-		// 自 parameter 取得頁面標題文字/條目名稱。
-		function get_title(parameter) {
-			parameter = parameters[parameter];
-			// normalize
-			return parameter && decodeURIComponent(parameter.toString()
-			// 去除註解 comments。
-			.replace(/<\!--[\s\S]*?-->/g, '').trim());
-		}
-
-		var template_name = token.name.toLowerCase(), order = message_set.template_order_of_name[template_name];
-		if (order) {
+		var normalized_param = normalize_parameter(token);
+		if (normalized_param) {
 			template_count++;
 			token.page_data = page_data;
 			// console.log(token);
 			parameters = token.parameters;
-			// {{仮リンク|記事名|en|title}}
-			local_title = get_title(order[0]);
-			foreign_language = get_title(order[1]);
-			foreign_title = get_title(order[2]);
-
-			if (!foreign_title && use_language === 'en'
-			// When article names would be the same in English and foreign
-			// language Wikipedia
-			&& (template_name === 'ill'
-			// @see [[:en:Template:Interlanguage link]]
-			|| template_name === 'interlanguage link')) {
-				foreign_title = local_title;
-			}
+			local_title = normalized_param.local_title;
+			foreign_language = normalized_param.foreign_language;
+			foreign_title = normalized_param.foreign_title;
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
