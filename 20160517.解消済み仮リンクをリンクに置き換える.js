@@ -75,7 +75,8 @@ template_orders = {
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
 	ja : {
-		Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
+		Category_has_local_page : 'Category:解消済み仮リンクを含むページ',
+		//Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
 		report_page : '修正が必要な仮リンク',
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
@@ -242,8 +243,6 @@ function check_final_work() {
 		throw page_remains;
 	}
 	check_final_work.done = true;
-	// for debug
-	return;
 
 	wiki.page('User:' + user_name + '/' + message_set.report_page)
 	//
@@ -324,8 +323,8 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
-	if (page_data.ns !== 0) {
-		throw '非條目:[[' + page_data.title + ']]! 照理來說不應該出現有 ns !== 0 的情況。';
+	if (page_data.ns !== 0 && page_data.ns !== 10) {
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 	}
 
 	// Check if page_data had processed useing revid.
@@ -446,29 +445,28 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			if (false) {
-				CeL.log('[[' + title + ']]: ');
-				CeL.log(last_content);
+			// for debug
+			if (0) {
+				CeL.log('modify [[' + title + ']]: ');
+				// CeL.log(last_content);
 				check_final_work();
 				return;
 			}
 
-			// for debug
-			if (0)
-				wiki.page(page_data
-				// && 'Wikipedia:サンドボックス'
-				).edit(last_content, {
-					// section : 'new',
-					// sectiontitle : title,
-					summary : message_set.summary_prefix
-					// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
-					+ changed.join(message_set.summary_separator)
-					//
-					+ message_set.summary_postfix,
-					nocreate : 1,
-					minor : 1,
-					bot : 1
-				});
+			wiki.page(page_data
+			// && 'Wikipedia:サンドボックス'
+			).edit(last_content, {
+				// section : 'new',
+				// sectiontitle : title,
+				summary : message_set.summary_prefix
+				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
+				+ changed.join(message_set.summary_separator)
+				//
+				+ message_set.summary_postfix,
+				nocreate : 1,
+				minor : 1,
+				bot : 1
+			});
 
 			check_final_work();
 		}
@@ -647,6 +645,9 @@ function for_each_page(page_data, messages) {
 			local_title = normalized_param.local_title;
 			foreign_language = normalized_param.foreign_language;
 			foreign_title = normalized_param.foreign_title;
+			if (false) {
+				console.log([ local_title, foreign_language, foreign_title ]);
+			}
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
@@ -716,7 +717,8 @@ function for_each_page(page_data, messages) {
 	parser.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
-		CeL.warn('for_each_page: [[' + title + ']]也許有尚未登記的 template?');
+		CeL.warn('for_each_page: [[' + title
+				+ ']] 也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板？');
 		// check_page(message_set.no_template);
 		check_final_work();
 	}
@@ -779,7 +781,7 @@ CeL.wiki.cache([ {
 
 }, {
 	// default options === this
-	namespace : 0,
+	//namespace : 0,
 	// [SESSION_KEY]
 	session : wiki,
 	// title_prefix : 'Template:',
