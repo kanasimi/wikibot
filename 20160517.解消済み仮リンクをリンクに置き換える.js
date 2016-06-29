@@ -74,8 +74,8 @@ template_orders = {
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
 	ja : {
-		Category_has_local_page : 'Category:解消済み仮リンクを含むページ',
-		// Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
+		// Category_has_local_page : 'Category:解消済み仮リンクを含むページ',
+		Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
 		report_page : '修正が必要な仮リンク',
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
@@ -523,7 +523,7 @@ function for_each_page(page_data, messages) {
 		function for_local_page(converted_title) {
 			if (false && !converted_title) {
 				// 忽略從外語言條目連結無法取得本地頁面的情況。
-				// ** 但此時可能本地頁面仍然存在。
+				// ** 但此時可能本地頁面仍然存在。因此不在此跳出。
 				check_page(message_set.missing_local, true);
 				return;
 			}
