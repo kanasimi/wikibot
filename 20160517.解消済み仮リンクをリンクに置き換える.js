@@ -113,7 +113,7 @@ message_set = {
 		// [[ja:Help:セクション]]
 		foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、手動修正必要。',
 		// リンク先が他言語版とリンクしていないもの
-		missing_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、手動修正必要。',
+		missing_converted_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、手動修正必要。',
 		// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
 		// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
 		// TODO: Q6099744
@@ -169,7 +169,7 @@ message_set = {
 		missing_foreign : 'Missing foreign page. Need check manually.',
 		foreign_is_disambiguation : 'Foreign page is disambiguation. Need check manually.',
 		foreign_redirect_to_section : 'Foreign page redirects to section. Need check manually.',
-		missing_local : 'Missing local page, or the local page is not link to wikidata. Need check manually.',
+		missing_converted_local : 'Missing converted local page, or the local page is not link to wikidata. Need check manually.',
 		// gets form langlinks
 		different_local_title : 'The local title is different from title gets form wikidata. Need check manually.',
 		not_exist : 'Not exist',
@@ -521,13 +521,6 @@ function for_each_page(page_data, messages) {
 		}
 
 		function for_local_page(converted_title) {
-			if (false && !converted_title) {
-				// 忽略從外語言條目連結無法取得本地頁面的情況。
-				// ** 但此時可能本地頁面仍然存在。因此不在此跳出。
-				check_page(message_set.missing_local, true);
-				return;
-			}
-
 			// converted_title: foreign_title 所對應的本地條目。
 			if (!converted_title || converted_title !== local_title) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
@@ -536,10 +529,16 @@ function for_each_page(page_data, messages) {
 				wiki.redirect_to(local_title,
 				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向 converted_title。
 				function(redirect_data, page_data) {
-					if (!converted_title && !redirect_data) {
-						// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
-						// 此應屬正常。
-						check_page(message_set.missing_local, true);
+					if (!converted_title) {
+						// 從外語言條目連結無法取得本地頁面的情況。
+						if (redirect_data) {
+							// 存在本地頁面。
+							check_page(message_set.missing_converted_local);
+						} else {
+							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
+							// 此應屬正常。
+							check_page('Both Not exist', true);
+						}
 						return;
 					}
 
@@ -547,6 +546,10 @@ function for_each_page(page_data, messages) {
 						// TODO: Array.isArray(redirect_data)
 						console.log(redirect_data);
 						throw 'Array.isArray(redirect_data)';
+					}
+					if (redirect_data.to_link) {
+						// is #REDIRECT [[title#section]]
+						redirect_data = redirect_data.to_link;
 					}
 
 					// assert: 若 ((converted_title === redirect_data))，
@@ -631,7 +634,7 @@ function for_each_page(page_data, messages) {
 				}
 				// 僅取用第一筆資料。
 				redirect_data = redirect_data[0];
-				// test REDIRECT [[title#section]]
+				// test #REDIRECT [[title#section]]
 				if (redirect_data.tofragment) {
 					check_page(message_set.foreign_redirect_to_section);
 					return;
@@ -781,7 +784,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		CeL.log(list.slice(0, 8).map(function(page_data, index) {
 			return index + ': ' + CeL.wiki.title_of(page_data);
 		}).join('\n') + '\n...');
