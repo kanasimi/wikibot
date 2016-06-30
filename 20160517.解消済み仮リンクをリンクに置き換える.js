@@ -74,6 +74,8 @@ template_orders = {
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
 	ja : {
+		// 不知為何，有時會有 Template 明明有解消済み仮リンク、頁面本身具[[Category:解消済み仮リンクを含むページ]]，
+		// 卻沒被列於[[Category:解消済み仮リンクを含むページ]]。
 		// Category_has_local_page : 'Category:解消済み仮リンクを含むページ',
 		Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
 		report_page : '修正が必要な仮リンク',
@@ -187,7 +189,9 @@ message_set = Object.assign(message_set['*'], message_set[use_language]);
 function normalize_parameter(token) {
 	var template_name = token.name.toLowerCase(),
 	//
-	index_order = message_set.template_order_of_name[template_name];
+	index_order = message_set.template_order_of_name[template_name],
+	// 實際使用的 index。
+	index_order_exactly = CeL.null_Object();
 
 	if (!index_order) {
 		return;
@@ -196,13 +200,14 @@ function normalize_parameter(token) {
 	var parameters = token.parameters,
 	// normalized_parameters
 	normalized = {
-		index_order : index_order
+		index_order : index_order_exactly
 	}, parameter_name;
 
 	// 自 parameter 取得頁面標題文字/條目名稱。
 	function set_title(index) {
 		var parameter = parameters[index];
 		if (parameter) {
+			index_order_exactly[parameter_name] = index;
 			normalized[parameter_name] =
 			// normalize
 			decodeURIComponent(parameter.toString()
