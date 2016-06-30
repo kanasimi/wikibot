@@ -628,9 +628,8 @@ function for_each_page(page_data, messages) {
 			var redirect_data = foreign_page_data.response.query.redirects;
 			if (redirect_data) {
 				if (redirect_data.length !== 1) {
-					library_namespace.warn('for_foreign_page: Get '
-							+ redirect_data.length + ' redirect links for [['
-							+ title + ']]!');
+					CeL.warn('for_foreign_page: Get ' + redirect_data.length
+							+ ' redirect links for [[' + title + ']]!');
 				}
 				// 僅取用第一筆資料。
 				redirect_data = redirect_data[0];
