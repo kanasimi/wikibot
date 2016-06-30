@@ -113,7 +113,7 @@ message_set = {
 		// [[ja:Help:セクション]]
 		foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、手動修正必要。',
 		// リンク先が他言語版とリンクしていないもの
-		missing_converted_local : '日本語版項目自体存在しないか、他言語版とリンクしていないので、手動修正必要。',
+		missing_converted_local : '他言語版項目リンク先からの日本語版項目が存在しないか、他言語版とリンクしていないので、手動修正必要。',
 		// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
 		// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
 		// TODO: Q6099744
@@ -547,7 +547,7 @@ function for_each_page(page_data, messages) {
 						console.log(redirect_data);
 						throw 'Array.isArray(redirect_data)';
 					}
-					if (redirect_data.to_link) {
+					if (redirect_data && redirect_data.to_link) {
 						// is #REDIRECT [[title#section]]
 						redirect_data = redirect_data.to_link;
 					}
