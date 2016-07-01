@@ -37,7 +37,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 60,
+test_limit = Infinity,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -175,7 +175,7 @@ message_set = {
 		report_1 : ':: Total ',
 		report_2 : ' times occurred.',
 
-		summary_prefix : 'bot test: Convert ',
+		summary_prefix : 'bot: Convert ',
 		summary_separator : ', ',
 		// internal link
 		summary_postfix : ' to wikilink',
@@ -317,9 +317,11 @@ function check_final_work() {
 			}
 		}
 
-		if (messages.length > 0 && message_set.fix_category) {
-			messages.push('[[' + message_set.fix_category + ']]');
+		if (messages.length > 0) {
 			messages.unshift(message_set.manual_correction_required);
+			if (message_set.fix_category) {
+				messages.push('[[' + message_set.fix_category + ']]');
+			}
 		}
 		return messages.join('\n');
 
@@ -815,7 +817,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		CeL.log(list.slice(0, 8).map(function(page_data, index) {
 			return index + ': ' + CeL.wiki.title_of(page_data);
 		}).join('\n') + '\n...');
