@@ -37,7 +37,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = Infinity,
+test_limit = 60,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
@@ -87,9 +87,11 @@ message_set = {
 		report_page : '修正が必要な仮リンク',
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
+		// 手動修正必要。
+		manual_correction_required : 'このリストは手動で修正する必要の記事群です。リストはボットによって自動更新されます。',
 		edit : '編',
 		report_1 : ':: ……合計',
-		report_2 : '回発生した。',
+		report_2 : '回発生しました。',
 		// 網羅所有 interlanguage link templates。
 		// @see
 		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
@@ -114,30 +116,30 @@ message_set = {
 
 		summary_prefix : 'bot: 解消済み仮リンク',
 		summary_separator : '、',
-		summary_postfix : 'を内部リンクに置き換える',
+		summary_postfix : 'を内部リンクに置き換えます',
 
 		no_template : 'テンプレートを発見できません。',
 		// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
 		// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
 		invalid_template : 'テンプレートの使用に誤りがある。',
 		// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
-		missing_foreign : '他言語版記事自体存在しないので、手動修正必要。',
+		missing_foreign : '他言語版記事自体存在しません。',
 		// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
-		foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページなので、手動修正必要。',
+		foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページです。',
 		// [[ja:Help:セクション]]
-		foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送するので、手動修正必要。',
+		foreign_redirect_to_section : '他言語版項目リンク先がセクションに転送します。',
 		// リンク先が他言語版とリンクしていないもの
-		missing_converted_local : '他言語版項目リンク先からの日本語版項目が存在しないか、他言語版とリンクしていないので、手動修正必要。',
+		missing_converted_local : '他言語版項目リンク先からの日本語版項目が存在しないか、他言語版とリンクしていません。',
 		// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
 		// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
 		// TODO: Q6099744
-		different_local_title : '日本語版項目名が違う記事なので、手動修正必要。',
-		not_exist : '存在しない',
+		different_local_title : '日本語版項目名が違う記事です。',
+		not_exist : '存在しません',
 		from_parameter : '引数から',
 		translated_from_foreign_title : '他言語版項目リンク先から',
 
-		preserved : '強制表示引数(preserve)を指定するなので、修正の必要がない。',
-		retrive_foreign_error : '他言語版項目を取得できません。次回実行する時に再試行します。'
+		preserved : '強制表示引数(preserve)を指定するなので、修正の必要がありません。',
+		retrive_foreign_error : '他言語版項目を取得できず、次回実行する時に再試行します。'
 	},
 
 	en : {
@@ -167,6 +169,8 @@ message_set = {
 	'*' : {
 		report_page : 'Interlanguage link templates need to fix',
 		report_summary : 'Report of converting interlanguage link templates',
+		// Manual correction required.
+		manual_correction_required : 'Here lists some templates need to be checked manually. The list will automatically refreshed by the bot.',
 		edit : 'E',
 		report_1 : ':: Total ',
 		report_2 : ' times occurred.',
@@ -315,6 +319,7 @@ function check_final_work() {
 
 		if (messages.length > 0 && message_set.fix_category) {
 			messages.push('[[' + message_set.fix_category + ']]');
+			messages.unshift(message_set.manual_correction_required);
 		}
 		return messages.join('\n');
 
@@ -767,7 +772,7 @@ function for_each_page(page_data, messages) {
 	template_parsed = true;
 	if (template_count === 0) {
 		CeL.warn('for_each_page: [[' + title
-		//
+		// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
 		+ ']] 也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？');
 		// check_page(message_set.no_template);
 		check_final_work();
@@ -810,7 +815,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		CeL.log(list.slice(0, 8).map(function(page_data, index) {
 			return index + ': ' + CeL.wiki.title_of(page_data);
 		}).join('\n') + '\n...');
