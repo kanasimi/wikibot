@@ -66,8 +66,14 @@ template_orders = {
 	cLFl_en : {
 		foreign_language : [ 1, 'lang' ],
 		local_title : [ 2, 'en' ],
-		foreign_title : [ 3, 'lang_title', 2 ],
-		label : [ 4, 'lt', 'en_text' ]
+		foreign_title : [ 3, 'lang_title', 2, 'en' ],
+		label : [ 4, 'lt', 'display', 'en_text' ]
+	},
+	LF : {
+		local_title : 1,
+		foreign_title : [ 2, 1 ],
+		label : [ 'd', 3 ],
+		foreign_language : 'lang-code',
 	}
 },
 
@@ -97,7 +103,13 @@ message_set = {
 			// =仮リンク
 			'link-interwiki' : template_orders.LcF_ja,
 
-			日本語版にない記事リンク : template_orders.LcF_ja
+			日本語版にない記事リンク : template_orders.LcF_ja,
+
+			'internal link helper' : template_orders.LF,
+			// →{{Internal link helper/en}}
+			'link-en' : Object.assign({
+				'|foreign_language' : 'en'
+			}, template_orders.LF)
 		},
 
 		summary_prefix : 'bot: 解消済み仮リンク',
@@ -220,6 +232,13 @@ function normalize_parameter(token) {
 	for (parameter_name in index_order) {
 		// {Number|String}index of
 		var index = index_order[parameter_name];
+
+		if (parameter_name.startsWith('|')) {
+			// 非 index，而是直接指定值。
+			normalized[parameter_name.slice(1)] = index;
+			continue;
+		}
+
 		if (Array.isArray(index)) {
 			index.some(set_title);
 
@@ -635,6 +654,7 @@ function for_each_page(page_data, messages) {
 				if (redirect_data.length !== 1) {
 					CeL.warn('for_foreign_page: Get ' + redirect_data.length
 							+ ' redirect links for [[' + title + ']]!');
+					console.log(redirect_data);
 				}
 				// 僅取用第一筆資料。
 				redirect_data = redirect_data[0];
@@ -648,8 +668,9 @@ function for_each_page(page_data, messages) {
 			if (foreign_page_data.title !== foreign_title) {
 				// 他言語版項目リンク先が違う記事。
 				// 照理來說應該是重定向頁面。
-				if (foreign_title.toLowerCase() !== foreign_page_data.title
-						.toLowerCase()) {
+				if (!foreign_page_data.title
+						|| foreign_title.toLowerCase() !== foreign_page_data.title
+								.toLowerCase()) {
 					CeL.log('for_foreign_page: different foreign title: [[:'
 							+ foreign_language + ':' + foreign_title
 							+ ']] → [[:' + foreign_language + ':'
@@ -746,7 +767,8 @@ function for_each_page(page_data, messages) {
 	template_parsed = true;
 	if (template_count === 0) {
 		CeL.warn('for_each_page: [[' + title
-				+ ']] 也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板？');
+		//
+		+ ']] 也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？');
 		// check_page(message_set.no_template);
 		check_final_work();
 	}
