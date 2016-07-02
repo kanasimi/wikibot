@@ -747,7 +747,10 @@ function for_each_page(page_data, messages) {
 						}
 					}
 				});
-			} else if (local_title) {
+
+			} else if (local_title && !foreign_title
+			// 確保 foreign_language 非 title。
+			&& (!foreign_language || /^[a-z]{2}$/i.test(foreign_language))) {
 				wiki.redirect_to(local_title,
 				//
 				function(redirect_data, page_data) {
