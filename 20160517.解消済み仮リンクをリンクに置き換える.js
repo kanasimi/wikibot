@@ -224,11 +224,16 @@ function normalize_parameter(token) {
 		var parameter = parameters[index];
 		if (parameter) {
 			index_order_exactly[parameter_name] = index;
-			normalized[parameter_name] =
 			// normalize
-			decodeURIComponent(parameter.toString()
+			parameter = parameter.toString()
 			// 去除註解 comments。
-			.replace(/<\!--[\s\S]*?-->/g, '').trim());
+			.replace(/<\!--[\s\S]*?-->/g, '').trim();
+			try {
+				parameter = decodeURIComponent(parameter).trim();
+			} catch (e) {
+				CeL.err('URI malformed: [' + parameter + ']');
+			}
+			normalized[parameter_name] = parameter;
 			return true;
 		}
 	}
@@ -354,8 +359,12 @@ function for_each_page(page_data, messages) {
 	// console.log(CeL.wiki.content_of(page_data));
 
 	if (page_data.ns !== 0
-	// 可考慮去掉 message_set.Category_has_local_page
-	&& page_data.ns !== 14 && (page_data.ns !== 10
+	// file / image
+	&& page_data.ns !== 6
+	// category: 可考慮去掉 message_set.Category_has_local_page
+	&& page_data.ns !== 14
+	// template
+	&& (page_data.ns !== 10
 	// 不處理跨語言連結模板系列。
 	|| (title.replace(/\/[\s\S]*$/, '')
 	// 去掉 namespace。
