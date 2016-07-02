@@ -164,6 +164,14 @@ message_set = {
 			// ={{interlanguage link}}
 			'link-interwiki' : template_orders.cLFl_en,
 
+			'interlanguage link forced' : Object.assign({
+				'|preserve' : 1
+			}, template_orders.LcF_en),
+			// ={{Interlanguage link forced}}
+			ill2 : Object.assign({
+				'|preserve' : 1
+			}, template_orders.LcF_en),
+
 			// https://en.wikipedia.org/w/index.php?title=Special%3AWhatLinksHere&hidetrans=1&hidelinks=1&target=Template%3Ainterlanguage+link+multi&namespace=
 			'interlanguage link multi' : template_orders.LcF_en,
 			// ={{interlanguage link multi}}
@@ -175,7 +183,7 @@ message_set = {
 			'ill-wd' : template_orders.LW,
 
 			'red wikidata link' : template_orders.LW,
-			// {{redwd|link target|Wikidata item ID|link title}}\
+			// {{redwd|link target|Wikidata item ID|link title}}
 			redwd : template_orders.LW
 		}
 	},
