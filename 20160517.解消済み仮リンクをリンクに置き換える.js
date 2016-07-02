@@ -379,7 +379,7 @@ function for_each_page(page_data, messages) {
 	// 不處理跨語言連結模板系列。
 	|| (title.replace(/\/[\s\S]*$/, '')
 	// 去掉 namespace。
-	.replace(/^[^:]+:/, '') in message_set.template_order_of_name))) {
+	.replace(/^[^:]+:/, '').toLowerCase() in message_set.template_order_of_name))) {
 		check_final_work();
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板' ];
 	}
