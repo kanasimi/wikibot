@@ -104,11 +104,11 @@ message_set = {
 		template_order_of_name : {
 			// {{仮リンク|記事1|en|ABC|label|preserve=1}}
 			仮リンク : template_orders.LcF_ja,
-			// =仮リンク
+			// ={{仮リンク}}
 			ill2 : template_orders.LcF_ja,
-			// =仮リンク
+			// ={{仮リンク}}
 			illm : template_orders.LcF_ja,
-			// =仮リンク
+			// ={{仮リンク}}
 			'link-interwiki' : template_orders.LcF_ja,
 
 			日本語版にない記事リンク : template_orders.LcF_ja,
@@ -155,21 +155,24 @@ message_set = {
 			// language Wikipedia
 			// @see [[:en:Template:Interlanguage link]]
 			'interlanguage link' : template_orders.cLFl_en,
-			// =interlanguage link
+			// ={{interlanguage link}}
 			ill : template_orders.cLFl_en,
-			// =interlanguage link
+			// ={{interlanguage link}}
 			iii : template_orders.cLFl_en,
-			// =interlanguage link
+			// ={{interlanguage link}}
 			link : template_orders.cLFl_en,
-			// =interlanguage link
+			// ={{interlanguage link}}
 			'link-interwiki' : template_orders.cLFl_en,
 
 			// https://en.wikipedia.org/w/index.php?title=Special%3AWhatLinksHere&hidetrans=1&hidelinks=1&target=Template%3Ainterlanguage+link+multi&namespace=
 			'interlanguage link multi' : template_orders.LcF_en,
-			// =interlanguage link multi
-			illm : template_orders.LcF_en
+			// ={{interlanguage link multi}}
+			illm : template_orders.LcF_en,
 
-			'ill-WD' : template_orders.LW
+			// {{interlanguage link Wikidata}}
+			'interlanguage link wikidata' : template_orders.LW,
+			// {{Ill-WD}} = {{interlanguage link Wikidata}}
+			'ill-wd' : template_orders.LW
 		}
 	},
 
