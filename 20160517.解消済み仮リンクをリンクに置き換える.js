@@ -172,7 +172,11 @@ message_set = {
 			// {{interlanguage link Wikidata}}
 			'interlanguage link wikidata' : template_orders.LW,
 			// {{Ill-WD}} = {{interlanguage link Wikidata}}
-			'ill-wd' : template_orders.LW
+			'ill-wd' : template_orders.LW,
+
+			'red wikidata link' : template_orders.LW,
+			// {{redwd|link target|Wikidata item ID|link title}}\
+			redwd : template_orders.LW
 		}
 	},
 
@@ -297,6 +301,13 @@ function check_final_work() {
 		// "error name" : [ ... ], ... }
 		// })
 		for ( var title in data) {
+			// log limit
+			if (messages.length > 2000
+			// template 若存有已存在本地條目之跨語言連結模板，常常會影響數十個嵌入的條目，因此盡量顯示之。
+			&& !/^template:/i.test(title)) {
+				continue;
+			}
+
 			var report = data[title],
 			//
 			error_messages = report.error;
@@ -327,10 +338,6 @@ function check_final_work() {
 					messages.append(list);
 				}
 			});
-			// log limit
-			if (messages.length > 2000) {
-				break;
-			}
 		}
 
 		if (messages.length > 0) {
@@ -856,7 +863,7 @@ try {
 	 */
 	require('fs').unlinkSync(
 			base_directory + 'categorymembers/'
-					+ message_set.Category_has_local_page.replace(':', '_')
+					+ message_set.Category_has_local_page.replace(/[ :]/g, '_')
 					+ '.json');
 } catch (e) {
 	// TODO: handle exception
