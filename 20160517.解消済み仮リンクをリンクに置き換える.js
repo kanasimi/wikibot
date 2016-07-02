@@ -60,6 +60,7 @@ template_orders = {
 		local_title : 1,
 		foreign_language : 2,
 		foreign_title : [ 3, 1 ],
+		WD : 'WD',
 		label : 'lt',
 		preserve : [ 'preserve', 'display' ]
 	},
@@ -73,7 +74,12 @@ template_orders = {
 		local_title : 1,
 		foreign_title : [ 2, 1 ],
 		label : [ 'd', 3 ],
-		foreign_language : 'lang-code',
+		foreign_language : 'lang-code'
+	},
+	LW : {
+		local_title : 1,
+		WD : 2,
+		label : 3
 	}
 },
 
@@ -162,6 +168,8 @@ message_set = {
 			'interlanguage link multi' : template_orders.LcF_en,
 			// =interlanguage link multi
 			illm : template_orders.LcF_en
+
+			'ill-WD' : template_orders.LW
 		}
 	},
 
@@ -380,7 +388,9 @@ function for_each_page(page_data, messages) {
 	}
 
 	function for_each_template(token, token_index, token_parent) {
-		var parameters, normalized_param = normalize_parameter(token), local_title, foreign_language, foreign_title;
+		var parameters, normalized_param = normalize_parameter(token), local_title, foreign_language, foreign_title,
+		// The Wikidata entity id
+		WD;
 
 		/**
 		 * 每一個頁面的最終處理函數。需要用到 token。
@@ -704,6 +714,20 @@ function for_each_page(page_data, messages) {
 
 		}
 
+		function for_WD(entity, error) {
+			if (error || !entity) {
+				check_page(message_set.missing_foreign);
+				return;
+			}
+
+			if (CeL.wiki.data.is_DAB(entity)) {
+				check_page(message_set.foreign_is_disambiguation);
+				return;
+			}
+
+			for_local_page(CeL.wiki.data.title_of(entity, use_language));
+		}
+
 		if (normalized_param) {
 			template_count++;
 			token.page_data = page_data;
@@ -712,6 +736,7 @@ function for_each_page(page_data, messages) {
 			local_title = normalized_param.local_title;
 			foreign_language = normalized_param.foreign_language;
 			foreign_title = normalized_param.foreign_title;
+			WD = normalized_param.WD;
 			CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
 
 			if (foreign_language && foreign_language.includes('{')
@@ -751,6 +776,21 @@ function for_each_page(page_data, messages) {
 							 * wiki_API.prototype.next() 知道應當重新啟動以處理 queue。
 							 */
 							wiki.next();
+						}
+					}
+				});
+
+			} else if (local_title && WD) {
+				if (foreign_language) {
+					CeL.warn('for_each_page: Using language [' + foreign_language + '] in [[d:' + WD + ']] @ [[' + title + ']].');
+				}
+				// for [[d:Q1]]
+				foreign_language = 'd';
+				wiki.data(WD, for_WD, {
+					get_URL_options : {
+						onfail : function(error) {
+							// TODO
+							throw error;
 						}
 					}
 				});
