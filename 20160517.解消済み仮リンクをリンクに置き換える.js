@@ -59,7 +59,7 @@ template_orders = {
 	LcF_en : {
 		local_title : 1,
 		foreign_language : 2,
-		foreign_title : [ 3, 2 ],
+		foreign_title : [ 3, 1 ],
 		label : 'lt',
 		preserve : [ 'preserve', 'display' ]
 	},
@@ -170,9 +170,9 @@ message_set = {
 		report_page : 'Interlanguage link templates need to fix',
 		report_summary : 'Report of converting interlanguage link templates',
 		// Manual correction required.
-		manual_correction_required : 'Here lists some templates need to be checked manually. The list will automatically refreshed by the bot.',
+		manual_correction_required : 'Here lists some templates need to be checked manually. The list will be automatically refreshed by the bot.',
 		edit : 'E',
-		report_1 : ':: Total ',
+		report_1 : ':: ... Total ',
 		report_2 : ' times occurred.',
 
 		summary_prefix : 'bot: Convert ',
@@ -757,7 +757,7 @@ function for_each_page(page_data, messages) {
 
 			} else if (local_title && !foreign_title
 			// 確保 foreign_language 非 title。
-			&& (!foreign_language || /^[a-z]{2}$/i.test(foreign_language))) {
+			&& (!foreign_language || /^[a-z]{2}$/.test(foreign_language))) {
 				wiki.redirect_to(local_title,
 				//
 				function(redirect_data, page_data) {
