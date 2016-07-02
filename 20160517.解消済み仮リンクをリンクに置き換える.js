@@ -184,12 +184,12 @@ message_set = {
 		// 語法錯誤
 		invalid_template : 'Syntax error',
 		// manually
-		missing_foreign : 'Missing foreign page. Need check manually.',
-		foreign_is_disambiguation : 'Foreign page is disambiguation. Need check manually.',
-		foreign_redirect_to_section : 'Foreign page redirects to section. Need check manually.',
-		missing_converted_local : 'Missing converted local page, or the local page is not link to wikidata. Need check manually.',
+		missing_foreign : 'Missing foreign page.',
+		foreign_is_disambiguation : 'Foreign page is disambiguation.',
+		foreign_redirect_to_section : 'Foreign page redirects to section.',
+		missing_converted_local : 'Missing converted local page, or the local page is not link to wikidata.',
 		// gets form langlinks
-		different_local_title : 'The local title is different from title gets form wikidata. Need check manually.',
+		different_local_title : 'The local title is different from title gets form wikidata.',
 		not_exist : 'Not exist',
 		from_parameter : 'From the parameter',
 		translated_from_foreign_title : 'Translated from foreign title',
@@ -713,6 +713,13 @@ function for_each_page(page_data, messages) {
 			foreign_language = normalized_param.foreign_language;
 			foreign_title = normalized_param.foreign_title;
 			CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
+
+			if (foreign_language && foreign_language.includes('{')
+			//
+			&& !foreign_language.includes('}')) {
+				CeL.err('parser error @ [[' + title + ']]?');
+				console.log(token);
+			}
 
 			if (local_title && foreign_language && foreign_title) {
 				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
