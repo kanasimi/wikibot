@@ -88,7 +88,7 @@ message_set = {
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
 		// 手動修正必要。
-		manual_correction_required : 'このリストは手動で修正する必要の記事群です。リストはボットによって自動更新されます。',
+		manual_correction_required : 'このリストは手動で修正する必要のある記事群です。リストはボットによって自動更新されます。',
 		edit : '編',
 		report_1 : ':: ……合計',
 		report_2 : '回発生しました。',
