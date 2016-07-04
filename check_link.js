@@ -18,13 +18,11 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'news'),
+wiki = Wiki(true, 'wikinews'),
 
 links = CeL.null_Object();
 
 // ---------------------------------------------------------------------//
-
-prepare_directory(base_directory);
 
 function for_each_page(page_data) {
 	if (!page_data || ('missing' in page_data)) {
@@ -128,6 +126,8 @@ function finish_work() {
 if (typeof process === 'object') {
 	process.umask(parseInt('0022', 8));
 }
+
+prepare_directory(base_directory, true);
 
 // CeL.set_debug(2);
 CeL.wiki.traversal({
