@@ -50,7 +50,7 @@ function for_each_page(page_data) {
 
 	// [http://...]
 	// {{|url=http://...}}
-	var matched, PATTERN_URL = /https?:\/\/[^\s\|{}<>[]]+/ig;
+	var matched, PATTERN_URL = /https?:\/\/[^\s\|{}<>\[\]]+/ig;
 
 	while (matched = PATTERN_URL.exec(content)) {
 		// register 登記
@@ -59,7 +59,7 @@ function for_each_page(page_data) {
 
 	var link_list = Object.keys(link_hash), length = link_list.length;
 	if (length === 0) {
-		// 本頁面無 link。
+		CeL.debug('[[' + title + ']]: 本頁面無 link。', 2, 'for_each_page');
 		delete links[title];
 		return;
 	}
