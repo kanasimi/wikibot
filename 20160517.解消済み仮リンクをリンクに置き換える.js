@@ -210,7 +210,7 @@ message_set = {
 		missing_foreign : 'Missing foreign page.',
 		foreign_is_disambiguation : 'Foreign page is disambiguation.',
 		foreign_redirect_to_section : 'Foreign page redirects to section.',
-		missing_converted_local : 'Missing converted local page, or the local page is not link to wikidata.',
+		missing_converted_local : 'Missing converted local page, or the foreign / local page is not link to wikidata.',
 		// gets form langlinks
 		different_local_title : 'The local title is different from title gets form wikidata.',
 		not_exist : 'Not exist',
@@ -392,11 +392,11 @@ function for_each_page(page_data, messages) {
 	// template
 	&& (page_data.ns !== 10
 	// 不處理跨語言連結模板系列。
-	|| (title.replace(/\/[\s\S]*$/, '')
+	|| (title.replace(/\/[\s\S]*$/, '').replace(/^[^:]+:/, '').toLowerCase()
 	// 去掉 namespace。
-	.replace(/^[^:]+:/, '').toLowerCase() in message_set.template_order_of_name))) {
+	in message_set.template_order_of_name))) {
 		check_final_work();
-		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板' ];
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或category' ];
 	}
 
 	// Check if page_data had processed useing revid.
@@ -800,7 +800,9 @@ function for_each_page(page_data, messages) {
 
 			} else if (local_title && WD) {
 				if (foreign_language) {
-					CeL.warn('for_each_page: Using language [' + foreign_language + '] in [[d:' + WD + ']] @ [[' + title + ']].');
+					CeL.warn('for_each_page: Using language ['
+							+ foreign_language + '] in [[d:' + WD + ']] @ [['
+							+ title + ']].');
 				}
 				// for [[d:Q1]]
 				foreign_language = 'd';

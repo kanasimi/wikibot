@@ -74,7 +74,8 @@ if (typeof process === 'object') {
 
 // CeL.set_debug(6);
 CeL.wiki.traversal({
-	wiki : wiki,
+	// [SESSION_KEY]
+	session : wiki,
 	// cache path prefix
 	directory : base_directory,
 	// 指定 dump file 放置的 directory。
