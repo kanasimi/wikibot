@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node check_link.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node fix_link.js
 
 /*
 
@@ -46,9 +46,6 @@ function for_each_page(page_data) {
 	//
 	link_hash = links[title] = {};
 
-	console.log(title);
-	return;
-
 	// check_external_link
 
 	// [http://...]
@@ -56,53 +53,61 @@ function for_each_page(page_data) {
 	var matched, PATTERN_URL = /https?:\/\/[^\s\|{}<>[]]+/ig;
 
 	while (matched = PATTERN_URL.exec(content)) {
+		// register 登記
 		link_hash[matched[0]] = undefined;
 	}
 
 	var link_list = Object.keys(link_hash), length = link_list.length;
 	if (length === 0) {
+		// 本頁面無 link。
 		delete links[title];
 		return;
 	}
 
 	function final(URL) {
-		// console.log(length + ': ' + URL + ': ' + link_hash[URL]);
+		// CeL.log(length + ': ' + URL + ': ' + link_hash[URL]);
 		if (--length > 0) {
 			if (false && length < 2) {
 				for ( var URL in link_hash) {
 					var status = link_hash[URL];
 					if (status === undefined) {
-						console.log(URL + ': ' + status);
+						CeL.log(URL + ': ' + status);
 					}
 				}
 			}
 			return;
 		}
 
-		// console.log('-'.repeat(80));
-		console.log('[[' + title + ']]:');
+		var reporter = [];
 		for ( var URL in link_hash) {
 			var status = link_hash[URL];
 			if (status !== 200) {
-				console.log(URL + ': ' + status);
+				reporter.push(URL + ': ' + status);
 			}
+		}
+
+		if (reporter.length) {
+			// CeL.log('-'.repeat(80));
+			CeL.log('[[' + title + ']]:');
+			CeL.log(reporter.join('\n'));
 		}
 	}
 
 	link_list.forEach(function check_URL(URL) {
-		// console.log('→ ' + URL);
+		// CeL.log('→ [' + URL + ']');
 		CeL.get_URL(URL, function(data) {
 			if (typeof data !== 'object'
 					|| typeof data.responseText !== 'string') {
-				// console.log(URL + ': error!');
+				// CeL.log(URL + ': error!');
 				link_hash[URL] = 'Unknown error';
 				final(URL);
 				return;
 			}
+
 			var status = data.status;
 			link_hash[URL] = status;
 			if (status >= 400 || status < 200) {
-				// console.log(URL + ': ' + status);
+				// CeL.log(URL + ': ' + status);
 			} else if (!data.responseText.trim()) {
 				link_hash[URL] = 'Empty contents';
 			}
@@ -127,7 +132,8 @@ if (typeof process === 'object') {
 	process.umask(parseInt('0022', 8));
 }
 
-prepare_directory(base_directory, true);
+// prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
 // CeL.set_debug(2);
 CeL.wiki.traversal({
