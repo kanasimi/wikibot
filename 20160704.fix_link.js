@@ -1,8 +1,8 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node fix_link.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20160704.fix_link.js
 
 /*
 
- 2016/6/24	check external link 
+ 2016/7/4 23:17:28	check external link 
 
  @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]], [[en:Template:Dead link]], [[en:User:cyberbot II]]
 
@@ -82,14 +82,14 @@ function for_each_page(page_data) {
 		for ( var URL in link_hash) {
 			var status = link_hash[URL];
 			if (status !== 200) {
-				reporter.push(URL + ': ' + status);
+				reporter.push('[' + URL + ' ' + status + ']');
 			}
 		}
 
 		if (reporter.length) {
 			// CeL.log('-'.repeat(80));
-			CeL.log('[[' + title + ']]:');
-			CeL.log(reporter.join('\n'));
+			CeL.log('; [[' + title + ']]');
+			CeL.log(': ' + reporter.join(' '));
 		}
 	}
 
