@@ -843,11 +843,11 @@ function for_each_page(page_data, messages) {
 		}
 	}
 
-	// 這一步頗耗時間
+	// 這一步頗耗時間。
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: [[' + title + ']]';
+		throw 'Parser error: [[' + page_date.title + ']]';
 	}
 	parser.each('template', for_each_template);
 	template_parsed = true;

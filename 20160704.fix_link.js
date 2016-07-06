@@ -2,7 +2,7 @@
 
 /*
 
- 2016/7/4 23:17:28	check external link 
+ 2016/7/4 23:17:28	check external link
 
  @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]], [[en:Template:Dead link]], [[en:User:cyberbot II]]
 
