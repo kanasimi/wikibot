@@ -21,12 +21,15 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 headline_sites = {
-	'中央社' : '"7月5日" "頭條新聞標題" site:www.cnabc.com',
+	'中央社' : '"%m月%d日" "頭條新聞標題" site:www.cnabc.com',
+	'蘋果日報 (台灣)' : '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
+	'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
+	'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com'
 },
 // 擷取數
 headline_sites_retrieve = {
 	'中央社' : 2,
-	'蘋果日報' : 2,
+	'蘋果日報 (台灣)' : 2,
 },
 //
 add_source_data = [],
@@ -39,7 +42,7 @@ var google = require('googleapis'), customsearch = google.customsearch('v1');
 
 function check_finish(sites_to_check) {
 	for ( var site in sites_to_check) {
-		add_source_data.push('<!- Error: ' + site + ' -->');
+		add_source_data.push('<!-- Error: ' + site + ' -->');
 	}
 
 	if (add_source_data.length === 0) {
@@ -55,7 +58,9 @@ function check_finish(sites_to_check) {
 			return section;
 		});
 		if (add_source_data) {
-			content += '\n== 消息來源 ==\n' + add_source_data;
+			content += '\n== 消息來源 ==\n' + add_source_data
+			//
+			+ '\n\n{{develop}}\n';
 		}
 		return content;
 	}, {
@@ -96,6 +101,7 @@ function check_sites(sites_to_check) {
 
 		// CeL.log('First result name is ' + response.items[0].title);
 
+		// 標注已處理。
 		delete sites_to_check[site];
 
 		// item: e.g.,
@@ -109,8 +115,8 @@ function check_sites(sites_to_check) {
 					+ '}}');
 		}
 
-		response.items.slice(headline_sites_retrieve[site] || 1).forEach(
-				add_source_data);
+		response.items.slice(0, headline_sites_retrieve[site] || 1).forEach(
+				add_source);
 
 		if (!left) {
 			check_finish(sites_to_check);
@@ -118,6 +124,7 @@ function check_sites(sites_to_check) {
 	}
 
 	sites.forEach(function(site) {
+		sites_to_check[site] = use_date.format(sites_to_check[site]);
 		// https://github.com/google/google-api-nodejs-client/blob/master/samples/customsearch/customsearch.js
 		customsearch.cse.list(Object.assign({
 			q : sites_to_check[site]
@@ -128,7 +135,9 @@ function check_sites(sites_to_check) {
 
 }
 
-wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(page_data) {
+wiki.page(
+// use_date.format('%Y年%m月%d日') + '臺灣報紙頭條'
+'Wikinews:沙盒', function(page_data) {
 	var sites_to_check = Object.clone(headline_sites);
 	if (!page_data || ('missing' in page_data)) {
 		check_sites(sites_to_check);
@@ -143,6 +152,7 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 
 	function for_each_template(token, token_index, token_parent) {
 		var template_name = token.name.toLowerCase();
+		console.log(token);
 		if (template_name === 'source' && token.parameters.url
 				&& (token.parameters.pub in sites_to_check)) {
 			// 已處理過。
