@@ -27,9 +27,9 @@ headline_sites = {
 headline_sites_retrieve = {
 	'中央社' : 2,
 	'蘋果日報' : 2,
-}
+},
 //
-add_source = [],
+add_source_data = [],
 
 use_date = new Date();
 
@@ -39,23 +39,23 @@ var google = require('googleapis'), customsearch = google.customsearch('v1');
 
 function check_finish(sites_to_check) {
 	for ( var site in sites_to_check) {
-		add_source.push('<!- Error: ' + site + ' -->');
+		add_source_data.push('<!- Error: ' + site + ' -->');
 	}
 
-	if (add_source.length === 0) {
+	if (add_source_data.length === 0) {
 		return;
 	}
 
 	wiki.edit(function(page_data) {
-		add_source = add_source.join('\n');
+		add_source_data = add_source_data.join('\n');
 		var content = CeL.wiki.content_of(page_data) || '';
 		content = content.replace(/(\n|^)==\s*消息來源\s*==\n/, function(section) {
-			section += add_source;
-			add_source = null;
+			section += add_source_data;
+			add_source_data = null;
 			return section;
 		});
-		if (add_source) {
-			content += '\n== 消息來源 ==\n' + add_source;
+		if (add_source_data) {
+			content += '\n== 消息來源 ==\n' + add_source_data;
 		}
 		return content;
 	}, {
@@ -103,14 +103,14 @@ function check_sites(sites_to_check) {
 		// "htmlTitle":"...","link":"http://www.cnabc.com/news/aall/201607050083.aspx","displayLink":"www.cnabc.com","snippet":"...","htmlSnippet":"...","cacheId":"BlsHSMJeb9AJ","formattedUrl":"www.cnabc.com/news/aall/201607050083.aspx","htmlFormattedUrl":"www.cnabc.com/news/aall/201607050083.aspx",
 		// "pagemap":{"metatags":[{"viewport":"width=device-width,initial-scale=1.0","og:title":"...","og:image":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg","og:url":"http://www.cnabc.com/news/aall/201607050083.aspx","og:type":"article"}],"cse_image":[{"src":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg"}]}}
 		function add_source(item) {
-			add_source.push('{{source|url=' + item.link + '|title='
+			add_source_data.push('{{source|url=' + item.link + '|title='
 					+ item.title.replace(/[\s\|]+/g, ' ') + '|author=' + site
 					+ '|pub=' + site + '|date=' + use_date.format('%Y年%m月%d日')
 					+ '}}');
 		}
 
 		response.items.slice(headline_sites_retrieve[site] || 1).forEach(
-				add_source);
+				add_source_data);
 
 		if (!left) {
 			check_finish(sites_to_check);
@@ -121,15 +121,15 @@ function check_sites(sites_to_check) {
 		// https://github.com/google/google-api-nodejs-client/blob/master/samples/customsearch/customsearch.js
 		customsearch.cse.list(Object.assign({
 			q : sites_to_check[site]
-		}, API_code), function for_site(error, response) {
+		}, API_code), function(error, response) {
 			for_site(site, error, response);
 		});
 	});
 
 }
 
-wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(page_date) {
-	var sites_to_check = headline_sites.clone();
+wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(page_data) {
+	var sites_to_check = Object.clone(headline_sites);
 	if (!page_data || ('missing' in page_data)) {
 		check_sites(sites_to_check);
 		return;
@@ -138,7 +138,7 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: [[' + page_date.title + ']]';
+		throw 'Parser error: [[' + page_data.title + ']]';
 	}
 
 	function for_each_template(token, token_index, token_parent) {
