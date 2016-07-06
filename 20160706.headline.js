@@ -58,6 +58,9 @@ function check_finish(sites_to_check) {
 			content += '\n== 消息來源 ==\n' + add_source;
 		}
 		return content;
+	}, {
+		summary : 'bot test: 匯入每日報紙頭條新聞標題',
+		bot : 1
 	});
 }
 
