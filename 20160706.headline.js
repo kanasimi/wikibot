@@ -18,11 +18,12 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 headline_sites = {
+	// cn
 	// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
 	// http://finance.eastmoney.com/news/1353,20160706639330278.html
 
-	// [ query, 擷取數(標題關鍵字) ]
-	'中央社商情網' : [ '"%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報', '晚報' ] ],
+	// [ query, 擷取數 [標題關鍵字] ]
+	'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報', '晚報' ] ],
 	'中央社' : '"%m月%d日" "各報頭條" site:www.cna.com.tw',
 	'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
 			[ '世界各報', '日各報頭條' ] ],
@@ -164,11 +165,12 @@ function check_sites(sites_to_check) {
 						+ item.title.replace(/[\s\|]+/g, ' ') + '|author='
 						+ site + '|pub=' + site + '|date='
 						+ use_date.format('%Y年%m月%d日') + '}}');
-				return sites_to_check[site];
 			} else {
-				CeL.err('add_source: error title: ' + title + ' [' + item.link
-						+ ']');
+				CeL.err('add_source: error title: [' + item.title + '] ['
+						+ item.link + ']');
+				console.log(item);
 			}
+			return sites_to_check[site];
 		}
 
 		response.items.some(add_source);
@@ -179,10 +181,18 @@ function check_sites(sites_to_check) {
 	}
 
 	sites.forEach(function(site) {
-		sites_to_check[site] = use_date.format(sites_to_check[site]);
+		// query string
+		var query = sites_to_check[site];
+		if (Array.isArray(query)) {
+			query = query[0];
+		}
+		query = use_date.format(query);
+		CeL.debug('check_sites: Search Google for [' + site + ']: [' + query
+				+ ']', 0, 'check_sites');
+
 		// https://github.com/google/google-api-nodejs-client/blob/master/samples/customsearch/customsearch.js
 		customsearch.cse.list(Object.assign({
-			q : sites_to_check[site]
+			q : query
 		}, API_code), function(error, response) {
 			for_site(site, error, response);
 		});
