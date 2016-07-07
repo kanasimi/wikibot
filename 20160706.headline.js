@@ -17,6 +17,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
+// 須改 cx!!
 headline_sites = {
 	// cn
 	// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
@@ -26,12 +27,12 @@ headline_sites = {
 	'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報', '晚報' ] ],
 	'中央社' : '"%m月%d日" "各報頭條" site:www.cna.com.tw',
 	'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
-			[ '世界各報', '日各報頭條' ] ],
+			[ '世界各報頭條', '各報頭條' ] ],
 	'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
 	'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com',
 	'鉅亨網' : '"%Y年%m月%d日" "報紙頭條" site:news.cnyes.com',
-	'中國評論通訊社' : '"%m月%d日" "頭條新聞" site:hk.crntt.com',
 	'華視新聞網' : '"%m月%d日" "各報頭條" site:news.cts.com.tw',
+	'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
 },
 //
 add_source_data = [],
@@ -40,6 +41,7 @@ use_date = new Date(2016, 7 - 1, 6);
 
 // ---------------------------------------------------------------------//
 
+// 這可能需要十幾秒。
 var google = require('googleapis'), customsearch = google.customsearch('v1');
 
 function check_finish(sites_to_check) {
@@ -47,6 +49,8 @@ function check_finish(sites_to_check) {
 		// 沒有新資料，或者全部錯誤。
 		return;
 	}
+
+	add_source_data.sort();
 
 	for ( var site in sites_to_check) {
 		add_source_data.push('<!-- Error: ' + site + ' -->');
@@ -91,10 +95,26 @@ function check_finish(sites_to_check) {
 
 // return 有去掉/已處理過。
 function remove_completed(sites_to_check, site, title) {
+	if (!/[頭头][版條条]/.test(title)) {
+		return;
+	}
+	// assert: typeof title === 'string'
+	var matched = title.match(/(\d+月)(\d+日)/);
+	if (matched && use_date.format('%m月%d日') !==
+	//
+	matched[1].replace(/^0+/, '') + matched[2].replace(/^0+/, '')) {
+		CeL.debug('日期(月日)不符? [' + matched[0] + ']', 0, 'remove_completed');
+		return;
+	}
+	matched = title.match(/\d+年/);
+	if (matched && use_date.format('%Y年') !== matched[0].replace(/^0+/, '')) {
+		CeL.debug('日期(年)不符? [' + matched[0] + ']', 0, 'remove_completed');
+		return;
+	}
+
 	var site_data = sites_to_check[site];
 	if (Array.isArray(site_data)) {
 		// assert: Array.isArray(site_data[1])
-		// assert: typeof title === 'string'
 		CeL.debug('檢查標題關鍵字: [' + site_data[1] + '] in "' + title + '"', 0,
 				'remove_completed');
 		return site_data[1].some(function(key, index) {
@@ -112,13 +132,9 @@ function remove_completed(sites_to_check, site, title) {
 		});
 	}
 
-	if (/[頭头][版條条]/.test(title)) {
-		// ↑ 頭版頭條 头版头条
-		CeL.debug('[' + site + ']: 標注已處理過 (' + title + ')。', 0,
-				'remove_completed');
-		delete sites_to_check[site];
-		return true;
-	}
+	CeL.debug('[' + site + ']: 標注已處理過 [' + title + ']。', 0, 'remove_completed');
+	delete sites_to_check[site];
+	return true;
 }
 
 function check_sites(sites_to_check) {
@@ -170,6 +186,8 @@ function check_sites(sites_to_check) {
 						+ item.link + ']');
 				console.log(item);
 			}
+			CeL.debug((sites_to_check[site] ? '尚存有' : '已無') + '[' + site + ']',
+					0, 'add_source');
 			return sites_to_check[site];
 		}
 
@@ -217,7 +235,7 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 		var template_name = token.name.toLowerCase();
 		console.log(token);
 		if (template_name === 'source' && token.parameters.url
-				&& template_name.title
+				&& token.parameters.title
 				&& (token.parameters.pub in sites_to_check)) {
 			CeL.log('for_each_template: 已處理過 ' + token.parameters.pub + '。');
 			remove_completed(sites_to_check, token.parameters.pub,
@@ -226,5 +244,7 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 	}
 
 	parser.each('template', for_each_template);
+	console.log(sites_to_check);
+	throw 1;
 	check_sites(sites_to_check);
 });
