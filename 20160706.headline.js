@@ -94,30 +94,30 @@ function remove_completed(sites_to_check, site, title) {
 	if (Array.isArray(site_data)) {
 		// assert: Array.isArray(site_data[1])
 		// assert: typeof title === 'string'
-		// 檢查標題關鍵字。
+		CeL.debug('檢查標題關鍵字: [' + site_data[1] + '] in "' + title + '"', 0,
+				'remove_completed');
 		return site_data[1].some(function(key, index) {
 			if (title.includes(key)) {
-				if (site_data[1].length === 0) {
-					// 到齊了。
+				if (site_data[1].length === 1) {
+					CeL.debug('[' + site + ']: 到齊了。', 0, 'remove_completed');
 					delete sites_to_check[site];
 				} else {
-					// 去掉本 key。
+					CeL.debug('[' + site + ']: 去掉本 key [' + key + ']。', 0,
+							'remove_completed');
 					site_data[1].splice(index, 1);
 				}
 				return true;
 			}
 		});
-
 	}
 
 	if (/[頭头][版條条]/.test(title)) {
 		// ↑ 頭版頭條 头版头条
-		// 標注已處理過。
+		CeL.debug('[' + site + ']: 標注已處理過 (' + title + ')。', 0,
+				'remove_completed');
 		delete sites_to_check[site];
 		return true;
 	}
-
-	CeL.err('remove_completed: error title: ' + title + ' [' + item.link + ']');
 }
 
 function check_sites(sites_to_check) {
@@ -140,7 +140,9 @@ function check_sites(sites_to_check) {
 			return;
 		}
 
-		CeL.log('Result: ' + response.searchInformation.formattedTotalResults);
+		CeL.log('check_sites: Search Google for [' + site + ']: '
+				+ response.searchInformation.formattedTotalResults
+				+ ' results.');
 		if (!response.items || response.items.length === 0) {
 			CeL.log('[' + site + ']: No data get: '
 					+ JSON.stringify(response.url));
@@ -162,6 +164,10 @@ function check_sites(sites_to_check) {
 						+ item.title.replace(/[\s\|]+/g, ' ') + '|author='
 						+ site + '|pub=' + site + '|date='
 						+ use_date.format('%Y年%m月%d日') + '}}');
+				return sites_to_check[site];
+			} else {
+				CeL.err('add_source: error title: ' + title + ' [' + item.link
+						+ ']');
 			}
 		}
 
