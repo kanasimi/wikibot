@@ -150,18 +150,18 @@ function check_sites(sites_to_check) {
 	function for_site(site, error, response) {
 		left--;
 		if (error) {
-			CeL.err('[' + site + ']: error: ' + error);
+			CeL.err('for_site: [' + site + ']: error: ' + error);
 			if (!left) {
 				check_finish(sites_to_check);
 			}
 			return;
 		}
 
-		CeL.log('check_sites: Search Google for [' + site + ']: '
+		CeL.log('for_site: Search Google for [' + site + ']: '
 				+ response.searchInformation.formattedTotalResults
 				+ ' results.');
 		if (!response.items || response.items.length === 0) {
-			CeL.log('[' + site + ']: No data get: '
+			CeL.log('for_site: [' + site + ']: No data get: '
 					+ JSON.stringify(response.url));
 			if (!left) {
 				check_finish(sites_to_check);
@@ -186,12 +186,14 @@ function check_sites(sites_to_check) {
 						+ item.link + ']');
 				console.log(item);
 			}
-			CeL.debug((sites_to_check[site] ? '尚存有' : '已無') + '[' + site + ']',
+			CeL.debug('add_source: [' + site + ']: '
+			//
+			+ (sites_to_check[site] ? '尚存有未處理資料，將持續處理下去。' : '已無未處理資料，將跳出此項。'),
 					0, 'add_source');
 			return sites_to_check[site];
 		}
 
-		response.items.some(add_source);
+		response.items.every(add_source);
 
 		if (!left) {
 			check_finish(sites_to_check);
@@ -244,7 +246,6 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 	}
 
 	parser.each('template', for_each_template);
-	console.log(sites_to_check);
-	throw 1;
+	// console.log(sites_to_check);
 	check_sites(sites_to_check);
 });
