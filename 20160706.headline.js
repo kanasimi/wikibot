@@ -17,13 +17,14 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
-url_hash = CeL.null_Object(),
+url_cache_hash = CeL.null_Object(), label_cache_hash = CeL.null_Object()
 
 // 須改 cx!!
 headline_labels = {
-	// label : {String}query
-	// label : [ {String}query, 擷取數 [標題關鍵字] ]
-	// label : [ {String}query, 擷取數 [標題關鍵字], publisher ]
+	// usage:
+	// label/publisher : {String}query
+	// label/publisher : [ {String}query, 擷取數 [標題關鍵字] ]
+	// label : [ {String}query, [標題關鍵字], {String}publisher 發布機構 + author 作者 ]
 
 	// cn
 	// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
@@ -74,7 +75,9 @@ function check_finish(labels_to_check) {
 	// assert: 已設定好 page
 	wiki.edit(function(page_data) {
 		add_source_data = add_source_data.join('\n');
-		/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
+		/**
+		 * {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000.
+		 */
 		var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
 
 		// 前一天, the day before
@@ -94,21 +97,7 @@ function check_finish(labels_to_check) {
 		+ '}}\n\n以下為[[w:民國紀年|民國]]' + use_date.format({
 			format : '%R年%m月%d日',
 			locale : 'cmn-Hant-TW'
-		})
-		//
-		+ '[[w:臺灣|臺灣]]報紙頭條：\n\n== 消息來源 ==\n\n\n{{develop}}\n'
-		//
-		+ '{| class="wikitable" style="text-align: center;"\n'
-		//
-		+ '|+\'\'\'臺灣報紙頭條\'\'\'\n|-\n|←' + headline_link(day_before)
-		//
-		+ '||' + headline_link(use_date, true)
-		//
-		+ '||' + headline_link(day_after) + '→\n|}\n'
-		//
-		+ '[[Category:報紙頭條]]\n[[Category:臺灣]]\n'
-		//
-		+ '[[Category:' + use_date.format('%Y年%m月') + '臺灣報紙頭條]]');
+		}) + '[[w:臺灣|臺灣]]報紙頭條：\n\n== 消息來源 ==');
 		content = content.replace(/(\n|^)==\s*消息來源\s*==\n/, function(section) {
 			section += add_source_data;
 			add_source_data = null;
@@ -117,6 +106,15 @@ function check_finish(labels_to_check) {
 
 		if (add_source_data) {
 			content += '\n== 消息來源 ==\n' + add_source_data;
+		}
+
+		if (!page_data.has_navbox) {
+			// 頭條導覽 {{headline navbox}}
+			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
+			content += '\n{{headline navbox|台灣|' + use_date.format('%Y年%m月')
+					+ '|' + use_date.format('%Y年%d日') + '|'
+					+ headline_link(day_before) + '|'
+					+ headline_link(day_after) + '}}';
 		}
 
 		return content;
@@ -152,25 +150,26 @@ function remove_completed(labels_to_check, label, title, url) {
 		return;
 	}
 
-	var not_added = true;
+	var new_added = true;
 	if (url) {
 		// 登記url，以避免重複加入url。
-		if (url_hash[url]) {
-			not_added = false;
-			CeL.log('remove_completed: 重複處理了 [' + url + ']: ' + url_hash[url]
-					+ ' & ' + title + '.');
+		if (url_cache_hash[url]) {
+			new_added = false;
+			CeL.log('remove_completed: 重複處理了 [' + url + ']: '
+					+ url_cache_hash[url] + ' & ' + title + '.');
 		} else {
-			url_hash[url] = title;
+			url_cache_hash[url] = title;
 		}
+		label_cache_hash[label] = url;
 	}
 
 	// 登記並去除已處理之label。
 	var label_data = labels_to_check[label];
 	if (Array.isArray(label_data)) {
 		if (!label_data[1]) {
-			// label : [ {String}query, , publisher ]
+			// label : [ {String}query, , {String}publisher 發布機構 + author 作者 ]
 			// →
-			// label : {String}query
+			// label/publisher : {String}query
 			label_data = label_data[0];
 		} else if (!Array.isArray(label_data[1])) {
 			// label : [ {String}query, 標題關鍵字 ]
@@ -198,15 +197,14 @@ function remove_completed(labels_to_check, label, title, url) {
 				return true;
 			}
 		})
-				&& not_added;
+				&& new_added;
 	}
 
-	// label : {String}query
-	CeL
-			.debug('[' + label + ']: 標注已處理過 [' + title + ']。', 0,
-					'remove_completed');
+	CeL.debug(
+	// label/publisher : {String}query
+	'[' + label + ']: 標注已處理過 [' + title + ']。', 0, 'remove_completed');
 	delete labels_to_check[label];
-	return not_added;
+	return new_added;
 }
 
 function check_labels(labels_to_check) {
@@ -249,10 +247,10 @@ function check_labels(labels_to_check) {
 		// "pagemap":{"metatags":[{"viewport":"width=device-width,initial-scale=1.0","og:title":"...","og:image":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg","og:url":"http://www.cnabc.com/news/aall/201607050083.aspx","og:type":"article"}],"cse_image":[{"src":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg"}]}}
 		function add_source(item) {
 			if (remove_completed(labels_to_check, label, item.title, item.link)) {
-				// label : [ {String}query, 擷取數 [標題關鍵字], publisher ]
+				// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
 				var publisher = Array.isArray(labels_to_check[label])
 						&& labels_to_check[label][2] || label;
-				// add {{Template:source}}
+				// add [[n:Template:source]]
 				add_source_data.push('* {{source|url=' + item.link
 				//
 				+ '|title=' + item.title.replace(/[\s\|]+/g, ' ')
@@ -319,16 +317,27 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 	}
 
 	function for_each_template(token, token_index, token_parent) {
-		var template_name = token.name.toLowerCase();
+		if (page_data.done || token.name === 'Publish') {
+			page_data.done = true;
+			return;
+		}
 		// console.log(token);
-		if (template_name === 'source' && token.parameters.url) {
-			remove_completed(labels_to_check, token.parameters.label
-					|| token.parameters.pub, token.parameters.title,
+		if (token.name === 'Headline navbox') {
+			page_data.has_navbox = true;
+		} else if (token.name === 'Develop') {
+			page_data.has_develop = true;
+		} else if (token.name === 'Source' && token.parameters.url) {
+			var label = token.parameters.label || token.parameters.pub;
+			remove_completed(labels_to_check, label, token.parameters.title,
 					token.parameters.url);
 		}
 	}
 
 	parser.each('template', for_each_template);
+	if (page_data.done) {
+		CeL.log('已發布: [[' + page_data.title + ']]');
+		return;
+	}
 	// console.log(labels_to_check);
 	check_labels(labels_to_check);
 });
