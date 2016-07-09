@@ -3,6 +3,7 @@
 /*
 
  2016/7/6 19:41:26	import headlines of news papers
+ 2016/7/9 23:25:45	初版試營運
 
  @see http://www.vanguardngr.com/category/headlines/
 
@@ -54,7 +55,9 @@ headline_labels = {
 	'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
 },
 //
-add_source_data = [], error_label_list = [],
+add_source_data = [],
+// [ label, label, ... ]
+error_label_list = [],
 
 use_date = new Date;
 
