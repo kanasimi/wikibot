@@ -17,7 +17,12 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
-url_cache_hash = CeL.null_Object(), label_cache_hash = CeL.null_Object()
+// url_cache_hash[url] = {String}title;
+url_cache_hash = CeL.null_Object(),
+// label_cache_hash[label] = {String}url;
+label_cache_hash = CeL.null_Object(),
+// headline_hash[publisher] = {String}headline
+headline_hash = CeL.null_Object(), headline_data = [],
 
 // 須改 cx!!
 headline_labels = {
@@ -60,20 +65,61 @@ use_date = new Date;
 // 這可能需要十幾秒。
 var google = require('googleapis'), customsearch = google.customsearch('v1');
 
-function check_finish(labels_to_check) {
-	if (add_source_data.length === 0) {
-		// 沒有新資料，或者全部錯誤。
-		return;
+function add_headline(publisher, headline) {
+	if (headline_hash[publisher]) {
+		if (headline_hash[publisher] === headline) {
+			// pass
+			CeL.debug('add_headline: [' + publisher + '] 已有此 headline: ['
+					+ headline + ']', 0, 'add_headline');
+			return;
+		}
+		CeL.debug('add_headline: [' + publisher + '] 有不同的 headline: ['
+		//
+		+ headline_hash[publisher] + '] vs. [' + headline + ']', 0,
+				'add_headline');
 	}
 
-	add_source_data.sort();
+	// 登記此 headline
+	headline_hash[publisher] = headline;
 
-	for ( var label in labels_to_check) {
-		add_source_data.push('<!-- Error: ' + label + ' -->');
+	headline_data.push('{{HI|' + publisher + '|' + headline + '}}');
+}
+
+// 實際解析。
+var parse_headline = {
+	'中央社商情網' : function(response, publisher) {
+
+		var news_content = response.between('news_content').between('新聞本文 開始',
+				'新聞本文 結束').between('<div class="box_2">', '</div>');
+		if (!news_content.includes('頭條新聞標題如下：')) {
+			CeL.err('Can not parse [' + publisher + ']!');
+			CeL.warn(response);
+			return;
+		}
+
+		news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
+		//
+		.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
+			var matched = item.match(/([^\n：:]+)[^\n：:]([^\n]+)/g);
+			if (!matched) {
+				CeL.err('Can not parse [' + publisher + ']: [' + item + ']');
+				return;
+			}
+			add_headline(matched[1].trim(),
+			//
+			matched[2].replace(/[。\n]+$/, '').trim());
+		});
+
 	}
+};
 
+function write_data() {
+	// 最後寫入資料。
 	// assert: 已設定好 page
-	wiki.edit(function(page_data) {
+	wiki
+	// assert: 已設定好 page
+	// .page(...)
+	.edit(function(page_data) {
 		add_source_data = add_source_data.join('\n');
 		/**
 		 * {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000.
@@ -90,14 +136,34 @@ function check_finish(labels_to_check) {
 					+ date.format(add_year ? '%Y年%m月%d日' : '%m月%d日') + ']]';
 		}
 
-		var content = CeL.wiki.content_of(page_data)
 		// 初始模板。
-		|| ('{{date|' + use_date.format('%Y年%m月%d日')
-		//
-		+ '}}\n\n以下為[[w:民國紀年|民國]]' + use_date.format({
-			format : '%R年%m月%d日',
-			locale : 'cmn-Hant-TW'
-		}) + '[[w:臺灣|臺灣]]報紙頭條：\n\n== 消息來源 ==');
+		var content = CeL.wiki.content_of(page_data) || '';
+
+		if (!page_data.has_date) {
+			content = '{{date|' + use_date.format('%Y年%m月%d日') + '}}\n\n'
+					+ content;
+		}
+
+		if (!page_data.has_header) {
+			content = content.replace(/{{date.*?}}\n/, function(section) {
+				return section + '{{Headline item/header|[[w:民國紀年|民國]]'
+				//
+				+ use_date.format({
+					format : '%R年%m月%d日',
+					locale : 'cmn-Hant-TW'
+				}) + '|臺灣}}\n{{Headline item/footer}}\n';
+			});
+		}
+
+		if (headline_data) {
+			content = content.replace(/{{Headline item\/header.*?}}\n/,
+			// add header.
+			function(section) {
+				section += headline_data.join('\n') + '\n';
+				return section;
+			});
+		}
+
 		content = content.replace(/(\n|^)==\s*消息來源\s*==\n/, function(section) {
 			section += add_source_data;
 			add_source_data = null;
@@ -118,10 +184,60 @@ function check_finish(labels_to_check) {
 		}
 
 		return content;
+
 	}, {
 		summary : 'bot test: 匯入每日報紙頭條新聞標題',
 		bot : 1
 	});
+}
+
+function check_finish(labels_to_check) {
+	if (add_source_data.length === 0) {
+		// 沒有新資料，或者全部錯誤。
+		return;
+	}
+
+	add_source_data.sort();
+
+	for ( var label in labels_to_check) {
+		add_source_data.push('<!-- Error: ' + label + ' -->');
+	}
+
+	var publisher_to_check = [];
+	for ( var publisher in label_cache_hash) {
+		if (parse_headline[publisher]) {
+			publisher_to_check.push(publisher);
+		}
+	}
+
+	function next_publisher() {
+		if (publisher_to_check.length === 0) {
+			write_data();
+			return;
+		}
+
+		var publisher = publisher_to_check.pop();
+
+		CeL.get_URL(label_cache_hash[publisher], function(XMLHttp) {
+			var status_code = XMLHttp.status,
+			//
+			response = XMLHttp.responseText;
+
+			parse_headline[publisher](response, publisher);
+
+			next_publisher();
+
+		}, undefined, undefined, {
+			onfail : function(error) {
+				CeL.err('Error to get [' + publisher + ']: ['
+						+ label_cache_hash[publisher] + ']');
+				next_publisher();
+			}
+		});
+
+	}
+
+	next_publisher();
 }
 
 // return 有去掉/已處理過。
@@ -318,14 +434,26 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 
 	function for_each_template(token, token_index, token_parent) {
 		if (page_data.done || token.name === 'Publish') {
-			page_data.done = true;
+			// page_data.done = true;
+			page_data.has_develop = true;
 			return;
 		}
-		// console.log(token);
+		console.log(token);
 		if (token.name === 'Headline navbox') {
 			page_data.has_navbox = true;
+
+		} else if (token.name === 'Date') {
+			page_data.has_date = true;
+
 		} else if (token.name === 'Develop') {
 			page_data.has_develop = true;
+
+		} else if (token.name === 'Headline item/header') {
+			page_data.has_header = true;
+
+		} else if (token.name === 'HI' || token.name === 'Headline item') {
+			headline_hash[token.parameters[1]] = token.parameters[2];
+
 		} else if (token.name === 'Source' && token.parameters.url) {
 			var label = token.parameters.label || token.parameters.pub;
 			remove_completed(labels_to_check, label, token.parameters.title,
