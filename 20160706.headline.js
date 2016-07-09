@@ -88,38 +88,41 @@ function add_headline(publisher, headline) {
 	headline_data.push('{{HI|' + publisher + '|' + headline + '}}');
 }
 
-// 實際解析。
-var parse_headline = {
-	'中央社商情網' : function(response, publisher) {
+function parse_中央社_headline(response, publisher) {
 
-		var news_content = response.between('news_content').between('新聞本文 開始',
-				'新聞本文 結束').between('<div class="box_2">', '</div>');
-		if (!news_content.includes('頭條新聞標題如下：')) {
-			CeL.err('parse_headline: Can not parse [' + publisher + ']!');
-			CeL.warn(response);
+	var news_content = response.between('news_content').between('新聞本文 開始',
+			'新聞本文 結束').between('<div class="box_2">', '</div>');
+	if (!news_content.includes('頭條新聞標題如下：')) {
+		CeL.err('parse_headline: Can not parse [' + publisher + ']!');
+		CeL.warn(response);
+		return;
+	}
+
+	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
+	//
+	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
+		item = item.trim();
+		if (!item) {
 			return;
 		}
-
-		news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
-		//
-		.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
-			item = item.trim();
-			if (!item) {
-				return;
-			}
-			var matched = item.match(/^([^：:]+)[：:](.+)$/);
-			if (!matched) {
-				CeL.err('parse_headline: Can not parse ['
-				//
-				+ publisher + ']: [' + item + ']');
-				return;
-			}
-			add_headline(matched[1].replace(/\s+/g, ''),
+		var matched = item.match(/^([^：:]+)[：:](.+)$/);
+		if (!matched) {
+			CeL.err('parse_headline: Can not parse ['
 			//
-			matched[2].replace(/[。\n]+$/, '').trim());
-		});
+			+ publisher + ']: [' + item + ']');
+			return;
+		}
+		add_headline(matched[1].replace(/\s+/g, ''),
+		//
+		matched[2].replace(/[。\n]+$/, '').trim());
+	});
 
-	}
+}
+
+// 實際解析。
+var parse_headline = {
+	'中央社商情網' : parse_中央社_headline,
+	'中央社商情網晚報' : parse_中央社_headline
 };
 
 function write_data() {
