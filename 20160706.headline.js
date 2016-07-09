@@ -92,7 +92,7 @@ var parse_headline = {
 		var news_content = response.between('news_content').between('新聞本文 開始',
 				'新聞本文 結束').between('<div class="box_2">', '</div>');
 		if (!news_content.includes('頭條新聞標題如下：')) {
-			CeL.err('Can not parse [' + publisher + ']!');
+			CeL.err('parse_headline: Can not parse [' + publisher + ']!');
 			CeL.warn(response);
 			return;
 		}
@@ -100,9 +100,15 @@ var parse_headline = {
 		news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
 		//
 		.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
-			var matched = item.match(/([^\n：:]+)[^\n：:]([^\n]+)/g);
+			item = item.trim();
+			if (!item) {
+				return;
+			}
+			var matched = item.match(/^([^：:]+)[^：:](.+)$/g);
 			if (!matched) {
-				CeL.err('Can not parse [' + publisher + ']: [' + item + ']');
+				CeL.err('parse_headline: Can not parse ['
+				//
+				+ publisher + ']: [' + item + ']');
 				return;
 			}
 			add_headline(matched[1].trim(),
@@ -193,7 +199,7 @@ function write_data() {
 
 function check_finish(labels_to_check) {
 	if (add_source_data.length === 0) {
-		// 沒有新資料，或者全部錯誤。
+		CeL.debug('沒有新資料，或者全部錯誤。', 0, 'check_finish');
 		return;
 	}
 
@@ -229,7 +235,7 @@ function check_finish(labels_to_check) {
 
 		}, undefined, undefined, {
 			onfail : function(error) {
-				CeL.err('Error to get [' + publisher + ']: ['
+				CeL.err('next_publisher: Error to get [' + publisher + ']: ['
 						+ label_cache_hash[publisher] + ']');
 				next_publisher();
 			}
@@ -439,26 +445,39 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 			return;
 		}
 		console.log(token);
-		if (token.name === 'Headline navbox') {
+
+		switch (token.name) {
+		case 'Headline navbox':
 			page_data.has_navbox = true;
+			break;
 
-		} else if (token.name === 'Date') {
+		case 'Date':
 			page_data.has_date = true;
+			break;
 
-		} else if (token.name === 'Develop') {
+		case 'Develop':
 			page_data.has_develop = true;
+			break;
 
-		} else if (token.name === 'Headline item/header') {
+		case 'Headline item/header':
 			page_data.has_header = true;
+			break;
 
-		} else if (token.name === 'HI' || token.name === 'Headline item') {
+		case 'Headline item':
+		case 'HI':
 			headline_hash[token.parameters[1]] = token.parameters[2];
+			break;
 
-		} else if (token.name === 'Source' && token.parameters.url) {
-			var label = token.parameters.label || token.parameters.pub;
-			remove_completed(labels_to_check, label, token.parameters.title,
-					token.parameters.url);
+		case 'Source':
+			if (token.parameters.url) {
+				var label = token.parameters.label || token.parameters.pub;
+				remove_completed(labels_to_check, label,
+						token.parameters.title, token.parameters.url);
+			}
+			break;
+
 		}
+
 	}
 
 	parser.each('template', for_each_template);
