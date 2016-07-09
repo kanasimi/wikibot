@@ -180,20 +180,21 @@ function write_data() {
 		});
 
 		if (add_source_data) {
-			content += '\n== 消息來源 ==\n' + add_source_data;
+			content = content.trim() + '\n== 消息來源 ==\n' + add_source_data;
 		}
 
 		if (!page_data.has_navbox) {
 			// 頭條導覽 {{headline navbox}}
 			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
-			content += '\n{{headline navbox|台灣|' + use_date.format('%Y年%m月')
-					+ '|' + use_date.format('%Y年%d日') + '|'
+			content = content.trim() + '\n{{headline navbox|台灣|'
+					+ use_date.format('%Y年%m月') + '|'
+					+ use_date.format('%Y年%d日') + '|'
 					+ headline_link(day_before) + '|'
 					+ headline_link(day_after) + '}}\n';
 		}
 
 		if (!page_data.has_develop) {
-			content += '\n{{develop}}\n';
+			content = content.trim() + '\n{{Publish}}\n';
 		}
 
 		if (error_label_list.length > 0) {
@@ -203,7 +204,7 @@ function write_data() {
 		return content;
 
 	}, {
-		summary : 'bot test: 匯入每日報紙頭條新聞標題',
+		summary : 'bot: 匯入每日報紙頭條新聞標題',
 		bot : 1
 	});
 }
