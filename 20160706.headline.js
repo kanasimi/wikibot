@@ -204,7 +204,8 @@ function write_data() {
 function check_finish(labels_to_check) {
 	if (add_source_data.length === 0) {
 		CeL.debug('沒有新資料，或者全部錯誤。', 0, 'check_finish');
-		return;
+		// 依然持續執行，因為可能需要補上其他闕漏資料。
+		// return;
 	}
 
 	add_source_data.sort();
@@ -449,20 +450,8 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 		console.log(token);
 
 		switch (token.name) {
-		case 'Headline navbox':
-			page_data.has_navbox = true;
-			break;
-
 		case 'Date':
 			page_data.has_date = true;
-			break;
-
-		case 'Publish':
-			// 即使已經Publish，依舊更改。
-			// page_data.done = true;
-			// return;
-		case 'Develop':
-			page_data.has_develop = true;
 			break;
 
 		case 'Headline item/header':
@@ -482,6 +471,17 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 			}
 			break;
 
+		case 'Headline navbox':
+			page_data.has_navbox = true;
+			break;
+
+		case 'Publish':
+			// 即使已經Publish，依舊更改。
+			// page_data.done = true;
+			// return;
+		case 'Develop':
+			page_data.has_develop = true;
+			break;
 		}
 
 	}
