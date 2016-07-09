@@ -104,14 +104,14 @@ var parse_headline = {
 			if (!item) {
 				return;
 			}
-			var matched = item.match(/^([^：:]+)[^：:](.+)$/g);
+			var matched = item.match(/^([^：:]+)[：:](.+)$/);
 			if (!matched) {
 				CeL.err('parse_headline: Can not parse ['
 				//
 				+ publisher + ']: [' + item + ']');
 				return;
 			}
-			add_headline(matched[1].trim(),
+			add_headline(matched[1].replace(/\s+/g, ''),
 			//
 			matched[2].replace(/[。\n]+$/, '').trim());
 		});
@@ -126,7 +126,7 @@ function write_data() {
 	// assert: 已設定好 page
 	// .page(...)
 	.edit(function(page_data) {
-		add_source_data = add_source_data.join('\n');
+		add_source_data = add_source_data.join('\n') + '\n';
 		/**
 		 * {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000.
 		 */
@@ -439,9 +439,7 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 	}
 
 	function for_each_template(token, token_index, token_parent) {
-		if (page_data.done || token.name === 'Publish') {
-			// page_data.done = true;
-			page_data.has_develop = true;
+		if (page_data.done) {
 			return;
 		}
 		console.log(token);
@@ -455,6 +453,10 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 			page_data.has_date = true;
 			break;
 
+		case 'Publish':
+			// 即使已經Publish，依舊更改。
+			// page_data.done = true;
+			// return;
 		case 'Develop':
 			page_data.has_develop = true;
 			break;
