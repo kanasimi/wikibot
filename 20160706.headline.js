@@ -186,7 +186,11 @@ function write_data() {
 			content += '\n{{headline navbox|台灣|' + use_date.format('%Y年%m月')
 					+ '|' + use_date.format('%Y年%d日') + '|'
 					+ headline_link(day_before) + '|'
-					+ headline_link(day_after) + '}}';
+					+ headline_link(day_after) + '}}\n';
+		}
+
+		if (!page_data.has_develop) {
+			content += '\n{{develop}}\n';
 		}
 
 		return content;
