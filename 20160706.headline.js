@@ -54,7 +54,7 @@ headline_labels = {
 	'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
 },
 //
-add_source_data = [],
+add_source_data = [], error_label_list = [],
 
 use_date = new Date;
 
@@ -70,7 +70,7 @@ function add_headline(publisher, headline) {
 		if (headline_hash[publisher] === headline) {
 			// pass
 			CeL.debug('add_headline: [' + publisher + '] 已有此 headline: ['
-					+ headline + ']', 0, 'add_headline');
+					+ headline + '], skip it.', 0, 'add_headline');
 			return;
 		}
 		CeL.debug('add_headline: [' + publisher + '] 有不同的 headline: ['
@@ -193,6 +193,10 @@ function write_data() {
 			content += '\n{{develop}}\n';
 		}
 
+		if (error_label_list.length > 0) {
+			this.summary += '. Error: ' + error_label_list.join(', ');
+		}
+
 		return content;
 
 	}, {
@@ -203,7 +207,7 @@ function write_data() {
 
 function check_finish(labels_to_check) {
 	if (add_source_data.length === 0) {
-		CeL.debug('沒有新資料，或者全部錯誤。', 0, 'check_finish');
+		CeL.debug('沒有新 source 資料，或者全部錯誤。', 0, 'check_finish');
 		// 依然持續執行，因為可能需要補上其他闕漏資料。
 		// return;
 	}
@@ -211,7 +215,7 @@ function check_finish(labels_to_check) {
 	add_source_data.sort();
 
 	for ( var label in labels_to_check) {
-		add_source_data.push('<!-- Error: ' + label + ' -->');
+		error_label_list.push(label);
 	}
 
 	var publisher_to_check = [];
