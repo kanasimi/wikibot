@@ -72,24 +72,25 @@ function add_headline(publisher, headline) {
 	if (headline_hash[publisher]) {
 		if (headline_hash[publisher] === headline) {
 			// pass
-			CeL.debug('add_headline: [' + publisher + '] 已有此 headline: ['
-					+ headline + '], skip it.', 0, 'add_headline');
+			CeL.debug('[' + publisher + '] 已有此 headline: [' + headline
+					+ '], skip it.', 0, 'add_headline');
 			return;
 		}
-		CeL.debug('add_headline: [' + publisher + '] 有不同的 headline: ['
+		CeL.debug('[' + publisher + '] 有不同的 headline: ['
 		//
 		+ headline_hash[publisher] + '] vs. [' + headline + ']', 0,
 				'add_headline');
 	}
 
-	// 登記此 headline
+	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 0,
+			'add_headline');
 	headline_hash[publisher] = headline;
 
 	headline_data.push('{{HI|' + publisher + '|' + headline + '}}');
 }
 
+// 中央社日報一般過 UTC+8 8:30 才會開始更新，晚報 UTC+8 15:00。
 function parse_中央社_headline(response, publisher) {
-
 	var news_content = response.between('news_content').between('新聞本文 開始',
 			'新聞本文 結束').between('<div class="box_2">', '</div>');
 	if (!news_content.includes('頭條新聞標題如下：')) {
@@ -153,7 +154,7 @@ function write_data() {
 
 		if (!page_data.has_date) {
 			content = '{{date|' + use_date.format('%Y年%m月%d日') + '}}\n\n'
-					+ content;
+					+ content.trim();
 		}
 
 		if (!page_data.has_header) {
@@ -210,6 +211,9 @@ function write_data() {
 		summary : 'bot: 匯入每日報紙頭條新聞標題',
 		bot : 1
 	});
+
+	// last:
+	// https://zh.wikinews.org/wiki/Wikinews:%E9%A6%96%E9%A1%B5&action=purge
 }
 
 function check_finish(labels_to_check) {
@@ -245,6 +249,8 @@ function check_finish(labels_to_check) {
 			//
 			response = XMLHttp.responseText;
 
+			CeL.debug('開始處理 [' + publisher + '] 的 headline.', 0,
+					'next_publisher');
 			parse_headline[publisher](response, publisher);
 
 			next_publisher();
@@ -406,7 +412,7 @@ function check_labels(labels_to_check) {
 						+ item.link + ']');
 				console.log(item);
 			}
-			CeL.debug('add_source: [' + label + ']: '
+			CeL.debug('[' + label + ']: '
 			//
 			+ (labels_to_check[label] ? '尚存有未處理資料，將持續處理下去。'
 			//
@@ -428,8 +434,8 @@ function check_labels(labels_to_check) {
 			query = query[0];
 		}
 		query = use_date.format(query);
-		CeL.debug('check_labels: Search Google for [' + label + ']: [' + query
-				+ ']', 0, 'check_labels');
+		CeL.debug('Search Google for [' + label + ']: [' + query + ']', 0,
+				'check_labels');
 
 		// https://github.com/google/google-api-nodejs-client/blob/master/samples/customsearch/customsearch.js
 		customsearch.cse.list(Object.assign({
