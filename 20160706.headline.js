@@ -36,7 +36,9 @@ headline_labels = {
 	// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
 	// http://finance.eastmoney.com/news/1353,20160706639330278.html
 
-	// 中央社商情網 商情新聞中心
+	// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
+
+	// 中央社商情網 商情新聞中心 早報
 	'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報'
 	// 台灣主要晚報頭條新聞標題
 	// , '晚報'
@@ -72,7 +74,7 @@ var google = require('googleapis'), customsearch = google.customsearch('v1');
 
 function finish_up() {
 	CeL.get_URL(
-	// 重新整理維基新聞首頁。
+	// 更新緩存/重新整理維基新聞首頁。
 	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
 
 	if (!parse_error_label_list) {
@@ -173,7 +175,8 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
-		if (!page_data.has_develop) {
+		// 沒 parse 錯誤才標上{{Publish}}
+		if (!parse_error_label_list && !page_data.has_develop) {
 			content = content.trim() + '\n{{Publish}}\n';
 		}
 
@@ -237,7 +240,14 @@ function parse_中央社_headline(response, publisher) {
 			+ publisher + ']: [' + item + ']');
 			return;
 		}
-		add_headline(matched[1].replace(/\s+/g, ''),
+
+		// 報紙標題。
+		matched[1] = matched[1].replace(/\s+/g, '').replace(/頭條/, '');
+		if (matched[1] === '聯晚') {
+			// 修正報紙標題。
+			matched[1] = '聯合晚報';
+		}
+		add_headline(matched[1],
 		//
 		matched[2].replace(/[。\n]+$/, '').trim());
 	});
