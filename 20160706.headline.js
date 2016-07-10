@@ -58,6 +58,8 @@ headline_labels = {
 add_source_data = [],
 // [ label, label, ... ]
 error_label_list = [],
+// parse_error_label_list[publisher] = error
+parse_error_label_list,
 
 use_date = new Date;
 
@@ -67,6 +69,128 @@ use_date = new Date;
 
 // 這可能需要十幾秒。
 var google = require('googleapis'), customsearch = google.customsearch('v1');
+
+function finish_up() {
+	CeL.get_URL(
+	// 重新整理維基新聞首頁。
+	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
+
+	if (!parse_error_label_list) {
+		return;
+	}
+
+	var error_message = [];
+	for ( var error in parse_error_label_list) {
+		error_message.push(': ' + publisher + ': '
+				+ parse_error_label_list[publisher].name
+				|| parse_error_label_list[publisher]);
+	}
+	// 最後將重大 parse error 通知程式作者。
+	wiki.page('User talk:kanashimi').edit(error_message.join('\n'), {
+		section : 'new',
+		sectiontitle : 'news parse error',
+		summary : 'news parse error report',
+		nocreate : 1
+	});
+}
+
+function write_data() {
+	// 寫入資料。
+	// assert: 已設定好 page
+	wiki
+	// assert: 已設定好 page
+	// .page(...)
+	.edit(function(page_data) {
+		/**
+		 * {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000.
+		 */
+		var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
+
+		// 前一天, the day before
+		day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
+		// 後一天, 隔天 the day after
+		day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
+
+		function headline_link(date, add_year) {
+			return '[[' + date.format('%Y年%m月%d日') + '臺灣報紙頭條|'
+			//
+			+ date.format(add_year ? '%Y年%m月%d日' : '%m月%d日') + ']]';
+		}
+
+		// 初始模板。
+		var content = CeL.wiki.content_of(page_data) || '';
+
+		if (!page_data.has_date) {
+			content = '{{date|' + use_date.format('%Y年%m月%d日')
+			//
+			+ '}}\n\n' + content.trim();
+		}
+
+		if (!page_data.has_header) {
+			content = content.replace(/{{date.*?}}\n/, function(section) {
+				return section + '{{Headline item/header|[[w:民國紀年|民國]]'
+				//
+				+ use_date.format({
+					format : '%R年%m月%d日',
+					locale : 'cmn-Hant-TW'
+				}) + '|臺灣}}\n{{Headline item/footer}}\n';
+			});
+		}
+
+		if (headline_data.length > 0) {
+			content = content.replace(/{{Headline item\/header.*?}}\n/,
+			// add header.
+			function(section) {
+				section += headline_data.sort().join('\n') + '\n';
+				return section;
+			});
+		}
+
+		if (add_source_data.length > 0) {
+			add_source_data = add_source_data.sort().join('\n') + '\n';
+			content = content
+			//
+			.replace(/(\n|^)==\s*消息來源\s*==\n/, function(section) {
+				section += add_source_data;
+				add_source_data = null;
+				return section;
+			});
+
+			if (add_source_data) {
+				content = content.trim() + '\n== 消息來源 ==\n' + add_source_data;
+			}
+		}
+
+		if (!page_data.has_navbox) {
+			// 頭條導覽 {{headline navbox}}
+			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
+			content = content.trim() + '\n{{headline navbox|台灣|'
+			//
+			+ use_date.format('%Y年%m月') + '|' + use_date.format('%d日') + '|'
+			//
+			+ headline_link(day_before) + '|'
+			//
+			+ headline_link(day_after) + '}}\n';
+		}
+
+		if (!page_data.has_develop) {
+			content = content.trim() + '\n{{Publish}}\n';
+		}
+
+		if (error_label_list.length > 0) {
+			this.summary += '. Error: ' + error_label_list.join(', ');
+		}
+
+		return content;
+
+	}, {
+		summary : 'bot: 匯入每日報紙頭條新聞標題',
+		bot : 1
+	})
+	//
+	.run(finish_up);
+
+}
 
 function add_headline(publisher, headline) {
 	if (headline_hash[publisher]) {
@@ -96,7 +220,7 @@ function parse_中央社_headline(response, publisher) {
 	if (!news_content.includes('頭條新聞標題如下：')) {
 		CeL.err('parse_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
-		return;
+		throw new Error('parse error');
 	}
 
 	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
@@ -106,7 +230,7 @@ function parse_中央社_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
-		var matched = item.match(/^([^：:]+)[：:](.+)$/);
+		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
 		if (!matched) {
 			CeL.err('parse_headline: Can not parse ['
 			//
@@ -126,104 +250,14 @@ var parse_headline = {
 	'中央社商情網晚報' : parse_中央社_headline
 };
 
-function write_data() {
-	// 最後寫入資料。
-	// assert: 已設定好 page
-	wiki
-	// assert: 已設定好 page
-	// .page(...)
-	.edit(function(page_data) {
-		add_source_data = add_source_data.join('\n') + '\n';
-		/**
-		 * {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000.
-		 */
-		var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
-
-		// 前一天, the day before
-		day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
-		// 後一天, 隔天 the day after
-		day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
-
-		function headline_link(date, add_year) {
-			return '[[' + date.format('%Y年%m月%d日') + '臺灣報紙頭條|'
-					+ date.format(add_year ? '%Y年%m月%d日' : '%m月%d日') + ']]';
-		}
-
-		// 初始模板。
-		var content = CeL.wiki.content_of(page_data) || '';
-
-		if (!page_data.has_date) {
-			content = '{{date|' + use_date.format('%Y年%m月%d日') + '}}\n\n'
-					+ content.trim();
-		}
-
-		if (!page_data.has_header) {
-			content = content.replace(/{{date.*?}}\n/, function(section) {
-				return section + '{{Headline item/header|[[w:民國紀年|民國]]'
-				//
-				+ use_date.format({
-					format : '%R年%m月%d日',
-					locale : 'cmn-Hant-TW'
-				}) + '|臺灣}}\n{{Headline item/footer}}\n';
-			});
-		}
-
-		if (headline_data) {
-			content = content.replace(/{{Headline item\/header.*?}}\n/,
-			// add header.
-			function(section) {
-				section += headline_data.join('\n') + '\n';
-				return section;
-			});
-		}
-
-		content = content.replace(/(\n|^)==\s*消息來源\s*==\n/, function(section) {
-			section += add_source_data;
-			add_source_data = null;
-			return section;
-		});
-
-		if (add_source_data) {
-			content = content.trim() + '\n== 消息來源 ==\n' + add_source_data;
-		}
-
-		if (!page_data.has_navbox) {
-			// 頭條導覽 {{headline navbox}}
-			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
-			content = content.trim() + '\n{{headline navbox|台灣|'
-					+ use_date.format('%Y年%m月') + '|'
-					+ use_date.format('%Y年%d日') + '|'
-					+ headline_link(day_before) + '|'
-					+ headline_link(day_after) + '}}\n';
-		}
-
-		if (!page_data.has_develop) {
-			content = content.trim() + '\n{{Publish}}\n';
-		}
-
-		if (error_label_list.length > 0) {
-			this.summary += '. Error: ' + error_label_list.join(', ');
-		}
-
-		return content;
-
-	}, {
-		summary : 'bot: 匯入每日報紙頭條新聞標題',
-		bot : 1
-	});
-
-	// last:
-	// https://zh.wikinews.org/wiki/Wikinews:%E9%A6%96%E9%A1%B5&action=purge
-}
-
-function check_finish(labels_to_check) {
+function check_headline_data(labels_to_check) {
 	if (add_source_data.length === 0) {
-		CeL.debug('沒有新 source 資料，或者全部錯誤。', 0, 'check_finish');
+		CeL.debug('沒有新 source 資料，或者全部錯誤。', 0, 'check_headline_data');
 		// 依然持續執行，因為可能需要補上其他闕漏資料。
-		// return;
+		return;
 	}
 
-	add_source_data.sort();
+	// add_source_data.sort();
 
 	for ( var label in labels_to_check) {
 		error_label_list.push(label);
@@ -251,7 +285,14 @@ function check_finish(labels_to_check) {
 
 			CeL.debug('開始處理 [' + publisher + '] 的 headline.', 0,
 					'next_publisher');
-			parse_headline[publisher](response, publisher);
+			try {
+				parse_headline[publisher](response, publisher);
+			} catch (e) {
+				if (!parse_error_label_list) {
+					parse_error_label_list = CeL.null_Object();
+				}
+				parse_error_label_list[publisher] = e;
+			}
 
 			next_publisher();
 
@@ -357,7 +398,7 @@ function check_labels(labels_to_check) {
 	left = labels.length;
 
 	if (!left) {
-		check_finish(labels_to_check);
+		check_headline_data(labels_to_check);
 		return;
 	}
 
@@ -366,7 +407,7 @@ function check_labels(labels_to_check) {
 		if (error) {
 			CeL.err('for_label: [' + label + ']: error: ' + error);
 			if (!left) {
-				check_finish(labels_to_check);
+				check_headline_data(labels_to_check);
 			}
 			return;
 		}
@@ -378,7 +419,7 @@ function check_labels(labels_to_check) {
 			CeL.log('for_label: [' + label + ']: No data get: '
 					+ JSON.stringify(response.url));
 			if (!left) {
-				check_finish(labels_to_check);
+				check_headline_data(labels_to_check);
 			}
 			return;
 		}
@@ -423,7 +464,7 @@ function check_labels(labels_to_check) {
 		response.items.every(add_source);
 
 		if (!left) {
-			check_finish(labels_to_check);
+			check_headline_data(labels_to_check);
 		}
 	}
 
