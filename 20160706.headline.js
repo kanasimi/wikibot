@@ -27,38 +27,46 @@ label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = {String}headline
 headline_hash = CeL.null_Object(), headline_data = [],
 
+locale = CeL.env.argv && CeL.env.argv.locale,
 // 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
-	// usage:
-	// label/publisher : {String}query
-	// label/publisher : [ {String}query, 擷取數 [標題關鍵字] ]
-	// label : [ {String}query, [標題關鍵字], {String}publisher 發布機構 + author 作者 ]
+	'香港' : {
+		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
+		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk'
+	},
 
-	// cn
-	// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
-	// http://finance.eastmoney.com/news/1353,20160706639330278.html
+	// default
+	'臺灣' : {
+		// usage:
+		// label/publisher : {String}query
+		// label/publisher : [ {String}query, 擷取數 [標題關鍵字] ]
+		// label : [ {String}query, [標題關鍵字], {String}publisher 發布機構 + author 作者
+		// ]
 
-	// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
+		// cn
+		// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
+		// http://finance.eastmoney.com/news/1353,20160706639330278.html
 
-	// "7月10日" "香港頭條新聞" site:www.orangenews.hk
+		// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
 
-	// 中央社商情網 商情新聞中心 早報
-	'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報'
-	// 台灣主要晚報頭條新聞標題
-	// , '晚報'
-	] ],
-	// 不知為何，Google 得要用這樣的方法才查得到晚報頭條。
-	// '中央通訊社' : '台灣主要晚報頭條新聞標題 %Y年 %m月 %d日',
-	'中央社商情網晚報' : [ '台灣主要晚報頭條新聞標題 %Y年 %m月 %d日', , '中央社商情網' ],
+		// 中央社商情網 商情新聞中心 早報
+		'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報'
+		// 台灣主要晚報頭條新聞標題
+		// , '晚報'
+		] ],
+		// 不知為何，Google 得要用這樣的方法才查得到晚報頭條。
+		// '中央通訊社' : '台灣主要晚報頭條新聞標題 %Y年 %m月 %d日',
+		'中央社商情網晚報' : [ '台灣主要晚報頭條新聞標題 %Y年 %m月 %d日', , '中央社商情網' ],
 
-	'中央社' : '"%m月%d日" "各報頭條" site:www.cna.com.tw',
-	'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
-			[ '世界各報頭條', '各報頭條' ] ],
-	'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
-	'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com',
-	'鉅亨網' : '"%Y年%m月%d日" "報紙頭條" site:news.cnyes.com',
-	'華視新聞網' : '"%m月%d日" "各報頭條" site:news.cts.com.tw',
-	'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
+		'中央社' : '"%m月%d日" "各報頭條" site:www.cna.com.tw',
+		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
+				[ '世界各報頭條', '各報頭條' ] ],
+		'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
+		'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com',
+		'鉅亨網' : '"%Y年%m月%d日" "報紙頭條" site:news.cnyes.com',
+		'華視新聞網' : '"%m月%d日" "各報頭條" site:news.cts.com.tw',
+		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
+	}
 },
 // 注意：頭條新聞標題應附上兩個以上之來源，不可全文引用。
 // 參考：[[w:Wikipedia:捐赠版权材料/发送授权信|發送授權信]]、[[w:Wikipedia:捐赠版权材料|捐贈版權材料]]、[[w:Wikipedia:请求版权许可|請求版權許可]]
@@ -72,6 +80,10 @@ use_date = new Date,
 
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
+
+// e.g., locale=香港
+headline_labels = headline_labels[CeL.env.argv && CeL.env.argv.locale]
+		|| headline_labels[locale = '臺灣'];
 
 if (CeL.env.argv && (CeL.env.argv.days_ago |= 0)) {
 	// e.g., days_ago=1 : 回溯取得前一天的報紙頭條新聞標題
@@ -103,7 +115,7 @@ function finish_up() {
 		return;
 	}
 
-	var error_message = [];
+	var error_message = [ '報紙頭條新聞標題 parse error:' ];
 	for ( var error in parse_error_label_list) {
 		error_message.push(': ' + publisher + ': '
 				+ parse_error_label_list[publisher].name
@@ -127,7 +139,7 @@ function write_data() {
 	// .page(...)
 	.edit(function(page_data) {
 		function headline_link(date, add_year) {
-			return '[[' + date.format('%Y年%m月%d日') + '臺灣報紙頭條|'
+			return '[[' + date.format('%Y年%m月%d日') + locale + '報紙頭條|'
 			//
 			+ date.format(add_year ? '%Y年%m月%d日' : '%m月%d日') + ']]';
 		}
@@ -148,7 +160,7 @@ function write_data() {
 				+ use_date.format({
 					format : '%R年%m月%d日',
 					locale : 'cmn-Hant-TW'
-				}) + '|臺灣}}\n{{Headline item/footer}}\n';
+				}) + '|' + locale + '}}\n{{Headline item/footer}}\n';
 			});
 		}
 
@@ -172,14 +184,18 @@ function write_data() {
 			});
 
 			if (add_source_data) {
-				content = content.trim() + '\n== 消息來源 ==\n' + add_source_data;
+				content = content.trim()
+				//
+				+ '\n\n== 消息來源 ==\n' + add_source_data;
 			}
 		}
 
 		if (!page_data.has_navbox) {
 			// 頭條導覽 {{headline navbox}}
 			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
-			content = content.trim() + '\n{{headline navbox|台灣|'
+			content = content.trim() + '\n\n{{headline navbox|'
+			// workaround...
+			+ (locale === '臺灣' ? '台灣' : locale) + '|'
 			//
 			+ use_date.format('%Y年%m月') + '|' + use_date.format('%d日') + '|'
 			//
@@ -191,7 +207,7 @@ function write_data() {
 		if (!page_data.has_stage_tag) {
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
-			// "發表後24小時不應進行大修改"
+			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
 			+ (parse_error_label_list ? '{{Review}}' : '{{Publish}}') + '\n';
 		}
 
@@ -214,6 +230,8 @@ function write_data() {
 }
 
 function add_headline(publisher, headline) {
+	publisher = publisher.trim();
+	headline = headline.trim();
 	if (headline_hash[publisher]) {
 		if (headline_hash[publisher] === headline) {
 			// pass
@@ -234,6 +252,23 @@ function add_headline(publisher, headline) {
 	headline_data.push('{{HI|' + publisher + '|' + headline + '}}');
 }
 
+function parse_橙新聞_headline(response, publisher) {
+	var news_content = response.between('function content() parse begin',
+			'function content() parse end');
+	if (!news_content.includes('蘋果日報') && !news_content.includes('明報')) {
+		CeL.err('parse_headline: Can not parse [' + publisher + ']!');
+		CeL.warn(response);
+		throw new Error('parse error: [' + publisher + ']');
+	}
+
+	var matched, PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/;
+	while (matched = PATTERN.exec(news_content)) {
+		add_headline(matched[2],
+		//
+		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
+	}
+}
+
 // 中央社日報一般過 UTC+8 8:30 才會開始更新，晚報 UTC+8 15:00。
 function parse_中央社_headline(response, publisher) {
 	var news_content = response.between('news_content').between('新聞本文 開始',
@@ -241,7 +276,7 @@ function parse_中央社_headline(response, publisher) {
 	if (!news_content.includes('頭條新聞標題如下：')) {
 		CeL.err('parse_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
-		throw new Error('parse error');
+		throw new Error('parse error: [' + publisher + ']');
 	}
 
 	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
@@ -261,19 +296,29 @@ function parse_中央社_headline(response, publisher) {
 
 		// 報紙標題。
 		matched[1] = matched[1].replace(/\s+/g, '').replace(/頭條/, '');
-		if (matched[1] === '聯晚') {
-			// 修正報紙標題。
+		// 修正報紙標題。
+		switch (matched[1]) {
+		case '聯晚':
 			matched[1] = '聯合晚報';
+			break;
+
+		case '經濟日報':
+		case '蘋果日報':
+			matched[1] += ' (' + locale + ')';
+			break;
+
+		default:
 		}
-		add_headline(matched[1],
-		//
-		matched[2].replace(/[。\n]+$/, '').trim());
+
+		add_headline(matched[1], matched[2].replace(/[。\n]+$/, ''));
 	});
 
 }
 
 // 實際解析/既定 parser。
 var parse_headline = {
+	'橙新聞' : parse_橙新聞_headline,
+
 	'中央社商情網' : parse_中央社_headline,
 	'中央社商情網晚報' : parse_中央社_headline
 };
@@ -516,7 +561,7 @@ function check_labels(labels_to_check) {
 
 }
 
-wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(page_data) {
+wiki.page(use_date.format('%Y年%m月%d日') + locale + '報紙頭條', function(page_data) {
 	var labels_to_check = Object.clone(headline_labels, true);
 	if (!page_data || ('missing' in page_data)) {
 		check_labels(labels_to_check);
