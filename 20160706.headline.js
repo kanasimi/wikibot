@@ -68,7 +68,10 @@ error_label_list = [],
 // {Object}parse_error_label_list[publisher] = error
 parse_error_label_list,
 
-use_date = new Date;
+use_date = new Date,
+
+/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
+ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 if (CeL.env.argv && (CeL.env.argv.days_ago |= 0)) {
 	// e.g., days_ago=1 : 回溯取得前一天的報紙頭條新聞標題
@@ -76,21 +79,19 @@ if (CeL.env.argv && (CeL.env.argv.days_ago |= 0)) {
 			* CeL.env.argv.days_ago);
 }
 
+// 手動設定。
 // use_date.setDate(-1);
+
+var
+// 前一天, the day before
+day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
+// 後一天, 隔天 the day after
+day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
 
 // ---------------------------------------------------------------------//
 
 // 這可能需要十幾秒。
 var google = require('googleapis'), customsearch = google.customsearch('v1');
-
-var
-/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
-ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
-
-// 前一天, the day before
-day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
-// 後一天, 隔天 the day after
-day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
 
 function finish_up() {
 	CeL.debug('更新緩存/重新整理維基新聞首頁。', 0, 'finish_up');
