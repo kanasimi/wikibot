@@ -512,15 +512,16 @@ function check_labels(labels_to_check) {
 
 		// CeL.log('First result name is ' + response.items[0].title);
 
+		// publisher 得要在被 remove_completed() 刪除前先 cache 好!
+		// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
+		var publisher = Array.isArray(labels_to_check[label])
+				&& labels_to_check[label][2] || label;
+
 		// item: e.g.,
 		// {"kind":"customsearch#result","title":"台灣主要日報頭條新聞標題2016年7月5日|即時新聞|中央社商情網",
 		// "htmlTitle":"...","link":"http://www.cnabc.com/news/aall/201607050083.aspx","displayLink":"www.cnabc.com","snippet":"...","htmlSnippet":"...","cacheId":"BlsHSMJeb9AJ","formattedUrl":"www.cnabc.com/news/aall/201607050083.aspx","htmlFormattedUrl":"www.cnabc.com/news/aall/201607050083.aspx",
 		// "pagemap":{"metatags":[{"viewport":"width=device-width,initial-scale=1.0","og:title":"...","og:image":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg","og:url":"http://www.cnabc.com/news/aall/201607050083.aspx","og:type":"article"}],"cse_image":[{"src":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg"}]}}
 		function add_source(item) {
-			// publisher 得要在被 remove_completed() 刪除前先 cache 好!
-			// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
-			var publisher = Array.isArray(labels_to_check[label])
-					&& labels_to_check[label][2] || label;
 			if (remove_completed(labels_to_check, label, item.title, item.link)) {
 				CeL.debug('label [' + label + ']: publisher ' + publisher, 0,
 						'add_source');
