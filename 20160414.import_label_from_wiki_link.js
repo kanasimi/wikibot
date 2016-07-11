@@ -20,6 +20,7 @@
 
 
  TODO:
+ 自 redirect 獲取 alias。
  parse [[西利西利]]山（Mauga Silisili）
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
@@ -269,6 +270,7 @@ function for_each_page(page_data, messages) {
 		return CeL.wiki.quit_operation;
 	}
 
+	// TODO: template
 	if (page_data.ns !== 0) {
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 	}

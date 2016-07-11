@@ -7,6 +7,8 @@
 
  @see http://www.vanguardngr.com/category/headlines/
 
+ TODO: 立即停止作業
+
  */
 
 'use strict';
@@ -25,7 +27,7 @@ label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = {String}headline
 headline_hash = CeL.null_Object(), headline_data = [],
 
-// 須改 cx!!
+// 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
 	// usage:
 	// label/publisher : {String}query
@@ -37,6 +39,8 @@ headline_labels = {
 	// http://finance.eastmoney.com/news/1353,20160706639330278.html
 
 	// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
+
+	// "7月10日" "香港頭條新聞" site:www.orangenews.hk
 
 	// 中央社商情網 商情新聞中心 早報
 	'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報'
@@ -56,11 +60,12 @@ headline_labels = {
 	'華視新聞網' : '"%m月%d日" "各報頭條" site:news.cts.com.tw',
 	'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
 },
-//
+// 注意：頭條新聞標題應附上兩個以上之來源，不可全文引用。
+// 參考：[[w:Wikipedia:捐赠版权材料/发送授权信|發送授權信]]、[[w:Wikipedia:捐赠版权材料|捐贈版權材料]]、[[w:Wikipedia:请求版权许可|請求版權許可]]
 add_source_data = [],
 // [ label, label, ... ]
 error_label_list = [],
-// parse_error_label_list[publisher] = error
+// {Object}parse_error_label_list[publisher] = error
 parse_error_label_list,
 
 use_date = new Date;
@@ -74,7 +79,7 @@ var google = require('googleapis'), customsearch = google.customsearch('v1');
 
 function finish_up() {
 	CeL.get_URL(
-	// 更新緩存/重新整理維基新聞首頁。
+	// 更新緩存/重新整理維基新聞首頁。極端做法：re-edit the same contents
 	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
 
 	if (!parse_error_label_list) {
@@ -175,9 +180,11 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
-		// 沒 parse 錯誤才標上{{Publish}}
-		if (!parse_error_label_list && !page_data.has_develop) {
-			content = content.trim() + '\n{{Publish}}\n';
+		if (!page_data.has_stage_tag) {
+			content = content.trim() + '\n'
+			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
+			// "發表後24小時不應進行大修改"
+			+ (parse_error_label_list ? '{{Review}}' : '{{Publish}}') + '\n';
 		}
 
 		if (error_label_list.length > 0) {
@@ -254,7 +261,7 @@ function parse_中央社_headline(response, publisher) {
 
 }
 
-// 實際解析。
+// 實際解析/既定 parser。
 var parse_headline = {
 	'中央社商情網' : parse_中央社_headline,
 	'中央社商情網晚報' : parse_中央社_headline
@@ -543,12 +550,16 @@ wiki.page(use_date.format('%Y年%m月%d日') + '臺灣報紙頭條', function(pa
 			page_data.has_navbox = true;
 			break;
 
+		case 'Archived':
 		case 'Publish':
 			// 即使已經Publish，依舊更改。
 			// page_data.done = true;
 			// return;
+		case 'Review':
 		case 'Develop':
-			page_data.has_develop = true;
+			// @see [[維基新聞:文章標記]], [[Wikinews:Article stage tags]]
+			// [[Category:新闻标记模板]]
+			page_data.has_stage_tag = true;
 			break;
 		}
 

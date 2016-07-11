@@ -14,6 +14,9 @@
  # 以函數 check_page() 收尾每一個頁面的工作。
  # 以函數 check_final_work()寫入報告。
 
+ 清理跨語言連結：將已存在本地條目之跨語言連結模板（包含{{tl|illm}}以及其他）轉為一般 wikilink。
+ 本任務已在jawiki與enwiki穩定定期運行過一段時間。特點為能夠產生結果報告，幫助編輯者快速找出問題所在。
+
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 
@@ -207,6 +210,7 @@ message_set = {
 		// 語法錯誤
 		invalid_template : 'Syntax error',
 		// manually
+		// 可能純粹為了註記關聯性（譯名）而存在，因此缺 foreign page。
 		missing_foreign : 'Missing foreign page.',
 		foreign_is_disambiguation : 'Foreign page is disambiguation.',
 		foreign_redirect_to_section : 'Foreign page redirects to section.',
