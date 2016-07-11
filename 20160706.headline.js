@@ -388,9 +388,9 @@ function remove_completed(labels_to_check, label, title, url) {
 	if (!title || typeof title !== 'string' || !(label in labels_to_check))
 		return;
 
-	CeL.log('remove_completed: 登記已處理過 ' + title
+	CeL.log('remove_completed: 登記已處理過: [' + title
 	//
-	+ (url ? ': ' + url : '') + '。');
+	+ (url ? ']: ' + url : '') + '。');
 
 	if (!/[頭头][版條条]/.test(title)) {
 		return;
@@ -401,6 +401,11 @@ function remove_completed(labels_to_check, label, title, url) {
 	//
 	matched[1].replace(/^0+/, '') + matched[2].replace(/^0+/, '')) {
 		CeL.debug('日期(月日)不符? [' + matched[0] + ']', 0, 'remove_completed');
+		return;
+	}
+	if (/\d{4}/.test(title) && !title.includes(use_date.format('%2m%2d'))) {
+		// e.g., 蘋果日報
+		CeL.debug('日期(年)不符? [' + title + ']', 0, 'remove_completed');
 		return;
 	}
 	matched = title.match(/\d+年/);
@@ -535,6 +540,7 @@ function check_labels(labels_to_check) {
 			+ (labels_to_check[label] ? '尚存有未處理資料，將持續處理下去。'
 			//
 			: '已無未處理資料，將跳出此項。'), 0, 'add_source');
+			console.log(labels_to_check);
 			return labels_to_check[label];
 		}
 
@@ -566,6 +572,7 @@ function check_labels(labels_to_check) {
 }
 
 wiki.page(use_date.format('%Y年%m月%d日') + locale + '報紙頭條', function(page_data) {
+	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 	var labels_to_check = Object.clone(headline_labels, true);
 	if (!page_data || ('missing' in page_data)) {
 		check_labels(labels_to_check);
