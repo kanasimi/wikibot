@@ -204,8 +204,8 @@ function write_data() {
 		return content;
 
 	}, {
-		summary : 'bot: 匯入每日報紙頭條新聞標題',
-		bot : 1
+		// bot : 1,
+		summary : 'bot: 匯入每日報紙頭條新聞標題'
 	})
 	//
 	.run(finish_up);
