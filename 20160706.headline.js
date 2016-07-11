@@ -388,11 +388,12 @@ function remove_completed(labels_to_check, label, title, url) {
 	if (!title || typeof title !== 'string' || !(label in labels_to_check))
 		return;
 
-	CeL.log('remove_completed: 登記已處理過: [' + title
+	CeL.log('remove_completed: 準備登記已處理過: [' + title
 	//
 	+ (url ? ']: ' + url : '') + '。');
 
 	if (!/[頭头][版條条]/.test(title)) {
+		CeL.debug('非頭條? [' + title + ']', 0, 'remove_completed');
 		return;
 	}
 	// assert: typeof title === 'string'
@@ -403,7 +404,12 @@ function remove_completed(labels_to_check, label, title, url) {
 		CeL.debug('日期(?月?日)不符? [' + matched[0] + ']', 0, 'remove_completed');
 		return;
 	}
-	if (/\d{4}/.test(title) && !title.includes(use_date.format('%2m%2d'))
+	if (/\d{8}/.test(title) && !title.includes(use_date.format('%Y%2m%2d'))) {
+		// e.g., 蘋果日報
+		CeL.debug('日期(年 or 月日dddd)不符? [' + title + ']', 0, 'remove_completed');
+		return;
+	} else if (/\d{4}/.test(title)
+			&& !title.includes(use_date.format('%2m%2d'))
 			&& !title.includes(use_date.format('%Y'))) {
 		// e.g., 蘋果日報
 		CeL.debug('日期(年 or 月日dddd)不符? [' + title + ']', 0, 'remove_completed');
@@ -511,13 +517,14 @@ function check_labels(labels_to_check) {
 		// "htmlTitle":"...","link":"http://www.cnabc.com/news/aall/201607050083.aspx","displayLink":"www.cnabc.com","snippet":"...","htmlSnippet":"...","cacheId":"BlsHSMJeb9AJ","formattedUrl":"www.cnabc.com/news/aall/201607050083.aspx","htmlFormattedUrl":"www.cnabc.com/news/aall/201607050083.aspx",
 		// "pagemap":{"metatags":[{"viewport":"width=device-width,initial-scale=1.0","og:title":"...","og:image":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg","og:url":"http://www.cnabc.com/news/aall/201607050083.aspx","og:type":"article"}],"cse_image":[{"src":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg"}]}}
 		function add_source(item) {
+			// publisher 得要在被 remove_completed() 刪除前先 cache 好!
+			// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
+			var publisher = Array.isArray(labels_to_check[label])
+					&& labels_to_check[label][2] || label;
 			if (remove_completed(labels_to_check, label, item.title, item.link)) {
-				// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
-				var publisher = Array.isArray(labels_to_check[label])
-						&& labels_to_check[label][2] || label;
 				CeL.debug('label [' + label + ']: publisher ' + publisher, 0,
 						'add_source');
-				console.log(labels_to_check);
+				// console.log(labels_to_check);
 				// add [[n:Template:source]]
 				add_source_data.push('* {{source|url=' + item.link
 				//
@@ -541,7 +548,7 @@ function check_labels(labels_to_check) {
 			+ (labels_to_check[label] ? '尚存有未處理資料，將持續處理下去。'
 			//
 			: '已無未處理資料，將跳出此項。'), 0, 'add_source');
-			console.log(labels_to_check);
+			// console.log(labels_to_check);
 			return labels_to_check[label];
 		}
 
