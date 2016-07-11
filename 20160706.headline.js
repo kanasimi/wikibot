@@ -70,16 +70,32 @@ parse_error_label_list,
 
 use_date = new Date;
 
-// use_date = new Date(2016, 7 - 1, 8);
+if (CeL.env.argv && (CeL.env.argv.days_ago |= 0)) {
+	// e.g., days_ago=1 : 回溯取得前一天的報紙頭條新聞標題
+	use_date = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE
+			* CeL.env.argv.days_ago);
+}
+
+// use_date.setDate(-1);
 
 // ---------------------------------------------------------------------//
 
 // 這可能需要十幾秒。
 var google = require('googleapis'), customsearch = google.customsearch('v1');
 
+var
+/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
+ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
+
+// 前一天, the day before
+day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
+// 後一天, 隔天 the day after
+day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
+
 function finish_up() {
+	CeL.debug('更新緩存/重新整理維基新聞首頁。', 0, 'finish_up');
 	CeL.get_URL(
-	// 更新緩存/重新整理維基新聞首頁。極端做法：re-edit the same contents
+	// 極端做法：re-edit the same contents
 	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
 
 	if (!parse_error_label_list) {
@@ -92,7 +108,7 @@ function finish_up() {
 				+ parse_error_label_list[publisher].name
 				|| parse_error_label_list[publisher]);
 	}
-	// 最後將重大 parse error 通知程式作者。
+	CeL.debug('最後將重大 parse error 通知程式作者。', 0, 'finish_up');
 	wiki.page('User talk:kanashimi').edit(error_message.join('\n'), {
 		section : 'new',
 		sectiontitle : 'news parse error',
@@ -102,22 +118,13 @@ function finish_up() {
 }
 
 function write_data() {
-	// 寫入資料。
+	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
+
 	// assert: 已設定好 page
 	wiki
 	// assert: 已設定好 page
 	// .page(...)
 	.edit(function(page_data) {
-		/**
-		 * {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000.
-		 */
-		var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
-
-		// 前一天, the day before
-		day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
-		// 後一天, 隔天 the day after
-		day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
-
 		function headline_link(date, add_year) {
 			return '[[' + date.format('%Y年%m月%d日') + '臺灣報紙頭條|'
 			//
@@ -191,6 +198,9 @@ function write_data() {
 			this.summary += '. Error: ' + error_label_list.join(', ');
 		}
 
+		CeL.debug('寫入報紙頭條新聞標題資料至[['
+		//
+		+ page_data.title + ']]。', 0, 'write_data');
 		return content;
 
 	}, {
@@ -271,7 +281,7 @@ function check_headline_data(labels_to_check) {
 	if (add_source_data.length === 0) {
 		CeL.debug('沒有新 source 資料，或者全部錯誤。', 0, 'check_headline_data');
 		// 依然持續執行，因為可能需要補上其他闕漏資料。
-		return;
+		// return;
 	}
 
 	// add_source_data.sort();
