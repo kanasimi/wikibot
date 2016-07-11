@@ -357,8 +357,8 @@ function check_headline_data(labels_to_check) {
 			//
 			response = XMLHttp.responseText;
 
-			CeL.debug('開始處理 [' + publisher + '] 的 headline.', 0,
-					'next_publisher');
+			CeL.debug('開始處理 [' + publisher + '] 的 headline ('
+					+ label_cache_hash[publisher] + ')', 0, 'next_publisher');
 			try {
 				parse_headline[publisher](response, publisher);
 			} catch (e) {
@@ -400,17 +400,18 @@ function remove_completed(labels_to_check, label, title, url) {
 	if (matched && use_date.format('%m月%d日') !==
 	//
 	matched[1].replace(/^0+/, '') + matched[2].replace(/^0+/, '')) {
-		CeL.debug('日期(月日)不符? [' + matched[0] + ']', 0, 'remove_completed');
+		CeL.debug('日期(?月?日)不符? [' + matched[0] + ']', 0, 'remove_completed');
 		return;
 	}
-	if (/\d{4}/.test(title) && !title.includes(use_date.format('%2m%2d'))) {
+	if (/\d{4}/.test(title) && !title.includes(use_date.format('%2m%2d'))
+			&& !title.includes(use_date.format('%Y'))) {
 		// e.g., 蘋果日報
-		CeL.debug('日期(年)不符? [' + title + ']', 0, 'remove_completed');
+		CeL.debug('日期(年 or 月日dddd)不符? [' + title + ']', 0, 'remove_completed');
 		return;
 	}
 	matched = title.match(/\d+年/);
 	if (matched && use_date.format('%Y年') !== matched[0].replace(/^0+/, '')) {
-		CeL.debug('日期(年)不符? [' + matched[0] + ']', 0, 'remove_completed');
+		CeL.debug('日期(?年)不符? [' + matched[0] + ']', 0, 'remove_completed');
 		return;
 	}
 
