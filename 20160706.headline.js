@@ -32,6 +32,7 @@ locale = CeL.env.argv && CeL.env.argv.locale,
 headline_labels = {
 	'香港' : {
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
+		// 不能確保可靠性
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk'
 	},
 
@@ -221,7 +222,7 @@ function write_data() {
 		return content;
 
 	}, {
-		// bot : 1,
+		bot : 1,
 		summary : 'bot: 匯入每日報紙頭條新聞標題'
 	})
 	//
@@ -508,6 +509,9 @@ function check_labels(labels_to_check) {
 				// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
 				var publisher = Array.isArray(labels_to_check[label])
 						&& labels_to_check[label][2] || label;
+				CeL.debug('label [' + label + ']: publisher ' + publisher, 0,
+						'add_source');
+				console.log(labels_to_check);
 				// add [[n:Template:source]]
 				add_source_data.push('* {{source|url=' + item.link
 				//
