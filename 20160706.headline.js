@@ -117,7 +117,7 @@ function finish_up() {
 	}
 
 	var error_message = [ '報紙頭條新聞標題 parse error:' ];
-	for ( var error in parse_error_label_list) {
+	for ( var publisher in parse_error_label_list) {
 		error_message.push(': ' + publisher + ': '
 				+ parse_error_label_list[publisher].name
 				|| parse_error_label_list[publisher]);
@@ -258,8 +258,8 @@ function add_headline(publisher, headline) {
 function parse_橙新聞_headline(response, publisher) {
 	var news_content = response.between('function content() parse begin',
 			'function content() parse end');
-	if (!news_content.includes('蘋果日報') && !news_content.includes('明報')) {
-		CeL.err('parse_headline: Can not parse [' + publisher + ']!');
+	if (!news_content.includes('文匯報') && !news_content.includes('東方日報')) {
+		CeL.err('parse_橙新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
 		throw new Error('parse error: [' + publisher + ']');
 	}
@@ -277,7 +277,7 @@ function parse_中央社_headline(response, publisher) {
 	var news_content = response.between('news_content').between('新聞本文 開始',
 			'新聞本文 結束').between('<div class="box_2">', '</div>');
 	if (!news_content.includes('頭條新聞標題如下：')) {
-		CeL.err('parse_headline: Can not parse [' + publisher + ']!');
+		CeL.err('parse_中央社_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
 		throw new Error('parse error: [' + publisher + ']');
 	}
@@ -291,7 +291,7 @@ function parse_中央社_headline(response, publisher) {
 		}
 		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
 		if (!matched) {
-			CeL.err('parse_headline: Can not parse ['
+			CeL.err('parse_中央社_headline: Can not parse ['
 			//
 			+ publisher + ']: [' + item + ']');
 			return;
