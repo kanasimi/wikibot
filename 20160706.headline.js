@@ -20,6 +20,8 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
+google, customsearch,
+
 // url_cache_hash[url] = {String}title;
 url_cache_hash = CeL.null_Object(),
 // label_cache_hash[label] = {String}url;
@@ -103,9 +105,6 @@ day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
 
 // ---------------------------------------------------------------------//
-
-// 這可能需要十幾秒。
-var google = require('googleapis'), customsearch = google.customsearch('v1');
 
 function finish_up() {
 	CeL.debug('更新緩存/重新整理維基新聞首頁。', 0, 'finish_up');
@@ -482,16 +481,18 @@ function remove_completed(labels_to_check, label, title, url) {
 }
 
 function search_橙新聞(labels_to_check) {
-	var label = '橙新聞';
-	CeL.get_URL('http://www.orangenews.hk/news/paperheadline/', function(
-			XMLHttp) {
+	var label = '橙新聞', url = 'http://www.orangenews.hk/news/paperheadline/';
+	CeL.debug('開始取得 [' + label + '] 的 headline list [' + url + ']', 0,
+			'search_橙新聞');
+	CeL.get_URL(url, function(XMLHttp) {
 		var status_code = XMLHttp.status,
 		//
 		response = XMLHttp.responseText;
 
-		CeL.debug('開始處理 [' + publisher + '] 的 headline list', 0, 'search_橙新聞');
+		CeL.debug('開始處理 [' + label + '] 的 headline list', 0, 'search_橙新聞');
 		var matched, PATTERN = /<a ([^<>]+)>([^<>]+)<\/a>/g;
 		while (matched = PATTERN.exec(response)) {
+			CeL.debug('Find [' + matched[0] + ']', 0, 'search_橙新聞');
 			if (matched[2].includes('香港頭條新聞')
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
 				var link = matched[1].match(/href="([^"]+)"/);
@@ -620,6 +621,11 @@ function check_labels(labels_to_check) {
 		CeL.debug('Search Google for [' + label + ']: [' + query + ']', 0,
 				'check_labels');
 
+		if (!customsearch) {
+			// 這可能需要十幾秒。
+			google = require('googleapis');
+			customsearch = google.customsearch('v1');
+		}
 		// https://github.com/google/google-api-nodejs-client/blob/master/samples/customsearch/customsearch.js
 		customsearch.cse.list(Object.assign({
 			q : query
