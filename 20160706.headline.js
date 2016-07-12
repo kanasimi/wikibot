@@ -4,6 +4,7 @@
 
  2016/7/6 19:41:26	import headlines of news papers
  2016/7/9 23:25:45	初版試營運
+ 2016/7/12 10:42:2	匯入每日香港報紙頭條新聞標題
 
  @see http://www.vanguardngr.com/category/headlines/
 
@@ -227,7 +228,7 @@ function write_data() {
 
 	}, {
 		bot : 1,
-		summary : 'bot test: 匯入每日報紙頭條新聞標題'
+		summary : 'bot: 匯入每日報紙頭條新聞標題'
 	})
 	//
 	.run(finish_up);
