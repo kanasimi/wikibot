@@ -31,6 +31,7 @@ locale = CeL.env.argv && CeL.env.argv.locale,
 // 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
 	'香港' : {
+		// http://www.orangenews.hk/news/paperheadline/
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
 		// 不能確保可靠性
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk'
@@ -174,7 +175,8 @@ function write_data() {
 			});
 		}
 
-		if (add_source_data.length > 0) {
+		var has_new_data = add_source_data.length > 0;
+		if (has_new_data) {
 			add_source_data = add_source_data.sort().join('\n') + '\n';
 			content = content
 			//
@@ -205,7 +207,8 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
-		if (!page_data.has_stage_tag) {
+		// 有新 source 資料標上文章標記。
+		if (has_new_data && !page_data.has_stage_tag) {
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
@@ -223,7 +226,7 @@ function write_data() {
 
 	}, {
 		bot : 1,
-		summary : 'bot: 匯入每日報紙頭條新聞標題'
+		summary : 'bot test: 匯入每日報紙頭條新聞標題'
 	})
 	//
 	.run(finish_up);
@@ -478,6 +481,42 @@ function remove_completed(labels_to_check, label, title, url) {
 	return new_added;
 }
 
+function search_橙新聞(labels_to_check) {
+	var label = '橙新聞';
+	CeL.get_URL('http://www.orangenews.hk/news/paperheadline/', function(
+			XMLHttp) {
+		var status_code = XMLHttp.status,
+		//
+		response = XMLHttp.responseText;
+
+		CeL.debug('開始處理 [' + publisher + '] 的 headline list', 0, 'search_橙新聞');
+		var matched, PATTERN = /<a ([^<>]+)>([^<>]+)<\/a>/g;
+		while (matched = PATTERN.exec(response)) {
+			if (matched[2].includes('香港頭條新聞')
+					&& matched[2].includes(use_date.format('%m月%d日'))) {
+				var link = matched[1].match(/href="([^"]+)"/);
+				if (link && remove_completed(labels_to_check,
+				//
+				label, matched[2].trim(), link[1])) {
+					// check_headline_data(labels_to_check);
+				}
+				PATTERN = null;
+				break;
+			}
+		}
+		if (PATTERN) {
+			CeL.err('search_橙新聞: No headline get!');
+			// check_headline_data(labels_to_check);
+		}
+
+	}, undefined, undefined, {
+		onfail : function(error) {
+			CeL.err('search_橙新聞: Error to get headline list');
+			// check_headline_data(labels_to_check);
+		}
+	});
+}
+
 function check_labels(labels_to_check) {
 	var labels = Object.keys(labels_to_check),
 	// 剩下 remain
@@ -488,6 +527,7 @@ function check_labels(labels_to_check) {
 		return;
 	}
 
+	// 從 response 取資訊做查詢添入 add_source_data。
 	function for_label(label, error, response) {
 		left--;
 		if (error) {
@@ -560,10 +600,20 @@ function check_labels(labels_to_check) {
 		}
 	}
 
-	labels.forEach(function(label) {
+	// 從 labels_to_check 取資訊做查詢。
+	function search_Google(label) {
+		if (label === '橙新聞') {
+			search_橙新聞(labels_to_check);
+			if (!--left) {
+				check_headline_data(labels_to_check);
+			}
+			return;
+		}
+
 		// query string
 		var query = labels_to_check[label];
 		if (Array.isArray(query)) {
+			// label/publisher : [ {String}query, 擷取數 [標題關鍵字] ]
 			query = query[0];
 		}
 		query = use_date.format(query);
@@ -576,8 +626,9 @@ function check_labels(labels_to_check) {
 		}, API_code), function(error, response) {
 			for_label(label, error, response);
 		});
-	});
+	}
 
+	labels.forEach(search_Google);
 }
 
 wiki.page(use_date.format('%Y年%m月%d日') + locale + '報紙頭條', function(page_data) {
