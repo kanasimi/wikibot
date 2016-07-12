@@ -386,7 +386,7 @@ function check_headline_data(labels_to_check) {
 }
 
 // return 有去掉/已處理過。
-function remove_completed(labels_to_check, label, title, url) {
+function remove_completed(labels_to_check, label, title, url, to_add_source) {
 	if (!title || typeof title !== 'string' || !(label in labels_to_check))
 		return;
 
@@ -437,7 +437,11 @@ function remove_completed(labels_to_check, label, title, url) {
 	}
 
 	// 登記並去除已處理之label。
-	var label_data = labels_to_check[label];
+	var label_data = labels_to_check[label],
+	// publisher 得要在被 remove_completed() 刪除前先 cache 好!
+	// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
+	publisher = Array.isArray(label_data) && label_data[2] || label;
+
 	if (Array.isArray(label_data)) {
 		if (!label_data[1]) {
 			// label : [ {String}query, , {String}publisher 發布機構 + author 作者 ]
@@ -450,6 +454,31 @@ function remove_completed(labels_to_check, label, title, url) {
 			// label : [ {String}query, [標題關鍵字] ]
 			label_data[1] = [ label_data[1] ];
 		}
+	}
+
+	function _add_source() {
+		if (!new_added || !to_add_source) {
+			return new_added;
+		}
+
+		CeL.debug('add source: label [' + label + '], publisher ' + publisher
+				+ ', url=' + url, 0, '_add_source');
+
+		// console.log(labels_to_check);
+		// add [[n:Template:source]]
+		add_source_data.push('* {{source|url=' + url
+		//
+		+ '|title=' + title.replace(/[\s\|]+/g, ' ')
+		//
+		+ '|author=' + publisher
+		//
+		+ '|pub=' + publisher
+		//
+		+ '|date=' + use_date.format('%Y年%m月%d日')
+		//
+		+ (label === publisher ? '' : '|label=' + label) + '}}');
+
+		return new_added;
 	}
 
 	if (Array.isArray(label_data)) {
@@ -470,14 +499,14 @@ function remove_completed(labels_to_check, label, title, url) {
 				return true;
 			}
 		})
-				&& new_added;
+				&& _add_source();
 	}
 
 	CeL.debug(
 	// label/publisher : {String}query
 	'[' + label + ']: 標注已處理過 [' + title + ']。', 0, 'remove_completed');
 	delete labels_to_check[label];
-	return new_added;
+	return _add_source();
 }
 
 function search_橙新聞(labels_to_check) {
@@ -553,34 +582,13 @@ function check_labels(labels_to_check) {
 
 		// CeL.log('First result name is ' + response.items[0].title);
 
-		// publisher 得要在被 remove_completed() 刪除前先 cache 好!
-		// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
-		var publisher = Array.isArray(labels_to_check[label])
-				&& labels_to_check[label][2] || label;
-
 		// item: e.g.,
 		// {"kind":"customsearch#result","title":"台灣主要日報頭條新聞標題2016年7月5日|即時新聞|中央社商情網",
 		// "htmlTitle":"...","link":"http://www.cnabc.com/news/aall/201607050083.aspx","displayLink":"www.cnabc.com","snippet":"...","htmlSnippet":"...","cacheId":"BlsHSMJeb9AJ","formattedUrl":"www.cnabc.com/news/aall/201607050083.aspx","htmlFormattedUrl":"www.cnabc.com/news/aall/201607050083.aspx",
 		// "pagemap":{"metatags":[{"viewport":"width=device-width,initial-scale=1.0","og:title":"...","og:image":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg","og:url":"http://www.cnabc.com/news/aall/201607050083.aspx","og:type":"article"}],"cse_image":[{"src":"http://img1.cna.com.tw/cbp/images/pic_fb.jpg"}]}}
 		function add_source(item) {
-			if (remove_completed(labels_to_check, label, item.title, item.link)) {
-				CeL.debug('label [' + label + ']: publisher ' + publisher, 0,
-						'add_source');
-				// console.log(labels_to_check);
-				// add [[n:Template:source]]
-				add_source_data.push('* {{source|url=' + item.link
-				//
-				+ '|title=' + item.title.replace(/[\s\|]+/g, ' ')
-				//
-				+ '|author=' + publisher
-				//
-				+ '|pub=' + publisher
-				//
-				+ '|date=' + use_date.format('%Y年%m月%d日')
-				//
-				+ (label === publisher ? '' : '|label=' + label) + '}}');
-
-			} else {
+			if (!remove_completed(labels_to_check, label, item.title,
+					item.link, true)) {
 				CeL.err('add_source: error title: [' + item.title + '] ['
 						+ item.link + ']');
 				console.log(item);
