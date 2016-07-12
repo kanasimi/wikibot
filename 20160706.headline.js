@@ -156,10 +156,12 @@ function write_data() {
 
 		if (!page_data.has_header) {
 			content = content.replace(/{{date.*?}}\n/, function(section) {
-				return section + '{{Headline item/header|[[w:民國紀年|民國]]'
+				return section + '{{Headline item/header|'
 				//
 				+ use_date.format({
-					format : '%R年%m月%d日',
+					format : locale === '臺灣' ? '[[w:民國紀年|民國]]%R年%m月%d日'
+					//
+					: '%Y年%m月%d日',
 					locale : 'cmn-Hant-TW'
 				}) + '|' + locale + '}}\n{{Headline item/footer}}\n';
 			});
@@ -264,7 +266,7 @@ function parse_橙新聞_headline(response, publisher) {
 		throw new Error('parse error: [' + publisher + ']');
 	}
 
-	var matched, PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/;
+	var matched, PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/g;
 	while (matched = PATTERN.exec(news_content)) {
 		add_headline(matched[2],
 		//
