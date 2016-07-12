@@ -527,13 +527,14 @@ function search_橙新聞(labels_to_check) {
 				var link = matched[1].match(/href="([^"]+)"/);
 				if (link && remove_completed(labels_to_check,
 				//
-				label, matched[2].trim(), link[1])) {
+				label, matched[2].trim(), link[1], true)) {
 					// check_headline_data(labels_to_check);
 				}
 				PATTERN = null;
 				break;
 			}
 		}
+
 		if (PATTERN) {
 			CeL.err('search_橙新聞: No headline get!');
 			// check_headline_data(labels_to_check);
@@ -613,7 +614,10 @@ function check_labels(labels_to_check) {
 	function search_Google(label) {
 		if (label === '橙新聞') {
 			search_橙新聞(labels_to_check);
-			if (!--left) {
+			left--;
+			CeL.debug('Search headline of [' + label + '] finished. ' + left
+					+ ' left.', 0, 'search_Google');
+			if (!left) {
 				check_headline_data(labels_to_check);
 			}
 			return;
@@ -627,7 +631,7 @@ function check_labels(labels_to_check) {
 		}
 		query = use_date.format(query);
 		CeL.debug('Search Google for [' + label + ']: [' + query + ']', 0,
-				'check_labels');
+				'search_Google');
 
 		if (!customsearch) {
 			// 這可能需要十幾秒。
