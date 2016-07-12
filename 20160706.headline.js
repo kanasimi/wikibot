@@ -509,7 +509,7 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 	return _add_source();
 }
 
-function search_橙新聞(labels_to_check) {
+function search_橙新聞(labels_to_check, check_left) {
 	var label = '橙新聞', url = 'http://www.orangenews.hk/news/paperheadline/';
 	CeL.debug('開始取得 [' + label + '] 的 headline list [' + url + ']', 0,
 			'search_橙新聞');
@@ -525,25 +525,25 @@ function search_橙新聞(labels_to_check) {
 			if (matched[2].includes('香港頭條新聞')
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
 				var link = matched[1].match(/href="([^"]+)"/);
-				if (link && remove_completed(labels_to_check,
-				//
-				label, matched[2].trim(), link[1], true)) {
-					// check_headline_data(labels_to_check);
+				if (link) {
+					remove_completed(labels_to_check, label, matched[2].trim(),
+							link[1], true);
+					PATTERN = null;
+					break;
 				}
-				PATTERN = null;
-				break;
 			}
 		}
 
 		if (PATTERN) {
 			CeL.err('search_橙新聞: No headline get!');
-			// check_headline_data(labels_to_check);
 		}
+
+		check_left();
 
 	}, undefined, undefined, {
 		onfail : function(error) {
 			CeL.err('search_橙新聞: Error to get headline list');
-			// check_headline_data(labels_to_check);
+			check_left();
 		}
 	});
 }
@@ -613,8 +613,13 @@ function check_labels(labels_to_check) {
 	// 從 labels_to_check 取資訊做查詢。
 	function search_Google(label) {
 		if (label === '橙新聞') {
-			search_橙新聞(labels_to_check);
 			left--;
+			search_橙新聞(labels_to_check, function check_left() {
+				if (!left) {
+					check_headline_data(labels_to_check);
+					return true;
+				}
+			});
 			CeL.debug('Search headline of [' + label + '] finished. ' + left
 					+ ' left.', 0, 'search_Google');
 			if (!left) {
