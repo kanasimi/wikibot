@@ -888,6 +888,7 @@ try {
 CeL.wiki.cache([ {
 	type : 'categorymembers',
 	list : message_set.Category_has_local_page,
+	reget : true,
 	operator : function(list) {
 		this.list = list;
 	}

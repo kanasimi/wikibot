@@ -108,7 +108,7 @@ day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
 // ---------------------------------------------------------------------//
 
 function finish_up() {
-	CeL.debug('更新緩存/重新整理維基新聞首頁。', 0, 'finish_up');
+	CeL.debug('更新/清除緩存並重新載入/重新整理/刷新維基新聞首頁。', 0, 'finish_up');
 	CeL.get_URL(
 	// 極端做法：re-edit the same contents
 	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
@@ -189,9 +189,10 @@ function write_data() {
 			});
 
 			if (add_source_data) {
+				// 不具此 section。
 				content = content.trim()
 				//
-				+ '\n\n== 消息來源 ==\n' + add_source_data;
+				+ '\n\n== 消息來源 ==\n* 各報報章及其網頁\n' + add_source_data;
 			}
 		}
 
@@ -237,7 +238,7 @@ function write_data() {
 
 function add_headline(publisher, headline) {
 	publisher = publisher.trim();
-	headline = headline.trim();
+	headline = headline.replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
 	if (headline_hash[publisher]) {
 		if (headline_hash[publisher] === headline) {
 			// pass
@@ -524,7 +525,7 @@ function search_橙新聞(labels_to_check, check_left) {
 		CeL.debug('開始處理 [' + label + '] 的 headline list', 0, 'search_橙新聞');
 		var matched, PATTERN = /<a ([^<>]+)>([^<>]+)<\/a>/g;
 		while (matched = PATTERN.exec(response)) {
-			CeL.debug('Find [' + matched[0] + ']', 0, 'search_橙新聞');
+			CeL.debug('Find [' + matched[0] + ']', 2, 'search_橙新聞');
 			if (matched[2].includes('香港頭條新聞')
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
 				var link = matched[1].match(/href="([^"]+)"/);
