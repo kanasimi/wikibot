@@ -868,21 +868,6 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-try {
-	// delete cache.
-	/**
-	 * <code>
-	 * cd ~/wikibot && rm 解消済み仮リンクをリンクに置き換える/categorymembers/Category_解消済み仮リンクを含む記事.json
-	 * </code>
-	 */
-	require('fs').unlinkSync(
-			base_directory + 'categorymembers/'
-					+ message_set.Category_has_local_page.replace(/[ :]/g, '_')
-					+ '.json');
-} catch (e) {
-	// TODO: handle exception
-}
-
 // CeL.set_debug(2);
 
 CeL.wiki.cache([ {
