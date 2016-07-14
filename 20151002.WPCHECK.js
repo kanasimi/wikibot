@@ -7,6 +7,8 @@
  2016/2/2 20:4:48 上路前修正
  完善
 
+ 應在月初 dump 前執行一次，checkwiki 後執行一次。
+
  https://github.com/scfc/checkwiki/blob/pu/tools-migration/bin/checkwiki.pl
 
  TODO:

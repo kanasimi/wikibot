@@ -1482,8 +1482,6 @@ try {
 	// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
 	require('fs').unlinkSync(
 			base_directory + 'all_pages.' + use_language + '.json');
-	require('fs').unlinkSync(
-			base_directory + 'labels.' + use_language + '.json');
 } catch (e) {
 	// TODO: handle exception
 }
@@ -1590,6 +1588,7 @@ CeL.wiki.cache([ {
 }, {
 	type : 'callback',
 	file_name : 'labels.' + use_language + '.json',
+	reget : true,
 	list : create_label_data,
 	operator : function(data) {
 		label_data = data;

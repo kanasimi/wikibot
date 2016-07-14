@@ -8,7 +8,7 @@
 
  @see http://www.vanguardngr.com/category/headlines/
 
- TODO: 立即停止作業
+ 立即停止作業: see [[n:User:Cewbot/Stop]]
 
  */
 
@@ -268,7 +268,16 @@ function parse_橙新聞_headline(response, publisher) {
 		throw new Error('parse error: [' + publisher + ']');
 	}
 
-	var matched, PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/g;
+	var matched,
+	// e.g., "<strong>headline</strong>《文匯報》"
+	PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/g;
+	while (matched = PATTERN.exec(news_content)) {
+		add_headline(matched[2],
+		//
+		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
+	}
+	// e.g., "<strong>headline《文匯報》</strong>"
+	PATTERN = /<strong>([^<>]+)\s*《([^《》]+)》\s*<\/strong>/g;
 	while (matched = PATTERN.exec(news_content)) {
 		add_headline(matched[2],
 		//
