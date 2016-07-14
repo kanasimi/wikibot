@@ -237,8 +237,25 @@ function write_data() {
 }
 
 function add_headline(publisher, headline) {
-	publisher = publisher.trim();
+	publisher = publisher.replace(/\s+/g, '');
+	// 修正報紙標題。
+	switch (publisher) {
+	case '聯晚':
+		publisher = '聯合晚報';
+		break;
+
+	case '信報':
+	case '文匯報':
+	case '經濟日報':
+	case '蘋果日報':
+		publisher += ' (' + locale + ')';
+		break;
+
+	default:
+	}
+
 	headline = headline.replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
 	if (headline_hash[publisher]) {
 		if (headline_hash[publisher] === headline) {
 			// pass
@@ -311,22 +328,7 @@ function parse_中央社_headline(response, publisher) {
 		}
 
 		// 報紙標題。
-		matched[1] = matched[1].replace(/\s+/g, '').replace(/頭條/, '');
-		// 修正報紙標題。
-		switch (matched[1]) {
-		case '聯晚':
-			matched[1] = '聯合晚報';
-			break;
-
-		case '經濟日報':
-		case '蘋果日報':
-			matched[1] += ' (' + locale + ')';
-			break;
-
-		default:
-		}
-
-		add_headline(matched[1], matched[2].replace(/[。\n]+$/, ''));
+		add_headline(matched[1].replace(/頭條/, ''), matched[2].replace(/[。\n]+$/, ''));
 	});
 
 }
