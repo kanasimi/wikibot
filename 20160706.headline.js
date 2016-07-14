@@ -38,6 +38,7 @@ headline_labels = {
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
 		// 不能確保可靠性
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk'
+	// TODO: http://www.cyberctm.com/news.php
 	},
 
 	// default
@@ -191,8 +192,8 @@ function write_data() {
 			if (add_source_data) {
 				// 不具此 section。
 				content = content.trim()
-				//
-				+ '\n\n== 消息來源 ==\n* 各報報章及其網頁\n' + add_source_data;
+				// * 各報報章及其網頁\n
+				+ '\n\n== 消息來源 ==\n' + add_source_data;
 			}
 		}
 
