@@ -33,6 +33,10 @@ function check_redirect_to(template_name_hash, callback) {
 	});
 }
 
+function page_data_to_String(page_data) {
+	return page_data.pageid + '|' + page_data.title;
+}
+
 function main_work(template_name_redirect_to) {
 
 	CeL.wiki.cache([ {
@@ -40,7 +44,7 @@ function main_work(template_name_redirect_to) {
 		list : template_name_redirect_to.published,
 		reget : true,
 		operator : function(list) {
-			this.published = list;
+			this.published = list.map(page_data_to_String);
 		}
 
 	}, {
@@ -48,15 +52,17 @@ function main_work(template_name_redirect_to) {
 		list : template_name_redirect_to.archived,
 		reget : true,
 		operator : function(list) {
-			this.archived = list;
+			this.archived = list.map(page_data_to_String);
 		}
 
 	} ], function() {
 		// 取差集: 從比較小的來處理。
-		CeL.get_set_complement(this.published, this.archived);
+		this.archived = CeL.get_set_complement(this.published, this.archived);
+		this.published = this.archived[0];
+		this.archived = this.archived[1];
 
-		console.log(this.archived);
-		console.log(this.published);
+		console.log(this.archived.length);
+		console.log(this.published.length);
 		throw 1;
 
 		var list = this.list;
