@@ -30,7 +30,7 @@ label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = {String}headline
 headline_hash = CeL.null_Object(), headline_data = [],
 
-locale = CeL.env.argv && CeL.env.argv.locale,
+locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
 // 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
 	'香港' : {
@@ -87,13 +87,13 @@ use_date = new Date,
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 // e.g., locale=香港
-headline_labels = headline_labels[CeL.env.argv && CeL.env.argv.locale]
+headline_labels = headline_labels[CeL.env.arg_hash && CeL.env.arg_hash.locale]
 		|| headline_labels[locale = '臺灣'];
 
-if (CeL.env.argv && (CeL.env.argv.days_ago |= 0)) {
+if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 	// e.g., days_ago=1 : 回溯取得前一天的報紙頭條新聞標題
 	use_date = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE
-			* CeL.env.argv.days_ago);
+			* CeL.env.arg_hash.days_ago);
 }
 
 // 手動設定。
@@ -126,8 +126,8 @@ function finish_up() {
 	CeL.debug('最後將重大 parse error 通知程式作者。', 0, 'finish_up');
 	wiki.page('User talk:kanashimi').edit(error_message.join('\n'), {
 		section : 'new',
-		sectiontitle : 'news parse error',
-		summary : 'news parse error report',
+		sectiontitle : 'News parse error',
+		summary : 'News parse error report',
 		nocreate : 1
 	});
 }
@@ -268,7 +268,7 @@ function add_headline(publisher, headline) {
 
 	if (headline_hash[publisher]) {
 		if (headline_hash[publisher] === headline) {
-			// pass
+			// pass 去掉重複的。
 			CeL.debug('[' + publisher + '] 已有此 headline: [' + headline
 					+ '], skip it.', 0, 'add_headline');
 			return;
@@ -292,13 +292,14 @@ function parse_橙新聞_headline(response, publisher) {
 	if (!news_content.includes('文匯報') && !news_content.includes('東方日報')) {
 		CeL.err('parse_橙新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
-		throw new Error('parse error: [' + publisher + ']');
+		return;
 	}
 
-	var matched,
+	var count = 0, matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/g;
 	while (matched = PATTERN.exec(news_content)) {
+		count++;
 		add_headline(matched[2],
 		//
 		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
@@ -306,10 +307,14 @@ function parse_橙新聞_headline(response, publisher) {
 	// e.g., "<strong>headline《文匯報》</strong>"
 	PATTERN = /<strong>([^<>]+)\s*《([^《》]+)》\s*<\/strong>/g;
 	while (matched = PATTERN.exec(news_content)) {
+		count++;
 		add_headline(matched[2],
 		//
 		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
 	}
+
+	// 照理來說經過 parse 就應該有東西。
+	return count;
 }
 
 // 中央社日報一般過 UTC+8 8:30 才會開始更新，晚報 UTC+8 15:00。
@@ -319,28 +324,34 @@ function parse_中央社_headline(response, publisher) {
 	if (!news_content.includes('頭條新聞標題如下：')) {
 		CeL.err('parse_中央社_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
-		throw new Error('parse error: [' + publisher + ']');
+		return;
 	}
 
+	var count = 0;
 	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
 	//
-	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
-		item = item.trim();
-		if (!item) {
-			return;
-		}
-		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
-		if (!matched) {
-			CeL.err('parse_中央社_headline: Can not parse ['
-			//
-			+ publisher + ']: [' + item + ']');
-			return;
-		}
+	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(
+			function(item) {
+				item = item.trim();
+				if (!item) {
+					return;
+				}
+				var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
+				if (!matched) {
+					CeL.err('parse_中央社_headline: Can not parse ['
+					//
+					+ publisher + ']: [' + item + ']');
+					return;
+				}
 
-		// 報紙標題。
-		add_headline(matched[1].replace(/頭條/, ''), matched[2].replace(/[。\n]+$/, ''));
-	});
+				count++;
+				// 報紙標題。
+				add_headline(matched[1].replace(/頭條/, ''), matched[2].replace(
+						/[。\n]+$/, ''));
+			});
 
+	// 照理來說經過 parse 就應該有東西。
+	return count;
 }
 
 // 實際解析/既定 parser。
@@ -387,7 +398,12 @@ function check_headline_data(labels_to_check) {
 			CeL.debug('開始處理 [' + publisher + '] 的 headline ('
 					+ label_cache_hash[publisher] + ')', 0, 'next_publisher');
 			try {
-				parse_headline[publisher](response, publisher);
+				if (!parse_headline[publisher](response, publisher)
+				// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
+				// || headline_data.length === 0
+				)
+					throw new Error('[' + publisher
+							+ ']: No headline get! Parse error?');
 			} catch (e) {
 				if (!parse_error_label_list) {
 					parse_error_label_list = CeL.null_Object();
