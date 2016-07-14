@@ -244,9 +244,19 @@ function add_headline(publisher, headline) {
 		publisher = '聯合晚報';
 		break;
 
-	case '信報':
-	case '文匯報':
 	case '經濟日報':
+		if (locale === '香港') {
+			// 已有香港經濟日報條
+			publisher = locale + publisher;
+			break;
+		}
+	case '信報':
+		if (locale === '香港') {
+			// 已有信報財經新聞條
+			publisher += '財經新聞';
+			break;
+		}
+	case '文匯報':
 	case '蘋果日報':
 		publisher += ' (' + locale + ')';
 		break;
