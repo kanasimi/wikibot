@@ -5,6 +5,9 @@
 
 /*
 
+ usage:
+ node 20160628.insert_navigation.js template_name
+
  2016/4/3 21:24:7	初版試營運。批量連接Template:廣州
  2016/6/28 22:27:52	批量連接Template:深圳、Template:南京
  2016/7/14 18:40:39	轉成常態性工具。
