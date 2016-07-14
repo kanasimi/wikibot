@@ -12,7 +12,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'news');
+wiki = Wiki(true, 'wikinews');
 
 // ----------------------------------------------------------------------------
 
