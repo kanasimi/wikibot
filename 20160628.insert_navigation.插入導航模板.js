@@ -28,7 +28,9 @@ wiki = Wiki(true);
 
 // CeL.set_debug(0);
 
-var template_name = process.env[2];
+// process.argv:
+// ['node','20160628.insert_navigation.js','template name']
+var template_name = process.argv[2];
 if (!template_name) {
 	throw new Error('No template name specified!');
 }
