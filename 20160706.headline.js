@@ -85,8 +85,6 @@ parse_error_label_list,
 
 use_date = new Date,
 
-save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
-
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
@@ -103,7 +101,7 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 // 手動設定。
 // use_date.setDate(-1);
 
-var
+var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
 // 前一天, the day before
 day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 // 後一天, 隔天 the day after
