@@ -56,7 +56,7 @@ headline_labels = {
 		// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
 
 		// 中央社商情網 商情新聞中心 早報
-		// 有時更新太快，造成 google 沒 cache 到，也可能找不到。
+		// 有時更新太快，造成 google 沒 cache 到，也可能找不到。有時可能得10點才會出現。
 		'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報'
 		// 台灣主要晚報頭條新聞標題
 		// , '晚報'
@@ -140,8 +140,10 @@ function finish_up() {
 function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
+	wiki
 	// assert: 應已設定好 page
-	wiki.page(save_to_page).edit(function(page_data) {
+	// .page(save_to_page)
+	.edit(function(page_data) {
 		function headline_link(date, add_year) {
 			return '[[' + date.format('%Y年%m月%d日') + locale + '報紙頭條|'
 			//
@@ -709,6 +711,7 @@ wiki.page(save_to_page, function(page_data) {
 		check_labels(labels_to_check);
 		return;
 	}
+	save_to_page = page_data;
 
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {

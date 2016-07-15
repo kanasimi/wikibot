@@ -132,7 +132,7 @@ function archive_page() {
 		wiki.protect({
 			pageid : page_data.pageid,
 			protections : 'edit=sysop|move=sysop',
-			reason : '存檔保護作業'
+			reason : '[[WN:ARCHIVE|存檔保護]]作業'
 		});
 	});
 }
