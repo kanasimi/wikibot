@@ -517,8 +517,8 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 		add_source_data.push('* {{source|url=' + url
 		//
 		+ '|title=' + title.replace(/[\s\|]+/g, ' ')
-		//
-		+ '|author=' + publisher
+		// 不填作者:這些來源有些根本也沒附摘錄者，因此想填作者也不成
+		// + '|author=' + publisher
 		//
 		+ '|pub=' + publisher
 		//

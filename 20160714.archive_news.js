@@ -25,6 +25,8 @@ time_limit = Date.now() - 14 * ONE_DAY_LENGTH_VALUE,
 // ((Infinity)) for do all
 test_limit = 2,
 
+template_name_need_check = '需管理員檢查的文章',
+
 page_list = [];
 
 // ----------------------------------------------------------------------------
@@ -73,6 +75,7 @@ function main_work(template_name_redirect_to) {
 		CeL.log(this.archived.length + ' archived, ' + this.published.length
 				+ ' published.');
 		// 取差集: 從比較小的來處理。
+		// get [[:Category:Published]] - [[:Category:Archived]]
 		var list = CeL.get_set_complement(this.published, this.archived);
 
 		CeL.log('→ ' + list[1].length + ' archived, ' + list[0].length
@@ -120,20 +123,56 @@ function main_work(template_name_redirect_to) {
 
 function for_each_page(page_data) {
 	// console.log(page_data);
+	// check the articles that are published at least 14 days old.
+	// 以最後編輯時間後已超過兩周或以上的文章為準。
 	if (Date.parse(page_data.revisions[0].timestamp) < time_limit) {
 		page_list.push(page_data);
 	}
 }
 
+var page_status = CeL.null_Object();
 function archive_page() {
 	CeL.log('存檔 ' + page_list.length + ' 文章');
 	// console.log(page_list.slice(0, 9));
 	page_list.forEach(function(page_data) {
-		wiki.protect({
-			pageid : page_data.pageid,
-			protections : 'edit=sysop|move=sysop',
-			reason : '[[WN:ARCHIVE|存檔保護]]作業'
+		if (false)
+			wiki.protect({
+				pageid : page_data.pageid,
+				protections : 'edit=sysop|move=sysop',
+				reason : '[[WN:ARCHIVE|存檔保護]]作業'
+			});
+
+		wiki.page(page_data, function(data) {
+			/**
+			 * {String}page content, maybe undefined.
+			 */
+			var contents = CeL.wiki.content_of(page_data);
+			if (!Array.isArray(contents)) {
+				// assert: typeof contents === 'string' && contents has {{published}}
+				;
+			}
+			// 檢查新聞稿發布時間
+			var first_has_published = contents.first_matched(/{{\s*[Pp]ublished\s*}}/),
+			// assert: first_has_published >= 0
+			publish_date = Date.parse(page_data.revisions[first_has_published].timestamp),
+			// 發布時間/發表後2日後不應進行大修改。應穩定
+			stable_date = publish_date + 2 * ONE_DAY_LENGTH_VALUE,
+			// 應穩定之index
+			stable_index = page_data.revisions.search_sorted({found:true,comparator:function (revision) {
+				return stable_date - Date.parse(revision.timestamp);
+			});
+			//只檢查首尾差距，因為有時可能被回退了。
+			//TODO: 計算首尾之[[:en:edit distance]]。
+			for (var index=0;index<stable_index;index++){
+				next_text_length=
+				if(Math.abs(page_data.revisions[index]['*'].length -)>500){
+					;
+				}
+			}
+		}, {
+			rvlimit : 'max'
 		});
+
 	});
 }
 
