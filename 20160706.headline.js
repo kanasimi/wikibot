@@ -56,6 +56,7 @@ headline_labels = {
 		// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
 
 		// 中央社商情網 商情新聞中心 早報
+		// 有時更新太快，造成 google 沒 cache 到，也可能找不到。
 		'中央社商情網' : [ '"%Y年%m月%d日" "頭條新聞標題" site:www.cnabc.com', [ '日報'
 		// 台灣主要晚報頭條新聞標題
 		// , '晚報'
@@ -83,6 +84,8 @@ error_label_list = [],
 parse_error_label_list,
 
 use_date = new Date,
+
+save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
 
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
@@ -112,13 +115,14 @@ function finish_up() {
 	CeL.debug('更新/清除緩存並重新載入/重新整理/刷新維基新聞首頁。', 0, 'finish_up');
 	CeL.get_URL(
 	// 極端做法：re-edit the same contents
+	// TODO: https://www.mediawiki.org/w/api.php?action=help&modules=purge
 	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
 
 	if (!parse_error_label_list) {
 		return;
 	}
 
-	var error_message = [ '報紙頭條新聞標題 parse error:' ];
+	var error_message = [ '[[' + save_to_page.title + ']] parse error:' ];
 	for ( var publisher in parse_error_label_list) {
 		error_message.push(': ' + publisher + ': '
 				+ parse_error_label_list[publisher].name
@@ -136,11 +140,8 @@ function finish_up() {
 function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
-	// assert: 已設定好 page
-	wiki
-	// assert: 已設定好 page
-	// .page(...)
-	.edit(function(page_data) {
+	// assert: 應已設定好 page
+	wiki.page(save_to_page).edit(function(page_data) {
 		function headline_link(date, add_year) {
 			return '[[' + date.format('%Y年%m月%d日') + locale + '報紙頭條|'
 			//
@@ -288,17 +289,23 @@ function add_headline(publisher, headline) {
 }
 
 function parse_橙新聞_headline(response, publisher) {
-	var news_content = response.between('function content() parse begin',
-			'function content() parse end');
-	if (!news_content.includes('文匯報') && !news_content.includes('東方日報')) {
+	var count = 0, news_content = response.between(
+			'function content() parse begin', 'function content() parse end');
+	[ '文匯報', '東方日報', '大公報', '明報', '星島日報', '經濟日報', '頭條日報' ].forEach(function(
+			name) {
+		if (news_content.includes(name))
+			count++;
+	});
+	if (count < 2) {
 		CeL.err('parse_橙新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
 		return;
 	}
 
-	var count = 0, matched,
+	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/g;
+	count = 0;
 	while (matched = PATTERN.exec(news_content)) {
 		count++;
 		add_headline(matched[2],
@@ -331,25 +338,24 @@ function parse_中央社_headline(response, publisher) {
 	var count = 0;
 	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
 	//
-	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(
-			function(item) {
-				item = item.trim();
-				if (!item) {
-					return;
-				}
-				var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
-				if (!matched) {
-					CeL.err('parse_中央社_headline: Can not parse ['
-					//
-					+ publisher + ']: [' + item + ']');
-					return;
-				}
+	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
+		item = item.trim();
+		if (!item) {
+			return;
+		}
+		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
+		if (!matched) {
+			CeL.err('parse_中央社_headline: Can not parse ['
+			//
+			+ publisher + ']: [' + item + ']');
+			return;
+		}
 
-				count++;
-				// 報紙標題。
-				add_headline(matched[1].replace(/頭條/, ''), matched[2].replace(
-						/[。\n]+$/, ''));
-			});
+		count++;
+		add_headline(matched[1].replace(/頭條/, ''),
+		// 報紙標題。
+		matched[2].replace(/[。\n]+$/, ''));
+	});
 
 	// 照理來說經過 parse 就應該有東西。
 	return count;
@@ -696,7 +702,7 @@ function check_labels(labels_to_check) {
 	labels.forEach(search_Google);
 }
 
-wiki.page(use_date.format('%Y年%m月%d日') + locale + '報紙頭條', function(page_data) {
+wiki.page(save_to_page, function(page_data) {
 	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 	var labels_to_check = Object.clone(headline_labels, true);
 	if (!page_data || ('missing' in page_data)) {

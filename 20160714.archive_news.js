@@ -127,7 +127,14 @@ function for_each_page(page_data) {
 
 function archive_page() {
 	CeL.log('存檔 ' + page_list.length + ' 文章');
-	console.log(page_list.slice(0, 9));
+	// console.log(page_list.slice(0, 9));
+	page_list.forEach(function(page_data) {
+		wiki.protect({
+			pageid : page_data.pageid,
+			protections : 'edit=sysop|move=sysop',
+			reason : '存檔保護作業'
+		});
+	});
 }
 
 // ----------------------------------------------------------------------------
