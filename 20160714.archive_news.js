@@ -18,7 +18,7 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 // ((Infinity)) for do all
-test_limit = 3,
+test_limit = 60,
 // 為了維護頁面的歷史紀錄不被更動，因此不寫入頁面。
 write_page = false,
 
@@ -234,7 +234,9 @@ function for_each_old_page(page_data) {
 	current_content = current_content.replace(
 			/{{ *(?:breaking|expand)[\s\n]*}}/g, '');
 
-	if (!/{{ *[Ss]ource[\s\n]*\|/.test(current_content)) {
+	if (!/{{\s*[Ss]ource[\s\n]*\|/.test(current_content)
+	// 原創報導
+	&& !/{{\s*[Oo]riginal[\s\n]*\|/.test(current_content)) {
 		CeL.debug('[[' + page_data.title + ']]: 沒有分類，不自動保護，而是另設Category列出。', 0,
 				'for_each_old_page');
 		problem_categories.push('缺來源');
