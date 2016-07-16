@@ -130,8 +130,8 @@ function main_work(template_name_redirect_to) {
 
 function for_each_page_not_archived(page_data) {
 	// console.log(page_data);
-	CeL.debug('check the articles that are published at least 14 days old.\n'
-			+ '以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
+	CeL.debug('check the articles that are published at least 14 days old. '
+			+ '以最後編輯時間後已超過兩周或以上的文章為準。', 3, 'for_each_page_not_archived');
 	if (Date.parse(page_data.revisions[0].timestamp) < time_limit) {
 		page_list.push(page_data);
 	}
@@ -143,7 +143,7 @@ function archive_page() {
 	var left = page_list.length;
 	page_list.forEach(function(page_data) {
 		CeL.debug('Get max revisions of [[' + page_data.title + ']].'
-				+ ' 以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
+				+ ' 以最後編輯時間後已超過兩周或以上的文章為準。', 3, 'for_each_page_not_archived');
 		wiki.page(page_data, function(page_data, error) {
 			for_each_old_page(page_data, error);
 			if (--left === 0) {
@@ -184,10 +184,10 @@ function for_each_old_page(page_data) {
 
 		// first revision that has {{publish}}
 		var first_has_published = contents.first_matched(
-				/{{\s*[Pp]ublish\s*}}/, true);
+				/{{\s*(?:[Pp]ublish|已發表|已发表)\s*}}/, true);
 
 		if (first_has_published === NOT_FOUND) {
-			throw page_data.title;
+			throw '可能存有未設定之{{publish}}別名? [[' + page_data.title + ']]';
 		}
 
 		if (first_has_published) {
@@ -222,8 +222,7 @@ function for_each_old_page(page_data) {
 				.edit_distance(current_content) > 500) {
 					CeL.debug('[[' + page_data.title + ']]: 發布後大修改過。', 0,
 							'for_each_old_page');
-					problem_categories.push('發布後大修改過'
-							+ problem_categories_postfix);
+					problem_categories.push('發布後大修改過');
 				}
 			}
 		}
@@ -238,10 +237,10 @@ function for_each_old_page(page_data) {
 	if (!/{{ *[Ss]ource[\s\n]*\|/.test(current_content)) {
 		CeL.debug('[[' + page_data.title + ']]: 沒有分類，不自動保護，而是另設Category列出。', 0,
 				'for_each_old_page');
-		problem_categories.push('缺來源' + problem_categories_postfix);
+		problem_categories.push('缺來源');
 	}
 
-	var matched, no_category_name = '缺分類' + problem_categories_postfix, has_category,
+	var matched, no_category_name = '缺分類', has_category,
 	// [ all category, category name, sort order ]
 	PATTERN_category =
 	//
@@ -252,7 +251,7 @@ function for_each_old_page(page_data) {
 		// 檢查非站務與維護分類
 		if (!matched[1].includes(problem_categories_postfix)
 		//
-		&& !/^[Pp]ublish\s*$/.test(matched[1])) {
+		&& !/^(?:[Pp]ublish|已發表|已发表)\s*$/.test(matched[1])) {
 			has_category = true;
 			break;
 		}
@@ -264,13 +263,14 @@ function for_each_old_page(page_data) {
 		problem_categories.push(no_category_name);
 	} else if (!
 	//
-	/{{\s*publish[^{}]*}}[\s\n]*\[\[ *(?:category|分類|分类) *:/i
+	/{{\s*(?:[Pp]ublish|已發表|已发表)[^{}]*}}[\s\n]*\[\[ *(?:category|分類|分类) *:/i
 	//
 	.test(current_content)) {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 0,
 				'for_each_old_page');
-		current_content = current_content.replace(/{{\s*publish[^{}]*}}/ig, '')
+		current_content = current_content.replace(
+				/{{\s*(?:[Pp]ublish|已發表|已发表)[^{}]*}}/ig, '')
 		//
 		.replace(/(\[\[ *(?:category|分類|分类) *:)/i, '{{publish}}$1');
 	}
@@ -282,7 +282,9 @@ function for_each_old_page(page_data) {
 			wiki.page(page_data).edit(current_content.trim() + '\n'
 			//
 			+ problem_categories.map(function(category_name) {
-				return '[[Category:' + category_name + ']]';
+				return '[[Category:' + category_name
+				//
+				+ problem_categories_postfix + ']]';
 			}).join('\n'));
 		}
 		error_logs.push('; [[' + page_data.title + ']]: '
