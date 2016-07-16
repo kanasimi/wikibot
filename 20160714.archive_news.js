@@ -181,11 +181,16 @@ function archive_page() {
 				CeL.info('for_each_page_not_archived: Write report: '
 						+ error_logs.length + ' lines.');
 				error_logs.push('\n[[Category:管理員例行工作]]');
-				wiki.page(log_to).edit(error_logs.join('\n'));
+				wiki.page(log_to).edit(error_logs.join('\n'), {
+					summary : '[[WN:ARCHIVE|存檔保護]]作業 report',
+					nocreate : 1,
+					bot : 1
+				});
 			} else {
 				CeL.debug(left + ' left', 2, 'for_each_page_not_archived');
 			}
 		}, {
+			rvprop : 'ids|timestamp|content',
 			rvlimit : 'max'
 		});
 	});
@@ -256,7 +261,11 @@ function for_each_old_page(page_data) {
 				.edit_distance(current_content) > 500) {
 					CeL.info('for_each_old_page: [[' + page_data.title
 							+ ']]: 發布後大幅修改過。');
-					problem_categories.push('發布後大幅修改過');
+					problem_categories.push('[[Special:Diff/'
+							+ page_data.revisions[first_has_published].revid
+							+ '|發布]]後[[Special:Diff/'
+							+ page_data.revisions[first_has_published].revid
+							+ '/' + page_data.revisions[0].revid + '|大幅修改過]]');
 				}
 			}
 		}
@@ -317,7 +326,7 @@ function for_each_old_page(page_data) {
 				//
 				+ problem_categories_postfix + ']]';
 			}).join('\n'), {
-				summary : '[[WN:ARCHIVE|存檔保護]]作業 report',
+				summary : '[[WN:ARCHIVE|存檔保護]]作業檢查',
 				nocreate : 1,
 				bot : 1
 			});
