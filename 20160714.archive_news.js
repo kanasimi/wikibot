@@ -134,8 +134,8 @@ function archive_page() {
 	CeL.log('可存檔 ' + page_list.length + ' 文章');
 	// console.log(page_list.slice(0, 9));
 	page_list.forEach(function(page_data) {
-		CeL.debug('Get max revisions of [[' + page_data.title + ']].\n'
-				+ '以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
+		CeL.debug('Get max revisions of [[' + page_data.title + ']].'
+				+ ' 以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
 		wiki.page(page_data, for_each_old_page, {
 			rvlimit : 'max'
 		});
@@ -143,29 +143,44 @@ function archive_page() {
 }
 
 function for_each_old_page(page_data) {
-	// 需管理員檢查的可存檔新聞/文章
-	var problems = [],
+	// problem categories: 需管理員檢查的可存檔新聞/文章
+	var problem_categories = [],
 	/**
 	 * {String}page content, maybe undefined.
 	 */
 	contents = CeL.wiki.content_of(page_data), current_content;
+	if (!contents) {
+		CeL.err('for_each_old_page: [[' + page_data.title + ']]: No content');
+		// console.log(page_data);
+		return;
+	}
+
 	if (typeof contents === 'string') {
 		CeL.debug(
 		//
 		'[[' + page_data.title + ']]: 有1個版本。', 0, 'for_each_old_page');
 		// assert: typeof contents === 'string' && contents has
-		// {{published}}
+		// {{publish}}
 		current_content = contents;
 
 	} else {
 		// assert: Array.isArray(contents)
 		current_content = contents[0];
 
-		// first revision that has {{published}}
+		// first revision that has {{publish}}
 		var first_has_published = contents
-				.first_matched(/{{\s*[Pp]ublished\s*}}/),
+				.first_matched(/{{\s*[Pp]ublish\s*}}/);
+
+		CeL.debug('[[' + page_data.title + ']]: 有多個版本。新聞稿發布時間: '
+				+ new Date(first_has_published).format('%Y年%m月%d日')
+				+ '。檢查大修改並列出清單提醒。', 0, 'for_each_old_page');
+
+		if (!first_has_published) {
+			throw page_data.title;
+		}
+
 		// assert: first_has_published >= 0
-		publish_date = Date.parse(
+		var publish_date = Date.parse(
 		//
 		page_data.revisions[first_has_published].timestamp),
 		// 發布時間/發表後2日後不應進行大修改。應穩定
@@ -177,9 +192,7 @@ function for_each_old_page(page_data) {
 				return need_stable_date - Date.parse(revision.timestamp);
 			}
 		});
-		CeL.debug('[[' + page_data.title + ']]: 有多個版本。新聞稿發布時間: '
-				+ new Date(first_has_published).format('%Y年%m月%d日')
-				+ '。檢查大修改並列出清單提醒。', 0, 'for_each_old_page');
+
 		if (Math.abs(page_data.revisions[need_stable_index]['*'].length
 		// 只檢查首尾差距，因為中間的破壞可能被回退了。
 		- current_content.length) > 500
@@ -189,7 +202,7 @@ function for_each_old_page(page_data) {
 		.edit_distance(current_content) > 500) {
 			CeL.debug('[[' + page_data.title + ']]: 發布後大修改過。', 0,
 					'for_each_old_page');
-			problems.push('發布後大修改過的可存檔新聞');
+			problem_categories.push('發布後大修改過的可存檔新聞');
 		}
 	}
 
@@ -202,7 +215,7 @@ function for_each_old_page(page_data) {
 	if (!/{{ *[Ss]ource[\s\n]*\|/.test(current_content)) {
 		CeL.debug('[[' + page_data.title + ']]: 沒有分類，不自動保護，而是另設Category列出。', 0,
 				'for_each_old_page');
-		problems.push('缺來源的可存檔新聞');
+		problem_categories.push('缺來源的可存檔新聞');
 	}
 
 	var matched, no_category_name = '缺分類的可存檔新聞', has_category,
@@ -225,7 +238,7 @@ function for_each_old_page(page_data) {
 	if (!has_category) {
 		CeL.debug('[[' + page_data.title + ']]: 沒有來源，不自動保護，而是另設Category列出。', 0,
 				'for_each_old_page');
-		problems.push(no_category_name);
+		problem_categories.push(no_category_name);
 	} else if (!
 	//
 	/{{\s*publish[^{}]*}}[\s\n]*\[\[ *(?:category|分類|分类) *:/i
@@ -239,15 +252,15 @@ function for_each_old_page(page_data) {
 		.replace(/(\[\[ *(?:category|分類|分类) *:)/i, '{{publish}}$1');
 	}
 
-	if (problems.length > 0) {
+	if (problem_categories.length > 0) {
 		CeL.debug('[[' + page_data.title + ']]: 掛分類，由管理員手動操作。', 0,
 				'for_each_old_page');
 		wiki.page(page_data).edit(
-				current_content.trim() + '\n' + problems.join('\n'));
+				current_content.trim() + '\n' + problem_categories.join('\n'));
 		return;
 	}
 
-	CeL.debug('[[' + page_data.title + ']]: 保護設定：僅限管理員，無限期。注意討論頁面不要保護。', 0,
+	CeL.debug('[[' + page_data.title + ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 0,
 			'for_each_old_page');
 	return;
 	wiki.protect({
