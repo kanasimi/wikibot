@@ -607,6 +607,7 @@ function check_labels(labels_to_check) {
 	var labels = Object.keys(labels_to_check),
 	// 剩下 remain
 	left = labels.length;
+	CeL.debug('有 ' + left + ' 個 label: ' + labels, 0, 'check_labels');
 
 	if (!left) {
 		check_headline_data(labels_to_check);
@@ -668,18 +669,14 @@ function check_labels(labels_to_check) {
 	// 從 labels_to_check 取資訊做查詢。
 	function search_Google(label) {
 		if (label === '橙新聞') {
-			left--;
 			search_橙新聞(labels_to_check, function check_left() {
+				left--;
+				CeL.debug('Search headline of [' + label + '] finished. '
+						+ left + ' left.', 0, 'search_Google');
 				if (!left) {
 					check_headline_data(labels_to_check);
-					return true;
 				}
 			});
-			CeL.debug('Search headline of [' + label + '] finished. ' + left
-					+ ' left.', 0, 'search_Google');
-			if (!left) {
-				check_headline_data(labels_to_check);
-			}
 			return;
 		}
 
