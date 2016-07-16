@@ -117,6 +117,7 @@ function finish_up() {
 	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
 
 	if (!parse_error_label_list) {
+		CeL.debug('No parse error. End.', 0, 'finish_up');
 		return;
 	}
 
@@ -152,12 +153,14 @@ function write_data() {
 		var content = CeL.wiki.content_of(page_data) || '';
 
 		if (!page_data.has_date) {
+			CeL.debug('add {{date}}.', 0, 'write_data');
 			content = '{{date|' + use_date.format('%Y年%m月%d日')
 			//
 			+ '}}\n\n' + content.trim();
 		}
 
 		if (!page_data.has_header) {
+			CeL.debug('add header.', 0, 'write_data');
 			content = content.replace(/{{date.*?}}\n/, function(section) {
 				return section + '{{Headline item/header|'
 				//
@@ -171,8 +174,9 @@ function write_data() {
 		}
 
 		if (headline_data.length > 0) {
+			CeL.debug('add headline.', 0, 'write_data');
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
-			// add header.
+			//
 			function(section) {
 				section += headline_data.sort().join('\n') + '\n';
 				return section;
@@ -181,6 +185,7 @@ function write_data() {
 
 		var has_new_data = add_source_data.length > 0;
 		if (has_new_data) {
+			CeL.debug('add {{source}}.', 0, 'write_data');
 			add_source_data = add_source_data.sort().join('\n') + '\n';
 			content = content
 			//
@@ -199,7 +204,7 @@ function write_data() {
 		}
 
 		if (!page_data.has_navbox) {
-			// 頭條導覽 {{headline navbox}}
+			CeL.debug('add 頭條導覽 {{headline navbox}}.', 0, 'write_data');
 			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
 			content = content.trim() + '\n\n{{headline navbox|'
 			// workaround...
@@ -212,8 +217,10 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
-		// 有新 source 資料標上文章標記。
-		if (has_new_data && !page_data.has_stage_tag) {
+		if (!page_data.has_stage_tag
+		//
+		&& (has_new_data || parse_error_label_list)) {
+			CeL.debug('有新 source 資料或錯誤，標上文章標記。', 0, 'write_data');
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
