@@ -26,6 +26,8 @@ problem_categories_postfix = '的可存檔新聞',
 
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
+/** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
+NOT_FOUND = ''.indexOf('_'),
 
 // [[Wikinews:存檔常規]]: 已發表兩週或以上的文章會列入存檔並且可被保護。
 time_limit = Date.now() - 14 * ONE_DAY_LENGTH_VALUE,
@@ -84,7 +86,7 @@ function main_work(template_name_redirect_to) {
 		var list = CeL.get_set_complement(this.published, this.archived);
 
 		CeL.log('→ ' + list[1].length + ' archived, ' + list[0].length
-				+ ' published.');
+				+ ' published left.');
 
 		if (list[1].length) {
 			// 依照現在 {{publish}} 的寫法，不應出現此項。
@@ -142,7 +144,7 @@ function archive_page() {
 	page_list.forEach(function(page_data) {
 		CeL.debug('Get max revisions of [[' + page_data.title + ']].'
 				+ ' 以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
-		wiki.page(page_data, function for_each_old_page(page_data, error) {
+		wiki.page(page_data, function(page_data, error) {
 			for_each_old_page(page_data, error);
 			if (--left === 0) {
 				wiki.page(log_to).edit(error_logs.join('\n'));
@@ -184,7 +186,7 @@ function for_each_old_page(page_data) {
 		var first_has_published = contents
 				.first_matched(/{{\s*[Pp]ublish\s*}}/);
 
-		if (!first_has_published) {
+		if (first_has_published === NOT_FOUND) {
 			throw page_data.title;
 		}
 
