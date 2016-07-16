@@ -275,13 +275,13 @@ function for_each_old_page(page_data) {
 						+ '。檢查大幅修改並列出清單提醒。', 1, 'for_each_old_page');
 
 				// 只檢查首尾字元差距，因為中間的破壞可能被回退了。
-				var size = current_content.length
+				var size = contents[0].length
 						- contents[need_stable_index].length, edit_distance;
 				if (Math.abs(size) > 300
 				// 計算首尾之[[:en:edit distance]]。
 				|| (edit_distance = contents[need_stable_index]
 				//
-				.edit_distance(current_content)) > 300) {
+				.edit_distance(contents[0])) > 300) {
 					CeL.info('for_each_old_page: [[' + page_data.title
 							+ ']]: 發布2日後大幅修改過。');
 					problem_list.push('[[Special:Diff/'
@@ -293,7 +293,7 @@ function for_each_old_page(page_data) {
 							+ '|大幅修改過]]。'
 							+ (edit_distance ? '[[w:en:edit distance|編輯距離]]'
 									+ edit_distance : (size > 0 ? '多' : '少')
-									+ '了' + size + '字元') + '。');
+									+ '了' + Math.abs(size) + '字元') + '。');
 				}
 			}
 		}
