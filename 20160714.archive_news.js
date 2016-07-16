@@ -3,6 +3,7 @@
 /*
 
 
+
  */
 
 'use strict';
@@ -23,9 +24,7 @@ ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
 time_limit = Date.now() - 14 * ONE_DAY_LENGTH_VALUE,
 
 // ((Infinity)) for do all
-test_limit = 2,
-
-template_name_need_check = '需管理員檢查的文章',
+test_limit = 1,
 
 page_list = [];
 
@@ -91,7 +90,7 @@ function main_work(template_name_redirect_to) {
 		// var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (0) {
+		if (1) {
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
 				return index + ': ' + CeL.wiki.title_of(page_data);
 			}).join('\n') + '\n...');
@@ -101,7 +100,7 @@ function main_work(template_name_redirect_to) {
 
 		wiki.work({
 			no_edit : true,
-			each : for_each_page,
+			each : for_each_page_not_archived,
 			page_options : {
 				rvprop : 'ids|timestamp'
 			},
@@ -121,10 +120,10 @@ function main_work(template_name_redirect_to) {
 
 }
 
-function for_each_page(page_data) {
+function for_each_page_not_archived(page_data) {
 	// console.log(page_data);
-	// check the articles that are published at least 14 days old.
-	// 以最後編輯時間後已超過兩周或以上的文章為準。
+	CeL.debug('check the articles that are published at least 14 days old.\n'
+			+ '以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
 	if (Date.parse(page_data.revisions[0].timestamp) < time_limit) {
 		page_list.push(page_data);
 	}
@@ -132,48 +131,131 @@ function for_each_page(page_data) {
 
 var page_status = CeL.null_Object();
 function archive_page() {
-	CeL.log('存檔 ' + page_list.length + ' 文章');
+	CeL.log('可存檔 ' + page_list.length + ' 文章');
 	// console.log(page_list.slice(0, 9));
 	page_list.forEach(function(page_data) {
-		if (false)
-			wiki.protect({
-				pageid : page_data.pageid,
-				protections : 'edit=sysop|move=sysop',
-				reason : '[[WN:ARCHIVE|存檔保護]]作業'
-			});
-
-		wiki.page(page_data, function(data) {
-			/**
-			 * {String}page content, maybe undefined.
-			 */
-			var contents = CeL.wiki.content_of(page_data);
-			if (!Array.isArray(contents)) {
-				// assert: typeof contents === 'string' && contents has {{published}}
-				;
-			}
-			// 檢查新聞稿發布時間
-			var first_has_published = contents.first_matched(/{{\s*[Pp]ublished\s*}}/),
-			// assert: first_has_published >= 0
-			publish_date = Date.parse(page_data.revisions[first_has_published].timestamp),
-			// 發布時間/發表後2日後不應進行大修改。應穩定
-			stable_date = publish_date + 2 * ONE_DAY_LENGTH_VALUE,
-			// 應穩定之index
-			stable_index = page_data.revisions.search_sorted({found:true,comparator:function (revision) {
-				return stable_date - Date.parse(revision.timestamp);
-			});
-			//只檢查首尾差距，因為有時可能被回退了。
-			//TODO: 計算首尾之[[:en:edit distance]]。
-			for (var index=0;index<stable_index;index++){
-				next_text_length=
-				if(Math.abs(page_data.revisions[index]['*'].length -)>500){
-					;
-				}
-			}
-		}, {
+		CeL.debug('Get max revisions of [[' + page_data.title + ']].\n'
+				+ '以最後編輯時間後已超過兩周或以上的文章為準。', 0, 'for_each_page_not_archived');
+		wiki.page(page_data, for_each_old_page, {
 			rvlimit : 'max'
 		});
-
 	});
+}
+
+function for_each_old_page(page_data) {
+	// 需管理員檢查的可存檔新聞/文章
+	var problems = [],
+	/**
+	 * {String}page content, maybe undefined.
+	 */
+	contents = CeL.wiki.content_of(page_data), current_content;
+	if (typeof contents === 'string') {
+		CeL.debug(
+		//
+		'[[' + page_data.title + ']]: 有1個版本。', 0, 'for_each_old_page');
+		// assert: typeof contents === 'string' && contents has
+		// {{published}}
+		current_content = contents;
+
+	} else {
+		// assert: Array.isArray(contents)
+		current_content = contents[0];
+
+		// first revision that has {{published}}
+		var first_has_published = contents
+				.first_matched(/{{\s*[Pp]ublished\s*}}/),
+		// assert: first_has_published >= 0
+		publish_date = Date.parse(
+		//
+		page_data.revisions[first_has_published].timestamp),
+		// 發布時間/發表後2日後不應進行大修改。應穩定
+		need_stable_date = publish_date + 2 * ONE_DAY_LENGTH_VALUE,
+		// 應穩定之index
+		need_stable_index = page_data.revisions.search_sorted({
+			found : true,
+			comparator : function(revision) {
+				return need_stable_date - Date.parse(revision.timestamp);
+			}
+		});
+		CeL.debug('[[' + page_data.title + ']]: 有多個版本。新聞稿發布時間: '
+				+ new Date(first_has_published).format('%Y年%m月%d日')
+				+ '。檢查大修改並列出清單提醒。', 0, 'for_each_old_page');
+		if (Math.abs(page_data.revisions[need_stable_index]['*'].length
+		// 只檢查首尾差距，因為中間的破壞可能被回退了。
+		- current_content.length) > 500
+		// 計算首尾之[[:en:edit distance]]。
+		|| page_data.revisions[need_stable_index]['*']
+		//
+		.edit_distance(current_content) > 500) {
+			CeL.debug('[[' + page_data.title + ']]: 發布後大修改過。', 0,
+					'for_each_old_page');
+			problems.push('發布後大修改過的可存檔新聞');
+		}
+	}
+
+	CeL.debug('[[' + page_data.title
+			+ ']]: 刪除{{breaking}}、{{expand}}等過時模板，避免困擾。', 0,
+			'for_each_old_page');
+	current_content = current_content.replace(
+			/{{ *(?:breaking|expand)[\s\n]*}}/g, '');
+
+	if (!/{{ *[Ss]ource[\s\n]*\|/.test(current_content)) {
+		CeL.debug('[[' + page_data.title + ']]: 沒有分類，不自動保護，而是另設Category列出。', 0,
+				'for_each_old_page');
+		problems.push('缺來源的可存檔新聞');
+	}
+
+	var matched, no_category_name = '缺分類的可存檔新聞', has_category,
+	// [ all category, category name, sort order ]
+	PATTERN_category =
+	//
+	/\[\[ *(?:Category|分類|分类) *: *([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/ig
+	//
+	;
+	while (matched = PATTERN_category.exec(current_content)) {
+		// 檢查非站務與維護分類
+		if (matched[1] !== no_category_name
+		//
+		&& matched[1].toLowerCase() !== 'published') {
+			has_category = true;
+			break;
+		}
+	}
+
+	if (!has_category) {
+		CeL.debug('[[' + page_data.title + ']]: 沒有來源，不自動保護，而是另設Category列出。', 0,
+				'for_each_old_page');
+		problems.push(no_category_name);
+	} else if (!
+	//
+	/{{\s*publish[^{}]*}}[\s\n]*\[\[ *(?:category|分類|分类) *:/i
+	//
+	.test(current_content)) {
+		CeL.debug('[[' + page_data.title
+				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 0,
+				'for_each_old_page');
+		current_content = current_content.replace(/{{\s*publish[^{}]*}}/ig, '')
+		//
+		.replace(/(\[\[ *(?:category|分類|分类) *:)/i, '{{publish}}$1');
+	}
+
+	if (problems.length > 0) {
+		CeL.debug('[[' + page_data.title + ']]: 掛分類，由管理員手動操作。', 0,
+				'for_each_old_page');
+		wiki.page(page_data).edit(
+				current_content.trim() + '\n' + problems.join('\n'));
+		return;
+	}
+
+	CeL.debug('[[' + page_data.title + ']]: 保護設定：僅限管理員，無限期。注意討論頁面不要保護。', 0,
+			'for_each_old_page');
+	return;
+	wiki.protect({
+		pageid : page_data.pageid,
+		protections : 'edit=sysop|move=sysop',
+		reason : '[[WN:ARCHIVE|存檔保護]]作業'
+	});
+
 }
 
 // ----------------------------------------------------------------------------
