@@ -38,7 +38,7 @@ error_logs = [],
 
 PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
 //
-publish_name, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_before_categories;
+publish_names, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_before_categories;
 
 // ----------------------------------------------------------------------------
 
@@ -49,7 +49,8 @@ function check_redirect_to(template_name_hash, callback) {
 				redirect_data, page_data) {
 			// console.log(page_data.response.query);
 			// console.log(redirect_data);
-			CeL.info(template_name + ' →	' + redirect_data);
+			CeL.info(template_name + ': ' + template_name_hash[template_name]
+					+ ' → ' + redirect_data);
 			template_name_hash[template_name] = redirect_data;
 			if (--left === 0) {
 				callback(template_name_hash);
