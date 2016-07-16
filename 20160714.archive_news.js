@@ -199,7 +199,7 @@ function archive_page() {
 
 function for_each_old_page(page_data) {
 	// problem categories: 需請管理員檢查的可存檔新聞/文章
-	var problem_categories = [],
+	var problem_list = [],
 	/**
 	 * {String}page content, maybe undefined.
 	 */
@@ -232,16 +232,16 @@ function for_each_old_page(page_data) {
 
 		if (first_has_published > 0) {
 			// 若非最新版才出現 {{publish}}，則向前尋。
-			if (!PATTERN_publish_template
-					.test(page_data.revisions[first_has_published]['*'])
-					|| page_data.revisions[first_has_published + 1]
+			if (!PATTERN_publish_template.test(contents[first_has_published])
+					|| contents[first_has_published + 1]
 					&& PATTERN_publish_template
-							.test(page_data.revisions[first_has_published + 1]['*'])) {
-				CeL.err(first_has_published + '/' + page_data.revisions.length
-						+ ': ');
-				CeL.log(page_data.revisions[first_has_published]['*']);
-				if (page_data.revisions[first_has_published + 1]) {
-					CeL.log(page_data.revisions[first_has_published + 1]['*']);
+							.test(contents[first_has_published + 1])) {
+				// 可能中間有匹配/不匹配交替出現?
+				CeL.err(first_has_published + '/' + contents.length + ': ');
+				CeL.log(contents[first_has_published]);
+				CeL.log('-'.repeat(80));
+				if (contents[first_has_published + 1]) {
+					CeL.log(contents[first_has_published + 1]);
 				}
 				throw '出現 {{publish}}';
 			}
@@ -268,15 +268,15 @@ function for_each_old_page(page_data) {
 
 				// 只檢查首尾字元差距，因為中間的破壞可能被回退了。
 				var size = current_content.length
-						- page_data.revisions[need_stable_index]['*'].length, edit_distance;
+						- contents[need_stable_index].length, edit_distance;
 				if (Math.abs(size) > 500
 				// 計算首尾之[[:en:edit distance]]。
-				|| (edit_distance = page_data.revisions[need_stable_index]['*']
+				|| (edit_distance = contents[need_stable_index]
 				//
 				.edit_distance(current_content)) > 500) {
 					CeL.info('for_each_old_page: [[' + page_data.title
 							+ ']]: 發布後大幅修改過。');
-					problem_categories.push('[[Special:Diff/'
+					problem_list.push('[[Special:Diff/'
 							+ page_data.revisions[first_has_published].revid
 							+ '|發布]]後[[Special:Diff/'
 							+ page_data.revisions[need_stable_index].revid
@@ -285,7 +285,7 @@ function for_each_old_page(page_data) {
 							+ '|大幅修改過]]。'
 							+ (edit_distance ? '[[w:en:edit distance|編輯距離]]'
 									+ edit_distance : (size > 0 ? '多' : '少')
-									+ '了' + size + '字元'));
+									+ '了' + size + '字元') + '。');
 				}
 			}
 		}
@@ -302,10 +302,10 @@ function for_each_old_page(page_data) {
 	&& !/{{\s*[Oo]riginal[\s\n]*\|/.test(current_content)) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
-		problem_categories.push('缺來源模板');
+		problem_list.push('缺來源模板。');
 	}
 
-	var matched, no_category_name = '缺分類', has_category,
+	var matched, no_category_name = '缺分類。', has_category,
 	// [ all category, category name, sort order ]
 	PATTERN_category =
 	//
@@ -325,7 +325,7 @@ function for_each_old_page(page_data) {
 	if (!has_category) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有來源，不自動保護，而是另設Category列出。');
-		problem_categories.push(no_category_name);
+		problem_list.push(no_category_name);
 	} else if (!PATTERN_publish_before_categories.test(current_content)) {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 2,
@@ -335,13 +335,13 @@ function for_each_old_page(page_data) {
 		.replace(PATTERN_category, '{{publish}}$1');
 	}
 
-	if (problem_categories.length > 0) {
+	if (problem_list.length > 0) {
 		CeL.debug('[[' + page_data.title + ']]: 掛分類，由管理員手動操作。', 1,
 				'for_each_old_page');
 		if (write_page) {
 			wiki.page(page_data).edit(current_content.trim() + '\n'
 			//
-			+ problem_categories.map(function(category_name) {
+			+ problem_list.map(function(category_name) {
 				return '[[Category:' + category_name
 				//
 				+ problem_categories_postfix + ']]';
@@ -352,17 +352,20 @@ function for_each_old_page(page_data) {
 			});
 		}
 		error_logs.push('; [[' + page_data.title + ']]: '
-				+ problem_categories.join(', '));
+				+ problem_list.join(' '));
 		return;
 	}
 
 	CeL.debug('[[' + page_data.title + ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 1,
 			'for_each_old_page');
 	return;
-	wiki.protect({
-		pageid : page_data.pageid,
-		protections : 'edit=sysop|move=sysop',
-		reason : '[[WN:ARCHIVE|存檔保護]]作業'
+
+	wiki.page(page_data).edit(current_content, function() {
+		wiki.protect({
+			pageid : page_data.pageid,
+			protections : 'edit=sysop|move=sysop',
+			reason : '[[WN:ARCHIVE|存檔保護]]作業'
+		});
 	});
 
 }
