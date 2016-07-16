@@ -149,7 +149,7 @@ function archive_page() {
 			if (--left === 0) {
 				wiki.page(log_to).edit(error_logs.join('\n'));
 			} else {
-				CeL.debug(left + 'left', 0, 'for_each_page_not_archived');
+				CeL.debug(left + ' left', 0, 'for_each_page_not_archived');
 			}
 		}, {
 			rvlimit : 'max'
@@ -183,41 +183,49 @@ function for_each_old_page(page_data) {
 		current_content = contents[0];
 
 		// first revision that has {{publish}}
-		var first_has_published = contents
-				.first_matched(/{{\s*[Pp]ublish\s*}}/);
+		var first_has_published = contents.first_matched(
+				/{{\s*[Pp]ublish\s*}}/, true);
 
 		if (first_has_published === NOT_FOUND) {
 			throw page_data.title;
 		}
 
-		// assert: first_has_published >= 0
-		var publish_date = Date.parse(
-		//
-		page_data.revisions[first_has_published].timestamp),
-		// 發布時間/發表後2日後不應進行大修改。應穩定
-		need_stable_date = publish_date + 2 * ONE_DAY_LENGTH_VALUE,
-		// 應穩定之index
-		need_stable_index = page_data.revisions.search_sorted({
-			found : true,
-			comparator : function(revision) {
-				return need_stable_date - Date.parse(revision.timestamp);
+		if (first_has_published) {
+			// 若非最新版才出現 {{publish}}，則向前尋。
+
+			// assert: first_has_published >= 0
+			var publish_date = Date.parse(
+			//
+			page_data.revisions[first_has_published].timestamp),
+			// 發布時間/發表後2日後不應進行大修改。應穩定
+			need_stable_date = publish_date + 2 * ONE_DAY_LENGTH_VALUE,
+			// 應穩定之index
+			need_stable_index = page_data.revisions.search_sorted({
+				found : true,
+				comparator : function(revision) {
+					return need_stable_date - Date.parse(revision.timestamp);
+				}
+			});
+
+			if (need_stable_index) {
+				// 若非最新版=應穩定之index，才向前尋。
+				CeL.debug('[[' + page_data.title + ']]: 有多個版本。新聞稿發布時間: '
+						+ new Date(publish_date).format('%Y年%m月%d日')
+						+ '。檢查大修改並列出清單提醒。', 0, 'for_each_old_page');
+
+				if (Math.abs(page_data.revisions[need_stable_index]['*'].length
+				// 只檢查首尾差距，因為中間的破壞可能被回退了。
+				- current_content.length) > 500
+				// 計算首尾之[[:en:edit distance]]。
+				|| page_data.revisions[need_stable_index]['*']
+				//
+				.edit_distance(current_content) > 500) {
+					CeL.debug('[[' + page_data.title + ']]: 發布後大修改過。', 0,
+							'for_each_old_page');
+					problem_categories.push('發布後大修改過'
+							+ problem_categories_postfix);
+				}
 			}
-		});
-
-		CeL.debug('[[' + page_data.title + ']]: 有多個版本。新聞稿發布時間: '
-				+ publish_date.format('%Y年%m月%d日') + '。檢查大修改並列出清單提醒。', 0,
-				'for_each_old_page');
-
-		if (Math.abs(page_data.revisions[need_stable_index]['*'].length
-		// 只檢查首尾差距，因為中間的破壞可能被回退了。
-		- current_content.length) > 500
-		// 計算首尾之[[:en:edit distance]]。
-		|| page_data.revisions[need_stable_index]['*']
-		//
-		.edit_distance(current_content) > 500) {
-			CeL.debug('[[' + page_data.title + ']]: 發布後大修改過。', 0,
-					'for_each_old_page');
-			problem_categories.push('發布後大修改過' + problem_categories_postfix);
 		}
 	}
 
