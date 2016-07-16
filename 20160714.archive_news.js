@@ -127,7 +127,7 @@ function main_work(template_name_redirect_to) {
 		// var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (1) {
+		if (0) {
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
 				return index + ': ' + CeL.wiki.title_of(page_data);
 			}).join('\n') + '\n...');
@@ -268,7 +268,7 @@ function for_each_old_page(page_data) {
 	&& !/{{\s*[Oo]riginal[\s\n]*\|/.test(current_content)) {
 		CeL.debug('[[' + page_data.title + ']]: 沒有分類，不自動保護，而是另設Category列出。', 0,
 				'for_each_old_page');
-		problem_categories.push('缺來源');
+		problem_categories.push('缺來源模板');
 	}
 
 	var matched, no_category_name = '缺分類', has_category,
