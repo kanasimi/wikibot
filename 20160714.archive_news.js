@@ -277,16 +277,16 @@ function for_each_old_page(page_data) {
 				// 只檢查首尾字元差距，因為中間的破壞可能被回退了。
 				var size = current_content.length
 						- contents[need_stable_index].length, edit_distance;
-				if (Math.abs(size) > 500
+				if (Math.abs(size) > 300
 				// 計算首尾之[[:en:edit distance]]。
 				|| (edit_distance = contents[need_stable_index]
 				//
-				.edit_distance(current_content)) > 500) {
+				.edit_distance(current_content)) > 300) {
 					CeL.info('for_each_old_page: [[' + page_data.title
-							+ ']]: 發布後大幅修改過。');
+							+ ']]: 發布2日後大幅修改過。');
 					problem_list.push('[[Special:Diff/'
 							+ page_data.revisions[first_has_published].revid
-							+ '|發布]]後[[Special:Diff/'
+							+ '|發布]]2日後[[Special:Diff/'
 							+ page_data.revisions[need_stable_index].revid
 							+ '/'
 							+ page_data.revisions[0].revid
