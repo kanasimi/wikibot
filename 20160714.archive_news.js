@@ -157,6 +157,18 @@ function archive_page() {
 	});
 }
 
+var PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
+//
+publish_names = CeL.wiki.normalize_title_pattern('Publish|Published|已發表|已发表'),
+//
+PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$'),
+//
+PATTERN_publish_template = new RegExp('{{\\s*' + publish_names
+		+ '\\s*(\\|[^{}]*)?}}', 'g'),
+//
+PATTERN_publish_before_categories = new RegExp(PATTERN_publish_template.source
+		+ '[\\s\\n]*' + PATTERN_category.source, 'i');
+
 function for_each_old_page(page_data) {
 	// problem categories: 需管理員檢查的可存檔新聞/文章
 	var problem_categories = [],
@@ -184,7 +196,7 @@ function for_each_old_page(page_data) {
 
 		// first revision that has {{publish}}
 		var first_has_published = contents.first_matched(
-				/{{\s*(?:[Pp]ublish|已發表|已发表)\s*}}/, true);
+				PATTERN_publish_template, true);
 
 		if (first_has_published === NOT_FOUND) {
 			throw '可能存有未設定之{{publish}}別名? [[' + page_data.title + ']]';
@@ -253,7 +265,7 @@ function for_each_old_page(page_data) {
 		// 檢查非站務與維護分類
 		if (!matched[1].includes(problem_categories_postfix)
 		//
-		&& !/^(?:[Pp]ublish|已發表|已发表)\s*$/.test(matched[1])) {
+		&& !PATTERN_publish_name.test(matched[1])) {
 			has_category = true;
 			break;
 		}
@@ -263,18 +275,13 @@ function for_each_old_page(page_data) {
 		CeL.debug('[[' + page_data.title + ']]: 沒有來源，不自動保護，而是另設Category列出。', 0,
 				'for_each_old_page');
 		problem_categories.push(no_category_name);
-	} else if (!
-	//
-	/{{\s*(?:[Pp]ublish|已發表|已发表)[^{}]*}}[\s\n]*\[\[ *(?:category|分類|分类) *:/i
-	//
-	.test(current_content)) {
+	} else if (!PATTERN_publish_before_categories.test(current_content)) {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 0,
 				'for_each_old_page');
-		current_content = current_content.replace(
-				/{{\s*(?:[Pp]ublish|已發表|已发表)[^{}]*}}/ig, '')
+		current_content = current_content.replace(PATTERN_publish_template, '')
 		//
-		.replace(/(\[\[ *(?:category|分類|分类) *:)/i, '{{publish}}$1');
+		.replace(PATTERN_category, '{{publish}}$1');
 	}
 
 	if (problem_categories.length > 0) {
