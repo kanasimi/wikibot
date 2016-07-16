@@ -38,7 +38,7 @@ error_logs = [],
 
 PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
 //
-publish_names, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_before_categories;
+publish_names, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_template_g, PATTERN_publish_before_categories;
 
 log_to = 'Wikinews:管理员通告板/需檢查的可存檔新聞';
 
@@ -83,7 +83,8 @@ function main_work(template_name_redirect_to) {
 			PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$');
 			PATTERN_publish_template = new RegExp('{{\\s*'
 			//
-			+ publish_names + '\\s*(\\|[^{}]*)?}}', 'g');
+			+ publish_names + '\\s*(\\|[^{}]*)?}}');
+			PATTERN_publish_template_g = new RegExp(PATTERN_publish_template.source, 'g');
 			PATTERN_publish_before_categories
 			//
 			= new RegExp(PATTERN_publish_template.source
@@ -221,7 +222,14 @@ function for_each_old_page(page_data) {
 	} else {
 		// assert: Array.isArray(contents)
 		current_content = contents[0];
+		contents = contents.map(function(content) {
+			return content.replace(/<nowiki>.*?<\/nowiki>/g, '<nowiki/>')
+			// 註解中可能有 {{publish}}!
+			.replace(/<!--.*?-->/g, '');
+		});
 
+		CeL.debug('[[' + page_data.title + ']]: ' + contents.length + ' 個版本。',
+				3, 'for_each_old_page');
 		// first revision that has {{publish}}
 		var first_has_published = contents.first_matched(
 				PATTERN_publish_template, true);
@@ -291,6 +299,8 @@ function for_each_old_page(page_data) {
 		}
 	}
 
+	current_content = current_content.replace(
+			/\[\[ *(?:Category|分類|分类) *(?:: *)?\]\]/ig, '');
 	CeL.debug('[[' + page_data.title
 			+ ']]: 刪除{{breaking}}、{{expand}}等過時模板，避免困擾。', 2,
 			'for_each_old_page');
@@ -330,7 +340,7 @@ function for_each_old_page(page_data) {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 2,
 				'for_each_old_page');
-		current_content = current_content.replace(PATTERN_publish_template, '')
+		current_content = current_content.replace(PATTERN_publish_template_g, '')
 		//
 		.replace(PATTERN_category, '{{publish}}$1');
 	}
