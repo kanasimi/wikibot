@@ -34,15 +34,19 @@ time_limit = Date.now() - 14 * ONE_DAY_LENGTH_VALUE,
 
 page_list = [],
 // page_status
-error_logs = [];
+error_logs = [],
+
+PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
+//
+publish_name, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_before_categories;
 
 // ----------------------------------------------------------------------------
 
 function check_redirect_to(template_name_hash, callback) {
 	var template_name_list = Object.keys(template_name_hash), left = template_name_list.length;
 	template_name_list.forEach(function(template_name) {
-		wiki.redirect_to('Category:' + template_name, function(redirect_data,
-				page_data) {
+		wiki.redirect_to(template_name_hash[template_name], function(
+				redirect_data, page_data) {
 			// console.log(page_data.response.query);
 			// console.log(redirect_data);
 			CeL.info(template_name + ' →	' + redirect_data);
@@ -61,6 +65,30 @@ function page_data_to_String(page_data) {
 function main_work(template_name_redirect_to) {
 
 	CeL.wiki.cache([ {
+		type : 'redirects',
+		list : template_name_redirect_to.template_publish,
+		reget : true,
+		operator : function(list) {
+			list = list.map(function(page_data) {
+				return page_data.title.replace(/^[^:]+:/, '');
+			});
+			CeL.log('Alias of [['
+			//
+			+ template_name_redirect_to.template_publish + ']]: ' + list);
+
+			publish_names = CeL.wiki.normalize_title_pattern(list);
+			PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$');
+			PATTERN_publish_template = new RegExp('{{\\s*'
+			//
+			+ publish_names + '\\s*(\\|[^{}]*)?}}', 'g');
+			PATTERN_publish_before_categories
+			//
+			= new RegExp(PATTERN_publish_template.source
+			//
+			+ '[\\s\\n]*' + PATTERN_category.source, 'i');
+		}
+
+	}, {
 		type : 'categorymembers',
 		list : template_name_redirect_to.published,
 		reget : true,
@@ -156,18 +184,6 @@ function archive_page() {
 		});
 	});
 }
-
-var PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
-//
-publish_names = CeL.wiki.normalize_title_pattern('Publish|Published|已發表|已发表'),
-//
-PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$'),
-//
-PATTERN_publish_template = new RegExp('{{\\s*' + publish_names
-		+ '\\s*(\\|[^{}]*)?}}', 'g'),
-//
-PATTERN_publish_before_categories = new RegExp(PATTERN_publish_template.source
-		+ '[\\s\\n]*' + PATTERN_category.source, 'i');
 
 function for_each_old_page(page_data) {
 	// problem categories: 需管理員檢查的可存檔新聞/文章
@@ -319,6 +335,7 @@ prepare_directory(base_directory);
 // CeL.set_debug(2);
 
 check_redirect_to({
-	published : null,
-	archived : null
+	published : 'Category:published',
+	archived : 'Category:archived',
+	template_publish : 'Template:publish'
 }, main_work);
