@@ -169,7 +169,8 @@ function for_each_page_not_archived(page_data) {
 }
 
 function archive_page() {
-	CeL.log('可存檔 ' + page_list.length + ' 文章');
+	CeL.log('archive_page: 可存檔 ' + page_list.length + ' 文章。');
+	CeL.log('archive_page: {{publish}} pattern: ' + PATTERN_publish_template);
 	// console.log(page_list.slice(0, 9));
 	var left = page_list.length;
 	page_list.forEach(function(page_data) {
@@ -229,8 +230,21 @@ function for_each_old_page(page_data) {
 			throw '可能存有未設定之{{publish}}別名? [[' + page_data.title + ']]';
 		}
 
-		if (first_has_published) {
+		if (first_has_published > 0) {
 			// 若非最新版才出現 {{publish}}，則向前尋。
+			if (!PATTERN_publish_template
+					.test(page_data.revisions[first_has_published]['*'])
+					|| page_data.revisions[first_has_published + 1]
+					&& PATTERN_publish_template
+							.test(page_data.revisions[first_has_published + 1]['*'])) {
+				CeL.err(first_has_published + '/' + page_data.revisions.length
+						+ ': ');
+				CeL.log(page_data.revisions[first_has_published]['*']);
+				if (page_data.revisions[first_has_published + 1]) {
+					CeL.log(page_data.revisions[first_has_published + 1]['*']);
+				}
+				throw '出現 {{publish}}';
+			}
 
 			// assert: first_has_published >= 0
 			var publish_date = Date.parse(
@@ -246,26 +260,32 @@ function for_each_old_page(page_data) {
 				}
 			});
 
-			if (need_stable_index) {
+			if (need_stable_index > 0) {
 				// 若非最新版=應穩定之index，才向前尋。
 				CeL.debug('[[' + page_data.title + ']]: 有多個版本。新聞稿發布時間: '
 						+ new Date(publish_date).format('%Y年%m月%d日')
 						+ '。檢查大幅修改並列出清單提醒。', 1, 'for_each_old_page');
 
-				if (Math.abs(page_data.revisions[need_stable_index]['*'].length
-				// 只檢查首尾差距，因為中間的破壞可能被回退了。
-				- current_content.length) > 500
+				// 只檢查首尾字元差距，因為中間的破壞可能被回退了。
+				var size = current_content.length
+						- page_data.revisions[need_stable_index]['*'].length, edit_distance;
+				if (Math.abs(size) > 500
 				// 計算首尾之[[:en:edit distance]]。
-				|| page_data.revisions[need_stable_index]['*']
+				|| (edit_distance = page_data.revisions[need_stable_index]['*']
 				//
-				.edit_distance(current_content) > 500) {
+				.edit_distance(current_content)) > 500) {
 					CeL.info('for_each_old_page: [[' + page_data.title
 							+ ']]: 發布後大幅修改過。');
 					problem_categories.push('[[Special:Diff/'
 							+ page_data.revisions[first_has_published].revid
 							+ '|發布]]後[[Special:Diff/'
-							+ page_data.revisions[first_has_published].revid
-							+ '/' + page_data.revisions[0].revid + '|大幅修改過]]');
+							+ page_data.revisions[need_stable_index].revid
+							+ '/'
+							+ page_data.revisions[0].revid
+							+ '|大幅修改過]]。'
+							+ (edit_distance ? '[[w:en:edit distance|編輯距離]]'
+									+ edit_distance : (size > 0 ? '多' : '少')
+									+ '了' + size + '字元'));
 				}
 			}
 		}
