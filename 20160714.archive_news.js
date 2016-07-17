@@ -67,50 +67,54 @@ function page_data_to_String(page_data) {
 
 function main_work(template_name_redirect_to) {
 
-	CeL.wiki.cache([ {
-		type : 'redirects',
-		list : template_name_redirect_to.template_publish,
-		reget : true,
-		operator : function(list) {
-			list = list.map(function(page_data) {
-				return page_data.title.replace(/^[^:]+:/, '');
-			});
-			CeL.log('Alias of [['
-			//
-			+ template_name_redirect_to.template_publish + ']]: ' + list);
+	CeL.wiki.cache([
+			{
+				type : 'redirects',
+				list : template_name_redirect_to.template_publish,
+				reget : true,
+				operator : function(list) {
+					list = list.map(function(page_data) {
+						return page_data.title.replace(/^[^:]+:/, '');
+					});
+					CeL.log('Alias of [['
+					//
+					+ template_name_redirect_to.template_publish + ']]: '
+							+ list);
 
-			publish_names = CeL.wiki.normalize_title_pattern(list);
-			PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$');
-			PATTERN_publish_template = new RegExp('{{\\s*'
-			//
-			+ publish_names + '\\s*(\\|[^{}]*)?}}');
-			PATTERN_publish_template_g = new RegExp(PATTERN_publish_template.source, 'g');
-			PATTERN_publish_before_categories
-			//
-			= new RegExp(PATTERN_publish_template.source
-			//
-			+ '[\\s\\n]*' + PATTERN_category.source, 'i');
-		}
+					publish_names = CeL.wiki.normalize_title_pattern(list);
+					PATTERN_publish_name = new RegExp('^' + publish_names
+							+ '\\s*$');
+					PATTERN_publish_template = new RegExp('{{\\s*'
+					//
+					+ publish_names + '\\s*(\\|[^{}]*)?}}');
+					PATTERN_publish_template_g = new RegExp(
+							PATTERN_publish_template.source, 'g');
+					PATTERN_publish_before_categories
+					//
+					= new RegExp(PATTERN_publish_template.source
+					//
+					+ '[\\s\\n]*' + PATTERN_category.source, 'i');
+				}
 
-	}, {
-		type : 'categorymembers',
-		list : template_name_redirect_to.published,
-		reget : true,
-		operator : function(list) {
-			this.published = list;
-			// this.published = list.map(page_data_to_String);
-		}
+			}, {
+				type : 'categorymembers',
+				list : template_name_redirect_to.published,
+				reget : true,
+				operator : function(list) {
+					this.published = list;
+					// this.published = list.map(page_data_to_String);
+				}
 
-	}, {
-		type : 'categorymembers',
-		list : template_name_redirect_to.archived,
-		reget : true,
-		operator : function(list) {
-			this.archived = list;
-			// this.archived = list.map(page_data_to_String);
-		}
+			}, {
+				type : 'categorymembers',
+				list : template_name_redirect_to.archived,
+				reget : true,
+				operator : function(list) {
+					this.archived = list;
+					// this.archived = list.map(page_data_to_String);
+				}
 
-	} ], function() {
+			} ], function() {
 		CeL.log(this.archived.length + ' archived, ' + this.published.length
 				+ ' published.');
 		// 取差集: 從比較小的來處理。
@@ -184,7 +188,7 @@ function archive_page() {
 						+ error_logs.length + ' lines.');
 				error_logs.push('\n[[Category:管理員例行工作]]');
 				wiki.page(log_to).edit(error_logs.join('\n'), {
-					summary : '[[WN:ARCHIVE|存檔保護]]作業 report',
+					summary : '[[WN:ARCHIVE|存檔保護]]作業報告',
 					nocreate : 1,
 					bot : 1
 				});
@@ -282,6 +286,7 @@ function for_each_old_page(page_data) {
 				|| (edit_distance = contents[need_stable_index]
 				//
 				.edit_distance(contents[0])) > 300) {
+					// 少很多的，大多是跨語言連結。
 					CeL.info('for_each_old_page: [[' + page_data.title
 							+ ']]: 發布2日後大幅修改過。');
 					problem_list.push('[[Special:Diff/'
@@ -340,7 +345,8 @@ function for_each_old_page(page_data) {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 2,
 				'for_each_old_page');
-		current_content = current_content.replace(PATTERN_publish_template_g, '')
+		current_content = current_content.replace(PATTERN_publish_template_g,
+				'')
 		//
 		.replace(PATTERN_category, '{{publish}}$1');
 	}
@@ -366,16 +372,32 @@ function for_each_old_page(page_data) {
 		return;
 	}
 
-	CeL.debug('[[' + page_data.title + ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 1,
-			'for_each_old_page');
-	return;
+	// return;
 
-	wiki.page(page_data).edit(current_content, function() {
+	function do_protect() {
+		CeL.debug('[[' + page_data.title
+		//
+		+ ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 0, 'for_each_old_page');
 		wiki.protect({
 			pageid : page_data.pageid,
 			protections : 'edit=sysop|move=sysop',
 			reason : '[[WN:ARCHIVE|存檔保護]]作業'
 		});
+	}
+
+	if (current_content === page_data.revisions[0]['*']) {
+		do_protect();
+		return;
+	}
+
+	CeL.debug('[[' + page_data.title + ']]: 將新資料寫入頁面。', 0, 'for_each_old_page');
+
+	wiki.page(page_data).edit(current_content, function() {
+		do_protect();
+	}, {
+		summary : '[[WN:ARCHIVE|存檔保護]]作業',
+		nocreate : 1,
+		bot : 1
 	});
 
 }
