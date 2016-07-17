@@ -18,7 +18,7 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 // ((Infinity)) for do all
-test_limit = 1,
+test_limit = 10,
 // 為了維護頁面的歷史紀錄不被更動，因此不建Category寫入原文章頁面。
 write_page = false,
 
@@ -41,6 +41,7 @@ PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
 publish_names, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_template_g, PATTERN_publish_before_categories;
 
 log_to = 'Wikinews:管理员通告板/需檢查的可存檔新聞';
+summary = '[[WN:ARCHIVE|存檔保護]]作業';
 
 // ----------------------------------------------------------------------------
 
@@ -67,54 +68,52 @@ function page_data_to_String(page_data) {
 
 function main_work(template_name_redirect_to) {
 
-	CeL.wiki.cache([
-			{
-				type : 'redirects',
-				list : template_name_redirect_to.template_publish,
-				reget : true,
-				operator : function(list) {
-					list = list.map(function(page_data) {
-						return page_data.title.replace(/^[^:]+:/, '');
-					});
-					CeL.log('Alias of [['
-					//
-					+ template_name_redirect_to.template_publish + ']]: '
-							+ list);
+	CeL.wiki.cache([ {
+		type : 'redirects',
+		list : template_name_redirect_to.template_publish,
+		reget : true,
+		operator : function(list) {
+			list = list.map(function(page_data) {
+				return page_data.title.replace(/^[^:]+:/, '');
+			});
+			CeL.log('Alias of [['
+			//
+			+ template_name_redirect_to.template_publish + ']]: ' + list);
 
-					publish_names = CeL.wiki.normalize_title_pattern(list);
-					PATTERN_publish_name = new RegExp('^' + publish_names
-							+ '\\s*$');
-					PATTERN_publish_template = new RegExp('{{\\s*'
-					//
-					+ publish_names + '\\s*(\\|[^{}]*)?}}');
-					PATTERN_publish_template_g = new RegExp(
-							PATTERN_publish_template.source, 'g');
-					PATTERN_publish_before_categories
-					//
-					= new RegExp(PATTERN_publish_template.source
-					//
-					+ '[\\s\\n]*' + PATTERN_category.source, 'i');
-				}
+			publish_names = CeL.wiki.normalize_title_pattern(list);
+			PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$');
+			PATTERN_publish_template = new RegExp('{{\\s*'
+			//
+			+ publish_names + '\\s*(\\|[^{}]*)?}}');
+			PATTERN_publish_template_g
+			//
+			= new RegExp(PATTERN_publish_template.source, 'g');
+			PATTERN_publish_before_categories
+			//
+			= new RegExp(PATTERN_publish_template.source
+			//
+			+ '[\\s\\n]*' + PATTERN_category.source, 'i');
+		}
 
-			}, {
-				type : 'categorymembers',
-				list : template_name_redirect_to.published,
-				reget : true,
-				operator : function(list) {
-					this.published = list;
-					// this.published = list.map(page_data_to_String);
-				}
+	}, {
+		type : 'categorymembers',
+		list : template_name_redirect_to.published,
+		reget : true,
+		operator : function(list) {
+			this.published = list;
+			// this.published = list.map(page_data_to_String);
+		}
 
-			}, {
-				type : 'categorymembers',
-				list : template_name_redirect_to.archived,
-				reget : true,
-				operator : function(list) {
-					this.archived = list;
-					// this.archived = list.map(page_data_to_String);
-				}
+	}, {
+		type : 'categorymembers',
+		list : template_name_redirect_to.archived,
+		reget : true,
+		operator : function(list) {
+			this.archived = list;
+			// this.archived = list.map(page_data_to_String);
+		}
 
-			} ], function() {
+	} ], function() {
 		CeL.log(this.archived.length + ' archived, ' + this.published.length
 				+ ' published.');
 		// 取差集: 從比較小的來處理。
@@ -134,7 +133,7 @@ function main_work(template_name_redirect_to) {
 		// var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (0) {
+		if (1) {
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
 				return index + ': ' + CeL.wiki.title_of(page_data);
 			}).join('\n') + '\n...');
@@ -188,7 +187,7 @@ function archive_page() {
 						+ error_logs.length + ' lines.');
 				error_logs.push('\n[[Category:管理員例行工作]]');
 				wiki.page(log_to).edit(error_logs.join('\n'), {
-					summary : '[[WN:ARCHIVE|存檔保護]]作業報告',
+					summary : summary + '報告',
 					nocreate : 1,
 					bot : 1
 				});
@@ -362,7 +361,7 @@ function for_each_old_page(page_data) {
 				//
 				+ problem_categories_postfix + ']]';
 			}).join('\n'), {
-				summary : '[[WN:ARCHIVE|存檔保護]]作業檢查',
+				summary : summary + '檢查',
 				nocreate : 1,
 				bot : 1
 			});
@@ -381,7 +380,7 @@ function for_each_old_page(page_data) {
 		wiki.protect({
 			pageid : page_data.pageid,
 			protections : 'edit=sysop|move=sysop',
-			reason : '[[WN:ARCHIVE|存檔保護]]作業'
+			reason : summary
 		});
 	}
 
@@ -395,7 +394,7 @@ function for_each_old_page(page_data) {
 	wiki.page(page_data).edit(current_content, function() {
 		do_protect();
 	}, {
-		summary : '[[WN:ARCHIVE|存檔保護]]作業',
+		summary : summary + '檢查',
 		nocreate : 1,
 		bot : 1
 	});
