@@ -2,7 +2,7 @@
 
 /*
 
-
+ 2016/7/17 14:35:38	正式營運，轉成常態性運行作業。
 
  */
 
@@ -18,7 +18,7 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 // ((Infinity)) for do all
-test_limit = 10,
+test_limit = 1,
 // 為了維護頁面的歷史紀錄不被更動，因此不建Category寫入原文章頁面。
 write_page = false,
 
@@ -133,7 +133,7 @@ function main_work(template_name_redirect_to) {
 		// var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (1) {
+		if (0) {
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
 				return index + ': ' + CeL.wiki.title_of(page_data);
 			}).join('\n') + '\n...');
