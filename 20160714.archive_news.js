@@ -18,7 +18,9 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 // ((Infinity)) for do all
-test_limit = 1,
+test_limit = 10,
+// 不管日期多新都處理。
+ignore_date = false,
 // 為了維護頁面的歷史紀錄不被更動，因此不建Category寫入原文章頁面。
 write_page = false,
 
@@ -36,9 +38,9 @@ page_list = [],
 // page_status
 error_logs = [],
 
-PATTERN_category = /(\[\[ *(?:Category|分類|分类) *:)/i,
+PATTERN_category_start = /(\[\[ *(?:Category|分類|分类) *:)/i,
 //
-publish_names, PATTERN_publish_name, PATTERN_publish_template, PATTERN_publish_template_g, PATTERN_publish_before_categories;
+publish_name_list, publish_names, PATTERN_publish_template;
 
 log_to = 'Wikinews:管理员通告板/需檢查的可存檔新聞';
 summary = '[[WN:ARCHIVE|存檔保護]]作業';
@@ -73,26 +75,21 @@ function main_work(template_name_redirect_to) {
 		list : template_name_redirect_to.template_publish,
 		reget : true,
 		operator : function(list) {
-			list = list.map(function(page_data) {
+			publish_name_list = list.map(function(page_data) {
 				return page_data.title.replace(/^[^:]+:/, '');
 			});
 			CeL.log('Alias of [['
 			//
-			+ template_name_redirect_to.template_publish + ']]: ' + list);
+			+ template_name_redirect_to.template_publish
+			//
+			+ ']]: ' + publish_name_list);
 
-			publish_names = CeL.wiki.normalize_title_pattern(list);
-			PATTERN_publish_name = new RegExp('^' + publish_names + '\\s*$');
+			publish_names
+			//
+			= CeL.wiki.normalize_title_pattern(publish_name_list);
 			PATTERN_publish_template = new RegExp('{{\\s*'
 			//
 			+ publish_names + '\\s*(\\|[^{}]*)?}}');
-			PATTERN_publish_template_g
-			//
-			= new RegExp(PATTERN_publish_template.source, 'g');
-			PATTERN_publish_before_categories
-			//
-			= new RegExp(PATTERN_publish_template.source
-			//
-			+ '[\\s\\n]*' + PATTERN_category.source, 'i');
 		}
 
 	}, {
@@ -134,6 +131,7 @@ function main_work(template_name_redirect_to) {
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
 		if (0) {
+			ignore_date = true;
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
 				return index + ': ' + CeL.wiki.title_of(page_data);
 			}).join('\n') + '\n...');
@@ -167,14 +165,16 @@ function for_each_page_not_archived(page_data) {
 	// console.log(page_data);
 	CeL.debug('check the articles that are published at least 14 days old. '
 			+ '以最後編輯時間後已超過兩周或以上的文章為準。', 3, 'for_each_page_not_archived');
-	if (Date.parse(page_data.revisions[0].timestamp) < time_limit) {
+	if (ignore_date
+			|| Date.parse(page_data.revisions[0].timestamp) < time_limit) {
 		page_list.push(page_data);
 	}
 }
 
 function archive_page() {
 	CeL.log('archive_page: 可存檔 ' + page_list.length + ' 文章。');
-	CeL.log('archive_page: {{publish}} pattern: ' + PATTERN_publish_template);
+	CeL.debug('archive_page: {{publish}} pattern: ' + PATTERN_publish_template,
+			1, 'archive_page');
 	// console.log(page_list.slice(0, 9));
 	var left = page_list.length;
 	page_list.forEach(function(page_data) {
@@ -185,7 +185,11 @@ function archive_page() {
 			if (--left === 0) {
 				CeL.info('for_each_page_not_archived: Write report: '
 						+ error_logs.length + ' lines.');
-				error_logs.push('\n[[Category:管理員例行工作]]');
+				if (error_logs.length > 0) {
+					error_logs.push('\n[[Category:管理員例行工作]]');
+				} else {
+					error_logs = [ '本次檢查未發現問題頁面。' ];
+				}
 				wiki.page(log_to).edit(error_logs.join('\n'), {
 					summary : summary + '報告',
 					nocreate : 1,
@@ -228,7 +232,7 @@ function for_each_old_page(page_data) {
 		contents = contents.map(function(content) {
 			return content.replace(/<nowiki>.*?<\/nowiki>/g, '<nowiki/>')
 			// 註解中可能有 {{publish}}!
-			.replace(/<!--.*?-->/g, '');
+			.replace(/<\!--[\s\S]*?-->/g, '');
 		});
 
 		CeL.debug('[[' + page_data.title + ']]: ' + contents.length + ' 個版本。',
@@ -303,51 +307,105 @@ function for_each_old_page(page_data) {
 		}
 	}
 
-	current_content = current_content.replace(
-			/\[\[ *(?:Category|分類|分类) *(?:: *)?\]\]/ig, '');
+	current_content = CeL.wiki.parser(current_content).parse();
+
+	if (false) {
+		// 去掉空分類 [[Category:]]。
+		current_content.each('link', function(token) {
+			if (/^Category/i.test(token[0].toString()))
+				return '';
+		}, true);
+	}
+
 	CeL.debug('[[' + page_data.title
 			+ ']]: 刪除{{breaking}}、{{expand}}等過時模板，避免困擾。', 2,
 			'for_each_old_page');
-	current_content = current_content.replace(
-			/{{ *(?:breaking|expand)[\s\n]*}}/g, '');
+	current_content.each('template', function(token) {
+		if (token.name === 'Breaking' || token.name === 'Expand')
+			return '';
+	}, true);
 
-	if (!/{{\s*[Ss]ource[\s\n]*\|/.test(current_content)
-	// 原創報導
-	&& !/{{\s*[Oo]riginal[\s\n]*\|/.test(current_content)) {
+	var has_source;
+	current_content.each('template', function(token) {
+		// 原創報導
+		if ([ 'Source', 'Original', 'VOA' ].includes(token.name)) {
+			has_source = true;
+			// TODO: 可跳出。
+		}
+	});
+	if (!has_source) {
 		CeL.info('for_each_old_page: [[' + page_data.title
-				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
+				+ ']]: 沒有來源，不自動保護，而是另設Category列出。');
 		problem_list.push('缺來源模板。');
 	}
 
-	var matched, no_category_name = '缺分類。', has_category,
-	// [ all category, category name, sort order ]
-	PATTERN_category =
-	//
-	/\[\[ *(?:Category|分類|分类) *: *([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/ig
-	//
-	;
-	while (matched = PATTERN_category.exec(current_content)) {
-		// 檢查非站務與維護分類
-		if (!matched[1].includes(problem_categories_postfix)
-		//
-		&& !PATTERN_publish_name.test(matched[1])) {
+	var has_category;
+	current_content.each('category', function(token) {
+		if (!token.name.includes(problem_categories_postfix)
+		// TODO: 檢查非站務與維護分類
+		&& !publish_name_list.includes(token.name)) {
 			has_category = true;
-			break;
+			// TODO: 可跳出。
 		}
-	}
+	});
 
 	if (!has_category) {
 		CeL.info('for_each_old_page: [[' + page_data.title
-				+ ']]: 沒有來源，不自動保護，而是另設Category列出。');
-		problem_list.push(no_category_name);
-	} else if (!PATTERN_publish_before_categories.test(current_content)) {
+				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
+		problem_list.push('缺分類。');
+	} else {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 2,
 				'for_each_old_page');
-		current_content = current_content.replace(PATTERN_publish_template_g,
-				'')
+		var order_list = [ 'transclusion', publish_name_list, 'DEFAULTSORT',
+				'category' ],
 		//
-		.replace(PATTERN_category, '{{publish}}$1');
+		publish_order = order_list.indexOf(publish_name_list),
+		//
+		index = current_content.length, last_pointer, publish_pointer;
+		while (index-- > 0) {
+			var order = CeL.wiki.parser.footer_order(current_content[index],
+					order_list);
+			// CeL.log('> ' + order + ': ' + current_content[index]);
+			// console.log(current_content[index]);
+			if (order > publish_order) {
+				last_pointer = index;
+			} else if (order === publish_order) {
+				publish_pointer = index;
+			} else if (typeof order === 'number') {
+				break;
+			}
+		}
+
+		if (false && publish_pointer >= 0) {
+			console.log('[' + publish_pointer + '] publish: '
+					+ current_content[publish_pointer]);
+		}
+		if (last_pointer > 0) {
+			if (false) {
+				console.log('[' + last_pointer + '] last pointer: '
+						+ current_content[last_pointer]);
+			}
+			if (last_pointer < publish_pointer) {
+				// {{publish}}被放在[[category:~]]後。
+				current_content[publish_pointer] = '';
+				publish_pointer = undefined;
+			}
+			current_content.each('template', function(token) {
+				if (token.name === 'Publish'
+						&& token !== current_content[publish_pointer]) {
+					// 去掉其他所有{{publish}}。
+					return '';
+				}
+			}, true);
+			if (isNaN(publish_pointer)) {
+				// 插入{{publish}}。
+				// 置於來源消息後、分類標籤前
+				current_content.splice(last_pointer, 0, '{{publish}}\n');
+			}
+		} else {
+			problem_list.push('分類似乎沒依規範掛在文章最後，在其之後尚有其他元件？');
+		}
 	}
 
 	if (problem_list.length > 0) {
@@ -371,12 +429,10 @@ function for_each_old_page(page_data) {
 		return;
 	}
 
-	// return;
-
 	function do_protect() {
 		CeL.debug('[[' + page_data.title
 		//
-		+ ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 0, 'for_each_old_page');
+		+ ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 1, 'for_each_old_page');
 		wiki.protect({
 			pageid : page_data.pageid,
 			protections : 'edit=sysop|move=sysop',
@@ -384,19 +440,25 @@ function for_each_old_page(page_data) {
 		});
 	}
 
+	current_content = current_content.toString()
+	// 去掉過多之空白字元。
+	.replace(/\n{3,}/g, '\n\n');
+
+	// 無更動
 	if (current_content === page_data.revisions[0]['*']) {
 		do_protect();
 		return;
 	}
 
-	CeL.debug('[[' + page_data.title + ']]: 將新資料寫入頁面。', 0, 'for_each_old_page');
+	CeL.debug('[[' + page_data.title + ']]: 將新資料寫入頁面。', 1, 'for_each_old_page');
 
-	wiki.page(page_data).edit(current_content, function() {
-		do_protect();
-	}, {
-		summary : summary + '檢查',
+	// TODO: 封存時對非編輯不可的文章，順便把<!-- -->註解清掉。
+	wiki.page(page_data).edit(current_content, {
+		summary : summary + '檢查與修正',
 		nocreate : 1,
 		bot : 1
+	}, function() {
+		do_protect();
 	});
 
 }

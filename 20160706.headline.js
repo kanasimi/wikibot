@@ -267,6 +267,7 @@ function add_headline(publisher, headline) {
 		}
 	case '文匯報':
 	case '蘋果日報':
+	case '東方日報':
 		publisher += ' (' + locale + ')';
 		break;
 
