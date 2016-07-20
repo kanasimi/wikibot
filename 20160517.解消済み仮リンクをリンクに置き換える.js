@@ -899,9 +899,9 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	// list = [ '' ];
-	list = [ 'Wikipedia:Sandbox' ];
+	// list = [ 'Wikipedia:Sandbox' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		ignore_ns = true;
 		CeL.log(list.slice(0, 8).map(function(page_data, index) {
 			return index + ': ' + CeL.wiki.title_of(page_data);
