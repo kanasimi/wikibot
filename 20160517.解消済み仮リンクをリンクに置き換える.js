@@ -42,6 +42,8 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 // ((Infinity)) for do all
 test_limit = Infinity,
 
+ignore_ns = false,
+
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
 
@@ -388,7 +390,7 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 
-	if (page_data.ns !== 0
+	if (!ignore_ns && page_data.ns !== 0
 	// file / image
 	&& page_data.ns !== 6
 	// category: 可考慮去掉 message_set.Category_has_local_page
@@ -464,6 +466,10 @@ function for_each_page(page_data, messages) {
 						&& normalized_param.foreign_language
 						&& /^[a-z\-]{2,20}$/
 								.test(normalized_param.foreign_language)) {
+					CeL.debug('parent[' + index + '] : ' + parent[index]
+							+ '→[[:' + normalized_param.foreign_language + ':'
+							+ foreign_title + '|' + foreign_title + ']]', 3,
+							'check_page');
 					parent[index] = '[[:' + normalized_param.foreign_language
 							+ ':' + foreign_title + '|' + foreign_title + ']]';
 				}
@@ -473,6 +479,9 @@ function for_each_page(page_data, messages) {
 				//
 				local_title_index = normalized_param.index_order.local_title;
 				if (local_title && (typeof local_title === 'string')) {
+					CeL.debug('token[' + local_title_index + '] : '
+							+ token[local_title_index] + '→[[' + local_title
+							+ ']]', 3, 'check_page');
 					token[local_title_index] = '[[' + local_title + ']]';
 				}
 				error_list.push(
@@ -493,9 +502,13 @@ function for_each_page(page_data, messages) {
 
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
 				if (local_title_index in token) {
+					CeL.debug('recover: token[' + local_title_index + '] = '
+							+ local_title, 3, 'check_page');
 					token[local_title_index] = local_title;
 				}
 				if (index in parent) {
+					CeL.debug('recover: parent[' + index + '] = '
+							+ foreign_title, 3, 'check_page');
 					parent[index] = foreign_title;
 				}
 			}
@@ -531,6 +544,7 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
+			// console.log(last_content);
 			wiki.page(page_data
 			// && 'Wikipedia:サンドボックス'
 			).edit(last_content, {
@@ -885,8 +899,10 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	// list = [ '' ];
+	list = [ 'Wikipedia:Sandbox' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
+		ignore_ns = true;
 		CeL.log(list.slice(0, 8).map(function(page_data, index) {
 			return index + ': ' + CeL.wiki.title_of(page_data);
 		}).join('\n') + '\n...');

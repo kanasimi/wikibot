@@ -23,13 +23,11 @@ wiki.redirect_to('Project:Sandbox', function(redirect_data, page_data) {
 
 	wiki.page(redirect_data);
 	if (false) {
+		// 頂多一開始執行一次。
 		wiki.protect({
 			protections : 'move=sysop',
 			reason : summary + ': 預防沙盒被隨意移動'
-		}, function(data) {
-			result = data;
-			console.log(data);
-		})
+		});
 	}
 	// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
 	wiki.edit('{{sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', {

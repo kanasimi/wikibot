@@ -219,7 +219,7 @@ function write_data() {
 
 		if (!page_data.has_stage_tag
 		//
-		&& (has_new_data || parse_error_label_list)) {
+		&& (has_new_data || !parse_error_label_list)) {
 			CeL.debug('有新 source 資料或錯誤，標上文章標記。', 0, 'write_data');
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
