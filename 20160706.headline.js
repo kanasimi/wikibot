@@ -25,7 +25,7 @@ google, customsearch,
 
 // url_cache_hash[url] = {String}title;
 url_cache_hash = CeL.null_Object(),
-// label_cache_hash[label] = {String}url;
+// label_cache_hash[label] = [ {String}url ];
 label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = {String}headline
 headline_hash = CeL.null_Object(), headline_data = [],
@@ -339,8 +339,8 @@ function parse_橙新聞_headline(response, publisher) {
 function parse_中國評論新聞_headline(response, publisher) {
 	var news_content = response.between('<td align="center" width="9',
 			'JiaThis Button').between('<table width="100', '</table>').between(
-			'<td', '</td>').replace(/<br(?:[^<>]+)>/g, '\n').replace(
-			/<\/?[a-z](?:[^<>]+)>/g, '');
+			'<td', '</td>').between('>').between('</TABLE>').replace(
+			/<br(?:[^<>]+)>/g, '\n').replace(/<\/?[a-z](?:[^<>]+)>/g, '');
 	if (!news_content.includes('日報：') && !news_content.includes('文匯報：')) {
 		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
@@ -437,48 +437,50 @@ function check_headline_data(labels_to_check) {
 		}
 	}
 
-	function next_publisher() {
+	function next_label() {
 		if (publisher_to_check.length === 0) {
 			write_data();
 			return;
 		}
 
-		var publisher = publisher_to_check.pop();
+		var label = publisher_to_check.pop();
 
-		CeL.get_URL(label_cache_hash[publisher], function(XMLHttp) {
-			var status_code = XMLHttp.status,
-			//
-			response = XMLHttp.responseText;
+		label_cache_hash[label].forEach(function(url) {
+			CeL.get_URL(url, function(XMLHttp) {
+				var status_code = XMLHttp.status,
+				//
+				response = XMLHttp.responseText;
 
-			CeL.debug('開始處理 [' + publisher + '] 的 headline ('
-					+ label_cache_hash[publisher] + ')', 0, 'next_publisher');
-			try {
-				if (!parse_headline[publisher](response, publisher)
-				// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
-				// || headline_data.length === 0
-				)
-					throw new Error('[' + publisher
-							+ ']: No headline get! Parse error?');
-			} catch (e) {
-				if (!parse_error_label_list) {
-					parse_error_label_list = CeL.null_Object();
+				CeL.debug('開始處理 [' + label + '] 的 headline (' + url + ')', 0,
+						'next_label');
+				try {
+					if (!parse_headline[label](response, label)
+					// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
+					// || headline_data.length === 0
+					)
+						throw new Error('[' + label
+								+ ']: No headline get! Parse error?');
+				} catch (e) {
+					if (!parse_error_label_list) {
+						parse_error_label_list = CeL.null_Object();
+					}
+					parse_error_label_list[label] = e;
 				}
-				parse_error_label_list[publisher] = e;
-			}
 
-			next_publisher();
+				next_label();
 
-		}, undefined, undefined, {
-			onfail : function(error) {
-				CeL.err('next_publisher: Error to get [' + publisher + ']: ['
-						+ label_cache_hash[publisher] + ']');
-				next_publisher();
-			}
+			}, undefined, undefined, {
+				onfail : function(error) {
+					CeL.err('next_label: Error to get [' + label + ']: [' + url
+							+ ']');
+					next_label();
+				}
+			});
 		});
 
 	}
 
-	next_publisher();
+	next_label();
 }
 
 // return 有去掉/已處理過。
@@ -529,7 +531,12 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 		} else {
 			url_cache_hash[url] = title;
 		}
-		label_cache_hash[label] = url;
+
+		if (Array.isArray(label_cache_hash[label])) {
+			label_cache_hash[label].push(url);
+		} else {
+			label_cache_hash[label] = [ url ];
+		}
 	}
 
 	// 登記並去除已處理之label。
