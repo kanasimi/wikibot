@@ -29,7 +29,7 @@ url_cache_hash = CeL.null_Object(),
 label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = {String}headline
 headline_hash = CeL.null_Object(), headline_data = [],
-
+// locale=香港
 locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
 // 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
@@ -37,7 +37,8 @@ headline_labels = {
 		// http://www.orangenews.hk/news/paperheadline/
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
 		// 不能確保可靠性
-		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk'
+		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk',
+		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
 	// TODO: http://www.cyberctm.com/news.php
 	},
 
@@ -71,8 +72,7 @@ headline_labels = {
 		'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
 		'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com',
 		'鉅亨網' : '"%Y年%m月%d日" "報紙頭條" site:news.cnyes.com',
-		'華視新聞網' : '"%m月%d日" "各報頭條" site:news.cts.com.tw',
-		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
+		'華視新聞網' : '"%m月%d日" "各報頭條" site:news.cts.com.tw'
 	}
 },
 // 注意：頭條新聞標題應附上兩個以上之來源，不可全文引用。
@@ -98,7 +98,7 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 			* CeL.env.arg_hash.days_ago);
 }
 
-// 手動設定。
+// 手動設定前一天。
 // use_date.setDate(-1);
 
 var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
@@ -335,6 +335,42 @@ function parse_橙新聞_headline(response, publisher) {
 	return count;
 }
 
+// TODO: CNML格式
+function parse_中國評論新聞_headline(response, publisher) {
+	var news_content = response.between('<td align="center" width="9',
+			'JiaThis Button').between('<table width="100', '</table>').between(
+			'<td', '</td>').replace(/<br(?:[^<>]+)>/g, '\n').replace(
+			/<\/?[a-z](?:[^<>]+)>/g, '');
+	if (!news_content.includes('日報：') && !news_content.includes('文匯報：')) {
+		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
+		CeL.warn(response);
+		return;
+	}
+
+	var count = 0;
+	news_content.split(/[\r\n]{2,}/).forEach(function(item) {
+		item = item.trim();
+		if (!item) {
+			return;
+		}
+		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
+		if (!matched) {
+			CeL.err('parse_中國評論新聞_headline: Can not parse ['
+			//
+			+ publisher + ']: [' + item + ']');
+			return;
+		}
+
+		count++;
+		add_headline(matched[1],
+		// 報紙標題。
+		matched[2].replace(/[。\n]+$/, ''));
+	});
+
+	// 照理來說經過 parse 就應該有東西。
+	return count;
+}
+
 // 中央社日報一般過 UTC+8 8:30 才會開始更新，晚報 UTC+8 15:00。
 function parse_中央社_headline(response, publisher) {
 	var news_content = response.between('news_content').between('新聞本文 開始',
@@ -374,6 +410,8 @@ function parse_中央社_headline(response, publisher) {
 // 實際解析/既定 parser。
 var parse_headline = {
 	'橙新聞' : parse_橙新聞_headline,
+
+	'中國評論通訊社' : parse_中國評論新聞_headline,
 
 	'中央社商情網' : parse_中央社_headline,
 	'中央社商情網晚報' : parse_中央社_headline
