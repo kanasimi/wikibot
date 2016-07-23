@@ -402,7 +402,7 @@ function for_each_page(page_data, messages) {
 	// 去掉 namespace。
 	in message_set.template_order_of_name))) {
 		check_final_work();
-		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或category' ];
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或 Category' ];
 	}
 
 	// Check if page_data had processed useing revid.

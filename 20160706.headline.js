@@ -219,12 +219,14 @@ function write_data() {
 
 		if (!page_data.has_stage_tag
 		//
-		&& (has_new_data || !parse_error_label_list)) {
-			CeL.debug('有新 source 資料或錯誤，標上文章標記。', 0, 'write_data');
+		&& (has_new_data || parse_error_label_list)) {
+			CeL.debug('有新 source 資料或新 parse 錯誤，標上文章標記。', 0, 'write_data');
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
-			+ (parse_error_label_list ? '{{Review}}' : '{{Publish}}') + '\n';
+			+ (has_new_data && !parse_error_label_list ? '{{Publish}}'
+			// 必須有新資料才{{Publish}}。
+			: '{{Review}}') + '\n';
 		}
 
 		if (error_label_list.length > 0) {
