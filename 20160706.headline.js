@@ -80,7 +80,7 @@ headline_labels = {
 add_source_data = [],
 // [ label, label, ... ]
 error_label_list = [],
-// {Object}parse_error_label_list[publisher] = error
+// {Object}parse_error_label_list[label _ NO] = error
 parse_error_label_list,
 
 use_date = new Date,
@@ -122,10 +122,10 @@ function finish_up() {
 	}
 
 	var error_message = [ '[[' + save_to_page.title + ']] parse error:' ];
-	for ( var publisher in parse_error_label_list) {
-		error_message.push(': ' + publisher + ': '
-				+ parse_error_label_list[publisher].name
-				|| parse_error_label_list[publisher]);
+	for ( var label_NO in parse_error_label_list) {
+		error_message.push(': ' + label_NO + ': '
+				+ parse_error_label_list[label_NO].name
+				|| parse_error_label_list[label_NO]);
 	}
 	CeL.debug('最後將重大 parse error 通知程式作者。', 0, 'finish_up');
 	wiki.page('User talk:kanashimi').edit(error_message.join('\n'), {
@@ -445,7 +445,7 @@ function check_headline_data(labels_to_check) {
 
 		var label = publisher_to_check.pop();
 
-		label_cache_hash[label].forEach(function(url) {
+		label_cache_hash[label].forEach(function(url, index) {
 			CeL.get_URL(url, function(XMLHttp) {
 				var status_code = XMLHttp.status,
 				//
@@ -464,7 +464,7 @@ function check_headline_data(labels_to_check) {
 					if (!parse_error_label_list) {
 						parse_error_label_list = CeL.null_Object();
 					}
-					parse_error_label_list[label] = e;
+					parse_error_label_list[label + '_' + index] = e;
 				}
 
 				next_label();
