@@ -142,9 +142,8 @@ function finish_up() {
 function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
-	wiki
-	// assert: 應已設定好 page
-	.page(save_to_title).edit(function(page_data) {
+	wiki.page(save_to_page).edit(function(page_data) {
+		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
 			return '[[' + date.format('%Y年%m月%d日') + locale + '報紙頭條|'
 			//
