@@ -38,6 +38,7 @@ headline_labels = {
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
 		// 不能確保可靠性
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk',
+		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
 		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
 	// TODO: http://www.cyberctm.com/news.php
 	},
@@ -121,7 +122,7 @@ function finish_up() {
 		return;
 	}
 
-	var error_message = [ '[[' + save_to_page.title + ']] parse error:' ];
+	var error_message = [ '[[' + save_to_page + ']] parse error:' ];
 	for ( var label_NO in parse_error_label_list) {
 		error_message.push(': ' + label_NO + ': '
 				+ parse_error_label_list[label_NO].name
@@ -337,15 +338,26 @@ function parse_橙新聞_headline(response, publisher) {
 
 // TODO: CNML格式
 function parse_中國評論新聞_headline(response, publisher) {
-	var news_content = response.between('<td align="center" width="9',
-			'JiaThis Button').between('<table width="100', '</table>').between(
-			'<td', '</td>').between('>').between('</TABLE>').replace(
-			/<br(?:[^<>]+)>/g, '\n').replace(/<\/?[a-z](?:[^<>]+)>/g, '');
+	// test 移動版
+	var news_content = response.between('detail_content', '</div>')
+			.between('>').trim();
+
+	if (!news_content) {
+		// test 電腦版
+		news_content = response.between('<td align="center" width="9',
+				'JiaThis Button').between('<table width="100', '</table>')
+				.between('<td', '</td>').between('>').between('</TABLE>')
+				.trim();
+	}
+
 	if (!news_content.includes('日報：') && !news_content.includes('文匯報：')) {
 		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.warn(response);
 		return;
 	}
+
+	news_content = news_content.replace(/<br(?:[^<>]+)>/g, '\n').replace(
+			/<\/?[a-z](?:[^<>]+)>/g, '');
 
 	var count = 0;
 	news_content.split(/[\r\n]{2,}/).forEach(function(item) {
