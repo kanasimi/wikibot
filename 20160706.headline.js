@@ -326,6 +326,7 @@ function parse_橙新聞_headline(response, publisher) {
 		//
 		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
 	}
+
 	// e.g., "<strong>headline《文匯報》</strong>"
 	PATTERN = /<strong>([^<>]+)\s*《([^《》]+)》\s*<\/strong>/g;
 	while (matched = PATTERN.exec(news_content)) {
@@ -333,6 +334,22 @@ function parse_橙新聞_headline(response, publisher) {
 		add_headline(matched[2],
 		//
 		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
+	}
+
+	// e.g.,
+	// "<p><strong>《文匯報》：【避答「獨謀」求延覆「確認」</strong><strong>梁天琦圖騙選民】</strong></p>"
+	PATTERN = /<p><strong>(.*?)<\/strong><\/p>/g;
+	while (matched = PATTERN.exec(news_content)) {
+		count++;
+		matched = matched[1].replace(/<\/?strong>/g, '');
+		var title;
+		matched = matched.replace(/《([^《》]+)》/, function($0, $1) {
+			title = $1;
+			return '';
+		}).trim();
+		add_headline(title,
+		//
+		matched.replace(/^[：【\s]+/, '').replace(/[】\s]+$/, ''));
 	}
 
 	// 照理來說經過 parse 就應該有東西。
@@ -473,9 +490,10 @@ function check_headline_data(labels_to_check) {
 					if (!parse_headline[label](response, label)
 					// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
 					// || headline_data.length === 0
-					)
+					) {
 						throw new Error('[' + label
 								+ ']: No headline get! Parse error?');
+					}
 				} catch (e) {
 					if (!parse_error_label_list) {
 						parse_error_label_list = CeL.null_Object();
