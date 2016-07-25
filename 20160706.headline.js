@@ -189,9 +189,11 @@ function write_data() {
 		if (has_new_data) {
 			CeL.debug('add {{source}}.', 0, 'write_data');
 			add_source_data = add_source_data.sort().join('\n') + '\n';
-			content = content
+			content = content.replace(
 			//
-			.replace(/(\n|^)==\s*消息來源\s*==\n/, function(section) {
+			/(?:\n|^)(?:==\s*消息來源\s*==\n|{{Headline item\/footer}}\n+)/
+			//
+			, function(section) {
 				section += add_source_data;
 				add_source_data = null;
 				return section;
