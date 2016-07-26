@@ -144,7 +144,7 @@ function finish_up() {
 function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
-	// console.log(save_to_page);
+	console.log(save_to_page);
 	wiki.page(save_to_page).edit(function(page_data) {
 		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
@@ -157,6 +157,10 @@ function write_data() {
 		var content = CeL.wiki.content_of(page_data) || '';
 
 		if (!page_data.has_date) {
+			if (/{{ *[Dd]ate[\s\|]/.test(content)) {
+				throw '未發現 {{date}} 模板卻檢測到 "{{date"！請確認中途未被寫入，且程式無誤。';
+			}
+
 			CeL.debug('add {{date}}.', 0, 'write_data');
 			content = '{{date|' + use_date.format('%Y年%m月%d日')
 			//
@@ -242,8 +246,8 @@ function write_data() {
 		CeL.debug('寫入報紙頭條新聞標題資料至[['
 		//
 		+ page_data.title + ']]。', 0, 'write_data');
-		// console.log(save_to_page);
-		// return;
+		console.log(save_to_page);
+		return;
 		return content;
 
 	}, {
