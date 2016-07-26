@@ -102,7 +102,7 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 // 手動設定前一天。
 // use_date.setDate(-1);
 
-var save_to_title = use_date.format('%Y年%m月%d日') + locale + '報紙頭條', save_to_page,
+var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
 // 前一天, the day before
 day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 // 後一天, 隔天 the day after
@@ -122,7 +122,7 @@ function finish_up() {
 		return;
 	}
 
-	var error_message = [ '[[' + save_to_title + ']] parse error:' ];
+	var error_message = [ '[[' + save_to_page.title + ']] parse error:' ];
 	for ( var label_NO in parse_error_label_list) {
 		error_message.push(': ' + label_NO + ': '
 		//
@@ -363,10 +363,10 @@ function parse_中國評論新聞_headline(response, publisher) {
 
 	if (!news_content) {
 		// test 電腦版
-		news_content = response.between('<td align="center" width="9',
-				'JiaThis Button').between('<table width="100', '</table>')
-				.between('<td', '</td>').between('>').between('</TABLE>')
-				.trim();
+		news_content = response
+				.between('<td align="center" ', 'JiaThis Button').between(
+						'<table width="100', '</table>')
+				.between('<td', '</td>').between('>').trim();
 	}
 
 	if (!news_content || !news_content.includes('日報：')
@@ -376,8 +376,8 @@ function parse_中國評論新聞_headline(response, publisher) {
 		return;
 	}
 
-	news_content = news_content.replace(/<br(?:[^<>]+)>/g, '\n').replace(
-			/<\/?[a-z](?:[^<>]+)>/g, '');
+	news_content = news_content.replace(/<br(?:[^<>]+)>/ig, '\n').replace(
+			/<\/?[a-z](?:[^<>]+)>/ig, '');
 
 	var count = 0;
 	news_content.split(/[\r\n]{2,}/).forEach(function(item) {
@@ -787,14 +787,13 @@ function check_labels(labels_to_check) {
 	labels.forEach(search_Google);
 }
 
-wiki.page(save_to_title, function(page_data) {
+wiki.page(save_to_page, function(page_data) {
 	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 	var labels_to_check = Object.clone(headline_labels, true);
 	if (!page_data || ('missing' in page_data)) {
 		check_labels(labels_to_check);
 		return;
 	}
-	save_to_page = page_data;
 
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
