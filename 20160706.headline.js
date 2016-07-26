@@ -144,7 +144,7 @@ function finish_up() {
 function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
-	console.log(save_to_page);
+	// console.log(save_to_page);
 	wiki.page(save_to_page).edit(function(page_data) {
 		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
@@ -158,7 +158,9 @@ function write_data() {
 
 		if (!page_data.has_date) {
 			if (/{{ *[Dd]ate[\s\|]/.test(content)) {
-				throw '未發現 {{date}} 模板卻檢測到 "{{date"！請確認中途未被寫入，且程式無誤。';
+				throw '讀取頁面時未發現 {{date}} 模板，'
+				//
+				+ '寫入頁面時卻檢測到 "{{date"！請確認中途未被寫入，且程式無誤。';
 			}
 
 			CeL.debug('add {{date}}.', 0, 'write_data');
@@ -246,8 +248,7 @@ function write_data() {
 		CeL.debug('寫入報紙頭條新聞標題資料至[['
 		//
 		+ page_data.title + ']]。', 0, 'write_data');
-		console.log(save_to_page);
-		return;
+		// console.log(save_to_page);
 		return content;
 
 	}, {
@@ -371,17 +372,16 @@ function parse_中國評論新聞_headline(response, publisher) {
 			.between('>').trim();
 
 	if (!news_content) {
-		// test 電腦版
-		news_content = response
-				.between('<td align="center" ', 'JiaThis Button').between(
-						'<table width="100', '</table>')
-				.between('<td', '</td>').between('>').trim();
+		CeL.debug('test 電腦版。', 0, 'parse_中國評論新聞_headline');
+		news_content = response.between('<body ').between('頭條新聞').between(
+				'<table width="100%', '</table>').between('<td', '</td>')
+				.between('>').trim();
 	}
 
-	if (!news_content || !news_content.includes('日報：')
-			&& !news_content.includes('文匯報：')) {
+	if (!news_content || !response.includes(use_date.format('%Y-'))
+			|| !news_content.includes('日報：') && !news_content.includes('文匯報：')) {
 		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
-		CeL.warn(response);
+		CeL.warn(JSON.stringify(response));
 		return;
 	}
 
@@ -474,17 +474,25 @@ function check_headline_data(labels_to_check) {
 	var publisher_to_check = [];
 	for ( var publisher in label_cache_hash) {
 		if (parse_headline[publisher]) {
+			CeL.debug('publisher_to_check += ' + publisher, 0,
+					'check_headline_data');
 			publisher_to_check.push(publisher);
 		}
 	}
 
+	var this_label_left;
 	function next_label() {
+		if (--this_label_left > 0) {
+			// 本 label_cache_hash[label] 尚有未處理者。
+			return;
+		}
+
 		if (publisher_to_check.length === 0) {
 			write_data();
 			return;
 		}
-
 		var label = publisher_to_check.pop();
+		this_label_left = label_cache_hash[label].length;
 
 		label_cache_hash[label].forEach(function(url, index) {
 			CeL.get_URL(url, function(XMLHttp) {
@@ -550,11 +558,17 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 		// e.g., 蘋果日報
 		CeL.debug('日期(年 or 月日dddd)不符? [' + title + ']', 0, 'remove_completed');
 		return;
-	} else if (/\d{4}/.test(title)
-			&& !title.includes(use_date.format('%2m%2d'))
+	}
+	if (/\d{4}/.test(title) && !title.includes(use_date.format('%2m%2d'))
 			&& !title.includes(use_date.format('%Y'))) {
 		// e.g., 蘋果日報
 		CeL.debug('日期(年 or 月日dddd)不符? [' + title + ']', 0, 'remove_completed');
+		return;
+	}
+	matched = title.match(/(\d{4})-\d/)
+	if (matched && matched[1] !== use_date.format('%Y')) {
+		// e.g., 中國評論通訊社
+		CeL.debug('日期(年 dddd)不符? [' + title + ']', 0, 'remove_completed');
 		return;
 	}
 	matched = title.match(/\d+年/);
@@ -824,7 +838,7 @@ wiki.page(save_to_page, function(page_data) {
 
 		switch (token.name) {
 		case 'Date':
-			page_data.has_date = true;
+			page_data.has_date = token.parameters[1];
 			break;
 
 		case 'Headline item/header':
@@ -855,9 +869,10 @@ wiki.page(save_to_page, function(page_data) {
 			// return;
 		case 'Review':
 		case 'Develop':
+			// {{develop}}
 			// @see [[維基新聞:文章標記]], [[Wikinews:Article stage tags]]
 			// [[Category:新闻标记模板]]
-			page_data.has_stage_tag = true;
+			page_data.has_stage_tag = token.name;
 			break;
 		}
 
