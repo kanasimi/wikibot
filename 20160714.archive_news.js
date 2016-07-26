@@ -327,7 +327,7 @@ function for_each_old_page(page_data) {
 
 	var has_source;
 	current_content.each('template', function(token) {
-		// [[分類:引用模板|新聞源/資料來源引用模板]]
+		// [[分類:來源模板|新聞源/資料來源引用模板]]
 		if ([ 'Source', 'Source-pr', 'Original', 'VOA' ].includes(token.name)) {
 			has_source = true;
 			// TODO: 可跳出。
@@ -336,7 +336,7 @@ function for_each_old_page(page_data) {
 	if (!has_source) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有來源，不自動保護，而是另設Category列出。');
-		problem_list.push('缺[[:Category:引用模板|資料引用來源]]模板。');
+		problem_list.push('缺[[:Category:來源模板|來源模板]]。');
 	}
 
 	var has_category;

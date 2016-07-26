@@ -106,7 +106,9 @@ var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
 // 前一天, the day before
 day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 // 後一天, 隔天 the day after
-day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE);
+day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE),
+
+to_remind = 'kanashimi';
 
 // ---------------------------------------------------------------------//
 
@@ -131,7 +133,7 @@ function finish_up() {
 		|| parse_error_label_list[label_NO]));
 	}
 	CeL.debug('最後將重大 parse error 通知程式作者。', 0, 'finish_up');
-	wiki.page('User talk:kanashimi').edit(error_message.join('\n'), {
+	wiki.page('User talk:' + to_remind).edit(error_message.join('\n'), {
 		section : 'new',
 		sectiontitle : 'News parse error',
 		summary : 'News parse error report',
@@ -142,6 +144,7 @@ function finish_up() {
 function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
+	// console.log(save_to_page);
 	wiki.page(save_to_page).edit(function(page_data) {
 		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
@@ -239,11 +242,13 @@ function write_data() {
 		CeL.debug('寫入報紙頭條新聞標題資料至[['
 		//
 		+ page_data.title + ']]。', 0, 'write_data');
+		// console.log(save_to_page);
+		// return;
 		return content;
 
 	}, {
 		bot : 1,
-		summary : 'bot: 匯入每日報紙頭條新聞標題'
+		summary : 'bot: 匯入每日報紙頭條新聞標題: ' + locale
 	})
 	//
 	.run(finish_up);
@@ -787,10 +792,16 @@ function check_labels(labels_to_check) {
 	labels.forEach(search_Google);
 }
 
+// ----------------------------------------------------------------------------
+
+// CeL.set_debug(2);
+
 wiki.page(save_to_page, function(page_data) {
+	save_to_page = page_data;
 	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 	var labels_to_check = Object.clone(headline_labels, true);
 	if (!page_data || ('missing' in page_data)) {
+		CeL.info('[[' + page_data.title + ']]: 此頁面不存在/已刪除。');
 		check_labels(labels_to_check);
 		return;
 	}
