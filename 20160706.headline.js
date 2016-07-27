@@ -33,13 +33,20 @@ headline_hash = CeL.null_Object(), headline_data = [],
 locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
 // 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
+	'世界' : {
+		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
+				'世界各報頭條' ],
+		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
+		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', '國際部分' ]
+	},
+
 	'香港' : {
 		// http://www.orangenews.hk/news/paperheadline/
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
 		// 不能確保可靠性
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk',
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
-		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', [ '國際部分', '港澳部份' ] ]
+		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', '港澳部份' ]
 	// TODO: http://www.cyberctm.com/news.php
 	},
 
@@ -199,13 +206,23 @@ function write_data() {
 			add_source_data = add_source_data.sort().join('\n') + '\n';
 			content = content.replace(
 			//
-			/(?:\n|^)(?:==\s*消息來源\s*==\n|{{Headline item\/footer}}\n+)/
-			//
-			, function(section) {
+			/(?:\n|^)==\s*消息來源\s*==\n/, function(section) {
 				section += add_source_data;
 				add_source_data = null;
 				return section;
 			});
+
+			if (add_source_data) {
+				content = content.replace(
+				//
+				/(?:\n|^){{Headline item\/footer}}\n+/, function(section) {
+					section = section.trimRight()
+					//
+					+ '\n\n== 消息來源 ==\n' + add_source_data;
+					add_source_data = null;
+					return section;
+				});
+			}
 
 			if (add_source_data) {
 				// 不具此 section。
