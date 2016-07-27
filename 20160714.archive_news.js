@@ -40,7 +40,7 @@ error_logs = [],
 
 PATTERN_category_start = /(\[\[ *(?:Category|分類|分类) *:)/i,
 //
-publish_name_list, publish_names, PATTERN_publish_template;
+publish_name_list, publish_names, PATTERN_publish_template, source_templates;
 
 log_to = 'Wikinews:管理员通告板/需檢查的可存檔新聞';
 summary = '[[WN:ARCHIVE|存檔保護]]作業';
@@ -90,6 +90,17 @@ function main_work(template_name_redirect_to) {
 			PATTERN_publish_template = new RegExp('{{\\s*'
 			//
 			+ publish_names + '\\s*(\\|[^{}]*)?}}');
+		}
+
+	}, {
+		type : 'categorymembers',
+		list : template_name_redirect_to.source,
+		reget : true,
+		namespace : null,
+		operator : function(list) {
+			source_templates = list.map(function(page_data) {
+				return page_data.title.replace(/^Template:/, '');
+			});
 		}
 
 	}, {
@@ -331,8 +342,7 @@ function for_each_old_page(page_data) {
 	if (!has_source) {
 		current_content.each('template', function(token) {
 			// [[分類:來源模板|新聞源/資料來源引用模板]]
-			if ([ 'Source', 'Source-pr', 'Original', 'VOA' ]
-					.includes(token.name)) {
+			if (source_templates.includes(token.name)) {
 				has_source = true;
 				// TODO: 可跳出。
 			}
@@ -478,5 +488,7 @@ prepare_directory(base_directory);
 check_redirect_to({
 	published : 'Category:published',
 	archived : 'Category:archived',
+	// [[分類:來源模板|新聞源/資料來源引用模板]]
+	source : 'Category:來源模板',
 	template_publish : 'Template:publish'
 }, main_work);
