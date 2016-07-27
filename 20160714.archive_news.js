@@ -457,7 +457,7 @@ function for_each_old_page(page_data) {
 				bot : 1
 			});
 		}
-		error_logs.push('; [[' + page_data.title + ']]: '
+		error_logs.push('# [[' + page_data.title + ']]\n#: '
 				+ problem_list.join(' '));
 		return;
 	}
