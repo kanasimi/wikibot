@@ -354,8 +354,9 @@ function for_each_old_page(page_data) {
 		problem_list.push('缺[[:Category:來源模板|來源模板]]。');
 	}
 
-	// {{headline navbox}} 自帶 Category。
-	var has_category = /{{ *[Hh]eadline[ _]navbox *\|/.test(current_content);
+	// do not need category: {{headline navbox}} 自帶 Category，不需要分類。
+	var do_not_need_category = /{{ *[Hh]eadline[ _]navbox *\|/
+			.test(current_content), has_category;
 	current_content.each('category', function(token) {
 		if (!token.name.includes(problem_categories_postfix)
 		// TODO: 檢查非站務與維護分類
@@ -365,7 +366,7 @@ function for_each_old_page(page_data) {
 		}
 	});
 
-	if (!has_category) {
+	if (!has_category && !do_not_need_category) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
 		problem_list.push('缺分類。');
@@ -397,6 +398,12 @@ function for_each_old_page(page_data) {
 			console.log('[' + publish_pointer + '] publish: '
 					+ current_content[publish_pointer]);
 		}
+
+		if (!(last_pointer > 0) && do_not_need_category) {
+			// TODO
+			;
+		}
+
 		if (last_pointer > 0) {
 			if (false) {
 				console.log('[' + last_pointer + '] last pointer: '
@@ -419,6 +426,9 @@ function for_each_old_page(page_data) {
 				// 置於來源消息後、分類標籤前
 				current_content.splice(last_pointer, 0, '{{publish}}\n');
 			}
+		} else if (do_not_need_category) {
+			// skip error
+			;
 		} else {
 			problem_list.push('分類似乎沒依規範掛在文章最後，在其之後尚有其他元件？');
 		}
