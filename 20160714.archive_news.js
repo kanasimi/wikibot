@@ -337,9 +337,10 @@ function for_each_old_page(page_data) {
 	}, true);
 
 	// accept 報紙頭條 without source per IRC
-	var has_source = page_data.title.includes('報紙頭條')
+	var do_not_need_source = page_data.title.includes('報紙頭條')
 			|| page_data.title.includes('报纸头条‎');
-	if (!has_source) {
+	if (!do_not_need_source) {
+		var has_source;
 		current_content.each('template', function(token) {
 			// [[分類:來源模板|新聞源/資料來源引用模板]]
 			if (source_templates.includes(token.name)) {
@@ -347,29 +348,32 @@ function for_each_old_page(page_data) {
 				// TODO: 可跳出。
 			}
 		});
-	}
-	if (!has_source) {
-		CeL.info('for_each_old_page: [[' + page_data.title
-				+ ']]: 沒有來源，不自動保護，而是另設Category列出。');
-		problem_list.push('缺[[:Category:來源模板|來源模板]]。');
+		if (!has_source) {
+			CeL.info('for_each_old_page: [[' + page_data.title
+					+ ']]: 沒有來源，不自動保護，而是另設Category列出。');
+			problem_list.push('缺[[:Category:來源模板|來源模板]]。');
+		}
 	}
 
 	// do not need category: {{headline navbox}} 自帶 Category，不需要分類。
 	var do_not_need_category = /{{ *[Hh]eadline[ _]navbox *\|/
 			.test(current_content), has_category;
-	current_content.each('category', function(token) {
-		if (!token.name.includes(problem_categories_postfix)
-		// TODO: 檢查非站務與維護分類
-		&& !publish_name_list.includes(token.name)) {
-			has_category = true;
-			// TODO: 可跳出。
-		}
-	});
+	if (!do_not_need_category) {
+		current_content.each('category', function(token) {
+			if (!token.name.includes(problem_categories_postfix)
+			// TODO: 檢查非站務與維護分類
+			&& !publish_name_list.includes(token.name)) {
+				has_category = true;
+				// TODO: 可跳出。
+			}
+		});
+	}
 
-	if (!has_category && !do_not_need_category) {
+	if (!do_not_need_category && !has_category) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
 		problem_list.push('缺分類。');
+
 	} else {
 		CeL.debug('[[' + page_data.title
 				+ ']]: 將{{publish}}移至新聞稿下方，置於來源消息後、分類標籤前，以方便顯示。', 2,
