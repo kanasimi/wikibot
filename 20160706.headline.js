@@ -207,6 +207,7 @@ function write_data() {
 			content = content.replace(
 			//
 			/(?:\n|^)==\s*消息來源\s*==\n/, function(section) {
+				CeL.debug('add source after section.', 0, 'write_data');
 				section += add_source_data;
 				add_source_data = null;
 				return section;
@@ -215,7 +216,12 @@ function write_data() {
 			if (add_source_data) {
 				content = content.replace(
 				//
-				/(?:\n|^){{Headline item\/footer}}\n+/, function(section) {
+				/(?:\n|^){{ *[Hh]eadline[ _]item\/footer}}\n+/
+				//
+				, function(section) {
+					CeL.debug('add source after {{Headline item/footer}}.',
+					//
+					0, 'write_data');
 					section = section.trimRight()
 					//
 					+ '\n\n== 消息來源 ==\n' + add_source_data;
@@ -225,6 +231,7 @@ function write_data() {
 			}
 
 			if (add_source_data) {
+				CeL.debug('add source at last.', 0, 'write_data');
 				// 不具此 section。
 				content = content.trim()
 				// * 各報報章及其網頁\n
