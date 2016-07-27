@@ -339,6 +339,8 @@ function for_each_old_page(page_data) {
 	// accept 報紙頭條 without source per IRC
 	var do_not_need_source = page_data.title.includes('報紙頭條')
 			|| page_data.title.includes('报纸头条‎');
+	CeL.log('[[' + page_data.title + ']]: '
+			+ (do_not_need_source ? 'do not ' : '') + 'need source')
 	if (!do_not_need_source) {
 		var has_source;
 		current_content.each('template', function(token) {
