@@ -31,8 +31,8 @@ ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_'),
 
-// [[Wikinews:存檔常規]]: 已發表兩週或以上的文章會列入存檔並且可被保護。
-time_limit = Date.now() - 14 * ONE_DAY_LENGTH_VALUE,
+// [[Wikinews:存檔常規]]: 已發表七日(1週)或以上的文章會列入存檔並且可被保護。
+time_limit = Date.now() - 7 * ONE_DAY_LENGTH_VALUE,
 
 page_list = [],
 // page_status
@@ -175,7 +175,8 @@ function main_work(template_name_redirect_to) {
 function for_each_page_not_archived(page_data) {
 	// console.log(page_data);
 	CeL.debug('check the articles that are published at least 14 days old. '
-			+ '以最後編輯時間後已超過兩周或以上的文章為準。', 3, 'for_each_page_not_archived');
+			+ '以最後編輯時間後已超過 time limit (1周)或以上的文章為準。', 3,
+			'for_each_page_not_archived');
 	if (ignore_date
 			|| Date.parse(page_data.revisions[0].timestamp) < time_limit) {
 		page_list.push(page_data);
