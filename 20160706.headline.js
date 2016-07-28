@@ -31,7 +31,7 @@ label_cache_hash = CeL.null_Object(),
 headline_hash = CeL.null_Object(), headline_data = [],
 // locale=香港
 locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
-// 已有的頭條新聞標題整合網站。須改 cx!!
+// 已有的頭條新聞標題整合網站。須改 cx & crontab!!
 headline_labels = {
 	// 世界 全球
 	'國際' : {
@@ -259,7 +259,13 @@ function write_data() {
 		if (!page_data.has_stage_tag
 		//
 		&& (has_new_data || parse_error_label_list)) {
-			CeL.debug('有新 source 資料或新 parse 錯誤，標上文章標記。', 0, 'write_data');
+			CeL.debug('標上文章標記: '
+			//
+			+ (has_new_data ? '有' : '無') + '新 source 資料，'
+			//
+			+ (parse_error_label_list ? '有' : '無') + ' parse 錯誤。'
+			//
+			, 0, 'write_data');
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護

@@ -198,7 +198,9 @@ function archive_page() {
 				CeL.info('for_each_page_not_archived: Write report: '
 						+ error_logs.length + ' lines.');
 				if (error_logs.length > 0) {
-					error_logs.push('\n[[Category:管理員例行工作]]');
+					error_logs.push(
+					//
+					'\n[[Category:管理員例行工作]]\n[[Category:需要校對的頁面]]');
 				} else {
 					error_logs = [ '本次檢查未發現問題頁面。' ];
 				}
