@@ -33,7 +33,8 @@ headline_hash = CeL.null_Object(), headline_data = [],
 locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
 // 已有的頭條新聞標題整合網站。須改 cx!!
 headline_labels = {
-	'世界' : {
+	// 世界 全球
+	'國際' : {
 		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
 				'世界各報頭條' ],
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
@@ -140,7 +141,9 @@ function finish_up() {
 		|| parse_error_label_list[label_NO]));
 	}
 	CeL.debug('最後將重大 parse error 通知程式作者。', 0, 'finish_up');
-	wiki.page('User talk:' + to_remind).edit(error_message.join('\n'), {
+	wiki.page('User talk:' + to_remind + '/parse error').edit(
+	//
+	error_message.join('\n'), {
 		section : 'new',
 		sectiontitle : 'News parse error',
 		summary : 'News parse error report',
@@ -195,7 +198,7 @@ function write_data() {
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
-				section += headline_data.sort().join('\n') + '\n';
+				section += headline_data.sort().uniq().join('\n') + '\n';
 				return section;
 			});
 		}
@@ -203,7 +206,7 @@ function write_data() {
 		var has_new_data = add_source_data.length > 0;
 		if (has_new_data) {
 			CeL.debug('add {{source}}.', 0, 'write_data');
-			add_source_data = add_source_data.sort().join('\n') + '\n';
+			add_source_data = add_source_data.sort().uniq().join('\n') + '\n';
 			content = content.replace(
 			//
 			/(?:\n|^)==\s*消息來源\s*==\n/, function(section) {
@@ -277,7 +280,8 @@ function write_data() {
 
 	}, {
 		bot : 1,
-		summary : 'bot: 匯入每日報紙頭條新聞標題: ' + locale
+		// 匯入每日報紙頭條新聞標題
+		summary : '匯入' + locale + '報紙頭條新聞標題'
 	})
 	//
 	.run(finish_up);
