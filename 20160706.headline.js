@@ -277,6 +277,11 @@ function write_data() {
 		if (error_label_list.length > 0) {
 			this.summary += '. Error: ' + error_label_list.join(', ');
 		}
+		if (parse_error_label_list) {
+			this.summary += '. Parse error: '
+			//
+			+ Object.keys(parse_error_label_list).join(', ');
+		}
 
 		CeL.debug('寫入報紙頭條新聞標題資料至[['
 		//
@@ -355,7 +360,8 @@ function parse_橙新聞_headline(response, publisher) {
 	});
 	if (count < 2) {
 		CeL.err('parse_橙新聞_headline: Can not parse [' + publisher + ']!');
-		CeL.warn(response);
+		CeL.log('parsed: ' + JSON.stringify(news_content));
+		CeL.warn(JSON.stringify(response));
 		return;
 	}
 
@@ -407,12 +413,13 @@ function parse_中國評論新聞_headline(response, publisher) {
 
 	if (!news_content) {
 		CeL.debug('test 電腦版。', 0, 'parse_中國評論新聞_headline');
-		news_content = response.between('<body').between('頭條新聞').between(
+		news_content = response.between('<body ').between('頭條新聞').between(
 				'<table width="100%', '</table>').between('<td', '</td>')
 				.between('>').trim();
 	}
 
-	if (!news_content) {
+	if (false && !news_content) {
+		// 這種方法出來的不能判別年份。
 		CeL.debug('test 移動版 2。', 0, 'parse_中國評論新聞_headline');
 		news_content = response.between('<body').between('頭條新聞').between(
 				'<br>', '</td>').replace(/原文網址/g, '').trim();
@@ -421,6 +428,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 	if (!news_content || !response.includes(use_date.format('%Y-'))
 			|| !news_content.includes('日報：') && !news_content.includes('文匯報：')) {
 		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
+		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
 		return;
 	}
@@ -459,7 +467,8 @@ function parse_中央社_headline(response, publisher) {
 			'新聞本文 結束').between('<div class="box_2">', '</div>');
 	if (!news_content.includes('頭條新聞標題如下：')) {
 		CeL.err('parse_中央社_headline: Can not parse [' + publisher + ']!');
-		CeL.warn(response);
+		CeL.log('parsed: ' + JSON.stringify(news_content));
+		CeL.warn(JSON.stringify(response));
 		return;
 	}
 
