@@ -401,15 +401,21 @@ function parse_橙新聞_headline(response, publisher) {
 
 // TODO: CNML格式
 function parse_中國評論新聞_headline(response, publisher) {
-	// test 移動版
+	CeL.debug('test 移動版。', 0, 'parse_中國評論新聞_headline');
 	var news_content = response.between('detail_content', '</div>')
 			.between('>').trim();
 
 	if (!news_content) {
 		CeL.debug('test 電腦版。', 0, 'parse_中國評論新聞_headline');
-		news_content = response.between('<body ').between('頭條新聞').between(
+		news_content = response.between('<body').between('頭條新聞').between(
 				'<table width="100%', '</table>').between('<td', '</td>')
 				.between('>').trim();
+	}
+
+	if (!news_content) {
+		CeL.debug('test 移動版 2。', 0, 'parse_中國評論新聞_headline');
+		news_content = response.between('<body').between('頭條新聞').between(
+				'<br>', '</td>').replace(/原文網址/g, '').trim();
 	}
 
 	if (!news_content || !response.includes(use_date.format('%Y-'))
@@ -419,8 +425,9 @@ function parse_中國評論新聞_headline(response, publisher) {
 		return;
 	}
 
-	news_content = news_content.replace(/<br(?:[^<>]+)>/ig, '\n').replace(
-			/<\/?[a-z](?:[^<>]+)>/ig, '');
+	news_content = news_content.replace(/<br(?:[^<>]+)>/ig, '\n')
+	// 去掉所有 tags
+	.replace(/<\/?[a-z](?:[^<>]+)>/ig, '');
 
 	var count = 0;
 	news_content.split(/[\r\n]{2,}/).forEach(function(item) {

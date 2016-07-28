@@ -366,6 +366,7 @@ function for_each_old_page(page_data) {
 	var do_not_need_category = /{{ *[Hh]eadline[ _]navbox *\|/
 			.test(current_content), has_category;
 	if (!do_not_need_category) {
+		// 檢查並修正新聞稿格式、分類、錯字、標點符號等小錯誤，若無分類或來源請協助添加。
 		current_content.each('category', function(token) {
 			if (!token.name.includes(problem_categories_postfix)
 			// TODO: 檢查非站務與維護分類
