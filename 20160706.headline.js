@@ -63,6 +63,9 @@ headline_labels = {
 		// http://finance.sina.com.cn/stock/y/2016-07-06/doc-ifxtsatn8182961.shtml
 		// http://finance.eastmoney.com/news/1353,20160706639330278.html
 
+		// TODO
+		// http://www.ettoday.net/news/20160729/744477.htm
+
 		// http://anm.frog.tw/%E4%BB%8A%E6%97%A5%E6%97%A9%E5%A0%B1%E9%A0%AD%E6%A2%9D%E6%96%B0%E8%81%9E%E6%95%B4%E7%90%86/
 
 		// 中央社商情網 商情新聞中心 早報
@@ -299,8 +302,11 @@ function write_data() {
 
 }
 
-function add_headline(publisher, headline) {
-	publisher = publisher.replace(/\s+([^\s])/g, function($0, $1) {
+function add_headline(publisher, headline, source) {
+	publisher = publisher.replace(/&nbsp;/g, ' ').trim()
+	//
+	.replace(/\s+([^\s])/g, function($0, $1) {
+		// e.g., "蘋果日報 (香港)"
 		if ($1 === '(') {
 			return ' ' + $1;
 		}
@@ -352,7 +358,9 @@ function add_headline(publisher, headline) {
 			'add_headline');
 	headline_hash[publisher] = headline;
 
-	headline_data.push('{{HI|' + publisher + '|' + headline + '}}');
+	headline_data.push('{{HI|' + publisher + '|' + headline
+	//
+	+ (source ? '|source=' + source : '') + '}}');
 }
 
 function parse_橙新聞_headline(response, publisher) {
@@ -378,7 +386,7 @@ function parse_橙新聞_headline(response, publisher) {
 		count++;
 		add_headline(matched[2],
 		//
-		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
+		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''), publisher);
 	}
 
 	// e.g., "<strong>headline《文匯報》</strong>"
@@ -387,7 +395,7 @@ function parse_橙新聞_headline(response, publisher) {
 		count++;
 		add_headline(matched[2],
 		//
-		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''));
+		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''), publisher);
 	}
 
 	// e.g.,
@@ -403,7 +411,7 @@ function parse_橙新聞_headline(response, publisher) {
 		}).trim();
 		add_headline(title,
 		//
-		matched.replace(/^[：【\s]+/, '').replace(/[】\s]+$/, ''));
+		matched.replace(/^[：【\s]+/, '').replace(/[】\s]+$/, ''), publisher);
 	}
 
 	// 照理來說經過 parse 就應該有東西。
@@ -454,7 +462,8 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 
 		count++;
 		add_headline(media, headline.replace(/[。\n]+$/, '')
-				+ (country ? ' ([[w:' + country + '|' + country + ']])' : ''));
+				+ (country ? ' ([[w:' + country + '|' + country + ']])' : ''),
+				publisher);
 
 		return '';
 	});
@@ -512,7 +521,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 		count++;
 		add_headline(matched[1],
 		// 報紙標題。
-		matched[2].replace(/[。\n]+$/, ''));
+		matched[2].replace(/[。\n]+$/, ''), publisher);
 	});
 
 	// 照理來說經過 parse 就應該有東西。
@@ -549,7 +558,7 @@ function parse_中央社_headline(response, publisher) {
 		count++;
 		add_headline(matched[1].replace(/頭條/, ''),
 		// 報紙標題。
-		matched[2].replace(/[。\n]+$/, ''));
+		matched[2].replace(/[。\n]+$/, ''), publisher);
 	});
 
 	// 照理來說經過 parse 就應該有東西。
@@ -957,7 +966,11 @@ wiki.page(save_to_page, function(page_data) {
 
 		case 'Headline item':
 		case 'HI':
-			headline_hash[token.parameters[1]] = token.parameters[2];
+			CeL.debug('登記此 headline: [' + token.parameters[1] + ']: ['
+					+ token.parameters[2] + '].', 0, 'for_each_template');
+			headline_hash[token.parameters[1].toString()]
+			//
+			= token.parameters[2].toString();
 			break;
 
 		case 'Source':
