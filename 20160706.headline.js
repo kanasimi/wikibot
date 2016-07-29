@@ -300,7 +300,12 @@ function write_data() {
 }
 
 function add_headline(publisher, headline) {
-	publisher = publisher.replace(/\s+/g, '');
+	publisher = publisher.replace(/\s+([^\s])/g, function($0, $1) {
+		if ($1 === '(') {
+			return ' ' + $1;
+		}
+		return $1;
+	});
 	// 修正報紙標題。
 	switch (publisher) {
 	case '聯晚':
@@ -405,6 +410,59 @@ function parse_橙新聞_headline(response, publisher) {
 	return count;
 }
 
+function parse_臺灣蘋果日報_headline(response, publisher) {
+	var news_content = response.between('id="summary"', '</p>').between('>');
+
+	if (!news_content || !news_content.includes('時報')
+			&& !news_content.includes('頭條')) {
+		CeL.err('parse_臺灣蘋果日報_headline: Can not parse [' + publisher + ']!');
+		CeL.log('parsed: ' + JSON.stringify(news_content));
+		CeL.warn(JSON.stringify(response));
+		return;
+	}
+
+	var count = 0, country, media;
+	news_content.replace(/<strong[^<>]*>(.*?)<\/strong>/g, function(item) {
+		// assert: "<strong>美國《紐約時報》頭條<br />報紙標題</strong>"
+		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
+		// 去掉所有 tags
+		.replace(/<\/?[a-z](?:[^<>]+)>/ig, '').trim();
+		if (!item) {
+			return;
+		}
+		// [ all, 國家, 報, 頭條 ]
+		var matched = item.match(/^([^《》]*)《([^《》]+)》(?:頭條)\n+(.{4,200})$/),
+		// 報紙標題。
+		headline;
+		if (matched) {
+			country = matched[1];
+			media = matched[2];
+			headline = matched[3];
+		} else if (!country
+				&& (matched = item.match(/^([^《》]+)頭條\n+(.{4,200})$/))) {
+			media = matched[1];
+			headline = matched[2];
+		} else if (!country && media && (matched = item.match(/^.{4,200}$/))) {
+			headline = matched[0];
+		}
+		if (!matched) {
+			CeL.err('parse_臺灣蘋果日報_headline: Can not parse ['
+			//
+			+ publisher + ']: [' + item + ']');
+			return;
+		}
+
+		count++;
+		add_headline(media, headline.replace(/[。\n]+$/, '')
+				+ (country ? ' ([[w:' + country + '|' + country + ']])' : ''));
+
+		return '';
+	});
+
+	// 照理來說經過 parse 就應該有東西。
+	return count;
+}
+
 // TODO: CNML格式
 function parse_中國評論新聞_headline(response, publisher) {
 	CeL.debug('test 移動版。', 0, 'parse_中國評論新聞_headline');
@@ -501,6 +559,8 @@ function parse_中央社_headline(response, publisher) {
 // 實際解析/既定 parser。
 var parse_headline = {
 	'橙新聞' : parse_橙新聞_headline,
+
+	'蘋果日報 (台灣)' : parse_臺灣蘋果日報_headline,
 
 	'中國評論通訊社' : parse_中國評論新聞_headline,
 
