@@ -355,7 +355,9 @@ function check_final_work() {
 		}
 
 		if (messages.length > 0) {
-			messages.unshift(message_set.manual_correction_required);
+			messages.unshift(
+			//
+			message_set.manual_correction_required + ' --~~~~');
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}

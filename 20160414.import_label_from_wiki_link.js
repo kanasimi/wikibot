@@ -25,6 +25,7 @@
  [[默克公司]]（[[:en:Merck & Co.|Merck & Co.]]） → [[默克藥廠]]
  [[哈利伯顿公司]]（[[:en:Halliburton|Halliburton]]） → [[哈里伯顿]]
  [[亨利·弗拉格勒]]（{{lang-en|Henry Flager}}）
+ [[史帝夫·賈維森]]（{{lang|en|[[:en:Steve Jurvetson|Steve Jurvetson]]}}）
  遊戲設計者[[艾德·格林伍德]](Ed Greenwood)所創造。
  美國白皮鬆 → 美國白皮松
  相撲力士鬆太郎 → 相撲力士松太郎

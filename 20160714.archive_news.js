@@ -202,7 +202,9 @@ function archive_page() {
 							+ '請幫忙修復這些文章。機器人將在修復後，於下次執行作業時自動保護。 --~~~~');
 					error_logs.push(
 					//
-					'\n[[Category:管理員例行工作]]\n[[Category:需要校對的頁面]]');
+					'\n<noinclude>[[Category:管理員例行工作]]\n'
+					//
+					+ '[[Category:需要校對的頁面]]</noinclude>');
 				} else {
 					error_logs = [ '本次檢查未發現問題頁面。' ];
 				}
@@ -381,7 +383,7 @@ function for_each_old_page(page_data) {
 	if (!do_not_need_category && !has_category) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
-		problem_list.push('缺分類。');
+		problem_list.push('缺[[Category:频道|分類]]。');
 
 	} else {
 		CeL.debug('[[' + page_data.title
