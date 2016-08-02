@@ -717,6 +717,30 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 		return;
 	}
 
+	// 放在此，因為被標題關鍵字篩除的不應處理。
+	if (Array.isArray(label_data)) {
+		// label : [ {String}query, [標題關鍵字] ]
+		// assert: Array.isArray(label_data[1])
+		var passed = label_data[1].some(function(key, index) {
+			if (title.includes(key)) {
+				if (label_data[1].length === 1) {
+					CeL.debug('[' + label + ']: 到齊了。', 0, 'remove_completed');
+					delete labels_to_check[label];
+				} else {
+					CeL.debug('[' + label + ']: 去掉本 key [' + key + ']。', 0,
+							'remove_completed');
+					label_data[1].splice(index, 1);
+				}
+				return true;
+			}
+		});
+		CeL.debug('檢查標題關鍵字: [' + label_data[1] + '] in "' + title + '": '
+				+ (passed ? 'passed' : 'NG'), 0, 'remove_completed');
+		if (!passed) {
+			return;
+		}
+	}
+
 	var new_added = true;
 	if (url) {
 		// 登記url，以避免重複加入url。
@@ -778,27 +802,6 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 		+ (label === publisher ? '' : '|label=' + label) + '}}');
 
 		return new_added;
-	}
-
-	if (Array.isArray(label_data)) {
-		// label : [ {String}query, [標題關鍵字] ]
-		// assert: Array.isArray(label_data[1])
-		CeL.debug('檢查標題關鍵字: [' + label_data[1] + '] in "' + title + '"', 0,
-				'remove_completed');
-		return label_data[1].some(function(key, index) {
-			if (title.includes(key)) {
-				if (label_data[1].length === 1) {
-					CeL.debug('[' + label + ']: 到齊了。', 0, 'remove_completed');
-					delete labels_to_check[label];
-				} else {
-					CeL.debug('[' + label + ']: 去掉本 key [' + key + ']。', 0,
-							'remove_completed');
-					label_data[1].splice(index, 1);
-				}
-				return true;
-			}
-		})
-				&& _add_source();
 	}
 
 	CeL.debug(
