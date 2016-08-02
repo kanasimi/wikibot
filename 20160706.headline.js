@@ -36,10 +36,10 @@ headline_labels = {
 	// 世界 全球
 	'國際' : {
 		// e.g., "​八月一日世界各報頭條搶先報 | 即時新聞 | 20160801 | 蘋果日報"
-		'蘋果日報 (台灣)' : '"%4Y%2m%2d" "世界各報頭條" site:appledaily.com.tw',
+		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界各報頭條" site:appledaily.com.tw', '世界各報頭條' ],
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
 		// e.g., "中國評論新聞：國際部分主要報紙8月1日頭條新聞標題"
-		'中國評論通訊社' : '"%m月%d日" "國際" "頭條新聞" site:hk.crntt.com'
+		'中國評論通訊社' : [ '"%m月%d日" "國際" "頭條新聞" site:hk.crntt.com', '國際' ]
 	},
 
 	'香港' : {
@@ -49,7 +49,7 @@ headline_labels = {
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk',
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
 		// e.g., "中國評論新聞：港澳部份報章頭條新聞標題（8月1日）"
-		'中國評論通訊社' : '"%m月%d日" "港澳" "頭條新聞" site:hk.crntt.com'
+		'中國評論通訊社' : [ '"%m月%d日" "港澳" "頭條新聞" site:hk.crntt.com', '港澳' ]
 	// TODO: http://www.cyberctm.com/news.php
 	},
 
@@ -82,7 +82,7 @@ headline_labels = {
 
 		'中央社' : '"%m月%d日" "各報頭條" site:www.cna.com.tw',
 		// e.g., "八月二日各報頭條搶先報 | 即時新聞 | 20160802 | 蘋果日報"
-		'蘋果日報 (台灣)' : '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
+		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw', '各報頭條' ],
 		'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
 		'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com',
 		'鉅亨網' : '"%Y年%m月%d日" "報紙頭條" site:news.cnyes.com',

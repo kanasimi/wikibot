@@ -206,7 +206,7 @@ function archive_page() {
 					//
 					+ '[[Category:需要校對的頁面]]</noinclude>');
 				} else {
-					error_logs = [ '本次檢查未發現問題頁面。' ];
+					error_logs = [ ': 本次檢查未發現問題頁面。 --~~~~' ];
 				}
 				wiki.page(log_to).edit(error_logs.join('\n'), {
 					summary : summary + '報告',
