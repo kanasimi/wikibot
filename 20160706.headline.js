@@ -717,6 +717,26 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 		return;
 	}
 
+	// 登記並去除已處理之label。
+	var label_data = labels_to_check[label],
+	// publisher 得要在被 remove_completed() 刪除前先 cache 好!
+	// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
+	publisher = Array.isArray(label_data) && label_data[2] || label;
+
+	if (Array.isArray(label_data)) {
+		if (!label_data[1]) {
+			// label : [ {String}query, , {String}publisher 發布機構 + author 作者 ]
+			// →
+			// label/publisher : {String}query
+			label_data = label_data[0];
+		} else if (!Array.isArray(label_data[1])) {
+			// label : [ {String}query, 標題關鍵字 ]
+			// →
+			// label : [ {String}query, [標題關鍵字] ]
+			label_data[1] = [ label_data[1] ];
+		}
+	}
+
 	// 放在此，因為被標題關鍵字篩除的不應處理。
 	if (Array.isArray(label_data)) {
 		// label : [ {String}query, [標題關鍵字] ]
@@ -756,26 +776,6 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 			label_cache_hash[label].push(url);
 		} else {
 			label_cache_hash[label] = [ url ];
-		}
-	}
-
-	// 登記並去除已處理之label。
-	var label_data = labels_to_check[label],
-	// publisher 得要在被 remove_completed() 刪除前先 cache 好!
-	// label : [ {String}query, 擷取數 [標題關鍵字], {String}publisher ]
-	publisher = Array.isArray(label_data) && label_data[2] || label;
-
-	if (Array.isArray(label_data)) {
-		if (!label_data[1]) {
-			// label : [ {String}query, , {String}publisher 發布機構 + author 作者 ]
-			// →
-			// label/publisher : {String}query
-			label_data = label_data[0];
-		} else if (!Array.isArray(label_data[1])) {
-			// label : [ {String}query, 標題關鍵字 ]
-			// →
-			// label : [ {String}query, [標題關鍵字] ]
-			label_data[1] = [ label_data[1] ];
 		}
 	}
 
