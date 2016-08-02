@@ -304,7 +304,7 @@ function write_data() {
 
 }
 
-function add_to_headline_hash(publisher, headline, source, not_new) {
+function add_to_headline_hash(publisher, headline, source, is_new) {
 	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 0,
 			'add_to_headline_hash');
 
@@ -326,7 +326,9 @@ function add_to_headline_hash(publisher, headline, source, not_new) {
 				'add_to_headline_hash');
 
 		headline_hash[publisher].push(headline);
-		headline_data.push(wikitext);
+		if (is_new) {
+			headline_data.push(wikitext);
+		}
 		return;
 	}
 
@@ -335,7 +337,9 @@ function add_to_headline_hash(publisher, headline, source, not_new) {
 				'add_to_headline_hash');
 	}
 	headline_hash[publisher] = [ headline ];
-	headline_data.push(wikitext);
+	if (is_new) {
+		headline_data.push(wikitext);
+	}
 }
 
 function add_headline(publisher, headline, source) {
@@ -377,7 +381,7 @@ function add_headline(publisher, headline, source) {
 
 	headline = headline.replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
 
-	add_to_headline_hash(publisher, headline, source);
+	add_to_headline_hash(publisher, headline, source, true);
 }
 
 function parse_橙新聞_headline(response, publisher) {
@@ -984,8 +988,7 @@ wiki.page(save_to_page, function(page_data) {
 		case 'Headline item':
 		case 'HI':
 			add_to_headline_hash(token.parameters[1].toString(),
-					token.parameters[2].toString(), token.parameters.source,
-					true);
+					token.parameters[2].toString(), token.parameters.source);
 			break;
 
 		case 'Source':
