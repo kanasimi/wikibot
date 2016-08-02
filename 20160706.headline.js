@@ -27,7 +27,7 @@ google, customsearch,
 url_cache_hash = CeL.null_Object(),
 // label_cache_hash[label] = [ {String}url ];
 label_cache_hash = CeL.null_Object(),
-// headline_hash[publisher] = {String}headline
+// headline_hash[publisher] = [ {String}headline ]
 headline_hash = CeL.null_Object(), headline_data = [],
 // locale=香港
 locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
@@ -35,10 +35,11 @@ locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
 headline_labels = {
 	// 世界 全球
 	'國際' : {
-		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
-				'世界各報頭條' ],
+		// e.g., "​八月一日世界各報頭條搶先報 | 即時新聞 | 20160801 | 蘋果日報"
+		'蘋果日報 (台灣)' : '"%4Y%2m%2d" "世界各報頭條" site:appledaily.com.tw',
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
-		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', '國際部分' ]
+		// e.g., "中國評論新聞：國際部分主要報紙8月1日頭條新聞標題"
+		'中國評論通訊社' : '"%m月%d日" "國際" "頭條新聞" site:hk.crntt.com'
 	},
 
 	'香港' : {
@@ -47,7 +48,8 @@ headline_labels = {
 		// 不能確保可靠性
 		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk',
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
-		'中國評論通訊社' : [ '"%m月%d日" "頭條新聞" site:hk.crntt.com', '港澳部份' ]
+		// e.g., "中國評論新聞：港澳部份報章頭條新聞標題（8月1日）"
+		'中國評論通訊社' : '"%m月%d日" "港澳" "頭條新聞" site:hk.crntt.com'
 	// TODO: http://www.cyberctm.com/news.php
 	},
 
@@ -79,8 +81,8 @@ headline_labels = {
 		'中央社商情網晚報' : [ '台灣主要晚報頭條新聞標題 %Y年 %m月 %d日', , '中央社商情網' ],
 
 		'中央社' : '"%m月%d日" "各報頭條" site:www.cna.com.tw',
-		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
-				[ '世界各報頭條', '各報頭條' ] ],
+		// e.g., "八月二日各報頭條搶先報 | 即時新聞 | 20160802 | 蘋果日報"
+		'蘋果日報 (台灣)' : '"%4Y%2m%2d" "各報頭條搶先報" site:appledaily.com.tw',
 		'今日新聞網' : '"%m月%d日" "各報頭條" site:www.nownews.com',
 		'中時電子報' : '"%m月%d日" "各報頭版要聞" site:www.chinatimes.com',
 		'鉅亨網' : '"%Y年%m月%d日" "報紙頭條" site:news.cnyes.com',
@@ -302,6 +304,40 @@ function write_data() {
 
 }
 
+function add_to_headline_hash(publisher, headline, source, not_new) {
+	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 0,
+			'add_to_headline_hash');
+
+	var wikitext = '{{HI|' + publisher + '|' + headline
+	//
+	+ (source ? '|source=' + source : '') + '}}';
+
+	if (Array.isArray(headline_hash[publisher])) {
+		if (headline_hash[publisher].includes(headline)) {
+			// pass 去掉重複的。
+			CeL.debug('[' + publisher + '] 已有此 headline: [' + headline
+					+ '], skip it.', 0, 'add_to_headline_hash');
+			return;
+		}
+
+		CeL.debug('[' + publisher + '] 添加不同的 headline: ['
+		//
+		+ headline + '] ⇒ [' + headline_hash[publisher] + ']', 0,
+				'add_to_headline_hash');
+
+		headline_hash[publisher].push(headline);
+		headline_data.push(wikitext);
+		return;
+	}
+
+	if (publisher in headline_hash) {
+		CeL.warn('headline_hash[' + publisher + '] is NOT Array.', 0,
+				'add_to_headline_hash');
+	}
+	headline_hash[publisher] = [ headline ];
+	headline_data.push(wikitext);
+}
+
 function add_headline(publisher, headline, source) {
 	publisher = publisher.replace(/&nbsp;/g, ' ').trim()
 	//
@@ -341,26 +377,7 @@ function add_headline(publisher, headline, source) {
 
 	headline = headline.replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
 
-	if (headline_hash[publisher]) {
-		if (headline_hash[publisher] === headline) {
-			// pass 去掉重複的。
-			CeL.debug('[' + publisher + '] 已有此 headline: [' + headline
-					+ '], skip it.', 0, 'add_headline');
-			return;
-		}
-		CeL.debug('[' + publisher + '] 有不同的 headline: ['
-		//
-		+ headline_hash[publisher] + '] vs. [' + headline + ']', 0,
-				'add_headline');
-	}
-
-	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 0,
-			'add_headline');
-	headline_hash[publisher] = headline;
-
-	headline_data.push('{{HI|' + publisher + '|' + headline
-	//
-	+ (source ? '|source=' + source : '') + '}}');
+	add_to_headline_hash(publisher, headline, source);
 }
 
 function parse_橙新聞_headline(response, publisher) {
@@ -966,11 +983,9 @@ wiki.page(save_to_page, function(page_data) {
 
 		case 'Headline item':
 		case 'HI':
-			CeL.debug('登記此 headline: [' + token.parameters[1] + ']: ['
-					+ token.parameters[2] + '].', 0, 'for_each_template');
-			headline_hash[token.parameters[1].toString()]
-			//
-			= token.parameters[2].toString();
+			add_to_headline_hash(token.parameters[1].toString(),
+					token.parameters[2].toString(), token.parameters.source,
+					true);
 			break;
 
 		case 'Source':
