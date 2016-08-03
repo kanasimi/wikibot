@@ -280,7 +280,7 @@ function write_data() {
 		}
 
 		if (error_label_list.length > 0) {
-			this.summary += '. Error: ' + error_label_list.join(', ');
+			this.summary += '. Fetch error: ' + error_label_list.join(', ');
 		}
 		if (parse_error_label_list) {
 			this.summary += '. Parse error: '
@@ -760,6 +760,8 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 			return;
 		}
 	}
+
+	// assert: 至此皆為篩選過合格的，之後至最後不應出現return。
 
 	var new_added = true;
 	if (url) {

@@ -20,7 +20,7 @@ require('./wiki loder.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
-
+// links[page_data.pageid][URL] = status/error
 links = CeL.null_Object();
 
 // ---------------------------------------------------------------------//
@@ -45,32 +45,45 @@ function for_each_page(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	//
-	link_hash = links[title] = {};
+	link_hash = links[page_data.pageid] = CeL.null_Object();
 
 	// check_external_link
 
-	// [http://...]
-	// {{|url=http://...}}
-	var matched, PATTERN_URL = /https?:\/\/[^\s\|{}<>\[\]]+/ig;
+	var matched,
+	/**
+	 * 匹配URL網址。
+	 * 
+	 * [http://...]<br />
+	 * {{|url=http://...}}
+	 * 
+	 * matched: [ URL ]
+	 * 
+	 * @type {RegExp}
+	 * 
+	 * @see PATTERN_URL_GLOBAL, PATTERN_URL_prefix, PATTERN_WIKI_URL,
+	 *      PATTERN_wiki_project_URL
+	 */
+	PATTERN_URL_GLOBAL = /(?:https?:)?\/\/[^\s\|{}<>\[\]]+/ig;
 
-	while (matched = PATTERN_URL.exec(content)) {
+	while (matched = PATTERN_URL_GLOBAL.exec(content)) {
 		// register 登記
 		link_hash[matched[0]] = undefined;
 	}
 
-	var link_list = Object.keys(link_hash), length = link_list.length;
-	if (length === 0) {
+	var link_list = Object.keys(link_hash), link_length = link_list.length;
+	if (link_length === 0) {
 		CeL.debug('[[' + title + ']]: 本頁面無 link。', 2, 'for_each_page');
 		delete links[title];
 		return;
 	}
 
-	function final(URL) {
-		// CeL.log(length + ': ' + URL + ': ' + link_hash[URL]);
-		if (--length > 0) {
-			if (false && length < 2) {
+	function register_URL_status(URL, status) {
+		link_hash[URL] = status;
+		CeL.debug('[[' + title + ']]: left ' + link_length + ' [' + URL + ']: '
+				+ status + '。', 0, 'check_URL');
+		if (--link_length > 0) {
+			if (false && link_length < 2) {
 				for ( var URL in link_hash) {
-					var status = link_hash[URL];
 					if (status === undefined) {
 						CeL.log(URL + ': ' + status);
 					}
@@ -79,9 +92,23 @@ function for_each_page(page_data) {
 			return;
 		}
 
+		CeL.debug('[[' + title + ']]: 已檢查過本頁所有URL。', 0, 'register_URL_status');
+
+		// 處理 [http://...]
+		parser.each('URL', function(token) {
+			;
+		}, true);
+
+		// 處理 {{|url=http://...}}
+		parser.each('template', function(token) {
+			;
+		}, true);
+
+		// 處理 plain links: https:// @ wikitext
+		//@see [[w:en:Help:Link#Http: and https:]]
+
 		var reporter = [];
 		for ( var URL in link_hash) {
-			var status = link_hash[URL];
 			if (status !== 200) {
 				reporter.push('[' + URL + ' ' + status + ']');
 			}
@@ -94,34 +121,36 @@ function for_each_page(page_data) {
 		}
 	}
 
-	link_list.forEach(function check_URL(URL) {
-		// CeL.log('→ [' + URL + ']');
+	function check_URL(URL) {
+		CeL.debug('[[' + title + ']]: 檢查URL → [' + URL + ']。', 0, 'check_URL');
 		CeL.get_URL(URL, function(data) {
 			if (typeof data !== 'object'
 					|| typeof data.responseText !== 'string') {
-				// CeL.log(URL + ': error!');
-				link_hash[URL] = 'Unknown error';
-				final(URL);
+				register_URL_status(URL, 'Unknown error');
 				return;
 			}
 
 			var status = data.status;
-			link_hash[URL] = status;
 			if (status >= 400 || status < 200) {
-				// CeL.log(URL + ': ' + status);
 			} else if (!data.responseText.trim()) {
-				link_hash[URL] = 'Empty contents';
+				status = 'Empty contents';
 			}
-			final(URL);
+			register_URL_status(URL, status);
 
 		}, null, null, {
 			onfail : function(error) {
-				link_hash[URL] = error;
-				final(URL);
+				register_URL_status(URL, error);
 			}
 		});
-	});
+	}
 
+	link_list.forEach(check_URL);
+
+	var parser = CeL.wiki.parser(page_data);
+	// 趁 check_URL(URL) 的閒置時 parse。
+	setTimeout(function() {
+		parser.parse();
+	}, 20);
 }
 
 function finish_work() {
