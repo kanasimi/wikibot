@@ -162,8 +162,9 @@ function for_each_page(page_data) {
 				}
 				return;
 			}
+			var stamp = 'accessdate='
 			// 以編輯時間自動添加 accessdate 參數。
-			var stamp = 'accessdate=' + page_data.revisions[0].timestamp;
+			+ new Date(page_data.revisions[0].timestamp).format('%Y年%m月%d日');
 			if (token.parameters.accessdate) {
 				// 更新 stamp。
 				// token[token.index_of.accessdate] = stamp;
