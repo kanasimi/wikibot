@@ -129,10 +129,10 @@ function for_each_page(page_data) {
 			+ '{{dead link|date=' + date_NOW
 			//
 			+ '|bot=' + user_name + '|status=' + link_hash[URL]
-			//
+			// 允許 cache_url 以直接連到最近的 cached snapshots。
 			+ (archived ?
-			// + '|url=' + archived.archived_url
-			+'|cache_url=' + archived.url
+			// '|url=' + archived.archived_url +
+			'|cache_url=' + archived.url
 			//
 			: '|broken_url=' + URL
 			//
