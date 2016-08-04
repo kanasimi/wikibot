@@ -5,7 +5,6 @@
  2016/7/4 23:17:28	check external link
 
  @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]], [[en:Template:Dead link]], [[en:User:cyberbot II]]
- [[分類:含有受損文件連結的頁面]]
 
  */
 
@@ -77,6 +76,92 @@ function for_each_page(page_data) {
 		return;
 	}
 
+	function add_dead_link_mark() {
+		var processed = CeL.null_Object();
+
+		function is_NG(URL) {
+			URL = URL.toString();
+			if (!(URL in link_hash)) {
+				CeL.warn('is_NG: 沒處理到的 URL: [' + URL + ']');
+				return;
+			}
+			// 登記已處理過之URL。
+			processed[URL] = true;
+			return !(link_hash[URL] >= 200 && link_hash[URL] < 300);
+		}
+
+		// TODO: 處理原有之 {{dead link}}
+		// assert: {{dead link}} 必須與原node在同一階層上，剛好在正後面！
+		// token_index
+		function get_dead_link_node(index, parent) {
+			while (++index < parent.length) {
+				if (parent[index].type) {
+					if (parent[index].type === 'transclusion'
+							&& parent[index].name === 'Dead link') {
+						return index;
+					}
+					break;
+				}
+			}
+			// NOT_FOUND
+			return -1;
+		}
+
+		function dead_link_text(token, URL) {
+			return token.toString() + '{{dead link|date='
+			// [[Template:Dead link]]
+			+ (new Date).toISOString() + '|bot=' + user_name + '|status='
+					+ link_hash[URL] + '|url=' + URL + '}}';
+		}
+
+		// 處理外部連結 external link [http://...]
+		parser.each('external link', function(token, index, parent) {
+			var URL = token[0];
+			if (is_NG(URL)) {
+				var dead_link_node_index = get_dead_link_node(index, parent);
+				if (!dead_link_node) {
+					return dead_link_text(token, URL);
+				}
+				// assert: 已處理過。
+			}
+		}, true);
+
+		// 處理 {{|url=http://...}}
+		parser.each('template', function(token, index, parent) {
+			if (token.name !== 'Source') {
+				return;
+			}
+			if (!token.parameters.accessdate) {
+				// 以編輯時間自動添加 accessdate 參數。
+				token.push('accessdate=' + page_data.revisions[0].timestamp);
+			}
+			var URL = token.parameters.url;
+			if (is_NG(URL)) {
+				var dead_link_node_index = get_dead_link_node(index, parent);
+				if (!dead_link_node) {
+					return dead_link_text(token, URL);
+				}
+				// assert: 已處理過。
+			}
+		}, true);
+
+		// 處理 plain links: https:// @ wikitext
+		// @see [[w:en:Help:Link#Http: and https:]]
+
+		var reporter = [];
+		for ( var URL in link_hash) {
+			if (link_hash[URL] !== 200 && !processed[URL]) {
+				reporter.push('[' + URL + ' ' + link_hash[URL] + ']');
+			}
+		}
+
+		if (reporter.length) {
+			// CeL.log('-'.repeat(80));
+			CeL.log('; [[' + title + ']]');
+			CeL.log(': ' + reporter.join(' '));
+		}
+	}
+
 	function register_URL_status(URL, status) {
 		link_hash[URL] = status;
 		CeL.debug('[[' + title + ']]: left ' + link_length + ' [' + URL + ']: '
@@ -93,32 +178,28 @@ function for_each_page(page_data) {
 		}
 
 		CeL.debug('[[' + title + ']]: 已檢查過本頁所有URL。', 0, 'register_URL_status');
+		add_dead_link_mark();
+	}
 
-		// 處理 [http://...]
-		parser.each('URL', function(token) {
-			;
-		}, true);
-
-		// 處理 {{|url=http://...}}
-		parser.each('template', function(token) {
-			;
-		}, true);
-
-		// 處理 plain links: https:// @ wikitext
-		//@see [[w:en:Help:Link#Http: and https:]]
-
-		var reporter = [];
-		for ( var URL in link_hash) {
-			if (status !== 200) {
-				reporter.push('[' + URL + ' ' + status + ']');
+	// https://archive.org/help/wayback_api.php
+	function check_archived(URL, status) {
+		CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
+		//
+		function(data) {
+			CeL.debug(URL + ':', 0, 'check_archived');
+			console.log(data);
+			data = JSON.parse(data);
+			if (data.archived_snapshots.closest
+					&& data.archived_snapshots.closest.available) {
+				archived_snapshots[URL] = data;
 			}
-		}
-
-		if (reporter.length) {
-			// CeL.log('-'.repeat(80));
-			CeL.log('; [[' + title + ']]');
-			CeL.log(': ' + reporter.join(' '));
-		}
+			register_URL_status(URL, status);
+		}, null, null, {
+			onfail : function(error) {
+				CeL.debug(URL + ': Error: ' + error, 0, 'check_archived');
+				register_URL_status(URL, status);
+			}
+		});
 	}
 
 	function check_URL(URL) {
@@ -130,16 +211,22 @@ function for_each_page(page_data) {
 				return;
 			}
 
-			var status = data.status;
-			if (status >= 400 || status < 200) {
-			} else if (!data.responseText.trim()) {
+			var status = data.status,
+			// has error.
+			has_error = status >= 300 || status < 200;
+			if (!has_error && !data.responseText.trim()) {
 				status = 'Empty contents';
+				has_error = true;
 			}
-			register_URL_status(URL, status);
+			if (has_error) {
+				check_archived(URL, status);
+			} else {
+				register_URL_status(URL, status);
+			}
 
 		}, null, null, {
 			onfail : function(error) {
-				register_URL_status(URL, error);
+				check_archived(URL, error);
 			}
 		});
 	}
