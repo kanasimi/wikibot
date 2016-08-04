@@ -111,7 +111,10 @@ function for_each_page(page_data) {
 			return -1;
 		}
 
+		var has_new_dead;
+
 		function dead_link_text(token, URL) {
+			has_new_dead = true;
 			var archived = archived_data[URL];
 			return token.toString()
 			// [[Template:Dead link]]
@@ -165,7 +168,10 @@ function for_each_page(page_data) {
 		// 處理 plain links: https:// @ wikitext
 		// @see [[w:en:Help:Link#Http: and https:]]
 
-		wiki.page(page_data).edit(parser.toString());
+		if (has_new_dead) {
+			// 有新東西({{dead link}})才寫入。
+			wiki.page(page_data).edit(parser.toString());
+		}
 
 		var reporter = [];
 		for ( var URL in link_hash) {
