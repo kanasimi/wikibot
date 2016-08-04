@@ -89,7 +89,7 @@ function for_each_page(page_data) {
 				CeL.warn('is_NG: 沒處理到的 URL: [' + URL + ']');
 				return;
 			}
-			// 登記已處理過之URL。
+			// 登記已處理過或無須處理之URL。
 			processed[URL] = true;
 			return !(link_hash[URL] >= 200 && link_hash[URL] < 300);
 		}
@@ -144,7 +144,12 @@ function for_each_page(page_data) {
 
 		// 處理 {{|url=http://...}}
 		parser.each('template', function(token, index, parent) {
+			var URL = token.parameters && token.parameters.url;
 			if (token.name !== 'Source') {
+				if (token.name === 'Dead link' && URL) {
+					// 登記已處理過或無須處理之URL。
+					processed[URL] = true;
+				}
 				return;
 			}
 			// 以編輯時間自動添加 accessdate 參數。
@@ -155,7 +160,6 @@ function for_each_page(page_data) {
 			} else {
 				token.push(stamp);
 			}
-			var URL = token.parameters.url;
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
 				if (!(dead_link_node_index > 0)) {
@@ -182,7 +186,7 @@ function for_each_page(page_data) {
 
 		if (reporter.length) {
 			// CeL.log('-'.repeat(80));
-			CeL.log('; [[' + title + ']]');
+			CeL.log('; [[' + title + ']] 尚未處理之 URL');
 			CeL.log(': ' + reporter.join(' '));
 		}
 	}
