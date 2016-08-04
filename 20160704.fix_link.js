@@ -257,6 +257,15 @@ function for_each_page(page_data) {
 	// https://archive.org/help/wayback_api.php
 	// 短時間內call過多次(10次?)將503?
 	function check_archived(URL, status) {
+		var need_lag = 500 - (Date.now() - check_archived.last_call);
+		if (need_lag > 0) {
+			setTimeout(function() {
+				check_archived(URL, status);
+			}, need_lag);
+			return;
+		}
+		check_archived.last_call = Date.now();
+
 		CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
 		//
 		function(data) {
