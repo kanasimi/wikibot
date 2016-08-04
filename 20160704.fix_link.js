@@ -296,6 +296,8 @@ function for_each_page(page_data) {
 			}
 			register_URL_status(URL, status);
 		}, null, null, {
+			// use new agent
+			agent : true,
 			onfail : function(error) {
 				CeL.debug(URL + ': Error: ' + error, 0, 'check_archived');
 				register_URL_status(URL, status);
@@ -326,6 +328,8 @@ function for_each_page(page_data) {
 			}
 
 		}, null, null, {
+			// use new agent
+			agent : true,
 			onfail : function(error) {
 				check_archived(URL, error);
 			}
