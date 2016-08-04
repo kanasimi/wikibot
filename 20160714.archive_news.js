@@ -383,7 +383,7 @@ function for_each_old_page(page_data) {
 	if (!do_not_need_category && !has_category) {
 		CeL.info('for_each_old_page: [[' + page_data.title
 				+ ']]: 沒有分類，不自動保護，而是另設Category列出。');
-		problem_list.push('缺[[Category:频道|分類]]。');
+		problem_list.push('缺[[:Category:频道|屬性分類]]。');
 
 	} else {
 		CeL.debug('[[' + page_data.title

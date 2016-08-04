@@ -361,7 +361,7 @@ if (typeof process === 'object') {
 prepare_directory(base_directory);
 
 // CeL.set_debug(2);
-if (1) {
+if (0) {
 	// for debug
 	wiki.page('Wikinews:沙盒', for_each_page);
 	finish_work();
