@@ -91,6 +91,8 @@ function for_each_page(page_data) {
 	function add_dead_link_mark() {
 		var processed = CeL.null_Object();
 
+		// -------------------
+
 		function is_NG(URL) {
 			URL = URL.toString();
 			if (!(URL in link_hash)) {
@@ -101,6 +103,8 @@ function for_each_page(page_data) {
 			processed[URL] = true;
 			return !(link_hash[URL] >= 200 && link_hash[URL] < 300);
 		}
+
+		// -------------------
 
 		// TODO: 處理原有之 {{dead link}}
 		// assert: {{dead link}} 必須與原node在同一階層上，剛好在正後面！
@@ -118,6 +122,8 @@ function for_each_page(page_data) {
 			// NOT_FOUND
 			return -1;
 		}
+
+		// -------------------
 
 		var has_new_dead_link;
 
@@ -140,9 +146,10 @@ function for_each_page(page_data) {
 					+ '}}';
 		}
 
-		// 處理外部連結 external link [http://...]
-		parser.each('external link', function(token, index, parent) {
-			var URL = token[0];
+		// -------------------
+
+		function process_token(token, index, parent, URL) {
+			var URL = token.toString();
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
 				if (!(dead_link_node_index > 0)) {
@@ -150,11 +157,25 @@ function for_each_page(page_data) {
 				}
 				// assert: 已處理過，有{{dead link}}。
 			}
+		}
+
+		// -------------------------------------------------
+
+		// 處理外部連結 external link [http://...]
+		parser.each('external link', function(token, index, parent) {
+			var URL = token[0];
+			return process_token(token, index, parent, URL);
 		}, true);
+
+		// -------------------
 
 		// 處理 {{|url=http://...}}
 		parser.each('template', function(token, index, parent) {
 			var URL = token.parameters && token.parameters.url;
+			if (URL) {
+				// 去掉 tag, <!-- -->
+				URL = URL.toString().replace(/<[^<>]+>/g, '');
+			}
 			if (token.name !== 'Source') {
 				if (token.name === 'Dead link' && URL) {
 					// 登記已處理過或無須處理之URL。
@@ -171,17 +192,21 @@ function for_each_page(page_data) {
 			} else {
 				token.push(stamp);
 			}
-			if (is_NG(URL)) {
-				var dead_link_node_index = get_dead_link_node(index, parent);
-				if (!(dead_link_node_index > 0)) {
-					return dead_link_text(token, URL);
-				}
-				// assert: 已處理過，有{{dead link}}。
-			}
+			return process_token(token, index, parent, URL);
 		}, true);
 
-		// 處理 plain links: https:// @ wikitext
+		// -------------------
+
+		// 處理 bare / plain URLs in wikitext: https:// @ wikitext
 		// @see [[w:en:Help:Link#Http: and https:]]
+		parser.each('url', function(token, index, parent) {
+			if (!token.is_bare) {
+				return;
+			}
+			return process_token(token, index, parent, URL);
+		}, true);
+
+		// -------------------------------------------------
 
 		if (has_new_dead_link) {
 			CeL.debug('[[' + title + ']]: 有新{{dead link}}，寫入新資料。', 0,
@@ -192,6 +217,8 @@ function for_each_page(page_data) {
 				bot : 1
 			});
 		}
+
+		// -------------------
 
 		var reporter = [];
 		for ( var URL in link_hash) {
@@ -228,6 +255,7 @@ function for_each_page(page_data) {
 
 	// Wayback Availability JSON API
 	// https://archive.org/help/wayback_api.php
+	// 短時間內call過多次(10次?)將503?
 	function check_archived(URL, status) {
 		CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
 		//
