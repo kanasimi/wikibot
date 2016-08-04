@@ -251,11 +251,12 @@ function for_each_page(page_data) {
 	}
 
 	function check_URL(URL) {
-		if ((URL in link_hash)
+		if (link_hash[URL]
 		// 去掉 port。
-		|| (URL.replace(':80/', '/') in link_hash)) {
+		|| link_hash[URL.replace(':80/', '/')]) {
 			CeL.debug('[[' + title + ']]: Skip: 已檢查過URL [' + URL + ']。', 0,
 					'check_URL');
+			console.log(link_hash);
 			return;
 		}
 		CeL.debug('[[' + title + ']]: 檢查URL → [' + URL + ']。', 0, 'check_URL');
