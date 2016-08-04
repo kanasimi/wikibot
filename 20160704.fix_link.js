@@ -144,9 +144,13 @@ function for_each_page(page_data) {
 			if (token.name !== 'Source') {
 				return;
 			}
-			if (!token.parameters.accessdate) {
-				// 以編輯時間自動添加 accessdate 參數。
-				token.push('accessdate=' + page_data.revisions[0].timestamp);
+			// 以編輯時間自動添加 accessdate 參數。
+			var stamp = 'accessdate=' + page_data.revisions[0].timestamp;
+			if (token.parameters.accessdate) {
+				// 更新 stamp。
+				// token[token.index_of.accessdate] = stamp;
+			} else {
+				token.push(stamp);
 			}
 			var URL = token.parameters.url;
 			if (is_NG(URL)) {
@@ -209,13 +213,15 @@ function for_each_page(page_data) {
 				if (data && (data = data.archived_snapshots.closest)
 						&& data.available && data.url) {
 					var archived_prefix = 'http://web.archive.org/web/';
-					if (data.url.startsWith(archived_prefix)) {
+					if (!data.url.startsWith(archived_prefix)) {
 						CeL.warn('check_archived: ' + URL
-								+ ': Does not starts with "' + archived_prefix
-								+ '".');
+								+ ': archived URL does not starts with "'
+								+ archived_prefix + '": ' + data.url + '.');
 					}
 					data.archived_url = data.url.between('web/').between('/');
-					if (data.archived_url !== URL) {
+					if (data.archived_url !== URL
+					// 可能自動加 port。
+					&& data.archived_url.replace(/:\d+\//, '/') !== URL) {
 						CeL.warn('check_archived: ' + URL + ' != ['
 								+ data.archived_url + '].');
 					}
