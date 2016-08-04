@@ -112,13 +112,16 @@ function for_each_page(page_data) {
 		}
 
 		function dead_link_text(token, URL) {
+			var archived = archived_data[URL];
 			return token.toString()
 			// [[Template:Dead link]]
 			+ '{{dead link|date=' + date_NOW
 			//
 			+ '|bot=' + user_name + '|status=' + link_hash[URL]
 			//
-			+ (archived_data[URL] ? '|url=' + URL : '|broken_url=' + URL
+			+ (archived ? '|url=' + archived.archived_url
+			//
+			: '|broken_url=' + URL
 			//
 			+ (URL in archived_data ? '|fix-attempted=' + date_NOW : ''))
 					+ '}}';
@@ -129,7 +132,7 @@ function for_each_page(page_data) {
 			var URL = token[0];
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
-				if (!dead_link_node) {
+				if (!(dead_link_node_index > 0)) {
 					return dead_link_text(token, URL);
 				}
 				// assert: 已處理過。
@@ -148,7 +151,7 @@ function for_each_page(page_data) {
 			var URL = token.parameters.url;
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
-				if (!dead_link_node) {
+				if (!(dead_link_node_index > 0)) {
 					return dead_link_text(token, URL);
 				}
 				// assert: 已處理過，有{{dead link}}。
@@ -204,7 +207,18 @@ function for_each_page(page_data) {
 			if (data.status == 200) {
 				data = JSON.parse(data.responseText);
 				if (data && (data = data.archived_snapshots.closest)
-						&& data.available) {
+						&& data.available && data.url) {
+					var archived_prefix = 'http://web.archive.org/web/';
+					if (data.url.startsWith(archived_prefix)) {
+						CeL.warn('check_archived: ' + URL
+								+ ': Does not starts with "' + archived_prefix
+								+ '".');
+					}
+					data.archived_url = data.url.between('web/').between('/');
+					if (data.archived_url !== URL) {
+						CeL.warn('check_archived: ' + URL + ' != ['
+								+ data.archived_url + '].');
+					}
 					archived_data[URL] = data;
 				} else {
 					// 經嘗試未能取得 snapshots。
