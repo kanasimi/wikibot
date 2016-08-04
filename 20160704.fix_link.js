@@ -149,7 +149,6 @@ function for_each_page(page_data) {
 		// -------------------
 
 		function process_token(token, index, parent, URL) {
-			var URL = token.toString();
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
 				if (!(dead_link_node_index > 0)) {
@@ -203,6 +202,7 @@ function for_each_page(page_data) {
 			if (!token.is_bare) {
 				return;
 			}
+			var URL = token.toString();
 			return process_token(token, index, parent, URL);
 		}, true);
 
