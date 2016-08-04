@@ -148,6 +148,8 @@ function for_each_page(page_data) {
 		// 處理 plain links: https:// @ wikitext
 		// @see [[w:en:Help:Link#Http: and https:]]
 
+		wiki.page(page_data).edit(parser.toString());
+
 		var reporter = [];
 		for ( var URL in link_hash) {
 			if (link_hash[URL] !== 200 && !processed[URL]) {
@@ -241,7 +243,7 @@ function for_each_page(page_data) {
 }
 
 function finish_work() {
-	;
+	CeL.info('finish_work: All page parsed.');
 }
 
 // Set the umask to share the xml dump file.
@@ -253,16 +255,22 @@ if (typeof process === 'object') {
 prepare_directory(base_directory);
 
 // CeL.set_debug(2);
-CeL.wiki.traversal({
-	// [SESSION_KEY]
-	session : wiki,
-	// cache path prefix
-	directory : base_directory,
-	// 指定 dump file 放置的 directory。
-	// dump_directory : bot_directory + 'dumps/',
-	dump_directory : dump_directory,
-	// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
-	// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
-	filter : true,
-	last : finish_work
-}, for_each_page);
+if (1) {
+	// for debug
+	wiki.page('Wikinews:沙盒', for_each_page);
+	finish_work();
+} else {
+	CeL.wiki.traversal({
+		// [SESSION_KEY]
+		session : wiki,
+		// cache path prefix
+		directory : base_directory,
+		// 指定 dump file 放置的 directory。
+		// dump_directory : bot_directory + 'dumps/',
+		dump_directory : dump_directory,
+		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
+		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
+		filter : true,
+		last : finish_work
+	}, for_each_page);
+}
