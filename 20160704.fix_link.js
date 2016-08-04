@@ -69,8 +69,16 @@ function for_each_page(page_data) {
 	PATTERN_URL_GLOBAL = /(?:https?:)?\/\/[^\s\|{}<>\[\]]+/ig;
 
 	while (matched = PATTERN_URL_GLOBAL.exec(content)) {
-		// register 登記
-		link_hash[matched[0]] = undefined;
+		var URL = matched[0];
+		// 去掉 port。
+		if (link_hash[URL.replace(':80/', '/')]) {
+			CeL.debug('[[' + title + ']]: Skip 已添加過之URL [' + URL + ']。', 0,
+					'for_each_page');
+			// console.log(link_hash);
+			return;
+		}
+		// register 登記 URL。
+		link_hash[URL] = undefined;
 	}
 
 	var link_list = Object.keys(link_hash), link_length = link_list.length;
@@ -251,14 +259,6 @@ function for_each_page(page_data) {
 	}
 
 	function check_URL(URL) {
-		if (link_hash[URL]
-		// 去掉 port。
-		|| link_hash[URL.replace(':80/', '/')]) {
-			CeL.debug('[[' + title + ']]: Skip: 已檢查過URL [' + URL + ']。', 0,
-					'check_URL');
-			console.log(link_hash);
-			return;
-		}
 		CeL.debug('[[' + title + ']]: 檢查URL → [' + URL + ']。', 0, 'check_URL');
 		CeL.get_URL(URL, function(data) {
 			if (typeof data !== 'object'
