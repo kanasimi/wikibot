@@ -119,10 +119,10 @@ function for_each_page(page_data) {
 			return -1;
 		}
 
-		var has_new_dead;
+		var has_new_dead_link;
 
 		function dead_link_text(token, URL) {
-			has_new_dead = true;
+			has_new_dead_link = true;
 			var archived = archived_data[URL];
 			return token.toString()
 			// [[Template:Dead link]]
@@ -148,7 +148,7 @@ function for_each_page(page_data) {
 				if (!(dead_link_node_index > 0)) {
 					return dead_link_text(token, URL);
 				}
-				// assert: 已處理過。
+				// assert: 已處理過，有{{dead link}}。
 			}
 		}, true);
 
@@ -167,7 +167,7 @@ function for_each_page(page_data) {
 			+ new Date(page_data.revisions[0].timestamp).format('%Y年%m月%d日');
 			if (token.parameters.accessdate) {
 				// 更新 stamp。
-				// token[token.index_of.accessdate] = stamp;
+				token[token.index_of.accessdate] = stamp;
 			} else {
 				token.push(stamp);
 			}
@@ -183,8 +183,9 @@ function for_each_page(page_data) {
 		// 處理 plain links: https:// @ wikitext
 		// @see [[w:en:Help:Link#Http: and https:]]
 
-		if (has_new_dead) {
-			// 有新東西({{dead link}})才寫入。
+		if (has_new_dead_link) {
+			CeL.debug('[[' + title + ']]: 有新{{dead link}}，寫入新資料。', 0,
+					'for_each_page');
 			wiki.page(page_data).edit(parser.toString(), {
 				summary : '檢查與維護外部連結',
 				nocreate : 1,
@@ -199,9 +200,9 @@ function for_each_page(page_data) {
 			}
 		}
 
-		if (reporter.length) {
+		if (reporter.length > 0) {
 			// CeL.log('-'.repeat(80));
-			CeL.log('; [[' + title + ']] 尚未處理之 URL');
+			CeL.log('; [[' + title + ']] 尚未處理之 URL:');
 			CeL.log(': ' + reporter.join(' '));
 		}
 	}
