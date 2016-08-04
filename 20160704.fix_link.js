@@ -19,6 +19,8 @@ require('./wiki loder.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
+//
+date_NOW = (new Date).format('%Y年%m月%d日'),
 // links[page_data.pageid][URL] = status/error
 links = CeL.null_Object(),
 // archived_data[URL] = return of archived
@@ -110,15 +112,16 @@ function for_each_page(page_data) {
 		}
 
 		function dead_link_text(token, URL) {
-			return token.toString() + '{{dead link|date='
+			return token.toString()
 			// [[Template:Dead link]]
-			+ (new Date).toISOString()
+			+ '{{dead link|date=' + date_NOW
 			//
 			+ '|bot=' + user_name + '|status=' + link_hash[URL]
 			//
-			+ (archived_data[URL] ? '|url='
+			+ (archived_data[URL] ? '|url=' + URL : '|broken_url=' + URL
 			//
-			+ archived_data[URL] : '|broken_url=' + URL) + '}}';
+			+ (URL in archived_data ? '|fix-attempted=' + date_NOW : ''))
+					+ '}}';
 		}
 
 		// 處理外部連結 external link [http://...]
@@ -203,6 +206,9 @@ function for_each_page(page_data) {
 				if (data && (data = data.archived_snapshots.closest)
 						&& data.available) {
 					archived_data[URL] = data;
+				} else {
+					// 經嘗試未能取得 snapshots。
+					archived_data[URL] = false;
 				}
 			}
 			register_URL_status(URL, status);
