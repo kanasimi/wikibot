@@ -162,7 +162,7 @@ function for_each_page(page_data) {
 
 		// 處理外部連結 external link [http://...]
 		parser.each('external link', function(token, index, parent) {
-			var URL = token[0];
+			var URL = token[0].toString();
 			return process_token(token, index, parent, URL);
 		}, true);
 
