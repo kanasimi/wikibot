@@ -75,10 +75,10 @@ function for_each_page(page_data) {
 			CeL.debug('[[' + title + ']]: Skip 已添加過之URL [' + URL + ']。', 0,
 					'for_each_page');
 			// console.log(link_hash);
-			return;
+		} else {
+			// register 登記 URL。
+			link_hash[URL] = undefined;
 		}
-		// register 登記 URL。
-		link_hash[URL] = undefined;
 	}
 
 	var link_list = Object.keys(link_hash), link_length = link_list.length;
