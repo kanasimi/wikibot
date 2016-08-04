@@ -24,7 +24,9 @@ date_NOW = (new Date).format('%Y年%m月%d日'),
 // links[page_data.pageid][URL] = status/error
 links = CeL.null_Object(),
 // archived_data[URL] = return of archived
-archived_data = CeL.null_Object();
+archived_data = CeL.null_Object(),
+// @see {{dead link}}
+archived_prefix = 'http://web.archive.org/web/';
 
 // ---------------------------------------------------------------------//
 
@@ -75,7 +77,8 @@ function for_each_page(page_data) {
 			CeL.debug('[[' + title + ']]: Skip 已添加過之URL [' + URL + ']。', 0,
 					'for_each_page');
 			// console.log(link_hash);
-		} else {
+		} else if (!URL.startsWith(archived_prefix)) {
+			// 跳過 cache URL。
 			// register 登記 URL。
 			link_hash[URL] = undefined;
 		}
@@ -257,6 +260,7 @@ function for_each_page(page_data) {
 	// https://archive.org/help/wayback_api.php
 	// 短時間內call過多次(10次?)將503?
 	function check_archived(URL, status) {
+		// 延遲 500 ms。
 		var need_lag = 500 - (Date.now() - check_archived.last_call);
 		if (need_lag > 0) {
 			setTimeout(function() {
@@ -275,7 +279,6 @@ function for_each_page(page_data) {
 				data = JSON.parse(data.responseText);
 				if (data && (data = data.archived_snapshots.closest)
 						&& data.available && data.url) {
-					var archived_prefix = 'http://web.archive.org/web/';
 					if (!data.url.startsWith(archived_prefix)) {
 						CeL.warn('check_archived: ' + URL
 								+ ': archived URL does not starts with "'
