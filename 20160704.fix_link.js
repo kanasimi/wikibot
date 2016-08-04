@@ -130,7 +130,9 @@ function for_each_page(page_data) {
 			//
 			+ '|bot=' + user_name + '|status=' + link_hash[URL]
 			//
-			+ (archived ? '|url=' + archived.archived_url
+			+ (archived ?
+			// + '|url=' + archived.archived_url
+			+'|cache_url=' + archived.url
 			//
 			: '|broken_url=' + URL
 			//
@@ -182,7 +184,11 @@ function for_each_page(page_data) {
 
 		if (has_new_dead) {
 			// 有新東西({{dead link}})才寫入。
-			wiki.page(page_data).edit(parser.toString());
+			wiki.page(page_data).edit(parser.toString(), {
+				summary : '檢查與維護外部連結',
+				nocreate : 1,
+				bot : 1
+			});
 		}
 
 		var reporter = [];
