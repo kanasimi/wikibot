@@ -71,7 +71,7 @@ function for_each_page(page_data) {
 	while (matched = PATTERN_URL_GLOBAL.exec(content)) {
 		var URL = matched[0];
 		// 去掉 port。
-		if (link_hash[URL.replace(':80/', '/')]) {
+		if (URL.replace(':80/', '/') in link_hash) {
 			CeL.debug('[[' + title + ']]: Skip 已添加過之URL [' + URL + ']。', 0,
 					'for_each_page');
 			// console.log(link_hash);
