@@ -20,7 +20,9 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 // links[page_data.pageid][URL] = status/error
-links = CeL.null_Object();
+links = CeL.null_Object(),
+// archived_data[URL] = return of archived
+archived_data = CeL.null_Object();
 
 // ---------------------------------------------------------------------//
 
@@ -110,8 +112,13 @@ function for_each_page(page_data) {
 		function dead_link_text(token, URL) {
 			return token.toString() + '{{dead link|date='
 			// [[Template:Dead link]]
-			+ (new Date).toISOString() + '|bot=' + user_name + '|status='
-					+ link_hash[URL] + '|url=' + URL + '}}';
+			+ (new Date).toISOString()
+			//
+			+ '|bot=' + user_name + '|status=' + link_hash[URL]
+			//
+			+ (archived_data[URL] ? '|url='
+			//
+			+ archived_data[URL] : '|broken_url=' + URL) + '}}';
 		}
 
 		// 處理外部連結 external link [http://...]
@@ -141,7 +148,7 @@ function for_each_page(page_data) {
 				if (!dead_link_node) {
 					return dead_link_text(token, URL);
 				}
-				// assert: 已處理過。
+				// assert: 已處理過，有{{dead link}}。
 			}
 		}, true);
 
@@ -183,6 +190,7 @@ function for_each_page(page_data) {
 		add_dead_link_mark();
 	}
 
+	// Wayback Availability JSON API
 	// https://archive.org/help/wayback_api.php
 	function check_archived(URL, status) {
 		CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
@@ -190,10 +198,12 @@ function for_each_page(page_data) {
 		function(data) {
 			CeL.debug(URL + ':', 0, 'check_archived');
 			console.log(data);
-			data = JSON.parse(data);
-			if (data.archived_snapshots.closest
-					&& data.archived_snapshots.closest.available) {
-				archived_snapshots[URL] = data;
+			if (data.status == 200) {
+				data = JSON.parse(data.responseText);
+				if (data && (data = data.archived_snapshots.closest)
+						&& data.available) {
+					archived_data[URL] = data;
+				}
 			}
 			register_URL_status(URL, status);
 		}, null, null, {
@@ -243,7 +253,7 @@ function for_each_page(page_data) {
 }
 
 function finish_work() {
-	CeL.info('finish_work: All page parsed.');
+	CeL.info('finish_work: All page parsed. Start checking URLs...');
 }
 
 // Set the umask to share the xml dump file.
