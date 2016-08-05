@@ -450,7 +450,9 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		return;
 	}
 
-	var count = 0, country, media;
+	var count = 0, country,
+	// paper
+	media;
 	news_content.replace(/<strong[^<>]*>(.*?)<\/strong>/g, function(item) {
 		// assert: "<strong>美國《紐約時報》頭條<br />報紙標題</strong>"
 		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
@@ -482,7 +484,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		}
 
 		count++;
-		add_headline(media, headline.replace(/[。\n]+$/, '')
+		add_headline(media, headline.replace(/[。\s\r\n]+$/, '')
 				+ (country ? ' ([[w:' + country + '|' + country + ']])' : ''),
 				publisher);
 
@@ -515,18 +517,20 @@ function parse_鉅亨網_headline(response, publisher) {
 	.slice(1).forEach(function(item) {
 		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
 		// 去掉所有 tags
-		.replace(/<\/?[a-z](?:[^<>]+)>/ig, '').trim();
+		.replace(/<\/?[a-z](?:[^<>]+)>/ig, '');
 		if (!item) {
 			return;
 		}
 
-		var paper = item[0].shift();
-		if (!paper) {
+		item = item.split(/[\r\n]+/);
+		// paper
+		var media = item.shift().trim();
+		if (!media) {
 			return;
 		}
 
 		item.forEach(function(headline) {
-			if (headline = headline.trim().replace(/[。\n]+$/, '')) {
+			if (headline = headline.trim().replace(/[。\s\r\n]+$/, '')) {
 				count++;
 				add_headline(media, headline, publisher);
 			}
@@ -586,7 +590,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 		count++;
 		add_headline(matched[1],
 		// 報紙標題。
-		matched[2].replace(/[。\n]+$/, ''), publisher);
+		matched[2].replace(/[。\s\r\n]+$/, ''), publisher);
 	});
 
 	// 照理來說經過 parse 就應該有東西。
@@ -604,7 +608,11 @@ function parse_中央社_headline(response, publisher) {
 		return;
 	}
 
-	var count = 0, paper, headline;
+	var count = 0,
+	// paper
+	media,
+	// 報紙標題。
+	headline;
 	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
 	//
 	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
@@ -615,9 +623,9 @@ function parse_中央社_headline(response, publisher) {
 		// 預防 7:00 之類，不加入 ":"。
 		var matched = item.match(/^([^～：]+)[～：](.+)$/);
 		if (matched) {
-			paper = matched[1];
+			media = matched[1];
 			headline = matched[2];
-		} else if (paper) {
+		} else if (media) {
 			headline = item;
 		} else {
 			CeL.err('parse_中央社_headline: Can not parse ['
@@ -627,9 +635,9 @@ function parse_中央社_headline(response, publisher) {
 		}
 
 		count++;
-		add_headline(paper.replace(/頭條/, ''),
+		add_headline(media.replace(/頭條/, ''),
 		// 報紙標題。
-		headline.replace(/[。\n]+$/, ''), publisher);
+		headline.replace(/[。\s\r\n]+$/, ''), publisher);
 	});
 
 	// 照理來說經過 parse 就應該有東西。
