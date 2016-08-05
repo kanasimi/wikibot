@@ -129,10 +129,10 @@ function for_each_page(page_data) {
 
 		// -------------------
 
-		var has_new_dead_link;
+		var dead_link_count = 0;
 
 		function dead_link_text(token, URL) {
-			has_new_dead_link = true;
+			dead_link_count++;
 			var archived = archived_data[URL];
 			return token.toString()
 			// [[Template:Dead link]]
@@ -189,6 +189,10 @@ function for_each_page(page_data) {
 				}
 				return;
 			}
+			if (!URL) {
+				CeL.warn('[[' + title + ']]: 未設定 URL: ' + token);
+				return;
+			}
 			var stamp = 'accessdate='
 			// 以編輯時間自動添加 accessdate 參數。
 			+ new Date(page_data.revisions[0].timestamp).format('%Y年%m月%d日');
@@ -215,11 +219,11 @@ function for_each_page(page_data) {
 
 		// -------------------------------------------------
 
-		if (has_new_dead_link) {
+		if (dead_link_count > 0) {
 			CeL.debug('[[' + title + ']]: 有新{{dead link}}，寫入新資料。', 0,
 					'for_each_page');
 			wiki.page(page_data).edit(parser.toString(), {
-				summary : '檢查與維護外部連結',
+				summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
 				nocreate : 1,
 				bot : 1
 			});
