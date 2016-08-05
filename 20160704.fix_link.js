@@ -31,10 +31,12 @@ archived_prefix = 'http://web.archive.org/web/';
 
 // ---------------------------------------------------------------------//
 
+// 延遲 time in ms。
+check_archive_site.lag_interval = 500;
+
 // Wayback Availability JSON API
 // https://archive.org/help/wayback_api.php
 // archive.org此API只能檢查是否有snapshot，不能製造snapshot。
-// 短時間內call過多次(10次?)將503?
 // callback(closest_snapshots, error);
 function check_archive_site(URL, callback) {
 	if (URL in archived_data) {
@@ -44,8 +46,8 @@ function check_archive_site(URL, callback) {
 	// 登記。
 	archived_data[URL] = undefined;
 
-	// 延遲 time in ms。
-	var need_lag = 2000 - (Date.now() - check_archive_site.last_call);
+	var need_lag = check_archive_site.lag_interval
+			- (Date.now() - check_archive_site.last_call);
 	if (need_lag > 0) {
 		setTimeout(function() {
 			CeL.debug('Wait ' + need_lag + ' ms...', 0, 'check_archive_site');
@@ -60,6 +62,17 @@ function check_archive_site(URL, callback) {
 	function(data) {
 		CeL.debug(URL + ':', 0, 'check_archive_site');
 		console.log(data);
+		// 短時間內call過多次(10次?)將503?
+		if (data.status === 503) {
+			need_lag = check_archive_site.lag_interval;
+			setTimeout(function() {
+				CeL.debug('Get 503. Wait ' + need_lag + ' ms...', 0,
+						'check_archive_site');
+				check_archive_site(URL, callback);
+			}, need_lag);
+			return;
+		}
+
 		if (data.status !== 200) {
 			callback(undefined, data);
 			return;
