@@ -31,6 +31,82 @@ archived_prefix = 'http://web.archive.org/web/';
 
 // ---------------------------------------------------------------------//
 
+// Wayback Availability JSON API
+// https://archive.org/help/wayback_api.php
+// archive.org此API只能檢查是否有snapshot，不能製造snapshot。
+// 短時間內call過多次(10次?)將503?
+// callback(closest_snapshots, error);
+function check_archive_site(URL, callback) {
+	if (URL in archived_data) {
+		callback(archived_data[URL]);
+		return;
+	}
+	// 登記。
+	archived_data[URL] = undefined;
+
+	// 延遲 time in ms。
+	var need_lag = 2000 - (Date.now() - check_archive_site.last_call);
+	if (need_lag > 0) {
+		setTimeout(function() {
+			CeL.debug('Wait ' + need_lag + ' ms...', 0, 'check_archive_site');
+			check_archive_site(URL, callback);
+		}, need_lag);
+		return;
+	}
+	check_archive_site.last_call = Date.now();
+
+	CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
+	//
+	function(data) {
+		CeL.debug(URL + ':', 0, 'check_archive_site');
+		console.log(data);
+		if (data.status !== 200) {
+			callback(undefined, data);
+			return;
+		}
+
+		data = JSON.parse(data.responseText);
+		if (!data || !(data = data.archived_snapshots.closest)
+				|| !data.available || !data.url) {
+			// 經嘗試未能取得 snapshots。
+			archived_data[URL] = false;
+			callback();
+			return;
+		}
+
+		if (!data.url.startsWith(archived_prefix)) {
+			CeL.warn('check_archive_site: ' + URL
+					+ ': archived URL does not starts with "' + archived_prefix
+					+ '": ' + data.url + '.');
+		}
+
+		var archived_url = data.archived_url = data.url.between('web/')
+				.between('/');
+		if (archived_url !== URL
+		// 可能自動加 port。
+		&& archived_url.replace(/:\d+\//, '/') !== URL
+		// 可能自動轉 https。
+		&& archived_url.replace('http://', 'https://') !== URL) {
+			CeL.warn('check_archive_site: [' + URL + '] != [' + archived_url
+					+ '].');
+		}
+
+		// 登記。
+		archived_data[URL] = data;
+		callback(data);
+
+	}, null, null, {
+		// use new agent
+		agent : true,
+		onfail : function(error) {
+			CeL.debug(URL + ': Error: ' + error, 0, 'check_archive_site');
+			callback(undefined, error);
+		}
+	});
+}
+
+// ---------------------------------------------------------------------//
+
 function for_each_page(page_data) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
@@ -87,7 +163,8 @@ function for_each_page(page_data) {
 
 	var link_list = Object.keys(link_hash), link_length = link_list.length;
 	if (link_length === 0) {
-		CeL.debug('[[' + title + ']]: 本頁面無 link。', 2, 'for_each_page');
+		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 0,
+				'for_each_page');
 		delete links[title];
 		return;
 	}
@@ -269,62 +346,6 @@ function for_each_page(page_data) {
 		add_dead_link_mark();
 	}
 
-	// Wayback Availability JSON API
-	// https://archive.org/help/wayback_api.php
-	// archive.org此API只能檢查是否有snapshot，不能製造snapshot。
-	// 短時間內call過多次(10次?)將503?
-	function check_archived(URL, status) {
-		// 延遲 500 ms。
-		var need_lag = 500 - (Date.now() - check_archived.last_call);
-		if (need_lag > 0) {
-			setTimeout(function() {
-				check_archived(URL, status);
-			}, need_lag);
-			return;
-		}
-		check_archived.last_call = Date.now();
-
-		CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
-		//
-		function(data) {
-			CeL.debug(URL + ':', 0, 'check_archived');
-			console.log(data);
-			if (data.status == 200) {
-				data = JSON.parse(data.responseText);
-				if (data && (data = data.archived_snapshots.closest)
-						&& data.available && data.url) {
-					if (!data.url.startsWith(archived_prefix)) {
-						CeL.warn('check_archived: ' + URL
-								+ ': archived URL does not starts with "'
-								+ archived_prefix + '": ' + data.url + '.');
-					}
-					var archived_url = data.archived_url = data.url.between(
-							'web/').between('/');
-					if (archived_url !== URL
-					// 可能自動加 port。
-					&& archived_url.replace(/:\d+\//, '/') !== URL
-					// 可能自動轉 https。
-					&& archived_url.replace('http://', 'https://') !== URL) {
-						CeL.warn('check_archived: [' + URL + '] != ['
-								+ archived_url + '].');
-					}
-					archived_data[URL] = data;
-				} else {
-					// 經嘗試未能取得 snapshots。
-					archived_data[URL] = false;
-				}
-			}
-			register_URL_status(URL, status);
-		}, null, null, {
-			// use new agent
-			agent : true,
-			onfail : function(error) {
-				CeL.debug(URL + ': Error: ' + error, 0, 'check_archived');
-				register_URL_status(URL, status);
-			}
-		});
-	}
-
 	function check_URL(URL) {
 		CeL.debug('[[' + title + ']]: 檢查URL → [' + URL + ']。', 0, 'check_URL');
 		CeL.get_URL(URL, function(data) {
@@ -342,7 +363,9 @@ function for_each_page(page_data) {
 				has_error = true;
 			}
 			if (has_error) {
-				check_archived(URL, status);
+				check_archive_site(URL, function(closest_snapshots, error) {
+					register_URL_status(URL, status);
+				});
 			} else {
 				register_URL_status(URL, status);
 			}
@@ -351,7 +374,9 @@ function for_each_page(page_data) {
 			// use new agent
 			agent : true,
 			onfail : function(error) {
-				check_archived(URL, error);
+				check_archive_site(URL, function(closest_snapshots) {
+					register_URL_status(URL, error);
+				});
 			}
 		});
 	}
@@ -378,7 +403,7 @@ if (typeof process === 'object') {
 prepare_directory(base_directory);
 
 // CeL.set_debug(2);
-if (1) {
+if (0) {
 	// for debug
 	wiki.page(
 	// 'Wikinews:沙盒'
