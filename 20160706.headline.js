@@ -501,7 +501,7 @@ function parse_鉅亨網_headline(response, publisher) {
 	}
 	news_content = news_content.between(null, '</div>');
 
-	if (!news_content || !/<strong>\s*■/.test(news_content.includes)
+	if (!news_content || !/<strong>\s*■/.test(news_content)
 			|| !news_content.includes('日報') || !news_content.includes('時報')) {
 		CeL.err('parse_鉅亨網_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
@@ -706,6 +706,8 @@ function check_headline_data(labels_to_check) {
 					if (!parse_error_label_list) {
 						parse_error_label_list = CeL.null_Object();
 					}
+					CeL.debug('Parse [' + label + '] (' + url + '): ' + e, 0,
+							'next_label');
 					parse_error_label_list[label + '_' + index] = e;
 				}
 
