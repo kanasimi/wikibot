@@ -494,7 +494,12 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 }
 
 function parse_鉅亨網_headline(response, publisher) {
-	var news_content = response.between('id="newsText"', '</div>').between('>');
+	var news_content = response.between('id="newsText"');
+	if (news_content.includes('chinayes')) {
+		// http://news.chinayes.com
+		news_content = news_content.between('chinayes').between('</div>');
+	}
+	news_content = news_content.between(null, '</div>');
 
 	if (!news_content || !/<strong>\s*■/.test(news_content.includes)
 			|| !news_content.includes('日報') || !news_content.includes('時報')) {
