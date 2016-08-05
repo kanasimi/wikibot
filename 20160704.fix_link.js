@@ -25,7 +25,8 @@ date_NOW = (new Date).format('%Y年%m月%d日'),
 links = CeL.null_Object(),
 // archived_data[URL] = return of archived
 archived_data = CeL.null_Object(),
-// @see {{dead link}}
+// @see {{dead link}}, [[w:en:Archive site]]
+// http://www.webcitation.org/archive
 archived_prefix = 'http://web.archive.org/web/';
 
 // ---------------------------------------------------------------------//
@@ -138,13 +139,16 @@ function for_each_page(page_data) {
 			+ '{{dead link|date=' + date_NOW
 			//
 			+ '|bot=' + user_name + '|status=' + link_hash[URL]
-			// 允許 cache_url 以直接連到最近的 cached snapshots。
+			// 允許 archiveurl 以直接連到最近的 cached snapshots，
+			// 且 archiveurl 不限於 web.archive.org。
 			+ (archived ?
 			// '|url=' + archived.archived_url +
-			'|cache_url=' + archived.url
+			// @see 'archiveurl' or 'archive-url':
+			// 與[[w:en:Module:Citation/CS1/Configuration]]同步
+			'|archiveurl=' + archived.url
 			//
 			: '|broken_url=' + URL
-			//
+			// archive site 中確定沒資料的，表示沒救了。永久失效連結。
 			+ (URL in archived_data ? '|fix-attempted=' + date_NOW : ''))
 					+ '}}';
 		}
@@ -258,6 +262,7 @@ function for_each_page(page_data) {
 
 	// Wayback Availability JSON API
 	// https://archive.org/help/wayback_api.php
+	// archive.org此API只能檢查是否有snapshot，不能製造snapshot。
 	// 短時間內call過多次(10次?)將503?
 	function check_archived(URL, status) {
 		// 延遲 500 ms。
