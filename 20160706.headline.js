@@ -604,7 +604,7 @@ function parse_中央社_headline(response, publisher) {
 		return;
 	}
 
-	var count = 0;
+	var count = 0, paper, headline;
 	news_content.between('頭條新聞標題如下：').replace(/<br[^<>]*>/ig, '\n')
 	//
 	.replace(/<[^<>]*>/g, '').split(/[\r\n]+/).forEach(function(item) {
@@ -614,7 +614,12 @@ function parse_中央社_headline(response, publisher) {
 		}
 		// 預防 7:00 之類，不加入 ":"。
 		var matched = item.match(/^([^～：]+)[～：](.+)$/);
-		if (!matched) {
+		if (matched) {
+			paper = matched[1];
+			headline = matched[2];
+		} else if (paper) {
+			headline = item;
+		} else {
 			CeL.err('parse_中央社_headline: Can not parse ['
 			//
 			+ publisher + ']: [' + item + ']');
@@ -622,9 +627,9 @@ function parse_中央社_headline(response, publisher) {
 		}
 
 		count++;
-		add_headline(matched[1].replace(/頭條/, ''),
+		add_headline(paper.replace(/頭條/, ''),
 		// 報紙標題。
-		matched[2].replace(/[。\n]+$/, ''), publisher);
+		headline.replace(/[。\n]+$/, ''), publisher);
 	});
 
 	// 照理來說經過 parse 就應該有東西。
