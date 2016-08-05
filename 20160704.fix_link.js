@@ -49,8 +49,8 @@ function check_archive_site(URL, callback) {
 	var need_lag = check_archive_site.lag_interval
 			- (Date.now() - check_archive_site.last_call);
 	if (need_lag > 0) {
+		CeL.debug('Wait ' + need_lag + ' ms...', 0, 'check_archive_site');
 		setTimeout(function() {
-			CeL.debug('Wait ' + need_lag + ' ms...', 0, 'check_archive_site');
 			check_archive_site(URL, callback);
 		}, need_lag);
 		return;
@@ -65,9 +65,9 @@ function check_archive_site(URL, callback) {
 		// 短時間內call過多次(10次?)將503?
 		if (data.status === 503) {
 			need_lag = check_archive_site.lag_interval;
+			CeL.debug('Get status '+data.status+'. Wait ' + need_lag + ' ms...', 0,
+					'check_archive_site');
 			setTimeout(function() {
-				CeL.debug('Get 503. Wait ' + need_lag + ' ms...', 0,
-						'check_archive_site');
 				check_archive_site(URL, callback);
 			}, need_lag);
 			return;
@@ -251,12 +251,12 @@ function for_each_page(page_data) {
 		function process_token(token, index, parent, URL) {
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
+				CeL.debug('[[' + title
+						+ ']]: assert: 已處理過，'+(dead_link_node_index > 0?'  有  ':'**無**')+'{{dead link}}: index ' + index
+						+ '⇒' + dead_link_node_index + '。' + token, 0, 'process_token');
 				if (!(dead_link_node_index > 0)) {
 					return dead_link_text(token, URL);
 				}
-				CeL.debug('[[' + title
-						+ ']]: assert: 已處理過，有{{dead link}}: index ' + index
-						+ '⇒' + dead_link_node_index + '。', 0, 'process_token');
 			}
 		}
 
@@ -315,12 +315,15 @@ function for_each_page(page_data) {
 		// -------------------------------------------------
 
 		if (dead_link_count > 0) {
-			CeL.debug('[[' + title + ']]: 有新{{dead link}}，寫入新資料。', 0,
+			CeL.debug('[[' + title + ']]: 有'+dead_link_count+'個新{{dead link}}，將寫入新資料。', 0,
 					'for_each_page');
 			wiki.page(page_data).edit(parser.toString(), {
 				summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
 				nocreate : 1,
 				bot : 1
+			},function(){
+				CeL.debug('[[' + title + ']]: 已寫入'+dead_link_count+'個新{{dead link}}之資料。', 0,
+						'for_each_page');
 			});
 		}
 
@@ -355,7 +358,7 @@ function for_each_page(page_data) {
 			return;
 		}
 
-		CeL.debug('[[' + title + ']]: 已檢查過本頁所有URL。', 0, 'register_URL_status');
+		CeL.debug('[[' + title + ']]: 已檢查過本頁所有 URL 與 archive site。開始添加{{dead link}}。', 0, 'register_URL_status');
 		add_dead_link_mark();
 	}
 
@@ -412,8 +415,8 @@ if (typeof process === 'object') {
 	process.umask(parseInt('0022', 8));
 }
 
-// prepare_directory(base_directory, true);
-prepare_directory(base_directory);
+prepare_directory(base_directory, true);
+// prepare_directory(base_directory);
 
 // CeL.set_debug(2);
 if (0) {
