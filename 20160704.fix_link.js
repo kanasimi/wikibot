@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20160704.fix_link.js
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20160704.fix_link.js; date) >> ../cron-tools.cewbot-20160704.fix_link.out &
 
 /*
 
@@ -114,10 +114,13 @@ function for_each_page(page_data) {
 		// assert: {{dead link}} 必須與原node在同一階層上，剛好在正後面！
 		// token_index
 		function get_dead_link_node(index, parent) {
+			// 往後找。
 			while (++index < parent.length) {
-				if (parent[index].type) {
-					if (parent[index].type === 'transclusion'
-							&& parent[index].name === 'Dead link') {
+				var token = parent[index];
+				// 跳過純文字(wikitext)
+				if (token.type) {
+					if (token.type === 'transclusion'
+							&& token.name === 'Dead link') {
 						return index;
 					}
 					break;
@@ -161,7 +164,9 @@ function for_each_page(page_data) {
 				if (!(dead_link_node_index > 0)) {
 					return dead_link_text(token, URL);
 				}
-				// assert: 已處理過，有{{dead link}}。
+				CeL.debug('[[' + title
+						+ ']]: assert: 已處理過，有{{dead link}}: index ' + index
+						+ '⇒' + dead_link_node_index + '。', 0, 'process_token');
 			}
 		}
 
@@ -373,9 +378,13 @@ if (typeof process === 'object') {
 prepare_directory(base_directory);
 
 // CeL.set_debug(2);
-if (0) {
+if (1) {
 	// for debug
-	wiki.page('Wikinews:沙盒', for_each_page);
+	wiki.page(
+	// 'Wikinews:沙盒'
+	'EDWIN與CUELLO遭統一獅隊解約'
+	//
+	, for_each_page);
 	finish_work();
 } else {
 	CeL.wiki.traversal({
