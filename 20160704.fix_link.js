@@ -284,12 +284,15 @@ function for_each_page(page_data) {
 								+ ': archived URL does not starts with "'
 								+ archived_prefix + '": ' + data.url + '.');
 					}
-					data.archived_url = data.url.between('web/').between('/');
-					if (data.archived_url !== URL
+					var archived_url = data.archived_url = data.url.between(
+							'web/').between('/');
+					if (archived_url !== URL
 					// 可能自動加 port。
-					&& data.archived_url.replace(/:\d+\//, '/') !== URL) {
-						CeL.warn('check_archived: ' + URL + ' != ['
-								+ data.archived_url + '].');
+					&& archived_url.replace(/:\d+\//, '/') !== URL
+					// 可能自動轉 https。
+					&& archived_url.replace('http://', 'https://') !== URL) {
+						CeL.warn('check_archived: [' + URL + '] != ['
+								+ archived_url + '].');
 					}
 					archived_data[URL] = data;
 				} else {

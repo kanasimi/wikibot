@@ -493,6 +493,45 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 	return count;
 }
 
+function parse_鉅亨網_headline(response, publisher) {
+	var news_content = response.between('id="newsText"', '</div>').between('>');
+
+	if (!news_content || !/<strong>\s*■/.test(news_content.includes)
+			|| !news_content.includes('日報') || !news_content.includes('時報')) {
+		CeL.err('parse_鉅亨網_headline: Can not parse [' + publisher + ']!');
+		CeL.log('parsed: ' + JSON.stringify(news_content));
+		CeL.warn(JSON.stringify(response));
+		return;
+	}
+
+	var count = 0;
+	news_content.split(/<strong>\s*■/)
+	// [0] 為評論
+	.slice(1).forEach(function(item) {
+		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
+		// 去掉所有 tags
+		.replace(/<\/?[a-z](?:[^<>]+)>/ig, '').trim();
+		if (!item) {
+			return;
+		}
+
+		var paper = item[0].shift();
+		if (!paper) {
+			return;
+		}
+
+		item.forEach(function(headline) {
+			if (headline = headline.trim().replace(/[。\n]+$/, '')) {
+				count++;
+				add_headline(media, headline, publisher);
+			}
+		});
+	});
+
+	// 照理來說經過 parse 就應該有東西。
+	return count;
+}
+
 // TODO: CNML格式
 function parse_中國評論新聞_headline(response, publisher) {
 	CeL.debug('test 移動版。', 0, 'parse_中國評論新聞_headline');
@@ -591,6 +630,8 @@ var parse_headline = {
 	'橙新聞' : parse_橙新聞_headline,
 
 	'蘋果日報 (台灣)' : parse_臺灣蘋果日報_headline,
+
+	'鉅亨網' : parse_鉅亨網_headline,
 
 	'中國評論通訊社' : parse_中國評論新聞_headline,
 
