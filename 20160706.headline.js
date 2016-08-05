@@ -612,7 +612,8 @@ function parse_中央社_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
-		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
+		// 預防 7:00 之類，不加入 ":"。
+		var matched = item.match(/^([^～：]+)[～：](.+)$/);
 		if (!matched) {
 			CeL.err('parse_中央社_headline: Can not parse ['
 			//
