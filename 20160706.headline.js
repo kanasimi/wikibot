@@ -457,7 +457,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		// assert: "<strong>美國《紐約時報》頭條<br />報紙標題</strong>"
 		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
 		// 去掉所有 tags
-		.replace(/<\/?[a-z](?:[^<>]+)>/ig, '').trim();
+		.replace(/<\/?[a-z][^<>]*>/ig, '').trim();
 		if (!item) {
 			return;
 		}
@@ -517,7 +517,7 @@ function parse_鉅亨網_headline(response, publisher) {
 	.slice(1).forEach(function(item) {
 		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
 		// 去掉所有 tags
-		.replace(/<\/?[a-z](?:[^<>]+)>/ig, '');
+		.replace(/<\/?[a-z][^<>]*>/ig, '');
 		if (!item) {
 			return;
 		}
@@ -571,7 +571,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 
 	news_content = news_content.replace(/<br(?:[^<>]+)>/ig, '\n')
 	// 去掉所有 tags
-	.replace(/<\/?[a-z](?:[^<>]+)>/ig, '');
+	.replace(/<\/?[a-z][^<>]*>/ig, '');
 
 	var count = 0;
 	news_content.split(/[\r\n]{2,}/).forEach(function(item) {
