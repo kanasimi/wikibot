@@ -33,7 +33,7 @@ date_NOW = (new Date).format('%Y年%m月%d日'),
 status_is_OK = CeL.application.net.archive.status_is_OK,
 
 check_URL = CeL.application.net.archive.check_URL,
-/** {Object}check_URL.link_status[URL] = status/error */
+/** {Object}check_URL.link_status[normalized_URL] = status/error */
 link_status = check_URL.link_status,
 
 archive_org = CeL.application.net.archive.archive_org,
@@ -57,6 +57,7 @@ CeL.nodejs.fs_mkdir(cache_directory);
 
 function get_status() {
 	CeL.log('get_URL.status: ' + JSON.stringify(CeL.get_URL.get_status())
+			+ '. page left: ' + parse_page_left + '→' + process_page_left
 			+ '. wiki.actions.length = ' + wiki.actions.length
 			+ ', wiki.running = ' + wiki.running + ':');
 	if (wiki.actions.length > 0) {
@@ -97,6 +98,8 @@ function finish_work() {
 
 // ---------------------------------------------------------------------//
 
+var parse_page_left = 0;
+
 function for_each_page(page_data) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
@@ -119,6 +122,8 @@ function for_each_page(page_data) {
 	}
 
 	// -------------------------------------------------
+
+	parse_page_left++;
 
 	var matched, link_hash = CeL.null_Object(),
 	/**
@@ -154,6 +159,7 @@ function for_each_page(page_data) {
 	link_list.forEach(function(URL) {
 		check_URL(URL, function(link_status, cached_data) {
 			if (--links_left === 0) {
+				parse_page_left--;
 				add_dead_link_mark(page_data, link_hash);
 			} else {
 				CeL.debug('[[' + title + ']]: left ' + links_left + ' [' + URL
@@ -203,12 +209,15 @@ function get_dead_link_node(index, parent) {
 // -------------------
 
 function dead_link_text(token, URL, normalized_URL) {
-	var archived = archived_data[normalized_URL][0];
+	var archived = archived_data[normalized_URL];
+	if (archived) {
+		archived = archived[0];
+	}
 	return token.toString()
 	// [[Template:Dead link]]
 	+ '{{dead link|date=' + date_NOW
 	//
-	+ '|bot=' + user_name + '|status=' + link_status[URL]
+	+ '|bot=' + user_name + '|status=' + link_status[normalized_URL]
 	// 允許 archiveurl 以直接連到最近的 cached snapshots，
 	// 且 archiveurl 不限於 web.archive.org。
 	+ (archived ?
@@ -225,7 +234,10 @@ function dead_link_text(token, URL, normalized_URL) {
 
 // -------------------
 
+var process_page_left = 0;
+
 function add_dead_link_mark(page_data, link_hash) {
+	process_page_left++;
 
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
@@ -248,6 +260,7 @@ function add_dead_link_mark(page_data, link_hash) {
 				throw new Error(message);
 			}
 			CeL.warn(message);
+			return;
 		}
 
 		if (status_is_OK(link_status[normalized_URL])) {
@@ -333,8 +346,8 @@ function add_dead_link_mark(page_data, link_hash) {
 
 	var reporter = [];
 	for ( var URL in link_hash) {
-		if (!status_is_OK(link_status[URL])) {
-			var normalized_URL = check_URL.normalize_URL(URL);
+		var normalized_URL = check_URL.normalize_URL(URL);
+		if (!status_is_OK(link_status[normalized_URL])) {
 			reporter.push('[' + URL + ' '
 					+ (link_status[normalized_URL] || 'no status') + ']');
 		}
@@ -360,6 +373,7 @@ function add_dead_link_mark(page_data, link_hash) {
 		nocreate : 1,
 		bot : 1
 	}, function(page_data, error, result) {
+		process_page_left--;
 		if (error) {
 			console.error(error);
 			console.trace('[[' + title + ']]: error');
