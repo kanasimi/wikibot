@@ -331,26 +331,31 @@ function for_each_page(page_data) {
 
 		// -------------------
 
-		CeL.debug('[[' + title + ']]: 有' + dead_link_count
-				+ '個新{{dead link}}，將' + (dead_link_count > 0 ? '' : '**不**')
-				+ '寫入新資料。', 0, 'for_each_page');
+		CeL.debug(
+				'[[' + title + ']]: 有' + dead_link_count + '個新{{dead link}}。',
+				0, 'for_each_page');
 
-		if (dead_link_count > 0) {
-			wiki.page(page_data).edit(parser.toString(), {
-				summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
-				nocreate : 1,
-				bot : 1
-			}, function(page_data, error, result) {
-				if (error) {
-					console.error(error);
-					console.trace('[[' + title + ']]: error');
-				} else {
-					CeL.debug('[[' + title + ']]: 已寫入' + dead_link_count
-					//
-					+ '個新{{dead link}}之資料。', 0, 'for_each_page');
-				}
-			});
+		if (!(dead_link_count > 0)) {
+			return;
 		}
+
+		wiki.page(page_data).edit(parser.toString(), {
+			summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
+			nocreate : 1,
+			bot : 1
+		}, function(page_data, error, result) {
+			if (error) {
+				console.error(error);
+				console.trace('[[' + title + ']]: error');
+			} else {
+				CeL.debug('[[' + title + ']]: 已寫入' + dead_link_count
+				//
+				+ '個新{{dead link}}之資料。', 0, 'for_each_page');
+			}
+		});
+		CeL.debug('[[' + title + ']]: 將' + (dead_link_count > 0 ? '' : '**不**')
+				+ '寫入新資料。 actions.length = ' + wiki.actions.length + ', '
+				+ wiki.running, 0, 'for_each_page');
 	}
 
 	function register_URL_status(URL, status) {
