@@ -18,11 +18,17 @@ CeL.run('application.net.archive');
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // set_language('ja');
 
+var dns = require('dns');
+// 短時間內 request 過多 host names 會造成 Tool Labs 常常 getaddrinfo ENOTFOUND。
+dns.setServers(dns.getServers().append([ '8.8.8.8', '8.8.4.4' ]));
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
 date_NOW = (new Date).format('%Y年%m月%d日'),
+
+status_is_OK = CeL.application.net.archive.status_is_OK,
 
 check_URL = CeL.application.net.archive.check_URL,
 /** {Object}check_URL.link_status[URL] = status/error */
@@ -116,7 +122,7 @@ function for_each_page(page_data) {
 	while (matched = PATTERN_URL_GLOBAL.exec(content)) {
 		var URL = matched[0];
 		// 跳過 cache URL。
-		if (!URL.startsWith(archived_prefix)) {
+		if (!URL.startsWith(archived_prefix) && URL.includes('//')) {
 			// register 登記 URL。
 			link_hash[URL] = true;
 		}
@@ -136,6 +142,12 @@ function for_each_page(page_data) {
 			} else {
 				CeL.debug('[[' + title + ']]: left ' + links_left + ' [' + URL
 						+ ']: ' + link_status + '。', 0, 'for_each_page');
+			}
+		}, {
+			constent_processor : function(HTML, URL, status) {
+				var matched = decodeURI(URL).replace(/#.*/g, '').replace(
+						/[\\\/:*?"<>|]/g, '_');
+				CeL.nodejs.fs_write(base_directory + URL.replace);
 			}
 		});
 	});
@@ -170,8 +182,8 @@ function get_dead_link_node(index, parent) {
 
 // -------------------
 
-function dead_link_text(token, URL) {
-	var archived = archived_data[URL][0];
+function dead_link_text(token, URL, normalized_URL) {
+	var archived = archived_data[normalized_URL][0];
 	return token.toString()
 	// [[Template:Dead link]]
 	+ '{{dead link|date=' + date_NOW
@@ -187,7 +199,8 @@ function dead_link_text(token, URL) {
 	//
 	: '|broken_url=' + URL
 	// archive site 中確定沒資料的，表示沒救了。永久失效連結。
-	+ (URL in archived_data ? '|fix-attempted=' + date_NOW : '')) + '}}';
+	+ (normalized_URL in archived_data ? '|fix-attempted=' + date_NOW : ''))
+			+ '}}';
 }
 
 // -------------------
@@ -200,16 +213,20 @@ function add_dead_link_mark(page_data, link_hash) {
 	dead_link_count = 0;
 
 	function process_token(token, index, parent, URL) {
-		URL = URL.toString();
+		var normalized_URL = check_URL.normalize_URL(URL);
 		// 登記已處理過或無須處理之URL。
-		delete link_hash[URL];
+		delete link_hash[normalized_URL];
 
-		if (!(URL in link_status)) {
+		if (!normalized_URL.includes('//')) {
+			return;
+		}
+
+		if (!(normalized_URL in link_status)) {
 			throw new Error('process_token: [[' + title + ']]: 沒處理到的 URL ['
 					+ URL + ']');
 		}
 
-		if (status_is_OK(link_status[URL])) {
+		if (status_is_OK(link_status[normalized_URL])) {
 			return;
 		}
 
@@ -221,7 +238,7 @@ function add_dead_link_mark(page_data, link_hash) {
 
 		if (!(dead_link_node_index > 0)) {
 			dead_link_count++;
-			return dead_link_text(token, URL);
+			return dead_link_text(token, URL, normalized_URL);
 		}
 	}
 
