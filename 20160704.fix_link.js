@@ -31,7 +31,7 @@ archived_prefix = 'http://web.archive.org/web/';
 
 // ---------------------------------------------------------------------//
 
-// 延遲 time in ms。
+/** {Natural} 延遲 time in ms。 */
 check_archive_site.lag_interval = 500;
 
 // Wayback Availability JSON API
@@ -65,8 +65,8 @@ function check_archive_site(URL, callback) {
 		// 短時間內call過多次(10次?)將503?
 		if (data.status === 503) {
 			need_lag = check_archive_site.lag_interval;
-			CeL.debug('Get status '+data.status+'. Wait ' + need_lag + ' ms...', 0,
-					'check_archive_site');
+			CeL.debug('Get status ' + data.status + '. Wait ' + need_lag
+					+ ' ms...', 0, 'check_archive_site');
 			setTimeout(function() {
 				check_archive_site(URL, callback);
 			}, need_lag);
@@ -251,9 +251,11 @@ function for_each_page(page_data) {
 		function process_token(token, index, parent, URL) {
 			if (is_NG(URL)) {
 				var dead_link_node_index = get_dead_link_node(index, parent);
-				CeL.debug('[[' + title
-						+ ']]: assert: 已處理過，'+(dead_link_node_index > 0?'  有  ':'**無**')+'{{dead link}}: index ' + index
-						+ '⇒' + dead_link_node_index + '。' + token, 0, 'process_token');
+				CeL.debug('[[' + title + ']]: assert: 已處理過，'
+						+ (dead_link_node_index > 0 ? '  有  ' : '**無**')
+						+ '{{dead link}}: index ' + index + '⇒'
+						+ dead_link_node_index + '。' + token, 0,
+						'process_token');
 				if (!(dead_link_node_index > 0)) {
 					return dead_link_text(token, URL);
 				}
@@ -314,21 +316,6 @@ function for_each_page(page_data) {
 
 		// -------------------------------------------------
 
-		if (dead_link_count > 0) {
-			CeL.debug('[[' + title + ']]: 有'+dead_link_count+'個新{{dead link}}，將寫入新資料。', 0,
-					'for_each_page');
-			wiki.page(page_data).edit(parser.toString(), {
-				summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
-				nocreate : 1,
-				bot : 1
-			},function(){
-				CeL.debug('[[' + title + ']]: 已寫入'+dead_link_count+'個新{{dead link}}之資料。', 0,
-						'for_each_page');
-			});
-		}
-
-		// -------------------
-
 		var reporter = [];
 		for ( var URL in link_hash) {
 			if (link_hash[URL] !== 200 && !processed[URL]) {
@@ -340,6 +327,29 @@ function for_each_page(page_data) {
 			// CeL.log('-'.repeat(80));
 			CeL.log('; [[' + title + ']] 尚未處理之 URL:');
 			CeL.log(': ' + reporter.join(' '));
+		}
+
+		// -------------------
+
+		CeL.debug('[[' + title + ']]: 有' + dead_link_count
+				+ '個新{{dead link}}，將' + (dead_link_count > 0 ? '' : '**不**')
+				+ '寫入新資料。', 0, 'for_each_page');
+
+		if (dead_link_count > 0) {
+			wiki.page(page_data).edit(parser.toString(), {
+				summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
+				nocreate : 1,
+				bot : 1
+			}, function(page_data, error, result) {
+				if (error) {
+					console.error(error);
+					console.trace('[[' + title + ']]: error');
+				} else {
+					CeL.debug('[[' + title + ']]: 已寫入' + dead_link_count
+					//
+					+ '個新{{dead link}}之資料。', 0, 'for_each_page');
+				}
+			});
 		}
 	}
 
@@ -358,7 +368,9 @@ function for_each_page(page_data) {
 			return;
 		}
 
-		CeL.debug('[[' + title + ']]: 已檢查過本頁所有 URL 與 archive site。開始添加{{dead link}}。', 0, 'register_URL_status');
+		CeL.debug('[[' + title
+				+ ']]: 已檢查過本頁所有 URL 與 archive site。開始添加{{dead link}}。', 0,
+				'register_URL_status');
 		add_dead_link_mark();
 	}
 
@@ -406,9 +418,13 @@ function for_each_page(page_data) {
 	}, 20);
 }
 
+// ---------------------------------------------------------------------//
+
 function finish_work() {
 	CeL.info('finish_work: All page parsed. Start checking URLs...');
 }
+
+// ---------------------------------------------------------------------//
 
 // Set the umask to share the xml dump file.
 if (typeof process === 'object') {
@@ -421,11 +437,7 @@ prepare_directory(base_directory, true);
 // CeL.set_debug(2);
 if (0) {
 	// for debug
-	wiki.page(
-	// 'Wikinews:沙盒'
-	'EDWIN與CUELLO遭統一獅隊解約'
-	//
-	, for_each_page);
+	wiki.page('Wikinews:沙盒' || '', for_each_page);
 	finish_work();
 } else {
 	CeL.wiki.traversal({
