@@ -55,11 +55,16 @@ prepare_directory(base_directory, true);
 
 CeL.nodejs.fs_mkdir(cache_directory);
 
+get_status.count = 0;
 function get_status() {
-	CeL.log('get_URL.status: ' + JSON.stringify(CeL.get_URL.get_status())
-			+ '. page left: ' + parse_page_left + '||' + process_page_left
+	CeL.debug('#' + ++get_status.count + ' '
+			+ JSON.stringify(CeL.get_URL.get_status())
+			//
+			+ '. page left: ' + parse_page_left + '+' + process_page_left + '+'
+			+ waiting_write_page_left
+			//
 			+ '. wiki.actions.length = ' + wiki.actions.length
-			+ ', wiki.running = ' + wiki.running + ':');
+			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_URL.status');
 	if (wiki.actions.length > 0) {
 		console.log(wiki.actions.slice(0, 2));
 	}
@@ -178,11 +183,13 @@ function for_each_page(page_data) {
 		});
 	});
 
-	var parser = CeL.wiki.parser(page_data);
-	// 趁 check_URL(URL) 的閒置時 parse。
-	setTimeout(function() {
-		parser.parse();
-	}, 20);
+	if (false) {
+		var parser = CeL.wiki.parser(page_data);
+		// 趁 check_URL(URL) 的閒置時 parse。
+		setTimeout(function() {
+			parser.parse();
+		}, 20);
+	}
 }
 
 // ---------------------------------------------------------------------//
@@ -234,9 +241,10 @@ function dead_link_text(token, URL, normalized_URL) {
 
 // -------------------
 
-var process_page_left = 0;
+var process_page_left = 0, waiting_write_page_left = 0;
 
 function add_dead_link_mark(page_data, link_hash) {
+	// post-process of page
 	process_page_left++;
 
 	/** {String}page title = page_data.title */
@@ -363,7 +371,7 @@ function add_dead_link_mark(page_data, link_hash) {
 	// -------------------
 
 	CeL.debug('[[' + title + ']]: 有' + dead_link_count + '個新{{dead link}}。', 1,
-			'for_each_page');
+			'add_dead_link_mark');
 
 	if (!(dead_link_count > 0)) {
 		return;
@@ -374,15 +382,17 @@ function add_dead_link_mark(page_data, link_hash) {
 		nocreate : 1,
 		bot : 1
 	}, function(page_data, error, result) {
-		process_page_left--;
+		waiting_write_page_left--;
 		if (error) {
 			console.error(error);
 			console.trace('[[' + title + ']]: error');
 		} else {
 			CeL.debug('[[' + title + ']]: 已寫入' + dead_link_count
 			//
-			+ '個新{{dead link}}之資料。', 1, 'for_each_page');
+			+ '個新{{dead link}}之資料。', 1, 'add_dead_link_mark');
 		}
 	});
-	CeL.debug('[[' + title + ']]: 將寫入新資料。', 1, 'for_each_page');
+	CeL.debug('[[' + title + ']]: 將寫入新資料。', 1, 'add_dead_link_mark');
+	process_page_left--;
+	waiting_write_page_left++;
 }
