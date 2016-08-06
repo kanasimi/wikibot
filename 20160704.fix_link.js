@@ -56,12 +56,12 @@ prepare_directory(base_directory, true);
 CeL.nodejs.fs_mkdir(cache_directory);
 
 function get_status() {
-	console.log('get_URL.status: '
-	//
-	+ JSON.stringify(CeL.get_URL.get_status()));
-	console.log('wiki.actions.length = ' + wiki.actions.length
-			+ ', .running = ' + wiki.running);
-	console.log(wiki.actions.slice(0, 2));
+	CeL.log('get_URL.status: ' + JSON.stringify(CeL.get_URL.get_status())
+			+ '. wiki.actions.length = ' + wiki.actions.length
+			+ ', wiki.running = ' + wiki.running + ':');
+	if (wiki.actions.length > 0) {
+		console.log(wiki.actions.slice(0, 2));
+	}
 }
 
 // CeL.set_debug(2);
@@ -242,8 +242,12 @@ function add_dead_link_mark(page_data, link_hash) {
 		}
 
 		if (!(normalized_URL in link_status)) {
-			throw new Error('process_token: [[' + title + ']]: 沒處理到的 URL ['
-					+ URL + ']');
+			var message = 'process_token: [[' + title + ']]: 沒處理到的 URL [' + URL
+					+ ']';
+			if (/^https?:\/\//.test(URL)) {
+				throw new Error(message);
+			}
+			CeL.warn(message);
 		}
 
 		if (status_is_OK(link_status[normalized_URL])) {
