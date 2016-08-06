@@ -26,6 +26,8 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
+cache_directory = base_directory + 'web/',
+
 date_NOW = (new Date).format('%Y年%m月%d日'),
 
 status_is_OK = CeL.application.net.archive.status_is_OK,
@@ -50,6 +52,8 @@ if (typeof process === 'object') {
 
 prepare_directory(base_directory, true);
 // prepare_directory(base_directory);
+
+CeL.nodejs.fs_mkdir(cache_directory);
 
 // CeL.set_debug(2);
 if (0) {
@@ -145,9 +149,13 @@ function for_each_page(page_data) {
 			}
 		}, {
 			constent_processor : function(HTML, URL, status) {
-				var matched = decodeURI(URL).replace(/#.*/g, '').replace(
+				var file_name = URL.replace(/#.*/g, '').replace(
 						/[\\\/:*?"<>|]/g, '_');
-				CeL.nodejs.fs_write(base_directory + URL.replace);
+				try {
+					CeL.nodejs.fs_write(cache_directory + file_name);
+				} catch (e) {
+					console.error(e);
+				}
 			}
 		});
 	});
