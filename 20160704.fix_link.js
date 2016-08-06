@@ -57,7 +57,7 @@ CeL.nodejs.fs_mkdir(cache_directory);
 
 function get_status() {
 	CeL.log('get_URL.status: ' + JSON.stringify(CeL.get_URL.get_status())
-			+ '. page left: ' + parse_page_left + '→' + process_page_left
+			+ '. page left: ' + parse_page_left + '||' + process_page_left
 			+ '. wiki.actions.length = ' + wiki.actions.length
 			+ ', wiki.running = ' + wiki.running + ':');
 	if (wiki.actions.length > 0) {
@@ -249,7 +249,8 @@ function add_dead_link_mark(page_data, link_hash) {
 		delete link_hash[URL];
 
 		var normalized_URL = check_URL.normalize_URL(URL);
-		if (!normalized_URL.includes('//')) {
+		if (normalized_URL.startsWith(archived_prefix)
+				|| !normalized_URL.includes('//')) {
 			return;
 		}
 
