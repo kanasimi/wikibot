@@ -22,13 +22,12 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
-//
 date_NOW = (new Date).format('%Y年%m月%d日'),
 
+check_URL = CeL.application.net.archive.check_URL,
 /** {Object}check_URL.link_status[URL] = status/error */
-link_status = CeL.application.net.archive.check_URL.link_status,
+link_status = check_URL.link_status,
 
-//
 archive_org = CeL.application.net.archive.archive_org,
 /** {Object} cached[URL] = [ return of archived data, error ] */
 archived_data = archive_org.cached,
@@ -195,7 +194,10 @@ function dead_link_text(token, URL) {
 
 function add_dead_link_mark(page_data, link_hash) {
 
-	var dead_link_count = 0;
+	/** {String}page title = page_data.title */
+	var title = CeL.wiki.title_of(page_data),
+	//
+	dead_link_count = 0;
 
 	function process_token(token, index, parent, URL) {
 		URL = URL.toString();
