@@ -274,7 +274,9 @@ function write_data() {
 			content = content.trim() + '\n'
 			// [[維基新聞:文章標記]]: 沒 parse 錯誤才標上{{Publish}}。
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
-			+ (has_new_data && !parse_error_label_list ? '{{Publish}}'
+			+ (has_new_data && !parse_error_label_list
+			//
+			&& headline_data.length > 0 ? '{{Publish}}'
 			// 必須有新資料才{{Publish}}。
 			: '{{Review}}') + '\n';
 		}

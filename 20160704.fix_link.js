@@ -12,7 +12,7 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
-// for CeL.net.archive.archive_org()
+// for CeL.application.net.archive.archive_org()
 CeL.run('application.net.archive');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
@@ -26,11 +26,13 @@ wiki = Wiki(true, 'wikinews'),
 date_NOW = (new Date).format('%Y年%m月%d日'),
 /** {Object}link_status[page_data.pageid][URL] = status/error */
 link_status = CeL.null_Object(),
+//
+archive_org = CeL.application.net.archive.archive_org,
 /** {Object} cached[URL] = [ return of archived data, error ] */
-archived_data = CeL.net.archive.archive_org.cached,
+archived_data = archive_org.cached,
 // @see {{dead link}}, [[w:en:Archive site]]
 /** {String}URL prefix of cached snapshot. */
-archived_prefix = CeL.net.archive.archive_org.URL_prefix;
+archived_prefix = archive_org.URL_prefix;
 
 // ---------------------------------------------------------------------//
 
@@ -312,7 +314,7 @@ function for_each_page(page_data) {
 			}
 			if (has_error) {
 				// 會先 check archive site 再註銷此 URL，確保處理頁面時已經有 archived data。
-				CeL.net.archive.archive_org(URL, function() {
+				archive_org(URL, function() {
 					register_URL_status(URL, status);
 				});
 			} else {
@@ -323,7 +325,7 @@ function for_each_page(page_data) {
 			// use new agent
 			agent : true,
 			onfail : function(error) {
-				CeL.net.archive.archive_org(URL, function() {
+				archive_org(URL, function() {
 					// 會先 check archive site 再註銷此 URL，確保處理頁面時已經有 archived data。
 					register_URL_status(URL, error);
 				});
