@@ -12,6 +12,8 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
+// for CeL.net.archive.archive_org()
+CeL.run('application.net.archive');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // set_language('ja');
@@ -19,104 +21,16 @@ require('./wiki loder.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
+
 //
 date_NOW = (new Date).format('%Y年%m月%d日'),
-// links[page_data.pageid][URL] = status/error
-links = CeL.null_Object(),
-// archived_data[URL] = return of archived
-archived_data = CeL.null_Object(),
+/** {Object}link_status[page_data.pageid][URL] = status/error */
+link_status = CeL.null_Object(),
+/** {Object} cached[URL] = [ return of archived data, error ] */
+archived_data = CeL.net.archive.archive_org.cached,
 // @see {{dead link}}, [[w:en:Archive site]]
-// http://www.webcitation.org/archive
-archived_prefix = 'http://web.archive.org/web/';
-
-// ---------------------------------------------------------------------//
-
-/** {Natural} 延遲 time in ms。 */
-check_archive_site.lag_interval = 500;
-
-// Wayback Availability JSON API
-// https://archive.org/help/wayback_api.php
-// archive.org此API只能檢查是否有snapshot，不能製造snapshot。
-// callback(closest_snapshots, error);
-function check_archive_site(URL, callback) {
-	if (URL in archived_data) {
-		callback(archived_data[URL]);
-		return;
-	}
-	// 登記。
-	archived_data[URL] = undefined;
-
-	var need_lag = check_archive_site.lag_interval
-			- (Date.now() - check_archive_site.last_call);
-	if (need_lag > 0) {
-		CeL.debug('Wait ' + need_lag + ' ms...', 0, 'check_archive_site');
-		setTimeout(function() {
-			check_archive_site(URL, callback);
-		}, need_lag);
-		return;
-	}
-	check_archive_site.last_call = Date.now();
-
-	CeL.get_URL('http://archive.org/wayback/available?url=' + URL,
-	//
-	function(data) {
-		CeL.debug(URL + ':', 0, 'check_archive_site');
-		console.log(data);
-		// 短時間內call過多次(10次?)將503?
-		if (data.status === 503) {
-			need_lag = check_archive_site.lag_interval;
-			CeL.debug('Get status ' + data.status + '. Wait ' + need_lag
-					+ ' ms...', 0, 'check_archive_site');
-			setTimeout(function() {
-				check_archive_site(URL, callback);
-			}, need_lag);
-			return;
-		}
-
-		if (data.status !== 200) {
-			callback(undefined, data);
-			return;
-		}
-
-		data = JSON.parse(data.responseText);
-		if (!data || !(data = data.archived_snapshots.closest)
-				|| !data.available || !data.url) {
-			// 經嘗試未能取得 snapshots。
-			archived_data[URL] = false;
-			callback();
-			return;
-		}
-
-		if (!data.url.startsWith(archived_prefix)) {
-			CeL.warn('check_archive_site: ' + URL
-					+ ': archived URL does not starts with "' + archived_prefix
-					+ '": ' + data.url + '.');
-		}
-
-		var archived_url = data.archived_url = data.url.between('web/')
-				.between('/');
-		if (archived_url !== URL
-		// 可能自動加 port。
-		&& archived_url.replace(/:\d+\//, '/') !== URL
-		// 可能自動轉 https。
-		&& archived_url.replace('http://', 'https://') !== URL) {
-			CeL.warn('check_archive_site: [' + URL + '] != [' + archived_url
-					+ '].');
-		}
-
-		// 登記。
-		archived_data[URL] = data;
-		callback(data);
-
-	}, null, null, {
-		// use new agent
-		agent : true,
-		onfail : function(error) {
-			CeL.debug(URL + ': Error: ' + error, 0, 'check_archive_site');
-			callback(undefined, error);
-		}
-	});
-}
+/** {String}URL prefix of cached snapshot. */
+archived_prefix = CeL.net.archive.archive_org.URL_prefix;
 
 // ---------------------------------------------------------------------//
 
@@ -140,9 +54,9 @@ function for_each_page(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	//
-	link_hash = links[page_data.pageid] = CeL.null_Object();
+	link_hash = link_status[page_data.pageid] = CeL.null_Object();
 
-	// check_external_link
+	CeL.debug('[[' + title + ']]: check_external_link', 0, 'for_each_page');
 
 	var matched,
 	/**
@@ -178,7 +92,7 @@ function for_each_page(page_data) {
 	if (link_length === 0) {
 		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 0,
 				'for_each_page');
-		delete links[title];
+		delete link_status[title];
 		return;
 	}
 
@@ -226,7 +140,7 @@ function for_each_page(page_data) {
 
 		function dead_link_text(token, URL) {
 			dead_link_count++;
-			var archived = archived_data[URL];
+			var archived = archived_data[URL][0];
 			return token.toString()
 			// [[Template:Dead link]]
 			+ '{{dead link|date=' + date_NOW
@@ -353,9 +267,10 @@ function for_each_page(page_data) {
 				+ '個新{{dead link}}之資料。', 0, 'for_each_page');
 			}
 		});
-		CeL.debug('[[' + title + ']]: 將' + (dead_link_count > 0 ? '' : '**不**')
-				+ '寫入新資料。 actions.length = ' + wiki.actions.length + ', '
-				+ wiki.running, 0, 'for_each_page');
+		CeL.debug('[[' + title + ']]: 將寫入新資料。 .actions.length = '
+				+ wiki.actions.length + ', .running = ' + wiki.running, 0,
+				'for_each_page');
+		console.log(wiki.actions.slice(0, 2));
 	}
 
 	function register_URL_status(URL, status) {
@@ -396,7 +311,8 @@ function for_each_page(page_data) {
 				has_error = true;
 			}
 			if (has_error) {
-				check_archive_site(URL, function(closest_snapshots, error) {
+				// 會先 check archive site 再註銷此 URL，確保處理頁面時已經有 archived data。
+				CeL.net.archive.archive_org(URL, function() {
 					register_URL_status(URL, status);
 				});
 			} else {
@@ -407,7 +323,8 @@ function for_each_page(page_data) {
 			// use new agent
 			agent : true,
 			onfail : function(error) {
-				check_archive_site(URL, function(closest_snapshots) {
+				CeL.net.archive.archive_org(URL, function() {
+					// 會先 check archive site 再註銷此 URL，確保處理頁面時已經有 archived data。
 					register_URL_status(URL, error);
 				});
 			}
