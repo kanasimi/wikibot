@@ -118,12 +118,11 @@ function for_each_page(page_data) {
 	 * 
 	 * @type {RegExp}
 	 * 
-	 * @see PATTERN_URL_GLOBAL, PATTERN_URL_prefix, PATTERN_WIKI_URL,
-	 *      PATTERN_wiki_project_URL
+	 * @see PATTERN_URL_GLOBAL @ application.net.wiki
 	 */
-	PATTERN_URL_GLOBAL = /(?:https?:)?\/\/[^\s\|{}<>\[\]]+/ig;
+	PATTERN_URL_GLOBAL_2 = /(?:https?:)?\/\/[^\s\|<>\[\]]+/ig;
 
-	while (matched = PATTERN_URL_GLOBAL.exec(content)) {
+	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
 		var URL = matched[0];
 		// 跳過 cache URL。
 		if (!URL.startsWith(archived_prefix) && URL.includes('//')) {
@@ -134,7 +133,7 @@ function for_each_page(page_data) {
 
 	var link_list = Object.keys(link_hash), links_left = link_list.length;
 	if (links_left === 0) {
-		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 0,
+		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 2,
 				'for_each_page');
 		return;
 	}
@@ -145,7 +144,7 @@ function for_each_page(page_data) {
 				add_dead_link_mark(page_data, link_hash);
 			} else {
 				CeL.debug('[[' + title + ']]: left ' + links_left + ' [' + URL
-						+ ']: ' + link_status + '。', 0, 'for_each_page');
+						+ ']: ' + link_status + '。', 1, 'for_each_page');
 			}
 		}, {
 			constent_processor : function(HTML, URL, status) {
@@ -242,7 +241,7 @@ function add_dead_link_mark(page_data, link_hash) {
 		CeL.debug('[[' + title + ']]: assert: 已處理過，'
 				+ (dead_link_node_index > 0 ? '  有  ' : '**無**')
 				+ '{{dead link}}: index ' + index + '⇒' + dead_link_node_index
-				+ '。' + token, 0, 'process_token');
+				+ '。' + token, 3, 'process_token');
 
 		if (!(dead_link_node_index > 0)) {
 			dead_link_count++;
@@ -253,7 +252,7 @@ function add_dead_link_mark(page_data, link_hash) {
 	// -------------------------------------------------
 
 	CeL.debug('[[' + title
-			+ ']]: 已檢查過本頁所有 URL 與 archive site。開始添加{{dead link}}。', 0,
+			+ ']]: 已檢查過本頁所有 URL 與 archive site。開始添加{{dead link}}。', 1,
 			'add_dead_link_mark');
 
 	var parser = CeL.wiki.parser(page_data);
@@ -330,7 +329,7 @@ function add_dead_link_mark(page_data, link_hash) {
 
 	// -------------------
 
-	CeL.debug('[[' + title + ']]: 有' + dead_link_count + '個新{{dead link}}。', 0,
+	CeL.debug('[[' + title + ']]: 有' + dead_link_count + '個新{{dead link}}。', 1,
 			'for_each_page');
 
 	if (!(dead_link_count > 0)) {
@@ -348,11 +347,11 @@ function add_dead_link_mark(page_data, link_hash) {
 		} else {
 			CeL.debug('[[' + title + ']]: 已寫入' + dead_link_count
 			//
-			+ '個新{{dead link}}之資料。', 0, 'for_each_page');
+			+ '個新{{dead link}}之資料。', 1, 'for_each_page');
 		}
 	});
 	CeL.debug('[[' + title + ']]: 將寫入新資料。 .actions.length = '
-			+ wiki.actions.length + ', .running = ' + wiki.running, 0,
+			+ wiki.actions.length + ', .running = ' + wiki.running, 1,
 			'for_each_page');
 	console.log(wiki.actions.slice(0, 2));
 }
