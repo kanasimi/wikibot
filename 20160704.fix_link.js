@@ -26,7 +26,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
-cache_directory = base_directory + 'web/',
+cache_directory = base_directory.replace(/[\\\/]+$/, '') + '_web/',
 
 date_NOW = (new Date).format('%Y年%m月%d日'),
 
@@ -55,7 +55,20 @@ prepare_directory(base_directory, true);
 
 CeL.nodejs.fs_mkdir(cache_directory);
 
+function get_status() {
+	console.log('get_URL.status: '
+	//
+	+ JSON.stringify(CeL.get_URL.get_status()));
+	console.log('wiki.actions.length = ' + wiki.actions.length
+			+ ', .running = ' + wiki.running);
+	console.log(wiki.actions.slice(0, 2));
+}
+
 // CeL.set_debug(2);
+if (1) {
+	setInterval(get_status, 60 * 1000);
+}
+
 if (0) {
 	// for debug
 	wiki.page('Wikinews:沙盒' || '', for_each_page);
@@ -120,7 +133,7 @@ function for_each_page(page_data) {
 	 * 
 	 * @see PATTERN_URL_GLOBAL @ application.net.wiki
 	 */
-	PATTERN_URL_GLOBAL_2 = /(?:https?:)?\/\/[^\s\|<>\[\]]+/ig;
+	PATTERN_URL_GLOBAL_2 = /https?:\/\/[^\s\|<>\[\]]+/ig;
 
 	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
 		var URL = matched[0];
@@ -220,10 +233,10 @@ function add_dead_link_mark(page_data, link_hash) {
 	dead_link_count = 0;
 
 	function process_token(token, index, parent, URL) {
-		var normalized_URL = check_URL.normalize_URL(URL);
 		// 登記已處理過或無須處理之URL。
-		delete link_hash[normalized_URL];
+		delete link_hash[URL];
 
+		var normalized_URL = check_URL.normalize_URL(URL);
 		if (!normalized_URL.includes('//')) {
 			return;
 		}
@@ -317,14 +330,16 @@ function add_dead_link_mark(page_data, link_hash) {
 	var reporter = [];
 	for ( var URL in link_hash) {
 		if (!status_is_OK(link_status[URL])) {
-			reporter.push('[' + URL + ' ' + link_status[URL] + ']');
+			var normalized_URL = check_URL.normalize_URL(URL);
+			reporter.push('[' + URL + ' '
+					+ (link_status[normalized_URL] || 'no status') + ']');
 		}
 	}
 
 	if (reporter.length > 0) {
 		// CeL.log('-'.repeat(80));
 		CeL.log('; [[' + title + ']] 尚未處理之 URL:');
-		CeL.log(': ' + reporter.join(' '));
+		CeL.log(': ' + reporter.join(', '));
 	}
 
 	// -------------------
@@ -350,8 +365,5 @@ function add_dead_link_mark(page_data, link_hash) {
 			+ '個新{{dead link}}之資料。', 1, 'for_each_page');
 		}
 	});
-	CeL.debug('[[' + title + ']]: 將寫入新資料。 .actions.length = '
-			+ wiki.actions.length + ', .running = ' + wiki.running, 1,
-			'for_each_page');
-	console.log(wiki.actions.slice(0, 2));
+	CeL.debug('[[' + title + ']]: 將寫入新資料。', 1, 'for_each_page');
 }
