@@ -27,6 +27,8 @@ var
 wiki = Wiki(true, 'wikinews'),
 
 cache_directory = base_directory.replace(/[\\\/]+$/, '') + '_web/',
+// did_not_processed[title] = [ URL, ... ];
+did_not_processed = CeL.null_Object(),
 
 date_NOW = (new Date).format('%Y年%m月%d日'),
 
@@ -86,7 +88,7 @@ get_status.interval_id = setInterval(get_status, 60 * 1000);
 if (0) {
 	// for debug
 	wiki.page('Wikinews:沙盒', for_each_page);
-	finish_work();
+	finish_parse_work();
 } else {
 	CeL.wiki.traversal({
 		// [SESSION_KEY]
@@ -99,14 +101,14 @@ if (0) {
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
 		filter : true,
-		last : finish_work
+		last : finish_parse_work
 	}, for_each_page);
 }
 
 // ---------------------------------------------------------------------//
 
-function finish_work() {
-	CeL.info('finish_work: All page parsed. Start checking URLs...');
+function finish_parse_work() {
+	CeL.info('finish_parse_work: All page parsed. Start checking URLs...');
 }
 
 // ---------------------------------------------------------------------//
@@ -116,12 +118,12 @@ var all_pages = 0, pages_finished = 0, parse_page_left = 0;
 function for_each_page(page_data) {
 	all_pages++;
 	if (!page_data || ('missing' in page_data)) {
-		pages_finished++;
+		finish_1_page();
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}
 	if (page_data.ns !== 0) {
-		pages_finished++;
+		finish_1_page();
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或 Category' ];
 	}
 
@@ -133,7 +135,7 @@ function for_each_page(page_data) {
 	content = CeL.wiki.content_of(page_data);
 
 	if (!content) {
-		pages_finished++;
+		finish_1_page();
 		return [ CeL.wiki.edit.cancel,
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
@@ -158,7 +160,9 @@ function for_each_page(page_data) {
 	PATTERN_URL_GLOBAL_2 = /https?:\/\/([^\s\|<>\[\]]+|{[^{}]*})+/ig;
 
 	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
-		var URL = matched[0];
+		var URL = matched[0]
+		// 去掉標點。
+		.replace(/[，；。！]+$/g, '');
 		// 跳過 cache URL。
 		if (!URL.startsWith(archived_prefix) && URL.includes('//')) {
 			// register 登記 URL。
@@ -171,7 +175,7 @@ function for_each_page(page_data) {
 		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 2,
 				'for_each_page');
 		parse_page_left--;
-		pages_finished++;
+		finish_1_page();
 		return;
 	}
 
@@ -269,10 +273,17 @@ function add_dead_link_mark(page_data, link_hash) {
 		}
 
 		if (!(normalized_URL in link_status)) {
+			if (title in did_not_processed) {
+				did_not_processed[title].push(URL);
+			} else {
+				did_not_processed[title] = [ URL ];
+			}
 			var message = 'process_token: [[' + title + ']]: 沒處理到的 URL [' + URL
 					+ ']';
 			if (/^https?:\/\//.test(URL)) {
-				throw new Error(message);
+				// 這些大部分是應該手動更改的。
+				// throw new Error(message);
+				CeL.err(message);
 			}
 			CeL.warn(message);
 			return;
@@ -325,7 +336,7 @@ function add_dead_link_mark(page_data, link_hash) {
 			// 去掉 tag, <!-- -->
 			URL = URL.toString().replace(/<[^<>]+>/g, '').trim();
 		}
-		if (token.name !== 'Source') {
+		if (token.name !== 'Source' && token.name !== 'ROC') {
 			if (token.name === 'Dead link' && URL) {
 				// 登記已處理過或無須處理之URL。
 				delete link_hash[URL];
@@ -374,6 +385,7 @@ function add_dead_link_mark(page_data, link_hash) {
 	}
 
 	if (reporter.length > 0) {
+		// 可能是在註解中。
 		// CeL.log('-'.repeat(80));
 		CeL.log('; [[' + title + ']] 尚未處理之 URL:');
 		CeL.log(': ' + reporter.join(', '));
@@ -386,7 +398,7 @@ function add_dead_link_mark(page_data, link_hash) {
 
 	process_page_left--;
 	if (!(dead_link_count > 0)) {
-		pages_finished++;
+		finish_1_page();
 		return;
 	}
 
@@ -397,7 +409,7 @@ function add_dead_link_mark(page_data, link_hash) {
 		bot : 1
 	}, function(page_data, error, result) {
 		waiting_write_page_left--;
-		pages_finished++;
+		finish_1_page();
 		if (error) {
 			console.error(error);
 			console.trace('[[' + title + ']]: error');
@@ -408,4 +420,21 @@ function add_dead_link_mark(page_data, link_hash) {
 		}
 	});
 	CeL.debug('[[' + title + ']]: 將寫入新資料。', 1, 'add_dead_link_mark');
+}
+
+// ---------------------------------------------------------------------//
+
+function finish_1_page() {
+	pages_finished++;
+	if (pages_finished < all_pages) {
+		return;
+	}
+	// assert: pages_finished === all_pages
+
+	for ( var title in did_not_processed) {
+		CeL.info('[[' + title + ']]: 沒處理到的 URL:\n	'
+				+ did_not_processed[title].join('\n	'));
+	}
+
+	CeL.log('All done.');
 }
