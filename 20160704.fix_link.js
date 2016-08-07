@@ -55,20 +55,26 @@ prepare_directory(base_directory, true);
 
 CeL.nodejs.fs_mkdir(cache_directory);
 
-get_status.count = 0;
 function get_status() {
+	var status = CeL.get_URL.get_status(), connection_list = status.connection_list;
+	delete status.connection_list;
 	CeL.debug('#' + ++get_status.count + ' '
 			+ JSON.stringify(CeL.get_URL.get_status())
-			//
-			+ '. page left: ' + parse_page_left + '+' + process_page_left + '+'
-			+ waiting_write_page_left + '+' + pages_finished + '=' + all_pages
+			// 剩下
+			+ '. pages left: ' + parse_page_left + '+' + process_page_left
+			+ '+' + waiting_write_page_left + '+' + pages_finished + '='
+			+ all_pages
 			//
 			+ '. wiki.actions.length = ' + wiki.actions.length
-			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_URL.status');
+			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_status');
+	if (connection_list.length > 0) {
+		console.log(connection_list.slice(0, 20));
+	}
 	if (wiki.actions.length > 0) {
 		console.log(wiki.actions.slice(0, 2));
 	}
 }
+get_status.count = 0;
 
 // CeL.set_debug(2);
 if (1) {
@@ -147,7 +153,7 @@ function for_each_page(page_data) {
 	 * 
 	 * @see PATTERN_URL_GLOBAL @ application.net.wiki
 	 */
-	PATTERN_URL_GLOBAL_2 = /https?:\/\/[^\s\|<>\[\]]+/ig;
+	PATTERN_URL_GLOBAL_2 = /https?:\/\/[^\s\|<>\[\]]+({[^{}]*?})*/ig;
 
 	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
 		var URL = matched[0];
@@ -300,7 +306,12 @@ function add_dead_link_mark(page_data, link_hash) {
 			+ ']]: 已檢查過本頁所有 URL 與 archive site。開始添加{{dead link}}。', 1,
 			'add_dead_link_mark');
 
-	var parser = CeL.wiki.parser(page_data);
+	var parser = CeL.wiki.parser(page_data).parse();
+	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
+		throw 'Parser error: [[' + page_data.title + ']]';
+	}
+
 	// assert: parser.parsed === true
 
 	// -------------------
