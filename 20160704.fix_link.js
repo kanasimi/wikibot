@@ -373,10 +373,12 @@ function add_dead_link_mark(page_data, link_hash) {
 	CeL.debug('[[' + title + ']]: 有' + dead_link_count + '個新{{dead link}}。', 1,
 			'add_dead_link_mark');
 
+	process_page_left--;
 	if (!(dead_link_count > 0)) {
 		return;
 	}
 
+	waiting_write_page_left++;
 	wiki.page(page_data).edit(parser.toString(), {
 		summary : '檢查與維護外部連結: ' + dead_link_count + '個失效連結',
 		nocreate : 1,
@@ -393,6 +395,4 @@ function add_dead_link_mark(page_data, link_hash) {
 		}
 	});
 	CeL.debug('[[' + title + ']]: 將寫入新資料。', 1, 'add_dead_link_mark');
-	process_page_left--;
-	waiting_write_page_left++;
 }
