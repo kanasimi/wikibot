@@ -55,6 +55,8 @@ prepare_directory(base_directory, true);
 
 CeL.nodejs.fs_mkdir(cache_directory);
 
+// CeL.set_debug(2);
+
 function get_status() {
 	var status = CeL.get_URL.get_status(), connection_list = status.connection_list;
 	delete status.connection_list;
@@ -72,13 +74,14 @@ function get_status() {
 	if (wiki.actions.length > 0) {
 		console.log(wiki.actions.slice(0, 2));
 	}
+	if (status.connections === 0 && status.requests === 0
+			&& pages_finished === all_pages && wiki.actions.length === 0) {
+		clearInterval(get_status.interval_ID);
+	}
 }
 get_status.count = 0;
 
-// CeL.set_debug(2);
-if (0) {
-	setInterval(get_status, 60 * 1000);
-}
+get_status.interval_ID = setInterval(get_status, 60 * 1000);
 
 if (0) {
 	// for debug
