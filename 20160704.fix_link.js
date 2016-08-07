@@ -58,16 +58,14 @@ CeL.nodejs.fs_mkdir(cache_directory);
 function get_status() {
 	var status = CeL.get_URL.get_status(), connection_list = status.connection_list;
 	delete status.connection_list;
-	CeL.debug('#' + ++get_status.count + ' '
-			+ JSON.stringify(CeL.get_URL.get_status())
-			// 剩下
-			+ '. pages left: ' + parse_page_left + '+' + process_page_left
-			+ '+' + waiting_write_page_left + '+' + pages_finished + '='
-			+ all_pages
+	CeL.debug('#' + ++get_status.count + ' ' + JSON.stringify(status)
+	// 剩下
+	+ '. pages left: ' + parse_page_left + '+' + process_page_left + '+'
+			+ waiting_write_page_left + '+' + pages_finished + '=' + all_pages
 			//
 			+ '. wiki.actions.length = ' + wiki.actions.length
 			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_status');
-	if (connection_list.length > 0) {
+	if (status.connections === status.requests && connection_list.length > 0) {
 		console.log(connection_list.slice(0, 20));
 	}
 	if (wiki.actions.length > 0) {
@@ -81,9 +79,9 @@ if (1) {
 	setInterval(get_status, 60 * 1000);
 }
 
-if (0) {
+if (1) {
 	// for debug
-	wiki.page('Wikinews:沙盒' || '', for_each_page);
+	wiki.page('Wikinews:沙盒' || '兩鐵世紀合併 香港鐵路登場', for_each_page);
 	finish_work();
 } else {
 	CeL.wiki.traversal({
