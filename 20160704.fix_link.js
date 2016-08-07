@@ -76,12 +76,12 @@ function get_status() {
 	}
 	if (status.connections === 0 && status.requests === 0
 			&& pages_finished === all_pages && wiki.actions.length === 0) {
-		clearInterval(get_status.interval_ID);
+		clearInterval(get_status.interval_id);
 	}
 }
 get_status.count = 0;
 
-get_status.interval_ID = setInterval(get_status, 60 * 1000);
+get_status.interval_id = setInterval(get_status, 60 * 1000);
 
 if (0) {
 	// for debug
