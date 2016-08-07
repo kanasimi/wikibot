@@ -80,9 +80,9 @@ if (1) {
 	setInterval(get_status, 60 * 1000);
 }
 
-if (1) {
+if (0) {
 	// for debug
-	wiki.page('Wikinews:沙盒' || '兩鐵世紀合併 香港鐵路登場', for_each_page);
+	wiki.page('Wikinews:沙盒', for_each_page);
 	finish_work();
 } else {
 	CeL.wiki.traversal({
@@ -117,7 +117,7 @@ function for_each_page(page_data) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}
-	if (page_data.ns !== 0) {
+	if (0&&page_data.ns !== 0) {
 		pages_finished++;
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或 Category' ];
 	}
@@ -152,7 +152,7 @@ function for_each_page(page_data) {
 	 * 
 	 * @see PATTERN_URL_GLOBAL @ application.net.wiki
 	 */
-	PATTERN_URL_GLOBAL_2 = /https?:\/\/[^\s\|<>\[\]]+({[^{}]*?})*/ig;
+	PATTERN_URL_GLOBAL_2 = /https?:\/\/([^\s\|<>\[\]]+|{[^{}]*})+/ig;
 
 	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
 		var URL = matched[0];
@@ -182,11 +182,16 @@ function for_each_page(page_data) {
 						+ ']: ' + link_status + '。', 1, 'for_each_page');
 			}
 		}, {
-			constent_processor : function(contains, URL, status) {
+			constent_processor : function(buffer, URL, status) {
 				var file_name = URL.replace(/#.*/g, '').replace(
 						/[\\\/:*?"<>|]/g, '_');
+				CeL.info('Write to [' + cache_directory + file_name + ']: '
+						+ URL + ' length ' + buffer.length);
 				try {
-					CeL.nodejs.fs_write(cache_directory + file_name, contains);
+					var fs = require('fs'), fd = fs.openSync(cache_directory
+							+ file_name, 'w');
+					fs.writeSync(fd, buffer, 0, buffer.length, null);
+					fs.closeSync(fd);
 				} catch (e) {
 					console.error(e);
 				}
