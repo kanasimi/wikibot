@@ -76,7 +76,7 @@ function get_status() {
 get_status.count = 0;
 
 // CeL.set_debug(2);
-if (1) {
+if (0) {
 	setInterval(get_status, 60 * 1000);
 }
 
@@ -117,7 +117,7 @@ function for_each_page(page_data) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}
-	if (0 && page_data.ns !== 0) {
+	if (page_data.ns !== 0) {
 		pages_finished++;
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或 Category' ];
 	}
