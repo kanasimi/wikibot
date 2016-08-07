@@ -61,7 +61,7 @@ function get_status() {
 			+ JSON.stringify(CeL.get_URL.get_status())
 			//
 			+ '. page left: ' + parse_page_left + '+' + process_page_left + '+'
-			+ waiting_write_page_left
+			+ waiting_write_page_left + '+' + pages_finished + '=' + all_pages
 			//
 			+ '. wiki.actions.length = ' + wiki.actions.length
 			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_URL.status');
@@ -103,14 +103,17 @@ function finish_work() {
 
 // ---------------------------------------------------------------------//
 
-var parse_page_left = 0;
+var all_pages = 0, pages_finished = 0, parse_page_left = 0;
 
 function for_each_page(page_data) {
+	all_pages++;
 	if (!page_data || ('missing' in page_data)) {
+		pages_finished++;
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}
 	if (page_data.ns !== 0) {
+		pages_finished++;
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或 Category' ];
 	}
 
@@ -122,6 +125,7 @@ function for_each_page(page_data) {
 	content = CeL.wiki.content_of(page_data);
 
 	if (!content) {
+		pages_finished++;
 		return [ CeL.wiki.edit.cancel,
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
@@ -158,6 +162,8 @@ function for_each_page(page_data) {
 	if (links_left === 0) {
 		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 2,
 				'for_each_page');
+		parse_page_left--;
+		pages_finished++;
 		return;
 	}
 
@@ -375,6 +381,7 @@ function add_dead_link_mark(page_data, link_hash) {
 
 	process_page_left--;
 	if (!(dead_link_count > 0)) {
+		pages_finished++;
 		return;
 	}
 
@@ -385,6 +392,7 @@ function add_dead_link_mark(page_data, link_hash) {
 		bot : 1
 	}, function(page_data, error, result) {
 		waiting_write_page_left--;
+		pages_finished++;
 		if (error) {
 			console.error(error);
 			console.trace('[[' + title + ']]: error');
