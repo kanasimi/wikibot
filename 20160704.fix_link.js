@@ -65,7 +65,8 @@ function get_status() {
 			//
 			+ '. wiki.actions.length = ' + wiki.actions.length
 			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_status');
-	if (status.connections === status.requests && connection_list.length > 0) {
+	if (status.connections === status.requests && connection_list
+			&& connection_list.length > 0) {
 		console.log(connection_list.slice(0, 20));
 	}
 	if (wiki.actions.length > 0) {
@@ -181,11 +182,11 @@ function for_each_page(page_data) {
 						+ ']: ' + link_status + '。', 1, 'for_each_page');
 			}
 		}, {
-			constent_processor : function(HTML, URL, status) {
+			constent_processor : function(contains, URL, status) {
 				var file_name = URL.replace(/#.*/g, '').replace(
 						/[\\\/:*?"<>|]/g, '_');
 				try {
-					CeL.nodejs.fs_write(cache_directory + file_name);
+					CeL.nodejs.fs_write(cache_directory + file_name, contains);
 				} catch (e) {
 					console.error(e);
 				}
