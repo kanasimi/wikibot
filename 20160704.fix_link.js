@@ -3,6 +3,7 @@
 /*
 
  2016/7/4 23:17:28	check external link
+ 2016/8/7 21:47:39	完成。正式運用。
 
  @see [[mw:Manual:Pywikibot/weblinkchecker.py]], [[ja:プロジェクト:外部リンク]], [[en:Template:Dead link]], [[en:User:cyberbot II]]
 
@@ -26,6 +27,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
+// 7z a fix_link_web.7z fix_link_web
 cache_directory = base_directory.replace(/[\\\/]+$/, '') + '_web/',
 // did_not_processed[title] = [ URL, ... ];
 did_not_processed = CeL.null_Object(),
@@ -52,10 +54,10 @@ if (typeof process === 'object') {
 	process.umask(parseInt('0022', 8));
 }
 
-prepare_directory(base_directory, true);
-// prepare_directory(base_directory);
+// prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
-CeL.nodejs.fs_mkdir(cache_directory);
+prepare_directory(cache_directory);
 
 // CeL.set_debug(2);
 
@@ -83,7 +85,7 @@ function get_status() {
 }
 get_status.count = 0;
 
-get_status.interval_id = setInterval(get_status, 60 * 1000);
+// get_status.interval_id = setInterval(get_status, 60 * 1000);
 
 if (0) {
 	// for debug
@@ -157,7 +159,7 @@ function for_each_page(page_data) {
 	 * 
 	 * @see PATTERN_URL_GLOBAL @ application.net.wiki
 	 */
-	PATTERN_URL_GLOBAL_2 = /https?:\/\/([^\s\|<>\[\]]+|{[^{}]*})+/ig;
+	PATTERN_URL_GLOBAL_2 = /https?:\/\/([^\s\|<>\[\]{}]+|{[^{}]*})+/ig;
 
 	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
 		var URL = matched[0]
