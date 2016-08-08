@@ -62,8 +62,9 @@ function get_status() {
 	delete status.connection_list;
 	CeL.debug('#' + ++get_status.count + ' ' + JSON.stringify(status)
 	// 剩下
-	+ '. pages left: ' + parse_page_left + '+' + process_page_left + '+'
-			+ waiting_write_page_left + '+' + pages_finished + '=' + all_pages
+	+ '. pages left: 增加URL中 ' + parse_page_left + ' + parse wikitext 與修改中 '
+			+ process_page_left + ' + 準備寫入中 ' + waiting_write_page_left
+			+ ' + 處理完畢 ' + pages_finished + ' = 所有頁面 ' + all_pages
 			//
 			+ '. wiki.actions.length = ' + wiki.actions.length
 			+ ', wiki.running = ' + wiki.running + '...', 0, 'get_status');
@@ -81,11 +82,12 @@ function get_status() {
 }
 get_status.count = 0;
 
-// get_status.interval_id = setInterval(get_status, 60 * 1000);
+// for debug
+get_status.interval_id = setInterval(get_status, 60 * 1000);
 
-if (0) {
+if (1) {
 	// for debug
-	wiki.page('Wikinews:沙盒', for_each_page);
+	wiki.page('Wikinews:沙盒' && '两警三枪击杀寻妻青年事件', for_each_page);
 	finish_parse_work();
 } else {
 	CeL.wiki.traversal({
@@ -160,6 +162,7 @@ function for_each_page(page_data) {
 	 */
 	PATTERN_URL_GLOBAL_2 = /https?:\/\/([^\s\|<>\[\]{}]+|{[^{}]*})+/ig;
 
+	// 找出所有合 pattern (PATTERN_URL_GLOBAL_2) 之 URL。
 	while (matched = PATTERN_URL_GLOBAL_2.exec(content)) {
 		var URL = matched[0]
 		// 去掉標點。
@@ -171,9 +174,15 @@ function for_each_page(page_data) {
 		}
 	}
 
+	// TODO: 去掉所有已處理之 URL。
+
+	// -------------------------------------------------
+
+	// 一個個處理所有 URL。
+
 	var link_list = Object.keys(link_hash), links_left = link_list.length;
 	if (links_left === 0) {
-		CeL.debug('[[' + title + ']]: 本頁面未發現外部連結 external link。', 2,
+		CeL.debug('[[' + title + ']]: 本頁面未發現需處理之外部連結 external link。', 2,
 				'for_each_page');
 		parse_page_left--;
 		finish_1_page();
@@ -282,7 +291,7 @@ function add_dead_link_mark(page_data, link_hash) {
 			var message = 'process_token: [[' + title + ']]: 沒處理到的 URL [' + URL
 					+ ']';
 			if (/^https?:\/\//.test(URL)) {
-				// 這些大部分是應該手動更改的。
+				// 這些大部分可能是在註解中，或是應該手動更改的。
 				// throw new Error(message);
 				CeL.err(message);
 			}
@@ -322,14 +331,6 @@ function add_dead_link_mark(page_data, link_hash) {
 
 	// -------------------
 
-	// 處理外部連結 external link [http://...]
-	parser.each('external link', function(token, index, parent) {
-		var URL = token[0].toString();
-		return process_token(token, index, parent, URL);
-	}, true);
-
-	// -------------------
-
 	// 處理 {{|url=http://...}}
 	parser.each('template', function(token, index, parent) {
 		var URL = token.parameters && token.parameters.url;
@@ -337,16 +338,23 @@ function add_dead_link_mark(page_data, link_hash) {
 			// 去掉 tag, <!-- -->
 			URL = URL.toString().replace(/<[^<>]+>/g, '').trim();
 		}
-		if (token.name !== 'Source' && token.name !== 'ROC') {
-			if (token.name === 'Dead link' && URL) {
-				// 登記已處理過或無須處理之URL。
+
+		if (token.name === 'Dead link') {
+			// 登記已處理過或無須處理之URL。
+			if (URL) {
 				delete link_hash[URL];
 			}
 			return;
 		}
 
 		if (!URL) {
-			CeL.warn('[[' + title + ']]: 未設定 URL: ' + token);
+			if (token.name in {
+				Source : true,
+				ROC : true,
+				VOA : true
+			}) {
+				CeL.warn('[[' + title + ']]: 未設定 URL: ' + token);
+			}
 			return;
 		}
 
@@ -359,6 +367,14 @@ function add_dead_link_mark(page_data, link_hash) {
 		} else {
 			token.push(stamp);
 		}
+		return process_token(token, index, parent, URL);
+	}, true);
+
+	// -------------------
+
+	// 處理外部連結 external link [http://...]
+	parser.each('external link', function(token, index, parent) {
+		var URL = token[0].toString();
 		return process_token(token, index, parent, URL);
 	}, true);
 
@@ -386,7 +402,6 @@ function add_dead_link_mark(page_data, link_hash) {
 	}
 
 	if (reporter.length > 0) {
-		// 可能是在註解中。
 		// CeL.log('-'.repeat(80));
 		CeL.log('; [[' + title + ']] 尚未處理之 URL:');
 		CeL.log(': ' + reporter.join(', '));
