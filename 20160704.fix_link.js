@@ -19,15 +19,11 @@ CeL.run('application.net.archive');
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // set_language('ja');
 
-var dns = require('dns');
-// 短時間內 request 過多 host names 會造成 Tool Labs 常常 getaddrinfo ENOTFOUND。
-dns.setServers(dns.getServers().append([ '8.8.8.8', '8.8.4.4' ]));
-
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
-// 7z a fix_link_web.7z fix_link_web
+// 7z a archive/fix_link_web.7z fix_link_web
 cache_directory = base_directory.replace(/[\\\/]+$/, '') + '_web/',
 // did_not_processed[title] = [ URL, ... ];
 did_not_processed = CeL.null_Object(),
@@ -78,7 +74,7 @@ function get_status() {
 	if (wiki.actions.length > 0) {
 		console.log(wiki.actions.slice(0, 2));
 	}
-	if (status.connections === 0 && status.requests === 0
+	if (all_parsed && status.connections === 0 && status.requests === 0
 			&& pages_finished === all_pages && wiki.actions.length === 0) {
 		clearInterval(get_status.interval_id);
 	}
@@ -109,8 +105,11 @@ if (0) {
 
 // ---------------------------------------------------------------------//
 
+var all_parsed;
+
 function finish_parse_work() {
 	CeL.info('finish_parse_work: All page parsed. Start checking URLs...');
+	all_parsed = true;
 }
 
 // ---------------------------------------------------------------------//
@@ -428,7 +427,7 @@ function add_dead_link_mark(page_data, link_hash) {
 
 function finish_1_page() {
 	pages_finished++;
-	if (pages_finished < all_pages) {
+	if (!all_parsed || pages_finished < all_pages) {
 		return;
 	}
 	// assert: pages_finished === all_pages
