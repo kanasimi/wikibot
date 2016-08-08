@@ -23,8 +23,8 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
-// 7z a archive/fix_link_web.7z fix_link_web
-cache_directory = base_directory.replace(/[\\\/]+$/, '') + '_web/',
+// 7z a archive/fix_link.7z fix_link
+cache_directory = base_directory + 'web/',
 // did_not_processed[title] = [ URL, ... ];
 did_not_processed = CeL.null_Object(),
 
@@ -85,9 +85,9 @@ get_status.count = 0;
 // for debug
 get_status.interval_id = setInterval(get_status, 60 * 1000);
 
-if (1) {
+if (0) {
 	// for debug
-	wiki.page('Wikinews:沙盒' && '两警三枪击杀寻妻青年事件', for_each_page);
+	wiki.page('Wikinews:沙盒' && '', for_each_page);
 	finish_parse_work();
 } else {
 	CeL.wiki.traversal({
@@ -181,13 +181,16 @@ function for_each_page(page_data) {
 	// 一個個處理所有 URL。
 
 	var link_list = Object.keys(link_hash), links_left = link_list.length;
-	if (links_left === 0) {
+	if (links_left.length === 0) {
 		CeL.debug('[[' + title + ']]: 本頁面未發現需處理之外部連結 external link。', 2,
 				'for_each_page');
 		parse_page_left--;
 		finish_1_page();
 		return;
 	}
+
+	CeL.debug('[[' + title + ']]: 有' + links_left.length
+			+ '個需處理之外部連結 external link。', 0, 'for_each_page');
 
 	link_list.forEach(function(URL) {
 		check_URL(URL, function(link_status, cached_data) {
@@ -359,7 +362,7 @@ function add_dead_link_mark(page_data, link_hash) {
 		}
 
 		var stamp = 'accessdate='
-		// 以編輯時間自動添加 accessdate 參數。
+		// 以最後編輯時間自動添加 accessdate 參數。
 		+ new Date(page_data.revisions[0].timestamp).format('%Y年%m月%d日');
 		if (token.parameters.accessdate) {
 			// 更新 stamp。
@@ -453,4 +456,10 @@ function finish_1_page() {
 	}
 
 	CeL.log('All done.');
+
+	try {
+		clearInterval(get_status.interval_id);
+	} catch (e) {
+		// TODO: handle exception
+	}
 }
