@@ -445,7 +445,8 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 	var news_content = response.between('id="summary"', '</p>').between('>');
 
 	if (!news_content || !news_content.includes('時報')
-			&& !news_content.includes('頭條')) {
+			&& !news_content.includes('美國') && !news_content.includes('英國')
+			&& !news_content.includes('日本')) {
 		CeL.err('parse_臺灣蘋果日報_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));

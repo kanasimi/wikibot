@@ -336,7 +336,7 @@ function add_dead_link_mark(page_data, link_hash) {
 
 	// 處理 {{|url=http://...}}
 	parser.each('template', function(token, index, parent) {
-		var URL = token.parameters && token.parameters.url;
+		var URL = token.parameters.url;
 		if (URL) {
 			// 去掉 tag, <!-- -->
 			URL = URL.toString().replace(/<[^<>]+>/g, '').trim();
@@ -344,8 +344,8 @@ function add_dead_link_mark(page_data, link_hash) {
 
 		if (token.name === 'Dead link') {
 			// 登記已處理過或無須處理之URL。
-			if (URL) {
-				delete link_hash[URL];
+			if (token.parameters.broken_url) {
+				delete link_hash[token.parameters.broken_url];
 			}
 			return;
 		}
