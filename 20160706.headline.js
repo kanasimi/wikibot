@@ -470,13 +470,17 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			return;
 		}
 		// [ all, 國家, 報, "頭條" ]
-		var matched = item.match(/^([^《》]*)《([^《》]+)》(?:頭條)?\n+(.{4,200})$/),
+		var matched = item.match(/^([^《》]*)《([^《》]+)》(?:頭條)?(\n+.{4,200})?$/),
 		// 報紙標題。
 		headline;
 		if (matched) {
 			country = matched[1];
 			media = matched[2];
-			headline = matched[3];
+			if (!matched[3]) {
+				return;
+			}
+			headline = matched[3].trim();
+
 		} else if (country
 				&& (matched = item.match(/^《?([^《》]+)》?頭條\n+(.{4,200})$/))) {
 			media = matched[1];
