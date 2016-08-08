@@ -456,6 +456,11 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 	var count = 0, country,
 	// paper
 	media;
+
+	news_content = news_content.replace(
+	// <strong>法國24</strong><strong>電視台</strong>
+	/<\/strong> {0,2}<strong[^<>]*>(.{2,3}<\/strong>)/g, '$1');
+
 	news_content.replace(/<strong[^<>]*>(.*?)<\/strong>/g, function(item) {
 		// assert: "<strong>美國《紐約時報》頭條<br />報紙標題</strong>"
 		item = item.replace(/<br(?:[^<>]+)>/ig, '\n')
@@ -464,26 +469,32 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
-		// [ all, 國家, 報, 頭條 ]
-		var matched = item.match(/^([^《》]*)《([^《》]+)》(?:頭條)\n+(.{4,200})$/),
+		// [ all, 國家, 報, "頭條" ]
+		var matched = item.match(/^([^《》]*)《([^《》]+)》(?:頭條)?\n+(.{4,200})$/),
 		// 報紙標題。
 		headline;
 		if (matched) {
 			country = matched[1];
 			media = matched[2];
 			headline = matched[3];
-		} else if (!country
-				&& (matched = item.match(/^([^《》]+)頭條\n+(.{4,200})$/))) {
+		} else if (country
+				&& (matched = item.match(/^《?([^《》]+)》?頭條\n+(.{4,200})$/))) {
 			media = matched[1];
 			headline = matched[2];
-		} else if (!country && media && (matched = item.match(/^.{4,200}$/))) {
+		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {
 			headline = matched[0];
+			if (headline.length < 9
+					&& (matched = headline.match(/^(?:.國|日本)(.{2,})$/))) {
+				country = matched[1];
+				media = matched[2];
+				return;
+			}
 		}
-		if (!matched) {
-			CeL.err('parse_臺灣蘋果日報_headline: Can not parse ['
-			//
-			+ publisher + ']: [' + item + ']');
-			return;
+
+		if (!headline || !media || !country) {
+			CeL.err('parse_臺灣蘋果日報_headline: Can not parse [' + publisher
+					+ ']: [' + item + ']');
+			return '';
 		}
 
 		count++;
