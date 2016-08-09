@@ -477,6 +477,8 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			country = matched[1];
 			media = matched[2];
 			if (!matched[3]) {
+				CeL.debug('Set #1 country ' + country + ', media ' + media
+						+ ' (' + item + ')', 0, 'parse_臺灣蘋果日報_headline');
 				return;
 			}
 			headline = matched[3].trim();
@@ -488,9 +490,11 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {
 			headline = matched[0];
 			if (headline.length < 9
-					&& (matched = headline.match(/^(?:.國|日本)(.{2,})$/))) {
+					&& (matched = headline.match(/^(.國|日本)(.{2,})$/))) {
 				country = matched[1];
 				media = matched[2];
+				CeL.debug('Set #2 country ' + country + ', media ' + media
+						+ ' (' + item + ')', 0, 'parse_臺灣蘋果日報_headline');
 				return;
 			}
 		}
