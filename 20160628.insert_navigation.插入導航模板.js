@@ -6,7 +6,7 @@
 /*
 
  usage:
- node 20160628.insert_navigation.js template_name
+ node 20160628.insert_navigation.插入導航模板.js template_name
 
  2016/4/3 21:24:7	初版試營運。批量連接Template:廣州
  2016/6/28 22:27:52	批量連接Template:深圳、Template:南京
@@ -32,13 +32,15 @@ wiki = Wiki(true);
 // ['node','20160628.insert_navigation.js','template name']
 var template_name = process.argv[2];
 if (!template_name) {
-	throw new Error('No template name specified!');
+	// throw new Error('No template name specified!');
+	CeL.err('No template name specified!');
+	process.exit(1);
 }
 
 // 回頭將導航模板中之連結改成重定向的目標。
 var redirect_hash = CeL.null_Object(),
 //
-template_with_ns = 'Template:' + template_name,
+template_with_ns = /^(Template|模板):/.test(template_name) ? template_name : 'Template:' + template_name,
 //
 template_transclusion = '{{' + template_name + '}}' + '\n',
 // {{tl|Featured article}}或{{tl|Good article}}模板 pattern
@@ -86,6 +88,7 @@ function for_each_pages(page_data) {
 
 	var matched;
 	if (matched = CeL.wiki.parse.redirect(content)) {
+		// wiki.page(matched).edit(for_each_pages);
 		redirect_hash[title] = matched;
 		return [ CeL.wiki.edit.cancel, '為重定向頁: [[' + matched + ']]' ];
 	}
