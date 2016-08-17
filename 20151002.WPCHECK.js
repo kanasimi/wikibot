@@ -1111,6 +1111,8 @@ only_check = approved,
 // 處理頁面數 = 50;
 
 // CeL.set_debug(3);
+
+// 200: test checkwiki #0~199
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
 		if (Array.isArray(only_check)) {

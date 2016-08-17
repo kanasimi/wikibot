@@ -46,7 +46,7 @@ headline_labels = {
 		// http://www.orangenews.hk/news/paperheadline/
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
 		// 不能確保可靠性
-		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:www.orangenews.hk',
+		'橙新聞' : '"%m月%d日" "香港頭條新聞" site:http://www.orangenews.hk/news/',
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
 		// e.g., "中國評論新聞：港澳部份報章頭條新聞標題（8月1日）"
 		'中國評論通訊社' : [ '"%m月%d日" "港澳" "頭條新聞" site:hk.crntt.com', '港澳' ]
@@ -1002,6 +1002,9 @@ function check_labels(labels_to_check) {
 	// 從 labels_to_check 取資訊做查詢。
 	function search_Google(label) {
 		if (label === '橙新聞') {
+			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
+			// 因此這邊處理，但不計數。（而多算一個）
+			left++;
 			search_橙新聞(labels_to_check, function check_left() {
 				left--;
 				CeL.debug('Search headline of [' + label + '] finished. '
@@ -1010,7 +1013,7 @@ function check_labels(labels_to_check) {
 					check_headline_data(labels_to_check);
 				}
 			});
-			return;
+			// return;
 		}
 
 		// query string
