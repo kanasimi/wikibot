@@ -37,6 +37,10 @@ summary = '[[WP:WPCHECK|修正維基語法]]';
 // https://www.mediawiki.org/wiki/Markup_spec#Start_of_line_only
 var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}]+}}|[^\[\]<>{}])+)<br\s*\/?>\s*\n[\s\n]*/gi;
 
+// Category:使用无效自封闭HTML标签的页面 , phab:T134423
+// https://html.spec.whatwg.org/#void-elements
+// area, base, br, col, embed, hr, img, input, keygen, link, meta, param, source, track, wbr
+
 // fix incorrect tag <br />
 // The article contains one or more <br>, <center> or <small> tags with
 // incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
