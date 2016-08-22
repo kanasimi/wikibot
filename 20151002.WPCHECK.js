@@ -35,25 +35,34 @@ summary = '[[WP:WPCHECK|修正維基語法]]';
 // /\n([*#:;]+|[= ]|{\|)/:
 // https://www.mediawiki.org/wiki/Markup_spec/BNF/Article#Wiki-page
 // https://www.mediawiki.org/wiki/Markup_spec#Start_of_line_only
-var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}]+}}|[^\[\]<>{}])+)<br\s*\/?>\s*\n[\s\n]*/gi;
+var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}]+}}|[^\[\]<>{}])+)<br\s*\/?>\s*\n[\s\n]*/gi,
+
+PATTERN_invalid_self_closed_HTML_tags = /(<(b|p|div|span|td|th|tr|center|small)(?:\s[^<>]*)?>([\s\S]*?))<\2\s*\/>/ig;
 
 // Category:使用无效自封闭HTML标签的页面 , phab:T134423
-// https://html.spec.whatwg.org/#void-elements
-// area, base, br, col, embed, hr, img, input, keygen, link, meta, param, source, track, wbr
 // 在主名字空間ns0裡面，替換<small/>為</small>，替換<center/>為</center>，以消除[[:Category:使用無效自封閉HTML標籤的頁面]]。
-fix_2.title = '修正不正確的 HTML tag 如 <small/> → </small>';
+fix_2.title = '修正不正確的 HTML tag 如 <b><b/> → <b></b>';
 function fix_2(content, page_data, messages, options) {
 	// fix error
-	content = content
-	// <small>...<small/> → <small>...</small>
-	.replace(/(<(center|small)(?:\s[^<>]*)?>[^<>]*)<\2\s*\/>/ig, '$1</$2>');
+	content = content.replace(PATTERN_invalid_self_closed_HTML_tags, function(
+			all, $1, tag_name, innerHTML) {
+		if (new RegExp('<' + tag_name + '(?:\\s[^<>]*)?>', 'i')
+		// 中間還有 start tag
+		.test(innerHTML)) {
+			return all;
+		}
+		// <b>...<b/> → <b>...</b>
+		return $1 + '</' + tag_name + '>';
+	})
+	// <b/> → <b></b>
+	// .replace(/<(b|p|div|span|td|th|tr|center|small)\s*\/>/ig, '<$1></$1>')
+	;
 
-	if (/<(?:center|small)\s*\/>/i.test(content))
+	if (/<(?:b|p|div|span|td|th|tr|center|small)\s*\/>/i.test(content))
 		messages.add('尚留有需要人工判別之 &lt;center/small> tag！', page_data);
 
 	return content;
 }
-
 
 // fix incorrect tag <br />
 // The article contains one or more <br>, <center> or <small> tags with
@@ -1107,7 +1116,7 @@ NOT_FOUND = ''.indexOf('_'),
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {Array}已批准NO */
-approved = [ 2, 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
+approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 /** {Array}未批准NO */
 not_approved = [],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */

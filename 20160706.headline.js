@@ -389,8 +389,8 @@ function add_headline(publisher, headline, source) {
 function parse_橙新聞_headline(response, publisher) {
 	var count = 0, news_content = response.between(
 			'function content() parse begin', 'function content() parse end')
-			// 把斷續的頭條新聞標題連接起來。
-			.replace(/<\/strong><strong>/g, '');
+	// 把斷續的頭條新聞標題連接起來。
+	.replace(/<\/strong><strong>/g, '');
 	[ '文匯報', '東方日報', '大公報', '明報', '星島日報', '經濟日報', '頭條日報' ].forEach(function(
 			name) {
 		if (news_content.includes(name))
