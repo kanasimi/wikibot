@@ -405,7 +405,7 @@ function parse_橙新聞_headline(response, publisher) {
 
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
-	PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]+)》/g;
+	PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]{1,20})》/g;
 	count = 0;
 	while (matched = PATTERN.exec(news_content)) {
 		count++;
@@ -415,12 +415,13 @@ function parse_橙新聞_headline(response, publisher) {
 	}
 
 	// e.g., "<strong>headline《文匯報》</strong>"
-	PATTERN = /<strong>([^<>]+)\s*《([^《》]+)》\s*<\/strong>/g;
+	PATTERN = /<strong>([^<>]+)\s*《([^《》]{1,20})》\s*<\/strong>/g;
 	while (matched = PATTERN.exec(news_content)) {
-		count++;
-		add_headline(matched[2],
-		//
-		matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, ''), publisher);
+		matched[1] = matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, '');
+		if (matched[1].length < 40) {
+			count++;
+			add_headline(matched[2], matched[1], publisher);
+		}
 	}
 
 	// e.g.,
@@ -472,7 +473,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			return;
 		}
 		// [ all, 國家, 報, "頭條" ]
-		var matched = item.match(/^([^《》]*)《([^《》]+)》(?:頭條)?(\n+.{4,200})?$/),
+		var matched = item.match(/^([^《》]*)《([^《》]{1,20})》(?:頭條)?(\n+.{4,200})?$/),
 		// 報紙標題。
 		headline;
 		if (matched) {
@@ -486,7 +487,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			headline = matched[3].trim();
 
 		} else if (country
-				&& (matched = item.match(/^《?([^《》]+)》?頭條\n+(.{4,200})$/))) {
+				&& (matched = item.match(/^《?([^《》]{1,20})》?頭條\n+(.{4,200})$/))) {
 			media = matched[1];
 			headline = matched[2];
 		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {
