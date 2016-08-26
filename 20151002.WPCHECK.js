@@ -39,7 +39,7 @@ var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]
 
 PATTERN_invalid_self_closed_HTML_tags = /(<(b|p|div|span|td|th|tr|center|small)(?:\s[^<>]*)?>([\s\S]*?))<\2\s*\/>/ig;
 
-// Category:使用无效自封闭HTML标签的页面 , phab:T134423
+// Category:使用无效自封闭HTML标签的页面 , [[phab:T134423]]
 // 在主名字空間ns0裡面，替換<small/>為</small>，替換<center/>為</center>，以消除[[:Category:使用無效自封閉HTML標籤的頁面]]。
 fix_2.title = '修正不正確的 HTML tag 如 <b><b/> → <b></b>';
 function fix_2(content, page_data, messages, options) {

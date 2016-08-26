@@ -358,6 +358,17 @@ function for_each_old_page(page_data) {
 				// TODO: 可跳出。
 			}
 		});
+
+		if (!has_source) {
+			// 允許使用 reference
+			current_content.each('tag', function(token) {
+				if (token[1].toString().trim()) {
+					has_source = true;
+					// TODO: 可跳出。
+				}
+			});
+		}
+
 		if (!has_source) {
 			CeL.info('for_each_old_page: [[' + page_data.title
 					+ ']]: 沒有來源，不自動保護，而是另設Category列出。');

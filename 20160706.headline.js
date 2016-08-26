@@ -472,8 +472,9 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
+		var matched = item.match(
 		// [ all, 國家, 報, "頭條" ]
-		var matched = item.match(/^([^《》]*)《([^《》]{1,20})》(?:頭條)?(\n+.{4,200})?$/),
+		/^([^《》]*)《([^《》]{1,20})》(?:頭條)?(\n+.{4,200})?$/),
 		// 報紙標題。
 		headline;
 		if (matched) {
@@ -486,8 +487,9 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			}
 			headline = matched[3].trim();
 
-		} else if (country
-				&& (matched = item.match(/^《?([^《》]{1,20})》?頭條\n+(.{4,200})$/))) {
+		} else if (country && (matched
+		//
+		= item.match(/^《?([^《》]{1,20})》?頭條\n+(.{4,200})$/))) {
 			media = matched[1];
 			headline = matched[2];
 		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {
