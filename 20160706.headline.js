@@ -712,7 +712,7 @@ function check_headline_data(labels_to_check) {
 
 	var publisher_to_check = [];
 	for ( var publisher in label_cache_hash) {
-		if (parse_headline[publisher]) {
+		if (typeof parse_headline[publisher] === 'function') {
 			CeL.debug('publisher_to_check += ' + publisher, 0,
 					'check_headline_data');
 			publisher_to_check.push(publisher);
@@ -742,13 +742,23 @@ function check_headline_data(labels_to_check) {
 				CeL.debug('開始處理 [' + label + '] 的 headline (' + url + ')', 0,
 						'next_label');
 				try {
-					if (!parse_headline[label](response, label)
+					// result should be count
+					var result = parse_headline[label](response, label);
+					if (!(result > 0)
 					// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
 					// || headline_data.length === 0
 					) {
+						// 去掉出錯的{{source}}。
+						add_source_data = add_source_data.filter(function(
+								source_template) {
+							return !source_template.includes(url);
+						});
 						throw new Error('[' + label
 								+ ']: No headline get! Parse error?');
 					}
+
+					// TODO: 應該在此才 add source。
+
 				} catch (e) {
 					if (!parse_error_label_list) {
 						parse_error_label_list = CeL.null_Object();
@@ -887,6 +897,7 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 			return new_added;
 		}
 
+		// TODO: 這邊不 add_source_data.push()，應該等 parse 完，確認沒問題才 add source。
 		CeL.debug('add source: label [' + label + '], publisher ' + publisher
 				+ ', url=' + url, 0, '_add_source');
 
@@ -931,6 +942,7 @@ function search_橙新聞(labels_to_check, check_left) {
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
 				var link = matched[1].match(/href="([^"]+)"/);
 				if (link) {
+					// 自行手動登記已處理過之 URL。
 					remove_completed(labels_to_check, label, matched[2].trim(),
 							link[1], true);
 					PATTERN = null;
