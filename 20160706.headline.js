@@ -261,9 +261,14 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
-		if (!page_data.has_stage_tag
-		//
-		&& (has_new_data || parse_error_label_list)) {
+		if (page_data.stage_node) {
+			if (page_data.stage_node.name === 'Review'
+			// 已經有頭條新聞資料時，直接標示{{Publish}}。
+			&& headline_data.length > 2) {
+				page_data.stage_node.name = 'Publish';
+			}
+
+		} else if (has_new_data || parse_error_label_list) {
 			CeL.debug('標上文章標記: '
 			//
 			+ (has_new_data ? '有' : '無') + '新 source 資料，'
@@ -569,6 +574,7 @@ function parse_鉅亨網_headline(response, publisher) {
 }
 
 // TODO: CNML格式
+// TODO: 去除非本期的{{source}}中國評論新聞：港澳部份報章頭條新聞標題
 function parse_中國評論新聞_headline(response, publisher) {
 	CeL.debug('test 移動版。', 0, 'parse_中國評論新聞_headline');
 	var news_content = response.between('detail_content', '</div>')
@@ -1110,7 +1116,7 @@ wiki.page(save_to_page, function(page_data) {
 			// {{develop}}
 			// @see [[維基新聞:文章標記]], [[Wikinews:Article stage tags]]
 			// [[Category:新闻标记模板]]
-			page_data.has_stage_tag = token.name;
+			page_data.stage_node = token;
 			break;
 		}
 
