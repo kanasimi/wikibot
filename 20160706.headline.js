@@ -431,7 +431,7 @@ function parse_橙新聞_headline(response, publisher) {
 
 	// e.g.,
 	// "<p><strong>《文匯報》：【避答「獨謀」求延覆「確認」</strong><strong>梁天琦圖騙選民】</strong></p>"
-	PATTERN = /<p><strong>(.*?)<\/strong><\/p>/g;
+	PATTERN = /<p><strong>(.{9,80})<\/strong><\/p>/g;
 	while (matched = PATTERN.exec(news_content)) {
 		count++;
 		matched = matched[1].replace(/<\/?strong>/g, '');
