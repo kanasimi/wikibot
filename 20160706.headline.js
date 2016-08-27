@@ -267,7 +267,9 @@ function write_data() {
 
 		CeL.debug('stage node: ' + page_data.stage_node
 		//
-		+ ', headline_data[' + all_headlines + ']:', 0, 'write_data');
+		+ ', all_headlines ' + all_headlines
+		//
+		+ ', headline_data[' + headline_data.length + ']:', 0, 'write_data');
 		console.log(headline_data);
 		if (page_data.stage_node) {
 			if (page_data.stage_node.name === 'Review'
