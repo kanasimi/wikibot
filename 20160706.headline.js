@@ -265,7 +265,13 @@ function write_data() {
 			if (page_data.stage_node.name === 'Review'
 			// 已經有頭條新聞資料時，直接標示{{Publish}}。
 			&& headline_data.length > 2) {
-				page_data.stage_node.name = 'Publish';
+				CeL.debug('已經有頭條新聞資料，直接改' + page_data.stage_node
+				//
+				+ '標示為{{Publish}}。', 0, 'write_data');
+				// page_data.stage_node.name = 'Publish';
+				content = content.replace(
+				//
+				page_data.stage_node.toString(), '{{Publish}}');
 			}
 
 		} else if (has_new_data || parse_error_label_list) {
