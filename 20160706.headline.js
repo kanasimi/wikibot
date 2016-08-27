@@ -28,7 +28,11 @@ url_cache_hash = CeL.null_Object(),
 // label_cache_hash[label] = [ {String}url ];
 label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = [ {String}headline ]
-headline_hash = CeL.null_Object(), headline_data = [],
+headline_hash = CeL.null_Object(),
+// 需要新加入的 headline_data = [ '{{HI|...}}', ... ]
+headline_data = [],
+// 包括已處理與未處理過的headline。
+all_headlines = 0,
 // locale=香港
 locale = CeL.env.arg_hash && CeL.env.arg_hash.locale,
 // 已有的頭條新聞標題整合網站。須改 cx & crontab!!
@@ -261,10 +265,14 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
+		CeL.debug('stage node: ' + page_data.stage_node
+		//
+		+ ', headline_data[' + all_headlines + ']:', 0, 'write_data');
+		console.log(headline_data);
 		if (page_data.stage_node) {
 			if (page_data.stage_node.name === 'Review'
 			// 已經有頭條新聞資料時，直接標示{{Publish}}。
-			&& headline_data.length > 2) {
+			&& all_headlines > 2) {
 				CeL.debug('已經有頭條新聞資料，直接改' + page_data.stage_node
 				//
 				+ '標示為{{Publish}}。', 0, 'write_data');
@@ -320,6 +328,8 @@ function write_data() {
 function add_to_headline_hash(publisher, headline, source, is_new) {
 	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 0,
 			'add_to_headline_hash');
+
+	all_headlines++;
 
 	var wikitext = '{{HI|' + publisher + '|' + headline
 	//
@@ -1134,6 +1144,7 @@ wiki.page(save_to_page, function(page_data) {
 			// {{develop}}
 			// @see [[維基新聞:文章標記]], [[Wikinews:Article stage tags]]
 			// [[Category:新闻标记模板]]
+			CeL.debug('stage node: ' + page_data.stage_node, 0);
 			page_data.stage_node = token;
 			break;
 		}
