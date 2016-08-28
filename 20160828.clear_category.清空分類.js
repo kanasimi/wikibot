@@ -21,8 +21,21 @@ wiki = Wiki(true),
 // ((Infinity)) for do all
 test_limit = 1;
 
+
+var category_name = process.argv[2];
+if (!category_name) {
+	CeL.err('No category name specified!');
+	process.exit(1);
+}
+
+category_name = category_name.trim().replace(/^(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: */, '');
+
+// @see PATTERN_category @ CeL.application.net.wiki
+var PATTERM_matched = /\[\[ *(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: *name(\|[^\[\]]*)?\]\][\r\n]*/g;
+PATTERM_matched = new RegExp(PATTERM_matched.source.replace(/name/, category_name), PATTERM_matched.flags);
+
 /** {String}編輯摘要。總結報告。 */
-summary = '[[WP:BOTREQ]]: [[:Category:販売代理店]]の除去依頼';
+summary = '[[WP:BOTREQ]]: [[:Category:' + category_name + ']]の除去依頼';
 
 
 // ----------------------------------------------------------------------------
@@ -39,8 +52,7 @@ function for_each_page(page_data, messages) {
 	 */
 	content = CeL.wiki.content_of(page_data);
 
-	// @see PATTERN_category @ CeL.application.net.wiki
-	return content.replace(/\[\[ *(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: *販売代理店(\|[^\[\]]*)?\]\][\r\n]*/g, '');
+	return content.replace(PATTERM_matched, '');
 }
 
 // ----------------------------------------------------------------------------
@@ -51,7 +63,7 @@ prepare_directory(base_directory);
 
 CeL.wiki.cache([ {
 	type : 'categorymembers',
-	list : 'Category:販売代理店',
+	list : 'Category:' + category_name,
 	reget : true,
 	operator : function(list) {
 		this.list = list;
