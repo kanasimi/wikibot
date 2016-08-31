@@ -610,7 +610,8 @@ function for_each_page(page_data, messages) {
 			check_page();
 		}
 
-		// 檢查本地頁面是否創建夠久(7天)，TODO: 並且沒掛上刪除模板。
+		// 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建頁面。
+		// TODO: 並且檢查沒掛上刪除模板。
 		// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
 		function check_local_creation(converted_local_title) {
 			wiki.page(converted_local_title, function(page_data) {
@@ -621,7 +622,7 @@ function for_each_page(page_data, messages) {
 					check_page(message_set.local_title_too_new, true);
 				}
 			}, {
-				get_creation_date : true
+				get_creation_Date : true
 			});
 		}
 
