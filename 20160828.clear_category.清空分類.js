@@ -3,6 +3,9 @@
 /*
 
  2016/8/28 9:4:48	將某分類下所有文章全部移出分類，清空分類文章。仮運用を行って
+ 2016/8/29 19:42:21	轉成常態性工具。
+
+ TODO: 子分類
 
  */
 
@@ -21,22 +24,22 @@ wiki = Wiki(true),
 // ((Infinity)) for do all
 test_limit = 1;
 
-
 var category_name = process.argv[2];
 if (!category_name) {
 	CeL.err('No category name specified!');
 	process.exit(1);
 }
 
-category_name = category_name.trim().replace(/^(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: */, '');
+category_name = category_name.trim().replace(
+		/^(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: */, '');
 
 // @see PATTERN_category @ CeL.application.net.wiki
 var PATTERM_matched = /\[\[ *(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: *name(\|[^\[\]]*)?\]\][\r\n]*/g;
-PATTERM_matched = new RegExp(PATTERM_matched.source.replace(/name/, category_name), PATTERM_matched.flags);
+PATTERM_matched = new RegExp(PATTERM_matched.source.replace(/name/,
+		category_name), PATTERM_matched.flags);
 
 /** {String}編輯摘要。總結報告。 */
 summary = '[[WP:BOTREQ]]: [[:Category:' + category_name + ']]の除去依頼';
-
 
 // ----------------------------------------------------------------------------
 

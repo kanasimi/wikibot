@@ -219,6 +219,8 @@ message_set = {
 		missing_converted_local : 'Missing converted local page, or the foreign / local page is not link to wikidata.',
 		// gets form langlinks
 		different_local_title : 'The local title is different from title gets form wikidata.',
+		// local_title 過新，將過幾天再測試。
+		local_title_too_new : 'The local page is too new.',
 		not_exist : 'Not exist',
 		from_parameter : 'From the parameter',
 		translated_from_foreign_title : 'Translated from foreign title',
@@ -404,7 +406,7 @@ function for_each_page(page_data, messages) {
 	// 去掉 namespace。
 	in message_set.template_order_of_name))) {
 		check_final_work();
-		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間或模板或 Category' ];
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間、模板或 Category' ];
 	}
 
 	// Check if page_data had processed useing revid.
@@ -608,16 +610,32 @@ function for_each_page(page_data, messages) {
 			check_page();
 		}
 
-		function for_local_page(converted_title) {
-			// converted_title: foreign_title 所對應的本地條目。
-			if (!converted_title || converted_title !== local_title) {
+		// 檢查本地頁面是否創建夠久(7天)，TODO: 並且沒掛上刪除模板。
+		// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
+		function check_local_creation(converted_local_title) {
+			wiki.page(converted_local_title, function(page_data) {
+				if (Date.now() - page_data.creation_Date > 7 * 24 * 60 * 60
+						* 1000) {
+					modify_link();
+				} else {
+					check_page(message_set.local_title_too_new, true);
+				}
+			}, {
+				get_creation_date : true
+			});
+		}
+
+		function for_local_page(converted_local_title) {
+			// converted_local_title: foreign_title 所對應的本地條目。
+			if (!converted_local_title || converted_local_title !== local_title) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
 
 				wiki.redirect_to(local_title,
-				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向 converted_title。
+				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向
+				// converted_local_title。
 				function(redirect_data, page_data) {
-					if (!converted_title) {
+					if (!converted_local_title) {
 						// 從外語言條目連結無法取得本地頁面的情況。
 						if (redirect_data) {
 							// 存在本地頁面。
@@ -640,15 +658,16 @@ function for_each_page(page_data, messages) {
 						redirect_data = redirect_data.to_link;
 					}
 
-					// assert: 若 ((converted_title === redirect_data))，
-					// 則本地頁面 converted_title 存在。
-					if (converted_title === redirect_data) {
-						// local_title 最終導向 redirect_data === converted_title。
+					// assert: 若 ((converted_local_title === redirect_data))，
+					// 則本地頁面 converted_local_title 存在。
+					if (converted_local_title === redirect_data) {
+						// local_title 最終導向 redirect_data ===
+						// converted_local_title。
 						// 直接採用 parameters 指定的 title，不再多做改變；
 						// 盡可能讓表現/顯示出的文字與原先相同。
 						// e.g., [[Special:Diff/59964828]]
 						// TODO: [[Special:Diff/59964827]]
-						modify_link();
+						check_local_creation(converted_local_title);
 						return;
 
 						// ↓ deprecated
@@ -656,11 +675,12 @@ function for_each_page(page_data, messages) {
 							// 盡可能讓表現/顯示出的文字與原先相同。
 							parameters.label = local_title;
 						}
-						// local_title 最終導向 redirect_data === converted_title。
+						// local_title 最終導向 redirect_data ===
+						// converted_local_title。
 						local_title = redirect_data;
 						// [[local_title]] redirect to:
-						// [[redirect_data]] = [[converted_title]]
-						for_local_page(converted_title);
+						// [[redirect_data]] = [[converted_local_title]]
+						for_local_page(converted_local_title);
 					}
 
 					token.error_message
@@ -677,7 +697,8 @@ function for_each_page(page_data, messages) {
 							+ '. '
 							+ message_set.translated_from_foreign_title
 							+ ': '
-							+ (converted_title ? '[[' + converted_title + ']]'
+							+ (converted_local_title ? '[['
+									+ converted_local_title + ']]'
 									: message_set.not_exist);
 
 					// test:
@@ -688,10 +709,8 @@ function for_each_page(page_data, messages) {
 			}
 
 			// TODO: {{enlink}}
-			// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
-			// TODO: 檢查本地頁面是否創建夠久(10天)，並沒掛上刪除模板。
 
-			modify_link();
+			check_local_creation(converted_local_title);
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -852,7 +871,7 @@ function for_each_page(page_data, messages) {
 					}
 
 					// e.g., {{仮リンク|存在する記事}}, {{仮リンク|存在する記事|en}}
-					modify_link();
+					check_local_creation(local_title);
 				});
 
 			} else {
