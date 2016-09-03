@@ -428,7 +428,8 @@ function parse_橙新聞_headline(response, publisher) {
 
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
-	PATTERN = /<strong>([^<>]+)<\/strong>\s*《([^《》]{1,20})》/g;
+	// e.g., "<strong>headline</strong></p>\n<p>《文匯報》"
+	PATTERN = /<strong>([^<>]+)<\/strong>([\s\n]+|<\/?p>)*《([^《》]{1,20})》/g;
 	count = 0;
 	while (matched = PATTERN.exec(news_content)) {
 		count++;

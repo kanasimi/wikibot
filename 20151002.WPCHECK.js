@@ -67,6 +67,7 @@ function fix_2(content, page_data, messages, options) {
 // fix incorrect tag <br />
 // The article contains one or more <br>, <center> or <small> tags with
 // incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
+// TODO: {{clear|left}}
 fix_2.title = '修正不正確的 HTML tag 如 <br/> → <br />';
 function fix_2_full(content, page_data, messages, options) {
 	// fix error
