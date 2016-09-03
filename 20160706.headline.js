@@ -429,7 +429,7 @@ function parse_橙新聞_headline(response, publisher) {
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	// e.g., "<strong>headline</strong></p>\n<p>《文匯報》"
-	PATTERN = /<strong>([^<>]+)<\/strong>([\s\n]+|<\/?p>)*《([^《》]{1,20})》/g;
+	PATTERN = /<strong>([^<>]+)<\/strong>(?:[\s\n]+|<\/?p>)*《([^《》]{1,20})》/g;
 	count = 0;
 	while (matched = PATTERN.exec(news_content)) {
 		count++;
@@ -624,7 +624,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 
 	news_content = news_content.replace(/<br(?:[^<>]+)>/ig, '\n')
 	// 去掉所有 tags without <!-- -->
-	.replace(/<\/?[a-z][^<>]*>/ig, '');
+	.replace(/<\/?[a-z][^<>]*>/ig, '').replace(/&nbsp;/g, ' ');
 
 	var count = 0;
 	news_content.split(/[\r\n]{2,}/).forEach(function(item) {
@@ -632,7 +632,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
-		var matched = item.match(/^([^：～:]+)[：～:](.+)$/);
+		var matched = item.match(/^([^：～:]{2,8})[：～:](.{4,80})$/);
 		if (!matched) {
 			CeL.err('parse_中國評論新聞_headline: Can not parse ['
 			//
