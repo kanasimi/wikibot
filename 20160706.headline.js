@@ -158,6 +158,9 @@ function finish_up() {
 		summary : 'News parse error report',
 		nocreate : 1
 	});
+
+	// TODO: create Category:2016年9月報紙頭條  2016年9月香港報紙頭條
+	// [[Category:2016年報紙頭條]]
 }
 
 function write_data() {
