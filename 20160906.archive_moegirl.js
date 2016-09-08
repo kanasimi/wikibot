@@ -18,8 +18,9 @@ wiki = Wiki(true, 'https://zh.moegirl.org/api.php');
 wiki.page('Talk:讨论版', for_board).page('Talk:提问求助区', for_board);
 
 function for_board(page_data) {
+	var need_change_count = 0,
 	// 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
-	var need_archive_10 = Date.now() - 10 * 24 * 60 * 60 * 1000,
+	need_archive_10 = Date.now() - 10 * 24 * 60 * 60 * 1000,
 	//
 	need_archive_3 = Date.now() - 3 * 24 * 60 * 60 * 1000,
 	//
@@ -42,12 +43,13 @@ function for_board(page_data) {
 						.test(section_text)) {
 			// 每月1號：刪除所有{{saved}}提示模板。
 			if (is_day_1_of_month) {
+				need_change_count++;
 				this[index] = '';
 			}
 			return;
 		}
 
-		var date_list = CeL.wiki.parse.date(section_text, true),
+		var date_list = CeL.wiki.parse.date(section_text, true, true),
 		// earliest = Math.min.apply(null, date_list),
 		latest = Math.max.apply(null, date_list);
 		if (!latest) {
@@ -55,7 +57,8 @@ function for_board(page_data) {
 			throw section_title;
 		}
 		// CeL.log(index+': '+new Date(latest));
-		var need_archive_date = section_title.includes('申请')
+		var need_archive_date = false
+				&& section_title.includes('申请')
 				&& (section_title.includes('巡查员') || section_title
 						.includes('管理员')) ? need_archive_3 : need_archive_10;
 		if (latest > need_archive_date) {
@@ -69,14 +72,18 @@ function for_board(page_data) {
 		// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
 		var archive_title = page_data.title + '/存档/'
 				+ (new Date).format('%Y年%2m月');
+		need_change_count++;
 		this[index] = this[index].replace(/^(=[^=\n]+=\n)[\s\S]*$/, '$1')
 				+ '{{Saved|link=' + archive_title + '|title=' + section_title
 				+ '}}\n';
+
 		wiki.page(archive_title).edit(function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
 			content = content && content.trim()
 			// 向存檔頁添加檔案館模板
 			|| '{{提问求助区页顶/档案馆}}';
+			CeL.log('archive to [[' + archive_title + ']]: ' + section_title);
+			return;
 			return content + '\n'
 			// append 存檔段落(討論串)內容
 			+ section_text.trim().replace(/^==[^=\n]+==\n+/, '');
@@ -86,10 +93,18 @@ function for_board(page_data) {
 		});
 	}
 
-	page_data.sections.forEach(for_sections, page_data.sections);
-	// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
-	wiki.page(page_data).edit(page_data.sections.toString(), {
-		bot : 1,
-		nocreate : 1
-	});
+	CeL.wiki.sections(page_data).forEach(for_sections, page_data.sections);
+
+	if (need_change_count > 0) {
+		CeL.log('[[' + page_data.title + ']]: ' + need_change_count
+				+ ' sections need change.');
+		return;
+		// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
+		wiki.page(page_data).edit(page_data.sections.toString(), {
+			bot : 1,
+			nocreate : 1
+		});
+	} else {
+		CeL.log('[[' + page_data.title + ']]: Nothing need change.');
+	}
 }
