@@ -70,6 +70,7 @@ wiki.data('維基數據沙盒2', function(data) {
 		language : 'zh-tw',
 		references : {
 			臺灣物種名錄物種編號 : 123456,
+			// [[d:Special:AbuseFilter/54]]
 			// 導入自 : 'zhwiki',
 			載於 : '臺灣物種名錄物種',
 			來源網址 : 'https://www.wikidata.org/',
