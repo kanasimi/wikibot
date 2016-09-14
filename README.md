@@ -60,6 +60,29 @@ wiki
 });
 ```
 
+Wikidata example:
+``` JavaScript
+wiki.data('維基數據沙盒2', function(data) {
+	var data_JSON = data;
+}).edit_data(function(entity) {
+	return {
+		生物俗名 : '維基數據沙盒2',
+		language : 'zh-tw',
+		references : {
+			臺灣物種名錄物種編號 : 123456,
+			// 導入自 : 'zhwiki',
+			載於 : '臺灣物種名錄物種',
+			來源網址 : 'https://www.wikidata.org/',
+			檢索日期 : new Date
+		}
+	};
+}, {
+	bot : 1,
+	summary : 'bot test: edit property'
+});
+
+```
+
 For the "wiki loder.js" using in the examples, See [wiki loder.sample.js](https://github.com/kanasimi/wikibot/blob/master/archive/wiki%20loder.sample.js).
 
 

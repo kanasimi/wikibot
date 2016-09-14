@@ -55,6 +55,9 @@ headline_labels = {
 		// e.g., "中國評論新聞：港澳部份報章頭條新聞標題（8月1日）"
 		'中國評論通訊社' : [ '"%m月%d日" "港澳" "頭條新聞" site:hk.crntt.com', '港澳' ]
 	// TODO: http://www.cyberctm.com/news.php
+	// TODO: http://www.hkcna.hk/m/xgxw.html
+	// TODO: http://kinliu.hk/news/28118-db44330592cef1936928defaa2796906
+	// TODO: http://www.hk.cnnewssky.cn/
 	},
 
 	// default

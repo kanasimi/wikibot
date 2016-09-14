@@ -77,16 +77,29 @@ function for_board(page_data) {
 				+ '{{Saved|link=' + archive_title + '|title=' + section_title
 				+ '}}\n';
 
+		var archive_header = '{{'
+		// 向存檔頁添加檔案館模板
+		+ page_data.title.replace(/^[^:]+:/, '') + '页顶/档案馆}}';
+
 		wiki.page(archive_title).edit(function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
-			content = content && content.trim()
-			// 向存檔頁添加檔案館模板
-			|| '{{提问求助区页顶/档案馆}}';
-			CeL.log('archive to [[' + archive_title + ']]: ' + section_title);
+			content = content && content.trim() || '';
+
+			if (!content.includes(archive_header))
+				content = archive_header + content;
+
+			CeL.log('archive to [[' + archive_title
+			//
+			+ ']]: "' + section_title + '"');
+			if (1) {
+				CeL.log(content);
+				CeL.log('~'.repeat(80));
+				CeL.log(section_text.trim());
+			}
 			return;
 			return content + '\n'
 			// append 存檔段落(討論串)內容
-			+ section_text.trim().replace(/^==[^=\n]+==\n+/, '');
+			+ section_text.trim();
 		}, {
 			bot : 1,
 			summary : '存檔討論串:' + section_title
@@ -98,11 +111,13 @@ function for_board(page_data) {
 	if (need_change_count > 0) {
 		CeL.log('[[' + page_data.title + ']]: ' + need_change_count
 				+ ' sections need change.');
+
 		return;
 		// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
 		wiki.page(page_data).edit(page_data.sections.toString(), {
 			bot : 1,
-			nocreate : 1
+			nocreate : 1,
+			summary : '存檔討論串'
 		});
 	} else {
 		CeL.log('[[' + page_data.title + ']]: Nothing need change.');

@@ -41,6 +41,7 @@
  https://www.wikidata.org/wiki/Special:Contributions/Cewbot?uselang=zh-tw
  https://www.wikidata.org/w/index.php?title=Special:AbuseLog&offset=&limit=500&wpSearchUser=Cewbot&wpSearchTitle=&wpSearchFilter=69
  https://www.wikidata.org/w/index.php?title=Special:RecentChanges&hideminor=1&hidebots=0&hideanons=1&hideliu=1&hidemyself=1&days=30&limit=500&tagfilter=wikisyntax
+ https://www.wikidata.org/wiki/Special:AbuseLog?wpSearchUser=cewbot
 
  OK:
  [[:en:Urban agriculture|城市農業]]	[[都市農業]]
@@ -932,6 +933,17 @@ function 仮名_claim(仮名, imported_from) {
 				"snaks-order" : [ "P143" ]
 			} ]
 		} ]
+	};
+
+	return {
+		claims : {
+			読み仮名 : 仮名,
+			// language : 'ja',
+			references : {
+				'imported from' : (use_language === 'zh' ? 'zh' : 'ja')
+						+ 'wiki'
+			}
+		}
 	};
 }
 
