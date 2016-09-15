@@ -15,24 +15,32 @@ summary = '沙盒清理作業';
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'wikinews');
+wikinews = Wiki(true, 'wikinews');
 
-wiki.redirect_to('Project:Sandbox', function(redirect_data, page_data) {
+wikinews.redirect_to('Project:Sandbox', function(redirect_data, page_data) {
 	// console.log(page_data.response.query);
 	// console.log(redirect_data);
 
-	wiki.page(redirect_data);
+	wikinews.page(redirect_data);
 	if (false) {
 		// 頂多一開始執行一次。
-		wiki.protect({
+		wikinews.protect({
 			protections : 'move=sysop',
 			reason : summary + ': 預防沙盒被隨意移動'
 		});
 	}
 	// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
-	wiki.edit('{{sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', {
+	wikinews.edit('{{sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', {
 		summary : summary,
 		nocreate : 1,
 		bot : 1
 	});
+});
+
+var moegirl = Wiki(true, 'https://zh.moegirl.org/api.php');
+
+moegirl.page('Help:沙盒‎‎').edit('{{沙盒顶部}}\n== 請在這行文字底下進行您的測試 ==\n', {
+	summary : summary,
+	nocreate : 1,
+	bot : 1
 });
