@@ -17,6 +17,7 @@
  https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
  https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
 
+ [[:ja:Wikipedia:雑草とり]]
 
  */
 
@@ -1189,8 +1190,9 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 				if (!content)
 					return;
 				// assert: 從checkwiki取得的應該都是ns=0。
-				if (page_data.ns !== 0)
+				if (page_data.ns !== 0) {
 					return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+				}
 				return fix_function(content, page_data, messages, options);
 				// TODO: Set article as done
 			},

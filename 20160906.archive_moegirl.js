@@ -32,15 +32,16 @@ var
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
 // 討論串10日無回復，則將標題進行複製、討論內容進行剪切存檔。
 // 在「兩討論區」中，保留標題、內容存檔的討論串，其標題將於每月1日0時刪除。
-need_archive_10 = Date.now() - 10 * 24 * 60 * 60 * 1000,
+archive_boundary_10 = Date.now() - 10 * 24 * 60 * 60 * 1000,
 // NG: 申請擔任巡查員的討論串，將於提權且歡迎結束的3日（即72小時）後進行存檔。
 // NG: 申請升職管理員的討論串，將於投票結束且討論結束的3日（即72小時）後進行存檔。
-need_archive_3 = Date.now() - 3 * 24 * 60 * 60 * 1000,
+archive_boundary_3 = Date.now() - 3 * 24 * 60 * 60 * 1000,
 // 每月1號：刪除所有{{saved}}提示模板。
 remove_old_notice_section = (new Date).getDate() === 1;
 
 function for_board(page_data) {
-	var need_change_count = 0;
+	// 更動 counter
+	var archive_count = 0, remove_count = 0;
 
 	var parser = CeL.wiki.parser(page_data), sections = [];
 	parser.each('section_title', function(token, index) {
@@ -64,6 +65,7 @@ function for_board(page_data) {
 			CeL.err('No title: ' + section_text);
 			return;
 		}
+		console.log('Process ' + section_title);
 
 		// 跳過已存檔
 		if (section_text.length < 300
@@ -71,7 +73,7 @@ function for_board(page_data) {
 						.test(section_text)) {
 			// 每月1號：刪除所有{{saved}}提示模板。
 			if (remove_old_notice_section) {
-				need_change_count++;
+				remove_count++;
 				for (var i = slice[0] - 1; i < slice[1]; i++) {
 					// stupid way
 					parser[i] = '';
@@ -81,20 +83,22 @@ function for_board(page_data) {
 		}
 
 		var needless,
+		// 所有日期戳記皆在此 archive_boundary_date 前，方進行存檔。
 		// CeL.log(index+': '+new Date(latest));
 		// 都做成10天存檔
-		need_archive_date = false
+		archive_boundary_date = false
 				&& section_title.includes('申请')
 				&& (section_title.includes('巡查员') || section_title
-						.includes('管理员')) ? need_archive_3 : need_archive_10;
+						.includes('管理员')) ? archive_boundary_3 : archive_boundary_10;
 		parser.each('text', function(token, index) {
 			if (needless) {
 				return;
 			}
-			var date_list = CeL.wiki.parse.date(section_text, true, true);
+			var date_list = CeL.wiki.parse.date(token.toString(), true, true);
 			needless = date_list.some(function(date) {
-				return date > need_archive_date;
+				return date > archive_boundary_date;
 			});
+			console.log(token.toString() + ' → ' + date_list + ', ' + needless);
 		}, {
 			slice : slice
 		});
@@ -106,7 +110,7 @@ function for_board(page_data) {
 		// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
 		var archive_title = page_data.title + '/存档/'
 				+ (new Date).format('%Y年%2m月');
-		need_change_count++;
+		archive_count++;
 		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
 				+ CeL.wiki.normalize_section_title(section_title) + '}}\n';
 		for (var i = slice[0] + 1; i < slice[1]; i++) {
@@ -129,11 +133,12 @@ function for_board(page_data) {
 			CeL.log('archive to [[' + archive_title
 			//
 			+ ']]: "' + section_title + '"');
-			if (false) {
+			if (1) {
 				CeL.log(content);
 				CeL.log('~'.repeat(80));
 				CeL.log(section_text.trim());
 			}
+			return;
 			return content + '\n\n== ' + section_title + ' ==\n'
 			// append 存檔段落(討論串)內容
 			+ section_text.trim();
@@ -143,15 +148,25 @@ function for_board(page_data) {
 		});
 	});
 
-	if (need_change_count > 0) {
-		CeL.log('[[' + page_data.title + ']]: ' + need_change_count
-				+ ' sections need change.');
+	if (archive_count > 0 || remove_count > 0) {
+		var summary_list = [];
+		if (archive_count > 0) {
+			summary_list.push('存檔' + archive_count + '過期話題');
+		}
+		if (remove_count > 0) {
+			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
+			summary_list.push('每月首日移除' + archive_count + '話題');
+		}
+		summary_list = summary_list.join('，');
+		// sections need change
+		CeL.log('[[' + page_data.title + ']]: ' + summary_list);
+		return;
 
 		// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
 		wiki.page(page_data).edit(parser.toString(), {
 			bot : 1,
 			nocreate : 1,
-			summary : '存檔討論串: 更動' + need_change_count + '話題'
+			summary : '存檔討論串: ' + summary_list
 		});
 	} else {
 		CeL.log('[[' + page_data.title + ']]: Nothing need change.');
