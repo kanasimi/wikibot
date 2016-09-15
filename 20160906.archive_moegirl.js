@@ -12,6 +12,9 @@
 
  [[Help:沙盒]]
 
+ 萌娘百科 萬物皆可萌的百科全書
+ 似乎有設置最短 login 時間間隔?
+
  */
 
 'use strict';
@@ -131,7 +134,6 @@ function for_board(page_data) {
 				CeL.log('~'.repeat(80));
 				CeL.log(section_text.trim());
 			}
-			return;
 			return content + '\n\n== ' + section_title + ' ==\n'
 			// append 存檔段落(討論串)內容
 			+ section_text.trim();
@@ -149,7 +151,7 @@ function for_board(page_data) {
 		wiki.page(page_data).edit(parser.toString(), {
 			bot : 1,
 			nocreate : 1,
-			summary : '存檔討論串: 更動' + need_change_count + '章節'
+			summary : '存檔討論串: 更動' + need_change_count + '話題'
 		});
 	} else {
 		CeL.log('[[' + page_data.title + ']]: Nothing need change.');
