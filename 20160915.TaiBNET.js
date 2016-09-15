@@ -55,6 +55,12 @@ try {
 	});
 }
 
+var 物種中文名_index,
+// 學名
+taxon_name_index,
+//
+臺灣物種名錄物種編號_index = 0, 臺灣物種名錄物種編號_accepted_index;
+
 function main_work() {
 	CeL.run('data.CSV');
 	var all_taxon_data = CeL.parse_CSV(CeL.get_file(TaiBNET_CSV_path), {
@@ -64,37 +70,50 @@ function main_work() {
 	CeL.log('main_work: [' + TaiBNET_CSV_path + ']: ' + all_taxon_data.length
 			+ ' lines.');
 
-	var 物種中文名_index = all_taxon_data.index.common_name_c,
-	// 學名
+	物種中文名_index = all_taxon_data.index.common_name_c;
 	taxon_name_index = all_taxon_data.index.name;
+	臺灣物種名錄物種編號_accepted_index = all_taxon_data.index.accepted_name_code;
 
-	all_taxon_data.slice(0, 2).forEach(for_taxon);
+	all_taxon_data.slice(0, 80).forEach(for_taxon);
+}
+
+// 因為數量太多，只好增快速度。
+if (!modify_Wikipedia) {
+	CeL.wiki.query.default_lag = 0;
 }
 
 function for_taxon(line) {
-	var 物種中文名 = line[物種中文名_index],
+	var TaiBNET_id = line[臺灣物種名錄物種編號_index] || line[臺灣物種名錄物種編號_accepted_index],
+	//
+	物種中文名 = line[物種中文名_index],
 	//
 	taxon_name = line[taxon_name_index];
-	if (!taxon_name || !(taxon_name = taxon_name.trim())
+	if (!TaiBNET_id || !taxon_name || !(taxon_name = taxon_name.trim())
 	//
 	|| !物種中文名 || !(物種中文名 = 物種中文名.trim())) {
+		CeL.info('for_taxon: Skip #' + TaiBNET_id + ': ' + taxon_name + ', '
+				+ 物種中文名);
+		// console.log(line);
 		return;
 	}
 
 	CeL.info('for_taxon: ' + taxon_name + ': ' + 物種中文名);
-	wiki.data(taxon_name, function(wiki_entity) {
+	wiki.data([ 'en', taxon_name ], function(wiki_entity) {
 		// console.log(wiki_entity);
-	}).edit_data(function(entity) {
+	}).edit_data(function(wiki_entity) {
+		if (!wiki_entity) {
+			return;
+		}
 		return {
 			生物俗名 : 物種中文名,
 			language : 'zh-tw',
 			references : {
-				臺灣物種名錄物種編號 : line[0],
+				臺灣物種名錄物種編號 : TaiBNET_id,
 				檢索日期 : new Date
 			}
 		};
 	}, {
 		bot : 1,
-		summary : 'bot test: edit {{P|1843}}'
+		summary : 'bot test: import data from TaiBNET #' + TaiBNET_id
 	});
 }
