@@ -78,9 +78,7 @@ function main_work() {
 }
 
 // 因為數量太多，只好增快速度。
-if (!modify_Wikipedia) {
-	CeL.wiki.query.default_lag = 0;
-}
+CeL.wiki.query.default_lag = 0;
 
 function for_taxon(line) {
 	var TaiBNET_id = line[臺灣物種名錄物種編號_index] || line[臺灣物種名錄物種編號_accepted_index],
@@ -91,13 +89,14 @@ function for_taxon(line) {
 	if (!TaiBNET_id || !taxon_name || !(taxon_name = taxon_name.trim())
 	//
 	|| !物種中文名 || !(物種中文名 = 物種中文名.trim())) {
-		CeL.info('for_taxon: Skip #' + TaiBNET_id + ': ' + taxon_name + ', '
-				+ 物種中文名);
+		CeL.debug('Skip #' + TaiBNET_id + ': ' + taxon_name + ', ' + 物種中文名, 1,
+				'for_taxon');
 		// console.log(line);
 		return;
 	}
 
 	CeL.info('for_taxon: ' + taxon_name + ': ' + 物種中文名);
+	// console.log(line);
 	wiki.data([ 'en', taxon_name ], function(wiki_entity) {
 		// console.log(wiki_entity);
 	}).edit_data(function(wiki_entity) {
