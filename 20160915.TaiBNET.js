@@ -17,6 +17,9 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
 
+// ----------------------------------------------------------------------------
+// get data file
+
 var TaiBNET_CSV_path = base_directory + 'TaiwanSpecies_UTF8.'
 		+ (new Date).format('%Y%2m%2d') + '.csv';
 
@@ -55,6 +58,9 @@ try {
 	});
 }
 
+// ----------------------------------------------------------------------------
+// parse data file
+
 var 物種中文名_index,
 // 學名 scientific name
 taxon_name_index,
@@ -77,6 +83,9 @@ function import_data() {
 
 	all_taxon_data.slice(0, 80).forEach(for_taxon);
 }
+
+// ----------------------------------------------------------------------------
+// import each taxon
 
 // 因為數量太多，只好增快速度。
 CeL.wiki.query.default_lag = 0;

@@ -894,55 +894,14 @@ PATTERN_読み仮名_need_skip = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・ �
 
 function 仮名_claim(仮名, imported_from) {
 	CeL.debug('add 仮名 claim: [' + 仮名 + ']', 3, '仮名_claim');
+	// https://www.wikidata.org/wiki/Wikidata:Database_reports/Constraint_violations
 	return {
-		"claims" : [ {
-			"mainsnak" : {
-				"snaktype" : "value",
-				// 改 Property:P1814
-				"property" : 読み仮名_id,
-				"datavalue" : {
-					"value" : 仮名,
-					"type" : "string"
-				},
-				"datatype" : "string"
-			},
-			// 必要
-			"type" : "statement",
-			// https://www.wikidata.org/wiki/Wikidata:Database_reports/Constraint_violations
-			"references" : [ {
-				"snaks" : {
-					"P143" : [ {
-						"snaktype" : "value",
-						"property" : "P143",
-						"datavalue" : {
-							"value" : {
-								"entity-type" : "item",
-								// @see
-								// https://www.wikidata.org/wiki/Wikidata:List_of_wikis
-								// Q177837: Japanese Wikipedia ウィキペディア日本語版
-								// Q30239: 中文維基百科
-								"numeric-id" : imported_from
-										|| (use_language === 'zh' ? 30239
-												: 177837)
-							},
-							"type" : "wikibase-entityid"
-						},
-						"datatype" : "wikibase-item"
-					} ]
-				},
-				"snaks-order" : [ "P143" ]
-			} ]
-		} ]
-	};
-
-	return {
-		claims : {
-			読み仮名 : 仮名,
-			// language : 'ja',
-			references : {
-				'imported from' : (use_language === 'zh' ? 'zh' : 'ja')
-						+ 'wiki'
-			}
+		読み仮名 : 仮名,
+		language : 'ja',
+		references : {
+			// @see https://www.wikidata.org/wiki/Wikidata:List_of_wikis
+			imported_from : imported_from || (use_language === 'zh' ? 'zh' : 'ja')
+					+ 'wiki'
 		}
 	};
 }

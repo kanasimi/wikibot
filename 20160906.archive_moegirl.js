@@ -3,7 +3,7 @@
 /*
 
  2016/9/6 18:14:15	初版試營運 公共討論頁的段落(討論串)自動存檔機器人。
- 2016/9/15 9:16:56	上路
+ 2016/9/15 9:16:56	正式上路營運
 
 
  手動存檔工具 快速存檔
@@ -56,7 +56,7 @@ function for_board(page_data) {
 
 	sections.forEach(function(parser_index, section_index) {
 		var section_title = parser[parser_index].title,
-		// +1: 跳過 section 本身
+		// +1: 跳過 section title 本身
 		slice = [ parser_index + 1,
 				sections[section_index + 1] || parser.length ],
 		//
@@ -113,7 +113,7 @@ function for_board(page_data) {
 			return;
 		}
 		if (needless === undefined) {
-			CeL.info('跳過一個日期都沒有的話題 [' + section_title + ']，這不是正常的情況。');
+			CeL.info('跳過一個日期都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
 			return;
 		}
 
@@ -155,18 +155,18 @@ function for_board(page_data) {
 			+ section_text.trim();
 		}, {
 			bot : 1,
-			summary : '存檔討論串:' + section_title
+			summary : '存檔過期討論串:' + section_title
 		});
 	});
 
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (archive_count > 0) {
-			summary_list.push('存檔' + archive_count + '過期話題');
+			summary_list.push('存檔' + archive_count + '個過期討論串');
 		}
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
-			summary_list.push('每月首日移除' + archive_count + '話題');
+			summary_list.push('本月首日移除' + archive_count + '個討論串');
 		}
 		summary_list = summary_list.join('，');
 		// sections need change
