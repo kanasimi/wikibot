@@ -24,7 +24,7 @@ try {
 	var node_fs = require('fs');
 	// check if file exists
 	if (node_fs.statSync(TaiBNET_CSV_path)) {
-		main_work();
+		import_data();
 	}
 } catch (e) {
 	// console.error(e);
@@ -47,7 +47,7 @@ try {
 
 	get_TaiBNET_file.on('close', function(exit) {
 		if (exit === 0) {
-			main_work();
+			import_data();
 		} else {
 			throw 'Can not get file [' + TaiBNET_CSV_path + ']: exit code '
 					+ exit;
@@ -56,20 +56,21 @@ try {
 }
 
 var 物種中文名_index,
-// 學名
+// 學名 scientific name
 taxon_name_index,
 //
 臺灣物種名錄物種編號_index = 0, 臺灣物種名錄物種編號_accepted_index;
 
-function main_work() {
+function import_data() {
 	CeL.run('data.CSV');
 	var all_taxon_data = CeL.parse_CSV(CeL.get_file(TaiBNET_CSV_path), {
 		has_title : true,
 		skip_title : true
 	});
-	CeL.log('main_work: [' + TaiBNET_CSV_path + ']: ' + all_taxon_data.length
+	CeL.log('import_data: [' + TaiBNET_CSV_path + ']: ' + all_taxon_data.length
 			+ ' lines.');
 
+	// cache indexes
 	物種中文名_index = all_taxon_data.index.common_name_c;
 	taxon_name_index = all_taxon_data.index.name;
 	臺灣物種名錄物種編號_accepted_index = all_taxon_data.index.accepted_name_code;
@@ -82,9 +83,9 @@ CeL.wiki.query.default_lag = 0;
 
 function for_taxon(line) {
 	var TaiBNET_id = line[臺灣物種名錄物種編號_index] || line[臺灣物種名錄物種編號_accepted_index],
-	//
+	// Chinese name of the species
 	物種中文名 = line[物種中文名_index],
-	//
+	// scientific name
 	taxon_name = line[taxon_name_index];
 	if (!TaiBNET_id || !taxon_name || !(taxon_name = taxon_name.trim())
 	//

@@ -112,6 +112,10 @@ function for_board(page_data) {
 		if (needless) {
 			return;
 		}
+		if (needless === undefined) {
+			CeL.info('跳過一個日期都沒有的話題 [' + section_title + ']，這不是正常的情況。');
+			return;
+		}
 
 		CeL.log('need archive: ' + section_title);
 		// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
