@@ -89,16 +89,23 @@ function for_board(page_data) {
 		archive_boundary_date = false
 				&& section_title.includes('申请')
 				&& (section_title.includes('巡查员') || section_title
-						.includes('管理员')) ? archive_boundary_3 : archive_boundary_10;
+						.includes('管理员')) ? archive_boundary_3
+				: archive_boundary_10;
 		parser.each('text', function(token, index) {
 			if (needless) {
 				return;
 			}
 			var date_list = CeL.wiki.parse.date(token.toString(), true, true);
+			console.log('[' + token.toString()
+			//
+			+ '] → date_list: ' + date_list);
+			console.log(token);
 			needless = date_list.some(function(date) {
 				return date > archive_boundary_date;
 			});
-			console.log(token.toString() + ' → ' + date_list + ', ' + needless);
+			if (needless) {
+				console.log('** needless archive');
+			}
 		}, {
 			slice : slice
 		});
@@ -136,9 +143,9 @@ function for_board(page_data) {
 			if (1) {
 				CeL.log(content);
 				CeL.log('~'.repeat(80));
-				CeL.log(section_text.trim());
+				CeL.log(parser[parser_index].toString() + section_text.trim());
 			}
-			return;
+			// return;
 			return content + '\n\n== ' + section_title + ' ==\n'
 			// append 存檔段落(討論串)內容
 			+ section_text.trim();
@@ -160,7 +167,7 @@ function for_board(page_data) {
 		summary_list = summary_list.join('，');
 		// sections need change
 		CeL.log('[[' + page_data.title + ']]: ' + summary_list);
-		return;
+		// return;
 
 		// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
 		wiki.page(page_data).edit(parser.toString(), {
