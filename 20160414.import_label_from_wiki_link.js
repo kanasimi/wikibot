@@ -529,10 +529,11 @@ function for_each_page(page_data, messages) {
 		if ((matched = label
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
-		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,10})\s*\|([^{}]{3,40})}}/))
+		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,20})\s*\|([^{}]{3,40})}}/))
 		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
 		&& (foreign_title = to_plain_text(matched[2]).replace(/\|.*$/, ''))) {
-			foreign_language = matched[1];
+			// adapt for 略記. e.g., [[ja:Template:Lang-en-short]]
+			foreign_language = matched[1].replace(/-short$/, '');
 			CeL.debug(
 					'title@lead type {{lang-xx|title}}: [[' + title + ']] → [['
 							+ foreign_language + ':' + foreign_title + ']]', 3);
@@ -579,7 +580,8 @@ function for_each_page(page_data, messages) {
 		}
 
 	} else if (matched = lead_text.match(/^[\s\n]*({{|\[\[)/)) {
-		CeL.warn('[[' + title + ']]: 有問題的 wikitext，例如有首 "' + matched + '" 無尾？');
+		CeL.warn('[[' + title + ']]: 有問題的 wikitext，例如有首 "' + matched[1]
+				+ '" 標記，無結尾標記？\ntext: ' + lead_text);
 	}
 
 	// 若僅要處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
@@ -900,8 +902,8 @@ function 仮名_claim(仮名, imported_from) {
 		language : 'ja',
 		references : {
 			// @see https://www.wikidata.org/wiki/Wikidata:List_of_wikis
-			imported_from : imported_from || (use_language === 'zh' ? 'zh' : 'ja')
-					+ 'wiki'
+			imported_from : imported_from
+					|| (use_language === 'zh' ? 'zh' : 'ja') + 'wiki'
 		}
 	};
 }
