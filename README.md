@@ -82,6 +82,21 @@ wiki.data('維基數據沙盒2', function(data) {
 	summary : 'bot test: edit property'
 });
 
+wiki.data('維基數據沙盒2', function(data) {
+	result = data;
+	CeL.set_debug(6);
+}).edit_data(function(entity) {
+	return {
+		読み仮名 : 'かな',
+		language : 'ja',
+		references : {
+			imported_from : 'jawiki'
+		}
+	};
+}, {
+	bot : 1,
+	summary : 'bot test: edit property'
+});
 ```
 
 For the "wiki loder.js" using in the examples, See [wiki loder.sample.js](https://github.com/kanasimi/wikibot/blob/master/archive/wiki%20loder.sample.js).

@@ -3,7 +3,7 @@
 /*
 
  2016/9/15 12:23:53	初版
- 上路
+ 正式上路營運
 
 
  */
@@ -113,13 +113,20 @@ function for_taxon(line) {
 		if (!wiki_entity) {
 			return;
 		}
+
 		return {
-			生物俗名 : 物種中文名,
-			language : 'zh-tw',
-			references : {
-				臺灣物種名錄物種編號 : TaiBNET_id,
-				檢索日期 : new Date
-			}
+			// split multiple names
+			claims : 物種中文名.split(/[,;]/).map(function(name) {
+				return {
+					生物俗名 : name.trim(),
+					language : 'zh-tw',
+					references : {
+						載於 : 臺灣物種名錄,
+						臺灣物種名錄物種編號 : TaiBNET_id,
+						檢索日期 : new Date
+					}
+				};
+			})
 		};
 	}, {
 		bot : 1,
