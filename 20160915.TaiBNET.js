@@ -20,6 +20,8 @@ wiki = Wiki(true);
 // ----------------------------------------------------------------------------
 // get data file
 
+prepare_directory(base_directory);
+
 var TaiBNET_CSV_path = base_directory + 'TaiwanSpecies_UTF8.'
 		+ (new Date).format('%Y%2m%2d') + '.csv';
 
@@ -81,6 +83,7 @@ function import_data() {
 	taxon_name_index = all_taxon_data.index.name;
 	臺灣物種名錄物種編號_accepted_index = all_taxon_data.index.accepted_name_code;
 
+	// CeL.set_debug(2);
 	all_taxon_data.slice(0, 80).forEach(for_taxon);
 }
 
@@ -111,25 +114,25 @@ function for_taxon(line) {
 		// console.log(wiki_entity);
 	}).edit_data(function(wiki_entity) {
 		if (!wiki_entity) {
+			// 不存在此 entity。
 			return;
 		}
 
 		return {
 			// split multiple names
-			claims : 物種中文名.split(/[,;]/).map(function(name) {
-				return {
-					生物俗名 : name.trim(),
-					language : 'zh-tw',
-					references : {
-						載於 : 臺灣物種名錄,
-						臺灣物種名錄物種編號 : TaiBNET_id,
-						檢索日期 : new Date
-					}
-				};
-			})
+			// e.g., "星點寬尾鱗魨;星點鱗魨;星點砲彈;寬尾板機魨"
+			生物俗名 : 物種中文名.split(/\s*[,;]+\s*/),
+			multi : true,
+			language : 'zh-tw',
+			references : {
+				載於 : '臺灣物種名錄',
+				臺灣物種名錄物種編號 : TaiBNET_id,
+				檢索日期 : new Date
+			}
 		};
 	}, {
 		bot : 1,
 		summary : 'bot test: import data from TaiBNET #' + TaiBNET_id
 	});
+
 }

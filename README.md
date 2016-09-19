@@ -82,16 +82,23 @@ wiki.data('維基數據沙盒2', function(data) {
 	summary : 'bot test: edit property'
 });
 
-wiki.data('維基數據沙盒2', function(data) {
-	result = data;
-	CeL.set_debug(6);
-}).edit_data(function(entity) {
+// set multiple values
+wiki.data('維基數據沙盒2').edit_data(function(entity) {
 	return {
-		読み仮名 : 'かな',
-		language : 'ja',
-		references : {
-			imported_from : 'jawiki'
-		}
+		claims : [ {
+			生物俗名 : [ 'SB2#1', 'SB2#2', 'SB2#3' ],
+			multi : true,
+			language : 'zh-tw',
+			references : {
+				臺灣物種名錄物種編號 : 123456
+			}
+		}, {
+			読み仮名 : 'かな',
+			language : 'ja',
+			references : {
+				imported_from : 'jawiki'
+			}
+		} ]
 	};
 }, {
 	bot : 1,
