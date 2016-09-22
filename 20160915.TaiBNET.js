@@ -35,12 +35,11 @@ try {
 	// console.error(e);
 	// throw e;
 
-	var spawn = require('child_process').spawn, get_TaiBNET_file = spawn(
-			'/usr/bin/wget',
-			[
-					'--output-document=' + TaiBNET_CSV_path + '',
-					// http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=
-					'http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=' ]);
+	// http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=
+	var url = 'http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=', spawn = require('child_process').spawn, get_TaiBNET_file = spawn(
+			'/usr/bin/wget', [ '--output-document=' + TaiBNET_CSV_path + '',
+					url ]);
+	CeL.log('Try to get [' + url + ']');
 
 	get_TaiBNET_file.stdout.on('data', function(data) {
 		// console.log(data.toString());
@@ -84,7 +83,7 @@ function import_data() {
 	臺灣物種名錄物種編號_accepted_index = all_taxon_data.index.accepted_name_code;
 
 	// CeL.set_debug(2);
-	all_taxon_data.slice(0, 80).forEach(for_taxon);
+	all_taxon_data.slice(0, 20).forEach(for_taxon);
 }
 
 // ----------------------------------------------------------------------------
@@ -118,21 +117,29 @@ function for_taxon(line) {
 			return;
 		}
 
+		// split multiple names
+		// e.g., "星點寬尾鱗魨;星點鱗魨;星點砲彈;寬尾板機魨"
+		物種中文名 = 物種中文名.split(/\s*[,;]+\s*/);
+
 		return {
-			// split multiple names
-			// e.g., "星點寬尾鱗魨;星點鱗魨;星點砲彈;寬尾板機魨"
-			生物俗名 : 物種中文名.split(/\s*[,;]+\s*/),
-			multi : true,
-			language : 'zh-tw',
-			references : {
-				載於 : '臺灣物種名錄',
-				臺灣物種名錄物種編號 : TaiBNET_id,
-				檢索日期 : new Date
+			labels : {
+				'zh-tw' : 物種中文名
+			},
+			claims : {
+				生物俗名 : 物種中文名,
+				multi : true,
+				language : 'zh-tw',
+				references : {
+					載於 : '臺灣物種名錄',
+					臺灣物種名錄物種編號 : TaiBNET_id,
+					檢索日期 : new Date
+				}
 			}
 		};
+
 	}, {
 		bot : 1,
-		summary : 'bot test: import data from TaiBNET #' + TaiBNET_id
+		summary : 'import data from TaiBNET #' + TaiBNET_id
 	});
 
 }

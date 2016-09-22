@@ -77,14 +77,13 @@ wiki.data('維基數據沙盒2', function(data) {
 			檢索日期 : new Date
 		}
 	};
-}, {
-	bot : 1,
-	summary : 'bot test: edit property'
-});
 
-// set multiple values
-wiki.data('維基數據沙盒2').edit_data(function(entity) {
+	// set multiple values
 	return {
+		labels : {
+			ja : 'ウィキデータ・サンドボックス2',
+			'zh-tw' : [ '維基數據沙盒2', '維基數據沙盒#2', '維基數據沙盒-2' ]
+		},
 		claims : [ {
 			生物俗名 : [ 'SB2#1', 'SB2#2', 'SB2#3' ],
 			multi : true,
@@ -100,6 +99,20 @@ wiki.data('維基數據沙盒2').edit_data(function(entity) {
 			}
 		} ]
 	};
+
+	// remove specified value 生物俗名=SB2
+	return {
+		生物俗名 : 'SB2',
+		language : 'zh-tw',
+		remove : true
+	};
+
+	// to remove ALL "生物俗名"
+	return {
+		生物俗名 : CeL.wiki.edit_data.remove_all,
+		language : 'zh-tw'
+	};
+
 }, {
 	bot : 1,
 	summary : 'bot test: edit property'
