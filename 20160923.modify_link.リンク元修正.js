@@ -41,7 +41,11 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 test_limit = Infinity,
 
 // [ all ]
-PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*\|.*?\]\]/g;
+PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?(?:\|[^\[\]\#\|]*)?\]\]/g,
+
+replace_to = '[[Jスルーカード]]';
+
+PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?\|[^\[\]\#\|]*\]\]/g;
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -65,17 +69,22 @@ function for_each_page(page_data, messages) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
 
-	if (1) {
+	if (0) {
 		// 首先需要檢查前後文，確認可能出現的問題!
 		var matched = content.match(PATTERN_TO_REPLACE);
 		if (matched) {
+			matched = matched.map(function(all) {
+				return all.replace(PATTERN_TO_REPLACE, typeof replace_to === 'function' ? function(all) {
+					return all + '\t→\t' + replace_to(all);
+				} : all + '\t→\t' + replace_to);
+			});
 			matched.unshift('[[' + title + ']]:');
 			CeL.log(matched.join('\n\t'));
 		}
 		return;
 	}
 
-	return content.replace(PATTERN_TO_REPLACE, '[[Jスルーカード]]');
+	return content.replace(PATTERN_TO_REPLACE, replace_to);
 }
 
 // ----------------------------------------------------------------------------
