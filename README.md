@@ -84,6 +84,9 @@ wiki.data('維基數據沙盒2', function(data) {
 			ja : 'ウィキデータ・サンドボックス2',
 			'zh-tw' : [ '維基數據沙盒2', '維基數據沙盒#2', '維基數據沙盒-2' ]
 		},
+		descriptions : {
+			'zh-tw' : '作為沙盒以供測試功能'
+		},
 		claims : [ {
 			生物俗名 : [ 'SB2#1', 'SB2#2', 'SB2#3' ],
 			multi : true,
