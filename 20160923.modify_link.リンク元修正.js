@@ -3,7 +3,7 @@
 /*
 
  2016/9/23 19:44:52	「Jスルーカード」のリンク修正依頼
-
+ 2016/9/23 21:28:36	完成。正式運用。轉成常態性工具。
 
 
  リンク元修正
@@ -27,7 +27,8 @@ require('./wiki loder.js');
 set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61129381|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴う修正';
+summary = '[[Special:Diff/61129381|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正';
+// 改名に伴うリンクの修正
 
 var
 /** {Object}wiki operator 操作子. */
@@ -70,7 +71,7 @@ function for_each_page(page_data, messages) {
 	}
 
 	if (0) {
-		// 首先需要檢查前後文，確認可能出現的問題!
+		// リンク元の調査。首先需要檢查前後文，確認可能出現的問題！
 		var matched = content.match(PATTERN_TO_REPLACE);
 		if (matched) {
 			matched = matched.map(function(all) {
@@ -91,8 +92,8 @@ function for_each_page(page_data, messages) {
 
 // CeL.set_debug(2);
 
-prepare_directory(base_directory);
-// prepare_directory(base_directory, true);
+// prepare_directory(base_directory);
+prepare_directory(base_directory, true);
 
 CeL.wiki.cache([ {
 	type : 'backlinks',
