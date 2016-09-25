@@ -1,20 +1,7 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160923.modify_link.リンク元修正.js; date) >> modify_link.リンク元修正/log &
+﻿/*
 
-/*
+ 	完成。正式運用。轉成常態性工具。
 
- 2016/9/23 19:44:52	「Jスルーカード」のリンク修正依頼
- 2016/9/23 21:28:36	完成。正式運用。轉成常態性工具。
-
-
- リンク元修正
-
-[[title]]
-[[title|
-[[title (A)
-[[title (B)
-[[title#section title 1
-[[title#section title 2
-[[title#section title|
 
  */
 
@@ -27,22 +14,19 @@ require('./wiki loder.js');
 set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61129381|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正';
-// 改名に伴うリンクの修正
+summary = 'Synchronize data of books';
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
+/** {revision_cacher}記錄處理過的文章。 */
+processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
+		+ use_language + '.json'),
+
 // ((Infinity)) for do all
-test_limit = Infinity,
+test_limit = 2;
 
-// [ all ]
-PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?(?:\|[^\[\]\#\|]*)?\]\]/g,
-
-replace_to = '[[Jスルーカード]]';
-
-PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?\|[^\[\]\#\|]*\]\]/g;
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -66,22 +50,18 @@ function for_each_page(page_data, messages) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
 
-	if (0) {
-		// リンク元の調査。首先需要檢查前後文，確認可能出現的問題！
-		var matched = content.match(PATTERN_TO_REPLACE);
-		if (matched) {
-			matched = matched.map(function(all) {
-				return all.replace(PATTERN_TO_REPLACE, typeof replace_to === 'function' ? function(all) {
-					return all + '\t→\t' + replace_to(all);
-				} : all + '\t→\t' + replace_to);
-			});
-			matched.unshift('[[' + title + ']]:');
-			CeL.log(matched.join('\n\t'));
+	var parser = CeL.wiki.parser(page_data);
+	parser.each('template', function (token) {
+		if (token.name !== '基礎情報 書籍') {
+			return;
 		}
-		return;
-	}
 
-	return content.replace(PATTERN_TO_REPLACE, replace_to);
+		var book_title = token.parameters.title.replace(/^『(.+)』$/, '$1').trim();
+		console.log(book_title);
+		wiki.page(page_data).data(function(entity){
+			console.log(entity);
+		});
+	});
 }
 
 // ----------------------------------------------------------------------------
@@ -92,8 +72,8 @@ function for_each_page(page_data, messages) {
 prepare_directory(base_directory, true);
 
 CeL.wiki.cache([ {
-	type : 'backlinks',
-	list : 'Jスルー',
+	type : 'embeddedin',
+	list : 'Template:基礎情報 書籍',
 	operator : function(list) {
 		this.list = list;
 	}
@@ -102,7 +82,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
