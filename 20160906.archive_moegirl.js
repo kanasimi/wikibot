@@ -44,6 +44,11 @@ function for_board(page_data) {
 	var archive_count = 0, remove_count = 0;
 
 	var parser = CeL.wiki.parser(page_data), sections = [];
+	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
+		throw 'Parser error: [[' + page_data.title + ']]';
+	}
+
 	parser.each('section_title', function(token, index) {
 		if (token.level !== 2) {
 			return;

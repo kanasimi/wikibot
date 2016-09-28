@@ -27,7 +27,6 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 // ((Infinity)) for do all
 test_limit = 2;
 
-
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
@@ -51,14 +50,21 @@ function for_each_page(page_data, messages) {
 	}
 
 	var parser = CeL.wiki.parser(page_data);
-	parser.each('template', function (token) {
+	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
+		throw 'Parser error: [[' + page_data.title + ']]';
+	}
+
+	parser.each('template', function(token) {
 		if (token.name !== '基礎情報 書籍') {
 			return;
 		}
 
-		var book_title = token.parameters.title.replace(/^『(.+)』$/, '$1').trim();
+		var book_title = token.parameters.title.replace(/^『(.+)』$/, '$1')
+				.trim();
 		console.log(book_title);
-		wiki.page(page_data).data(function(entity){
+		wiki.page(page_data).data(function(entity) {
+			entity.value_of('label', 'zh');
 			console.log(entity);
 		});
 	});

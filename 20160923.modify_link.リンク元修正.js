@@ -8,13 +8,16 @@
 
  リンク元修正
 
-[[title]]
-[[title|
-[[title (A)
-[[title (B)
-[[title#section title 1
-[[title#section title 2
-[[title#section title|
+ [[title]]
+ [[title|
+ [[title (A)
+ [[title (B)
+ [[title#section title 1
+ [[title#section title 2
+ [[title#section title|
+
+ [[title]] of ABC → [[title of ABC]]
+
 
  */
 
@@ -38,11 +41,12 @@ wiki = Wiki(true),
 test_limit = Infinity,
 
 // [ all ]
-PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?(?:\|[^\[\]\#\|]*)?\]\]/g,
+PATTERN_TO_REPLACE
+// = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?(?:\|[^\[\]\#\|]*)?\]\]/g,
+// = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?\|[^\[\]\#\|]*\]\](\s*カード)?/g,
+= /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?\]\](\s*カード)?/g,
 
 replace_to = '[[Jスルーカード]]';
-
-PATTERN_TO_REPLACE = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?\|[^\[\]\#\|]*\]\]/g;
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -71,9 +75,10 @@ function for_each_page(page_data, messages) {
 		var matched = content.match(PATTERN_TO_REPLACE);
 		if (matched) {
 			matched = matched.map(function(all) {
-				return all.replace(PATTERN_TO_REPLACE, typeof replace_to === 'function' ? function(all) {
-					return all + '\t→\t' + replace_to(all);
-				} : all + '\t→\t' + replace_to);
+				return all.replace(PATTERN_TO_REPLACE,
+						typeof replace_to === 'function' ? function(all) {
+							return all + '\t→\t' + replace_to(all);
+						} : all + '\t→\t' + replace_to);
 			});
 			matched.unshift('[[' + title + ']]:');
 			CeL.log(matched.join('\n\t'));

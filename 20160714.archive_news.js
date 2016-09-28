@@ -326,6 +326,10 @@ function for_each_old_page(page_data) {
 	}
 
 	current_content = CeL.wiki.parser(current_content).parse();
+	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
+		throw 'Parser error: [[' + page_data.title + ']]';
+	}
 
 	if (false) {
 		// 去掉空分類 [[Category:]]。
