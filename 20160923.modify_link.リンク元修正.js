@@ -46,7 +46,7 @@ replace_to = '[[Jスルーカード]]';
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
 summary = '[[' + (diff_id ? 'Special:Diff/' + diff_id : 'WP:BOTREQ')
-		+ '|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正';
+		+ '|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正 - [[' + log_to + '|log]]';
 // 改名に伴うリンクの修正
 
 function for_each_page(page_data, messages) {

@@ -41,7 +41,8 @@ PATTERM_matched = new RegExp(PATTERM_matched.source.replace(/name/,
 
 /** {String}編輯摘要。總結報告。 */
 summary = '[[' + (diff_id ? 'Special:Diff/' + diff_id : 'WP:BOTREQ')
-		+ '|Bot作業依頼]]：[[:Category:' + category_name + ']]の除去依頼';
+		+ '|Bot作業依頼]]：[[:Category:' + category_name + ']]の除去依頼 - [[' + log_to
+		+ '|log]]';
 
 // ----------------------------------------------------------------------------
 
