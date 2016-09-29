@@ -1,6 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160923.modify_link.リンク元修正.js; date) >> modify_link.リンク元修正/log &
-
-/*
+﻿/*
 
  2016/9/23 19:44:52	「Jスルーカード」のリンク修正依頼
  2016/9/23 21:28:36	完成。正式運用。轉成常態性工具。
@@ -29,16 +27,14 @@ require('./wiki loder.js');
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
 
-/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61129381|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正';
-// [[WP:BOTREQ|Bot作業依頼]] 改名に伴うリンクの修正
-
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
 test_limit = Infinity,
+
+diff_id = 61129381,
 
 // [ all ]
 PATTERN_TO_REPLACE
@@ -47,6 +43,11 @@ PATTERN_TO_REPLACE
 = /\[\[\s*Jスルー\s*(?:#[^\[\]\#\|]*)?\]\](\s*カード)?/g,
 
 replace_to = '[[Jスルーカード]]';
+
+/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+summary = '[[' + (diff_id ? 'Special:Diff/' + diff_id : 'WP:BOTREQ')
+		+ '|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正';
+// 改名に伴うリンクの修正
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
