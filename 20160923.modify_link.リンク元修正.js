@@ -31,7 +31,7 @@ set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
 summary = '[[Special:Diff/61129381|Bot作業依頼]]：[[Jスルーカード]]の記事名変更に伴うリンクの修正';
-// 改名に伴うリンクの修正
+// [[WP:BOTREQ|Bot作業依頼]] 改名に伴うリンクの修正
 
 var
 /** {Object}wiki operator 操作子. */
@@ -93,12 +93,12 @@ function for_each_page(page_data, messages) {
 
 // CeL.set_debug(2);
 
-// prepare_directory(base_directory);
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
 CeL.wiki.cache([ {
 	type : 'backlinks',
 	list : 'Jスルー',
+	reget : true,
 	operator : function(list) {
 		this.list = list;
 	}

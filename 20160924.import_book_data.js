@@ -74,12 +74,12 @@ function for_each_page(page_data, messages) {
 
 // CeL.set_debug(2);
 
-// prepare_directory(base_directory);
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
 
 CeL.wiki.cache([ {
 	type : 'embeddedin',
 	list : 'Template:基礎情報 書籍',
+	reget : true,
 	operator : function(list) {
 		this.list = list;
 	}

@@ -1,11 +1,7 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160828.clear_category.清空分類.js; date) >> clear_category.清空分類/log &
-
-/*
+﻿/*
 
  2016/8/28 9:4:48	將某分類下所有文章全部移出分類，清空分類文章。仮運用を行って
  2016/8/29 19:42:21	轉成常態性工具。
-
- TODO: 子分類
 
  */
 
@@ -39,12 +35,14 @@ PATTERM_matched = new RegExp(PATTERM_matched.source.replace(/name/,
 		category_name), PATTERM_matched.flags);
 
 /** {String}編輯摘要。總結報告。 */
-summary = '[[WP:BOTREQ]]: [[:Category:' + category_name + ']]の除去依頼';
+summary = '[[WP:BOTREQ|Bot作業依頼]]：[[:Category:' + category_name + ']]の除去依頼';
 
 // ----------------------------------------------------------------------------
 
 function for_each_page(page_data, messages) {
-	if (page_data.ns !== 0) {
+	if (page_data.ns !== 0
+	// category : 14 子分類
+	&& page_data.ns !== 14) {
 		return [ CeL.wiki.edit.cancel, '記事だけを編集する' && 'skip' ];
 	}
 
@@ -99,7 +97,7 @@ CeL.wiki.cache([ {
 
 }, {
 	// default options === this
-	namespace : 0,
+	// namespace : 0,
 	// [SESSION_KEY]
 	session : wiki,
 	// title_prefix : 'Template:',

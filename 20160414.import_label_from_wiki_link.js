@@ -27,6 +27,7 @@
  [[亨利·弗拉格勒]]（{{lang-en|Henry Flager}}）
  [[氣泡核融合]]（{{lang|en|bubble fusion}}）
  [[史帝夫·賈維森]]（{{lang|en|[[:en:Steve Jurvetson|Steve Jurvetson]]}}）
+ “[[超越爱因斯坦]]”（beyond Einstein program）
  遊戲設計者[[艾德·格林伍德]](Ed Greenwood)所創造。
  美國白皮鬆 → 美國白皮松
  相撲力士鬆太郎 → 相撲力士松太郎
