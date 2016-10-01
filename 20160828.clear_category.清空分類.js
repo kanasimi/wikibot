@@ -6,6 +6,8 @@
 usage:
 node 20160828.clear_category.清空分類.js category_name [diff_id]
 
+上位重複カテゴリ除去
+
  */
 
 'use strict';

@@ -64,7 +64,7 @@ function for_each_page(page_data, messages) {
 				.trim();
 		console.log(book_title);
 		wiki.page(page_data).data(function(entity) {
-			entity.value_of('label', 'zh');
+			entity.value('label', 'zh');
 			console.log(entity);
 		});
 	});
