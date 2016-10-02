@@ -11,7 +11,7 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-summary = '沙盒清理作業';
+summary = '沙盒（公共測試區）清理作業';
 
 var
 /** {Object}wiki operator 操作子. */
@@ -26,7 +26,7 @@ wikinews.redirect_to('Project:Sandbox', function(redirect_data, page_data) {
 		// 頂多一開始執行一次。
 		wikinews.protect({
 			protections : 'move=sysop',
-			reason : summary + ': 預防沙盒被隨意移動'
+			reason : summary + ': 預防公共測試區被隨意移動'
 		});
 	}
 	// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
@@ -39,8 +39,13 @@ wikinews.redirect_to('Project:Sandbox', function(redirect_data, page_data) {
 
 var moegirl = Wiki(true, 'https://zh.moegirl.org/api.php');
 
-moegirl.page('Help:沙盒‎‎').edit('{{沙盒顶部}}\n== 請在這行文字底下進行您的測試 ==\n', {
-	summary : summary,
-	nocreate : 1,
-	bot : 1
-});
+// 一天個人認為還是略嫌小。——From AnnAngela the sysop
+// 改2天一次試試。
+if ((new Date).getDate() % 2 === 1) {
+	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
+	moegirl.page('Help:沙盒‎‎').edit('{{沙盒顶部}}\n== 請在這行文字底下進行您的測試 ==\n', {
+		summary : summary,
+		nocreate : 1,
+		bot : 1
+	});
+}
