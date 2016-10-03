@@ -105,11 +105,15 @@ function for_board(page_data) {
 			//
 			+ '] → date_list: ' + date_list);
 			console.log(token);
+			if (date_list.length === 0) {
+				// 跳過一個日期都沒有的討論串
+				return;
+			}
 			needless = date_list.some(function(date) {
 				return date > archive_boundary_date;
 			});
 			if (needless) {
-				console.log('** needless archive');
+				console.log('** needless archive: [[' + section_title + ']]');
 			}
 		}, {
 			slice : slice
@@ -118,8 +122,12 @@ function for_board(page_data) {
 			return;
 		}
 		if (needless === undefined) {
-			CeL.info('跳過一個日期都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
+			CeL.info('跳過一個文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
 			return;
+		}
+		if (needless !== true) {
+			// unexpected value. e.g., false
+			throw 'needless: ' + needless;
 		}
 
 		CeL.log('need archive: ' + section_title);
@@ -143,7 +151,7 @@ function for_board(page_data) {
 			content = content && content.trim() || '';
 
 			if (!content.includes(archive_header)) {
-				content = archive_header + '\n' + content;
+				content = (archive_header + '\n' + content).trim();
 			}
 
 			CeL.log('archive to [[' + archive_title
@@ -171,7 +179,7 @@ function for_board(page_data) {
 		}
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
-			summary_list.push('本月首日移除' + archive_count + '個討論串');
+			summary_list.push('本月首日移除' + remove_count + '個討論串');
 		}
 		summary_list = summary_list.join('，');
 		// sections need change

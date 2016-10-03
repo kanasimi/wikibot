@@ -11,7 +11,7 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-summary = '沙盒（公共測試區）清理作業';
+summary = '沙盒（公共測試、實驗模擬區）清理作業';
 
 var
 /** {Object}wiki operator 操作子. */
