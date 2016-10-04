@@ -63,9 +63,9 @@ function for_each_page(page_data, messages) {
 		var book_title = token.parameters.title.replace(/^『(.+)』$/, '$1')
 				.trim();
 		console.log(book_title);
-		wiki.page(page_data).data(function(entity) {
-			entity.value('label', 'zh');
-			console.log(entity);
+		wiki.page(page_data).edit_data(function(entity) {
+			//entity.value('label');
+			console.log(page_data.title + ': ' + entity.value('label'));
 		});
 	});
 }
