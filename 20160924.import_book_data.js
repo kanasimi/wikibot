@@ -62,10 +62,10 @@ function for_each_page(page_data, messages) {
 
 		var book_title = token.parameters.title.replace(/^『(.+)』$/, '$1')
 				.trim();
-		console.log(book_title);
+		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
-			//entity.value('label');
-			console.log(page_data.title + ': ' + entity.value('label'));
+			// entity.value('label');
+			console.log(page_data.title + ': ' + entity.value('label') + ', ' + book_title);
 		});
 	});
 }
@@ -98,6 +98,8 @@ CeL.wiki.cache([ {
 
 	wiki.work({
 		each : for_each_page,
+		// 不作編輯作業。
+		no_edit : true,
 		summary : summary
 	}, list);
 
