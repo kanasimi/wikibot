@@ -60,12 +60,18 @@ function for_each_page(page_data, messages) {
 			return;
 		}
 
-		var book_title = token.parameters.title.replace(/^『(.+)』$/, '$1')
-				.trim();
+		var book_title = (token.parameters.title || page_data.title).replace(
+				/^『(.+)』$/, '$1').trim();
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
-			// entity.value('label');
-			console.log(page_data.title + ': ' + entity.value('label') + ', ' + book_title);
+			var data_title = entity.value('label');
+			if (data_title && data_title !== book_title) {
+				CeL.err('Different title: [[' + book_title
+				//
+				+ ']] vs. data: [' + data_title + ']');
+			}
+			CeL.log(entity.value('著者'));
+			CeL.log(entity.value('挿絵画家'));
 		});
 	});
 }
@@ -76,39 +82,46 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-CeL.wiki.cache([ {
-	type : 'embeddedin',
-	list : 'Template:基礎情報 書籍',
-	reget : true,
-	operator : function(list) {
-		this.list = list;
-	}
+CeL.wiki.data.search.use_cache('著者,挿絵画家'.split(','), function(id_list) {
+	console.log(id_list);
 
-} ], function() {
-	var list = this.list;
-	// list = [ '' ];
-	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
-		// 設定此初始值，可跳過之前已經處理過的。
-		list = list.slice(0 * test_limit, 1 * test_limit);
-		CeL.log(list.slice(0, 8).map(function(page_data) {
-			return CeL.wiki.title_of(page_data);
-		}).join('\n') + '\n...');
-	}
+	CeL.wiki.cache([ {
+		type : 'embeddedin',
+		list : 'Template:基礎情報 書籍',
+		reget : true,
+		operator : function(list) {
+			this.list = list;
+		}
 
-	wiki.work({
-		each : for_each_page,
-		// 不作編輯作業。
-		no_edit : true,
-		summary : summary
-	}, list);
+	} ], function() {
+		var list = this.list;
+		// list = [ '' ];
+		CeL.log('Get ' + list.length + ' pages.');
+		if (1) {
+			// 設定此初始值，可跳過之前已經處理過的。
+			list = list.slice(0 * test_limit, 1 * test_limit);
+			CeL.log(list.slice(0, 8).map(function(page_data) {
+				return CeL.wiki.title_of(page_data);
+			}).join('\n') + '\n...');
+		}
+
+		wiki.work({
+			each : for_each_page,
+			// 不作編輯作業。
+			no_edit : true,
+			summary : summary
+		}, list);
+
+	}, {
+		// default options === this
+		namespace : 0,
+		// [SESSION_KEY]
+		session : wiki,
+		// title_prefix : 'Template:',
+		// cache path prefix
+		prefix : base_directory
+	});
 
 }, {
-	// default options === this
-	namespace : 0,
-	// [SESSION_KEY]
-	session : wiki,
-	// title_prefix : 'Template:',
-	// cache path prefix
-	prefix : base_directory
+	session : wiki
 });
