@@ -125,10 +125,6 @@ function for_board(page_data) {
 			CeL.info('跳過一個文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
 			return;
 		}
-		if (needless !== true) {
-			// unexpected value. e.g., false
-			throw 'needless: ' + needless;
-		}
 
 		CeL.log('need archive: ' + section_title);
 		// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
