@@ -1081,7 +1081,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		if (!entity || ('missing' in entity)) {
 			CeL.debug('跳過不存在頁面: '
 			//
-			+ entity.id + ': [[' + foreign_language
+			+ (entity && entity.id) + ': [[' + foreign_language
 			//
 			+ ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel,
