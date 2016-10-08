@@ -35,6 +35,7 @@
  Q1148511
  KC&amp;ザ・サンシャイン・バンド
  列表: Q11597589
+ {{仮リンク|民主党 (キプロス){{!}}民主党|en|Democratic Party (Cyprus)}}
 
  蜂 (喜劇) → label 蜂 + 説明 喜劇
  蜂 (曖昧さ回避), 蜂 (曖昧さ) → label 蜂
@@ -929,9 +930,10 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		if (label_data_index > test_limit)
 			return;
 
-		if (CeL.wiki.data.is_DAB(entity))
+		if (CeL.wiki.data.is_DAB(entity)) {
 			// is Q4167410: Wikimedia disambiguation page 維基媒體消歧義頁
 			return;
+		}
 
 		// console.log([ foreign_language, foreign_title ]);
 		// console.log(entity);
@@ -1084,6 +1086,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			+ (entity && entity.id) + ': [[' + foreign_language
 			//
 			+ ':' + foreign_title + ']]');
+			// console.trace(entity);
 			return [ CeL.wiki.edit.cancel,
 			//
 			'missing [' + (entity && entity.id) + ']' ];
@@ -1169,8 +1172,10 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			: foreign_language === 'yue' ? 'zh_yue'
 			//
 			: foreign_language) + 'wiki'].title)) {
+				CeL.err('Different title!');
+				console.log([ foreign_title, foreign_language ]);
 				console.log(entity);
-				throw entity;
+				// throw entity;
 			}
 		}
 
@@ -1263,6 +1268,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		+ summary_postfix
 
 	}, function(data, error) {
+		CeL.set_debug(6);
 		if (!error || 'skip' === (Array.isArray(error) ? error[0] : error)) {
 			// do next.
 			setImmediate(next_label_data_work);
@@ -1271,11 +1277,12 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 		var may_skip;
 		if (typeof error === 'object') {
-			if (error.code === 'no_last_data') {
+			if (error.code === 'last_data_failed') {
 				// 例如提供的 foreign title 錯誤，或是 foreign title 為
 				// redirected。
 				// 抑或者存在 foreign title 頁面，但沒有 wikidata entity。
-				error = error.message, may_skip = true;
+				error = error.message;
+				may_skip = true;
 			} else {
 				error = JSON.stringify(error.error || error);
 			}
