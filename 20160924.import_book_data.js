@@ -25,7 +25,45 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 2;
+test_limit = 2,
+
+set_properties = '題名,著者,本国,ジャンル,前作,次作,公式サイト', set_properties_hash,
+
+all_properties = {
+	題名 : 'title',
+	著者 : 'author',
+	// 著作物の本国
+	本国 : 'country',
+	// 原語 : 'P364',
+	//
+	// ジャンル or: 著作物の主題 (P921): e.g., "[[紀伝体]]の歴史書", "[[長編小説]]",
+	// "長編小説、ファンタジー小説、ハイ・ファンタジー、冒険小説"
+	ジャンル : 'genre',
+	前作 : 'preceded_by',
+	次作 : 'followed_by',
+	公式サイト : 'website',
+	// {{ISBN|...}}
+	'ISBN-13' : 'id',
+	'ISBN-10' : 'id',
+	// {{NCID|...}}
+	'CiNii book ID' : 'id',
+	// {{OCLC|...}}
+	OCLC : 'id',
+
+	// 以下為配合版本的屬性
+	// 原版之插畫家。但即使原版也應算做版本之一，因此除非原作品已不可能再版，否則還是應該設定於該版本下。
+	挿絵画家 : 'illustrator',
+	// "訳者"應該配合版本。須配合版本的屬性，不應直接設定於主屬性下，而該設定於該版本下。
+	訳者 : 'translator',
+	// 形態: e.g., "[[上製本]]・並製本"
+	分類 : 'type',
+	言語 : 'language',
+	出版日 : 'published',
+	発行者 : 'publisher',
+	ページ数 : 'pages'
+},
+//
+all_properties_array = Object.keys(all_properties);
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -70,40 +108,43 @@ function for_each_page(page_data, messages) {
 				//
 				+ ']] vs. data: [' + data_title + ']');
 			}
-			// id:
-			CeL.log(entity.value({
-				題名 : 'title',
-				著者 : 'author',
-				// 著作物の本国
-				本国 : 'country',
-				// 原語 : 'P364',
-				//
-				// ジャンル or: 著作物の主題 (P921): e.g., "[[紀伝体]]の歴史書", "[[長編小説]]",
-				// "長編小説、ファンタジー小説、ハイ・ファンタジー、冒険小説"
-				ジャンル : 'genre',
-				前作 : 'preceded_by',
-				次作 : 'followed_by',
-				公式サイト : 'website',
-				// {{ISBN|...}}
-				'ISBN-13' : 'id',
-				'ISBN-10' : 'id',
-				// {{NCID|...}}
-				'CiNii book ID' : 'id',
-				// {{OCLC|...}}
-				OCLC : 'id',
 
-				// 以下為配合版本的屬性
-				// 原版之插畫家。但即使原版也應算做版本之一，因此除非原作品已不可能再版，否則還是應該設定於該版本下。
-				挿絵画家 : 'illustrator',
-				// "訳者"應該配合版本。須配合版本的屬性，不應直接設定於主屬性下，而該設定於該版本下。
-				訳者 : 'translator',
-				// 形態: e.g., "[[上製本]]・並製本"
-				分類 : 'type',
-				言語 : 'language',
-				出版日 : 'published',
-				発行者 : 'publisher',
-				ページ数 : 'pages'
-			}));
+			var parameters = token.parameters, data = {};
+
+			if (parameters.id) {
+				var id = parameters.id.toString(),
+				//
+				matched = id.match(/{{ *ISBN *\|[^{}]+}}/);
+				if (matched) {
+					matched = matched[1].replace(/-/g, '').trim();
+				}
+				if (matched) {
+					if (matched.length === 13) {
+						data['ISBN-13'] = matched;
+					} else if (matched.length === 10) {
+						data['ISBN-10'] = matched;
+					} else {
+						CeL.err('Invalid ISBN: ' + matched);
+					}
+				}
+				if (matched = id.match(/{{ *NCID *\|[^{}]+}}/)) {
+					data['CiNii book ID'] = matched;
+				}
+				if (matched = id.match(/{{ *OCLC *\|[^{}]+}}/)) {
+					data.OCLC = matched;
+				}
+			}
+
+			for ( var parameter in set_properties_hash) {
+				if (parameters[parameter]) {
+					data[set_properties_hash[parameter]]
+					// e.g., data.P50 = 'ABC'
+					= parameters[parameter].toString().trim();
+				}
+			}
+
+			// id:
+			CeL.log(entity.value(all_properties));
 		});
 	});
 }
@@ -114,8 +155,17 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-CeL.wiki.data.search.use_cache('著者,挿絵画家,訳者'.split(','), function(id_list) {
-	// console.log(id_list);
+CeL.wiki.data.search.use_cache(all_properties_array.split(','), function(
+		id_list) {
+	console.log(id_list);
+	return;
+
+	var set_properties_hash = {};
+	set_properties.forEach(function(property) {
+		var index = all_properties_array.indexOf(property);
+		// e.g., (著者) .author = 'P50'
+		set_properties_hash[all_properties[property]] = id_list[index];
+	});
 
 	CeL.wiki.cache([ {
 		type : 'embeddedin',

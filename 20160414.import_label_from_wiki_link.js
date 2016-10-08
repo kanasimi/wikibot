@@ -1071,7 +1071,24 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}, {
 		props : 'labels|aliases|claims|sitelinks'
 
-	}).edit_data(function(entity) {
+	}).edit_data(function(entity, error) {
+		if (error) {
+			return [ CeL.wiki.edit.cancel,
+			//
+			'Error: ' + error.messages ];
+		}
+
+		if (!entity || ('missing' in entity)) {
+			CeL.debug('跳過不存在頁面: '
+			//
+			+ entity.id + ': [[' + foreign_language
+			//
+			+ ':' + foreign_title + ']]');
+			return [ CeL.wiki.edit.cancel,
+			//
+			'missing [' + (entity && entity.id) + ']' ];
+		}
+
 		// 處理: 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。
 		if (no_need_check && entity.labels) {
 			var f_label,
@@ -1127,17 +1144,6 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			//
 			+ ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel, 'skip' ];
-		}
-
-		if (!entity || ('missing' in entity)) {
-			CeL.debug('跳過不存在頁面: '
-			//
-			+ entity.id + ': [[' + foreign_language
-			//
-			+ ':' + foreign_title + ']]');
-			return [ CeL.wiki.edit.cancel,
-			//
-			'missing [' + (entity && entity.id) + ']' ];
 		}
 
 		if (label_data_index % 1e4 === 0 || CeL.is_debug()) {
