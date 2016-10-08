@@ -1268,7 +1268,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		+ summary_postfix
 
 	}, function(data, error) {
-		CeL.set_debug(6);
+		// CeL.set_debug(6);
 		if (!error || 'skip' === (Array.isArray(error) ? error[0] : error)) {
 			// do next.
 			setImmediate(next_label_data_work);
