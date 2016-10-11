@@ -25,9 +25,9 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 2,
+test_limit = 20,
 
-set_properties = '題名,著者,本国,ジャンル,前作,次作,公式サイト', set_properties_hash,
+set_properties = '題名,著者,本国,ジャンル,前作,次作,公式サイト'.split(','), set_properties_hash,
 
 all_properties = {
 	題名 : 'title',
@@ -42,6 +42,8 @@ all_properties = {
 	前作 : 'preceded_by',
 	次作 : 'followed_by',
 	公式サイト : 'website',
+
+	// id 會另外處置，不放在((set_properties))中。
 	// {{ISBN|...}}
 	'ISBN-13' : 'id',
 	'ISBN-10' : 'id',
@@ -57,13 +59,43 @@ all_properties = {
 	訳者 : 'translator',
 	// 形態: e.g., "[[上製本]]・並製本"
 	分類 : 'type',
-	言語 : 'language',
+	作品の使用言語 : 'language',
 	出版日 : 'published',
 	発行者 : 'publisher',
 	ページ数 : 'pages'
 },
 //
-all_properties_array = Object.keys(all_properties);
+all_properties_array = Object.keys(all_properties),
+
+//
+PATTERN_ISBN_1 = /{{ *ISBN *\|([^{}]+)}}/ig, PATTERN_ISBN_2 = /ISBN {0,2}([\d-]+X?)/ig,
+//
+PATTERN_NCID = /{{ *NCID *\|([^{}]+)}}/g, PATTERN_OCLC = /{{ *OCLC *\|([^{}]+)}}/g;
+
+function add_property(object, key, value) {
+	if (key in object) {
+		var old = object[key];
+		if (Array.isArray(old)) {
+			if (!old.includes(value)) {
+				old.push(value);
+			}
+		} else if (old !== value) {
+			object[key] = [ old, value ];
+		}
+	} else {
+		object[key] = value;
+	}
+}
+
+function add_ISBN(matched, data) {
+	if (matched && (matched = matched[1].replace(/-/g, '').trim())) {
+		if (matched.length === 13 || matched.length === 10) {
+			add_property(data, 'ISBN-' + matched.length, matched);
+		} else {
+			CeL.err('Invalid ISBN: ' + matched);
+		}
+	}
+}
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -93,12 +125,13 @@ function for_each_page(page_data, messages) {
 		throw 'Parser error: [[' + page_data.title + ']]';
 	}
 
-	parser.each('template', function(token) {
+	function for_data_template(token) {
 		if (token.name !== '基礎情報 書籍') {
 			return;
 		}
 
-		var book_title = (token.parameters.title || page_data.title).replace(
+		var parameters = token.parameters, book_title = (parameters.title
+				&& parameters.title.toString() || page_data.title).replace(
 				/^『(.+)』$/, '$1').trim();
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
@@ -109,29 +142,26 @@ function for_each_page(page_data, messages) {
 				+ ']] vs. data: [' + data_title + ']');
 			}
 
-			var parameters = token.parameters, data = {};
+			// id:
+			CeL.debug(JSON.stringify(entity), 3);
+			CeL.debug(JSON.stringify(entity.value(all_properties)), 2);
+
+			var data = CeL.null_Object();
 
 			if (parameters.id) {
-				var id = parameters.id.toString(),
-				//
-				matched = id.match(/{{ *ISBN *\|[^{}]+}}/);
-				if (matched) {
-					matched = matched[1].replace(/-/g, '').trim();
+				var id = parameters.id.toString(), matched;
+				while (matched = PATTERN_ISBN_1.exec(id)) {
+					add_ISBN(matched, data);
 				}
-				if (matched) {
-					if (matched.length === 13) {
-						data['ISBN-13'] = matched;
-					} else if (matched.length === 10) {
-						data['ISBN-10'] = matched;
-					} else {
-						CeL.err('Invalid ISBN: ' + matched);
-					}
+				while (matched = PATTERN_ISBN_2.exec(id)) {
+					add_ISBN(matched, data);
 				}
-				if (matched = id.match(/{{ *NCID *\|[^{}]+}}/)) {
-					data['CiNii book ID'] = matched;
+
+				while (matched = PATTERN_NCID.exec(id)) {
+					add_property(data, 'CiNii book ID', matched[1].trim());
 				}
-				if (matched = id.match(/{{ *OCLC *\|[^{}]+}}/)) {
-					data.OCLC = matched;
+				while (matched = PATTERN_OCLC.exec(id)) {
+					add_property(data, 'OCLC', matched[1].trim());
 				}
 			}
 
@@ -143,10 +173,18 @@ function for_each_page(page_data, messages) {
 				}
 			}
 
-			// id:
-			CeL.log(entity.value(all_properties));
+			if (CeL.is_empty_object(data)) {
+				return [ CeL.wiki.edit.cancel, 'skip' ];
+			}
+
+			data.references = {
+				imported_from : 'jawiki'
+			};
+			CeL.log(JSON.stringify(data));
 		});
-	});
+	}
+
+	parser.each('template', for_data_template);
 }
 
 // ----------------------------------------------------------------------------
@@ -155,17 +193,26 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-CeL.wiki.data.search.use_cache(all_properties_array.split(','), function(
-		id_list) {
-	console.log(id_list);
-	return;
+var old_properties = 'P1476,P50,P495,P136,P155,P156,P856,P212,P957,P1739,P243,P110,P655,P31,P407,P577,P123,P1104';
 
-	var set_properties_hash = {};
+// console.log(all_properties_array.join(','));
+CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
+	if (id_list.join(',') !== old_properties) {
+		CeL.err('Different properties:\nold: ' + old_properties + '\nnew: '
+				+ id_list.join(','));
+		return;
+	}
+
+	var set_properties_hash = CeL.null_Object();
 	set_properties.forEach(function(property) {
 		var index = all_properties_array.indexOf(property);
-		// e.g., (著者) .author = 'P50'
+		if (!(index in id_list)) {
+			throw 'Not found: ' + property;
+		}
+		// e.g., 著者: .author = 'P50'
 		set_properties_hash[all_properties[property]] = id_list[index];
 	});
+	// console.log(JSON.stringify(set_properties_hash));
 
 	CeL.wiki.cache([ {
 		type : 'embeddedin',
