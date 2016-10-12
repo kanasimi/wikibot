@@ -25,9 +25,11 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 20,
+test_limit = 200,
 
-set_properties = '題名,著者,本国,ジャンル,前作,次作,公式サイト'.split(','), set_properties_hash,
+set_properties = ('題名,著者,本国,ジャンル,前作,次作,公式サイト'
+// 以下為配合各自版本的屬性
++ ',挿絵画家,分類,作品の使用言語,出版日,発行者,ページ数').split(','), set_properties_hash,
 
 all_properties = {
 	題名 : 'title',
@@ -52,10 +54,10 @@ all_properties = {
 	// {{OCLC|...}}
 	OCLC : 'id',
 
-	// 以下為配合版本的屬性
+	// 以下為配合各自版本的屬性
 	// 原版之插畫家。但即使原版也應算做版本之一，因此除非原作品已不可能再版，否則還是應該設定於該版本下。
 	挿絵画家 : 'illustrator',
-	// "訳者"應該配合版本。須配合版本的屬性，不應直接設定於主屬性下，而該設定於該版本下。
+	// "訳者"應該配合各版本。須配合各版本的屬性，不應直接設定於主屬性下，而該設定於該版本下。
 	訳者 : 'translator',
 	// 形態: e.g., "[[上製本]]・並製本"
 	分類 : 'type',

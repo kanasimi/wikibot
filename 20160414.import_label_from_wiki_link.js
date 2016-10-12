@@ -195,41 +195,6 @@ PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓�
 		throw title;
 });
 
-function to_plain_text(wikitext) {
-	// TODO: "《茶花女》维基百科词条'''(法语)'''"
-	wikitext = wikitext
-	// 去除註解 comments。
-	// e.g., "親会社<!-- リダイレクト先の「[[子会社]]」は、[[:en:Subsidiary]] とリンク -->"
-	// "ロイ・トーマス<!-- 曖昧さ回避ページ -->"
-	.replace(/<\!--[\s\S]*?-->/g, '').replace(/<\/?[a-z][^>]*>/g, '')
-	// "<small>（英文）</small>"
-	.replace(/[(（][英中日德法西義韓諺俄独原][語语國国]?文?[名字]?[）)]/g, '')
-	// e.g., "{{En icon}}"
-	.replace(/{{[a-z\s]+}}/ig, '')
-	// e.g., '''''title'''''
-	.remove_head_tail("'''", 0, ' ').remove_head_tail("''", 0, ' ')
-	// 有時因為原先的文本有誤，還是會有 ''' 之類的東西留下來。
-	.replace(/'{2,}/g, ' ').trim()
-	//
-	.replace(/\s{2,}/g, ' ').replace(/[(（] /g, '(').replace(/ [）)]/g, ')');
-
-	return wikitext;
-}
-
-var to_plain_text_cases = [
-		[ [ 'エアポート快特', to_plain_text('<font lang="ja">エアポート快特</font>') ] ],
-		[ [ "卡斯蒂利亞王后 凱瑟琳", to_plain_text("卡斯蒂利亞王后'''凱瑟琳'''") ] ],
-		[ [
-				"MS 明朝 (MS Mincho) 及 MS P明朝 (MS PMincho)",
-				to_plain_text("'''MS 明朝''' ('''MS Mincho''') 及 '''MS P明朝''' ('''MS PMincho''')") ] ],
-		[ [ '洗腳風俗及儀式', to_plain_text("洗腳風俗及儀式<small>（英文）</small>") ] ],
-		[ [ '節目列表', to_plain_text("節目列表 {{En icon}}") ] ],
-		[ [ "It's good", to_plain_text("''It's good''") ] ],
-//
-];
-
-CeL.test('to_plain_text() basic test', to_plain_text_cases);
-
 function language_label(language) {
 	if (language in PATTERN_language_label)
 		return PATTERN_language_label[language];
@@ -476,7 +441,7 @@ function for_each_page(page_data, messages) {
 			break;
 		}
 
-		if (label && (label = to_plain_text(label)) && isNaN(label)
+		if (label && (label = CeL.wiki.plain_text(label)) && isNaN(label)
 		// label, title 不可包含 {{}}[[]]。
 		&& !/[{}\[\]]{2}/.test(label)
 		//
@@ -534,8 +499,9 @@ function for_each_page(page_data, messages) {
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
 		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,20})\s*\|([^{}]{3,40})}}/))
-		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
-		&& (foreign_title = to_plain_text(matched[2]).replace(/\|.*$/, ''))) {
+				// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
+				&& (foreign_title = CeL.wiki.plain_text(matched[2]).replace(
+						/\|.*$/, ''))) {
 			// adapt for 略記. e.g., [[ja:Template:Lang-en-short]]
 			foreign_language = matched[1].replace(/-short$/, '');
 			CeL.debug(
@@ -554,7 +520,7 @@ function for_each_page(page_data, messages) {
 		// e.g., [[zh:城域网]], [[zh:ISM频段]]: "'''A'''... '''B'''... '''C'''..."
 		// e.g., [[zh:电影手册]]
 		&& !matched[1].includes("''")
-				&& (foreign_title = to_plain_text(matched[1]))
+				&& (foreign_title = CeL.wiki.plain_text(matched[1]))
 				&& (foreign_language = CeL.wiki.guess_language(foreign_title))) {
 			CeL.debug("title@lead type '''title''': [[" + title + "]] → [["
 					+ foreign_language + ':' + foreign_title + ']]', 3);
@@ -565,7 +531,7 @@ function for_each_page(page_data, messages) {
 		// 注意: 此處已不可包含 "''"。
 		// @see common_characters
 		.match(/^([a-z][a-z\s\d,.\-–`]{3,40})[)），;；。]/i))
-				&& (foreign_title = to_plain_text(matched[1]))) {
+				&& (foreign_title = CeL.wiki.plain_text(matched[1]))) {
 			foreign_language = 'en';
 			CeL.debug('title@lead type （title，...）: [[' + title + ']] → [['
 					+ foreign_language + ':' + foreign_title + ']]', 3);
@@ -616,7 +582,7 @@ function for_each_page(page_data, messages) {
 		// language of ((label))
 		language_guessed,
 		// 本地條目名 or 本地實際顯示名 . local_title
-		label = to_plain_text(matched[3]);
+		label = CeL.wiki.plain_text(matched[3]);
 
 		if (PATTERN_none_used_title.test(label)) {
 			// context 上下文 前後文
@@ -878,6 +844,7 @@ var PATTERN_duplicate_title = /(['《「『〈【〖〔]*\s*\[\[([^\[\]:\|]+)(\|
 summary_prefix = '[[' + use_language + ':', summary_postfix = ']]',
 // separator
 summary_sp = summary_postfix + ', ' + summary_prefix,
+// @see CeL.wiki.plain_text()
 // 跨語言
 // 有很多類似的[[中文名]]，原名/簡稱/英文/縮寫為[[:en:XXX|XXX]]
 // {{request translation | tfrom = [[:ru:Владивосток|俄文維基百科對應條目]]}}
@@ -980,10 +947,11 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				.replace(PATTERN_lang_link, '$2')
 				//
 				.replace_check_near(pattern, function(link, local) {
-					if (local)
+					if (local) {
 						local = local.replace(
-						//
+						// @see CeL.wiki.plain_text()
 						/(?:\s*\()?[英中日德法西義韓諺俄独原][語语國国]?文?[名字]?\)?$/g, '');
+					}
 
 					var converted = '[[' + local_title + (local
 					//
