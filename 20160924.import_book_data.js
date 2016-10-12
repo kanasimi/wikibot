@@ -29,7 +29,9 @@ test_limit = 200,
 
 set_properties = ('題名,著者,本国,ジャンル,前作,次作,公式サイト'
 // 以下為配合各自版本的屬性
-+ ',挿絵画家,分類,作品の使用言語,出版日,発行者,ページ数').split(','), set_properties_hash,
++ ',挿絵画家,分類,作品の使用言語,出版日,発行者,ページ数').split(','),
+//
+set_properties_hash = CeL.null_Object(),
 
 all_properties = {
 	題名 : 'title',
@@ -64,7 +66,9 @@ all_properties = {
 	作品の使用言語 : 'language',
 	出版日 : 'published',
 	発行者 : 'publisher',
-	ページ数 : 'pages'
+	ページ数 : 'pages',
+
+	imported_from : ''
 },
 //
 all_properties_array = Object.keys(all_properties),
@@ -139,9 +143,15 @@ function for_each_page(page_data, messages) {
 		wiki.page(page_data).edit_data(function(entity) {
 			var data_title = entity.value('label');
 			if (data_title && data_title !== book_title) {
-				CeL.err('Different title: [[' + book_title
+				CeL.err(
 				//
-				+ ']] vs. data: [' + data_title + ']');
+				'Different title: [[' + parameters.title + ']]'
+				//
+				+ (book_title === parameters.title ? ''
+				//
+				: ' (' + book_title + ')')
+				//
+				+ ' vs. data: [' + data_title + ']');
 			}
 
 			// id:
@@ -149,6 +159,15 @@ function for_each_page(page_data, messages) {
 			CeL.debug(JSON.stringify(entity.value(all_properties)), 2);
 
 			var data = CeL.null_Object();
+
+			for ( var parameter in set_properties_hash) {
+				var value = parameters[parameter];
+				if (value && (value = CeL.wiki.plain_text(value.toString()))) {
+					data[set_properties_hash[parameter]]
+					// e.g., data.P50 = 'ABC'
+					= value;
+				}
+			}
 
 			if (parameters.id) {
 				var id = parameters.id.toString(), matched;
@@ -164,14 +183,6 @@ function for_each_page(page_data, messages) {
 				}
 				while (matched = PATTERN_OCLC.exec(id)) {
 					add_property(data, 'OCLC', matched[1].trim());
-				}
-			}
-
-			for ( var parameter in set_properties_hash) {
-				if (parameters[parameter]) {
-					data[set_properties_hash[parameter]]
-					// e.g., data.P50 = 'ABC'
-					= parameters[parameter].toString().trim();
 				}
 			}
 
@@ -195,7 +206,7 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-var old_properties = 'P1476,P50,P495,P136,P155,P156,P856,P212,P957,P1739,P243,P110,P655,P31,P407,P577,P123,P1104';
+var old_properties = 'P1476,P50,P495,P136,P155,P156,P856,P212,P957,P1739,P243,P110,P655,P31,P407,P577,P123,P1104,P143';
 
 // console.log(all_properties_array.join(','));
 CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
@@ -205,14 +216,16 @@ CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 		return;
 	}
 
-	var set_properties_hash = CeL.null_Object();
 	set_properties.forEach(function(property) {
 		var index = all_properties_array.indexOf(property);
 		if (!(index in id_list)) {
 			throw 'Not found: ' + property;
 		}
 		// e.g., 著者: .author = 'P50'
-		set_properties_hash[all_properties[property]] = id_list[index];
+		set_properties_hash[all_properties[property]]
+		// 採用屬性名稱/id
+		// = id_list[index]
+		= property;
 	});
 	// console.log(JSON.stringify(set_properties_hash));
 
