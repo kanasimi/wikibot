@@ -69,7 +69,7 @@ all_properties = {
 	imported_from : ''
 },
 //
-all_properties_array = Object.keys(all_properties),
+all_properties_array = Object.keys(all_properties).sort(),
 
 //
 PATTERN_ISBN_1 = /{{ *ISBN *\|([^{}]+)}}/ig, PATTERN_ISBN_2 = /ISBN {0,2}([\d-]+X?)/ig,
@@ -185,10 +185,21 @@ function for_each_page(page_data, messages) {
 						// [[code]]
 						return country_alias[code];
 					}
-					CeL.warn('Unknown country code: [' + code + ']');
-					throw 'Unknown country code: [' + code + ']';
+					// CeL.err('Unknown country code: [' + code + ']');
+					return all;
+
+				}).replace(/{{([A-Z]{2,3})}}/g, function(all, code) {
+					if (code in country_alias) {
+						// [[code]]
+						return country_alias[code];
+					}
 					return all;
 				});
+
+				value = CeL.wiki.plain_text(value);
+				if (/[{\[]{2}/.test(value)) {
+					CeL.err('Unknown country: [' + value + ']');
+				}
 				if (value) {
 					data.本国 = value;
 				}
@@ -241,13 +252,13 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-var old_properties = 'P1476,P50,P495,P136,P155,P156,P856,P212,P957,P1739,P243,P110,P655,P31,P407,P577,P123,P1104,P143';
+var old_properties = 'P1739,P957,P212,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1476';
 
 // console.log(all_properties_array.join(','));
 CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 	if (id_list.join(',') !== old_properties) {
 		CeL.err('Different properties:\nold: ' + old_properties + '\nnew: '
-				+ id_list.join(','));
+				+ id_list.join(',') + '\n' + all_properties_array.join(','));
 		return;
 	}
 
