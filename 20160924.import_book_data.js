@@ -95,7 +95,9 @@ function add_property(object, key, value) {
 }
 
 function add_ISBN(matched, data) {
-	if (matched && (matched = matched[1].replace(/-/g, '').trim())) {
+	if (matched && (matched = matched[1].replace(/-/g, '').trim()
+	//
+	.replace(/^ISBN\s*/i, ''))) {
 		if (matched.length === 13 || matched.length === 10) {
 			add_property(data, 'ISBN-' + matched.length, matched);
 		} else {
@@ -103,6 +105,8 @@ function add_ISBN(matched, data) {
 		}
 	}
 }
+
+var PATTERN_COUNTRY_TEMPLATE = /{{ *[Ff]lag(?:icon)? *\| *([^{}\|]{2,5})}}/g;
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -139,8 +143,14 @@ function for_each_page(page_data, messages) {
 
 		var parameters = token.parameters, book_title = parameters.title
 				&& parameters.title.toString().replace(/^『(.+)』$/, '$1').trim();
-		if (/<br( [^<>]*)>/i.test(book_title)) {
-			book_title = book_title.split(/\s*<br( [^<>]*)>\s*/i);
+		if (/<br(?: [^<>]*)?>/i.test(book_title)) {
+			book_title = book_title.split(/\s*<br(?: [^<>]*)?>\s*/i)
+			//
+			.map(function(title) {
+				return title.replace(/^[（(]/, '').replace(/[）)]$/, '');
+			}).filter(function(title) {
+				return !!title;
+			});
 		}
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
@@ -152,7 +162,7 @@ function for_each_page(page_data, messages) {
 				//
 				'Different title: [[' + page_data.title + ']]'
 				//
-				+ (book_title === page_data.title ? ''
+				+ (!book_title || book_title === page_data.title ? ''
 				//
 				: ' (' + book_title + ')')
 				//
@@ -179,7 +189,7 @@ function for_each_page(page_data, messages) {
 			if (value = parameters.country) {
 				value = value.toString().trim().replace(
 				//
-				/{{ *[Ff]lagicon *\| *([^{}]{2,5})}}/g, function(all, code) {
+				PATTERN_COUNTRY_TEMPLATE, function(all, code) {
 					code = code.trim();
 					if (code in country_alias) {
 						// [[code]]
@@ -188,7 +198,7 @@ function for_each_page(page_data, messages) {
 					// CeL.err('Unknown country code: [' + code + ']');
 					return all;
 
-				}).replace(/{{([A-Z]{2,3})}}/g, function(all, code) {
+				}).replace(/{{([A-Z\-\d]{2,3})}}/g, function(all, code) {
 					if (code in country_alias) {
 						// [[code]]
 						return country_alias[code];
@@ -324,6 +334,10 @@ CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 var country_alias = {
 	UK : 'イギリス',
 	UN : '国際連合',
+	DEU1935 : 'ナチス・ドイツ',
+	FRG : '西ドイツ',
+	// 東ドイツ
+	DDR : 'ドイツ民主共和国',
 
 	AFG : 'アフガニスタン',
 	AIA : 'アンギラ',
