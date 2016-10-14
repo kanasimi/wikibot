@@ -22,16 +22,15 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 200,
+test_limit = 800,
 
-set_properties = ('題名,著者,ジャンル,前作,次作'
+set_properties = ('著者,ジャンル,前作,次作'
 // 以下為配合各自版本的屬性
 + ',挿絵画家,分類,作品の使用言語,出版日,発行者,ページ数').split(','),
 //
 set_properties_hash = CeL.null_Object(),
 
 all_properties = {
-	題名 : 'title',
 	著者 : 'author',
 	// 原語 : 'P364',
 	//
@@ -42,6 +41,7 @@ all_properties = {
 	次作 : 'followed_by',
 
 	// 以下屬性會另外處置，不放在((set_properties))中。
+	題名 : 'title',
 	公式サイト : 'website',
 	// 著作物の本国
 	本国 : 'country',
@@ -66,13 +66,14 @@ all_properties = {
 	発行者 : 'publisher',
 	ページ数 : 'pages',
 
+	読み仮名 : '',
 	imported_from : ''
 },
 //
 all_properties_array = Object.keys(all_properties).sort(),
 
 //
-PATTERN_ISBN_1 = /{{ *ISBN *\|([^{}]+)}}/ig, PATTERN_ISBN_2 = /ISBN {0,2}([\d-]+X?)/ig,
+PATTERN_ISBN_1 = /{{ *ISBN *\|([^{}]+)}}/ig, PATTERN_ISBN_2 = /ISBN(?:-?1[03][: ]+| *)([\d-]+X?)/ig,
 //
 PATTERN_NCID = /{{ *NCID *\|([^{}]+)}}/g, PATTERN_OCLC = /{{ *OCLC *\|([^{}]+)}}/g;
 
@@ -106,7 +107,13 @@ function add_ISBN(matched, data) {
 	}
 }
 
-var PATTERN_COUNTRY_TEMPLATE = /{{ *[Ff]lag(?:icon)? *\| *([^{}\|]{2,5})}}/g;
+var PATTERN_COUNTRY_TEMPLATE = /{{ *[Ff]lag(?:icon)? *\| *([^{}\|]{2,9})}}/g,
+/**
+ * 振り仮名 / 読み仮名 の正規表現。
+ * 
+ * @type {RegExp}
+ */
+PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　]+$/);
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {
@@ -141,41 +148,73 @@ function for_each_page(page_data, messages) {
 			return;
 		}
 
-		var parameters = token.parameters, book_title = parameters.title
-				&& parameters.title.toString().replace(/^『(.+)』$/, '$1').trim();
-		if (/<br(?: [^<>]*)?>/i.test(book_title)) {
-			book_title = book_title.split(/\s*<br(?: [^<>]*)?>\s*/i)
-			//
-			.map(function(title) {
-				return title.replace(/^[（(]/, '').replace(/[）)]$/, '');
-			}).filter(function(title) {
-				return !!title;
-			});
-		}
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
-			var data_title = entity.value('label');
-			if (data_title && (Array.isArray(book_title) ?
+			var parameters = token.parameters,
 			//
-			!book_title.includes(data_title) : data_title !== book_title)) {
-				CeL.err(
+			book_title = parameters.title
+			//
+			&& parameters.title.toString().replace(/^『(.+)』$/, '$1').trim(),
+			//
+			data_title = entity.value('label'),
+			//
+			data = CeL.null_Object(),
+			//
+			value, matched;
+
+			if (book_title) {
+				book_title = /<br(?: [^<>]*)?>/i.test(book_title)
 				//
-				'Different title: [[' + page_data.title + ']]'
+				? book_title.split(/\s*<br(?: [^<>]*)?>\s*/i) : [ book_title ];
+
+				book_title = book_title.map(function(title) {
+					return CeL.wiki.plain_text(
+					//
+					title.replace(/^[（(『]/, '').replace(/[）)』]$/, ''))
+					//
+					.replace(/\s*(?:第\d+|再)版/, '');
+				}).filter(function(title) {
+					if (!title || title === data_title) {
+						return;
+					}
+					if (title.includes('{{')) {
+						CeL.err('Invalid parameters.title: [' + title + ']');
+					} else if (PATTERN_読み仮名.test(title)) {
+						// 對於仮名，或可考慮加至仮名，但有像是[[魏志倭人伝]]，並不全是日文作品。
+						// 片仮中点（半角）→ 片仮中点
+						data.読み仮名 = title.replace(/･/g, '・');
+					} else {
+						// TODO: 可能有其他語言，如原文、英語的標題。
+						return true;
+					}
+				}).uniq();
+
+				if (book_title.length < 2) {
+					book_title = book_title[0];
+				}
+			}
+
+			if (book_title) {
+				if (data_title && (Array.isArray(book_title) ?
 				//
-				+ (!book_title || book_title === page_data.title ? ''
-				//
-				: ' (' + book_title + ')')
-				//
-				+ ' vs. data: [' + data_title + ']');
+				!book_title.includes(data_title) : data_title !== book_title)) {
+					CeL.err(
+					//
+					'Different title: [[' + page_data.title + ']]'
+					//
+					+ (!book_title || book_title === page_data.title ? ''
+					//
+					: ' (' + book_title + ')')
+					//
+					+ ' vs. data: [' + data_title + ']');
+				}
+
+				data.題名 = book_title;
 			}
 
 			// id:
 			CeL.debug(JSON.stringify(entity), 3);
 			CeL.debug(JSON.stringify(entity.value(all_properties)), 2);
-
-			var data = CeL.null_Object(),
-			//
-			value, matched;
 
 			for ( var parameter in set_properties_hash) {
 				value = parameters[parameter];
@@ -198,7 +237,7 @@ function for_each_page(page_data, messages) {
 					// CeL.err('Unknown country code: [' + code + ']');
 					return all;
 
-				}).replace(/{{([A-Z\-\d]{2,3})}}/g, function(all, code) {
+				}).replace(/{{([A-Z\-\d]{2,9})}}/g, function(all, code) {
 					if (code in country_alias) {
 						// [[code]]
 						return country_alias[code];
@@ -334,10 +373,17 @@ CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 var country_alias = {
 	UK : 'イギリス',
 	UN : '国際連合',
+	DEU1871 : 'ドイツ帝国',
+	DEU1919 : 'ヴァイマル共和政',
 	DEU1935 : 'ナチス・ドイツ',
-	FRG : '西ドイツ',
 	// 東ドイツ
 	DDR : 'ドイツ民主共和国',
+	FRG : '西ドイツ',
+	GBR2 : 'イギリス',
+	GBR3 : 'イギリス',
+	GBR4 : 'イギリス',
+	GBR5 : 'イギリス帝国',
+	RUS1883 : 'ロシア帝国',
 
 	AFG : 'アフガニスタン',
 	AIA : 'アンギラ',
