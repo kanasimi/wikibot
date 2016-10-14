@@ -162,7 +162,7 @@ function finish_up() {
 		nocreate : 1
 	});
 
-	// TODO: create Category:2016年9月報紙頭條  2016年9月香港報紙頭條
+	// TODO: create Category:2016年9月報紙頭條 2016年9月香港報紙頭條
 	// [[Category:2016年報紙頭條]]
 }
 
@@ -620,8 +620,8 @@ function parse_中國評論新聞_headline(response, publisher) {
 	}
 
 	if (!news_content || !response.includes(use_date.format('%Y-'))
-			// 國際報紙頭條新聞標題用
-			|| !/[日郵時]報：/.test(news_content) && !news_content.includes('文匯報：')) {
+	// 國際報紙頭條新聞標題用
+	|| !/[日郵時]報：/.test(news_content) && !news_content.includes('文匯報：')) {
 		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
