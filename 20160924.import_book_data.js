@@ -107,7 +107,9 @@ function add_ISBN(matched, data) {
 	}
 }
 
-var PATTERN_COUNTRY_TEMPLATE = /{{ *[Ff]lag(?:icon)? *\| *([^{}\|]{2,9})}}/g,
+var PATTERN_only_common_characters = CeL.wiki.PATTERN_only_common_characters,
+//
+PATTERN_COUNTRY_TEMPLATE = /{{ *[Ff]lag(?:icon)? *\| *([^{}\|]{2,9})}}/g,
 /**
  * 振り仮名 / 読み仮名 の正規表現。
  * 
@@ -170,14 +172,28 @@ function for_each_page(page_data, messages) {
 				book_title = book_title.map(function(title) {
 					return CeL.wiki.plain_text(
 					//
-					title.replace(/^[（(『]/, '').replace(/[）)』]$/, ''))
+					title.replace(/^[:：]/, '')
 					//
-					.replace(/\s*(?:第\d+|再)版/, '');
+					.replace(/^[（(]([^（()）]+)[)）]$/, '$1')
+					//
+					.replace(/^『([^『』]+)』$/, '$1')
+					//
+					.replace(/\s*(?:第\d+|再)版/g, '')
+					// 前篇 / 後篇
+					// 上 / 中 / 下 / 続
+					.replace(/(?:^|\s)[前中後上下続](?:篇|\s*\/|$)/g, ''));
+
 				}).filter(function(title) {
-					if (!title || title === data_title) {
+					if (!title || title.length < 2 || title === data_title
+					// @see PATTERN_non_CJK @ CeL.wiki
+					|| !/[^\u0000-\u2E7F]{2}/i.test(title)
+					//
+					|| PATTERN_only_common_characters.test(title)) {
 						return;
 					}
 					if (title.includes('{{')) {
+						// e.g., "{{lang|en|title}}"
+						// e.g., "title{{Small|sub-title}}"
 						CeL.err('Invalid parameters.title: [' + title + ']');
 					} else if (PATTERN_読み仮名.test(title)) {
 						// 對於仮名，或可考慮加至仮名，但有像是[[魏志倭人伝]]，並不全是日文作品。
@@ -187,6 +203,7 @@ function for_each_page(page_data, messages) {
 						// TODO: 可能有其他語言，如原文、英語的標題。
 						return true;
 					}
+
 				}).uniq();
 
 				if (book_title.length < 2) {
@@ -197,7 +214,9 @@ function for_each_page(page_data, messages) {
 			if (book_title) {
 				if (data_title && (Array.isArray(book_title) ?
 				//
-				!book_title.includes(data_title) : data_title !== book_title)) {
+				!book_title.includes(data_title)
+				//
+				: !data_title.includes(book_title))) {
 					CeL.err(
 					//
 					'Different title: [[' + page_data.title + ']]'
@@ -232,7 +251,7 @@ function for_each_page(page_data, messages) {
 					code = code.trim();
 					if (code in country_alias) {
 						// [[code]]
-						return country_alias[code];
+						return country_alias[code] + '|';
 					}
 					// CeL.err('Unknown country code: [' + code + ']');
 					return all;
@@ -240,23 +259,28 @@ function for_each_page(page_data, messages) {
 				}).replace(/{{([A-Z\-\d]{2,9})}}/g, function(all, code) {
 					if (code in country_alias) {
 						// [[code]]
-						return country_alias[code];
+						return country_alias[code] + '|';
 					}
 					return all;
 				});
 
-				value = CeL.wiki.plain_text(value);
-				if (/[{\[]{2}/.test(value)) {
-					CeL.err('Unknown country: [' + value + ']');
-				}
-				if (value) {
+				value = CeL.wiki.plain_text(value).trim().split(/\s*\|\s*/)
+				//
+				.filter(function(country) {
+					if (/[{\[]{2}/.test(country)) {
+						CeL.err('Unknown country: [' + country + ']');
+					} else {
+						return !!country;
+					}
+				});
+				if (value.length > 0) {
 					data.本国 = value;
 				}
 			}
 
 			if (value = parameters.website) {
 				value = value.toString().trim();
-				matched = value.match(/(https?:\/\/[^\s]+)/);
+				matched = value.match(/(https?:\/\/[^\s\|]+)/);
 				if (matched) {
 					data.公式サイト = matched[1].replace(/\]$/, '');
 				} else if (CeL.wiki.plain_text(value)) {
@@ -301,7 +325,7 @@ function for_each_page(page_data, messages) {
 
 prepare_directory(base_directory);
 
-var old_properties = 'P1739,P957,P212,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1476';
+var old_properties = 'P1739,P957,P212,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1814,P1476';
 
 // console.log(all_properties_array.join(','));
 CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
