@@ -325,11 +325,12 @@ function for_each_old_page(page_data) {
 		}
 	}
 
-	current_content = CeL.wiki.parser(current_content).parse();
-	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+	contents = CeL.wiki.parser(current_content).parse();
+	if (current_content !== contents.toString()) {
 		// debug 用. check parser, test if parser working properly.
 		throw 'Parser error: [[' + page_data.title + ']]';
 	}
+	current_content = contents;
 
 	if (false) {
 		// 去掉空分類 [[Category:]]。
