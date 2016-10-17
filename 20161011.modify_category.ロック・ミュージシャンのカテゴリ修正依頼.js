@@ -26,7 +26,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 1000,
+test_limit = 1500,
 
 // all count
 count = 0,
@@ -87,7 +87,8 @@ function for_each_page(page_data, messages) {
 
 	// e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
 	if (!/\| *Genre *=[^=\|{}]*?\[\[ロック\]\]/.test(content)) {
-		return [ CeL.wiki.edit.cancel, 'Genre NOT ロック' ];
+		// Genre NOT ロック
+		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
 	++count;
@@ -115,9 +116,12 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (type === 'シンガーソングライター') {
-			return all_category + '\n' + add_category(content, added,
-			//
-			all.replace('シンガーソングライター', 'ロック歌手'));
+			rock = add_category(content, added, all_category.replace(
+					'シンガーソングライター', 'ロック歌手'));
+			if (rock) {
+				all_category += '\n' + rock;
+			}
+			return all_category;
 		}
 		return add_category(content, added, pretext
 				+ (rock || 'ロック' + (type === '歌手' ? '' : '・')) + posttext);
@@ -130,7 +134,8 @@ function for_each_page(page_data, messages) {
 	if (error) {
 		// error: skip edit.
 		problem_list.push(': ' + count + ' [[' + title + ']]: ' + error);
-		return [ CeL.wiki.edit.cancel, '後で報告' ];
+		// 後で報告
+		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
 	return content;
