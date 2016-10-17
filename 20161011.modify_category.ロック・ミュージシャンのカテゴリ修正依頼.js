@@ -96,6 +96,11 @@ function for_each_page(page_data, messages) {
 	}
 
 	++count;
+
+	// fix disambiguation page [[ロック]]
+	content = content.replace(/(\| *Genre *=[^=\|{}]*?\[\[ロック) *(\]\]|\|)/,
+			'$1 (音楽)$2');
+
 	var main_country, error,
 	// 已經添加過的category。
 	added = [];
