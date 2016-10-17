@@ -98,8 +98,16 @@ function for_each_page(page_data, messages) {
 	++count;
 
 	// fix disambiguation page [[ロック]]
-	content = content.replace(/(\| *Genre *=[^=\|{}]*?\[\[ロック) *(\]\]|\|)/,
-			'$1 (音楽)$2');
+	content = content.replace(/(\| *Genre *=[^=\|{}]*?\[\[ *ロック) *(\]\]|\|)/,
+	//
+	function(all, previous, following) {
+		if (following === '|') {
+			return previous + ' (音楽)' + following;
+		}
+		// assert: following === ']]'
+		// [[ロック]] → [[ロック (音楽)|ロック]]
+		return previous + ' (音楽)|ロック' + following;
+	});
 
 	var main_country, error,
 	// 已經添加過的category。
@@ -115,6 +123,10 @@ function for_each_page(page_data, messages) {
 		}
 		if (main_country && main_country !== country) {
 			error = '複数の国を含んでいだ: ' + main_country + ',' + country;
+			return all_category;
+		}
+		if (country.endsWith('民')) {
+			// not country. e.g., 'アメリカ先住民'
 			return all_category;
 		}
 
