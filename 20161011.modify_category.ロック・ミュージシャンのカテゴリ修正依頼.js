@@ -1,0 +1,190 @@
+﻿/*
+
+ 	完成。正式運用。
+
+
+ */
+
+'use strict';
+
+// Load CeJS library and modules.
+require('./wiki loder.js');
+
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('ja');
+
+/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+summary = '[[Special:Diff/61558855|Bot作業依頼]]：ロック・ミュージシャンのカテゴリ修正依頼 - [['
+		+ log_to + '|log]]';
+
+var
+/** {Object}wiki operator 操作子. */
+wiki = Wiki(true),
+
+/** {revision_cacher}記錄處理過的文章。 */
+processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
+		+ use_language + '.json'),
+
+// ((Infinity)) for do all
+test_limit = 600,
+
+// all count
+count = 0,
+
+// category_count[category] = count
+category_count = CeL.null_Object(),
+
+// カテゴリから国を判別できない音楽家
+problem_list = [],
+
+// TODO: バンド
+// [ all_category, pretext, country, rock, posttext, type ]
+PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\|\s*([^\|\[\]]*))?\]\])/ig;
+
+function add_category(content, category) {
+	CeL.log('add_category: ' + category);
+	if (content.includes(category)) {
+		// 已經有此category。
+		return '';
+	}
+
+	if (category in category_count) {
+		category_count[category]++
+	} else {
+		category_count[category] = 1;
+	}
+	return category;
+}
+
+function for_each_page(page_data, messages) {
+	if (!page_data || ('missing' in page_data)) {
+		// error?
+		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
+	}
+
+	if (page_data.ns !== 0) {
+		throw '非條目:[[' + page_data.title + ']]! 照理來說不應該出現有 ns !== 0 的情況。';
+	}
+
+	/** {String}page title = page_data.title */
+	var title = CeL.wiki.title_of(page_data),
+	/**
+	 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+	 */
+	content = CeL.wiki.content_of(page_data);
+
+	if (!content) {
+		return [ CeL.wiki.edit.cancel,
+				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+	}
+
+	// var parser = CeL.wiki.parser(page_data);
+
+	// e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
+	if (!/\| *Genre *=[^=\|{}]*?\[\[ロック\]\]/.test(content)) {
+		return;
+	}
+
+	++count;
+	var country, error;
+	content = content.replace(PATTERN_歌手, function(all_category, pretext,
+			_country, rock, posttext, type) {
+		CeL.log('[[' + title + ']]: ');
+		console.log(all_category);
+
+		if (error) {
+			// skip.
+			return all_category;
+		}
+		if (country && country !== _country) {
+			error = '複数の国を含んでいだ: ' + country + ',' + _country;
+			return all_category;
+		}
+
+		country = _country;
+		if (rock) {
+			// 已處理。
+			return all_category;
+		}
+
+		if (type === 'シンガーソングライター') {
+			return all_category + '\n'
+			//
+			+ add_category(content, all.replace('シンガーソングライター', 'ロック歌手'));
+		}
+		return add_category(content, pretext
+				+ (rock || 'ロック' + (type === '歌手' ? '' : '・')) + posttext);
+	});
+
+	if (!error && !country) {
+		error = '国別の歌手のカテゴリを含んでいない';
+	}
+
+	if (error) {
+		// error: skip edit.
+		problem_list.push(': ' + count + ' [[' + title + ']]: ' + error);
+		return;
+	}
+
+	return content;
+}
+
+function finish_work() {
+	if (count > 0) {
+		wiki.page(log_to).edit(
+				'カテゴリから国を判別できない音楽家或いはバンド: ' + problem_list.length + '/' + count
+						+ '\n' + problem_list.join('\n') + '\n\nカテゴリ:\n'
+						+ Object.keys(category_count).map(function(c) {
+							return c.replace('[[', '[[:');
+						}).join(', '), {
+					nocreate : 1,
+					bot : 1,
+					summary : summary
+				});
+	}
+}
+
+// ----------------------------------------------------------------------------
+
+// CeL.set_debug(2);
+
+prepare_directory(base_directory);
+
+// console.log(all_properties_array.join(','));
+CeL.wiki.cache([ {
+	type : 'embeddedin',
+	list : 'Template:Infobox Musician',
+	reget : true,
+	operator : function(list) {
+		this.list = list;
+	}
+
+} ], function() {
+	var list = this.list;
+	// list = [ '' ];
+	CeL.log('Get ' + list.length + ' pages.');
+	if (1) {
+		// 設定此初始值，可跳過之前已經處理過的。
+		list = list.slice(0 * test_limit, 1 * test_limit);
+		CeL.log(list.slice(0, 8).map(function(page_data) {
+			return CeL.wiki.title_of(page_data);
+		}).join('\n') + '\n...');
+	}
+
+	wiki.work({
+		each : for_each_page,
+		// 不作編輯作業。
+		no_edit : true,
+		last : finish_work,
+		summary : summary
+	}, list);
+
+}, {
+	// default options === this
+	namespace : 0,
+	// [SESSION_KEY]
+	session : wiki,
+	// title_prefix : 'Template:',
+	// cache path prefix
+	prefix : base_directory
+});
