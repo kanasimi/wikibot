@@ -41,13 +41,18 @@ problem_list = [],
 // [ all_category, pretext, country, rock, posttext, type ]
 PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\|\s*([^\|\[\]]*))?\]\])/ig;
 
-function add_category(content, category) {
-	CeL.log('add_category: ' + category);
+function add_category(content, added, category) {
+	if (added.includes(category)) {
+		// 已經有此category。
+		return '';
+	}
 	if (content.includes(category)) {
 		// 已經有此category。
 		return '';
 	}
+	// CeL.log('add_category: ' + category);
 
+	added.push(category);
 	if (category in category_count) {
 		category_count[category]++
 	} else {
@@ -86,37 +91,39 @@ function for_each_page(page_data, messages) {
 	}
 
 	++count;
-	var country, error;
+	var main_country, error,
+	// 已經添加過的category。
+	added = [];
 	content = content.replace(PATTERN_歌手, function(all_category, pretext,
-			_country, rock, posttext, type) {
-		CeL.log('[[' + title + ']]: ');
-		console.log(all_category);
+			country, rock, posttext, type) {
+		// CeL.log('[[' + title + ']]: ');
+		// console.log(all_category);
 
 		if (error) {
 			// skip.
 			return all_category;
 		}
-		if (country && country !== _country) {
-			error = '複数の国を含んでいだ: ' + country + ',' + _country;
+		if (main_country && main_country !== country) {
+			error = '複数の国を含んでいだ: ' + main_country + ',' + country;
 			return all_category;
 		}
 
-		country = _country;
+		main_country = country;
 		if (rock) {
 			// 已處理。
 			return all_category;
 		}
 
 		if (type === 'シンガーソングライター') {
-			return all_category + '\n'
+			return all_category + '\n' + add_category(content, added,
 			//
-			+ add_category(content, all.replace('シンガーソングライター', 'ロック歌手'));
+			all.replace('シンガーソングライター', 'ロック歌手'));
 		}
-		return add_category(content, pretext
+		return add_category(content, added, pretext
 				+ (rock || 'ロック' + (type === '歌手' ? '' : '・')) + posttext);
 	});
 
-	if (!error && !country) {
+	if (!error && !main_country) {
 		error = '国別の歌手のカテゴリを含んでいない';
 	}
 
@@ -131,16 +138,21 @@ function for_each_page(page_data, messages) {
 
 function finish_work() {
 	if (count > 0) {
-		wiki.page(log_to).edit(
-				'カテゴリから国を判別できない音楽家或いはバンド: ' + problem_list.length + '/' + count
-						+ '\n' + problem_list.join('\n') + '\n\nカテゴリ:\n'
-						+ Object.keys(category_count).map(function(c) {
-							return c.replace('[[', '[[:');
-						}).join(', '), {
-					nocreate : 1,
-					bot : 1,
-					summary : summary
-				});
+		var messages = 'カテゴリから国を判別できない音楽家或いはバンド: '
+		//
+		+ problem_list.length + '/' + count + '\n' + problem_list.join('\n')
+		//
+		+ '\n\n増設したカテゴリ:\n: ' + Object.keys(category_count).map(function(c) {
+			return c.replace('[[', '[[:');
+		}).join(', ');
+
+		wiki.page(log_to).edit(messages, {
+			section : 'new',
+			sectiontitle : '結果報告',
+			summary : summary,
+			nocreate : 1,
+			bot : 1
+		});
 	}
 }
 
