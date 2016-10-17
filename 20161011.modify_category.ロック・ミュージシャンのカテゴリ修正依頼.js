@@ -26,7 +26,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 600,
+test_limit = 1000,
 
 // all count
 count = 0,
@@ -87,7 +87,7 @@ function for_each_page(page_data, messages) {
 
 	// e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
 	if (!/\| *Genre *=[^=\|{}]*?\[\[ロック\]\]/.test(content)) {
-		return;
+		return [ CeL.wiki.edit.cancel, 'Genre NOT ロック' ];
 	}
 
 	++count;
@@ -130,7 +130,7 @@ function for_each_page(page_data, messages) {
 	if (error) {
 		// error: skip edit.
 		problem_list.push(': ' + count + ' [[' + title + ']]: ' + error);
-		return;
+		return [ CeL.wiki.edit.cancel, '後で報告' ];
 	}
 
 	return content;
@@ -148,7 +148,7 @@ function finish_work() {
 
 		wiki.page(log_to).edit(messages, {
 			section : 'new',
-			sectiontitle : '結果報告',
+			sectiontitle : '作業結果報告',
 			summary : summary,
 			nocreate : 1,
 			bot : 1
@@ -186,8 +186,9 @@ CeL.wiki.cache([ {
 	wiki.work({
 		each : for_each_page,
 		// 不作編輯作業。
-		no_edit : true,
+		// no_edit : true,
 		last : finish_work,
+		log_to : log_to,
 		summary : summary
 	}, list);
 
