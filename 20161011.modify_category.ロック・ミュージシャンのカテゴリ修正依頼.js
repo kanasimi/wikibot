@@ -2,6 +2,7 @@
 
 /*
 
+ 2016/10/11	初版試營運
  2016/10/17 19:26:52	完成。正式運用。
 
 
@@ -171,7 +172,9 @@ function finish_work() {
 		categories = Object.keys(category_count);
 		if (categories.length > 0) {
 			messages += '\n\n増設したカテゴリ:\n: ' + categories.map(function(c) {
-				return c.replace('[[', '[[:');
+				return c.replace('[[', '[[:')
+				// 去掉 index
+				.replace(/\|[^\]]/, '');
 			}).join(', ');
 		}
 

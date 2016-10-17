@@ -1,9 +1,8 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node "traversal_pages.clear.js" && date
-// Traversal all pages. 遍歷所有頁面。簡易版，用於展示概念。
+﻿// Traversal all pages. 遍歷所有頁面。
 
 /*
 
- 初版試運行，採用模板：traversal_pages.clear.js，約耗時 ?分鐘執行。
+ 2016/10/17 23:47:43	初版試運行
 
  */
 
@@ -11,6 +10,9 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
+
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('ja');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -21,7 +23,8 @@ var filtered = [];
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
+// prepare_directory(base_directory, true);
 
 // Set the umask to share the xml dump file.
 if (typeof process === 'object') {
@@ -64,8 +67,7 @@ function for_each_page(page_data) {
 		return;
 
 	// TODO: operations for each page
-	if (0) {
-		// need modify
+	if (content.includes('イスタンブル')) {
 		filtered.push(title);
 	}
 }
@@ -75,7 +77,8 @@ function for_each_page(page_data) {
  */
 function finish_traversal() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
-	// filtered = filtered.slice(0, 0);
+	filtered = filtered.slice(0, 2);
+
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
 		wiki.work({
@@ -93,7 +96,22 @@ function finish_traversal() {
 
 // TODO: operations for each page that filtered
 function for_each_filtered(page_data) {
-	;
+	/** {String}page title = page_data.title */
+	var title = CeL.wiki.title_of(page_data),
+	/**
+	 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+	 */
+	content = CeL.wiki.content_of(page_data);
+
+	if (!content) {
+		return [ CeL.wiki.edit.cancel,
+				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+	}
+
+	content = content.replace(/\[\[ *イスタンブル/g, '[[イスタンブール').replace(
+			/\[\[ *Category *: *イスタンブル/ig, '[[Category:イスタンブール');
+
+	return content;
 }
 
 /**
