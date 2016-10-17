@@ -191,7 +191,6 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	// list = [ '' ];
-	list = [ 'スティーヴン・タイラー' ];
 	CeL.log('Get ' + list.length + ' pages.');
 	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。

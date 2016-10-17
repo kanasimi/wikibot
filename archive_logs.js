@@ -105,8 +105,8 @@ function for_log_page(page_data) {
 
 	var matched = content && content.match(last_preserve_mark[use_language]);
 	if (!matched) {
-		CeL.warn('for_log_page: Invalid log page? (未發現程式運作紀錄標記) [[' + log_title
-				+ ']]');
+		CeL.warn('for_log_page: Invalid log page? (未發現程式運作紀錄標記:'
+				+ last_preserve_mark[use_language] + ') [[' + log_title + ']]');
 		return;
 	}
 
@@ -123,22 +123,24 @@ function for_log_page(page_data) {
 		needless_reason = '未發現程式運作紀錄章節標題';
 		// console.log(content);
 		// console.log(PATTERN_TITLE);
-	} else if (log_size < min_length)
+	} else if (log_size < min_length) {
 		needless_reason = '頁面中之程式運作紀錄過短 (' + log_size + '字)';
-	else if (content.indexOf('\n==', matched.index + matched[0].length) === NOT_FOUND)
+	} else if (content.indexOf('\n==', matched.index + matched[0].length) === NOT_FOUND) {
 		needless_reason = '僅有1筆程式運作紀錄';
 
-	else if (!(log_title in lastest_archive)) {
-		if (!create_first)
+	} else if (!(log_title in lastest_archive)) {
+		if (!create_first) {
 			needless_reason = true;
-		else if (log_title.replace(/^.+?(\d+)$/, '$1') <= create_first)
+		} else if (log_title.replace(/^.+?(\d+)$/, '$1') <= create_first) {
 			needless_reason = create_first + '之前的紀錄';
-		else if (log_size <= min_length_create)
+		} else if (log_size <= min_length_create) {
 			needless_reason = min_length_create + '字以下的紀錄';
+		}
 
-		if (needless_reason)
+		if (needless_reason) {
 			needless_reason = '原先不存在存檔子頁面，且已設定' + (needless_reason || '')
 					+ '不造出存檔子頁面。（若需要自動歸檔封存，您需要手動創建首個存檔子頁面。）';
+		}
 	}
 
 	if (needless_reason) {
@@ -184,8 +186,9 @@ function for_log_page(page_data) {
 			sectiontitle : (new Date).format('%4Y%2m%2d') + '歸檔封存'
 		};
 
-		if (!had_failed && (log_title in lastest_archive))
+		if (!had_failed && (log_title in lastest_archive)) {
 			config.nocreate = 1;
+		}
 
 		wiki.page(archive_page).edit(function(page_data) {
 			if (CeL.is_debug(3)) {
@@ -260,9 +263,10 @@ get_log_pages(function(log_pages) {
 							+ archive_prefix_hash[matched[1]] + ', '
 							+ matched[2] + '。將以數字最大者為主。');
 				}
-				if (index < lastest_archive[matched[1]])
+				if (index < lastest_archive[matched[1]]) {
 					// 不作設定。
 					index = null;
+				}
 			}
 			if (index) {
 				// 設定 index
@@ -278,10 +282,11 @@ get_log_pages(function(log_pages) {
 	// console.log(archive_prefix_hash);
 
 	wiki.page(log_root, function(pages, error) {
-		if (error)
+		if (error) {
 			CeL.err(error);
-		else
+		} else {
 			pages.forEach(for_log_page);
+		}
 	}, {
 		multi : true
 	});
