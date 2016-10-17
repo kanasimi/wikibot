@@ -41,7 +41,7 @@ problem_list = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, rock, posttext, type ]
-PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\|\s*([^\|\[\]]*))?\]\])/ig;
+PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig;
 
 function add_category(content, added, category) {
 	if (added.includes(category)) {
@@ -88,7 +88,9 @@ function for_each_page(page_data, messages) {
 	// var parser = CeL.wiki.parser(page_data);
 
 	// e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
-	if (!/\| *Genre *=[^=\|{}]*?\[\[ロック\]\]/.test(content)) {
+	// 転送ページ
+	if (!/\| *Genre *=[^=\|{}]*?\[\[ロック(?: \(音楽\)|音楽|ミュージック)? *(?:\]\]|\|)/
+			.test(content)) {
 		// Genre NOT ロック
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
@@ -184,6 +186,7 @@ CeL.wiki.cache([ {
 } ], function() {
 	var list = this.list;
 	// list = [ '' ];
+	list = [ 'スティーヴン・タイラー' ];
 	CeL.log('Get ' + list.length + ' pages.');
 	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
