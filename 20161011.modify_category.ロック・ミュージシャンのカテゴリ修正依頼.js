@@ -1,6 +1,8 @@
-﻿/*
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20161011.modify_category.ロック・ミュージシャンのカテゴリ修正依頼.js; date) >> modify_category.ロック・ミュージシャンのカテゴリ修正依頼/log &
 
- 	完成。正式運用。
+/*
+
+ 2016/10/17 19:26:52	完成。正式運用。
 
 
  */
@@ -26,7 +28,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 1500,
+test_limit = 3000,
 
 // all count
 count = 0,
@@ -145,11 +147,14 @@ function finish_work() {
 	if (count > 0) {
 		var messages = 'カテゴリから国を判別できない音楽家或いはバンド: '
 		//
-		+ problem_list.length + '/' + count + '\n' + problem_list.join('\n')
+		+ problem_list.length + '/' + count + '\n' + problem_list.join('\n'),
 		//
-		+ '\n\n増設したカテゴリ:\n: ' + Object.keys(category_count).map(function(c) {
-			return c.replace('[[', '[[:');
-		}).join(', ');
+		categories = Object.keys(category_count);
+		if (categories.length > 0) {
+			messages += '\n\n増設したカテゴリ:\n: ' + categories.map(function(c) {
+				return c.replace('[[', '[[:');
+			}).join(', ');
+		}
 
 		wiki.page(log_to).edit(messages, {
 			section : 'new',
@@ -180,7 +185,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
