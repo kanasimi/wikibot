@@ -152,7 +152,9 @@ function for_each_page(page_data, messages) {
 				+ (rock || 'ロック' + (type === '歌手' ? '' : '・')) + posttext);
 	});
 
-	if (!error && !main_country) {
+	if (!error && !main_country
+	// e.g., [[Category:日本のロック・バンド]]
+	&& !/のロック・バンド *(\]\]|\|)/.test(content)) {
 		no_country_found.push(title);
 		error = no_country_found;
 	}
@@ -179,8 +181,8 @@ function finish_work() {
 		categories = Object.keys(category_count);
 
 		if (no_country_found.length > 0) {
-			messages.push('', '', '; 国別の歌手のカテゴリを含んでいない ('
-					+ no_country_found.length + '):',
+			messages.push('', '; 国別の歌手のカテゴリを含んでいない (' + no_country_found.length
+					+ '):',
 			//
 			': ' + no_country_found.map(function(t) {
 				return '[[' + t + ']]';
@@ -188,7 +190,7 @@ function finish_work() {
 		}
 
 		if (categories.length > 0) {
-			messages.push('', '', '; 増設したカテゴリ ('
+			messages.push('', '; 増設したカテゴリ ('
 			//
 			+ categories.length + '):', ': ' + categories.map(function(c) {
 				return c.replace('[[', '[[:')

@@ -3,6 +3,7 @@
 /*
 
  2016/10/17 23:47:43	初版試運行
+ 2016/10/18 18:37:55	完成。正式運用。
 
  */
 
@@ -20,10 +21,13 @@ summary = '[[Special:Diff/61544020|Bot作業依頼]]：「イスタンブール�
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true);
+wiki = Wiki(true)
+
+// ((Infinity)) for do all
+test_limit = 3000,
 
 /** {Array}filtered list = {Array}[ list ] */
-var filtered = [];
+filtered = [];
 
 // ----------------------------------------------------------------------------
 
@@ -83,7 +87,7 @@ function finish_traversal() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
-		filtered = filtered.slice(0, 2);
+		// filtered = filtered.slice(0, test_limit);
 		wiki.work({
 			each : for_each_filtered,
 			// 不作編輯作業。
@@ -97,7 +101,6 @@ function finish_traversal() {
 
 // ----------------------------------------------------------------------------
 
-// TODO: operations for each page that filtered
 function for_each_filtered(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
@@ -111,8 +114,9 @@ function for_each_filtered(page_data) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
 
-	content = content.replace(/\[\[ *イスタンブル/g, '[[イスタンブール').replace(
-			/\[\[ *Category *: *イスタンブル/ig, '[[Category:イスタンブール');
+	content = content.replace(/\[\[ *イスタンブル/g, '[[イスタンブール')
+	//
+	.replace(/\[\[ *Category *: *イスタンブル/ig, '[[Category:イスタンブール');
 
 	return content;
 }

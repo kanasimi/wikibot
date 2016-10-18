@@ -14,10 +14,13 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true);
+wiki = Wiki(true),
+
+// ((Infinity)) for do all
+test_limit = 3000,
 
 /** {Array}filtered list = {Array}[ list ] */
-var filtered = [];
+filtered = [];
 
 // ----------------------------------------------------------------------------
 
@@ -78,7 +81,7 @@ function finish_traversal() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
-		// filtered = filtered.slice(0, 2);
+		// filtered = filtered.slice(0, test_limit);
 		wiki.work({
 			each : for_each_filtered,
 			// 不作編輯作業。
