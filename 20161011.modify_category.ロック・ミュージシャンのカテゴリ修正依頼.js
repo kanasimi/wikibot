@@ -38,7 +38,7 @@ count = 0,
 category_count = CeL.null_Object(),
 
 // カテゴリから国を判別できない音楽家
-problem_list = [],
+problem_list = [], no_country_found = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, rock, posttext, type ]
@@ -60,10 +60,11 @@ function add_category(content, added, category) {
 	// CeL.log('add_category: ' + category);
 
 	added.push(category);
+	var normalized = category.replace(/^\[\[ *Category *: */ig, '[[Category:');
 	if (category in category_count) {
-		category_count[category]++
+		category_count[normalized]++
 	} else {
-		category_count[category] = 1;
+		category_count[normalized] = 1;
 	}
 	return category;
 }
@@ -123,13 +124,13 @@ function for_each_page(page_data, messages) {
 			// skip.
 			return all_category;
 		}
-		if (main_country && main_country !== country) {
-			error = '複数の国を含んでいだ: ' + main_country + ',' + country;
-			return all_category;
-		}
 		// not country. 国ではない。
 		// e.g., 'アメリカ先住民', アフリカ系アメリカ人, ECMレコード, GRPレコード
 		if (/(?:[人民]|レコード)$/.test(country)) {
+			return all_category;
+		}
+		if (main_country && main_country !== country) {
+			error = '複数の国を含んでいだ: ' + main_country + ',' + country;
 			return all_category;
 		}
 
@@ -152,12 +153,15 @@ function for_each_page(page_data, messages) {
 	});
 
 	if (!error && !main_country) {
-		error = '国別の歌手のカテゴリを含んでいない';
+		no_country_found.push(title);
+		error = no_country_found;
 	}
 
 	if (error) {
-		// error: skip edit.
-		problem_list.push(': ' + count + ' [[' + title + ']]: ' + error);
+		if (error !== no_country_found) {
+			// error: skip edit.
+			problem_list.push(': ' + count + ' [[' + title + ']]: ' + error);
+		}
 		// 後で報告
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
@@ -167,20 +171,33 @@ function for_each_page(page_data, messages) {
 
 function finish_work() {
 	if (count > 0) {
-		var messages = 'カテゴリから国を判別できない音楽家或いはバンド: '
+		var messages = [ '; カテゴリから国を判別できない音楽家或いはバンド: '
 		//
-		+ problem_list.length + '/' + count + '\n' + problem_list.join('\n'),
+		+ (problem_list.length + no_country_found.length) + '/' + count,
+				problem_list.join('\n') ],
 		//
 		categories = Object.keys(category_count);
-		if (categories.length > 0) {
-			messages += '\n\n増設したカテゴリ:\n: ' + categories.map(function(c) {
-				return c.replace('[[', '[[:')
-				// 去掉 index
-				.replace(/\|[^\]]/, '');
-			}).join(', ');
+
+		if (no_country_found.length > 0) {
+			messages.push('', '', '; 国別の歌手のカテゴリを含んでいない ('
+					+ no_country_found.length + '):',
+			//
+			': ' + no_country_found.map(function(t) {
+				return '[[' + t + ']]';
+			}).join(', '));
 		}
 
-		wiki.page(log_to).edit(messages, {
+		if (categories.length > 0) {
+			messages.push('', '', '; 増設したカテゴリ ('
+			//
+			+ categories.length + '):', ': ' + categories.map(function(c) {
+				return c.replace('[[', '[[:')
+				// 去掉 index
+				.replace(/\|[^\]]/, '') + ' (' + category_count[c] + ')';
+			}).join(', '));
+		}
+
+		wiki.page(log_to).edit(messages.join('\n'), {
 			section : 'new',
 			sectiontitle : '作業結果報告',
 			summary : summary,

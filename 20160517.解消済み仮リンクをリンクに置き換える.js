@@ -236,7 +236,7 @@ message_set = {
 		preserved : '指定了強制顯示參數，不做修改。',
 		retrive_foreign_error : '無法取得所對應的外語條目。將於下次執行時再做嘗試。'
 	},
-	
+
 	// default messages
 	'*' : {
 		report_page : 'Interlanguage link templates need to fix',

@@ -5,7 +5,7 @@
 /*
 
  2016/3/23 20:16:46	初版試營運。
- 2016/6/9 9:36:17	adapt for jawiki
+ 2016/6/9 9:36:17	adapt for jawiki. 記録保存作業
 
  */
 
@@ -199,7 +199,9 @@ function for_log_page(page_data) {
 			/** {String}page content, maybe undefined. */
 			log_page = CeL.wiki.content_of(page_data);
 
-			if (had_failed || (log_page ?
+			if (had_failed
+			// 即使沒有內容，只要存在頁面就當作可以寫入。
+			|| (typeof log_page === 'string' ?
 			// 頁面大小系統上限 2,048 KB = 2 MB。
 			log_page.length + log_size < 2e6 : !config.nocreate)) {
 				return "'''{{font color|#54f|#ff6|存檔長度" + log_size
