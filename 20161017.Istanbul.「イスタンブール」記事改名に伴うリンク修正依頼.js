@@ -14,6 +14,10 @@ require('./wiki loder.js');
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
 
+/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+summary = '[[Special:Diff/61544020|Bot作業依頼]]：「イスタンブール」記事改名に伴うリンク修正依頼 - [['
+		+ log_to + '|log]]';
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
@@ -77,10 +81,9 @@ function for_each_page(page_data) {
  */
 function finish_traversal() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
-	filtered = filtered.slice(0, 2);
-
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
+		filtered = filtered.slice(0, 2);
 		wiki.work({
 			each : for_each_filtered,
 			// 不作編輯作業。
@@ -118,5 +121,5 @@ function for_each_filtered(page_data) {
  * Finish up. 最後結束工作。
  */
 function finish_work() {
-	;
+	CeL.log('done');
 }

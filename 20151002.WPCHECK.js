@@ -18,6 +18,7 @@
  https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
 
  [[:ja:Wikipedia:雑草とり]]
+ [[ja:プロジェクト:ウィキ文法のチェック/Translation]]
 
  */
 
@@ -42,6 +43,7 @@ PATTERN_invalid_self_closed_HTML_tags = /(<(b|p|div|span|td|th|tr|center|small)(
 
 // Category:使用无效自封闭HTML标签的页面 , [[phab:T134423]]
 // 在主名字空間ns0裡面，替換<small/>為</small>，替換<center/>為</center>，以消除[[:Category:使用無效自封閉HTML標籤的頁面]]。
+// 不正な HTML tag を修正する。例えば <b><b/> → <b></b>
 fix_2.title = '修正不正確的 HTML tag 如 <b><b/> → <b></b>';
 function fix_2(content, page_data, messages, options) {
 	// fix error
@@ -114,6 +116,7 @@ function fix_2_full(content, page_data, messages, options) {
 
 var comment_tag_start = '<!--', comment_tag_end = '-->';
 
+// 閉じ忘れたコメントを修正する。
 fix_5.title = 'HTML注釋未首尾對應';
 function fix_5(content, page_data, messages, options) {
 	var need_manuilly_check, changed, has_end_only,

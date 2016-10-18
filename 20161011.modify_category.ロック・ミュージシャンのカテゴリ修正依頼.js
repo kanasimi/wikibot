@@ -42,7 +42,11 @@ problem_list = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, rock, posttext, type ]
-PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig;
+PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
+// e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
+// Genre = ロックンロール、ハードロック、パンク・ロック、ヘヴィメタルになっている人物もbotで修正して
+// should add 転送ページ
+PATTERN_ロック = /\| *Genre *=[^=\|{}]*?\[\[(?:ロック(?: \(音楽\)|音楽|ミュージック)?|ロックン・?ロール|ハード・?ロック(?:バンド)?|Hard rock|パンク(・?ロック|・?バンド|ロック| \(音楽\)|音楽|ミュージック)?|Punk rock|ロンドン・?パンク|ヘヴィ・?メタル|Heavy Metal) *(?:\]\]|\|)/;
 
 function add_category(content, added, category) {
 	if (added.includes(category)) {
@@ -88,10 +92,7 @@ function for_each_page(page_data, messages) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	// e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
-	// 転送ページ
-	if (!/\| *Genre *=[^=\|{}]*?\[\[ロック(?: \(音楽\)|音楽|ミュージック)? *(?:\]\]|\|)/
-			.test(content)) {
+	if (!PATTERN_ロック.test(content)) {
 		// Genre NOT ロック
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
@@ -126,8 +127,9 @@ function for_each_page(page_data, messages) {
 			error = '複数の国を含んでいだ: ' + main_country + ',' + country;
 			return all_category;
 		}
-		if (country.endsWith('民')) {
-			// not country. e.g., 'アメリカ先住民'
+		// not country. 国ではない。
+		// e.g., 'アメリカ先住民', アフリカ系アメリカ人, ECMレコード, GRPレコード
+		if (/(?:[人民]|レコード)$/.test(country)) {
 			return all_category;
 		}
 

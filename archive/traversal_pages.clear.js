@@ -21,7 +21,8 @@ var filtered = [];
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
+// prepare_directory(base_directory, true);
 
 // Set the umask to share the xml dump file.
 if (typeof process === 'object') {
@@ -75,9 +76,9 @@ function for_each_page(page_data) {
  */
 function finish_traversal() {
 	CeL.log(script_name + ': ' + filtered.length + ' page(s) filtered.');
-	// filtered = filtered.slice(0, 0);
 	if (filtered.length > 0) {
 		CeL.fs_write(base_directory + 'filtered.lst', filtered.join('\n'));
+		// filtered = filtered.slice(0, 2);
 		wiki.work({
 			each : for_each_filtered,
 			// 不作編輯作業。
@@ -100,5 +101,5 @@ function for_each_filtered(page_data) {
  * Finish up. 最後結束工作。
  */
 function finish_work() {
-	;
+	CeL.log('done');
 }

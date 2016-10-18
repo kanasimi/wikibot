@@ -64,6 +64,7 @@ template_orders = {
 	LcF_en : {
 		local_title : 1,
 		foreign_language : 2,
+		// will fallback
 		foreign_title : [ 3, 1 ],
 		WD : 'WD',
 		label : 'lt',
@@ -193,6 +194,49 @@ message_set = {
 		}
 	},
 
+	zh : {
+		// Category:多語言連結已存在連結
+		Category_has_local_page : 'Category:有蓝链却未移除内部链接助手模板的页面',
+		report_page : '需要修正的跨語言連結',
+		fix_category : 'Category:跨語言連結有問題的頁面',
+		report_summary : '跨語言連結清理報告',
+		manual_correction_required : '這裡列出了需修正的跨語言連結。本列表將由機器人自動更新。',
+		edit : '編',
+		report_1 : ':: ……共發生了',
+		report_2 : '次。',
+		template_order_of_name : {
+			'interlanguage link multi' : template_orders.LcF_en,
+			// ={{interlanguage link multi}}
+			illm : template_orders.LcF_en,
+
+			le : Object.assign({
+				'|foreign_language' : 'en'
+			}, template_orders.LF),
+			'link-en' : Object.assign({
+				'|foreign_language' : 'en'
+			}, template_orders.LF)
+		},
+
+		summary_prefix : 'bot: 清理跨語言連結',
+		summary_separator : '、',
+		summary_postfix : '成內部連結',
+
+		no_template : '未發現跨語言連結模板',
+		invalid_template : '跨語言連結模板的格式錯誤。',
+		// 對應頁面, 指向的頁面
+		missing_foreign : '所對應的外語條目不存在。',
+		foreign_is_disambiguation : '所對應的外語頁面為消歧義頁。',
+		foreign_redirect_to_section : '所對應的外語頁面重定向到了條目章節。',
+		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到Wikidata。',
+		different_local_title : '所對應的中文條目標題與模板參數所列出的不相符。',
+		not_exist : '不存在',
+		from_parameter : '從模板參數',
+		translated_from_foreign_title : '從外語頁面對應的中文條目',
+
+		preserved : '指定了強制顯示參數，不做修改。',
+		retrive_foreign_error : '無法取得所對應的外語條目。將於下次執行時再做嘗試。'
+	},
+	
 	// default messages
 	'*' : {
 		report_page : 'Interlanguage link templates need to fix',
