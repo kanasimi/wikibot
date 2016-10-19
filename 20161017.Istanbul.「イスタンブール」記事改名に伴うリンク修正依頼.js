@@ -114,8 +114,15 @@ function for_each_filtered(page_data) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
 
-	content = content.replace(/\[\[ *イスタンブル/g, '[[イスタンブール')
 	// TODO: 紀錄改過的links
+	content = content.replace(/\[\[ *(イスタンブー?ル[^\|]*)(\|[^\[\]]+)?\]\]/g,
+	//
+	function(all, $1, $2) {
+		return '[[' + ($1.trim() + $2.trim()
+		//
+		.replace(/^\| +/, '')).replace(/イスタンブー?ル/g, 'イスタンブール') + ']]';
+	})
+	//
 	.replace(/\[\[ *Category *: *イスタンブル/ig, '[[Category:イスタンブール');
 
 	return content;
