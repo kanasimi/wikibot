@@ -130,7 +130,7 @@ function for_each_page(page_data, messages) {
 			return all_category;
 		}
 		if (main_country && main_country !== country) {
-			error = '複数の国を含んでいだ: ' + main_country + ',' + country;
+			error = '複数の国を含んでいる: ' + main_country + ',' + country;
 			return all_category;
 		}
 

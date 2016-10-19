@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node "traversal_pages.clear.js" && date
+﻿// (cd ~/wikibot && date && hostname && nohup time /shared/bin/node "traversal_pages.clear.js"; date) >> traversal_pages.clear.log &
 // Traversal all pages. 遍歷所有頁面。簡易版，用於展示概念。
 
 /*
@@ -17,7 +17,7 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 3000,
+test_limit = 2,
 
 /** {Array}filtered list = {Array}[ list ] */
 filtered = [];
@@ -68,7 +68,7 @@ function for_each_page(page_data) {
 		return;
 
 	// TODO: operations for each page
-	if (0) {
+	if (content.includes('')) {
 		// need modify
 		filtered.push(title);
 	}

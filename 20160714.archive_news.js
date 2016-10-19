@@ -40,7 +40,9 @@ error_logs = [],
 
 PATTERN_category_start = /(\[\[ *(?:Category|分類|分类) *:)/i,
 //
-publish_name_list, publish_names, PATTERN_publish_template, source_templates;
+publish_name_list, publish_names, PATTERN_publish_template,
+//
+PATTERN_publish_category = /\[\[\s*Category\s*:\s*(?:已發布|已发布)\s*\]\]/ig, source_templates;
 
 log_to = 'Wikinews:管理员通告板/需檢查的可存檔新聞';
 summary = '[[WN:ARCHIVE|存檔保護]]作業';
@@ -239,7 +241,7 @@ function for_each_old_page(page_data) {
 	if (typeof contents === 'string') {
 		CeL.debug(
 		//
-		'[[' + page_data.title + ']]: 有1個版本。', 1, 'for_each_old_page');
+		'[[' + page_data.title + ']]: 只有1個版本。', 1, 'for_each_old_page');
 		// assert: typeof contents === 'string' && contents has
 		// {{publish}}
 		current_content = contents;
@@ -255,20 +257,24 @@ function for_each_old_page(page_data) {
 
 		CeL.debug('[[' + page_data.title + ']]: ' + contents.length + ' 個版本。',
 				3, 'for_each_old_page');
+		var PATTERN_publish = PATTERN_publish_template,
 		// first revision that has {{publish}}
-		var first_has_published = contents.first_matched(
-				PATTERN_publish_template, true);
+		first_has_published = contents.first_matched(PATTERN_publish, true);
 
+		if (first_has_published === NOT_FOUND) {
+			// 照理來說不該使用[[Category:~]]
+			PATTERN_publish = PATTERN_publish_category;
+			first_has_published = contents.first_matched(PATTERN_publish, true);
+		}
 		if (first_has_published === NOT_FOUND) {
 			throw '可能存有未設定之{{publish}}別名? [[' + page_data.title + ']]';
 		}
 
 		if (first_has_published > 0) {
 			// 若非最新版才出現 {{publish}}，則向前尋。
-			if (!PATTERN_publish_template.test(contents[first_has_published])
+			if (!PATTERN_publish.test(contents[first_has_published])
 					|| contents[first_has_published + 1]
-					&& PATTERN_publish_template
-							.test(contents[first_has_published + 1])) {
+					&& PATTERN_publish.test(contents[first_has_published + 1])) {
 				// 可能中間有匹配/不匹配交替出現?
 				CeL.err(first_has_published + '/' + contents.length + ': ');
 				CeL.log(contents[first_has_published]);
@@ -441,7 +447,7 @@ function for_each_old_page(page_data) {
 						+ current_content[last_pointer]);
 			}
 			if (last_pointer < publish_pointer) {
-				// {{publish}}被放在[[category:~]]後。
+				// {{publish}}被放在[[Category:~]]後。
 				current_content[publish_pointer] = '';
 				publish_pointer = undefined;
 			}

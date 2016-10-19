@@ -21,7 +21,7 @@ summary = '[[Special:Diff/61544020|Bot作業依頼]]：「イスタンブール�
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true)
+wiki = Wiki(true),
 
 // ((Infinity)) for do all
 test_limit = 3000,
@@ -115,7 +115,7 @@ function for_each_filtered(page_data) {
 	}
 
 	content = content.replace(/\[\[ *イスタンブル/g, '[[イスタンブール')
-	//
+	// TODO: 紀錄改過的links
 	.replace(/\[\[ *Category *: *イスタンブル/ig, '[[Category:イスタンブール');
 
 	return content;
