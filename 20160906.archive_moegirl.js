@@ -153,7 +153,7 @@ function for_board(page_data) {
 			CeL.log('archive to [[' + archive_title
 			//
 			+ ']]: "' + section_title + '"');
-			if (1) {
+			if (false) {
 				CeL.log(content);
 				CeL.log('~'.repeat(80));
 				CeL.log(parser[parser_index].toString() + section_text.trim());

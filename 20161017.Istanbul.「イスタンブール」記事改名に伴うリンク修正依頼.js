@@ -118,9 +118,11 @@ function for_each_filtered(page_data) {
 	content = content.replace(/\[\[ *(イスタンブー?ル[^\|]*)(\|[^\[\]]+)?\]\]/g,
 	//
 	function(all, $1, $2) {
-		return '[[' + ($1.trim() + $2.trim()
+		return '[[' + ($1.trim()
 		//
-		.replace(/^\| +/, '')).replace(/イスタンブー?ル/g, 'イスタンブール') + ']]';
+		+ ($2 ? $2.trim().replace(/^\| +/, '') : ''))
+		//
+		.replace(/イスタンブー?ル/g, 'イスタンブール') + ']]';
 	})
 	//
 	.replace(/\[\[ *Category *: *イスタンブル/ig, '[[Category:イスタンブール');
