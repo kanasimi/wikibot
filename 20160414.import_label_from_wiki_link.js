@@ -1094,12 +1094,14 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				&& (!entity.claims || !include_label(CeL.wiki.data.value_of(
 				//
 				entity.claims[読み仮名_id]), f_label))) {
-					this.summary = 'imported 仮名 from [[' + f_language + ':'
+					this.summary = 'imported 仮名 from [['
 					//
-					+ titles.uniq().slice(0, 10).join(summary_sp) + ']]';
+					+ titles.uniq().slice(0, 10).map(function(title) {
+						return use_language + ':' + title;
+					}).join(summary_sp) + ']]';
 					// treat foreign_title as 読み仮名.
 					// 片仮中点（半角）→ 片仮中点
-					return 仮名_claim(f_label.replace(/･/g, '・'));
+					return 仮名_claim(f_label.replace(/･/g, '・'), use_language);
 				}
 
 				return [ CeL.wiki.edit.cancel, 'skip' ];
