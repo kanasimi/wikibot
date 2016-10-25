@@ -961,7 +961,7 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 			CeL.debug('Find [' + matched[0] + ']', 2, 'search_中國評論通訊社');
 			// e.g., "國際部分主要報紙9月8日頭條新聞標題"
 			if (matched[2].includes(use_date.format('%m月%d日'))) {
-				var link = matched[1].match(/\shref="([^"]+)"/);
+				var link = matched[1].match(/(?:^|\s)href="([^"]+)"/);
 				if (link) {
 					// 自行手動登記已處理過之 URL。
 					remove_completed(labels_to_check, label, matched[2]
@@ -1001,7 +1001,7 @@ function search_橙新聞(labels_to_check, check_left) {
 			CeL.debug('Find [' + matched[0] + ']', 2, 'search_橙新聞');
 			if (matched[2].includes('香港頭條新聞')
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
-				var link = matched[1].match(/\shref="([^"]+)"/);
+				var link = matched[1].match(/(?:^|\s)href="([^"]+)"/);
 				if (link) {
 					// 自行手動登記已處理過之 URL。
 					remove_completed(labels_to_check, label, matched[2]
