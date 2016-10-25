@@ -43,6 +43,7 @@ headline_labels = {
 		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界各報頭條" site:appledaily.com.tw', '世界各報頭條' ],
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
 		// e.g., "國際部分主要報紙8月1日頭條新聞標題"
+		// http://hk.crntt.com/crn-webapp/search/searchAll.jsp?sw=國際部分主要報紙
 		'中國評論通訊社' : [ '"%m月%d日" "國際" "頭條新聞" site:hk.crntt.com', '國際' ]
 	},
 
@@ -945,6 +946,46 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 	return _add_source();
 }
 
+function search_中國評論通訊社(labels_to_check, check_left) {
+	var label = '中國評論通訊社', url = 'http://hk.crntt.com/crn-webapp/search/searchAll.jsp?sw=%E5%9C%8B%E9%9A%9B%E9%83%A8%E5%88%86%E4%B8%BB%E8%A6%81%E5%A0%B1%E7%B4%99';
+	CeL.debug('開始取得 [' + label + '] 的 headline list [' + url + ']', 0,
+			'search_中國評論通訊社');
+	CeL.get_URL(url, function(XMLHttp) {
+		var status_code = XMLHttp.status,
+		//
+		response = XMLHttp.responseText;
+
+		CeL.debug('開始處理 [' + label + '] 的 headline list', 0, 'search_中國評論通訊社');
+		var matched, PATTERN = /<a ([^<>]+)>(.+?)<\/a>/g;
+		while (matched = PATTERN.exec(response)) {
+			CeL.debug('Find [' + matched[0] + ']', 2, 'search_中國評論通訊社');
+			// e.g., "國際部分主要報紙9月8日頭條新聞標題"
+			if (matched[2].includes(use_date.format('%m月%d日'))) {
+				var link = matched[1].match(/\shref="([^"]+)"/);
+				if (link) {
+					// 自行手動登記已處理過之 URL。
+					remove_completed(labels_to_check, label, matched[2]
+							.replace(/<[^<>]+>/g, '').trim(), link[1], true);
+					PATTERN = null;
+					break;
+				}
+			}
+		}
+
+		if (PATTERN) {
+			CeL.err('search_中國評論通訊社: No headline get!');
+		}
+
+		check_left();
+
+	}, undefined, undefined, {
+		onfail : function(error) {
+			CeL.err('search_中國評論通訊社: Error to get headline list');
+			check_left();
+		}
+	});
+}
+
 function search_橙新聞(labels_to_check, check_left) {
 	var label = '橙新聞', url = 'http://www.orangenews.hk/news/paperheadline/';
 	CeL.debug('開始取得 [' + label + '] 的 headline list [' + url + ']', 0,
@@ -955,16 +996,16 @@ function search_橙新聞(labels_to_check, check_left) {
 		response = XMLHttp.responseText;
 
 		CeL.debug('開始處理 [' + label + '] 的 headline list', 0, 'search_橙新聞');
-		var matched, PATTERN = /<a ([^<>]+)>([^<>]+)<\/a>/g;
+		var matched, PATTERN = /<a ([^<>]+)>(.+?)<\/a>/g;
 		while (matched = PATTERN.exec(response)) {
 			CeL.debug('Find [' + matched[0] + ']', 2, 'search_橙新聞');
 			if (matched[2].includes('香港頭條新聞')
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
-				var link = matched[1].match(/href="([^"]+)"/);
+				var link = matched[1].match(/\shref="([^"]+)"/);
 				if (link) {
 					// 自行手動登記已處理過之 URL。
-					remove_completed(labels_to_check, label, matched[2].trim(),
-							link[1], true);
+					remove_completed(labels_to_check, label, matched[2]
+							.replace(/<[^<>]+>/g, '').trim(), link[1], true);
 					PATTERN = null;
 					break;
 				}
@@ -1050,7 +1091,20 @@ function check_labels(labels_to_check) {
 
 	// 從 labels_to_check 取資訊做查詢。
 	function search_Google(label) {
-		if (label === '橙新聞') {
+		if (label === '中國評論通訊社' && locale === '國際') {
+			// 有時從Google找不到
+			left++;
+			search_中國評論通訊社(labels_to_check, function check_left() {
+				left--;
+				CeL.debug('Search headline of [' + label + '] finished. '
+						+ left + ' left.', 0, 'search_Google');
+				if (!left) {
+					check_headline_data(labels_to_check);
+				}
+			});
+			// return;
+
+		} else if (label === '橙新聞' && locale === '香港') {
 			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
 			// 因此這邊處理，但不計數。（而多算一個）
 			left++;
@@ -1063,6 +1117,7 @@ function check_labels(labels_to_check) {
 				}
 			});
 			// return;
+
 		}
 
 		// query string
