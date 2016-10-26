@@ -1128,9 +1128,22 @@ function check_labels(labels_to_check) {
 	function search_Google(label) {
 		if (label === '中國評論通訊社' && locale === '國際') {
 			// 有時從Google找不到
-			// left++;
 			search_中國評論通訊社(labels_to_check, function check_left() {
-				// left--;
+				CeL.debug('Search headline of [' + label + '] finished. '
+						+ left + ' left.', 0, 'search_Google');
+				if (!left) {
+					check_headline_data(labels_to_check);
+				}
+			});
+			// 因為search_中國評論通訊社()幾乎總回傳得比Google慢，因此先用 search_中國評論通訊社()。
+			return;
+
+		}
+
+		if (label === '橙新聞' && locale === '香港') {
+			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
+			// 因此這邊處理，但不計數。（而多算一個）
+			search_橙新聞(labels_to_check, function check_left() {
 				CeL.debug('Search headline of [' + label + '] finished. '
 						+ left + ' left.', 0, 'search_Google');
 				if (!left) {
@@ -1138,21 +1151,6 @@ function check_labels(labels_to_check) {
 				}
 			});
 			return;
-
-		} else if (label === '橙新聞' && locale === '香港') {
-			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
-			// 因此這邊處理，但不計數。（而多算一個）
-			left++;
-			search_橙新聞(labels_to_check, function check_left() {
-				left--;
-				CeL.debug('Search headline of [' + label + '] finished. '
-						+ left + ' left.', 0, 'search_Google');
-				if (!left) {
-					check_headline_data(labels_to_check);
-				}
-			});
-			// return;
-
 		}
 
 		// debug 用：完全不採 Google search。
