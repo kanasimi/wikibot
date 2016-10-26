@@ -416,6 +416,8 @@ function add_headline(publisher, headline, source) {
 	add_to_headline_hash(publisher, headline, source, true);
 }
 
+// ----------------------------------------------------------------------------
+
 function parse_橙新聞_headline(response, publisher) {
 	var count = 0, news_content = response.between(
 			'function content() parse begin', 'function content() parse end')
@@ -805,10 +807,13 @@ function check_headline_data(labels_to_check) {
 	next_label();
 }
 
+// ----------------------------------------------------------------------------
+
 // return 有去掉/已處理過。
 function remove_completed(labels_to_check, label, title, url, to_add_source) {
-	if (!title || typeof title !== 'string' || !(label in labels_to_check))
+	if (!title || typeof title !== 'string' || !(label in labels_to_check)) {
 		return;
+	}
 
 	CeL.log('remove_completed: 準備登記已處理過: [' + title
 	//
@@ -946,6 +951,8 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 	return _add_source();
 }
 
+// ----------------------------------------------------------------------------
+
 function search_中國評論通訊社(labels_to_check, check_left) {
 	var label = '中國評論通訊社', url = 'http://hk.crntt.com/crn-webapp/search/searchAll.jsp?sw=%E5%9C%8B%E9%9A%9B%E9%83%A8%E5%88%86%E4%B8%BB%E8%A6%81%E5%A0%B1%E7%B4%99';
 	CeL.debug('開始取得 [' + label + '] 的 headline list [' + url + ']', 0,
@@ -963,9 +970,26 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 			if (matched[2].includes(use_date.format('%m月%d日'))) {
 				var link = matched[1].match(/(?:^|\s)href="([^"]+)"/);
 				if (link) {
-					// 自行手動登記已處理過之 URL。
-					remove_completed(labels_to_check, label, matched[2]
-							.replace(/<[^<>]+>/g, '').trim(), link[1], true);
+					link = CeL.get_full_URL(link[1], url);
+
+					CeL.get_URL(link, function(XMLHttp) {
+						var status_code = XMLHttp.status,
+						//
+						response = XMLHttp.responseText;
+
+						// e.g., '<a
+						// href="/crn-webapp/doc/docDetail.jsp?docid=104437972">原文網址</a>'
+						var m = response.match(/<a href="([^"]+)">原文網址<\/a>/);
+						if (!m) {
+							throw 'search_中國評論通訊社: 未發現原文網址';
+						}
+
+						link = CeL.get_full_URL(m[1], link);
+
+						// 自行手動登記已處理過之 URL。
+						remove_completed(labels_to_check, label, matched[2]
+								.replace(/<[^<>]+>/g, '').trim(), link, true);
+					});
 					PATTERN = null;
 					break;
 				}
@@ -1003,9 +1027,10 @@ function search_橙新聞(labels_to_check, check_left) {
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
 				var link = matched[1].match(/(?:^|\s)href="([^"]+)"/);
 				if (link) {
+					link = CeL.get_full_URL(link[1], url);
 					// 自行手動登記已處理過之 URL。
 					remove_completed(labels_to_check, label, matched[2]
-							.replace(/<[^<>]+>/g, '').trim(), link[1], true);
+							.replace(/<[^<>]+>/g, '').trim(), link, true);
 					PATTERN = null;
 					break;
 				}
@@ -1118,6 +1143,12 @@ function check_labels(labels_to_check) {
 			});
 			// return;
 
+		}
+
+		// debug 用：完全不採 Google search。
+		if (0) {
+			for_label(label, 'skip');
+			return;
 		}
 
 		// query string
