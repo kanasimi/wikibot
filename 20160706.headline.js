@@ -17,6 +17,8 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
+CeL.run('application.net');
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
@@ -989,7 +991,10 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 						// 自行手動登記已處理過之 URL。
 						remove_completed(labels_to_check, label, matched[2]
 								.replace(/<[^<>]+>/g, '').trim(), link, true);
+
+						check_left();
 					});
+					return;
 					PATTERN = null;
 					break;
 				}
@@ -1118,16 +1123,16 @@ function check_labels(labels_to_check) {
 	function search_Google(label) {
 		if (label === '中國評論通訊社' && locale === '國際') {
 			// 有時從Google找不到
-			left++;
+			// left++;
 			search_中國評論通訊社(labels_to_check, function check_left() {
-				left--;
+				// left--;
 				CeL.debug('Search headline of [' + label + '] finished. '
 						+ left + ' left.', 0, 'search_Google');
 				if (!left) {
 					check_headline_data(labels_to_check);
 				}
 			});
-			// return;
+			return;
 
 		} else if (label === '橙新聞' && locale === '香港') {
 			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
