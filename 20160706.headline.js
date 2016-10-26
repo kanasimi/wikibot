@@ -1125,40 +1125,6 @@ function check_labels(labels_to_check) {
 
 	// 從 labels_to_check 取資訊做查詢。
 	function search_Google(label) {
-		if (label === '中國評論通訊社' && locale === '國際') {
-			// 有時從Google找不到
-			search_中國評論通訊社(labels_to_check, function check_left(error) {
-				CeL.debug('Search headline of [' + label + '] finished. '
-						+ left + ' left.', 0, 'search_Google');
-				if (error) {
-					// 重新檢查。
-					search_Google(label);
-				} else if (--left === 0) {
-					check_headline_data(labels_to_check);
-				}
-			});
-			// 因為search_中國評論通訊社()幾乎總回傳得比Google慢，因此先用 search_中國評論通訊社()。
-			// waiting for search
-			return;
-		}
-
-		if (label === '橙新聞' && locale === '香港') {
-			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
-			// 因此這邊處理，但不計數。（而多算一個）
-			search_橙新聞(labels_to_check, function check_left(error) {
-				CeL.debug('Search headline of [' + label + '] finished. '
-						+ left + ' left.', 0, 'search_Google');
-				if (error) {
-					// 重新檢查。
-					search_Google(label);
-				} else if (--left === 0) {
-					check_headline_data(labels_to_check);
-				}
-			});
-			// waiting for search
-			return;
-		}
-
 		// debug 用：完全不採 Google search。
 		if (0) {
 			for_label(label, 'skip');
@@ -1188,7 +1154,45 @@ function check_labels(labels_to_check) {
 		});
 	}
 
-	labels.forEach(search_Google);
+	function search_web(label) {
+		if (label === '中國評論通訊社' && locale === '國際') {
+			// 有時從Google找不到
+			search_中國評論通訊社(labels_to_check, function check_left(error) {
+				CeL.debug('Search headline of [' + label + '] finished. '
+						+ left + ' left.', 0, 'search_web');
+				if (error) {
+					// 無法順利找到，改檢查Google。
+					search_Google(label);
+				} else if (--left === 0) {
+					check_headline_data(labels_to_check);
+				}
+			});
+			// 因為search_中國評論通訊社()幾乎總回傳得比Google慢，因此先用 search_中國評論通訊社()。
+			// waiting for search
+			return;
+		}
+
+		if (label === '橙新聞' && locale === '香港') {
+			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
+			// 因此這邊處理，但不計數。（而多算一個）
+			search_橙新聞(labels_to_check, function check_left(error) {
+				CeL.debug('Search headline of [' + label + '] finished. '
+						+ left + ' left.', 0, 'search_web');
+				if (error) {
+					// 無法順利找到，改檢查Google。
+					search_Google(label);
+				} else if (--left === 0) {
+					check_headline_data(labels_to_check);
+				}
+			});
+			// waiting for search
+			return;
+		}
+
+		search_Google(label);
+	}
+
+	labels.forEach(search_web);
 }
 
 // ----------------------------------------------------------------------------
