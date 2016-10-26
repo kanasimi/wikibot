@@ -959,6 +959,12 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 	var label = '中國評論通訊社', url = 'http://hk.crntt.com/crn-webapp/search/searchAll.jsp?sw=%E5%9C%8B%E9%9A%9B%E9%83%A8%E5%88%86%E4%B8%BB%E8%A6%81%E5%A0%B1%E7%B4%99';
 	CeL.debug('開始取得 [' + label + '] 的 headline list [' + url + ']', 0,
 			'search_中國評論通訊社');
+
+	function onfail(error) {
+		CeL.err('search_中國評論通訊社: Error to get headline list');
+		check_left('error');
+	}
+
 	CeL.get_URL(url, function(XMLHttp) {
 		var status_code = XMLHttp.status,
 		//
@@ -997,26 +1003,22 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 									XMLHttp.URL, true);
 
 							check_left();
+						}, undefined, undefined, {
+							onfail : onfail
 						});
+					}, undefined, undefined, {
+						onfail : onfail
 					});
 					return;
-					PATTERN = null;
-					break;
 				}
 			}
 		}
 
-		if (PATTERN) {
-			CeL.err('search_中國評論通訊社: No headline get!');
-		}
-
-		check_left();
+		CeL.err('search_中國評論通訊社: No headline get!');
+		check_left('not found');
 
 	}, undefined, undefined, {
-		onfail : function(error) {
-			CeL.err('search_中國評論通訊社: Error to get headline list');
-			check_left();
-		}
+		onfail : onfail
 	});
 }
 
@@ -1041,22 +1043,19 @@ function search_橙新聞(labels_to_check, check_left) {
 					// 自行手動登記已處理過之 URL。
 					remove_completed(labels_to_check, label, matched[2]
 							.replace(/<[^<>]+>/g, '').trim(), link, true);
-					PATTERN = null;
-					break;
+					check_left();
+					return;
 				}
 			}
 		}
 
-		if (PATTERN) {
-			CeL.err('search_橙新聞: No headline get!');
-		}
-
-		check_left();
+		CeL.err('search_橙新聞: No headline get!');
+		check_left('not found');
 
 	}, undefined, undefined, {
 		onfail : function(error) {
 			CeL.err('search_橙新聞: Error to get headline list');
-			check_left();
+			check_left('error');
 		}
 	});
 }
@@ -1119,7 +1118,7 @@ function check_labels(labels_to_check) {
 
 		response.items.every(add_source);
 
-		if (!left) {
+		if (left === 0) {
 			check_headline_data(labels_to_check);
 		}
 	}
@@ -1128,28 +1127,35 @@ function check_labels(labels_to_check) {
 	function search_Google(label) {
 		if (label === '中國評論通訊社' && locale === '國際') {
 			// 有時從Google找不到
-			search_中國評論通訊社(labels_to_check, function check_left() {
+			search_中國評論通訊社(labels_to_check, function check_left(error) {
 				CeL.debug('Search headline of [' + label + '] finished. '
 						+ left + ' left.', 0, 'search_Google');
-				if (!left) {
+				if (error) {
+					// 重新檢查。
+					search_Google(label);
+				} else if (--left === 0) {
 					check_headline_data(labels_to_check);
 				}
 			});
 			// 因為search_中國評論通訊社()幾乎總回傳得比Google慢，因此先用 search_中國評論通訊社()。
+			// waiting for search
 			return;
-
 		}
 
 		if (label === '橙新聞' && locale === '香港') {
 			// 橙新聞周休二日（星期六日）時頭條常常不會放在"報章頭條"這裡。
 			// 因此這邊處理，但不計數。（而多算一個）
-			search_橙新聞(labels_to_check, function check_left() {
+			search_橙新聞(labels_to_check, function check_left(error) {
 				CeL.debug('Search headline of [' + label + '] finished. '
 						+ left + ' left.', 0, 'search_Google');
-				if (!left) {
+				if (error) {
+					// 重新檢查。
+					search_Google(label);
+				} else if (--left === 0) {
 					check_headline_data(labels_to_check);
 				}
 			});
+			// waiting for search
 			return;
 		}
 
