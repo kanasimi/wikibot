@@ -987,12 +987,17 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 						}
 
 						link = CeL.get_full_URL(m[1], link);
+						// e.g.,
+						// "http://hk.crntt.com/crn-webapp/doc/docDetail.jsp?docid=104437972"
 
-						// 自行手動登記已處理過之 URL。
-						remove_completed(labels_to_check, label, matched[2]
-								.replace(/<[^<>]+>/g, '').trim(), link, true);
+						CeL.get_URL(link, function(XMLHttp) {
+							// 自行手動登記已處理過之 URL。
+							remove_completed(labels_to_check, label, matched[2]
+									.replace(/<[^<>]+>/g, '').trim(),
+									XMLHttp.URL, true);
 
-						check_left();
+							check_left();
+						});
 					});
 					return;
 					PATTERN = null;
