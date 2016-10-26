@@ -22,7 +22,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 800,
+test_limit = 2,
 
 set_properties = ('著者,ジャンル,前作,次作'
 // 以下為配合各自版本的屬性
@@ -312,7 +312,12 @@ function for_each_page(page_data, messages) {
 			data.references = {
 				imported_from : 'jawiki'
 			};
-			CeL.log(JSON.stringify(data));
+
+			CeL.debug(JSON.stringify(data), 3);
+			return data;
+		}, {
+			bot : 1,
+			summary : summary
 		});
 	}
 
