@@ -282,7 +282,10 @@ function for_each_page(page_data, messages) {
 				value = value.toString().trim();
 				matched = value.match(/(https?:\/\/[^\s\|]+)/);
 				if (matched) {
-					data.公式サイト = matched[1].replace(/\]$/, '');
+					matched = matched[1].replace(/\]$/, '').replace(/}}.*/, '');
+				}
+				if (matched && !matched.includes('{{')) {
+					data.公式サイト = matched;
 				} else if (CeL.wiki.plain_text(value)) {
 					CeL.err('Unknown link: "' + value + '"');
 				}
@@ -329,6 +332,11 @@ function for_each_page(page_data, messages) {
 // CeL.set_debug(2);
 
 prepare_directory(base_directory);
+
+// 因為數量太多，只好增快速度。
+if (!modify_Wikipedia) {
+	CeL.wiki.query.default_lag = 0;
+}
 
 var old_properties = 'P1739,P957,P212,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1814,P1476';
 
