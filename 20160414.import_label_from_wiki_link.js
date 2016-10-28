@@ -1049,15 +1049,15 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		}
 
 		if (!entity || ('missing' in entity)) {
-			CeL.debug('跳過不存在頁面: '
+			CeL.debug('跳過不存在頁面: ' + (entity && entity.id)
 			//
-			+ (entity && entity.id) + ': [[' + foreign_language
-			//
-			+ ':' + foreign_title + ']]');
+			+ ': [[' + foreign_language + ':' + foreign_title + ']]');
 			// console.trace(entity);
 			return [ CeL.wiki.edit.cancel,
 			//
-			'missing [' + (entity && entity.id) + ']' ];
+			'missing [' + (entity && entity.id
+			//
+			|| foreign_language + ':' + foreign_title) + ']' ];
 		}
 
 		// 處理: 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。

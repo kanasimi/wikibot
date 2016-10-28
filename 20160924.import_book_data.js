@@ -240,7 +240,7 @@ function for_each_page(page_data, messages) {
 				if (value && (value = CeL.wiki.plain_text(value.toString()))) {
 					data[set_properties_hash[parameter]]
 					// e.g., data.題名 = 'ABC'
-					= value;
+					= [ use_language + 'wiki', value ];
 				}
 			}
 
@@ -274,7 +274,7 @@ function for_each_page(page_data, messages) {
 					}
 				});
 				if (value.length > 0) {
-					data.本国 = value;
+					data.本国 = [ use_language + 'wiki', value ];
 				}
 			}
 
@@ -282,7 +282,9 @@ function for_each_page(page_data, messages) {
 				value = value.toString().trim();
 				matched = value.match(/(https?:\/\/[^\s\|]+)/);
 				if (matched) {
-					matched = matched[1].replace(/\]$/, '').replace(/}}.*/, '');
+					matched = matched[1]
+					//
+					.replace(/\]$/, '').replace(/}}.*/, '');
 				}
 				if (matched && !matched.includes('{{')) {
 					data.公式サイト = matched;
@@ -313,7 +315,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			data.references = {
-				imported_from : 'jawiki'
+				imported_from : use_language + 'wiki'
 			};
 
 			CeL.debug(JSON.stringify(data), 3);

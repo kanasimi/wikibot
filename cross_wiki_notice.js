@@ -18,7 +18,7 @@ wiki = Wiki(true, 'https://zh.moegirl.org/api.php');
 
 // CeL.set_debug(2);
 if (false) {
-	wiki.page('User talk:Kanashimi', function(page_data) {
+	wiki.page('User talk:' + owner_name, function(page_data) {
 		date_list = CeL.wiki.parse.date(CeL.wiki.content_of(page_data), true,
 				true);
 		max = Math.max.apply(null, date_list);
@@ -72,7 +72,11 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 				 */
 				content = CeL.wiki.content_of(page_data);
 				if (content) {
-					return content.trim() + '\n: 已提醒 [[zhwiki:User talk:' + owner_name + ']]。 --~~~~';
+					return content.trim()
+					//
+					+ '\n: 已提醒 [[zhwiki:User talk:' + owner_name
+					//
+					+ ']]。 --~~~~';
 				}
 			}, {
 				summary : '已作 cross-wiki 留言提醒',
