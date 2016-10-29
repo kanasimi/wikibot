@@ -22,7 +22,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 2,
+test_limit = 1,
 
 set_properties = ('著者,ジャンル,前作,次作'
 // 以下為配合各自版本的屬性
