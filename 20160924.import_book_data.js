@@ -22,7 +22,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 1,
+test_limit = 2,
 
 set_properties = ('著者,ジャンル,前作,次作'
 // 以下為配合各自版本的屬性
@@ -275,7 +275,8 @@ function for_each_page(page_data, messages) {
 					}
 				});
 				if (value.length > 0) {
-					data.本国 = [ use_language + 'wiki', value ];
+					// data.本国 = [ use_language + 'wiki', value ];
+					data.本国 = value;
 				}
 			}
 
