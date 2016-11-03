@@ -498,6 +498,8 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 	news_content = news_content.replace(
 	// <strong>法國24</strong><strong>電視台</strong>
 	/<\/strong> {0,2}<strong[^<>]*>(.{2,3}<\/strong>)/g, '$1');
+	// TODO: "<br /><strong>義大利經歷1980</strong><strong>年以來最強地震 歷史建物倒塌</strong><br
+	// />義大利..."
 
 	news_content.replace(/<strong[^<>]*>(.*?)<\/strong>/g, function(item) {
 		// assert: "<strong>美國《紐約時報》頭條<br />報紙標題</strong>"

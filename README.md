@@ -6,13 +6,15 @@ Some Wikipedia bot examples using [MediaWiki module](https://github.com/kanasimi
 
 ### Installation
 First, go to [nodejs.org](https://nodejs.org/), download the runtime environment and install the node.js package.
+請先安裝 [nodejs.org](https://nodejs.org/)。
 
 Then, install the CeJS library:
+接著安裝 CeJS library:
 ``` sh
 $ npm install cejs
 ```
 
-### Running
+### Execution
 Let's try it:
 ``` sh
 $ node
