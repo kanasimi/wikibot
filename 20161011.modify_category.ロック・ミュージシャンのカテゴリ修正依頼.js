@@ -4,7 +4,7 @@
 
  2016/10/11	初版試營運
  2016/10/17 19:26:52	完成。正式運用。
-
+ 2016/11/3 19:8:56	adapt to ポップ歌手のカテゴリ修正依頼
 
  */
 
@@ -17,8 +17,13 @@ require('./wiki loder.js');
 set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61558855|Bot作業依頼]]：ロック・ミュージシャンのカテゴリ修正依頼 - [['
-		+ log_to + '|log]]';
+summary = {
+	ロック : '[[Special:Diff/61558855|Bot作業依頼]]：ロック・ミュージシャンのカテゴリ修正依頼 - [['
+			+ log_to + '|log]]',
+	ポップ : '[[Special:Diff/61779756|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼 - [[' + log_to
+			+ '|log]]'
+};
+summary.main = summary.ポップ;
 
 var
 /** {Object}wiki operator 操作子. */
@@ -29,7 +34,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 3000,
+test_limit = 2,
 
 // all count
 count = 0,
@@ -42,7 +47,10 @@ problem_list = [], no_country_found = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, rock, posttext, type ]
-PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
+PATTERN_ロック歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
+//
+PATTERN_ポップ歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ポップ・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
+
 // e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
 // Genre = ロックンロール、ハードロック、パンク・ロック、ヘヴィメタルになっている人物もbotで修正して
 // @see [[Template:ロック・ミュージック]]
@@ -97,30 +105,44 @@ function for_each_page(page_data, messages) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	if (!PATTERN_ロック.test(content)) {
-		// Genre NOT ロック
+	var type = PATTERN_ロック.test(content) ? 'ロック'
+			: PATTERN_ポップ.test(content) ? 'ポップ' : '';
+
+	if (!type) {
+		// Genre NOT ロック/ポップ
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
 	++count;
 
-	// fix disambiguation page [[ロック]]
 	content = content.replace(/(\| *Genre *=[^=\|{}]*?\[\[ *ロック) *(\]\]|\|)/,
-	//
+	// fix disambiguation page [[ロック]]
 	function(all, previous, following) {
 		if (following === '|') {
+			// [[ロック|...]] → [[ロック (音楽)|...]]
 			return previous + ' (音楽)' + following;
 		}
 		// assert: following === ']]'
 		// [[ロック]] → [[ロック (音楽)|ロック]]
 		return previous + ' (音楽)|ロック' + following;
+	}).replace(/(\| *Genre *=[^=\|{}]*?\[\[ *ポップ) *(\]\]|\|)/,
+	// fix disambiguation page [[ポップ]]
+	function(all, previous, following) {
+		if (following === '|') {
+			// [[ポップ|...]] → [[ポップ・ミュージック|...]]
+			return previous + '・ミュージック' + following;
+		}
+		// assert: following === ']]'
+		// [[ポップ]] → [[ポップ・ミュージック|ポップ]]
+		return previous + '・ミュージック|ポップ' + following;
 	});
 
 	var main_country, error,
 	// 已經添加過的category。
 	added = [];
-	content = content.replace(PATTERN_歌手, function(all_category, pretext,
-			country, rock, posttext, type) {
+	content = content.replace(type === 'ロック' ? PATTERN_ロック歌手 : PATTERN_ポップ歌手,
+	//
+	function(all_category, pretext, country, rock, posttext, type) {
 		// CeL.log('[[' + title + ']]: ');
 		// console.log(all_category);
 
@@ -146,19 +168,21 @@ function for_each_page(page_data, messages) {
 
 		if (type === 'シンガーソングライター') {
 			rock = add_category(content, added, all_category.replace(
-					'シンガーソングライター', 'ロック歌手'));
+					'シンガーソングライター', type + '歌手'));
 			if (rock) {
 				all_category += '\n' + rock;
 			}
 			return all_category;
 		}
 		return add_category(content, added, pretext
-				+ (rock || 'ロック' + (type === '歌手' ? '' : '・')) + posttext);
+				+ (rock || type + (type === '歌手' ? '' : '・')) + posttext);
 	});
 
 	if (!error && !main_country
 	// e.g., [[Category:日本のロック・バンド]]
-	&& !/のロック・バンド *(\]\]|\|)/.test(content)) {
+	&& !(type === 'ロック' ? /のロック・バンド *(\]\]|\|)/
+	//
+	: /のポップ・バンド *(\]\]|\|)/).test(content)) {
 		no_country_found.push(title);
 		error = no_country_found;
 	}
@@ -172,6 +196,7 @@ function for_each_page(page_data, messages) {
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
+	this.summary = summary[type];
 	return content;
 }
 
@@ -206,7 +231,6 @@ function finish_work() {
 		wiki.page(log_to).edit(messages.join('\n'), {
 			section : 'new',
 			sectiontitle : '作業結果報告',
-			summary : summary,
 			nocreate : 1,
 			bot : 1
 		});
@@ -232,7 +256,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (1) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
@@ -246,7 +270,7 @@ CeL.wiki.cache([ {
 		// no_edit : true,
 		last : finish_work,
 		log_to : log_to,
-		summary : summary
+		summary : summary.main
 	}, list);
 
 }, {
