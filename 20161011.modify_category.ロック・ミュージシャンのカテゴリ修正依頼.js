@@ -23,7 +23,6 @@ summary = {
 	ポップ : '[[Special:Diff/61779756|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼 - [[' + log_to
 			+ '|log]]'
 };
-summary.main = summary.ポップ;
 
 var
 /** {Object}wiki operator 操作子. */
@@ -46,7 +45,7 @@ category_count = CeL.null_Object(),
 problem_list = [], no_country_found = [],
 
 // TODO: バンド
-// [ all_category, pretext, country, rock, posttext, type ]
+// [ all_category, pretext, country, music_type, posttext, type ]
 PATTERN_ロック歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
 //
 PATTERN_ポップ歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ポップ・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
@@ -105,10 +104,10 @@ function for_each_page(page_data, messages) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	var type = PATTERN_ロック.test(content) ? 'ロック'
+	var replace_type = false && PATTERN_ロック.test(content) ? 'ロック'
 			: PATTERN_ポップ.test(content) ? 'ポップ' : '';
 
-	if (!type) {
+	if (!replace_type) {
 		// Genre NOT ロック/ポップ
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
@@ -140,9 +139,9 @@ function for_each_page(page_data, messages) {
 	var main_country, error,
 	// 已經添加過的category。
 	added = [];
-	content = content.replace(type === 'ロック' ? PATTERN_ロック歌手 : PATTERN_ポップ歌手,
+	content = content.replace(replace_type === 'ロック' ? PATTERN_ロック歌手 : PATTERN_ポップ歌手,
 	//
-	function(all_category, pretext, country, rock, posttext, type) {
+	function(all_category, pretext, country, music_type, posttext, type) {
 		// CeL.log('[[' + title + ']]: ');
 		// console.log(all_category);
 
@@ -161,26 +160,26 @@ function for_each_page(page_data, messages) {
 		}
 
 		main_country = country;
-		if (rock) {
-			// 已處理。
+		if (music_type) {
+			// 已處理: category已包含music_type。
 			return all_category;
 		}
 
 		if (type === 'シンガーソングライター') {
-			rock = add_category(content, added, all_category.replace(
-					'シンガーソングライター', type + '歌手'));
-			if (rock) {
-				all_category += '\n' + rock;
+			music_type = add_category(content, added, all_category.replace(
+					'シンガーソングライター', replace_type + '歌手'));
+			if (music_type) {
+				all_category += '\n' + music_type;
 			}
 			return all_category;
 		}
 		return add_category(content, added, pretext
-				+ (rock || type + (type === '歌手' ? '' : '・')) + posttext);
+				+ (music_type || replace_type + (type === '歌手' ? '' : '・')) + posttext);
 	});
 
 	if (!error && !main_country
 	// e.g., [[Category:日本のロック・バンド]]
-	&& !(type === 'ロック' ? /のロック・バンド *(\]\]|\|)/
+	&& !(replace_type === 'ロック' ? /のロック・バンド *(\]\]|\|)/
 	//
 	: /のポップ・バンド *(\]\]|\|)/).test(content)) {
 		no_country_found.push(title);
@@ -196,7 +195,7 @@ function for_each_page(page_data, messages) {
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
-	this.summary = summary[type];
+	this.summary = summary[replace_type];
 	return content;
 }
 
@@ -265,12 +264,11 @@ CeL.wiki.cache([ {
 	}
 
 	wiki.work({
-		each : for_each_page,
 		// 不作編輯作業。
 		// no_edit : true,
 		last : finish_work,
 		log_to : log_to,
-		summary : summary.main
+		each : for_each_page
 	}, list);
 
 }, {
