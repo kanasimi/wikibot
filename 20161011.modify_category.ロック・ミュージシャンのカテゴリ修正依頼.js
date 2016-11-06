@@ -23,6 +23,7 @@ summary = {
 	ポップ : '[[Special:Diff/61779756|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼 - [[' + log_to
 			+ '|log]]'
 };
+summary.main = summary.ポップ;
 
 var
 /** {Object}wiki operator 操作子. */
@@ -263,7 +264,7 @@ CeL.wiki.cache([ {
 	var list = this.list;
 	// list = [ '' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (1) {
+	if (0) {
 		// 設定此初始值，可跳過之前已經處理過的。
 		list = list.slice(0 * test_limit, 1 * test_limit);
 		CeL.log(list.slice(0, 8).map(function(page_data) {
@@ -276,7 +277,7 @@ CeL.wiki.cache([ {
 		// no_edit : true,
 		last : finish_work,
 		log_to : log_to,
-		// summary : summary,
+		summary : summary.main,
 		each : for_each_page
 	}, list);
 
