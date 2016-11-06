@@ -230,10 +230,12 @@ function finish_work() {
 			messages.push('', '; 増設したカテゴリ ('
 			//
 			+ categories.length + '):', ': ' + categories.map(function(c) {
-				return c.replace('[[', '[[:')
-				// 去掉 index
-				.replace(/\|[^\]]/, '') + ' (' + category_count[c] + ')';
-			}).join(', '));
+				// 去掉 category sort key
+				var category_name = c.match(/\[\[([^\[\]\|]+)/)[1];
+				return '{{#ifexist:' + category_name + '||[[:'
+				//
+				+ category_name + ']] (' + category_count[c] + '), }}';
+			}).join('')) + '(存在していないカテゴリのみ表示します)';
 		}
 
 		wiki.page(log_to).edit(messages.join('\n'), {
