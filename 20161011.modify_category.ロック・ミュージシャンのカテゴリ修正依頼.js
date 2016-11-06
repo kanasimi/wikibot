@@ -33,7 +33,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 2,
+test_limit = 200,
 
 // all count
 count = 0,
@@ -46,26 +46,24 @@ problem_list = [], no_country_found = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, music_type, posttext, type ]
-PATTERN_ロック歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ロック・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
-//
-PATTERN_ポップ歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(ポップ・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
+PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
 
 // e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
 // Genre = ロックンロール、ハードロック、パンク・ロック、ヘヴィメタルになっている人物もbotで修正して
 // @see [[Template:ロック・ミュージック]]
 // should add 転送ページ
 // 需考慮 "[[A|B]]<br />[[ロック (音楽)|ロック]]"
-PATTERN_ロック = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ロック(?: \(音楽\)|音楽|ミュージック)?|ロックン・?ロール|ハード・?ロック(?:バンド)?|Hard rock|パンク(・?ロック|・?バンド|ロック| \(音楽\)|音楽|ミュージック)?|Punk rock|ロンドン・?パンク|ヘヴィ・?メタル|Heavy Metal|アート・?ロック|インディー・?ロック|AOR|エクスペリメンタル・?ロック|オルタナティヴ・?ロック|ガレージロック|カントリーロック|クラウトロック|クラシック・?ロック|グラムロック|クリスチャン・?ロック|ゴシック・?ロック|サイケデリック・?ロック|サザン・?ロック|ジャズ・?ロック|シンフォニック・?ロック|スタジアム・?ロック|ストーナーロック|スペース・?ロック|ソフトロック|デジタルロック|パブロック|ピアノ・?ロック|フォークロック|ブルースロック|プログレッシヴ・?ロック|プンタ・?ロック|ポップ・?ロック|ラーガ・?ロック|ラップロック|リバプールサウンド|ロカビリー) *(?:\]\]|\|)/,
+PATTERN_ロック = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ロック(?: \(音楽\)|音楽|ミュージック)?|ロックン・?ロール|ハード・?ロック(?:バンド)?|Hard rock|パンク(・?ロック|・?バンド|ロック| \(音楽\)|音楽|ミュージック)?|バロック・?ポップ|パワー・?ポップ|Punk rock|ロンドン・?パンク|ヘヴィ・?メタル|Heavy Metal|アート・?ロック|インディー・?ロック|AOR|エクスペリメンタル・?ロック|オルタナティヴ・?ロック|ガレージロック|カントリーロック|クラウトロック|クラシック・?ロック|グラムロック|クリスチャン・?ロック|ゴシック・?ロック|サイケデリック・?ロック|サザン・?ロック|ジャズ・?ロック|シンフォニック・?ロック|スタジアム・?ロック|ストーナーロック|スペース・?ロック|ソフトロック|デジタルロック|パブロック|ピアノ・?ロック|フォークロック|ブルースロック|プログレッシヴ・?ロック|プンタ・?ロック|ポップ・?ロック|ラーガ・?ロック|ラップロック|リバプールサウンド|ロカビリー) *(?:\]\]|\|)/,
 //
 PATTERN_ポップ = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ポップ(?:・?ミュージック|音楽)?|[Pp]op music|エレクトロ・?ポップ|シンセ・?ポップ|ソフィスティ・?ポップ|ダンス・?ポップ|ティーン・?ポップ|バブルガム・?ポップ|バロック・?ポップ|パワー・?ポップ|ユーロ・?ポップ|ラテン・?ポップ|J-POP|K-POP) *(?:\]\]|\|)/;
 
 function add_category(content, added, category) {
 	if (added.includes(category)) {
-		// 已經有此category。
+		// 已經有此category。Skip.
 		return '';
 	}
 	if (content.includes(category)) {
-		// 已經有此category。
+		// 已經有此category。Skip.
 		return '';
 	}
 	// CeL.log('add_category: ' + category);
@@ -104,8 +102,8 @@ function for_each_page(page_data, messages) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	var replace_type = false && PATTERN_ロック.test(content) ? 'ロック'
-			: PATTERN_ポップ.test(content) ? 'ポップ' : '';
+	var replace_type = false && PATTERN_ロック.test(content) ? 'ロック' : PATTERN_ポップ
+			.test(content) ? 'ポップ' : '';
 
 	if (!replace_type) {
 		// Genre NOT ロック/ポップ
@@ -139,7 +137,7 @@ function for_each_page(page_data, messages) {
 	var main_country, error,
 	// 已經添加過的category。
 	added = [];
-	content = content.replace(replace_type === 'ロック' ? PATTERN_ロック歌手 : PATTERN_ポップ歌手,
+	content = content.replace(PATTERN_歌手,
 	//
 	function(all_category, pretext, country, music_type, posttext, type) {
 		// CeL.log('[[' + title + ']]: ');
@@ -161,7 +159,16 @@ function for_each_page(page_data, messages) {
 
 		main_country = country;
 		if (music_type) {
-			// 已處理: category已包含music_type。
+			if (music_type !== replace_type) {
+				// 複合ジャンルなので両方つけます。
+				music_type = add_category(content, added, all_category.replace(
+						music_type, replace_type));
+				if (music_type) {
+					all_category += '\n' + music_type;
+				}
+			} else {
+				// 已處理: category已包含music_type。
+			}
 			return all_category;
 		}
 
@@ -174,7 +181,8 @@ function for_each_page(page_data, messages) {
 			return all_category;
 		}
 		return add_category(content, added, pretext
-				+ (music_type || replace_type + (type === '歌手' ? '' : '・')) + posttext);
+				+ (music_type || replace_type + (type === '歌手' ? '' : '・'))
+				+ posttext);
 	});
 
 	if (!error && !main_country
@@ -268,6 +276,7 @@ CeL.wiki.cache([ {
 		// no_edit : true,
 		last : finish_work,
 		log_to : log_to,
+		// summary : summary,
 		each : for_each_page
 	}, list);
 
