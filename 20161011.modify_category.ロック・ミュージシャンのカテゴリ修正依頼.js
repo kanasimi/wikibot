@@ -234,8 +234,8 @@ function finish_work() {
 				var category_name = c.match(/\[\[([^\[\]\|]+)/)[1];
 				return '{{#ifexist:' + category_name + '||[[:'
 				//
-				+ category_name + ']] (' + category_count[c] + '), }}';
-			}).join('')) + '(存在していないカテゴリのみ表示します)';
+				+ category_name + ']] (' + category_count[c] + '),}}';
+			}).join(' ')) + '(存在していないカテゴリのみ表示します)';
 		}
 
 		wiki.page(log_to).edit(messages.join('\n'), {

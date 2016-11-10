@@ -43,6 +43,9 @@ headline_labels = {
 	'國際' : {
 		// e.g., "​八月一日世界各報頭條搶先報 | 即時新聞 | 20160801 | 蘋果日報"
 		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界各報頭條" site:appledaily.com.tw', '世界各報頭條' ],
+		// 
+		// '中央社' : [ '"%m月%d日" "世界主要報紙頭條" site:www.cna.com.tw', '國際' ],
+
 		// 中國評論通訊社: 於當日 UTC+8 23:00 後較能確保登出。
 		// e.g., "國際部分主要報紙8月1日頭條新聞標題"
 		// http://hk.crntt.com/crn-webapp/search/searchAll.jsp?sw=國際部分主要報紙
