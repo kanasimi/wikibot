@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20161011.modify_category_by_petscan.js; date) >> modify_category_by_petscan/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20161011.modify_category_via_petscan.js; date) >> modify_category_via_petscan/log &
 
 /*
 
@@ -15,8 +15,8 @@ require('./wiki loder.js');
 set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61859289|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼 - [[' + log_to
-		+ '|log]]';
+summary = '[[Special:Diff/61859289|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼: 性別付け - [['
+		+ log_to + '|log]]';
 
 var
 /** {Object}wiki operator 操作子. */
@@ -35,9 +35,10 @@ test_limit = 3;
 
 // prepare_directory(base_directory);
 
-main_work([ '日本の歌手', '日本のポップ歌手', '日本のシンガーソングライター' ]);
+// 日本のロック歌手
+main_work([ '日本の歌手', '日本のポップ歌手', '日本のシンガーソングライター', '日本のロック歌手' ], true);
 
-function main_work(template_list) {
+function main_work(template_list, need_male) {
 	CeL.wiki.petscan(template_list, function(items) {
 		var list = items.map(function(item) {
 			return item.sitelink;
@@ -53,7 +54,7 @@ function main_work(template_list) {
 		}
 
 		wiki.work({
-			gender : '女性',
+			gender : need_male ? '男性' : '女性',
 			// 不作編輯作業。
 			// no_edit : true,
 			last : finish_work,
@@ -65,11 +66,14 @@ function main_work(template_list) {
 	}, {
 		combination : 'union',
 		// [[:Category:日本のポップ歌手]]直下の記事のうちWikidataにおいて性別(P21)が女性(Q6581072)となっているもの
-		sparql : 'SELECT ?item WHERE { ?item wdt:P21 wd:Q6581072 }'
+		sparql : 'SELECT ?item WHERE { ?item wdt:P21 wd:'
+				+ (need_male ? 'Q6581097' : 'Q6581072') + ' }'
 	});
 }
 
 // ----------------------------------------------------------------------------
+
+var PATTERN_Category = /(\[\[ *(?:Category|カテゴリ) *: *日本の)((?:(?:ロック|ポップ)?歌手|シンガーソングライター)[\|\]\]])/g;
 
 function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
@@ -95,11 +99,8 @@ function for_each_page(page_data, messages, config) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	content = content.replace(
-	//
-	/(\[\[ *(?:Category|カテゴリ) *: *日本の)((?:(?:ポップ)?歌手|シンガーソングライター)[\|\]\]])/g,
-	//
-	function(all_category, pretext, posttext) {
+	content = content.replace(PATTERN_Category, function(all_category, pretext,
+			posttext) {
 		return pretext + config.gender + posttext;
 	});
 
