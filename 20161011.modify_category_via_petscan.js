@@ -3,6 +3,7 @@
 /*
 
  2016/11/10 19:13:45	初版試營運
+ 2016/11/11 13:1:21	完成。正式運用。
 
  */
 
@@ -57,7 +58,7 @@ function main_work(template_list, need_male) {
 			gender : need_male ? '男性' : '女性',
 			// 不作編輯作業。
 			// no_edit : true,
-			last : finish_work,
+			// last : finish_work,
 			log_to : log_to,
 			summary : summary,
 			each : for_each_page
@@ -73,7 +74,7 @@ function main_work(template_list, need_male) {
 
 // ----------------------------------------------------------------------------
 
-var PATTERN_Category = /(\[\[ *(?:Category|カテゴリ) *: *日本の)((?:(?:ロック|ポップ)?歌手|シンガーソングライター)[\|\]\]])/g;
+var PATTERN_Category = /(\[\[ *(?:Category|カテゴリ) *: *日本の)((?:(?:ロック|ポップ)?歌手|シンガーソングライター)[\|\]\]])/ig;
 
 function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
@@ -105,8 +106,4 @@ function for_each_page(page_data, messages, config) {
 	});
 
 	return content;
-}
-
-function finish_work() {
-	;
 }
