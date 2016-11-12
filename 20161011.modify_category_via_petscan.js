@@ -28,7 +28,9 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 3;
+test_limit = 3,
+
+category_list = [ '日本の歌手', '日本のポップ歌手', '日本のシンガーソングライター', '日本のロック歌手', 'アメリカ合衆国の歌手', 'アメリカ合衆国のシンガーソングライター' ];
 
 // ----------------------------------------------------------------------------
 
@@ -36,10 +38,11 @@ test_limit = 3;
 
 // prepare_directory(base_directory);
 
-// 日本のロック歌手
-main_work([ '日本の歌手', '日本のポップ歌手', '日本のシンガーソングライター', '日本のロック歌手' ], true);
+main_work(category_list, true, function() {
+	main_work(category_list);
+});
 
-function main_work(template_list, need_male) {
+function main_work(template_list, need_male, callback) {
 	CeL.wiki.petscan(template_list, function(items) {
 		var list = items.map(function(item) {
 			return item.sitelink;
@@ -58,7 +61,7 @@ function main_work(template_list, need_male) {
 			gender : need_male ? '男性' : '女性',
 			// 不作編輯作業。
 			// no_edit : true,
-			// last : finish_work,
+			last : callback,
 			log_to : log_to,
 			summary : summary,
 			each : for_each_page
@@ -74,7 +77,7 @@ function main_work(template_list, need_male) {
 
 // ----------------------------------------------------------------------------
 
-var PATTERN_Category = /(\[\[ *(?:Category|カテゴリ) *: *日本の)((?:(?:ロック|ポップ)?歌手|シンガーソングライター)[\|\]\]])/ig;
+var PATTERN_Category = /(\[\[ *(?:Category|カテゴリ) *: *(?:日本|アメリカ合衆国)の)((?:(?:ロック|ポップ)?歌手|シンガーソングライター)[\|\]\]])/ig;
 
 function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
