@@ -63,13 +63,14 @@ function main_work(template_list, need_male, callback) {
 			}).join('\n') + '\n...');
 		}
 
+		var gender = need_male ? '男性' : '女性';
 		wiki.work({
-			gender : need_male ? '男性' : '女性',
+			gender : gender,
 			// 不作編輯作業。
 			// no_edit : true,
 			last : callback,
 			log_to : log_to,
-			summary : summary,
+			summary : summary + ' (' + gender + ')',
 			each : for_each_page
 		}, list);
 
