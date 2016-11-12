@@ -30,7 +30,13 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 // ((Infinity)) for do all
 test_limit = 3,
 
-category_list = [ '日本の歌手', '日本のポップ歌手', '日本のシンガーソングライター', '日本のロック歌手', 'アメリカ合衆国の歌手', 'アメリカ合衆国のシンガーソングライター' ];
+category_list = [];
+
+[ '日本', 'アメリカ合衆国' ].forEach(function(country) {
+	'歌手,ロック歌手,ポップ歌手,シンガーソングライター'.split(',').forEach(function(type) {
+		category_list.push(country + 'の' + type);
+	});
+});
 
 // ----------------------------------------------------------------------------
 
