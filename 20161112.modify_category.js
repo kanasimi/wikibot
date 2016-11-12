@@ -1,10 +1,9 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20161011.modify_category.ロック・ミュージシャンのカテゴリ修正依頼.js; date) >> modify_category.ロック・ミュージシャンのカテゴリ修正依頼/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20161112.modify_category.js; date) >> modify_category/log &
 
 /*
 
- 2016/10/11	初版試營運
- 2016/10/17 19:26:52	完成。正式運用。
- 2016/11/3 19:8:56	adapt to ポップ歌手のカテゴリ修正依頼
+ 2016/11/12 21:27:32	初版試營運
+ 	完成。正式運用。
 
  */
 
@@ -37,49 +36,59 @@ test_limit = 2;
 
 prepare_directory(base_directory);
 
-// console.log(all_properties_array.join(','));
-CeL.wiki.cache([ {
-	type : 'categorymembers',
-	list : 'Category:' + category_name,
-	reget : true,
-	operator : function(list) {
-		this.list = list;
-	}
+main_work('韓国のアイドルグループ', '韓国の歌手グループ');
+// main_work('韓国のアイドル', '韓国の歌手');
 
-} ], function() {
-	var list = this.list;
-	// list = [ '' ];
-	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
-		// 設定此初始值，可跳過之前已經處理過的。
-		list = list.slice(0 * test_limit, 1 * test_limit);
-		CeL.log(list.slice(0, 8).map(function(page_data) {
-			return CeL.wiki.title_of(page_data);
-		}).join('\n') + '\n...');
-	}
+function main_work(category_name, move_to, callback) {
+	// console.log(all_properties_array.join(','));
+	CeL.wiki.cache([ {
+		type : 'categorymembers',
+		list : 'Category:' + category_name,
+		reget : true,
+		operator : function(list) {
+			this.list = list;
+		}
 
-	wiki.work({
-		// 不作編輯作業。
-		// no_edit : true,
-		last : finish_work,
-		log_to : log_to,
-		summary : summary,
-		each : for_each_page
-	}, list);
+	} ], function() {
+		var list = this.list;
+		// list = [ '' ];
+		CeL.log('Get ' + list.length + ' pages.');
+		if (1) {
+			// 設定此初始值，可跳過之前已經處理過的。
+			list = list.slice(0 * test_limit, 1 * test_limit);
+			CeL.log(list.slice(0, 8).map(function(page_data) {
+				return CeL.wiki.title_of(page_data);
+			}).join('\n') + '\n...');
+		}
 
-}, {
-	// default options === this
-	namespace : 0,
-	// [SESSION_KEY]
-	session : wiki,
-	// title_prefix : 'Template:',
-	// cache path prefix
-	prefix : base_directory
-});
+		wiki.work({
+			category_name : category_name,
+			move_to : move_to,
+			// 不作編輯作業。
+			// no_edit : true,
+			last : callback,
+			log_to : log_to,
+			summary : summary,
+			each : for_each_page
+		}, list);
+
+	}, {
+		// default options === this
+		namespace : 0,
+		// [SESSION_KEY]
+		session : wiki,
+		// title_prefix : 'Template:',
+		// cache path prefix
+		prefix : base_directory
+	});
+}
 
 // ----------------------------------------------------------------------------
 
-function for_each_page(page_data, messages) {
+// [ all, category_name ]
+var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)/ig
+
+function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
@@ -103,9 +112,12 @@ function for_each_page(page_data, messages) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	return content;
-}
+	content = content.replace(PATTERM_category, function (all, category_name) {
+		if (category_name === config.category_name) {
+			return '[[Category:' + config.move_to;
+		}
+		return all;
+	});
 
-function finish_work() {
-	;
+	return content;
 }
