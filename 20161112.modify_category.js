@@ -36,8 +36,9 @@ test_limit = 2;
 
 prepare_directory(base_directory);
 
-main_work('韓国のアイドルグループ', '韓国の歌手グループ');
-// main_work('韓国のアイドル', '韓国の歌手');
+main_work('韓国のアイドルグループ', '韓国の歌手グループ', function () {
+	main_work('韓国のアイドル', '韓国の歌手');
+});
 
 function main_work(category_name, move_to, callback) {
 	// console.log(all_properties_array.join(','));
@@ -53,7 +54,7 @@ function main_work(category_name, move_to, callback) {
 		var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (1) {
+		if (0) {
 			// 設定此初始值，可跳過之前已經處理過的。
 			list = list.slice(0 * test_limit, 1 * test_limit);
 			CeL.log(list.slice(0, 8).map(function(page_data) {
