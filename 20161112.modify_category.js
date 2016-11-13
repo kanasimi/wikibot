@@ -15,10 +15,6 @@ require('./wiki loder.js');
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
 
-/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61835577|Bot作業依頼]]：削除された韓国のアイドルのカテゴリ修正依頼 - [['
-		+ log_to + '|log]]';
-
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
@@ -36,17 +32,52 @@ test_limit = 2;
 
 prepare_directory(base_directory);
 
-if (false) {
-	main_work('韓国のアイドルグループ', '韓国の歌手グループ', function() {
-		main_work('韓国のアイドル', '韓国の歌手');
-	});
-}
-main_work('韓国の歌手グループ', '韓国の歌手グループ', function() {
-	main_work('韓国の歌手', '韓国の歌手');
+// 2016/11/13 10:52:1
+/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+summary = '[[Special:Diff/61873576|Bot作業依頼]]：日本維新の会・自由党改名にともなうカテゴリ修正依頼 - [['
+		+ log_to + '|log]]';
+modify_category({
+	おおさか維新の会 : '日本維新の会 (2016-)',
+	おおさか維新の会の人物 : '日本維新の会の人物 (2016-)',
+	おおさか維新の会の国会議員 : '日本維新の会の国会議員 (2016-)',
+	日本維新の会 : '日本維新の会 (2012-2014)',
+	日本維新の会の人物 : '日本維新の会の人物 (2012-2014)',
+	日本維新の会の国会議員 : '日本維新の会の国会議員 (2012-2014)',
+	生活の党  : ' 自由党 (日本 2016-)',
+	生活の党の人物  : ' 自由党の人物 (日本 2016-)',
+	生活の党の国会議員  : ' 自由党の国会議員 (日本 2016-)'
 });
 
+
+if (false) {
+	// 2016/11/13 10:51:53
+	summary = '[[Special:Diff/61835577|Bot作業依頼]]：削除された韓国のアイドルのカテゴリ修正依頼 - [['
+			+ log_to + '|log]]';
+	modify_category({
+		韓国のアイドルグループ : '韓国の歌手グループ',
+		韓国のアイドル : '韓国の歌手'
+	});
+}
+
+function modify_category(category_hash) {
+	var move_from = Object.keys(category_hash), index = 0;
+	function modify_next () {
+		if (index === move_from.length) {
+			CeL.info('All ' + move_from.length + ' categories done.');
+			return;
+		}
+		var category_name = move_from[index++];
+		CeL.info(category_name + ' → ' + category_hash[category_name]);
+		main_work(category_name, category_hash[category_name], modify_next);
+	}
+	modify_next ();
+}
+
 function main_work(category_name, move_to, callback) {
-	// console.log(all_properties_array.join(','));
+	// remove prefix.
+	category_name = category_name.trim().replace(
+			/^(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: */, '');
+
 	CeL.wiki.cache([ {
 		type : 'categorymembers',
 		list : 'Category:' + category_name,

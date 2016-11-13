@@ -33,6 +33,7 @@ if (!category_name) {
 	process.exit(1);
 }
 
+// remove prefix.
 category_name = category_name.trim().replace(
 		/^(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: */, '');
 
