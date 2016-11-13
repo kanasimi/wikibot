@@ -92,7 +92,7 @@ function main_work(category_name, move_to, callback) {
 // ----------------------------------------------------------------------------
 
 // [ all, category_name, sort_order ]
-var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)(?:\| *(.*?))?\]\] *\n?/ig;
+var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)\s*(?:\| *(.*?))?\]\] *\n?/ig;
 
 function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
@@ -118,16 +118,18 @@ function for_each_page(page_data, messages, config) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
+	// 已經添加過的category。
 	var categories = CeL.null_Object();
 
 	content = content.replace(PATTERM_category, function(all, category_name,
 			sort_order) {
 		category_name = category_name.trim();
-		// 檢查是否有重複，若有則去除之。
+		// 檢查是否有重複，若有則去除之。 重複カテゴリ除去。 bug: 將會lose sort_order
 		if (category_name in categories) {
+			// 已經有此category。Skip.
 			return '';
 		}
-		// register
+		// register.
 		categories[category_name] = true;
 		if (category_name === config.category_name) {
 			if (config.move_to) {

@@ -47,7 +47,9 @@ problem_list = [], no_country_found = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, music_type, posttext, type ]
-PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手|ミュージシャン|シンガーソングライター)(?:\s*\|\s*([^\|\[\]]*))?\]\])/ig,
+PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手|ミュージシャン|シンガーソングライター)\s*(?:\|\s*([^\|\[\]]*))?\]\])/ig,
+// [ all_category, pretext, country, music_type, posttext, type ]
+PATTERN_歌手グループ = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手グループ)\s*(?:\|\s*([^\|\[\]]*))?\]\])/ig,
 
 // e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
 // Genre = ロックンロール、ハードロック、パンク・ロック、ヘヴィメタルになっている人物もbotで修正して
@@ -186,6 +188,12 @@ function for_each_page(page_data, messages) {
 				+ posttext);
 	});
 
+	content = content.replace(PATTERN_歌手グループ, function(all_category, pretext,
+			country, music_type, posttext, type) {
+		// Category:日本の歌手グループ → Category:日本のポップ・グループ
+		return add_category(content, added, pretext + 'ポップ・グループ]]');
+	});
+
 	if (!error && !main_country
 	// e.g., [[Category:日本のロック・バンド]]
 	&& !(replace_type === 'ロック' ? /のロック・バンド *(\]\]|\|)/
@@ -255,8 +263,14 @@ prepare_directory(base_directory);
 
 // console.log(all_properties_array.join(','));
 CeL.wiki.cache([ {
-	type : 'embeddedin',
-	list : 'Template:Infobox Musician',
+	// Template:Infobox Musicianが使用されている記事
+	// type : 'embeddedin',
+	// list : 'Template:Infobox Musician',
+
+	// Category:日本の歌手グループにある記事
+	type : 'categorymembers',
+	list : 'Category:日本の歌手グループ',
+
 	reget : true,
 	operator : function(list) {
 		this.list = list;
