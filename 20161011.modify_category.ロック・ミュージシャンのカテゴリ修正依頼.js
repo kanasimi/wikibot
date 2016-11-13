@@ -150,7 +150,7 @@ function for_each_page(page_data, messages) {
 		}
 		// not country. 国ではない。
 		// e.g., 'アメリカ先住民', アフリカ系アメリカ人, ECMレコード, GRPレコード
-		if (/(?:[人民]|レコード)$/.test(country)) {
+		if (/(?:[人民]|レコード|州)$/.test(country)) {
 			return all_category;
 		}
 		if (main_country && main_country !== country) {

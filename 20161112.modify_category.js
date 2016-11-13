@@ -3,7 +3,7 @@
 /*
 
  2016/11/12 21:27:32	初版試營運
- 	完成。正式運用。
+ 2016/11/12 22:55:46	完成。正式運用。
 
  */
 
@@ -17,7 +17,7 @@ set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
 summary = '[[Special:Diff/61835577|Bot作業依頼]]：削除された韓国のアイドルのカテゴリ修正依頼 - [['
-			+ log_to + '|log]]';
+		+ log_to + '|log]]';
 
 var
 /** {Object}wiki operator 操作子. */
@@ -36,8 +36,13 @@ test_limit = 2;
 
 prepare_directory(base_directory);
 
-main_work('韓国のアイドルグループ', '韓国の歌手グループ', function () {
-	main_work('韓国のアイドル', '韓国の歌手');
+if (false) {
+	main_work('韓国のアイドルグループ', '韓国の歌手グループ', function() {
+		main_work('韓国のアイドル', '韓国の歌手');
+	});
+}
+main_work('韓国の歌手グループ', '韓国の歌手グループ', function() {
+	main_work('韓国の歌手', '韓国の歌手');
 });
 
 function main_work(category_name, move_to, callback) {
@@ -86,8 +91,8 @@ function main_work(category_name, move_to, callback) {
 
 // ----------------------------------------------------------------------------
 
-// [ all, category_name ]
-var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)/ig
+// [ all, category_name, sort_order ]
+var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)(?:\| *(.*?))?\]\] *\n?/ig;
 
 function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
@@ -113,9 +118,24 @@ function for_each_page(page_data, messages, config) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	content = content.replace(PATTERM_category, function (all, category_name) {
+	var categories = CeL.null_Object();
+
+	content = content.replace(PATTERM_category, function(all, category_name,
+			sort_order) {
+		category_name = category_name.trim();
+		// 檢查是否有重複，若有則去除之。
+		if (category_name in categories) {
+			return '';
+		}
+		// register
+		categories[category_name] = true;
 		if (category_name === config.category_name) {
-			return '[[Category:' + config.move_to;
+			if (config.move_to) {
+				return '[[Category:' + config.move_to
+						+ (sort_order ? '|' + sort_order : '') + ']]\n';
+			}
+			// 未設定 config.move_to 則當作刪除。
+			return '';
 		}
 		return all;
 	});
