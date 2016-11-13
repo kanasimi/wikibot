@@ -190,6 +190,7 @@ function for_each_page(page_data, messages) {
 
 	content = content.replace(PATTERN_歌手グループ, function(all_category, pretext,
 			country, music_type, posttext, type) {
+		main_country = country;
 		// Category:日本の歌手グループ → Category:日本のポップ・グループ
 		return add_category(content, added, pretext + 'ポップ・グループ]]');
 	});

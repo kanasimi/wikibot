@@ -68,11 +68,11 @@ function modify_category(category_hash) {
 	var move_from = Object.keys(category_hash), index = 0;
 	function modify_next () {
 		if (index === move_from.length) {
-			CeL.info('All ' + move_from.length + ' categories done.');
+			CeL.log('All ' + move_from.length + ' categories done.');
 			return;
 		}
 		var category_name = move_from[index++];
-		CeL.info(index + '/' + move_from.length + category_name + ' → ' + category_hash[category_name]);
+		CeL.log(index + '/' + move_from.length + category_name + ' → ' + category_hash[category_name]);
 		main_work(category_name, category_hash[category_name], modify_next);
 	}
 	modify_next ();
@@ -110,7 +110,7 @@ function main_work(category_name, move_to, callback) {
 			// no_edit : true,
 			last : callback,
 			log_to : log_to,
-			summary : summary + ': ' + category_name + ' → ' + move_to,
+			summary : summary + ': [[Category:' + category_name + ']] → [[Category:' + move_to + ']]',
 			each : for_each_page
 		}, list);
 
