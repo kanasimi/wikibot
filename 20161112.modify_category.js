@@ -49,6 +49,9 @@ modify_category({
 });
 
 
+// -------------------------------------
+// archive
+
 if (false) {
 	// 2016/11/13 10:51:53
 	summary = '[[Special:Diff/61835577|Bot作業依頼]]：削除された韓国のアイドルのカテゴリ修正依頼 - [['
@@ -59,6 +62,8 @@ if (false) {
 	});
 }
 
+// ----------------------------------------------------------------------------
+
 function modify_category(category_hash) {
 	var move_from = Object.keys(category_hash), index = 0;
 	function modify_next () {
@@ -67,7 +72,7 @@ function modify_category(category_hash) {
 			return;
 		}
 		var category_name = move_from[index++];
-		CeL.info(category_name + ' → ' + category_hash[category_name]);
+		CeL.info(index + '/' + move_from.length + category_name + ' → ' + category_hash[category_name]);
 		main_work(category_name, category_hash[category_name], modify_next);
 	}
 	modify_next ();
@@ -105,7 +110,7 @@ function main_work(category_name, move_to, callback) {
 			// no_edit : true,
 			last : callback,
 			log_to : log_to,
-			summary : summary,
+			summary : summary + ': ' + category_name + ' → ' + move_to,
 			each : for_each_page
 		}, list);
 
@@ -170,6 +175,7 @@ function for_each_page(page_data, messages, config) {
 			// 未設定 config.move_to 則當作刪除。
 			return '';
 		}
+
 		return all;
 	});
 
