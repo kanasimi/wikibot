@@ -1,5 +1,7 @@
 ﻿/*
 
+	2016/11/14 20:32:33	初版試營運。
+
  */
 
 'use strict';
@@ -11,7 +13,7 @@ require('./wiki loder.js');
 set_language('ja');
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = 'Synchronize data of books';
+summary = 'Synchronize data of books from ' + use_language + 'wiki';
 
 var
 /** {Object}wiki operator 操作子. */
@@ -380,7 +382,7 @@ CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 		var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (1) {
+		if (0) {
 			// 設定此初始值，可跳過之前已經處理過的。
 			list = list.slice(0 * test_limit, 1 * test_limit);
 			CeL.log(list.slice(0, 8).map(function(page_data) {
