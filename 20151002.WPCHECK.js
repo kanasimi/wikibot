@@ -24,13 +24,153 @@
 
 'use strict';
 
+// 修正維基百科內容的語法錯誤。
+/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+summary = '[[WP:WPCHECK|修正維基語法]]';
+
+// ---------------------------------------------------------------------//
+
+var
+/** {Array}已批准NO */
+approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
+/** {Natural|Array}Only check the NO(s). 僅處理此項。 */
+only_check = approved,
+/** {Natural|Array}限制每一項最大處理頁面數。 */
+處理頁面數;
+
+// only_check = not_approved;
+// only_check = 16;
+// only_check = 99;
+// only_check = 85;
+
+// 處理頁面數 = 50;
+// 處理頁面數 = [ 50, 100 ];
+// 處理頁面數 = [ 100, 150 ];
+// 處理頁面數 = [ 400, 500 ];
+// 處理頁面數 = [ 30, 40 ];
+// 處理頁面數 = [ 50, 60 ];
+// 處理頁面數 = 50;
+
+// ---------------------------------------------------------------------//
+// main
+
+var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
+		+ use_language + 'wiki&',
+//
+checkwiki_api_URL_id = checkwiki_api_URL + 'view=bots&offset=0&id=',
+
+// const: 基本上與程式碼設計合一，僅表示名義，不可更改。(== -1)
+NOT_FOUND = ''.indexOf('_'),
+
+/** {Object}wiki operator 操作子. */
+wiki = Wiki(true),
+
+description_of_ID = [],
+
+/** {Array}未批准NO */
+not_approved = [];
+
+// ------------------------------------
+
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-var
-// 修正維基百科內容的語法錯誤。
-/** {String}編輯摘要。總結報告。 */
-summary = '[[WP:WPCHECK|修正維基語法]]';
+prepare_directory(base_directory, true);
+
+// CeL.set_debug(3);
+
+// get description
+CeL.get_URL_cache(checkwiki_api_URL + 'view=all&orderby=id', function(data) {
+	var matched, PATTERN =
+	// [ all, description, ID ]
+	/([^<>]+)<\/a><\/td><td[^<>]*>(\d+)<\/td><\/tr>/g;
+	while (matched = PATTERN.exec(data)) {
+		description_of_ID[matched[2]] = matched[1];
+	}
+	main_work();
+});
+
+function main_work() {
+	// 200: test checkwiki #0~199
+	new Array(200).fill(null).forEach(function(fix_function, checking_index) {
+		if (only_check) {
+			if (Array.isArray(only_check)) {
+				if (only_check === not_approved) {
+					if (approved.includes(checking_index))
+						return;
+				} else if (!only_check.includes(checking_index))
+					return;
+			} else if (only_check > 0 && checking_index !== only_check)
+				return;
+		}
+
+		fix_function = eval('typeof fix_' + checking_index
+		// global 無效。
+		+ ' === "function" && fix_' + checking_index + ';');
+		if (!fix_function)
+			return;
+
+		CeL.debug('Add #' + checking_index, 2);
+		CeL.get_URL_cache(checkwiki_api_URL_id
+		//
+		+ checking_index, function(page_list) {
+			page_list = JSON.parse(page_list);
+			if (false)
+				page_list = require('fs').readFileSync(
+				// @see process_dump.js
+				// '/data/project/cewbot/wikibot/dumps/filtered.lst',
+				// @see traversal_pages.js
+				'/data/project/cewbot/wikibot/traversal_pages/filtered.lst',
+				//
+				'utf8').split('\n');
+
+			// CeL.set_debug(3);
+			if (page_list.length === 0)
+				return;
+
+			if (Array.isArray(處理頁面數))
+				page_list = page_list.slice(處理頁面數[0], 處理頁面數[1]);
+			else if (處理頁面數 > 0)
+				page_list = page_list.slice(0, 處理頁面數);
+
+			// process pages
+			wiki.work({
+				each : function(page_data, messages, options) {
+					/** {String}page content, maybe undefined. */
+					var content = CeL.wiki.content_of(page_data);
+					// 預防有被刪之頁面。
+					if (!content)
+						return;
+					// assert: 從checkwiki取得的應該都是ns=0。
+					if (page_data.ns !== 0) {
+						return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
+					}
+					return fix_function(content, page_data, messages, options);
+					// TODO: Set article as done
+				},
+				// ((fix function)).title = {String}Error name / Reason
+				summary : summary + ' ' + checking_index
+				//
+				+ ': ' + (use_language === 'zh' && fix_function.title
+				//
+				|| description_of_ID[checking_index]),
+				// slice : 100,
+				log_to : log_to
+			// only_check === 10 ? 100 : 0
+			}, page_list);
+
+		}, {
+			file_name : base_directory + 'list_' + checking_index + '.json',
+			postprocessor : function(data) {
+				if (data.charAt(0) === '<')
+					// 僅取得 <pre> 間的 data。
+					data = data.between('<pre>', '</pre>');
+				data = data.trim().split(/\r?\n/);
+				return JSON.stringify(data);
+			}
+		});
+	});
+}
 
 // ---------------------------------------------------------------------//
 
@@ -1106,132 +1246,3 @@ function fix_104(content, page_data, messages, options) {
 
 	return content;
 }
-
-// ---------------------------------------------------------------------//
-// main
-
-prepare_directory(base_directory, true);
-
-var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
-		+ use_language + 'wiki&',
-//
-checkwiki_api_URL_id = checkwiki_api_URL + 'view=bots&offset=0&id=',
-
-// const: 基本上與程式碼設計合一，僅表示名義，不可更改。(== -1)
-NOT_FOUND = ''.indexOf('_'),
-
-/** {Object}wiki operator 操作子. */
-wiki = Wiki(true),
-/** {Array}已批准NO */
-approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
-/** {Array}未批准NO */
-not_approved = [],
-/** {Natural|Array}Only check the NO(s). 僅處理此項。 */
-only_check = approved,
-/** {Natural|Array}限制每一項最大處理頁面數。 */
-處理頁面數;
-
-// only_check = not_approved;
-// only_check = 16;
-// only_check = 99;
-// only_check = 85;
-
-// 處理頁面數 = 50;
-// 處理頁面數 = [ 50, 100 ];
-// 處理頁面數 = [ 100, 150 ];
-// 處理頁面數 = [ 400, 500 ];
-// 處理頁面數 = [ 30, 40 ];
-// 處理頁面數 = [ 50, 60 ];
-// 處理頁面數 = 50;
-
-// CeL.set_debug(3);
-
-var description_of_ID = [];
-CeL.get_URL_cache(checkwiki_api_URL + 'view=all', function(data) {
-	var matched, PATTERN =
-	// [ all, description, ID ]
-	/<td[^<>]*>([^<>]+<\/td><td[^<>]*>(\d+)<\/td><\/tr>/g;
-	while (matched = PATTERN.exec(data)) {
-		description_of_ID[matched[2]] = matched[1];
-	}
-});
-
-// 200: test checkwiki #0~199
-new Array(200).fill(null).forEach(function(fix_function, checking_index) {
-	if (only_check) {
-		if (Array.isArray(only_check)) {
-			if (only_check === not_approved) {
-				if (approved.includes(checking_index))
-					return;
-			} else if (!only_check.includes(checking_index))
-				return;
-		} else if (only_check > 0 && checking_index !== only_check)
-			return;
-	}
-
-	fix_function = eval('typeof fix_' + checking_index
-	// global 無效。
-	+ ' === "function" && fix_' + checking_index + ';');
-	if (!fix_function)
-		return;
-
-	CeL.debug('Add #' + checking_index, 2);
-	CeL.get_URL_cache(checkwiki_api_URL_id
-	//
-	+ checking_index, function(page_list) {
-		page_list = JSON.parse(page_list);
-		if (false)
-			page_list = require('fs').readFileSync(
-			// @see process_dump.js
-			// '/data/project/cewbot/wikibot/dumps/filtered.lst',
-			// @see traversal_pages.js
-			'/data/project/cewbot/wikibot/traversal_pages/filtered.lst',
-			//
-			'utf8').split('\n');
-
-		// CeL.set_debug(3);
-		if (page_list.length === 0)
-			return;
-
-		if (Array.isArray(處理頁面數))
-			page_list = page_list.slice(處理頁面數[0], 處理頁面數[1]);
-		else if (處理頁面數 > 0)
-			page_list = page_list.slice(0, 處理頁面數);
-
-		// process pages
-		wiki.work({
-			each : function(page_data, messages, options) {
-				/** {String}page content, maybe undefined. */
-				var content = CeL.wiki.content_of(page_data);
-				// 預防有被刪之頁面。
-				if (!content)
-					return;
-				// assert: 從checkwiki取得的應該都是ns=0。
-				if (page_data.ns !== 0) {
-					return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
-				}
-				return fix_function(content, page_data, messages, options);
-				// TODO: Set article as done
-			},
-			// ((fix function)).title = {String}Error name / Reason
-			summary : summary + ' ' + checking_index
-			//
-			+ ': ' + (use_language === 'zh' && fix_function.title
-			//
-			|| description_of_ID[checking_index]),
-			// slice : 100,
-			log_to : log_to
-		// only_check === 10 ? 100 : 0
-		}, page_list);
-
-	}, {
-		file_name : base_directory + 'list_' + checking_index + '.json',
-		postprocessor : function(data) {
-			if (data.charAt(0) === '<')
-				// 僅取得 <pre> 間的 data。
-				data = data.between('<pre>', '</pre>');
-			data = data.trim().split(/\r?\n/);
-			return JSON.stringify(data);
-		}
-	});
-});
