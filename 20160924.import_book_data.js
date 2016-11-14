@@ -45,6 +45,8 @@ all_properties = {
 	公式サイト : 'website',
 	// 著作物の本国
 	本国 : 'country',
+
+	// 以下為配合各自版本(version)的屬性
 	// id
 	// {{ISBN|...}}
 	'ISBN-13' : 'id',
@@ -53,8 +55,6 @@ all_properties = {
 	'CiNii book ID' : 'id',
 	// {{OCLC|...}}
 	OCLC : 'id',
-
-	// 以下為配合各自版本的屬性
 	// 原版之插畫家。但即使原版也應算做版本之一，因此除非原作品已不可能再版，否則還是應該設定於該版本下。
 	挿絵画家 : 'illustrator',
 	// "訳者"應該配合各版本。須配合各版本的屬性，不應直接設定於主屬性下，而該設定於該版本下。
@@ -65,6 +65,10 @@ all_properties = {
 	出版日 : 'published',
 	発行者 : 'publisher',
 	ページ数 : 'pages',
+	/**
+	 * <code>
+	</code>
+	 */
 
 	読み仮名 : '',
 	imported_from : ''

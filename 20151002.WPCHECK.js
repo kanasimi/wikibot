@@ -1113,7 +1113,9 @@ function fix_104(content, page_data, messages, options) {
 prepare_directory(base_directory, true);
 
 var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
-		+ 'zhwiki' + '&view=bots&offset=0&id=',
+		+ use_language + 'wiki&',
+//
+checkwiki_api_URL_id = checkwiki_api_URL + 'view=bots&offset=0&id=',
 
 // const: 基本上與程式碼設計合一，僅表示名義，不可更改。(== -1)
 NOT_FOUND = ''.indexOf('_'),
@@ -1144,6 +1146,16 @@ only_check = approved,
 
 // CeL.set_debug(3);
 
+var description_of_ID = [];
+CeL.get_URL_cache(checkwiki_api_URL + 'view=all', function(data) {
+	var matched, PATTERN =
+	// [ all, description, ID ]
+	/<td[^<>]*>([^<>]+<\/td><td[^<>]*>(\d+)<\/td><\/tr>/g;
+	while (matched = PATTERN.exec(data)) {
+		description_of_ID[matched[2]] = matched[1];
+	}
+});
+
 // 200: test checkwiki #0~199
 new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 	if (only_check) {
@@ -1164,7 +1176,9 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 		return;
 
 	CeL.debug('Add #' + checking_index, 2);
-	CeL.get_URL_cache(checkwiki_api_URL + checking_index, function(page_list) {
+	CeL.get_URL_cache(checkwiki_api_URL_id
+	//
+	+ checking_index, function(page_list) {
 		page_list = JSON.parse(page_list);
 		if (false)
 			page_list = require('fs').readFileSync(
@@ -1202,7 +1216,9 @@ new Array(200).fill(null).forEach(function(fix_function, checking_index) {
 			// ((fix function)).title = {String}Error name / Reason
 			summary : summary + ' ' + checking_index
 			//
-			+ ': ' + fix_function.title,
+			+ ': ' + (use_language === 'zh' && fix_function.title
+			//
+			|| description_of_ID[checking_index]),
 			// slice : 100,
 			log_to : log_to
 		// only_check === 10 ? 100 : 0

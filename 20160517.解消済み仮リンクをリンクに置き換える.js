@@ -40,7 +40,7 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = Infinity,
+test_limit = 2,
 
 ignore_ns = false,
 
@@ -204,6 +204,7 @@ message_set = {
 		edit : '編',
 		report_1 : ':: ……共發生了',
 		report_2 : '次。',
+		// TODO: 這邊尚未列舉完成
 		template_order_of_name : {
 			'interlanguage link multi' : template_orders.LcF_en,
 			// ={{interlanguage link multi}}

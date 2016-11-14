@@ -43,11 +43,10 @@ modify_category({
 	日本維新の会 : '日本維新の会 (2012-2014)',
 	日本維新の会の人物 : '日本維新の会の人物 (2012-2014)',
 	日本維新の会の国会議員 : '日本維新の会の国会議員 (2012-2014)',
-	生活の党  : ' 自由党 (日本 2016-)',
-	生活の党の人物  : ' 自由党の人物 (日本 2016-)',
-	生活の党の国会議員  : ' 自由党の国会議員 (日本 2016-)'
+	生活の党 : ' 自由党 (日本 2016-)',
+	生活の党の人物 : ' 自由党の人物 (日本 2016-)',
+	生活の党の国会議員 : ' 自由党の国会議員 (日本 2016-)'
 });
-
 
 // -------------------------------------
 // archive
@@ -66,16 +65,17 @@ if (false) {
 
 function modify_category(category_hash) {
 	var move_from = Object.keys(category_hash), index = 0;
-	function modify_next () {
+	function modify_next() {
 		if (index === move_from.length) {
 			CeL.log('All ' + move_from.length + ' categories done.');
 			return;
 		}
 		var category_name = move_from[index++];
-		CeL.log(index + '/' + move_from.length + category_name + ' → ' + category_hash[category_name]);
+		CeL.log(index + '/' + move_from.length + category_name + ' → '
+				+ category_hash[category_name]);
 		main_work(category_name, category_hash[category_name], modify_next);
 	}
-	modify_next ();
+	modify_next();
 }
 
 function main_work(category_name, move_to, callback) {
@@ -83,7 +83,7 @@ function main_work(category_name, move_to, callback) {
 	category_name = category_name.trim().replace(
 			/^(?:Category|category|CATEGORY|分類|分类|カテゴリ) *: */, '');
 
-	CeL.wiki.cache([ {
+	wiki.cache([ {
 		type : 'categorymembers',
 		list : 'Category:' + category_name,
 		reget : true,
@@ -110,15 +110,15 @@ function main_work(category_name, move_to, callback) {
 			// no_edit : true,
 			last : callback,
 			log_to : log_to,
-			summary : summary + ': [[Category:' + category_name + ']] → [[Category:' + move_to + ']]',
+			summary : summary + ': [[Category:' + category_name
+					+ ']] → [[Category:' + move_to + ']]',
 			each : for_each_page
 		}, list);
 
 	}, {
 		// default options === this
-		namespace : 0,
-		// [SESSION_KEY]
-		session : wiki,
+		// include File, Template, Category
+		namespace : '0|6|10|14',
 		// title_prefix : 'Template:',
 		// cache path prefix
 		prefix : base_directory
@@ -136,7 +136,8 @@ function for_each_page(page_data, messages, config) {
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}
 
-	if (page_data.ns !== 0) {
+	if (page_data.ns !== 0 && page_data.ns !== 6 && page_data.ns !== 10
+			&& page_data.ns !== 14) {
 		throw '非條目:[[' + page_data.title + ']]! 照理來說不應該出現有 ns !== 0 的情況。';
 	}
 
