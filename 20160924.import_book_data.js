@@ -51,8 +51,8 @@ all_properties = {
 	// {{ISBN|...}}
 	'ISBN-13' : 'id',
 	'ISBN-10' : 'id',
-	// CiNii book ID, {{NCID|...}}
-	NII書誌ID : 'id',
+	// NII書誌ID, CiNii book ID, {{NCID|...}}
+	NCID : 'id',
 	// {{OCLC|...}}
 	OCLC : 'id',
 	// 原版之插畫家。但即使原版也應算做版本之一，因此除非原作品已不可能再版，否則還是應該設定於該版本下。
@@ -309,7 +309,7 @@ function for_each_page(page_data, messages) {
 				}
 
 				while (matched = PATTERN_NCID.exec(value)) {
-					add_property(data, 'NII書誌ID', matched[1].trim());
+					add_property(data, 'NCID', matched[1].trim());
 				}
 				while (matched = PATTERN_OCLC.exec(value)) {
 					add_property(data, 'OCLC', matched[1].trim());
@@ -344,7 +344,7 @@ prepare_directory(base_directory);
 // 因為數量太多，只好增快速度。
 CeL.wiki.query.default_lag = 0;
 
-var old_properties = 'P1739,P957,P212,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1814,P1476';
+var old_properties = 'P957,P212,P1739,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1814,P1476';
 
 // console.log(all_properties_array.join(','));
 CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
