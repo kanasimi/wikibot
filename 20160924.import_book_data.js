@@ -51,8 +51,8 @@ all_properties = {
 	// {{ISBN|...}}
 	'ISBN-13' : 'id',
 	'ISBN-10' : 'id',
-	// {{NCID|...}}
-	'CiNii book ID' : 'id',
+	// CiNii book ID, {{NCID|...}}
+	NII書誌ID : 'id',
 	// {{OCLC|...}}
 	OCLC : 'id',
 	// 原版之插畫家。但即使原版也應算做版本之一，因此除非原作品已不可能再版，否則還是應該設定於該版本下。
@@ -309,7 +309,7 @@ function for_each_page(page_data, messages) {
 				}
 
 				while (matched = PATTERN_NCID.exec(value)) {
-					add_property(data, 'CiNii book ID', matched[1].trim());
+					add_property(data, 'NII書誌ID', matched[1].trim());
 				}
 				while (matched = PATTERN_OCLC.exec(value)) {
 					add_property(data, 'OCLC', matched[1].trim());
