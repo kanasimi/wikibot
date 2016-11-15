@@ -220,7 +220,7 @@ message_set = {
 
 		summary_prefix : 'bot: 清理跨語言連結',
 		summary_separator : '、',
-		summary_postfix : '成內部連結',
+		summary_postfix : '成為內部連結',
 
 		no_template : '未發現跨語言連結模板',
 		invalid_template : '跨語言連結模板的格式錯誤。',

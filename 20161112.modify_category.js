@@ -117,6 +117,7 @@ function main_work(category_name, move_to, callback) {
 
 	}, {
 		// default options === this
+		// テンプレートなど他の名前空間のページについては必要があれば手動で修正をお願いします。また、コメントアウトされていた箇所（4記事にあります）につきましては作業を行っていませんので、こちらも必要があれば手動で修正をお願いします。
 		// include File, Template, Category
 		namespace : '0|6|10|14',
 		// title_prefix : 'Template:',

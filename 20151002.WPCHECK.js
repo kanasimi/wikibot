@@ -24,6 +24,9 @@
 
 'use strict';
 
+// Load CeJS library and modules.
+require('./wiki loder.js');
+
 // 修正維基百科內容的語法錯誤。
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
 summary = '[[WP:WPCHECK|修正維基語法]]';
@@ -71,9 +74,6 @@ description_of_ID = [],
 not_approved = [];
 
 // ------------------------------------
-
-// Load CeJS library and modules.
-require('./wiki loder.js');
 
 prepare_directory(base_directory, true);
 
@@ -160,7 +160,7 @@ function main_work() {
 			}, page_list);
 
 		}, {
-			file_name : base_directory + 'list_' + checking_index + '.json',
+			file_name : base_directory + 'list_' + checking_index + '.' + use_language + '.json',
 			postprocessor : function(data) {
 				if (data.charAt(0) === '<')
 					// 僅取得 <pre> 間的 data。
