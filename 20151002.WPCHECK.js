@@ -1102,7 +1102,7 @@ function check_tag(token, parent) {
 	// console.log(parent);
 	if (!token.match) {
 		// for debug
-		CeL.debug('No .match: ' + token, 1, 'check_tag');
+		CeL.warn('No .match: ' + JSON.stringify(token), 1, 'check_tag');
 	}
 
 	var matched = (parent ? parent.toString() : token)
