@@ -29,7 +29,8 @@ require('./wiki loder.js');
 
 // 修正維基百科內容的語法錯誤。
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[WP:WPCHECK|修正維基語法]]';
+summary = use_language === 'zh' ? '[[WP:WPCHECK|修正維基語法]]'
+		: '[[プロジェクト:ウィキ文法のチェック|修正ウィキ文法]]';
 
 // ---------------------------------------------------------------------//
 
@@ -75,7 +76,8 @@ not_approved = [];
 
 // ------------------------------------
 
-prepare_directory(base_directory, true);
+prepare_directory(base_directory);
+// prepare_directory(base_directory, true);
 
 // CeL.set_debug(3);
 
@@ -160,6 +162,7 @@ function main_work() {
 			}, page_list);
 
 		}, {
+			reget : true,
 			file_name : base_directory + 'list_' + checking_index + '.' + use_language + '.json',
 			postprocessor : function(data) {
 				if (data.charAt(0) === '<')
