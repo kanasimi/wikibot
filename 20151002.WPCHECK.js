@@ -1102,10 +1102,10 @@ function check_tag(token, parent) {
 	// console.log(parent);
 	if (!token.match) {
 		// for debug
-		CeL.warn('No .match: ' + JSON.stringify(token), 1, 'check_tag');
+		CeL.debug('No .match: ' + JSON.stringify(token), 1, 'check_tag');
 	}
 
-	var matched = (parent ? parent.toString() : token)
+	var matched = (parent || token).toString()
 			.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
 	//
 	end_tag = matched && matched[1];
