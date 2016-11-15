@@ -88,7 +88,7 @@ CeL.get_URL_cache(checkwiki_api_URL + 'view=all&orderby=id', function(data) {
 		description_of_ID[matched[2]] = matched[1];
 	}
 	main_work();
-});
+}, base_directory + use_language + '.htm');
 
 function main_work() {
 	// 200: test checkwiki #0~199
