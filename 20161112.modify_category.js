@@ -163,6 +163,7 @@ function main_work(category_name, move_to, callback) {
 
 // ----------------------------------------------------------------------------
 
+// @see PATTERN_category @ CeL.wiki
 // [ all, category_name, sort_order ]
 var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)\s*(?:\| *(.*?))?\]\] *\n?/ig;
 
@@ -193,6 +194,8 @@ function for_each_page(page_data, messages, config) {
 
 	// 已經添加過的category。
 	var categories = CeL.null_Object();
+
+	// 分類名稱重複時，排序索引以後出現者為主。
 
 	content = content.replace(PATTERM_category, function(all, category_name,
 			sort_order) {

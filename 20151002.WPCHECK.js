@@ -42,6 +42,10 @@ only_check = approved,
 /** {Natural|Array}限制每一項最大處理頁面數。 */
 處理頁面數;
 
+if (0)
+	only_check = [ 1, 2, 5, 8, 9, 10, 13, 14, 15, 16, 17, 23, 24, 26, 29, 38,
+			54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 102, 103, 104 ];
+
 // only_check = not_approved;
 // only_check = 16;
 // only_check = 99;
@@ -137,7 +141,7 @@ function main_work() {
 
 			// process pages
 			wiki.work({
-				each : function(page_data, messages, options) {
+				each : function(page_data, messages, config) {
 					/** {String}page content, maybe undefined. */
 					var content = CeL.wiki.content_of(page_data);
 					// 預防有被刪之頁面。
@@ -147,7 +151,9 @@ function main_work() {
 					if (page_data.ns !== 0) {
 						return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 					}
-					return fix_function(content, page_data, messages, options);
+					return fix_function.call(
+					//
+					this, content, page_data, messages, config);
 					// TODO: Set article as done
 				},
 				// ((fix function)).title = {String}Error name / Reason
@@ -179,6 +185,17 @@ function main_work() {
 
 // ---------------------------------------------------------------------//
 
+function fix_d(content, page_data, messages, config) {
+}
+
+// ------------------------------------
+
+function fix_1(content, page_data, messages, config) {
+	return content.replace(/{{\s*[Tt]emplate\s*:\s*/g, '{{');
+}
+
+// ------------------------------------
+
 // /\n([*#:;]+|[= ]|{\|)/:
 // https://www.mediawiki.org/wiki/Markup_spec/BNF/Article#Wiki-page
 // https://www.mediawiki.org/wiki/Markup_spec#Start_of_line_only
@@ -189,8 +206,8 @@ PATTERN_invalid_self_closed_HTML_tags = /(<(b|p|div|span|td|th|tr|center|small)(
 // Category:使用无效自封闭HTML标签的页面 , [[phab:T134423]]
 // 在主名字空間ns0裡面，替換<small/>為</small>，替換<center/>為</center>，以消除[[:Category:使用無效自封閉HTML標籤的頁面]]。
 // 不正な HTML tag を修正する。例えば <b><b/> → <b></b>
-fix_2.title = '修正不正確的 HTML tag 如 <b><b/> → <b></b>';
-function fix_2(content, page_data, messages, options) {
+fix_2_simple.title = '修正不正確的 HTML tag 如 <b><b/> → <b></b>';
+function fix_2_simple(content, page_data, messages, config) {
 	// fix error
 	content = content.replace(PATTERN_invalid_self_closed_HTML_tags, function(
 			all, $1, tag_name, innerHTML) {
@@ -217,7 +234,7 @@ function fix_2(content, page_data, messages, options) {
 // incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
 // TODO: {{clear|left}}
 fix_2.title = '修正不正確的 HTML tag 如 <br/> → <br />';
-function fix_2_full(content, page_data, messages, options) {
+function fix_2(content, page_data, messages, config) {
 	// fix error
 	content = content
 	// <br></br> → <br>
@@ -244,7 +261,10 @@ function fix_2_full(content, page_data, messages, options) {
 		+ (list ? '\n' : '\n\n');
 	});
 
+	content = fix_2_simple(content, page_data, messages, config);
+
 	// TODO: a<br>b → a\n\nb
+	// TODO: {{clear|left}}
 
 	if (/<br\s*[\/\\]?>\s*>/i.test(content))
 		// e.g., "<br />>"
@@ -263,7 +283,7 @@ var comment_tag_start = '<!--', comment_tag_end = '-->';
 
 // 閉じ忘れたコメントを修正する。
 fix_5.title = 'HTML注釋未首尾對應';
-function fix_5(content, page_data, messages, options) {
+function fix_5(content, page_data, messages, config) {
 	var need_manuilly_check, changed, has_end_only,
 	//
 	slice = content.split(comment_tag_start);
@@ -304,7 +324,7 @@ function fix_5(content, page_data, messages, options) {
 // TODO: 可能需要往前尋找修訂歷史，確認是否為粗心者刪掉了章節標題後半部。
 
 fix_8.title = '章節標題未以「=」結尾';
-function fix_8(content, page_data, messages, options) {
+function fix_8(content, page_data, messages, config) {
 	var need_manuilly_check, using_big_equal;
 	content = content
 	// fix error
@@ -343,7 +363,7 @@ function fix_8(content, page_data, messages, options) {
 			if (!/^\s/.test(title_token) || !/\s$/.test(title_token)) {
 				messages.add("章節標題改變，自首或尾有 '=' 改成無 '=': '''"
 						+ title_token.trim() + "'''", page_data);
-				options.summary += " -- 章節標題改變，自首或尾有 '=' 改成無 '=': "
+				this.summary += " -- 章節標題改變，自首或尾有 '=' 改成無 '=': "
 						+ title_token.trim();
 			}
 
@@ -374,7 +394,7 @@ function fix_8(content, page_data, messages, options) {
 			messages.add("將 '''" + title_token
 			//
 			+ "''' 自內文等級提升成章節標題", page_data);
-			options.summary += ' -- 將 ' + start_tag + title_token
+			this.summary += ' -- 將 ' + start_tag + title_token
 					+ ' 自內文等級提升成章節標題';
 			return all.replace(/(=+\s*)/, '$1 ').replace(/\s*$/,
 					' ' + start_tag);
@@ -423,6 +443,14 @@ if (false) {
 
 // ------------------------------------
 
+function fix_9(content, page_data, messages, config) {
+	return content.replace(
+	// @see PATTERN_category @ CeL.wiki
+	/\n?\s*(\[\[ *(?:Category|分類|分类|カテゴリ) *:[^\[\]]+\]\])/g, '\n$1');
+}
+
+// ------------------------------------
+
 // is_tail_part: 為後面之 token
 function NOT_inside_square_brackets(token, is_tail_part) {
 	// token: [[text]] 內部 ((text)) 部分之資料。
@@ -451,7 +479,7 @@ function NOT_inside_square_brackets(token, is_tail_part) {
 
 // 文中的 [[ 與 ]] 總數不對應，若其中有程序代碼，請使用<source>或<code>。
 fix_10.title = '連結方括號未對應';
-function fix_10(content, page_data, messages, options) {
+function fix_10(content, page_data, messages, config) {
 	var match_previous = NOT_inside_square_brackets;
 
 	function match_next(text) {
@@ -682,7 +710,7 @@ function replace_to_rtl_lang(all, language, text) {
 // [{{fullurl:Special:RecentChanges|tagfilter=unicode misc}} misc]
 // TODO: {{PUA|\uf06e}}
 fix_16.title = '去除條目中之不可見字符與Unicode控制字符';
-function fix_16(content, page_data, messages, options) {
+function fix_16(content, page_data, messages, config) {
 	content = content
 	// fix error
 	// 在 category, link, redirect 中使用 Unicode 控制字符
@@ -739,7 +767,7 @@ var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?
 // [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 // 頁面分類名稱重複
 fix_17.title = '分類名稱重複，排序索引以後出現者為主。';
-function fix_17(content, page_data, messages, options) {
+function fix_17(content, page_data, messages, config) {
 	var category_index_hash = {}, category_hash = {}, matched;
 	// search all category list
 	while (matched = PATTERN_category.exec(content)) {
@@ -775,7 +803,7 @@ function add_quote(text, type) {
 // 現在只處理表格中標示<b>，<i>這種讀得懂，且已確認沒問題的情況。
 
 fix_26.title = '使用HTML粗體 tag';
-function fix_26(content, page_data, messages, options) {
+function fix_26(content, page_data, messages, config) {
 	// 須注意因為模板或表格之特殊設計，造成錯誤結果的可能！
 	content = content
 	// fix error
@@ -810,7 +838,7 @@ function fix_26(content, page_data, messages, options) {
 // 現在只處理表格中標示<b>，<i>這種讀得懂，且已確認沒問題的情況。
 
 fix_38.title = '使用HTML斜體 tag';
-function fix_38(content, page_data, messages, options) {
+function fix_38(content, page_data, messages, config) {
 	// 須注意因為模板或表格之特殊設計，造成錯誤結果的可能！
 	content = content
 	// fix error
@@ -843,12 +871,14 @@ function fix_38(content, page_data, messages, options) {
 
 // fix_32 需考量在 <code>, <source>, <nowiki> 中之情況。
 
+// fix_48 内部リンクは将来的な記事分割の際にそのまま「親記事へのリンク」として使えるというメリットがある
+
 // fix_50 合併至 fix_11
 
 // ------------------------------------
 
 fix_54.title = '列表內容最後加入分行號';
-function fix_54(content, page_data, messages, options) {
+function fix_54(content, page_data, messages, config) {
 	content = content
 	// fix error
 	.replace_till_stable(/(\*[^*\n]*?)<br(?:\s[^<>]*|\/)?>\n/gi, function(all,
@@ -863,13 +893,24 @@ function fix_54(content, page_data, messages, options) {
 
 // ------------------------------------
 
+// fix_59:
+// 改行タグ<br>等除去処理によりレンダリングへの影響(ブラウザ上見た目が変わる)が発生しますが、これは除去前記事においてテンプレートへのパラメータの与え方が誤っているためです。
+// TODO: {{P1|<br>}} 僅有"<br>"的parameter
+
+// ------------------------------------
+
 // [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 fix_64.title = '內部連結顯示名稱和目標條目相同';
-function fix_64(content, page_data, messages, options) {
-	content = content
+function fix_64(content, page_data, messages, config) {
+	content = content.replace(
 	// fix error
-	.replace(/\[\[([^\[\]\|]+)\|('''?)?\1\2\]\]/g, function(all, link, quote) {
-		link = '[[' + link + ']]';
+	/\[\[ *([^\[\]\|\s])([^\[\]\|]*) *\|('''?)?([^\[\]\|\s])\2\3\]\]/g,
+	//
+	function(all, initial, link, quote, initial2) {
+		if (initial.toLowerCase() !== initial2.toLowerCase()) {
+			return all;
+		}
+		link = '[[' + initial2 + link + ']]';
 		if (quote)
 			link = quote + link + quote;
 		return link;
@@ -878,11 +919,14 @@ function fix_64(content, page_data, messages, options) {
 	return content;
 }
 
+CeL.assert([ '[[wiki]]', fix_64('[[Wiki |wiki]]') ]);
+CeL.assert([ '[[Wiki]]', fix_64('[[ wiki|Wiki]]') ]);
+
 // ------------------------------------
 
 // 2016/2/24 20:30:57
 fix_65.title = '檔案或圖片的描述以換行結尾';
-function fix_65(content, page_data, messages, options) {
+function fix_65(content, page_data, messages, config) {
 	content = CeL.wiki.parser(content).parse()
 	//
 	.each('file', function(token, index, parent) {
@@ -908,7 +952,7 @@ function fix_65(content, page_data, messages, options) {
 var PATTERN_ISBN = /([^\d])(1[03])?([\- ]*)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:\s#.]*([\dx\-\s]{10,})/gi;
 // 不可更改 parameter 為 "ISBN = ..." 的情況!
 fix_69.title = 'ISBN用法錯誤';
-function fix_69(content, page_data, messages, options) {
+function fix_69(content, page_data, messages, config) {
 	content = content
 	// fix error
 	.replace(PATTERN_ISBN, function(all, head, head_1013, head_space, ISBN) {
@@ -939,7 +983,7 @@ function fix_69(content, page_data, messages, options) {
 // [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 // CeL.wiki.parse('[[File:a.jpg|thumb|d]]')
 fix_76.title = '檔案或圖片的連結中包含空格';
-function fix_76(content, page_data, messages, options) {
+function fix_76(content, page_data, messages, config) {
 	content = CeL.wiki.parser(content).parse()
 	//
 	.each('file', function(token, index, parent) {
@@ -971,7 +1015,7 @@ PATTERN_external_link = /([^\[])\[[\s\n]*([a-z]{3,5}:[^\[\]\s\n]{3,120})([\s\n]+
 
 // [[WP:机器人/申请/Cewbot/9]] Jimmy Xu: 無害，不要專門去改
 fix_80.title = '外部連結中起新行或含有不必要的空格';
-function fix_80(content, page_data, messages, options) {
+function fix_80(content, page_data, messages, config) {
 	content = content
 	// fix error
 	.replace(PATTERN_external_link, function(all, precedes, URL, title) {
@@ -1004,7 +1048,7 @@ var PATTERN_empty_tags = /<(gallery|onlyinclude|includeonly|noinclude|ref|span|b
 
 // CeL.wiki.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_85.title = '含有空的 HTML tag';
-function fix_85(content, page_data, messages, options) {
+function fix_85(content, page_data, messages, config) {
 	content = content
 	// fix error
 	.replace_till_stable(PATTERN_empty_tags, '');
@@ -1025,7 +1069,7 @@ function fix_85(content, page_data, messages, options) {
 
 // CeL.wiki.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_86.title = '使用內部連結之雙括號表現外部連結';
-function fix_86(content, page_data, messages, options) {
+function fix_86(content, page_data, messages, config) {
 	content = CeL.wiki.parser(content).parse()
 	//
 	.each('link', function(token, index, parent) {
@@ -1061,7 +1105,7 @@ function fix_86(content, page_data, messages, options) {
 // 2016/2/19 22:9:6
 
 fix_93.title = '外部連結含有雙http(s)';
-function fix_93(content, page_data, messages, options) {
+function fix_93(content, page_data, messages, config) {
 	content = content
 	// fix error
 	// 雙http(s)以後面的 protocol 為主。
@@ -1127,7 +1171,7 @@ function check_tag(token, parent) {
 
 // TODO: | <sub>...<sub> | → | <sub>...</sub> |
 fix_98.title = 'sub/sup tag 未首尾對應';
-function fix_98(content, page_data, messages, options) {
+function fix_98(content, page_data, messages, config) {
 	content = CeL.wiki.parser(content).parse()
 	//
 	.each('plain', function(token, index, parent) {
@@ -1180,7 +1224,7 @@ function replace_PMID(all, precedes, id, follows) {
 }
 
 fix_102.title = 'PMID語法錯誤';
-function fix_102(content, page_data, messages, options) {
+function fix_102(content, page_data, messages, config) {
 	// 一般皆在 <ref> 中。推薦改成 {{cite journal|pmid=dddd}}。
 	// <ref name="PMID dddd"> 可被接受。
 	// TODO: 考量於 link 中的可能性。
@@ -1196,7 +1240,7 @@ function fix_102(content, page_data, messages, options) {
 
 // 這種做法大多放在模板中。只是現在的 MediaWiki 版本已經不需要如此的避諱方法。
 fix_103.title = '連結中包含 pipe magic word';
-function fix_103(content, page_data, messages, options) {
+function fix_103(content, page_data, messages, config) {
 	content = CeL.wiki.parser(content).parse()
 	//
 	.each('link', function(token, index, parent) {
@@ -1215,7 +1259,7 @@ function fix_103(content, page_data, messages, options) {
 // ------------------------------------
 
 fix_104.title = 'Unbalanced quotes in ref name';
-function fix_104(content, page_data, messages, options) {
+function fix_104(content, page_data, messages, config) {
 	content = content
 	// fix error
 	.replace(/<ref\s+name\s*=\s*(["'])([^>]*?)>/ig, function(all, quote, name) {
