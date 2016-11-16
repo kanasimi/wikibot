@@ -2,8 +2,8 @@
 
 /*
 
- 2016/9/15 12:23:53	初版
- 正式上路營運
+ 2016/9/15 12:23:53	初版試營運。
+ 2016/11/16 18:35:58	完成。正式運用。
 
 
  */
@@ -85,7 +85,9 @@ function import_data() {
 	臺灣物種名錄物種編號_accepted_index = all_taxon_data.index.accepted_name_code;
 
 	// CeL.set_debug(2);
-	all_taxon_data.slice(0, 20).forEach(for_taxon);
+	// all_taxon_data = all_taxon_data.slice(0, 20);
+
+	all_taxon_data.forEach(for_taxon);
 }
 
 // ----------------------------------------------------------------------------
