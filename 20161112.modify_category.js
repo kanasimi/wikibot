@@ -34,6 +34,8 @@ category_hash = CeL.null_Object(), move_from_list;
 
 // CeL.set_debug(2);
 
+// current work
+
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
 // 2016/11/16 9:52:18
 summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼の巻き戻し - [[' + log_to
@@ -53,7 +55,9 @@ summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテ�
 	}
 	category_hash[category_name] = move_to;
 	if (category_name.includes('ミュージシャン')) {
-		category_hash[category_name.replace(/ポップ/, '')] = category_name.replace(/ポップ/, '').replace(/の・ミュージシャン/, 'のミュージシャン');
+		category_hash[category_name.replace(/ポップ/, '')]
+		//
+		= category_name.replace(/ポップ/, '').replace(/の・ミュージシャン/, 'のミュージシャン');
 	}
 });
 

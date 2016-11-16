@@ -22,8 +22,10 @@ wiki = Wiki(true);
 
 prepare_directory(base_directory);
 
-var TaiBNET_CSV_path = base_directory + 'TaiwanSpecies_UTF8.'
-		+ (new Date).format('%Y%2m%2d') + '.csv';
+var now = new Date(),
+//
+TaiBNET_CSV_path = base_directory + 'TaiwanSpecies_UTF8.'
+		+ now.format('%Y%2m%2d') + '.csv';
 
 try {
 	var node_fs = require('fs');
@@ -39,7 +41,7 @@ try {
 	var url = 'http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=', spawn = require('child_process').spawn, get_TaiBNET_file = spawn(
 			'/usr/bin/wget', [ '--output-document=' + TaiBNET_CSV_path + '',
 					url ]);
-	CeL.log('Try to get [' + url + ']');
+	CeL.log('Try to get [' + url + ']...');
 
 	get_TaiBNET_file.stdout.on('data', function(data) {
 		// console.log(data.toString());
@@ -132,7 +134,7 @@ function for_taxon(line) {
 				references : {
 					載於 : '臺灣物種名錄',
 					臺灣物種名錄物種編號 : TaiBNET_id,
-					檢索日期 : new Date
+					檢索日期 : now
 				}
 			}
 		};

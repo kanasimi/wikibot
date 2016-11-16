@@ -163,7 +163,9 @@ function main_work() {
 
 		}, {
 			reget : true,
-			file_name : base_directory + 'list_' + checking_index + '.' + use_language + '.json',
+			file_name : base_directory + 'list_' + checking_index
+			//
+			+ '.' + use_language + '.json',
 			postprocessor : function(data) {
 				if (data.charAt(0) === '<')
 					// 僅取得 <pre> 間的 data。
@@ -1105,8 +1107,8 @@ function check_tag(token, parent) {
 		CeL.debug('No .match: ' + JSON.stringify(token), 1, 'check_tag');
 	}
 
-	var matched = (parent || token).toString()
-			.match(/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
+	var matched = (parent || token).toString().match(
+			/<(su[bp])(?:\s[^<>]*)?>([\s\S]*?)$/i),
 	//
 	end_tag = matched && matched[1];
 
