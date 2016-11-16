@@ -47,11 +47,14 @@ summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテ�
 	if (!category_name) {
 		return;
 	}
-	var move_to = category_name.replace(/ポップ/, '');
+	var move_to = category_name.replace(/ポップ・?/, '');
 	if (!move_to || category_name === move_to || move_to.includes('ポップ')) {
 		throw 'The same name: ' + category_name;
 	}
 	category_hash[category_name] = move_to;
+	if (category_name.includes('ミュージシャン')) {
+		category_hash[category_name.replace(/ポップ/, '')] = category_name.replace(/ポップ/, '').replace(/の・ミュージシャン/, 'のミュージシャン');
+	}
 });
 
 // -------------------------------------
