@@ -2,6 +2,8 @@
 
 /*
 
+ rename category
+
  2016/11/12 21:27:32	初版試營運。
  2016/11/12 22:55:46	完成。正式運用。
 
@@ -24,55 +26,81 @@ processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
 		+ use_language + '.json'),
 
 // ((Infinity)) for do all
-test_limit = 2;
+test_limit = 2,
+
+category_hash = CeL.null_Object(), move_from_list;
 
 // ----------------------------------------------------------------------------
 
 // CeL.set_debug(2);
 
-prepare_directory(base_directory);
-
-// 2016/11/13 10:52:1
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/61873576|Bot作業依頼]]：日本維新の会・自由党改名にともなうカテゴリ修正依頼 - [['
-		+ log_to + '|log]]';
-modify_category({
-	おおさか維新の会 : '日本維新の会 (2016-)',
-	おおさか維新の会の人物 : '日本維新の会の人物 (2016-)',
-	おおさか維新の会の国会議員 : '日本維新の会の国会議員 (2016-)',
-	日本維新の会 : '日本維新の会 (2012-2014)',
-	日本維新の会の人物 : '日本維新の会の人物 (2012-2014)',
-	日本維新の会の国会議員 : '日本維新の会の国会議員 (2012-2014)',
-	生活の党 : ' 自由党 (日本 2016-)',
-	生活の党の人物 : ' 自由党の人物 (日本 2016-)',
-	生活の党の国会議員 : ' 自由党の国会議員 (日本 2016-)'
+// 2016/11/16 9:52:18
+summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼の巻き戻し - [[' + log_to
+		+ '|log]]';
+'Category:プエルトリコのポップ歌手 (2), Category:タイのポップ歌手 (2), Category:ミズーリ州のポップ・ミュージシャン (2), Category:コロンビアのポップ歌手 (1), Category:セネガルのポップ・ミュージシャン (2), Category:コロンビアのポップ・ミュージシャン (1), Category:ウクライナのポップ歌手 (3), Category:香港のポップ歌手 (2), Category:モンゴルのポップ歌手 (1), Category:南アフリカ共和国のポップ歌手 (1), Category:ドイツのポップ歌手 (1), Category:ニューオーリンズのポップ・ミュージシャン (3), Category:カンボジアのポップ歌手 (1), Category:ベトナムのポップ歌手 (1), Category:シンガポールのポップ歌手 (1), Category:シンガポールのポップ・ミュージシャン (1), Category:ポーランドのポップ歌手 (3), Category:バルバドスのポップ・ミュージシャン (1), Category:クロアチアのポップ・ミュージシャン (2), Category:イエメンのポップ歌手 (1), Category:ギリシャのポップ歌手 (4), Category:アルバニアのポップ歌手 (2), Category:レバノンのポップ歌手 (1), Category:ブラジルのポップ歌手 (3), Category:アイスランドのポップ歌手 (2), Category:ブラジルのポップ・ミュージシャン (3), Category:アルゼンチンのポップ歌手 (1), Category:セルビアのポップ歌手 (7), Category:クロアチアのポップ歌手 (3), Category:琉球民謡のポップ歌手 (2), Category:ルーマニアのポップ歌手 (4), Category:ノルウェーのポップ歌手 (2), Category:エストニアのポップ・ミュージシャン (2), Category:アラブのポップ歌手 (1), Category:ボスニア・ヘルツェゴビナのポップ歌手 (3), Category:ボスニア・ヘルツェゴビナのポップ・ミュージシャン (2), Category:アルメニアのポップ歌手 (1), Category:クラシカル・クロスオーバーのポップ歌手 (2), Category:スロバキアのポップ歌手 (1), Category:ウクライナのポップ・ミュージシャン (1), Category:ウクライナのポップ歌手 (1), Category:フィリピンのポップ歌手 (2), Category:マレーシアのポップ歌手 (1), Category:架空のポップ歌手 (2), Category:チェコのポップ歌手 (1), Category:中国のポップ歌手 (3), Category:ケニアのポップ歌手 (1), Category:スロバキアのポップ・ミュージシャン (1), Category:エストニアのポップ歌手 (2), Category:パキスタンのポップ歌手 (1), Category:インドネシアのポップ歌手 (3), Category:キューバのポップ歌手 (1), Category:キプロスのポップ歌手 (2), Category:モンテネグロのポップ歌手 (1), Category:チリのポップ歌手 (1), Category:ベラルーシのポップ歌手 (2), Category:キプロスのポップ・ミュージシャン (1), Category:デンマークのポップ歌手 (1), Category:サンマリノのポップ歌手 (1), Category:ニューヨーク州出身のポップ・ミュージシャン (1), Category:スロベニアのポップ歌手 (1)'
+// revert
+.split(',').forEach(function(category_name) {
+	category_name = category_name
+	//
+	&& category_name.match(/Category:([^ ]+)/)[1];
+	if (!category_name) {
+		return;
+	}
+	var move_to = category_name.replace(/ポップ/, '');
+	if (!move_to || category_name === move_to || move_to.includes('ポップ')) {
+		throw 'The same name: ' + category_name;
+	}
+	category_hash[category_name] = move_to;
 });
 
 // -------------------------------------
 // archive
 
 if (false) {
+	// 2016/11/13 10:52:1
+	summary = '[[Special:Diff/61873576|Bot作業依頼]]：日本維新の会・自由党改名にともなうカテゴリ修正依頼 - [['
+			+ log_to + '|log]]';
+	category_hash = {
+		おおさか維新の会 : '日本維新の会 (2016-)',
+		おおさか維新の会の人物 : '日本維新の会の人物 (2016-)',
+		おおさか維新の会の国会議員 : '日本維新の会の国会議員 (2016-)',
+		日本維新の会 : '日本維新の会 (2012-2014)',
+		日本維新の会の人物 : '日本維新の会の人物 (2012-2014)',
+		日本維新の会の国会議員 : '日本維新の会の国会議員 (2012-2014)',
+		生活の党 : ' 自由党 (日本 2016-)',
+		生活の党の人物 : ' 自由党の人物 (日本 2016-)',
+		生活の党の国会議員 : ' 自由党の国会議員 (日本 2016-)'
+	};
+
 	// 2016/11/13 10:51:53
 	summary = '[[Special:Diff/61835577|Bot作業依頼]]：削除された韓国のアイドルのカテゴリ修正依頼 - [['
 			+ log_to + '|log]]';
-	modify_category({
+	category_hash = {
 		韓国のアイドルグループ : '韓国の歌手グループ',
 		韓国のアイドル : '韓国の歌手'
-	});
+	};
 }
 
 // ----------------------------------------------------------------------------
 
-function modify_category(category_hash) {
-	var move_from = Object.keys(category_hash), index = 0;
+prepare_directory(base_directory);
+
+modify_category(category_hash, move_from_list);
+
+function modify_category(category_hash, move_from_list) {
+	if (!Array.isArray(move_from_list)) {
+		move_from_list = Object.keys(category_hash);
+	}
+	var index = 0;
 	function modify_next() {
-		if (index === move_from.length) {
-			CeL.log('All ' + move_from.length + ' categories done.');
+		if (index === move_from_list.length) {
+			CeL.log('All ' + move_from_list.length + ' categories done.');
 			return;
 		}
-		var category_name = move_from[index++];
-		CeL.log(index + '/' + move_from.length + category_name + ' → '
-				+ category_hash[category_name]);
+		var category_name = move_from_list[index++];
+		CeL.log(index + '/' + move_from_list.length + ' ' + category_name
+				+ ' → ' + category_hash[category_name]);
 		main_work(category_name, category_hash[category_name], modify_next);
 	}
 	modify_next();
