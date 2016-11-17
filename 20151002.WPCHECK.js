@@ -39,7 +39,7 @@ summary = use_language === 'zh' ? '[[WP:WPCHECK|修正維基語法]]'
 
 var
 /** {Array}zhwiki已批准NO */
-approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
+approved = [ 2, 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
 only_check = approved,
 /** {Natural|Array}限制每一項最大處理頁面數。 */
@@ -48,7 +48,7 @@ only_check = approved,
 if (0)
 	only_check = [ 1, 2, 5, 8, 9, 10, 13, 14, 15, 16, 17, 23, 24, 26, 29, 38,
 			54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 102, 103, 104 ];
-only_check = 2;
+only_check = [ 1, 2, 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ];
 
 // only_check = not_approved;
 // only_check = 16;
@@ -227,6 +227,8 @@ function fix_2_simple(content, page_data, messages, config) {
 	// .replace(/<(b|p|div|span|td|th|tr|center|small)\s*\/>/ig, '<$1></$1>')
 	;
 
+	// TODO:[[九州方言]]
+
 	if (/<(?:b|p|div|span|td|th|tr|center|small)\s*\/>/i.test(content))
 		messages.add('尚留有需要人工判別之 &lt;center/small> tag！', page_data);
 
@@ -251,7 +253,7 @@ function fix_2(content, page_data, messages, config) {
 	// 前後都有 '/', </br/>
 	.replace(/<\s*[\\\/]\s*br\s*(?:[\\.?a-z\d•]|br)\s*[\/\\]?>/gi, '<br />')
 
-	// TODO: CM-21裝甲車, JPEG ‎
+	// OK: CM-21裝甲車, JPEG ‎
 
 	// 除去不需要的 <br>
 	// 下一行為列表，或者表格 <td>, <th> 末為 <br>。
