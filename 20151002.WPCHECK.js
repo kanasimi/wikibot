@@ -27,6 +27,9 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
+// for CeL.test(), CeL.assert()
+CeL.run('application.debug.log');
+
 // 修正維基百科內容的語法錯誤。
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
 summary = use_language === 'zh' ? '[[WP:WPCHECK|修正維基語法]]'
@@ -35,7 +38,7 @@ summary = use_language === 'zh' ? '[[WP:WPCHECK|修正維基語法]]'
 // ---------------------------------------------------------------------//
 
 var
-/** {Array}已批准NO */
+/** {Array}zhwiki已批准NO */
 approved = [ 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ],
 /** {Natural|Array}Only check the NO(s). 僅處理此項。 */
 only_check = approved,
@@ -45,6 +48,7 @@ only_check = approved,
 if (0)
 	only_check = [ 1, 2, 5, 8, 9, 10, 13, 14, 15, 16, 17, 23, 24, 26, 29, 38,
 			54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 102, 103, 104 ];
+only_check = 2;
 
 // only_check = not_approved;
 // only_check = 16;
@@ -199,7 +203,7 @@ function fix_1(content, page_data, messages, config) {
 // /\n([*#:;]+|[= ]|{\|)/:
 // https://www.mediawiki.org/wiki/Markup_spec/BNF/Article#Wiki-page
 // https://www.mediawiki.org/wiki/Markup_spec#Start_of_line_only
-var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}]+}}|[^\[\]<>{}])+)<br\s*\/?>\s*\n[\s\n]*/gi,
+var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}\n]*}-|\[\[[^\[\]]+\]\]|\[[^\[\]]+\]|{{[^{}\n]+}}|[^\[\]<>{}\n])+)<br\s*\/?>\s*\n[\s\n]*/gi,
 
 PATTERN_invalid_self_closed_HTML_tags = /(<(b|p|div|span|td|th|tr|center|small)(?:\s[^<>]*)?>([\s\S]*?))<\2\s*\/>/ig;
 
@@ -246,14 +250,22 @@ function fix_2(content, page_data, messages, config) {
 	.replace(/<\s*[\\\/]\s*br\s*>/gi, '<br />')
 	// 前後都有 '/', </br/>
 	.replace(/<\s*[\\\/]\s*br\s*(?:[\\.?a-z\d•]|br)\s*[\/\\]?>/gi, '<br />')
+
+	// TODO: CM-21裝甲車, JPEG ‎
+
 	// 除去不需要的 <br>
 	// 下一行為列表，或者表格 <td>, <th> 末為 <br>。
+	// TODO: 須避免 "0<br>\n1<br>\n2", "{{t|1<br>\n|2}}"
 	.replace(/\s*<br\s*[\/\\]?>(\r?\n[:;*# |])/gi, '$1')
+
 	// 去掉過多的分行。
-	.replace(/\r?\n(\r?\n)+<br\s*[\/\\]?>\r?\n/gi, '\n\n');
+	.replace(/\r?\n(\r?\n)+<br\s*[\/\\]?>\r?\n/gi, '\n\n')
+
+	;
 
 	// 一般已完結的文字
-	// a<br>\n → a\n
+	// a<br>\n → a\n or a\n\n
+	// TODO: 須避免 "\n0<br>\n1</br>\n2<br>\n", "{{t|1<br>\n|2}}"
 	content = content.replace_till_stable(PATTERN_plain_text_br, function(all,
 			plain_text, list) {
 		return '\n' + plain_text

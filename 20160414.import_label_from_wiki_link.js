@@ -107,7 +107,7 @@ require('./wiki loder.js');
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
 CeL.run('extension.zh_conversion');
-// for CeL.test()
+// for CeL.test(), CeL.assert()
 CeL.run('application.debug.log');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
