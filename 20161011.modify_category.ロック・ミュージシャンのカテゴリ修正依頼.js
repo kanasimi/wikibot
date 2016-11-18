@@ -21,7 +21,9 @@ summary = {
 	ロック : '[[Special:Diff/61558855|Bot作業依頼]]：ロック・ミュージシャンのカテゴリ修正依頼 - [['
 			+ log_to + '|log]]',
 	ポップ : '[[Special:Diff/61779756|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼 - [[' + log_to
-			+ '|log]]'
+			+ '|log]]',
+	ギタリスト : '[[Special:Diff/61961108|Bot作業依頼]]：ロック・ギタリストのカテゴリ修正依頼 - [['
+			+ log_to + '|log]]'
 };
 summary.main = summary.ポップ;
 
@@ -113,6 +115,8 @@ function for_each_page(page_data, messages) {
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
+	this.summary = summary[replace_type];
+
 	++count;
 
 	content = content.replace(/(\| *Genre *=[^=\|{}]*?\[\[ *ロック) *(\]\]|\|)/,
@@ -164,7 +168,7 @@ function for_each_page(page_data, messages) {
 		main_country = country;
 
 		// 去掉沒有這個Category的情況
-		if (replace_type !== 'ポップ' && type !== '歌手' && type !== 'ミュージシャン')) {
+		if (replace_type !== 'ポップ' && type !== '歌手' && type !== 'ミュージシャン') {
 			return all_category;
 		}
 
@@ -181,6 +185,9 @@ function for_each_page(page_data, messages) {
 			}
 			return all_category;
 		}
+
+		if (summary[type])
+			this.summary = summary[type];
 
 		if (type === 'シンガーソングライター') {
 			music_type = add_category(content, added, all_category.replace(
@@ -218,7 +225,6 @@ function for_each_page(page_data, messages) {
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
-	this.summary = summary[replace_type];
 	return content;
 }
 
