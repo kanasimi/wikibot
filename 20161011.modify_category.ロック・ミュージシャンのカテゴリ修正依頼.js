@@ -143,7 +143,7 @@ function for_each_page(page_data, messages) {
 
 	var main_country, error,
 	// 已經添加過的category。
-	added = [];
+	added = [], _this = this;
 	content = content.replace(PATTERN_歌手,
 	//
 	function(all_category, pretext, country, music_type, posttext, type) {
@@ -168,7 +168,9 @@ function for_each_page(page_data, messages) {
 		main_country = country;
 
 		// 去掉沒有這個Category的情況
-		if (replace_type !== 'ポップ' && type !== '歌手' && type !== 'ミュージシャン') {
+		if (replace_type !== 'ロック'
+		// assert: 其他的種類都必須要有這些分類
+		&& type !== '歌手' && type !== 'ミュージシャン') {
 			return all_category;
 		}
 
@@ -187,7 +189,7 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (summary[type])
-			this.summary = summary[type];
+			_this.summary = summary[type];
 
 		if (type === 'シンガーソングライター') {
 			music_type = add_category(content, added, all_category.replace(
