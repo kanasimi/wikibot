@@ -60,7 +60,7 @@ PATTERN_ロック = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ロック(?: 
 //
 PATTERN_ポップ = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ポップ(?:・?ミュージック|音楽)?|[Pp]op music|エレクトロ・?ポップ|シンセ・?ポップ|ソフィスティ・?ポップ|ダンス・?ポップ|ティーン・?ポップ|バブルガム・?ポップ|バロック・?ポップ|パワー・?ポップ|ユーロ・?ポップ|ラテン・?ポップ|J-POP|K-POP) *(?:\]\]|\|)/,
 
-countries = '日本|アメリカ|イギリス'.split('|');
+countries = '日本|アメリカ合衆国|イギリス'.split('|');
 
 function add_category(content, added, category) {
 	if (added.includes(category)) {
