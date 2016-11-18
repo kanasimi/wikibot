@@ -162,6 +162,12 @@ function for_each_page(page_data, messages) {
 		}
 
 		main_country = country;
+
+		// 去掉沒有這個Category的情況
+		if (replace_type !== 'ポップ' && type !== '歌手' && type !== 'ミュージシャン')) {
+			return all_category;
+		}
+
 		if (music_type) {
 			if (music_type !== replace_type) {
 				// 複合ジャンルなので両方つけます。
