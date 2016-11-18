@@ -47,9 +47,7 @@ problem_list = [], no_country_found = [],
 
 // TODO: バンド
 // [ all_category, pretext, country, music_type, posttext, type ]
-PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手|ミュージシャン|シンガーソングライター)\s*(?:\|\s*([^\|\[\]]*))?\]\])/ig,
-// [ all_category, pretext, country, music_type, posttext, type ]
-PATTERN_歌手グループ = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手グループ)\s*(?:\|\s*([^\|\[\]]*))?\]\])/ig,
+PATTERN_歌手 = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)の)(?:(ロック|ポップ)・?)?((歌手|ミュージシャン|シンガーソングライター|歌手グループ|ギタリスト)\s*(?:\|\s*([^\|\[\]]*))?\]\])/ig,
 
 // e.g., "| Genre = [[ロックンロール]]<br />[[ポップ・ミュージック]]<br />[[ロック]]"
 // Genre = ロックンロール、ハードロック、パンク・ロック、ヘヴィメタルになっている人物もbotで修正して
@@ -58,7 +56,9 @@ PATTERN_歌手グループ = /(\[\[ *(?:Category|カテゴリ) *: *([^\|\[\]]+)�
 // 需考慮 "[[A|B]]<br />[[ロック (音楽)|ロック]]"
 PATTERN_ロック = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ロック(?: \(音楽\)|音楽|ミュージック)?|ロックン・?ロール|ハード・?ロック(?:バンド)?|Hard rock|パンク(・?ロック|・?バンド|ロック| \(音楽\)|音楽|ミュージック)?|バロック・?ポップ|パワー・?ポップ|Punk rock|ロンドン・?パンク|ヘヴィ・?メタル|Heavy Metal|アート・?ロック|インディー・?ロック|AOR|エクスペリメンタル・?ロック|オルタナティヴ・?ロック|ガレージロック|カントリーロック|クラウトロック|クラシック・?ロック|グラムロック|クリスチャン・?ロック|ゴシック・?ロック|サイケデリック・?ロック|サザン・?ロック|ジャズ・?ロック|シンフォニック・?ロック|スタジアム・?ロック|ストーナーロック|スペース・?ロック|ソフトロック|デジタルロック|パブロック|ピアノ・?ロック|フォークロック|ブルースロック|プログレッシヴ・?ロック|プンタ・?ロック|ポップ・?ロック|ラーガ・?ロック|ラップロック|リバプールサウンド|ロカビリー) *(?:\]\]|\|)/,
 //
-PATTERN_ポップ = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ポップ(?:・?ミュージック|音楽)?|[Pp]op music|エレクトロ・?ポップ|シンセ・?ポップ|ソフィスティ・?ポップ|ダンス・?ポップ|ティーン・?ポップ|バブルガム・?ポップ|バロック・?ポップ|パワー・?ポップ|ユーロ・?ポップ|ラテン・?ポップ|J-POP|K-POP) *(?:\]\]|\|)/;
+PATTERN_ポップ = /\| *(?:Genre|ジャンル) *=[^={}]*?\[\[ *(?:ポップ(?:・?ミュージック|音楽)?|[Pp]op music|エレクトロ・?ポップ|シンセ・?ポップ|ソフィスティ・?ポップ|ダンス・?ポップ|ティーン・?ポップ|バブルガム・?ポップ|バロック・?ポップ|パワー・?ポップ|ユーロ・?ポップ|ラテン・?ポップ|J-POP|K-POP) *(?:\]\]|\|)/,
+
+countries = '日本|アメリカ|イギリス'.split('|');
 
 function add_category(content, added, category) {
 	if (added.includes(category)) {
@@ -105,7 +105,7 @@ function for_each_page(page_data, messages) {
 
 	// var parser = CeL.wiki.parser(page_data);
 
-	var replace_type = false && PATTERN_ロック.test(content) ? 'ロック' : PATTERN_ポップ
+	var replace_type = PATTERN_ロック.test(content) ? 'ロック' : PATTERN_ポップ
 			.test(content) ? 'ポップ' : '';
 
 	if (!replace_type) {
@@ -150,9 +150,10 @@ function for_each_page(page_data, messages) {
 			// skip.
 			return all_category;
 		}
+		if (countries ? !countries.includes(country)
 		// not country. 国ではない。
 		// e.g., 'アメリカ先住民', アフリカ系アメリカ人, ECMレコード, GRPレコード
-		if (/(?:[人民]|レコード|州)$/.test(country)) {
+		: /(?:[人民]|レコード|州)$/.test(country)) {
 			return all_category;
 		}
 		if (main_country && main_country !== country) {
@@ -183,16 +184,14 @@ function for_each_page(page_data, messages) {
 			}
 			return all_category;
 		}
+		if (type === '歌手グループ') {
+			// Category:日本の歌手グループ → Category:日本のポップ・グループ
+			music_type = add_category(content, added, pretext + 'ポップ・グループ]]');
+			return music_type;
+		}
 		return add_category(content, added, pretext
 				+ (music_type || replace_type + (type === '歌手' ? '' : '・'))
 				+ posttext);
-	});
-
-	content = content.replace(PATTERN_歌手グループ, function(all_category, pretext,
-			country, music_type, posttext, type) {
-		main_country = country;
-		// Category:日本の歌手グループ → Category:日本のポップ・グループ
-		return add_category(content, added, pretext + 'ポップ・グループ]]');
 	});
 
 	if (!error && !main_country
