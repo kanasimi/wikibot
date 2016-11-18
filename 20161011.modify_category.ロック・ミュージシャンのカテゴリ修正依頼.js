@@ -230,12 +230,14 @@ function for_each_page(page_data, messages) {
 
 function finish_work() {
 	if (count > 0) {
-		var messages = [ '; カテゴリから国を判別できない音楽家或いはバンド: '
+		var categories = Object.keys(category_count),
+		//
+		messages = problem_list.length === 0 ? []
+		//
+		: [ '; カテゴリから国を判別できない音楽家或いはバンド: '
 		//
 		+ (problem_list.length + no_country_found.length) + '/' + count,
-				problem_list.join('\n') ],
-		//
-		categories = Object.keys(category_count);
+				problem_list.join('\n') ];
 
 		if (no_country_found.length > 0) {
 			messages.push('', '; 国別の歌手のカテゴリを含んでいない (' + no_country_found.length
@@ -276,12 +278,12 @@ prepare_directory(base_directory);
 // console.log(all_properties_array.join(','));
 CeL.wiki.cache([ {
 	// Template:Infobox Musicianが使用されている記事
-	// type : 'embeddedin',
-	// list : 'Template:Infobox Musician',
+	type : 'embeddedin',
+	list : 'Template:Infobox Musician',
 
 	// Category:日本の歌手グループにある記事
-	type : 'categorymembers',
-	list : 'Category:日本の歌手グループ',
+	// type : 'categorymembers',
+	// list : 'Category:日本の歌手グループ',
 
 	reget : true,
 	operator : function(list) {
