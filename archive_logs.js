@@ -211,14 +211,17 @@ function for_log_page(page_data) {
 
 		}, config, function(title, error) {
 			if (!error) {
+				// 正常結束，移除原紀錄內容。
 				write_log_page();
+
 			} else if (had_failed) {
 				CeL.err('write_archive: 無法寫入存檔 [[' + archive_page + ']]！');
 				console.error(error);
+
 			} else {
-				if (log_title in lastest_archive)
+				if (log_title in lastest_archive) {
 					lastest_archive[log_title]++;
-				else {
+				} else {
 					CeL.err('write_archive: 創建存檔頁面 [['
 					//
 					+ archive_page + ']] 失敗，不再作嘗試。');

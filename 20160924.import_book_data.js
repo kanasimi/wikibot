@@ -8,6 +8,8 @@
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
+// for CeL.data.check.ISBN()
+CeL.run('data.check');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');
@@ -77,7 +79,6 @@ all_properties = {
 },
 //
 all_properties_array = Object.keys(all_properties).sort(),
-
 //
 PATTERN_ISBN_1 = /{{ *ISBN *\|([^{}]+)}}/ig, PATTERN_ISBN_2 = /ISBN(?:-?1[03][: ]+| *)([\d-]+X?)/ig,
 //
@@ -101,16 +102,27 @@ function add_property(object, key, value) {
 	}
 }
 
-function add_ISBN(matched, data) {
-	if (matched && (matched = matched[1].replace(/-/g, '').trim()
-	//
-	.replace(/^ISBN\s*/i, ''))) {
-		if (matched.length === 13 || matched.length === 10) {
-			add_property(data, 'ISBN-' + matched.length, matched);
-		} else {
-			CeL.err('Invalid ISBN: ' + matched);
+function add_ISBN(ISBN, data, entity) {
+	ISBN = CeL.data.check.normalize_ISBN(ISBN);
+	if (!CeL.data.check.ISBN(ISBN)) {
+		CeL.err('Invalid ISBN: ' + ISBN);
+		return;
+	}
+
+	var id = 'ISBN-' + ISBN.length,
+	// TODO: check duplicate ISBN
+	exists = entity.claims && entity.claims[CeL.wiki.data.search.use_cache(id)];
+	if (exists) {
+		exists = CeL.wiki.data.value_of(exists, undefined, {
+			multi : true
+		}).map(CeL.data.check.normalize_ISBN);
+
+		if (exists.includes(ISBN)) {
+			return;
 		}
 	}
+
+	add_property(data, id, ISBN);
 }
 
 var PATTERN_only_common_characters = CeL.wiki.PATTERN_only_common_characters,
@@ -304,10 +316,10 @@ function for_each_page(page_data, messages) {
 			if (value = parameters.id) {
 				value = value.toString();
 				while (matched = PATTERN_ISBN_1.exec(value)) {
-					add_ISBN(matched, data);
+					add_ISBN(matched[1], data, entity);
 				}
 				while (matched = PATTERN_ISBN_2.exec(value)) {
-					add_ISBN(matched, data);
+					add_ISBN(matched[1], data, entity);
 				}
 
 				while (matched = PATTERN_NCID.exec(value)) {
