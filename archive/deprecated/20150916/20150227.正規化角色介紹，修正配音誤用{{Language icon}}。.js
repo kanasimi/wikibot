@@ -477,7 +477,7 @@ config = {
 			if (matched) {
 				content = matched[1] + matched[2].split(/[\r\n]+/)
 				//
-				.append(possible_misuse_list).uniq().join('\n');
+				.append(possible_misuse_list).unique().join('\n');
 			} else {
 				content += '\n' + possible_misuse_list.join('\n');
 			}

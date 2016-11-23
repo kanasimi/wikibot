@@ -192,7 +192,7 @@ function endding() {
 			var filename = base_directory + 'filtered.lst';
 			CeL.info('endding: ' + filtered.length
 					+ ' pages filtered, write to [' + filename + '].');
-			node_fs.writeFileSync(filename, filtered.sort().uniq().join('\n'),
+			node_fs.writeFileSync(filename, filtered.sort().unique_sorted().join('\n'),
 					'utf8');
 			// console.log(filtered.join('\n'));
 		} else

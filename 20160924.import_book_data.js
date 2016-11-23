@@ -122,6 +122,7 @@ function add_ISBN(ISBN, data, entity) {
 		}
 	}
 
+	CeL.debug(ISBN, 2, 'add_ISBN');
 	add_property(data, id, ISBN);
 }
 
@@ -222,7 +223,7 @@ function for_each_page(page_data, messages) {
 						return true;
 					}
 
-				}).uniq();
+				}).unique();
 
 				if (book_title.length < 2) {
 					book_title = book_title[0];

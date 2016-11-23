@@ -1096,7 +1096,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				entity.claims[読み仮名_id]), f_label))) {
 					this.summary = 'imported 仮名 from [['
 					//
-					+ titles.uniq().slice(0, 10).map(function(title) {
+					+ titles.unique().slice(0, 10).map(function(title) {
 						return use_language + ':' + title;
 					}).join(summary_sp) + ']]';
 					// treat foreign_title as 読み仮名.
@@ -1234,7 +1234,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		// TODO: add [[Special:Redirect/revision/00000|版本]]
 		summary : 'bot: import label/alias from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。
-		+ titles.uniq().slice(0, 10).join(summary_sp)
+		+ titles.unique().slice(0, 10).join(summary_sp)
 		//
 		+ summary_postfix
 
@@ -1265,7 +1265,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 		if (!may_skip) {
 			// 成功才登記。失敗則下次重試。
-			titles.uniq().forEach(processed_data.remove, processed_data);
+			titles.unique().forEach(processed_data.remove, processed_data);
 		}
 
 		// do next.
@@ -1321,7 +1321,7 @@ function next_label_data_work() {
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，
 	// 因此將 processed_data 的建置放在 finish_work() 階段。
-	titles.uniq().forEach(function(title, index) {
+	titles.unique().forEach(function(title, index) {
 		processed_data.data_of(title, revids[index]);
 	});
 
@@ -1391,7 +1391,7 @@ function next_label_data_work() {
 						+ ']]:');
 				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。
-				titles.uniq().forEach(processed_data.remove, processed_data);
+				titles.unique().forEach(processed_data.remove, processed_data);
 
 				/**
 				 * do next action. 警告: 若是自行設定 .onfail，則需要自行善後。
@@ -1503,7 +1503,7 @@ CeL.wiki.cache([ {
 						.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
 					}));
 				}
-				PATTERN_common_title = PATTERN_common_title.sort().uniq();
+				PATTERN_common_title = PATTERN_common_title.sort().unique_sorted();
 				// 保留 ''，因為可能只符合 postfix。 e.g., '共和國'
 				if (false && !PATTERN_common_title[0])
 					PATTERN_common_title = PATTERN_common_title.slice(1);
@@ -1516,7 +1516,7 @@ CeL.wiki.cache([ {
 		}
 
 		return {
-			source : '^(?:' + countries.sort().uniq().join('|') + ')$',
+			source : '^(?:' + countries.sort().unique_sorted().join('|') + ')$',
 			flags : ''
 		};
 	},

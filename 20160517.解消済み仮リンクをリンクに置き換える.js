@@ -677,6 +677,7 @@ function for_each_page(page_data, messages) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
 
+				// TODO: 處理繁簡轉換的情況:有可能目標頁面存在，只是繁簡不一樣。
 				wiki.redirect_to(local_title,
 				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向
 				// converted_local_title。

@@ -78,7 +78,7 @@ normalized_count = CeL.wiki.redirects.count.bind(null, 維護模板本名);
 function show_模板(list) {
 	return list.map(function(page_data) {
 		return page_data.title.replace(/^Template:/i, '');
-	}).sort().uniq();
+	}).sort().unique_sorted();
 }
 
 // -----------------------------------------
@@ -284,7 +284,7 @@ CeL.wiki.cache([ {
 	type : 'redirects',
 	list : 多個問題_模板別名_list.concat(多個問題_模板名),
 	operator : function(list) {
-		// list=list.uniq();
+		// list=list.unique();
 		多個問題_模板別名_list = list;
 	}
 }, {
@@ -294,7 +294,7 @@ CeL.wiki.cache([ {
 	// list : previous one: 多個問題_模板別名_list
 	each_file_name : CeL.wiki.cache.title_only,
 	retrieve : function(list) {
-		return CeL.wiki.uniq_list(list);
+		return CeL.wiki.unique_list(list);
 	},
 	operator : function(list) {
 		CeL.log('All ' + list.length

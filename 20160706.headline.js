@@ -219,7 +219,7 @@ function write_data() {
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
-				section += headline_data.sort().uniq().join('\n') + '\n';
+				section += headline_data.sort().unique_sorted().join('\n') + '\n';
 				return section;
 			});
 		}
@@ -227,7 +227,7 @@ function write_data() {
 		var has_new_data = add_source_data.length > 0;
 		if (has_new_data) {
 			CeL.debug('add {{source}}.', 0, 'write_data');
-			add_source_data = add_source_data.sort().uniq().join('\n') + '\n';
+			add_source_data = add_source_data.sort().unique_sorted().join('\n') + '\n';
 			content = content.replace(
 			//
 			/(?:\n|^)==\s*消息來源\s*==\n/, function(section) {
