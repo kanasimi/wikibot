@@ -37,7 +37,11 @@ archive_boundary_10 = Date.now() - 10 * 24 * 60 * 60 * 1000,
 // NG: 申請升職管理員的討論串，將於投票結束且討論結束的3日（即72小時）後進行存檔。
 archive_boundary_3 = Date.now() - 3 * 24 * 60 * 60 * 1000,
 // 每月1號：刪除所有{{saved}}提示模板。
-remove_old_notice_section = (new Date).getDate() === 1;
+remove_old_notice_section = (new Date(Date.now()
+// to UTC+0
++ (new Date).getTimezoneOffset() * 60 * 1000
+// Use UTC+8
++ 8 * 60 * 60 * 1000)).getUTCDate() === 1;
 
 function for_board(page_data) {
 	// 更動 counter
@@ -164,6 +168,7 @@ function for_board(page_data) {
 			+ section_text.trim();
 		}, {
 			bot : 1,
+			tags : '快速存档讨论串',
 			summary : '存檔過期討論串:' + section_title
 		});
 	});
