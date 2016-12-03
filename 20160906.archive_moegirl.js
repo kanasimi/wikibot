@@ -191,6 +191,7 @@ function for_board(page_data) {
 		wiki.page(page_data).edit(parser.toString(), {
 			bot : 1,
 			nocreate : 1,
+			tags : '快速存档讨论串',
 			summary : '存檔討論串: ' + summary_list
 		});
 	} else {
