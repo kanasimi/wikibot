@@ -24,11 +24,9 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'https://zh.moegirl.org/api.php');
-
-wiki.page('Talk:讨论版', for_board).page('Talk:提问求助区', for_board);
-
-var
+wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
+//
+tags = '快速存档讨论串',
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
 // 討論串10日無回復，則將標題進行複製、討論內容進行剪切存檔。
 // 在「兩討論區」中，保留標題、內容存檔的討論串，其標題將於每月1日0時刪除。
@@ -42,6 +40,8 @@ remove_old_notice_section = (new Date(Date.now()
 + (new Date).getTimezoneOffset() * 60 * 1000
 // Use UTC+8
 + 8 * 60 * 60 * 1000)).getUTCDate() === 1;
+
+wiki.page('Talk:讨论版', for_board).page('Talk:提问求助区', for_board);
 
 function for_board(page_data) {
 	// 更動 counter
@@ -168,7 +168,7 @@ function for_board(page_data) {
 			+ section_text.trim();
 		}, {
 			bot : 1,
-			tags : '快速存档讨论串',
+			tags : tags,
 			summary : '存檔過期討論串:' + section_title
 		});
 	});
@@ -191,7 +191,7 @@ function for_board(page_data) {
 		wiki.page(page_data).edit(parser.toString(), {
 			bot : 1,
 			nocreate : 1,
-			tags : '快速存档讨论串',
+			tags : tags,
 			summary : '存檔討論串: ' + summary_list
 		});
 	} else {
