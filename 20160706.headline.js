@@ -225,6 +225,10 @@ function write_data() {
 		}
 
 		var has_new_data = add_source_data.length > 0;
+		if (!has_new_data) {
+			// 須在成功取得最少一份報紙的頭條才建立新聞稿。這樣可以避免浪費人力去刪掉沒有內容的空白新聞稿。
+			return;
+		}
 		if (has_new_data) {
 			CeL.debug('add {{source}}.', 0, 'write_data');
 			add_source_data = add_source_data.sort().unique_sorted().join('\n') + '\n';
