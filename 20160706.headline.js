@@ -431,7 +431,7 @@ function parse_橙新聞_headline(response, publisher) {
 	var count = 0, news_content = response.between(
 			'function content() parse begin', 'function content() parse end')
 	// 把斷續的頭條新聞標題連接起來。
-	.replace(/<\/strong><strong>/g, '');
+	.replace(/<\/strong><strong>/g, '').replace(/<\/strong> +<strong>/g, ' ');
 	[ '文匯報', '東方日報', '大公報', '明報', '星島日報', '經濟日報', '頭條日報' ].forEach(function(
 			name) {
 		if (news_content.includes(name))
@@ -444,6 +444,8 @@ function parse_橙新聞_headline(response, publisher) {
 		return;
 	}
 
+	news_content = news_content.replace(/&nbsp;/g, ' ').replace(/ {2,}/g, ' ');
+	//console.log(news_content);
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	// e.g., "<strong>headline</strong></p>\n<p>《文匯報》"
@@ -460,7 +462,7 @@ function parse_橙新聞_headline(response, publisher) {
 	PATTERN = /<strong>([^<>]+)\s*《([^《》]{1,20})》\s*<\/strong>/g;
 	while (matched = PATTERN.exec(news_content)) {
 		matched[1] = matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, '');
-		if (matched[1].length < 40) {
+		if (matched[1].length < 80) {
 			count++;
 			add_headline(matched[2], matched[1], publisher);
 		}
