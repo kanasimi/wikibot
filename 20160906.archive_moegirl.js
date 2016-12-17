@@ -154,9 +154,9 @@ function for_board(page_data) {
 				content = (archive_header + '\n' + content).trim();
 			}
 
-			CeL.log('archive to [[' + archive_title
+			CeL.log('archive to ' + CeL.wiki.title_link_of(archive_title)
 			//
-			+ ']]: "' + section_title + '"');
+			+ ': "' + section_title + '"');
 			if (false) {
 				CeL.log(content);
 				CeL.log('~'.repeat(80));
@@ -169,14 +169,14 @@ function for_board(page_data) {
 		}, {
 			bot : 1,
 			tags : tags,
-			summary : '存檔過期討論串:' + section_title
+			summary : '存檔過期討論串:' + section_title + ' 從' + CeL.wiki.title_link_of(page_data)
 		});
 	});
 
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (archive_count > 0) {
-			summary_list.push('存檔' + archive_count + '個過期討論串');
+			summary_list.push('存檔' + archive_count + '個過期討論串至' + CeL.wiki.title_link_of(archive_title));
 		}
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
@@ -184,7 +184,7 @@ function for_board(page_data) {
 		}
 		summary_list = summary_list.join('，');
 		// sections need change
-		CeL.log('[[' + page_data.title + ']]: ' + summary_list);
+		CeL.log(CeL.wiki.title_link_of(page_data.title) + ': ' + summary_list);
 		// return;
 
 		// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
@@ -195,6 +195,6 @@ function for_board(page_data) {
 			summary : '存檔討論串: ' + summary_list
 		});
 	} else {
-		CeL.log('[[' + page_data.title + ']]: Nothing need change.');
+		CeL.log(CeL.wiki.title_link_of(page_data.title) + ': Nothing need change.');
 	}
 }
