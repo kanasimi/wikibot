@@ -210,17 +210,7 @@ message_set = {
 			// ={{interlanguage link multi}}
 			illm : template_orders.LcF_en,
 
-			'link-ja' : Object.assign({
-				'|foreign_language' : 'ja'
-			}, template_orders.LF),
-			'link-fr' : Object.assign({
-				'|foreign_language' : 'fr'
-			}, template_orders.LF),
-
 			le : Object.assign({
-				'|foreign_language' : 'en'
-			}, template_orders.LF),
-			'link-en' : Object.assign({
 				'|foreign_language' : 'en'
 			}, template_orders.LF)
 		},
@@ -284,6 +274,25 @@ message_set = {
 };
 
 message_set = Object.assign(message_set['*'], message_set[use_language]);
+
+if (use_language === 'zh') {
+	'ar,az,be,bg,bs,ca,cs,da,de,el,en,eo,es,et,eu,fa,fi,fr,ga,he,hi,hr,hu,hy,id,is,it,ja,ka,kk,ko,ky,la,lo,lt,lv,mn,ms,my,nl,no,pl,pt,ro,ru,sh,sk,sl,so,sq,sr,sv,ta,te,tg,th,tl,tr,uk,ur,uz,vi,gan,lzh,nan,yue'
+	// @see [[Template:Internal_link_helper]]
+	.split(',').forEach(function(language_code) {
+		var order = Object.assign({
+			'|foreign_language' : language_code
+		}, template_orders.LF);
+		message_set.template_order_of_name
+		// {{Internal link helper}}子模板
+		['interlanguage link multi/' + language_code] = order;
+		message_set.template_order_of_name
+		//
+		['link-' + language_code] = order;
+		message_set.template_order_of_name
+		//
+		[language_code + '-link'] = order;
+	});
+}
 
 function normalize_parameter(token) {
 	var template_name = token.name.toLowerCase(),
