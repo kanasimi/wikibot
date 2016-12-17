@@ -220,7 +220,7 @@ message_set = {
 
 		summary_prefix : 'bot: 清理跨語言連結',
 		summary_separator : '、',
-		summary_postfix : '成為內部連結 (標題已經過轉換)',
+		summary_postfix : '成為內部連結 (標題已經過繁簡轉換)',
 
 		no_template : '未發現跨語言連結模板',
 		invalid_template : '跨語言連結模板的格式錯誤。',
@@ -687,6 +687,10 @@ function for_each_page(page_data, messages) {
 				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向
 				// converted_local_title。
 				function(redirect_data, page_data) {
+					if (false) {
+						console.log('redirect_data of ' + local_title + ': '
+								+ JSON.stringify(redirect_data));
+					}
 					if (!converted_local_title) {
 						// 從外語言條目連結無法取得本地頁面的情況。
 						if (redirect_data) {
