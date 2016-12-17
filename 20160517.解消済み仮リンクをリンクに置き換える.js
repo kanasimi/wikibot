@@ -210,6 +210,13 @@ message_set = {
 			// ={{interlanguage link multi}}
 			illm : template_orders.LcF_en,
 
+			'link-ja' : Object.assign({
+				'|foreign_language' : 'ja'
+			}, template_orders.LF),
+			'link-fr' : Object.assign({
+				'|foreign_language' : 'fr'
+			}, template_orders.LF),
+
 			le : Object.assign({
 				'|foreign_language' : 'en'
 			}, template_orders.LF),
@@ -220,7 +227,7 @@ message_set = {
 
 		summary_prefix : 'bot: 清理跨語言連結',
 		summary_separator : '、',
-		summary_postfix : '成為內部連結 (標題已經過繁簡轉換)',
+		summary_postfix : '成為內部連結 (標題經過繁簡轉換)',
 
 		no_template : '未發現跨語言連結模板',
 		invalid_template : '跨語言連結模板的格式錯誤。',
