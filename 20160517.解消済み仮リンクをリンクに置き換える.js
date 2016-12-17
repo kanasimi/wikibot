@@ -273,6 +273,7 @@ message_set = {
 	}
 };
 
+// 將 message_set 轉成本地 local message set。
 message_set = Object.assign(message_set['*'], message_set[use_language]);
 
 if (use_language === 'zh') {
