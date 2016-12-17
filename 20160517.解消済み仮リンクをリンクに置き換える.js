@@ -220,7 +220,7 @@ message_set = {
 
 		summary_prefix : 'bot: 清理跨語言連結',
 		summary_separator : '、',
-		summary_postfix : '成為內部連結',
+		summary_postfix : '成為內部連結 (標題已經過轉換)',
 
 		no_template : '未發現跨語言連結模板',
 		invalid_template : '跨語言連結模板的格式錯誤。',
@@ -378,12 +378,12 @@ function check_final_work() {
 			}
 
 			// TODO: +'<span class="plainlinks">'
-			messages.push('; [['
+			messages.push('; '
 			// + 'Special:Redirect/revision/' + report.id + '|'
-			+ title
+			+ CeL.wiki.title_link_of(title)
 			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
 			// an external link rather than as an wikilink
-			+ ']] ([{{fullurl:' + title + '|action=edit}} '
+			+ ' ([{{fullurl:' + title + '|action=edit}} '
 			//
 			+ message_set.edit + '])');
 
@@ -406,7 +406,9 @@ function check_final_work() {
 			//
 			message_set.manual_correction_required + ' --~~~~');
 			if (message_set.fix_category) {
-				messages.push('[[' + message_set.fix_category + ']]');
+				messages.push(
+				//
+				CeL.wiki.title_link_of(message_set.fix_category));
 			}
 		}
 		return messages.join('\n');
@@ -481,8 +483,9 @@ function for_each_page(page_data, messages) {
 
 			if (error_name && !is_information) {
 				if (!is_information) {
-					CeL.log('check_page: ' + error_name + ' @ [[' + title
-							+ ']]: ' + token.toString());
+					CeL.log('check_page: ' + error_name + ' @ '
+							+ CeL.wiki.title_link_of(title) + ': '
+							+ token.toString());
 					if (token.error_message) {
 						CeL.log(String(token.error_message));
 					}
@@ -529,9 +532,11 @@ function for_each_page(page_data, messages) {
 				local_title_index = normalized_param.index_order.local_title;
 				if (local_title && (typeof local_title === 'string')) {
 					CeL.debug('token[' + local_title_index + '] : '
-							+ token[local_title_index] + '→[[' + local_title
-							+ ']]', 3, 'check_page');
-					token[local_title_index] = '[[' + local_title + ']]';
+							+ token[local_title_index] + '→'
+							+ CeL.wiki.title_link_of(local_title), 3,
+							'check_page');
+					token[local_title_index] = CeL.wiki
+							.title_link_of(local_title);
 				}
 				error_list.push(
 				// @see wiki_toString @ CeL.wiki
@@ -569,8 +574,8 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			CeL.debug('從這裡起，一個頁面應該只會執行一次: [[' + title + ']] / ' + page_remains,
-					2, 'check_page');
+			CeL.debug('從這裡起，一個頁面應該只會執行一次: ' + CeL.wiki.title_link_of(title)
+					+ ' / ' + page_remains, 2, 'check_page');
 
 			if (changed.length === 0) {
 				// check_final_work() 得要放在本函數 return 之前執行。
@@ -587,7 +592,7 @@ function for_each_page(page_data, messages) {
 
 			// for debug
 			if (0) {
-				CeL.log('modify [[' + title + ']]: ');
+				CeL.log('modify ' + CeL.wiki.title_link_of(title) + ': ');
 				// CeL.log(last_content);
 				check_final_work();
 				return;
@@ -645,8 +650,8 @@ function for_each_page(page_data, messages) {
 			if (!changed.includes(link)) {
 				// 記錄確認已經有改變的文字連結。
 				changed.push(link);
-				CeL.log('modify_link: Adapt @ [[' + title + ']]: '
-						+ token.toString() + ' → ' + link);
+				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
+						+ ': ' + token.toString() + ' → ' + link);
 			}
 
 			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
@@ -733,19 +738,19 @@ function for_each_page(page_data, messages) {
 					token.error_message
 					//
 					= redirect_data ? redirect_data === local_title ? ''
-							: ' → [[' + redirect_data + ']]' : ': '
-							+ message_set.not_exist;
+							: ' → ' + CeL.wiki.title_link_of(redirect_data)
+							: ': ' + message_set.not_exist;
 					token.error_message = ':: '
 							+ message_set.from_parameter
-							+ ': [['
-							+ local_title
-							+ ']]'
+							+ ': '
+							+ CeL.wiki.title_link_of(local_title)
+							+ ' '
 							+ token.error_message
 							+ '. '
 							+ message_set.translated_from_foreign_title
 							+ ': '
-							+ (converted_local_title ? '[['
-									+ converted_local_title + ']]'
+							+ (converted_local_title ? CeL.wiki
+									.title_link_of(converted_local_title)
 									: message_set.not_exist);
 
 					// test:
@@ -770,8 +775,8 @@ function for_each_page(page_data, messages) {
 				CeL.warn(
 				// 沒 .pageprops 的似乎大多是沒有 Wikidata entity 的？
 				'for_foreign_page: No foreign_page_data.pageprops: [[:'
-						+ foreign_language + ':' + foreign_title + ']] @ [['
-						+ title + ']]');
+						+ foreign_language + ':' + foreign_title + ']] @ '
+						+ CeL.wiki.title_link_of(title));
 			} else if ('disambiguation' in foreign_page_data.pageprops) {
 				check_page(message_set.foreign_is_disambiguation);
 				return;
@@ -783,7 +788,8 @@ function for_each_page(page_data, messages) {
 			if (redirect_data) {
 				if (redirect_data.length !== 1) {
 					CeL.warn('for_foreign_page: Get ' + redirect_data.length
-							+ ' redirect links for [[' + title + ']]!');
+							+ ' redirect links for '
+							+ CeL.wiki.title_link_of(title) + '!');
 					console.log(redirect_data);
 				}
 				// 僅取用第一筆資料。
@@ -801,11 +807,14 @@ function for_each_page(page_data, messages) {
 				if (!foreign_page_data.title
 						|| foreign_title.toLowerCase() !== foreign_page_data.title
 								.toLowerCase()) {
-					CeL.log('for_foreign_page: different foreign title: [[:'
-							+ foreign_language + ':' + foreign_title
-							+ ']] → [[:' + foreign_language + ':'
-							+ foreign_page_data.title + ']] @ [[' + title
-							+ ']] (continue task)');
+					CeL.log('for_foreign_page: different foreign title: '
+							+ CeL.wiki.title_link_of(foreign_language + ':'
+									+ foreign_title)
+							+ ' → '
+							+ CeL.wiki.title_link_of(foreign_language + ':'
+									+ foreign_page_data.title) + ' @ '
+							+ CeL.wiki.title_link_of(title)
+							+ ' (continue task)');
 				}
 				foreign_title = foreign_page_data.title;
 			}
@@ -846,7 +855,9 @@ function for_each_page(page_data, messages) {
 			if (foreign_language && foreign_language.includes('{')
 			//
 			&& !foreign_language.includes('}')) {
-				CeL.err('parser error @ [[' + title + ']]?');
+				CeL.err('parser error @ '
+				//
+				+ CeL.wiki.title_link_of(title) + '?');
 				console.log(token);
 			}
 
@@ -860,9 +871,9 @@ function for_each_page(page_data, messages) {
 					save_response : true,
 					get_URL_options : {
 						onfail : function(error) {
-							CeL.err('for_each_page: get_URL error: [['
-									+ foreign_language + ':' + foreign_title
-									+ ']]:');
+							CeL.err('for_each_page: get_URL error: '
+									+ CeL.wiki.title_link_of(foreign_language
+											+ ':' + foreign_title) + ':');
 							console.error(error);
 							if (error.code === 'ENOTFOUND'
 							//
@@ -887,8 +898,9 @@ function for_each_page(page_data, messages) {
 			} else if (local_title && WD) {
 				if (foreign_language) {
 					CeL.warn('for_each_page: Using language ['
-							+ foreign_language + '] in [[d:' + WD + ']] @ [['
-							+ title + ']].');
+							+ foreign_language + '] in '
+							+ CeL.wiki.title_link_of('d:' + WD) + ' @ '
+							+ CeL.wiki.title_link_of(title) + '.');
 				}
 				// for [[d:Q1]]
 				foreign_language = 'd';
@@ -933,14 +945,15 @@ function for_each_page(page_data, messages) {
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: [[' + page_data.title + ']]';
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 	parser.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
-		CeL.warn('for_each_page: [[' + title
+		CeL.warn('for_each_page: ' + CeL.wiki.title_link_of(title)
 		// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
-		+ ']] 也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？');
+		+ ' 未發現已登記之跨語言連結模板。'
+				+ '也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？');
 		// check_page(message_set.no_template);
 		check_final_work();
 	}

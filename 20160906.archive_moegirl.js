@@ -163,20 +163,23 @@ function for_board(page_data) {
 				CeL.log(parser[parser_index].toString() + section_text.trim());
 			}
 			// return;
-			return content + '\n\n== ' + section_title + ' ==\n'
+			return content + '\n\n== ' + section_title
 			// append 存檔段落(討論串)內容
-			+ section_text.trim();
+			+ ' ==\n' + section_text.trim();
 		}, {
 			bot : 1,
 			tags : tags,
-			summary : '存檔過期討論串:' + section_title + '←' + CeL.wiki.title_link_of(page_data)
+			summary : '存檔過期討論串:' + section_title
+			//
+			+ '←' + CeL.wiki.title_link_of(page_data)
 		});
 	});
 
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (archive_count > 0) {
-			summary_list.push('存檔' + archive_count + '個過期討論串→' + CeL.wiki.title_link_of(archive_title));
+			summary_list.push('存檔' + archive_count + '個過期討論串→'
+					+ CeL.wiki.title_link_of(archive_title));
 		}
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
@@ -195,6 +198,7 @@ function for_board(page_data) {
 			summary : '存檔討論串: ' + summary_list
 		});
 	} else {
-		CeL.log(CeL.wiki.title_link_of(page_data.title) + ': Nothing need change.');
+		CeL.log(CeL.wiki.title_link_of(page_data.title)
+				+ ': Nothing need change.');
 	}
 }

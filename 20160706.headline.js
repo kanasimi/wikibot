@@ -219,7 +219,9 @@ function write_data() {
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
-				section += headline_data.sort().unique_sorted().join('\n') + '\n';
+				section += headline_data.sort()
+				//
+				.unique_sorted().join('\n') + '\n';
 				return section;
 			});
 		}
@@ -231,7 +233,9 @@ function write_data() {
 		}
 		if (has_new_data) {
 			CeL.debug('add {{source}}.', 0, 'write_data');
-			add_source_data = add_source_data.sort().unique_sorted().join('\n') + '\n';
+			add_source_data = add_source_data.sort()
+			//
+			.unique_sorted().join('\n') + '\n';
 			content = content.replace(
 			//
 			/(?:\n|^)==\s*消息來源\s*==\n/, function(section) {
@@ -445,7 +449,7 @@ function parse_橙新聞_headline(response, publisher) {
 	}
 
 	news_content = news_content.replace(/&nbsp;/g, ' ').replace(/ {2,}/g, ' ');
-	//console.log(news_content);
+	// console.log(news_content);
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	// e.g., "<strong>headline</strong></p>\n<p>《文匯報》"
