@@ -169,14 +169,14 @@ function for_board(page_data) {
 		}, {
 			bot : 1,
 			tags : tags,
-			summary : '存檔過期討論串:' + section_title + ' 從' + CeL.wiki.title_link_of(page_data)
+			summary : '存檔過期討論串:' + section_title + '←' + CeL.wiki.title_link_of(page_data)
 		});
 	});
 
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (archive_count > 0) {
-			summary_list.push('存檔' + archive_count + '個過期討論串至' + CeL.wiki.title_link_of(archive_title));
+			summary_list.push('存檔' + archive_count + '個過期討論串→' + CeL.wiki.title_link_of(archive_title));
 		}
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
