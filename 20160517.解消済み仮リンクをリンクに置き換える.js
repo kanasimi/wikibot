@@ -48,17 +48,17 @@ ignore_ns = false,
 page_remains,
 
 // default parameters 預設index/次序集
+// c: foreign_language: foreign_language code 外文語言代號
+// F: foreign_title: foreign_title 外文條目名
+// L: local_title: local title 中文條目名
+// label: label text displayed 顯示名
+// preserve: preserve foreign language link
 template_orders = {
 	LcF_ja : {
-		// local title
 		local_title : 1,
-		// foreign_language code
 		foreign_language : 2,
-		// foreign_title
 		foreign_title : 3,
-		// label text displayed
 		label : 'label',
-		// preserve foreign language link
 		preserve : [ 'preserve', 'display' ]
 	},
 	LcF_en : {
@@ -75,6 +75,12 @@ template_orders = {
 		local_title : [ 2, 'en' ],
 		foreign_title : [ 3, 'lang_title', 2, 'en' ],
 		label : [ 4, 'lt', 'display', 'en_text' ]
+	},
+	cFL : {
+		foreign_language : 1,
+		foreign_title : 2,
+		local_title : 3,
+		label : 4,
 	},
 	LF : {
 		local_title : 1,
@@ -211,6 +217,9 @@ message_set = {
 			'interlanguage link multi' : template_orders.LcF_en,
 			// ={{interlanguage link multi}}
 			illm : template_orders.LcF_en,
+
+			tsl : template_orders.cFL,
+			translink : template_orders.cFL,
 
 			le : Object.assign({
 				'|foreign_language' : 'en'

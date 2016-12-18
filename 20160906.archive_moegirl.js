@@ -108,9 +108,10 @@ function for_board(page_data) {
 				return;
 			}
 			var date_list = CeL.wiki.parse.date(token.toString(), true, true);
-			console.log('[' + token.toString()
-			//
-			+ '] → date_list: ' + date_list);
+			if (false) {
+				console.log('[' + token.toString() + '] → date_list: '
+						+ date_list);
+			}
 			console.log(token);
 			if (date_list.length === 0) {
 				// 跳過一個日期都沒有的討論串
