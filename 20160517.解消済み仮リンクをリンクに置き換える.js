@@ -79,8 +79,8 @@ template_orders = {
 	cFL : {
 		foreign_language : 1,
 		foreign_title : 2,
-		local_title : 3,
-		label : 4,
+		local_title : [ 3, 2 ],
+		label : 4
 	},
 	LF : {
 		local_title : 1,
@@ -228,7 +228,7 @@ message_set = {
 
 		summary_prefix : 'bot: 清理跨語言連結',
 		summary_separator : '、',
-		summary_postfix : '成為內部連結(標題經繁簡轉換，編輯摘要的red link條目存在)',
+		summary_postfix : '成為內部連結:標題經繁簡轉換 編輯摘要的red link條目存在',
 
 		no_template : '未發現跨語言連結模板',
 		invalid_template : '跨語言連結模板的格式錯誤。',
