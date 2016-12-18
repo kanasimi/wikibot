@@ -238,6 +238,7 @@ message_set = {
 		foreign_redirect_to_section : '所對應的外語頁面重定向到了條目章節。',
 		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到Wikidata。',
 		different_local_title : '所對應的中文條目標題與模板參數所列出的不相符。',
+		local_title_too_new : '中文條目過新，將過幾天再測試。',
 		not_exist : '不存在',
 		from_parameter : '從模板參數',
 		translated_from_foreign_title : '從外語頁面對應的中文條目',
@@ -272,8 +273,7 @@ message_set = {
 		missing_converted_local : 'Missing converted local page, or the foreign / local page is not link to wikidata.',
 		// gets form langlinks
 		different_local_title : 'The local title is different from title gets form wikidata.',
-		// local_title 過新，將過幾天再測試。
-		local_title_too_new : 'The local page is too new.',
+		local_title_too_new : 'The local page is too new. Will test later.',
 		not_exist : 'Not exist',
 		from_parameter : 'From the parameter',
 		translated_from_foreign_title : 'Translated from foreign title',
@@ -702,6 +702,9 @@ function for_each_page(page_data, messages) {
 						* 1000) {
 					modify_link();
 				} else {
+					CeL.log('Skip ' + CeL.wiki.title_link_of(converted_local_title)
+					//
+					+ ': ' + message_set.local_title_too_new);
 					check_page(message_set.local_title_too_new, true);
 				}
 			}, {
@@ -727,7 +730,7 @@ function for_each_page(page_data, messages) {
 					if (!converted_local_title) {
 						// 從外語言條目連結無法取得本地頁面的情況。
 						if (redirect_data) {
-							// 存在本地頁面。
+							// 存在本地頁面。e.g., redirected page
 							check_page(message_set.missing_converted_local);
 						} else {
 							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
@@ -1028,6 +1031,7 @@ CeL.wiki.cache([ {
 		list = list.slice(0 * test_limit, 1 * test_limit);
 	}
 
+	// CeL.set_debug(6);
 	// setup ((page_remains))
 	page_remains = list.length;
 	wiki.work({
