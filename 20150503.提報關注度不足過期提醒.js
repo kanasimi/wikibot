@@ -281,6 +281,7 @@ wiki
 					section : 'new',
 					sectiontitle : summary + ':' + page_list.join('、'),
 					summary : 'bot: ' + summary,
+					// tags : 'user talk page editing',
 					// redirect 常會出現 editconflict
 					// redirect : 1,
 					nocreate : 1

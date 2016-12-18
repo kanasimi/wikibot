@@ -63,6 +63,9 @@ function for_board(page_data) {
 				+ token.title);
 	}, false, 1);
 
+	// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
+	var archive_title = page_data.title + '/存档/' + (new Date).format('%Y年%2m月');
+
 	sections.forEach(function(parser_index, section_index) {
 		var section_title = parser[parser_index].title,
 		// +1: 跳過 section title 本身
@@ -131,9 +134,6 @@ function for_board(page_data) {
 		}
 
 		CeL.log('need archive: ' + section_title);
-		// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
-		var archive_title = page_data.title + '/存档/'
-				+ (new Date).format('%Y年%2m月');
 		archive_count++;
 		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
 				+ CeL.wiki.normalize_section_title(section_title) + '}}\n';
