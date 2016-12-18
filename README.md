@@ -64,9 +64,14 @@ wiki
 
 Wikidata example:
 ``` JavaScript
+// Set up wiki instance.
+var wiki = CeL.wiki.login(user_name, password, 'en');
+
 wiki.data('維基數據沙盒2', function(data) {
+	// This is callback.
 	var data_JSON = data;
 }).edit_data(function(entity) {
+	// add new / set single value with references
 	return {
 		生物俗名 : '維基數據沙盒2',
 		language : 'zh-tw',

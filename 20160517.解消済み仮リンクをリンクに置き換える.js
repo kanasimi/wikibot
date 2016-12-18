@@ -156,6 +156,7 @@ message_set = {
 
 	en : {
 		Category_has_local_page : 'Category:Interlanguage link template existing link',
+		fix_category : 'Category:Wikipedia backlog',
 		template_order_of_name : {
 			// When article names would be the same in English and foreign
 			// language Wikipedia
@@ -198,7 +199,8 @@ message_set = {
 		// Category:多語言連結已存在連結
 		Category_has_local_page : 'Category:有蓝链却未移除内部链接助手模板的页面',
 		report_page : '需要修正的跨語言連結',
-		fix_category : 'Category:跨語言連結有問題的頁面',
+		// fix_category : 'Category:跨語言連結有問題的頁面', Category:連結格式不正確的條目
+		fix_category : 'Category:维基百科积压工作',
 		report_summary : '跨語言連結清理報告',
 		manual_correction_required : '這裡列出了需修正的跨語言連結。本列表將由機器人自動更新。',
 		edit : '編',
@@ -217,7 +219,7 @@ message_set = {
 
 		summary_prefix : 'bot: 清理跨語言連結',
 		summary_separator : '、',
-		summary_postfix : '成為內部連結 (標題經繁簡轉換，因此編輯摘要可能有red link)',
+		summary_postfix : '成為內部連結 (標題經繁簡轉換，因此編輯摘要的red link條目存在)',
 
 		no_template : '未發現跨語言連結模板',
 		invalid_template : '跨語言連結模板的格式錯誤。',
@@ -372,19 +374,23 @@ function check_final_work() {
 	wiki.page('User:' + user_name + '/' + message_set.report_page)
 	//
 	.edit(function() {
-		var messages = [], data = processed_data[processed_data.KEY_DATA];
+		var messages = [], listed = 0, all = 0,
+		//
+		data = processed_data[processed_data.KEY_DATA];
 		// data: 結果報告。
 		// data[local title] = { id : 0, error : {
 		// "error name" : [ "error message", "error message", ...],
 		// "error name" : [ ... ], ... }
 		// })
 		for ( var title in data) {
+			all++;
 			// log limit
 			if (messages.length > 2000
 			// template 若存有已存在本地條目之跨語言連結模板，常常會影響數十個嵌入的條目，因此盡量顯示之。
 			&& !/^template:/i.test(title)) {
 				continue;
 			}
+			listed++;
 
 			var report = data[title],
 			//
@@ -419,13 +425,13 @@ function check_final_work() {
 		}
 
 		if (messages.length > 0) {
-			messages.unshift(
+			messages.unshift('List ' + listed + '/' + all
+			//
+			+ ' (' + (100 * listed / all | 0) + '%).',
 			//
 			message_set.manual_correction_required + ' --~~~~');
 			if (message_set.fix_category) {
-				messages.push(
-				//
-				CeL.wiki.title_link_of(message_set.fix_category));
+				messages.push('[[' + message_set.fix_category + ']]');
 			}
 		}
 		return messages.join('\n');
