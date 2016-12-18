@@ -394,9 +394,10 @@ function check_final_work() {
 		for ( var title in data) {
 			all++;
 			// log limit
-			if (messages.length > 2000
+			if (messages.length > 2e3
 			// template 若存有已存在本地條目之跨語言連結模板，常常會影響數十個嵌入的條目，因此盡量顯示之。
 			&& !/^template:/i.test(title)) {
+				CeL.log('Skip log of ' + CeL.wiki.title_link_of(title));
 				continue;
 			}
 			listed++;
