@@ -51,6 +51,8 @@ if (force || (new Date).getDate() % 2 === 1) {
 	moegirl.page('Help:沙盒‎‎').edit('{{沙盒顶部}}\n== 請在這行文字底下進行您的測試 ==\n', {
 		summary : summary,
 		nocreate : 1,
+		// [[Special:tags]] "tag應該多加一個【Bot】tag"
+		tags : 'Bot',
 		bot : 1
 	});
 }

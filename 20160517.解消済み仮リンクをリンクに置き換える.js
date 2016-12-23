@@ -394,7 +394,7 @@ function check_final_work() {
 		for ( var title in data) {
 			all++;
 			// log limit
-			if (messages.length > 2e3
+			if (messages.length > 6e3
 			// template 若存有已存在本地條目之跨語言連結模板，常常會影響數十個嵌入的條目，因此盡量顯示之。
 			&& !/^template:/i.test(title)) {
 				CeL.log('Skip log of ' + CeL.wiki.title_link_of(title));
@@ -702,7 +702,7 @@ function for_each_page(page_data, messages) {
 						* 1000) {
 					modify_link();
 				} else {
-					CeL.log('Skip ' + CeL.wiki.title_link_of(converted_local_title)
+					CeL.info('Skip ' + CeL.wiki.title_link_of(converted_local_title)
 					//
 					+ ': ' + message_set.local_title_too_new);
 					check_page(message_set.local_title_too_new, true);
