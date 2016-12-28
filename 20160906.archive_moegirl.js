@@ -50,7 +50,7 @@ function for_board(page_data) {
 	var parser = CeL.wiki.parser(page_data), sections = [];
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: [[' + page_data.title + ']]';
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
 	parser.each('section_title', function(token, index) {
@@ -59,7 +59,7 @@ function for_board(page_data) {
 		}
 		// 先找出所有 sections 的 index of parser。
 		sections.push(index);
-		console.log('[' + index + ']	' + sections.length.pad(2) + '. '
+		CeL.debug('[' + index + ']	' + sections.length.pad(2) + '. '
 				+ token.title);
 	}, false, 1);
 
@@ -77,12 +77,12 @@ function for_board(page_data) {
 			CeL.err('No title: ' + section_text);
 			return;
 		}
-		console.log('Process ' + section_title);
+		CeL.debug('Process ' + section_title);
 
-		// 跳過已存檔
-		if (section_text.length < 300
-				&& /^\n*{{(?:Saved|movedto)\s*\|.{10,200}?}}\n+$/i
-						.test(section_text)) {
+		if (section_text.length < 100
+		// 跳過已存檔{{Saved}}, {{movedto}}
+		&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
+				.test(section_text)) {
 			// 每月1號：刪除所有{{saved}}提示模板。
 			if (remove_old_notice_section) {
 				remove_count++;
@@ -108,11 +108,9 @@ function for_board(page_data) {
 				return;
 			}
 			var date_list = CeL.wiki.parse.date(token.toString(), true, true);
-			if (false) {
-				console.log('[' + token.toString() + '] → date_list: '
-						+ date_list);
-			}
-			console.log(token);
+			CeL.debug('[' + token.toString() + '] → date_list: '
+					+ date_list, 4);
+			CeL.debug(token, 3);
 			if (date_list.length === 0) {
 				// 跳過一個日期都沒有的討論串
 				return;
@@ -121,7 +119,7 @@ function for_board(page_data) {
 				return date > archive_boundary_date;
 			});
 			if (needless) {
-				console.log('** needless archive: [[' + section_title + ']]');
+				CeL.info('** needless archive: [' + section_title + ']');
 			}
 		}, {
 			slice : slice
@@ -134,7 +132,7 @@ function for_board(page_data) {
 			return;
 		}
 
-		CeL.log('need archive: ' + section_title);
+		CeL.log('need archive: [' + section_title + ']');
 		archive_count++;
 		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
 				+ CeL.wiki.normalize_section_title(section_title) + '}}\n';
@@ -147,6 +145,7 @@ function for_board(page_data) {
 		// 向存檔頁添加檔案館模板
 		+ page_data.title.replace(/^[^:]+:/, '') + '页顶/档案馆}}';
 
+		// TODO: 錯誤處理
 		wiki.page(archive_title).edit(function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
 			content = content && content.trim() || '';
@@ -178,13 +177,13 @@ function for_board(page_data) {
 
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
-		if (archive_count > 0) {
-			summary_list.push('存檔' + archive_count + '個過期討論串→'
-					+ CeL.wiki.title_link_of(archive_title));
-		}
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
 			summary_list.push('本月首日移除' + remove_count + '個討論串');
+		}
+		if (archive_count > 0) {
+			summary_list.push('存檔' + archive_count + '個過期討論串→'
+					+ CeL.wiki.title_link_of(archive_title));
 		}
 		summary_list = summary_list.join('，');
 		// sections need change
@@ -200,6 +199,6 @@ function for_board(page_data) {
 		});
 	} else {
 		CeL.log(CeL.wiki.title_link_of(page_data.title)
-				+ ': Nothing need change.');
+				+ ': Nothing needs to be changed.');
 	}
 }

@@ -1455,162 +1455,122 @@ if (!modify_Wikipedia) {
 	CeL.wiki.query.default_lag = 0;
 }
 
-CeL.wiki
-		.cache(
-				[
-						{
-							type : 'callback',
-							file_name : 'common_title',
-							list : function(callback) {
-								CeL.wiki.wdq('claim[31:6256]', function(list) {
-									callback(list);
-								}, {
-									session : wiki,
-									props : 'labels|aliases|sitelinks'
-								});
-							}
+CeL.wiki.cache([ {
+	type : 'callback',
+	file_name : 'common_title',
+	list : function(callback) {
+		CeL.wiki.wdq('claim[31:6256]', function(list) {
+			callback(list);
+		}, {
+			session : wiki,
+			props : 'labels|aliases|sitelinks'
+		});
+	}
 
-						},
-						{
-							file_name : 'common_title.' + use_language
-									+ '.json',
-							list : function(list) {
-								var countries = [];
-								list.forEach(function(country_data) {
-									function add_country_label(language) {
-										countries.append(CeL.wiki.data
-										//
-										.label_of(country_data, language, true,
-												true));
-									}
+}, {
+	file_name : 'common_title.' + use_language + '.json',
+	list : function(list) {
+		var countries = [];
+		list.forEach(function(country_data) {
+			function add_country_label(language) {
+				countries.append(CeL.wiki.data
+				//
+				.label_of(country_data, language, true, true));
+			}
 
-									add_country_label(use_language);
-									if (is_zh) {
-										add_country_label('zh-tw');
-										add_country_label('zh-cn');
-										add_country_label('zh-hant');
-										add_country_label('zh-hans');
-									}
-								});
+			add_country_label(use_language);
+			if (is_zh) {
+				add_country_label('zh-tw');
+				add_country_label('zh-cn');
+				add_country_label('zh-hant');
+				add_country_label('zh-hans');
+			}
+		});
 
-								// old, deprecated:
-								if (false && is_zh) {
-									wiki
-											.page(
-													'模块:CGroup/地名',
-													function(page_data) {
-														// prepare
-														// PATTERN_common_title
-														PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
-																//
-																+ '|伊莫拉|阿根廷|南非|土耳其')
-																.split('|');
-														var matched, pattern = /, *rule *= *'([^']+)'/g,
-														/**
-														 * {String}page content,
-														 * maybe undefined. 頁面內容 =
-														 * revision['*']
-														 */
-														content = CeL.wiki
-																.content_of(page_data);
-														while (matched = pattern
-																.exec(content)) {
-															PATTERN_common_title
-																	.append(matched[1]
-																			.split(
-																					/;|=>/)
-																			//
-																			.map(
-																					function(
-																							name) {
-																						return name
-																								.replace(
-																										/^[a-z\-\s]+:/,
-																										'')
-																								.trim()
-																								//
-																								.replace(
-																										/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/,
-																										'');
-																					}));
-														}
-														PATTERN_common_title = PATTERN_common_title
-																.sort()
-																.unique_sorted();
-														// 保留 ''，因為可能只符合
-														// postfix。 e.g., '共和國'
-														if (false && !PATTERN_common_title[0])
-															PATTERN_common_title = PATTERN_common_title
-																	.slice(1);
-														PATTERN_common_title = new RegExp(
-																//
-																'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
-																		//
-																		.replace(
-																				'國名',
-																				PATTERN_common_title
-																						.join('|')));
-													});
-								}
+		// old, deprecated:
+		if (false && is_zh) {
+			wiki.page('模块:CGroup/地名', function(page_data) {
+				// prepare PATTERN_common_title
+				PATTERN_common_title = ('馬來西亞|印尼|日本|西班牙|葡萄牙|荷蘭|奧地利|捷克'
+				//
+				+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
+				var matched, pattern = /, *rule *= *'([^']+)'/g,
+				/**
+				 * {String}page content, maybe undefined. 頁面內容 = revision['*']
+				 */
+				content = CeL.wiki.content_of(page_data);
+				while (matched = pattern.exec(content)) {
+					PATTERN_common_title.append(matched[1].split(/;|=>/)
+					//
+					.map(function(name) {
+						return name.replace(/^[a-z\-\s]+:/, '').trim()
+						//
+						.replace(/(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)$/, '');
+					}));
+				}
+				PATTERN_common_title = PATTERN_common_title
+				//
+				.sort().unique_sorted();
+				// 保留 ''，因為可能只符合
+				// postfix。 e.g., '共和國'
+				if (false && !PATTERN_common_title[0])
+					PATTERN_common_title = PATTERN_common_title.slice(1);
+				PATTERN_common_title = new RegExp(
+				//
+				'^(?:國名)(?:(?:王|(?:人民)?共和)?[國国]|[州洲]|群?島)?$'
+				//
+				.replace('國名', PATTERN_common_title.join('|')));
+			});
+		}
 
-								return {
-									source : '^(?:'
-											+ countries.sort().unique_sorted()
-													.join('|') + ')$',
-									flags : ''
-								};
-							},
-							operator : function(data) {
-								PATTERN_common_title = new RegExp(data.source,
-										data.flags);
-							}
+		return {
+			source : '^(?:'
+			//
+			+ countries.sort().unique_sorted().join('|') + ')$',
+			flags : ''
+		};
+	},
+	operator : function(data) {
+		PATTERN_common_title = new RegExp(data.source, data.flags);
+	}
 
-						},
-						false && {
-							type : 'callback',
-							file_name : 'en_titles.json',
-							list : function() {
-								return CeL
-										.fs_read(
-												'/shared/dumps/enwiki-20160601-all-titles-in-ns0',
-												/**
-												 * 若直接讀入 all-titles-in-ns0，會出現
-												 * <code>
-												FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
-												 * </code>
-												 * 但若要每個查詢一次資料庫，不如乾脆列入排程。因此跳過此步。
-												 * 
-												 * <code>
-												cd /shared/dumps/ && gzip -cd /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz > enwiki-20160601-all-titles-in-ns0
-												 * </code>
-												 */
-												'utf8')
-										.toLowerCase()
-										.split('\n')
-										.filter(
-												function(title) {
-													return /^[a-z][a-z\-\s,\d]{3,}$/i
-															.test(title);
-												}).sort();
-							},
-							operator : function(data) {
-								en_titles = data;
-							}
-						}, {
-							type : 'callback',
-							file_name : 'labels.' + use_language + '.json',
-							reget : true,
-							list : create_label_data,
-							operator : function(data) {
-								label_data = data;
-							}
+}, false && {
+	type : 'callback',
+	file_name : 'en_titles.json',
+	list : function() {
+		return CeL.fs_read('/shared/dumps/enwiki-20160601-all-titles-in-ns0',
+		/**
+		 * 若直接讀入 all-titles-in-ns0，會出現 <code>
+		FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
+		 * </code>
+		 * 但若要每個查詢一次資料庫，不如乾脆列入排程。因此跳過此步。
+		 * 
+		 * <code>
+		cd /shared/dumps/ && gzip -cd /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz > enwiki-20160601-all-titles-in-ns0
+		 * </code>
+		 */
+		'utf8').toLowerCase().split('\n').filter(function(title) {
+			return /^[a-z][a-z\-\s,\d]{3,}$/i.test(title);
+		}).sort();
+	},
+	operator : function(data) {
+		en_titles = data;
+	}
+}, {
+	type : 'callback',
+	file_name : 'labels.' + use_language + '.json',
+	reget : true,
+	list : create_label_data,
+	operator : function(data) {
+		label_data = data;
+	}
 
-						} ], finish_work, {
+} ], finish_work, {
 
-					// default options === this
-					// [SESSION_KEY]
-					session : wiki,
-					// title_prefix : 'Template:',
-					// cache path prefix
-					prefix : base_directory
-				});
+	// default options === this
+	// [SESSION_KEY]
+	session : wiki,
+	// title_prefix : 'Template:',
+	// cache path prefix
+	prefix : base_directory
+});

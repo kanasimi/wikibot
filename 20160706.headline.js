@@ -184,9 +184,16 @@ function write_data() {
 			+ date.format(add_year ? '%Y年%m月%d日' : '%m月%d日') + ']]';
 		}
 
-		// 初始模板。
-		var content = CeL.wiki.content_of(page_data) || '';
+		var content = CeL.wiki.content_of(page_data) || '',
+		//
+		has_new_data = add_source_data.length > 0;
 
+		if (!has_new_data && !content) {
+			// 須在成功取得最少一份報紙的頭條才建立新聞稿。這樣可以避免浪費人力去刪掉沒有內容的空白新聞稿。
+			return;
+		}
+
+		// 初始模板。
 		if (!page_data.has_date) {
 			if (/{{ *[Dd]ate[\s\|]/.test(content)) {
 				throw '讀取頁面時未發現 {{date}} 模板，'
@@ -226,11 +233,6 @@ function write_data() {
 			});
 		}
 
-		var has_new_data = add_source_data.length > 0;
-		if (!has_new_data && !CeL.wiki.content_of(page_data)) {
-			// 須在成功取得最少一份報紙的頭條才建立新聞稿。這樣可以避免浪費人力去刪掉沒有內容的空白新聞稿。
-			return;
-		}
 		if (has_new_data) {
 			CeL.debug('add {{source}}.', 0, 'write_data');
 			add_source_data = add_source_data.sort()

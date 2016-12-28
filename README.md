@@ -13,6 +13,7 @@ Then, install the CeJS library:
 ``` sh
 $ npm install cejs
 ```
+（鑒於更新頻繁，有些功能可能最新版本才具備；建議直接到 GitHub 下載最新版本壓縮檔，解開後配置。）
 
 ### Execution
 Let's try it:

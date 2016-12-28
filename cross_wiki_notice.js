@@ -60,7 +60,8 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 				+ ' 發了一則新留言] ，煩請撥空前往查看。 --~~~~', {
 			section : 'new',
 			sectiontitle : '您在moegirl有一則新留言',
-			summary : 'cross-wiki 新留言提醒',
+			// cross-wiki notification 通知
+			summary : '跨wiki新留言提醒',
 			nocreate : 1,
 			bot : 1
 		}, function() {
@@ -79,7 +80,7 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 					+ ']]。 --~~~~';
 				}
 			}, {
-				summary : '已作 cross-wiki 留言提醒',
+				summary : '已作跨wiki留言提醒',
 				nocreate : 1,
 				bot : 1
 			}).logout();
