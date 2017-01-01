@@ -24,25 +24,25 @@ $ node
 // Load CeJS library.
 require('cejs');
 
-// Load module.
+// Load modules.
 CeL.run('application.net.wiki');
 
 // Set default language. 改變預設之語言。
 CeL.wiki.set_language('en');
 
-// Set up wiki instance.
+// Set up the wiki instance.
 var wiki = CeL.wiki.login(user_name, password, 'en');
 
 wiki
-// Select page and get the contents of page.
+// Select page(s) and get the contents of the page(s).
 .page('Wikipedia:Sandbox')
 
-// Replace the contents of page.
+// Replace the contents of a page.
 .edit('wikitext to replace', {
 	nocreate : 1
 })
 
-// Add a new section to normal page or Flow page.
+// Add a new section to a normal page or a Flow page.
 .edit(': text to add.', {
 	section : 'new',
 	sectiontitle : 'Sandbox test section',
@@ -56,7 +56,7 @@ wiki
 	var title = CeL.wiki.title_of(page_data),
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
-	// append new section
+	// append a new section
 	return content + '\n== New section ==\n: text to add.';
 }, {
 	summary : 'summary'
@@ -65,11 +65,11 @@ wiki
 
 Wikidata example:
 ``` JavaScript
-// Set up wiki instance.
+// Set up the wiki instance.
 var wiki = CeL.wiki.login(user_name, password, 'en');
 
 wiki.data('維基數據沙盒2', function(data) {
-	// This is callback.
+	// Here we are running the callback.
 	var data_JSON = data;
 }).edit_data(function(entity) {
 	// add new / set single value with references

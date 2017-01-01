@@ -993,7 +993,7 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 			CeL.debug('Find [' + matched[0] + ']', 2, 'search_中國評論通訊社');
 			// e.g., "國際部分主要報紙9月8日頭條新聞標題"
 			if (matched[2].includes(use_date.format('%m月%d日'))) {
-				var link = matched[1].match(/(?:^|\s)href="([^"]+)"/);
+				var link = matched[1].match(/(?:^|\s)href="([^"<>]+)"/);
 				if (link) {
 					link = CeL.get_full_URL(link[1], url);
 
@@ -1004,7 +1004,7 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 
 						// e.g., '<a
 						// href="/crn-webapp/doc/docDetail.jsp?docid=104437972">原文網址</a>'
-						var m = response.match(/<a href="([^"]+)">原文網址<\/a>/);
+						var m = response.match(/<a href="([^"<>]+)">原文網址<\/a>/);
 						if (!m) {
 							throw 'search_中國評論通訊社: 未發現原文網址';
 						}
@@ -1054,7 +1054,7 @@ function search_橙新聞(labels_to_check, check_left) {
 			CeL.debug('Find [' + matched[0] + ']', 2, 'search_橙新聞');
 			if (matched[2].includes('香港頭條新聞')
 					&& matched[2].includes(use_date.format('%m月%d日'))) {
-				var link = matched[1].match(/(?:^|\s)href="([^"]+)"/);
+				var link = matched[1].match(/(?:^|\s)href="([^"<>]+)"/);
 				if (link) {
 					link = CeL.get_full_URL(link[1], url);
 					// 自行手動登記已處理過之 URL。
