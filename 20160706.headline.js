@@ -1002,9 +1002,13 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 						//
 						response = XMLHttp.responseText;
 
-						// e.g., '<a
-						// href="/crn-webapp/doc/docDetail.jsp?docid=104437972">原文網址</a>'
-						var m = response.match(/<a href="([^"<>]+)">原文網址<\/a>/);
+						var m = response.match(
+						/**
+						 * e.g., <code>
+						<a href="/crn-webapp/doc/docDetail.jsp?docid=104437972">原文網址</a>
+						</code>
+						 */
+						/<a href="([^"<>]+)">原文網址<\/a>/);
 						if (!m) {
 							throw 'search_中國評論通訊社: 未發現原文網址';
 						}

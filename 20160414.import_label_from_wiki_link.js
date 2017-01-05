@@ -1460,8 +1460,10 @@ CeL.wiki.cache([ {
 	file_name : 'common_title',
 	list : function(callback) {
 		if (false) {
-			CeL.wiki.SPARQL('SELECT ?item WHERE{?item wdt:P31 wd:Q6256}', function (items) {
-				items = items.map(function (item) {
+			CeL.wiki.SPARQL(
+			//
+			'SELECT ?item WHERE{?item wdt:P31 wd:Q6256}', function(items) {
+				items = items.map(function(item) {
 					var matched = item.item.value.match(/Q\d+$/);
 					return matched[0];
 				});

@@ -702,9 +702,10 @@ function for_each_page(page_data, messages) {
 						* 1000) {
 					modify_link();
 				} else {
-					CeL.info('Skip ' + CeL.wiki.title_link_of(converted_local_title)
-					//
-					+ ': ' + message_set.local_title_too_new);
+					CeL.info('Skip '
+							+ CeL.wiki.title_link_of(converted_local_title)
+							//
+							+ ': ' + message_set.local_title_too_new);
 					check_page(message_set.local_title_too_new, true);
 				}
 			}, {

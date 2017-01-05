@@ -80,9 +80,9 @@ function for_board(page_data) {
 		CeL.debug('Process ' + section_title);
 
 		if (section_text.length < 100
-		// 跳過已存檔{{Saved}}, {{movedto}}
-		&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
-				.test(section_text)) {
+				// 跳過已存檔{{Saved}}, {{movedto}}
+				&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
+						.test(section_text)) {
 			// 每月1號：刪除所有{{saved}}提示模板。
 			if (remove_old_notice_section) {
 				remove_count++;
@@ -108,8 +108,9 @@ function for_board(page_data) {
 				return;
 			}
 			var date_list = CeL.wiki.parse.date(token.toString(), true, true);
-			CeL.debug('[' + token.toString() + '] → date_list: '
-					+ date_list, 4);
+			CeL
+					.debug('[' + token.toString() + '] → date_list: '
+							+ date_list, 4);
 			CeL.debug(token, 3);
 			if (date_list.length === 0) {
 				// 跳過一個日期都沒有的討論串
