@@ -56,7 +56,7 @@ PATTERN_GA = /[\r\n]*{{(?:[Ff]eatured|[Gg]ood)[ _](?:article|list)(?:[\s\n\|][^{
 // [[WP:小作品類別列表|(小)小作品模板]]: e.g., {{小小條目}}, {{Rubik's Cube-stub}},
 // {{F1-stub}}, {{Japan-Daimyō-stub}}, {{BDSM小作品}}, {{LGBT小作品}}
 // {{Coord[}\s\|]|{{Coord[}\s\|]| → 大多用在模板參數中，不用在文末，因此不予加入。
-PATTERN_AFTER = /{{Authority[ _]control[}\s\|]|{{\s*Persondata(?:[}\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[ *(?:Category|分類|分类) *:|{{\s*(?:(?:Sub|Sect|[a-z\- _\d\'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\n\|}]|<!--)|\n*$/;
+PATTERN_AFTER = /{{Authority[ _]control[}\s\|]|{{\s*Persondata(?:[}\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[ *(?:Category|分類|分类) *:|{{\s*(?:(?:Sub|Sect|[a-z\d\- _\'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\n\|}]|<!--)|\n*$/;
 
 /**
  * Operation for each page. 對每一個頁面都要執行的作業。

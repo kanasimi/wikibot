@@ -1,9 +1,5 @@
 ﻿/**
  * @name 20170105.「Category○○県の組織」への改名提案テンプレートの貼付け.js
- * @fileoverview 依頼内容:{{改名提案|Category:（元のカテゴリの都道府県名）所在の組織|t=Category talk:日本の組織
- *               (都道府県別)|{{subst:DATE}}}}の、Category:日本の組織
- *               (都道府県別)以下にある道府県別カテゴリへの貼付け
- * 
  * @since 2017/1/5 19:57:49
  */
 
@@ -20,24 +16,20 @@ var
 wiki = Wiki(true),
 
 // ((Infinity)) for do all
-test_limit = 2,
-
-category_hash = CeL.null_Object(), move_from_list;
+test_limit = 2;
 
 // ----------------------------------------------------------------------------
 
 // CeL.set_debug(2);
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-// 2016/11/16 9:52:18
+//
 summary = '[[Special:Diff/62443420|Bot作業依頼]]：「Category:○○県の組織」への改名提案テンプレートの貼付け - [['
 		+ log_to + '|log]]';
 
 // ----------------------------------------------------------------------------
 
 prepare_directory(base_directory);
-
-// remove prefix.
 
 wiki.cache([ {
 	type : 'categorymembers',
@@ -95,8 +87,8 @@ function for_each_page(page_data) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
 
-	if (content.includes('{{改名提案')) {
-		return [ CeL.wiki.edit.cancel, 'Already has {{改名提案}}' ];
+	if (/{{\s*改名提案/.test(content)) {
+		return [ CeL.wiki.edit.cancel, 'Already has {{tl|改名提案}}' ];
 	}
 
 	return '{{改名提案|Category:' + matched[1]

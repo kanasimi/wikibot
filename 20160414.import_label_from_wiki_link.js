@@ -519,7 +519,7 @@ function for_each_page(page_data, messages) {
 		} else if ((matched = label
 		// 檢查 "'''條目名'''（'''en title'''）"
 		// 檢查 "'''巴爾敦'''爵士，GBE，KCVO，CMG（Sir '''Sidney Barton'''，"
-		.match(/^[a-z\-\s,\d]{0,8}'''([^:：{}<>()]{3,40})'''/i))
+		.match(/^[a-z\d\-\s,]{0,8}'''([^:：{}<>()]{3,40})'''/i))
 		// e.g., [[zh:城域网]], [[zh:ISM频段]]: "'''A'''... '''B'''... '''C'''..."
 		// e.g., [[zh:电影手册]]
 		&& !matched[1].includes("''")
@@ -1565,7 +1565,7 @@ CeL.wiki.cache([ {
 		 * </code>
 		 */
 		'utf8').toLowerCase().split('\n').filter(function(title) {
-			return /^[a-z][a-z\-\s,\d]{3,}$/i.test(title);
+			return /^[a-z][a-z\d\-\s,]{3,}$/i.test(title);
 		}).sort();
 	},
 	operator : function(data) {

@@ -276,7 +276,7 @@ function for_each_page(page_data, messages) {
 					// CeL.err('Unknown country code: [' + code + ']');
 					return all;
 
-				}).replace(/{{([A-Z\-\d]{2,9})}}/g, function(all, code) {
+				}).replace(/{{([A-Z\d\-]{2,9})}}/g, function(all, code) {
 					if (code in country_alias) {
 						// [[code]]
 						return country_alias[code] + '|';

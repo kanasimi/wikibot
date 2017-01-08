@@ -71,7 +71,7 @@ from_wiki
 						// https://zh.wikipedia.org/wiki/Wikipedia:%E6%A0%BC%E5%BC%8F%E6%89%8B%E5%86%8A/%E7%89%88%E9%9D%A2%E4%BD%88%E5%B1%80#.E9.99.84.E9.8C.84.E6.8E.92.E5.BA.8F
 						// (小)小作品模板: e.g., {{小小條目}}, {{Rubik's Cube-stub}}, {{F1-stub}}, {{Japan-Daimyō-stub}}, {{BDSM小作品}}, {{LGBT小作品}}
 						// https://zh.wikipedia.org/wiki/Wikipedia:%E5%B0%8F%E4%BD%9C%E5%93%81%E7%B1%BB%E5%88%AB%E5%88%97%E8%A1%A8
-						return content.replace(/{{\s*Persondata(?:[\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\- _\d'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\|}]|<!--)|$/i,
+						return content.replace(/{{\s*Persondata(?:[\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\d\- _'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\|}]|<!--)|$/i,
 							//
 							function($0) {
 								return template_text[title] + '\n' + ($0 || '');

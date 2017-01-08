@@ -65,7 +65,7 @@ config = {
 		// +'\n': 若結尾不包含 '\n'，則可能直接添加在文字後！ 
 		return (content + '\n')
 				.replace(
-						/{{\s*Persondata(?:[\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\- _\d'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\n\|}]|<!--)|$/i,
+						/{{\s*Persondata(?:[\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\d\- _'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\n\|}]|<!--)|$/i,
 						function($0) {
 							return template_text[title] + '\n' + ($0 || '');
 						});
