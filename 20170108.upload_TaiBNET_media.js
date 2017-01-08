@@ -31,8 +31,11 @@ BASE_URL = 'http://taibnet.sinica.edu.tw/chi/',
 MENU_BASE_URL = BASE_URL + 'listallpic.php?pc=' + count_一 + '&pr=' + count_丨
 		+ '&ord=`date`&dere=+asc&C1=Y&C2=Y&C3=Y&C4=Y&page=',
 
+skip_cached = true,
+
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'test');
+wiki = Wiki(true, 'commons');
+// wiki = Wiki(true, 'test');
 
 // ----------------------------------------------------------------------------
 
@@ -215,7 +218,7 @@ function upload_media(media_data, callback) {
 	media_data.file_name += media_data.media_url.match(/\.[a-z]+$/i)[0];
 	CeL.log(media_data.media_url + '\n→ ' + media_data.file_name);
 
-	if (CeL.fs_exists(media_directory + media_data.file_name)) {
+	if (skip_cached && CeL.fs_exists(media_directory + media_data.file_name)) {
 		CeL.log('Cached: ' + media_data.file_name);
 		// callback();
 		return;
