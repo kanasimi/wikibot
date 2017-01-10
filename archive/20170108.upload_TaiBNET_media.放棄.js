@@ -1,6 +1,10 @@
 ﻿/**
  * @name 20170108.upload_TaiBNET_media.js
+ *
  * @fileoverview Upload images/videos from TaiBNET.
+ *
+ * [[commons:Commons:Bots/Requests/Cewbot‎]] 放棄
+ *
  * @since 2017/1/5 19:57:49
  */
 
@@ -191,7 +195,9 @@ function upload_media(media_data, callback) {
 			'|date={{original upload date|' + media_data.date + '}}',
 			'|source=' + media_data.item_url,
 			'|author='
-					+ (media_data.uploader.includes('unknown') ? media_data.uploader
+					// 不一定總找得到。 e.g.,
+					// http://taibnet.sinica.edu.tw/chi/taibnet_addpicture3.php?name_code=344421&id=21827
+					+ (true && media_data.uploader.includes('unknown') ? media_data.uploader
 							: '[' + BASE_URL + '/taibnet_expert_list.php?nam='
 									+ media_data.uploader + ' '
 									+ media_data.uploader + ']'),
