@@ -252,7 +252,7 @@ function for_each_page(page_data, messages) {
 
 			// id:
 			CeL.debug(JSON.stringify(entity), 3);
-			CeL.debug(JSON.stringify(entity.value(all_properties)), 2);
+			CeL.debug(JSON.stringify(entity.value(Object.keys(all_properties))), 2);
 
 			for ( var parameter in set_properties_hash) {
 				value = parameters[parameter];
