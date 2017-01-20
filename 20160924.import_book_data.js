@@ -161,7 +161,7 @@ function for_each_page(page_data, messages) {
 	var parser = CeL.wiki.parser(page_data);
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: [[' + page_data.title + ']]';
+		throw 'Parser error: ' + CeL.wiki.title_of(page_data);
 	}
 
 	function for_data_template(token) {
@@ -171,6 +171,9 @@ function for_each_page(page_data, messages) {
 
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
+			if (!entity) {
+				CeL.err('No entity got: ' + CeL.wiki.title_of(page_data));
+			}
 			var parameters = token.parameters,
 			//
 			book_title = parameters.title
@@ -252,7 +255,9 @@ function for_each_page(page_data, messages) {
 
 			// id:
 			CeL.debug(JSON.stringify(entity), 3);
-			CeL.debug(JSON.stringify(entity.value(Object.keys(all_properties))), 2);
+			CeL.debug(JSON.stringify(
+			//
+			entity.value(Object.keys(all_properties))), 2);
 
 			for ( var parameter in set_properties_hash) {
 				value = parameters[parameter];
