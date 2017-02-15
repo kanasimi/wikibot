@@ -82,7 +82,7 @@ function get_label(html) {
 }
 
 function parse_list_html(html, callback) {
-	var media_data_list = [], get_next_between = html.all_between(
+	var media_data_list = [], get_next_between = html.find_between(
 			'<table><tr><td>', '</td></tr></table>'), text;
 	while ((text = get_next_between()) !== undefined) {
 		var media_data = text.between(" href='", "'"),
