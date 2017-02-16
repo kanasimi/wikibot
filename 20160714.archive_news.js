@@ -133,7 +133,7 @@ function main_work(template_name_redirect_to) {
 		CeL.log('→ ' + list[1].length + ' archived, ' + list[0].length
 				+ ' published left.');
 
-		if (list[1].length) {
+		if (list[1].length > 0) {
 			// 依照現在 {{publish}} 的寫法，不應出現此項。
 			CeL.err('有' + list[1].length + '個已存檔，但沒有發布之條目！');
 		}
