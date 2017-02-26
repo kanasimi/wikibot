@@ -693,7 +693,7 @@ function for_each_page(page_data, messages) {
 			check_page();
 		}
 
-		// 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建頁面。
+		// 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
 		// TODO: 並且檢查沒掛上刪除模板。
 		// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
 		function check_local_creation(converted_local_title) {

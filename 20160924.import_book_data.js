@@ -258,10 +258,17 @@ function for_each_page(page_data, messages) {
 			CeL.debug(JSON.stringify(
 			//
 			entity.value(Object.keys(all_properties))), 2);
+			// console.log(parameters);
 
 			for ( var parameter in set_properties_hash) {
 				value = parameters[parameter];
 				if (value && (value = CeL.wiki.plain_text(value.toString()))) {
+					if (parameter === 'pages' && value.includes('\n')) {
+						// 預防多種頁數。 e.g., [[ja:戦藻録]]
+						value = value.split(/\s+/);
+						// console.log([ parameter, value ]);
+					}
+					// console.log([ parameter, value.toString() ]);
 					data[set_properties_hash[parameter]]
 					// e.g., data.題名 = 'ABC'
 					= value;
