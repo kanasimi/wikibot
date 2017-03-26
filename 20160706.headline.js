@@ -341,6 +341,7 @@ function write_data() {
 
 	}, {
 		bot : 1,
+		tags : 'import headline',
 		// 匯入每日報紙頭條新聞標題
 		summary : '匯入' + locale + '報紙頭條新聞標題'
 	})

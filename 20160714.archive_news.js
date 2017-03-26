@@ -498,6 +498,7 @@ function for_each_old_page(page_data) {
 		+ ']]: 執行保護設定：僅限管理員，無限期。討論頁面不保護。', 1, 'for_each_old_page');
 		wiki.protect({
 			pageid : page_data.pageid,
+			tags : 'archive',
 			protections : 'edit=sysop|move=sysop',
 			reason : summary
 		});

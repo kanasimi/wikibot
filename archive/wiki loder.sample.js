@@ -168,12 +168,17 @@ Function('return this')().Wiki = (function() {
 
 // prepare directory: delete cache, reset base directory.
 // TODO: use move
-Function('return this')().prepare_directory = function(base_directory, clean) {
-	function create_base() {
-		CeL.fs_mkdir(base_directory);
+Function('return this')().prepare_directory = function(directory, clean) {
+	if (!directory && !(directory = base_directory)) {
+		CeL.err(
+		// No script_name, therefore no base_directory?
+		'prepare_directory: No directory specified, and no script_name!!');
+		return;
 	}
-	if (clean)
-		CeL.fs_remove(base_directory, create_base);
-	else
-		create_base();
+
+	if (clean) {
+		CeL.fs_remove(directory, true);
+	}
+	// CeL.nodejs.fs_mkdir(directory);
+	CeL.fs_mkdir(directory);
 };
