@@ -5,15 +5,9 @@ Some Wikipedia bot examples using [MediaWiki module](https://github.com/kanasimi
 ## Node.js usage
 
 ### Installation
-First, go to [nodejs.org](https://nodejs.org/), download the runtime environment and install the node.js package.
-請先安裝 [nodejs.org](https://nodejs.org/)。
-
-Then, install the CeJS library:
-接著安裝 CeJS library:
-``` sh
-$ npm install cejs
-```
-（鑒於更新頻繁，有些功能可能最新版本才具備；建議直接到 GitHub 下載最新版本壓縮檔，解開後配置。）
+1. Please see [Node.js usage section at CeJS](https://github.com/kanasimi/CeJS#nodejs-usage) for detail.
+2. Setup [_CeL.path.txt](https://github.com/kanasimi/CeJS/blob/master/_for%20include/_CeL.path.sample.txt) if necessary.
+3. Setup [wiki configuration.js](https://github.com/kanasimi/wikibot/blob/master/wiki%20configuration.sample.js).
 
 ### Execution
 Let's try it:

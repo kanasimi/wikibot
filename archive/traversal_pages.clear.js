@@ -68,7 +68,10 @@ function for_each_page(page_data) {
 		return;
 
 	// TODO: operations for each page
-	if (content.includes('')) {
+	if (content.includes('')
+	// for 20161018.LanguageConverter_syntax_change.js
+	// /\/\/[^\s\n<>\]\|]*-{/.test(content)
+	) {
 		// need modify
 		filtered.push(title);
 	}
