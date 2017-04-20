@@ -52,19 +52,21 @@ category_hash = {
 };
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-summary = '[[Special:Diff/63713843|Bot作業依頼]]：「富士重工業」→「SUBARU」カテゴリ変更依頼 - [['
-		+ log_to + '|log]]';
-category_hash = {
-	富士重工業 : 'SUBARU',
-	富士重工業の人物 : 'SUBARUの人物',
-	富士重工業のエンジン : 'スバルのエンジン',
-	富士重工業のディーラー : 'SUBARUのディーラー',
-	富士重工業硬式野球部の選手 : 'SUBARU硬式野球部の選手',
-};
 
 // -------------------------------------
 // archive
 if (false) {
+	// 2017/4/20 16:50:53
+	summary = '[[Special:Diff/63713843|Bot作業依頼]]：「富士重工業」→「SUBARU」カテゴリ変更依頼 - [['
+			+ log_to + '|log]]';
+	category_hash = {
+		富士重工業 : 'SUBARU',
+		富士重工業の人物 : 'SUBARUの人物',
+		富士重工業のエンジン : 'スバルのエンジン',
+		富士重工業のディーラー : 'SUBARUのディーラー',
+		富士重工業硬式野球部の選手 : 'SUBARU硬式野球部の選手',
+	};
+
 	// 2016/11/16 9:52:18
 	summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼の巻き戻し - [['
 			+ log_to + '|log]]';
@@ -133,8 +135,8 @@ function modify_category(category_hash, move_from_list) {
 			return;
 		}
 		var category_name = move_from_list[index++];
-		CeL.log(index + '/' + move_from_list.length + ' ' + category_name
-				+ ' → ' + category_hash[category_name]);
+		CeL.log(index + '/' + move_from_list.length + ' Category:'
+				+ category_name + ' → ' + category_hash[category_name]);
 		main_work(category_name, category_hash[category_name], modify_next);
 	}
 	modify_next();
