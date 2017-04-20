@@ -121,7 +121,7 @@ wiki
 
 		var user = CeL.wiki.parser.user(line.slice(token.lastIndex));
 		if (!user) {
-			CeL.err('No user specified: [' + line + ']');
+			CeL.error('No user specified: [' + line + ']');
 			return;
 		}
 		CeL.debug(days + ' days: [[' + last_title + ']] by ' + user, 2);
@@ -174,7 +174,7 @@ wiki
 			if (!page_status[title]) {
 				// 或許是 title 在 wikipedia 正規化過程中被改變了。
 				// e.g., 'http://' → 'Http://'
-				CeL.err('Title altered: ' + title);
+				CeL.error('Title altered: ' + title);
 			} else if ('missing' in page_data)
 				page_status[title][1] = message_set.deleted;
 			else {

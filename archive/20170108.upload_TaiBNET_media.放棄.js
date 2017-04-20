@@ -89,7 +89,7 @@ function parse_list_html(html, callback) {
 		//
 		matched = media_data.match(/name_code=([1-9]\d{5})&id=(\d{1,5})/);
 		if (!matched) {
-			CeL.err('Error url: ' + media_data);
+			CeL.error('Error url: ' + media_data);
 			continue;
 		}
 
@@ -243,7 +243,7 @@ function upload_media(media_data, callback) {
 		}
 	}, function(data, error) {
 		if (error) {
-			CeL.err(typeof error === 'object' ? JSON.stringify(error) : error);
+			CeL.error(typeof error === 'object' ? JSON.stringify(error) : error);
 			if (data) {
 				if (data.warnings) {
 					CeL.warn(JSON.stringify(data.warnings));

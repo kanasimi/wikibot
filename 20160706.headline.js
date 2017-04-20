@@ -256,7 +256,7 @@ function write_data() {
 					CeL.debug('add source after {{Headline item/footer}}.',
 					//
 					0, 'write_data');
-					section = section.trimRight()
+					section = section.trimEnd()
 					//
 					+ '\n\n== 消息來源 ==\n' + add_source_data;
 					add_source_data = null;
@@ -445,7 +445,7 @@ function parse_橙新聞_headline(response, publisher) {
 			count++;
 	});
 	if (count < 2) {
-		CeL.err('parse_橙新聞_headline: Can not parse [' + publisher + ']!');
+		CeL.error('parse_橙新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
 		return;
@@ -501,7 +501,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 	if (!news_content || !news_content.includes('時報')
 			&& !news_content.includes('美國') && !news_content.includes('英國')
 			&& !news_content.includes('日本')) {
-		CeL.err('parse_臺灣蘋果日報_headline: Can not parse [' + publisher + ']!');
+		CeL.error('parse_臺灣蘋果日報_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
 		return;
@@ -558,7 +558,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		}
 
 		if (!headline || !media || !country) {
-			CeL.err('parse_臺灣蘋果日報_headline: Can not parse [' + publisher
+			CeL.error('parse_臺灣蘋果日報_headline: Can not parse [' + publisher
 					+ ']: [' + item + ']');
 			return '';
 		}
@@ -585,7 +585,7 @@ function parse_鉅亨網_headline(response, publisher) {
 
 	if (!news_content || !/<strong>\s*■/.test(news_content)
 			|| !news_content.includes('日報') || !news_content.includes('時報')) {
-		CeL.err('parse_鉅亨網_headline: Can not parse [' + publisher + ']!');
+		CeL.error('parse_鉅亨網_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
 		return;
@@ -645,7 +645,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 	if (!news_content || !response.includes(use_date.format('%Y-'))
 	// 國際報紙頭條新聞標題用
 	|| !/[日郵時]報：/.test(news_content) && !news_content.includes('文匯報：')) {
-		CeL.err('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
+		CeL.error('parse_中國評論新聞_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
 		return;
@@ -663,7 +663,7 @@ function parse_中國評論新聞_headline(response, publisher) {
 		}
 		var matched = item.match(/^([^：～:]{2,8})[：～:](.{4,80})$/);
 		if (!matched) {
-			CeL.err('parse_中國評論新聞_headline: Can not parse ['
+			CeL.error('parse_中國評論新聞_headline: Can not parse ['
 			//
 			+ publisher + ']: [' + item + ']');
 			return;
@@ -684,7 +684,7 @@ function parse_中央社_headline(response, publisher) {
 	var news_content = response.between('news_content').between('新聞本文 開始',
 			'新聞本文 結束').between('<div class="box_2">', '</div>');
 	if (!news_content.includes('頭條新聞標題如下：')) {
-		CeL.err('parse_中央社_headline: Can not parse [' + publisher + ']!');
+		CeL.error('parse_中央社_headline: Can not parse [' + publisher + ']!');
 		CeL.log('parsed: ' + JSON.stringify(news_content));
 		CeL.warn(JSON.stringify(response));
 		return;
@@ -710,7 +710,7 @@ function parse_中央社_headline(response, publisher) {
 		} else if (media) {
 			headline = item;
 		} else {
-			CeL.err('parse_中央社_headline: Can not parse ['
+			CeL.error('parse_中央社_headline: Can not parse ['
 			//
 			+ publisher + ']: [' + item + ']');
 			return;
@@ -815,7 +815,7 @@ function check_headline_data(labels_to_check) {
 
 			}, undefined, undefined, {
 				onfail : function(error) {
-					CeL.err('next_label: Error to get [' + label + ']: [' + url
+					CeL.error('next_label: Error to get [' + label + ']: [' + url
 							+ ']');
 					next_label();
 				}
@@ -979,7 +979,7 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 			'search_中國評論通訊社');
 
 	function onfail(error) {
-		CeL.err('search_中國評論通訊社: Error to get headline list');
+		CeL.error('search_中國評論通訊社: Error to get headline list');
 		check_left('error');
 	}
 
@@ -1036,7 +1036,7 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 			}
 		}
 
-		CeL.err('search_中國評論通訊社: No headline get!');
+		CeL.error('search_中國評論通訊社: No headline get!');
 		check_left('not found');
 
 	}, undefined, undefined, {
@@ -1071,12 +1071,12 @@ function search_橙新聞(labels_to_check, check_left) {
 			}
 		}
 
-		CeL.err('search_橙新聞: No headline get!');
+		CeL.error('search_橙新聞: No headline get!');
 		check_left('not found');
 
 	}, undefined, undefined, {
 		onfail : function(error) {
-			CeL.err('search_橙新聞: Error to get headline list');
+			CeL.error('search_橙新聞: Error to get headline list');
 			check_left('error');
 		}
 	});
@@ -1097,7 +1097,7 @@ function check_labels(labels_to_check) {
 	function for_label(label, error, response) {
 		left--;
 		if (error) {
-			CeL.err('for_label: [' + label + ']: error: ' + error);
+			CeL.error('for_label: [' + label + ']: error: ' + error);
 			if (!left) {
 				check_headline_data(labels_to_check);
 			}
@@ -1125,7 +1125,7 @@ function check_labels(labels_to_check) {
 		function add_source(item) {
 			if (!remove_completed(labels_to_check, label, item.title,
 					item.link, true)) {
-				CeL.err('add_source: error title: [' + item.title + '] ['
+				CeL.error('add_source: error title: [' + item.title + '] ['
 						+ item.link + ']');
 				console.log(item);
 			}

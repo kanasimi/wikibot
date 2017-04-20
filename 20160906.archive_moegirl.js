@@ -74,7 +74,7 @@ function for_board(page_data) {
 		//
 		section_text = Array.prototype.slice.apply(parser, slice).join('');
 		if (!section_title) {
-			CeL.err('No title: ' + section_text);
+			CeL.error('No title: ' + section_text);
 			return;
 		}
 		CeL.debug('Process ' + section_title);

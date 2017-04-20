@@ -117,7 +117,7 @@ function 處理須拆分的條目(page_data, messages) {
 	while (matched = 維護模板_PATTERN.exec(多個問題_模板內容)) {
 		var template_name = CeL.wiki.normalize_title(matched[1]);
 		if (!(template_name in 維護模板本名)) {
-			CeL.err('** 發現{{' + 多個問題_模板[1] + '}}中包含 未列於預設維護模板列表 之模板: {{'
+			CeL.error('** 發現{{' + 多個問題_模板[1] + '}}中包含 未列於預設維護模板列表 之模板: {{'
 			//
 			+ matched[1] + '}} @ [[' + page_data.title + ']]');
 			// CeL.log(維護模板本名);
@@ -167,9 +167,7 @@ function 處理須拆分的條目(page_data, messages) {
 		if (old_style && use_維護模板.length >= 須合併模板數)
 			多個問題_模板內容 = '{{' + 多個問題_模板[1] + '|\n' + 多個問題_模板內容 + '}}';
 		content = content.slice(0, 多個問題_模板.index) + 多個問題_模板內容 + '\n'
-				+ content.slice(多個問題_模板.lastIndex)
-				// .trimLeft()
-				.replace(/^[\s\n]+/, '');
+				+ content.slice(多個問題_模板.lastIndex).trimStart();
 		CeL.debug('→ ' + content.slice(0, 200), 2, '處理須拆分的條目');
 		return content;
 	} else {
@@ -237,7 +235,7 @@ function 處理須合併的條目(page_data, messages) {
 		多個問題_模板內容.push(matched);
 		// 抽取出此維護模板
 		content = content.slice(0, matched.index)
-				+ content.slice(matched.lastIndex).replace(/^[\s\n]+/, '');
+				+ content.slice(matched.lastIndex).trimStart();
 	});
 	if (多個問題_模板內容.length < 須合併模板數) {
 		// 當同時包含 Refimprove,RefImprove 時會算作兩個，但實質僅一個。

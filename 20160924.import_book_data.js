@@ -105,7 +105,7 @@ function add_property(object, key, value) {
 function add_ISBN(ISBN, data, entity) {
 	ISBN = CeL.data.check.normalize_ISBN(ISBN);
 	if (!CeL.data.check.ISBN(ISBN)) {
-		CeL.err('Invalid ISBN: ' + ISBN);
+		CeL.error('Invalid ISBN: ' + ISBN);
 		return;
 	}
 
@@ -172,7 +172,7 @@ function for_each_page(page_data, messages) {
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
 			if (!entity) {
-				CeL.err('No entity got: ' + CeL.wiki.title_of(page_data));
+				CeL.error('No entity got: ' + CeL.wiki.title_of(page_data));
 			}
 			var parameters = token.parameters,
 			//
@@ -216,7 +216,7 @@ function for_each_page(page_data, messages) {
 					if (title.includes('{{')) {
 						// e.g., "{{lang|en|title}}"
 						// e.g., "title{{Small|sub-title}}"
-						CeL.err('Invalid parameters.title: [' + title + ']');
+						CeL.error('Invalid parameters.title: [' + title + ']');
 					} else if (PATTERN_読み仮名.test(title)) {
 						// 對於仮名，或可考慮加至仮名，但有像是[[魏志倭人伝]]，並不全是日文作品。
 						// 片仮中点（半角）→ 片仮中点
@@ -239,7 +239,7 @@ function for_each_page(page_data, messages) {
 				!book_title.includes(data_title)
 				//
 				: !data_title.includes(book_title))) {
-					CeL.err(
+					CeL.error(
 					//
 					'Different title: [[' + page_data.title + ']]'
 					//
@@ -285,7 +285,7 @@ function for_each_page(page_data, messages) {
 						// [[code]]
 						return country_alias[code] + '|';
 					}
-					// CeL.err('Unknown country code: [' + code + ']');
+					// CeL.error('Unknown country code: [' + code + ']');
 					return all;
 
 				}).replace(/{{([A-Z\d\-]{2,9})}}/g, function(all, code) {
@@ -300,7 +300,7 @@ function for_each_page(page_data, messages) {
 				//
 				.filter(function(country) {
 					if (/[{\[]{2}/.test(country)) {
-						CeL.err('Unknown country: [' + country + ']');
+						CeL.error('Unknown country: [' + country + ']');
 					} else {
 						return !!country;
 					}
@@ -322,7 +322,7 @@ function for_each_page(page_data, messages) {
 				if (matched && !matched.includes('{{')) {
 					data.公式サイト = matched;
 				} else if (CeL.wiki.plain_text(value)) {
-					CeL.err('Unknown link: "' + value + '"');
+					CeL.error('Unknown link: "' + value + '"');
 				}
 			}
 
@@ -377,7 +377,7 @@ var old_properties = 'P957,P212,P1739,P243,P143,P136,P1104,P407,P856,P577,P31,P1
 CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 	// 與之前的資料做比對，預防萬一被改掉了。
 	if (id_list.join(',') !== old_properties) {
-		CeL.err('Different properties:\nold: ' + old_properties + '\nnew: '
+		CeL.error('Different properties:\nold: ' + old_properties + '\nnew: '
 				+ id_list.join(',') + '\n' + all_properties_array.join(','));
 		return;
 	}

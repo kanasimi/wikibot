@@ -7,6 +7,10 @@
  2016/11/12 21:27:32	初版試營運。
  2016/11/12 22:55:46	完成。正式運用。
 
+ TODO:
+ check if category exists
+ check link and transclusion
+
  */
 
 'use strict';
@@ -35,36 +39,59 @@ category_hash = CeL.null_Object(), move_from_list;
 // CeL.set_debug(2);
 
 // current work
+summary = '[[Special:Diff/63725606|Bot作業依頼]]：「JXグループ」→「JXTGグループ」ほか カテゴリ変更依頼 - [['
+		+ log_to + '|log]]';
+category_hash = {
+	JXグループ : 'JXTGグループ',
+	JXエネルギーの系列販売店 : 'JXTGエネルギーの系列販売店',
+	JXグループの人物 : 'JXTGグループの人物',
+	JXグループのスポーツ活動 : 'JXTGグループのスポーツ活動',
+	JXグループ単独提供番組 : 'JXTGグループ単独提供番組',
+	JXグループの歴史 : 'JXTGグループの歴史',
+	JXグループのスポーツ関係者 : 'JXTGグループのスポーツ関係者'
+};
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-// 2016/11/16 9:52:18
-summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼の巻き戻し - [[' + log_to
-		+ '|log]]';
-'Category:プエルトリコのポップ歌手 (2), Category:タイのポップ歌手 (2), Category:ミズーリ州のポップ・ミュージシャン (2), Category:コロンビアのポップ歌手 (1), Category:セネガルのポップ・ミュージシャン (2), Category:コロンビアのポップ・ミュージシャン (1), Category:ウクライナのポップ歌手 (3), Category:香港のポップ歌手 (2), Category:モンゴルのポップ歌手 (1), Category:南アフリカ共和国のポップ歌手 (1), Category:ドイツのポップ歌手 (1), Category:ニューオーリンズのポップ・ミュージシャン (3), Category:カンボジアのポップ歌手 (1), Category:ベトナムのポップ歌手 (1), Category:シンガポールのポップ歌手 (1), Category:シンガポールのポップ・ミュージシャン (1), Category:ポーランドのポップ歌手 (3), Category:バルバドスのポップ・ミュージシャン (1), Category:クロアチアのポップ・ミュージシャン (2), Category:イエメンのポップ歌手 (1), Category:ギリシャのポップ歌手 (4), Category:アルバニアのポップ歌手 (2), Category:レバノンのポップ歌手 (1), Category:ブラジルのポップ歌手 (3), Category:アイスランドのポップ歌手 (2), Category:ブラジルのポップ・ミュージシャン (3), Category:アルゼンチンのポップ歌手 (1), Category:セルビアのポップ歌手 (7), Category:クロアチアのポップ歌手 (3), Category:琉球民謡のポップ歌手 (2), Category:ルーマニアのポップ歌手 (4), Category:ノルウェーのポップ歌手 (2), Category:エストニアのポップ・ミュージシャン (2), Category:アラブのポップ歌手 (1), Category:ボスニア・ヘルツェゴビナのポップ歌手 (3), Category:ボスニア・ヘルツェゴビナのポップ・ミュージシャン (2), Category:アルメニアのポップ歌手 (1), Category:クラシカル・クロスオーバーのポップ歌手 (2), Category:スロバキアのポップ歌手 (1), Category:ウクライナのポップ・ミュージシャン (1), Category:ウクライナのポップ歌手 (1), Category:フィリピンのポップ歌手 (2), Category:マレーシアのポップ歌手 (1), Category:架空のポップ歌手 (2), Category:チェコのポップ歌手 (1), Category:中国のポップ歌手 (3), Category:ケニアのポップ歌手 (1), Category:スロバキアのポップ・ミュージシャン (1), Category:エストニアのポップ歌手 (2), Category:パキスタンのポップ歌手 (1), Category:インドネシアのポップ歌手 (3), Category:キューバのポップ歌手 (1), Category:キプロスのポップ歌手 (2), Category:モンテネグロのポップ歌手 (1), Category:チリのポップ歌手 (1), Category:ベラルーシのポップ歌手 (2), Category:キプロスのポップ・ミュージシャン (1), Category:デンマークのポップ歌手 (1), Category:サンマリノのポップ歌手 (1), Category:ニューヨーク州出身のポップ・ミュージシャン (1), Category:スロベニアのポップ歌手 (1)'
-// revert
-.split(',').forEach(function(category_name) {
-	category_name = category_name
-	//
-	&& category_name.match(/Category:([^ ]+)/)[1];
-	if (!category_name) {
-		return;
-	}
-	var move_to = category_name.replace(/ポップ・?/, '');
-	if (!move_to || category_name === move_to || move_to.includes('ポップ')) {
-		throw 'The same name: ' + category_name;
-	}
-	category_hash[category_name] = move_to;
-	if (category_name.includes('ミュージシャン')) {
-		category_hash[category_name.replace(/ポップ/, '')]
-		//
-		= category_name.replace(/ポップ/, '').replace(/の・ミュージシャン/, 'のミュージシャン');
-	}
-});
+summary = '[[Special:Diff/63713843|Bot作業依頼]]：「富士重工業」→「SUBARU」カテゴリ変更依頼 - [['
+		+ log_to + '|log]]';
+category_hash = {
+	富士重工業 : 'SUBARU',
+	富士重工業の人物 : 'SUBARUの人物',
+	富士重工業のエンジン : 'スバルのエンジン',
+	富士重工業のディーラー : 'SUBARUのディーラー',
+	富士重工業硬式野球部の選手 : 'SUBARU硬式野球部の選手',
+};
 
 // -------------------------------------
 // archive
-
 if (false) {
+	// 2016/11/16 9:52:18
+	summary = '[[Special:Diff/61947923|Bot作業依頼]]：ポップ歌手のカテゴリ修正依頼の巻き戻し - [['
+			+ log_to + '|log]]';
+	'Category:プエルトリコのポップ歌手 (2), Category:タイのポップ歌手 (2), Category:ミズーリ州のポップ・ミュージシャン (2), Category:コロンビアのポップ歌手 (1), Category:セネガルのポップ・ミュージシャン (2), Category:コロンビアのポップ・ミュージシャン (1), Category:ウクライナのポップ歌手 (3), Category:香港のポップ歌手 (2), Category:モンゴルのポップ歌手 (1), Category:南アフリカ共和国のポップ歌手 (1), Category:ドイツのポップ歌手 (1), Category:ニューオーリンズのポップ・ミュージシャン (3), Category:カンボジアのポップ歌手 (1), Category:ベトナムのポップ歌手 (1), Category:シンガポールのポップ歌手 (1), Category:シンガポールのポップ・ミュージシャン (1), Category:ポーランドのポップ歌手 (3), Category:バルバドスのポップ・ミュージシャン (1), Category:クロアチアのポップ・ミュージシャン (2), Category:イエメンのポップ歌手 (1), Category:ギリシャのポップ歌手 (4), Category:アルバニアのポップ歌手 (2), Category:レバノンのポップ歌手 (1), Category:ブラジルのポップ歌手 (3), Category:アイスランドのポップ歌手 (2), Category:ブラジルのポップ・ミュージシャン (3), Category:アルゼンチンのポップ歌手 (1), Category:セルビアのポップ歌手 (7), Category:クロアチアのポップ歌手 (3), Category:琉球民謡のポップ歌手 (2), Category:ルーマニアのポップ歌手 (4), Category:ノルウェーのポップ歌手 (2), Category:エストニアのポップ・ミュージシャン (2), Category:アラブのポップ歌手 (1), Category:ボスニア・ヘルツェゴビナのポップ歌手 (3), Category:ボスニア・ヘルツェゴビナのポップ・ミュージシャン (2), Category:アルメニアのポップ歌手 (1), Category:クラシカル・クロスオーバーのポップ歌手 (2), Category:スロバキアのポップ歌手 (1), Category:ウクライナのポップ・ミュージシャン (1), Category:ウクライナのポップ歌手 (1), Category:フィリピンのポップ歌手 (2), Category:マレーシアのポップ歌手 (1), Category:架空のポップ歌手 (2), Category:チェコのポップ歌手 (1), Category:中国のポップ歌手 (3), Category:ケニアのポップ歌手 (1), Category:スロバキアのポップ・ミュージシャン (1), Category:エストニアのポップ歌手 (2), Category:パキスタンのポップ歌手 (1), Category:インドネシアのポップ歌手 (3), Category:キューバのポップ歌手 (1), Category:キプロスのポップ歌手 (2), Category:モンテネグロのポップ歌手 (1), Category:チリのポップ歌手 (1), Category:ベラルーシのポップ歌手 (2), Category:キプロスのポップ・ミュージシャン (1), Category:デンマークのポップ歌手 (1), Category:サンマリノのポップ歌手 (1), Category:ニューヨーク州出身のポップ・ミュージシャン (1), Category:スロベニアのポップ歌手 (1)'
+	// revert
+	.split(',').forEach(
+			function(category_name) {
+				category_name = category_name
+				//
+				&& category_name.match(/Category:([^ ]+)/)[1];
+				if (!category_name) {
+					return;
+				}
+				var move_to = category_name.replace(/ポップ・?/, '');
+				if (!move_to || category_name === move_to
+						|| move_to.includes('ポップ')) {
+					throw 'The same name: ' + category_name;
+				}
+				category_hash[category_name] = move_to;
+				if (category_name.includes('ミュージシャン')) {
+					category_hash[category_name.replace(/ポップ/, '')]
+					//
+					= category_name.replace(/ポップ/, '').replace(/の・ミュージシャン/,
+							'のミュージシャン');
+				}
+			});
+
 	// 2016/11/13 10:52:1
 	summary = '[[Special:Diff/61873576|Bot作業依頼]]：日本維新の会・自由党改名にともなうカテゴリ修正依頼 - [['
 			+ log_to + '|log]]';

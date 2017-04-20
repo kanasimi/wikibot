@@ -1146,7 +1146,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			: foreign_language === 'yue' ? 'zh_yue'
 			//
 			: foreign_language) + 'wiki'].title)) {
-				CeL.err('Different title!');
+				CeL.error('Different title!');
 				console.log([ foreign_title, foreign_language ]);
 				console.log(entity);
 				// throw entity;
@@ -1390,7 +1390,7 @@ function next_label_data_work() {
 	}, {
 		get_URL_options : {
 			onfail : function(error) {
-				CeL.err('next_label_data_work: get_URL error: [[' + full_title
+				CeL.error('next_label_data_work: get_URL error: [[' + full_title
 						+ ']]:');
 				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。

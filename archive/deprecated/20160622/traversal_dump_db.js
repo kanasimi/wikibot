@@ -25,7 +25,7 @@ base_directory = bot_directory + script_name + '/';
 require('./wiki loder.js');
 var dump_session = new CeL.wiki.SQL('zhwiki', function(error) {
 	if (error)
-		CeL.err(error);
+		CeL.error(error);
 });
 var start_time = Date.now(),
 //

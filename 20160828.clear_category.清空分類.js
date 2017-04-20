@@ -29,7 +29,7 @@ diff_id = process.argv[3],
 
 category_name = process.argv[2];
 if (!category_name) {
-	CeL.err('No category name specified!');
+	CeL.error('No category name specified!');
 	process.exit(1);
 }
 

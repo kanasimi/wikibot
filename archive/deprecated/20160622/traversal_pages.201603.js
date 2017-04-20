@@ -45,12 +45,12 @@ filtered = [],
 dump_session = false && new CeL.wiki.SQL(CeL.wiki.language + 'wiki', function(
 		error) {
 	if (error)
-		CeL.err(error);
+		CeL.error(error);
 }),
 //
 replica_session = false && new CeL.wiki.SQL(function(error) {
 	if (error)
-		CeL.err(error);
+		CeL.error(error);
 }, CeL.wiki.language),
 //
 mysql = require('mysql');
@@ -149,7 +149,7 @@ function get_dump_data(run_work, callback, id_list, rev_list) {
 		function(error, rows) {
 			var page_data;
 			if (error || !(page_data = rows[0])) {
-				CeL.err(error || 'No rows got: ' + id);
+				CeL.error(error || 'No rows got: ' + id);
 				if (false && !error)
 					console.log(rows);
 				// skip this id

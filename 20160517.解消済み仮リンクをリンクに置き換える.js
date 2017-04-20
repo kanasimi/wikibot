@@ -335,7 +335,7 @@ function normalize_parameter(token) {
 			try {
 				parameter = decodeURIComponent(parameter).trim();
 			} catch (e) {
-				CeL.err('URI malformed: [' + parameter + ']');
+				CeL.error('URI malformed: [' + parameter + ']');
 			}
 			normalized[parameter_name] = parameter;
 			return true;
@@ -896,7 +896,7 @@ function for_each_page(page_data, messages) {
 			if (foreign_language && foreign_language.includes('{')
 			//
 			&& !foreign_language.includes('}')) {
-				CeL.err('parser error @ '
+				CeL.error('parser error @ '
 				//
 				+ CeL.wiki.title_link_of(title) + '?');
 				console.log(token);
@@ -912,7 +912,7 @@ function for_each_page(page_data, messages) {
 					save_response : true,
 					get_URL_options : {
 						onfail : function(error) {
-							CeL.err('for_each_page: get_URL error: '
+							CeL.error('for_each_page: get_URL error: '
 									+ CeL.wiki.title_link_of(foreign_language
 											+ ':' + foreign_title) + ':');
 							console.error(error);

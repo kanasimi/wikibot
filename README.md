@@ -1,4 +1,4 @@
-﻿# Wikipedia bots demo
+﻿# CeJS wikipedia bots demo
 Some Wikipedia bot examples using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
 採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js)來製作維基百科機器人的範例。
 
@@ -131,13 +131,13 @@ For the "wiki loder.js" using in the examples, See [wiki loder.sample.js](https:
 Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151002.WPCHECK.js) (fix_16 only):
 
 * Output on console:
-* ![On console](https://upload.wikimedia.org/wikipedia/commons/7/7c/20151002.WPCHECK.console.c.png)
+![On console](https://upload.wikimedia.org/wikipedia/commons/7/7c/20151002.WPCHECK.console.c.png)
 
 * Log page on Wikipedia (ページ上への作業ログ出力):
-* ![Log page](https://upload.wikimedia.org/wikipedia/commons/d/da/20151002.WPCHECK.log.c.png)
+![Log page](https://upload.wikimedia.org/wikipedia/commons/d/da/20151002.WPCHECK.log.c.png)
 
 * The contributions:
-* ![Contributions](https://upload.wikimedia.org/wikipedia/commons/f/f1/20151002.WPCHECK.contributions.c.png)
+![Contributions](https://upload.wikimedia.org/wikipedia/commons/f/f1/20151002.WPCHECK.contributions.c.png)
 
 
 ## Features of CeJS MediaWiki module

@@ -166,7 +166,7 @@ function for_log_page(page_data) {
 			nocreate : had_failed ? 0 : 1
 		}, function(title, error) {
 			if (error)
-				CeL.err('write_log_page: 無法寫入記錄頁面 [['
+				CeL.error('write_log_page: 無法寫入記錄頁面 [['
 				//
 				+ log_title + ']]! 您需要自行刪除舊程式運作紀錄！');
 		});
@@ -215,14 +215,14 @@ function for_log_page(page_data) {
 				write_log_page();
 
 			} else if (had_failed) {
-				CeL.err('write_archive: 無法寫入存檔 [[' + archive_page + ']]！');
+				CeL.error('write_archive: 無法寫入存檔 [[' + archive_page + ']]！');
 				console.error(error);
 
 			} else {
 				if (log_title in lastest_archive) {
 					lastest_archive[log_title]++;
 				} else {
-					CeL.err('write_archive: 創建存檔頁面 [['
+					CeL.error('write_archive: 創建存檔頁面 [['
 					//
 					+ archive_page + ']] 失敗，不再作嘗試。');
 					console.error(error);
@@ -288,7 +288,7 @@ get_log_pages(function(log_pages) {
 
 	wiki.page(log_root, function(pages, error) {
 		if (error) {
-			CeL.err(error);
+			CeL.error(error);
 		} else {
 			pages.forEach(for_log_page);
 		}

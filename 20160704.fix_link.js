@@ -296,7 +296,7 @@ function add_dead_link_mark(page_data, link_hash) {
 			if (/^https?:\/\//.test(URL)) {
 				// 這些大部分可能是在註解中，或是應該手動更改的。
 				// throw new Error(message);
-				CeL.err(message);
+				CeL.error(message);
 			}
 			CeL.warn(message);
 			return;

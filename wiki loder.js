@@ -55,6 +55,7 @@ if (user_name) {
 
 require('./wiki configuration.js');
 
+// 若有 CeJS library 則用之。
 // global.use_cejs_mudule = true;
 require('./_CeL.loader.nodejs.js');
 
@@ -202,7 +203,7 @@ _global.Wiki = function(login, API_URL) {
 // TODO: use move
 _global.prepare_directory = function(directory, clean) {
 	if (!directory && !(directory = base_directory)) {
-		CeL.err(
+		CeL.error(
 		// No script_name, therefore no base_directory?
 		'prepare_directory: No directory specified, and no script_name!!');
 		return;

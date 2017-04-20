@@ -135,7 +135,7 @@ function main_work(template_name_redirect_to) {
 
 		if (list[1].length > 0) {
 			// 依照現在 {{publish}} 的寫法，不應出現此項。
-			CeL.err('有' + list[1].length + '個已存檔，但沒有發布之條目！');
+			CeL.error('有' + list[1].length + '個已存檔，但沒有發布之條目！');
 		}
 
 		list = list[0];
@@ -233,7 +233,7 @@ function for_each_old_page(page_data) {
 	 */
 	contents = CeL.wiki.content_of(page_data), current_content;
 	if (!contents) {
-		CeL.err('for_each_old_page: [[' + page_data.title + ']]: No content');
+		CeL.error('for_each_old_page: [[' + page_data.title + ']]: No content');
 		// console.log(page_data);
 		return;
 	}
@@ -276,7 +276,7 @@ function for_each_old_page(page_data) {
 					|| contents[first_has_published + 1]
 					&& PATTERN_publish.test(contents[first_has_published + 1])) {
 				// 可能中間有匹配/不匹配交替出現?
-				CeL.err(first_has_published + '/' + contents.length + ': ');
+				CeL.error(first_has_published + '/' + contents.length + ': ');
 				CeL.log(contents[first_has_published]);
 				CeL.log('-'.repeat(80));
 				if (contents[first_has_published + 1]) {

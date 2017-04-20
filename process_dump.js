@@ -15,7 +15,7 @@ require('./wiki loder.js');
 
 function process_data(error) {
 	if (error)
-		CeL.err(error);
+		CeL.error(error);
 
 	var start_read_time = Date.now(),
 	// max_length = 0,
@@ -97,7 +97,7 @@ function process_data(error) {
 						revision['*'] ]
 			}, function(error) {
 				if (error)
-					CeL.err(error);
+					CeL.error(error);
 			});
 		}
 
@@ -150,7 +150,7 @@ function process_data(error) {
 				if (!do_realtime_import) {
 					setup_SQL(function(error) {
 						if (error)
-							CeL.err(error);
+							CeL.error(error);
 
 						CeL.info('process_data: Import data to database...');
 						var SQL = LOAD_DATA_SQL + file_stream.path
@@ -158,7 +158,7 @@ function process_data(error) {
 						CeL.log(SQL.replace(/\n/g, '\\n'));
 						connection.query(SQL, function(error, rows) {
 							if (error)
-								CeL.err(error);
+								CeL.error(error);
 							endding();
 						});
 					});
@@ -174,7 +174,7 @@ function setup_SQL(callback) {
 	CeL.info('setup_SQL: Re-creating database...');
 	SQL_session = new CeL.wiki.SQL(database_name, function(error) {
 		if (error)
-			CeL.err(error);
+			CeL.error(error);
 
 		connection.query('DROP TABLE `' + table_name + '`', function(error) {
 			connection.query(CREATE_SQL, callback);
@@ -258,7 +258,7 @@ lastest_revid = [];
 if (do_realtime_import) {
 	setup_SQL(function(error) {
 		if (error)
-			CeL.err(error);
+			CeL.error(error);
 
 		// FATAL ERROR: JS Allocation failed - process out of memory
 		// Aborted

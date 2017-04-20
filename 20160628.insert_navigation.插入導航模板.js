@@ -37,7 +37,7 @@ diff_id = process.argv[3],
 template_name = process.argv[2];
 if (!template_name) {
 	// throw new Error('No template name specified!');
-	CeL.err('No template name specified!');
+	CeL.error('No template name specified!');
 	process.exit(1);
 }
 
