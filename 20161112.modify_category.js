@@ -39,23 +39,26 @@ category_hash = CeL.null_Object(), move_from_list;
 // CeL.set_debug(2);
 
 // current work
-summary = '[[Special:Diff/63725606|Bot作業依頼]]：「JXグループ」→「JXTGグループ」ほか カテゴリ変更依頼 - [['
-		+ log_to + '|log]]';
-category_hash = {
-	JXグループ : 'JXTGグループ',
-	JXエネルギーの系列販売店 : 'JXTGエネルギーの系列販売店',
-	JXグループの人物 : 'JXTGグループの人物',
-	JXグループのスポーツ活動 : 'JXTGグループのスポーツ活動',
-	JXグループ単独提供番組 : 'JXTGグループ単独提供番組',
-	JXグループの歴史 : 'JXTGグループの歴史',
-	JXグループのスポーツ関係者 : 'JXTGグループのスポーツ関係者'
-};
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+
 
 // -------------------------------------
 // archive
 if (false) {
+	// 2017/4/21 6:38:32
+	summary = '[[Special:Diff/63725606|Bot作業依頼]]：「JXグループ」→「JXTGグループ」ほか カテゴリ変更依頼 - [['
+			+ log_to + '|log]]';
+	category_hash = {
+		JXグループ : 'JXTGグループ',
+		JXエネルギーの系列販売店 : 'JXTGエネルギーの系列販売店',
+		JXグループの人物 : 'JXTGグループの人物',
+		JXグループのスポーツ活動 : 'JXTGグループのスポーツ活動',
+		JXグループ単独提供番組 : 'JXTGグループ単独提供番組',
+		JXグループの歴史 : 'JXTGグループの歴史',
+		JXグループのスポーツ関係者 : 'JXTGグループのスポーツ関係者'
+	};
+
 	// 2017/4/20 16:50:53
 	summary = '[[Special:Diff/63713843|Bot作業依頼]]：「富士重工業」→「SUBARU」カテゴリ変更依頼 - [['
 			+ log_to + '|log]]';
