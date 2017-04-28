@@ -71,6 +71,8 @@ function for_each_page(page_data, messages) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 	}
 
+	// var parser = CeL.wiki.parser(page_data);
+
 	if (0) {
 		// リンク元の調査。首先需要檢查前後文，確認可能出現的問題！
 		var matched = content.match(PATTERN_TO_REPLACE);

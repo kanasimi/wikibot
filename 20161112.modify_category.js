@@ -25,10 +25,6 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-/** {revision_cacher}記錄處理過的文章。 */
-processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
-		+ use_language + '.json'),
-
 // ((Infinity)) for do all
 test_limit = 2,
 
@@ -41,7 +37,6 @@ category_hash = CeL.null_Object(), move_from_list;
 // current work
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-
 
 // -------------------------------------
 // archive
@@ -131,18 +126,13 @@ function modify_category(category_hash, move_from_list) {
 	if (!Array.isArray(move_from_list)) {
 		move_from_list = Object.keys(category_hash);
 	}
-	var index = 0;
-	function modify_next() {
-		if (index === move_from_list.length) {
-			CeL.log('All ' + move_from_list.length + ' categories done.');
-			return;
-		}
-		var category_name = move_from_list[index++];
+	move_from_list.run_async(function(run_next, category_name, index) {
 		CeL.log(index + '/' + move_from_list.length + ' Category:'
 				+ category_name + ' → ' + category_hash[category_name]);
-		main_work(category_name, category_hash[category_name], modify_next);
-	}
-	modify_next();
+		main_work(category_name, category_hash[category_name], run_next);
+	}, function(params) {
+		CeL.log('All ' + move_from_list.length + ' categories done.');
+	});
 }
 
 function main_work(category_name, move_to, callback) {
@@ -197,7 +187,7 @@ function main_work(category_name, move_to, callback) {
 
 // @see PATTERN_category @ CeL.wiki
 // [ all, category_name, sort_order ]
-var PATTERM_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)\s*(?:\| *(.*?))?\]\] *\n?/ig;
+var PATTERN_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)\s*(?:\| *(.*?))?\]\] *\n?/ig;
 
 function for_each_page(page_data, messages, config) {
 	if (!page_data || ('missing' in page_data)) {
@@ -229,7 +219,7 @@ function for_each_page(page_data, messages, config) {
 
 	// 分類名稱重複時，排序索引以後出現者為主。
 
-	content = content.replace(PATTERM_category, function(all, category_name,
+	content = content.replace(PATTERN_category, function(all, category_name,
 			sort_order) {
 		category_name = category_name.trim();
 		// 檢查是否有重複，若有則去除之。 重複カテゴリ除去。 bug: 將會lose sort_order
