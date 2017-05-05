@@ -185,7 +185,7 @@ function for_each_page_not_archived(page_data) {
 			'for_each_page_not_archived');
 	console.log(page_data);
 	// 不列出已經保護的新聞。
-	if (!CeL.wiki.protected(page_data)
+	if (!CeL.wiki.is_protected(page_data)
 			&& (ignore_date || Date.parse(page_data.revisions[0].timestamp) < time_limit)) {
 		page_list.push(page_data);
 	}
