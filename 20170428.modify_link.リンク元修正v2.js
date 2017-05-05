@@ -9,6 +9,8 @@
 
  TODO:
  不處理同名消歧義頁(曖昧さ回避)
+ {{混同|page_name|page_name2}}
+ {{Pathnav|page_name|page_name2}}
 
  */
 

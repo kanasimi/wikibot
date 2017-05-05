@@ -156,7 +156,11 @@ function main_work(template_name_redirect_to) {
 			no_edit : true,
 			each : for_each_page_not_archived,
 			page_options : {
-				rvprop : 'ids|timestamp'
+				prop : 'revisions|info',
+				rvprop : 'ids|timestamp',
+				// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Binfo
+				// https://www.mediawiki.org/wiki/API:Info#inprop.3Dprotection
+				additional : 'inprop=protection'
 			},
 			last : archive_page
 
@@ -179,8 +183,10 @@ function for_each_page_not_archived(page_data) {
 	CeL.debug('check the articles that are published at least 14 days old. '
 			+ '以最後編輯時間後已超過 time limit (1周)或以上的文章為準。', 3,
 			'for_each_page_not_archived');
-	if (ignore_date
-			|| Date.parse(page_data.revisions[0].timestamp) < time_limit) {
+	console.log(page_data);
+	// 不列出已經保護的新聞。
+	if (!CeL.wiki.protected(page_data)
+			&& (ignore_date || Date.parse(page_data.revisions[0].timestamp) < time_limit)) {
 		page_list.push(page_data);
 	}
 }
