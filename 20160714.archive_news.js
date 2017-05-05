@@ -98,7 +98,7 @@ function main_work(template_name_redirect_to) {
 		type : 'categorymembers',
 		list : template_name_redirect_to.source,
 		reget : true,
-		namespace : null,
+		namespace : 'template',
 		operator : function(list) {
 			source_templates = list.map(function(page_data) {
 				return page_data.title.replace(/^Template:/, '');
@@ -183,7 +183,8 @@ function for_each_page_not_archived(page_data) {
 	CeL.debug('check the articles that are published at least 14 days old. '
 			+ '以最後編輯時間後已超過 time limit (1周)或以上的文章為準。', 3,
 			'for_each_page_not_archived');
-	console.log(page_data);
+	// console.log(page_data);
+	// console.log(CeL.wiki.is_protected(page_data));
 	// 不列出已經保護的新聞。
 	if (!CeL.wiki.is_protected(page_data)
 			&& (ignore_date || Date.parse(page_data.revisions[0].timestamp) < time_limit)) {
