@@ -27,9 +27,8 @@ wiki = Wiki(true);
 
 // CeL.set_debug(2);
 
-CeL.wiki.listen(for_each_row, {
+wiki.listen(for_each_row, {
 	// start : new Date(Date.now() - 60 * 60 * 1000),
-	session : wiki,
 	with_diff : {
 		LCS : true,
 		line : true,
@@ -96,7 +95,9 @@ function for_each_row(row) {
 		while (to_index < to_length
 		// 只向前搜尋到章節末。
 		&& !(line = to[to_index++]).startsWith('=')) {
-			console.log([ 'row.user:', row.user, line ]);
+			// TODO: ~編輯了～署名的文字
+
+			// console.log([ 'row.user:', row.user, line ]);
 			// [[Wikipedia:签名]] 簽名中必須至少包含該用戶的用戶頁、討論頁或貢獻頁其中一項的連結。
 			if (CeL.wiki.parse.user.all(line, row.user)) {
 				// has user link
@@ -104,6 +105,7 @@ function for_each_row(row) {
 			}
 			lines.push(line);
 		}
+		// 忽略僅增加模板的情況。
 		if (lines.length === 0 || lines.join('') === ''
 		// e.g., {{{{translated page|en}} {{Maintained}} {{地鐵專題}}
 		// {{臺灣專題|class=Cat|importance=NA}} }} {{香港專題|class=stub}}
@@ -114,7 +116,7 @@ function for_each_row(row) {
 		all_lines.push(lines);
 	}
 
-	// 需要處理的diff
+	// 需要處理的diff。
 	CeL.info(CeL.wiki.title_link_of(row));
 	console.log([ row.pageid, row.title, row.user, row.revid ]);
 	console.log(all_lines);
