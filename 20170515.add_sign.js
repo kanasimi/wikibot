@@ -28,7 +28,7 @@ wiki = Wiki(true);
 // CeL.set_debug(2);
 
 wiki.listen(for_each_row, {
-	// start : new Date(Date.now() - 60 * 60 * 1000),
+	// start : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
 	with_diff : {
 		LCS : true,
 		line : true,
@@ -78,9 +78,12 @@ function for_each_row(row) {
 	}
 
 	function check_pair(pair) {
-		var to_index = pair.index[1];
+		var to_index = pair.index[1], to_index_end;
 		if (Array.isArray(to_index)) {
+			to_index_end = to_index[1];
 			to_index = to_index[0];
+		} else {
+			to_index_end = to_index;
 		}
 		if (false) {
 			console.log('to_index: ' + to_index);
@@ -91,25 +94,34 @@ function for_each_row(row) {
 		if (false) {
 			console.log([ row.pageid, row.title, row.user, row.revid ]);
 		}
-		var lines = [], line, matched;
+		var lines = [], diff_lines = [], line, matched;
 		while (to_index < to_length
 		// 只向前搜尋到章節末。
 		&& !(line = to[to_index++]).startsWith('=')) {
-			// TODO: ~編輯了～署名的文字
-
+			var user_list = CeL.wiki.parse.user.all(line);
 			// console.log([ 'row.user:', row.user, line ]);
 			// [[Wikipedia:签名]] 簽名中必須至少包含該用戶的用戶頁、討論頁或貢獻頁其中一項的連結。
-			if (CeL.wiki.parse.user.all(line, row.user)) {
+			if (user_list.length > 0) {
 				// has user link
-				return true;
+				if (user_list.includes(row.user)) {
+					return true;
+				}
+				if (to_index - 1 <= to_index_end) {
+					CeL.warn('[[Special:Diff/' + row.revid + ']]: ' + row.user
+							+ ' 編輯了 ' + user_list + ' 署名的文字');
+				}
+			}
+			if (to_index - 1 <= to_index_end) {
+				diff_lines.push(line);
 			}
 			lines.push(line);
 		}
 		// 忽略僅增加模板的情況。
-		if (lines.length === 0 || lines.join('') === ''
-		// e.g., {{{{translated page|en}} {{Maintained}} {{地鐵專題}}
-		// {{臺灣專題|class=Cat|importance=NA}} }} {{香港專題|class=stub}}
-		|| /^\s*(?:{{[^{}]+}}\s*|}}\s*)+$/.test(lines.join(''))) {
+		if (diff_lines.length === 0 || diff_lines.join('') === ''
+		// e.g., 在首段落增加 {{地鐵專題}} {{臺灣專題|class=Cat|importance=NA}}
+		// {{香港專題|class=stub}} {{Maintained|}} {{translated page|}}
+		// {{ArticleHistory|}}
+		|| /^\s*(?:{{[^{}]+}}\s*|}}\s*)+$/.test(diff_lines.join(''))) {
 			return;
 		}
 
