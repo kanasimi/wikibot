@@ -963,7 +963,9 @@ function fix_65(content, page_data, messages, config) {
 
 // ------------------------------------
 
-var PATTERN_ISBN = /([^\d])(1[03])?([\- ]*)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:\s#.]*([\dx\-\s]{10,})/gi;
+// fix 10-ISBN...
+// prevent: "title -sub_title- ISBN..."
+var PATTERN_ISBN = /([^\d])(1[03])?([ ]*\-?)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:\s#.]*([\dx\-\s]{10,})/gi;
 // 不可更改 parameter 為 "ISBN = ..." 的情況!
 fix_69.title = 'ISBN用法錯誤';
 function fix_69(content, page_data, messages, config) {

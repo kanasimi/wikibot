@@ -108,7 +108,8 @@ function for_each_row(row) {
 				}
 				if (to_index - 1 <= to_index_end) {
 					CeL.warn('[[Special:Diff/' + row.revid + ']]: ' + row.user
-							+ ' 編輯了 ' + user_list + ' 署名的文字');
+					// e.g., "注意[[User:Name]]的此一編輯~~~~"
+					+ ' 可能編輯了 ' + user_list + ' 署名的文字（也可能是特意提及）:\n' + line);
 				}
 			}
 			if (to_index - 1 <= to_index_end) {
