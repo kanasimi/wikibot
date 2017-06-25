@@ -296,8 +296,8 @@ function for_each_page(page_data, messages) {
 		if (!local_language) {
 			local_language = CeL.wiki.guess_language(label);
 			if (local_language === '') {
-				CeL.warn('add_label: Unknown language: ' + token + ' @ [['
-						+ title + ']]');
+				CeL.warn('add_label: Unknown language: ' + token + ' @ '
+						+ CeL.wiki.title_link_of(title));
 			}
 		}
 
@@ -451,7 +451,8 @@ function for_each_page(page_data, messages) {
 			add_label(foreign_language, try_decode(foreign_title),
 					try_decode(label), null, token[0]);
 		} else if (!label && !foreign_title || !foreign_language) {
-			CeL.warn('Invalid template: ' + token[0] + ' @ [[' + title + ']]');
+			CeL.warn('Invalid template: ' + token[0] + ' @ '
+					+ CeL.wiki.title_link_of(title));
 		}
 	});
 
@@ -493,23 +494,26 @@ function for_each_page(page_data, messages) {
 		// TODO: 對於這些標籤，只在沒有英文的情況下才加入。
 		var label = matched[1].replace(/<[a-z][^<>]*>/g, ''), token = matched[0]
 				.trim(), foreign_title = null, foreign_language;
-		CeL.debug('[[' + title + ']] lead: ' + token, 4);
+		CeL.debug(CeL.wiki.title_link_of(title) + ' lead: ' + token, 4);
 
-		if ((matched = label
+		matched = label
 		// 檢查 "'''條目名'''（{{lang-en|'''en title'''}}...）"
 		// find {{lang|en|...}} or {{lang-en|...}}
-		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,20})\s*\|([^{}]{3,40})}}/))
-				// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
-				&& (foreign_title = CeL.wiki.plain_text(matched[2])
-				// e.g., {{Lang-tr|Türkçe|link=no}}
-				// e.g., {{Lang-tr|links=no|Türkçe}}
-				.replace_till_stable(/(^|\|)\s*[a-z]+\s*=[^\|=]*($|\|)/ig,
-						'$1$2').replace(/^\|+/, '').replace(/\|.*$/, '').trim())) {
+		.match(/{{\s*[Ll]ang[-|]([a-z]{2}[a-z\-]{0,20})\s*\|([^{}]{3,40})}}/);
+		if (matched
+		// '''竇樂安'''，[[英帝國官佐勳章|OBE]]（{{lang-en|'''John Darroch'''}}，
+		// CeL.HTML_to_Unicode(): 處理HTML編碼。 see [[d:Special:Diff/348446688]]
+		&& (foreign_title = CeL.HTML_to_Unicode(CeL.wiki.plain_text(matched[2])
+		// e.g., {{Lang-tr|Türkçe|link=no}}
+		// e.g., {{Lang-tr|links=no|Türkçe}}
+		.replace_till_stable(/(^|\|)\s*[a-z]+\s*=[^\|=]*($|\|)/ig,
+		//
+		'$1$2').replace(/^\|+/, '').replace(/\|.*$/, '').trim()))) {
 			// adapt for 略記. e.g., [[ja:Template:Lang-en-short]]
 			foreign_language = matched[1].replace(/-short$/, '');
-			CeL.debug(
-					'title@lead type {{lang-xx|title}}: [[' + title + ']] → [['
-							+ foreign_language + ':' + foreign_title + ']]', 3);
+			CeL.debug('title@lead type {{lang-xx|title}}: '
+					+ CeL.wiki.title_link_of(title) + ' → [['
+					+ foreign_language + ':' + foreign_title + ']]', 3);
 			if (foreign_language === 'el') {
 				// [[zh:Special:Diff/40503472]] 無法分辨 grc (古希臘語) 與 el (希臘語)，放棄編輯。
 				// Stop import el to Wikidata.
@@ -536,9 +540,9 @@ function for_each_page(page_data, messages) {
 		.match(/^([a-z][a-z\s\d,.\-–`]{3,40})[)），;；。]/i))
 				&& (foreign_title = CeL.wiki.plain_text(matched[1]))) {
 			foreign_language = 'en';
-			CeL.debug('title@lead type （title，...）: [[' + title + ']] → [['
+			CeL.debug('title@lead type （title，...）: '
+					+ CeL.wiki.title_link_of(title) + ' → [['
 					+ foreign_language + ':' + foreign_title + ']]', 3);
-
 		}
 
 		if (foreign_title) {
@@ -547,14 +551,13 @@ function for_each_page(page_data, messages) {
 					token, 1);
 
 		} else if (CeL.is_debug(2)) {
-			CeL.debug(
-			//
-			'[[' + title + ']]: Unknown label pattern: [' + label + ']', 3);
+			CeL.debug(CeL.wiki.title_link_of(title)
+					+ ': Unknown label pattern: [' + label + ']', 3);
 		}
 
 	} else if (matched = lead_text.match(/^[\s\n]*({{|\[\[)/)) {
-		CeL.warn('[[' + title + ']]: 有問題的 wikitext，例如有首 "' + matched[1]
-				+ '" 標記，無結尾標記？\ntext: ' + lead_text);
+		CeL.warn(CeL.wiki.title_link_of(title) + ': 有問題的 wikitext，例如有首 "'
+				+ matched[1] + '" 標記，無結尾標記？\ntext: ' + lead_text);
 	}
 
 	// 若僅要處理"從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label"之部分。
@@ -702,7 +705,8 @@ function merge_label_data(callback) {
 				// 此 label 指向
 				CeL.slog([ 'parse_line: ' + label_data_length + ':',
 						'fg=yellow', label, '-fg', '→', 'fg=cyan', full_title,
-						'-fg', '@ [[' + title + ']]: ' + token ]);
+						'-fg',
+						'@ ' + CeL.wiki.title_link_of(title) + ': ' + token ]);
 			}
 			// 為防止有重複，在此不 push()。
 			// label_data_keys.push(full_title);
@@ -1035,7 +1039,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 				bot : 1,
 				summary : 'bot: 以[[d:' + entity.id
 				//
-				+ ']]清理跨語言連結[[' + local_title + ']]'
+				+ ']]清理跨語言連結' + CeL.wiki.title_link_of(local_title)
 				//
 				+ (type ? ' (' + type + ')' : '')
 			});
@@ -1166,9 +1170,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 				CeL.log('process_wikidata: fix error (comments): '
 				//
-				+ entity.id + ': ['
+				+ entity.id + ': [' + original_label + '] → '
 				//
-				+ original_label + '] → [[' + original_labels.value + ']]');
+				+ CeL.wiki.title_link_of(original_labels.value));
 
 				return {
 					// https://www.wikidata.org/w/api.php?action=help&modules=wbeditentity
@@ -1198,9 +1202,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 					//
 					+ entity.id + ': ['
 					// → "リトアニアの推理作家"
-					+ original_label + '] → [['
+					+ original_label + '] → '
 					//
-					+ original_labels.value + ']]');
+					+ CeL.wiki.title_link_of(original_labels.value));
 
 				} else {
 					CeL.log('process_wikidata: fix error (delete CJK版): '
@@ -1303,15 +1307,16 @@ function next_label_data_work() {
 	if (label_data_index % 1000 === 0) {
 		CeL.log('next_label_data_work: ' + label_data_index + '/'
 				+ label_data_length + ' ('
-				+ (100 * label_data_index / label_data_length | 0) + '%) [['
-				+ full_title + ']]');
+				+ (100 * label_data_index / label_data_length | 0) + '%) '
+				+ CeL.wiki.title_link_of(full_title));
 	}
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/),
 	//
 	titles = label_data[full_title][1];
 	if (!foreign_title) {
-		CeL.warn('next_label_data_work: Invalid title: [[' + full_title
-				+ ']] @ [[' + titles.join(']], [[') + ']]');
+		CeL.warn('next_label_data_work: Invalid title: '
+				+ CeL.wiki.title_link_of(full_title) + ' @ [['
+				+ titles.join(']], [[') + ']]');
 		// do next.
 		setImmediate(next_label_data_work);
 		return;
@@ -1351,11 +1356,11 @@ function next_label_data_work() {
 		if (!page_data || ('missing' in page_data)) {
 			CeL.info(
 			//
-			'next_label_data_work.check_label: missing foreign page [['
-					+ full_title
+			'next_label_data_work.check_label: missing foreign page '
+					+ CeL.wiki.title_link_of(full_title)
 					// ↓ 無此 token, title 資訊可用。
-					// + ']]; ' + token + ' @ [[' + title + ']].'
-					+ ']] @ [[' + titles.join(']], [[') + ']]');
+					// + '; ' + token + ' @ [[' + title + ']].'
+					+ ' @ [[' + titles.join(']], [[') + ']]');
 			// do next.
 			setImmediate(next_label_data_work);
 			return;
@@ -1363,9 +1368,11 @@ function next_label_data_work() {
 
 		// 取消 foreign page 重新導向到章節的情況。對於導向相同目標的情況，可能導致重複編輯。
 		if (typeof redirect_data === 'object') {
-			CeL.info('next_label_data_work.check_label: 重新導向到章節, skip [['
-					+ full_title + ']] → [[' + redirect_data.to + '#'
-					+ redirect_data.tofragment + ']] @ [['
+			CeL.info('next_label_data_work.check_label: 重新導向到章節, skip '
+					+ CeL.wiki.title_link_of(full_title)
+					+ ' → '
+					+ CeL.wiki.title_link_of(redirect_data.to + '#'
+							+ redirect_data.tofragment) + ' @ [['
 					+ titles.join(']], [[') + ']]');
 			// do next.
 			setImmediate(next_label_data_work);
@@ -1378,8 +1385,9 @@ function next_label_data_work() {
 				CeL.log(page_data);
 			}
 			if (label_data_length <= log_limit)
-				CeL.info('next_label_data_work.check_label: [[' + full_title
-						+ ']] → [[' + page_data.title + ']].');
+				CeL.info('next_label_data_work.check_label: '
+						+ CeL.wiki.title_link_of(full_title) + ' → '
+						+ CeL.wiki.title_link_of(page_data.title) + '.');
 			// TODO: 處理作品被連結/導向到作者的情況
 			foreign_title = page_data.title;
 			// full_title 當作 key，不能改變。
@@ -1390,8 +1398,8 @@ function next_label_data_work() {
 	}, {
 		get_URL_options : {
 			onfail : function(error) {
-				CeL.error('next_label_data_work: get_URL error: [[' + full_title
-						+ ']]:');
+				CeL.error('next_label_data_work: get_URL error: '
+						+ CeL.wiki.title_link_of(full_title) + ':');
 				console.error(error);
 				// 確保沒有因特殊錯誤產生的漏網之魚。
 				titles.unique().forEach(processed_data.remove, processed_data);
