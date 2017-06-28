@@ -27,6 +27,11 @@ if (false) {
 }
 
 wiki.page('User talk:' + owner_name, function(page_data) {
+	if (!page_data || ('missing' in page_data)) {
+		// error?
+		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
+	}
+
 	var revision = CeL.wiki.content_of.revision(page_data),
 	//
 	user = revision && CeL.wiki.normalize_title(revision.user);
