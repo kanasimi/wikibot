@@ -42,7 +42,8 @@ headline_labels = {
 	// 世界 全球
 	'國際' : {
 		// e.g., "​八月一日世界各報頭條搶先報 | 即時新聞 | 20160801 | 蘋果日報"
-		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界各報頭條" site:appledaily.com.tw', '世界各報頭條' ],
+		// "六月一日世界頭條報你知| 即時新聞| 20170601 | 蘋果日報"
+		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界頭條" site:appledaily.com.tw', '世界各報頭條' ],
 		// 
 		// '中央社' : [ '"%m月%d日" "世界主要報紙頭條" site:www.cna.com.tw', '國際' ],
 
@@ -815,8 +816,8 @@ function check_headline_data(labels_to_check) {
 
 			}, undefined, undefined, {
 				onfail : function(error) {
-					CeL.error('next_label: Error to get [' + label + ']: [' + url
-							+ ']');
+					CeL.error('next_label: Error to get [' + label + ']: ['
+							+ url + ']');
 					next_label();
 				}
 			});
