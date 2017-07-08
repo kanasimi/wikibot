@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20170428.modify_link.リンク元修正v2.js; date) >> modify_link/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20170515.add_sign.js; date) >> modify_link/log &
 
 /*
 
