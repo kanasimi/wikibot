@@ -23,7 +23,7 @@ wiki = Wiki(true, 'wikinews');
 // CeL.set_debug(2);
 
 var main_page = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g, link_data = CeL
-		.null_Object(), processed_count = 0, finished_count = 0;
+		.null_Object(), processed_count = 0;
 
 wiki.page(main_page, function(page_data) {
 	if (!page_data || ('missing' in page_data)) {
@@ -99,12 +99,18 @@ function process_VOA_page(XMLHttp) {
 		link_data[XMLHttp.URL].OK = true;
 
 		link_data[XMLHttp.URL].title = title;
+		if (link_data[XMLHttp.URL].user) {
+			this.summary += ' requested by [[User:'
+					+ link_data[XMLHttp.URL].user + ']]';
+		}
 		var keywords = response
 				.match(/<meta content="([^"]+)" name="news_keywords"/);
 		keywords = keywords ? '\n'
 				+ keywords[1].split(/\s*,\s*/).map(function(keyword) {
 					return '[[Category:' + keyword + ']]';
 				}).join('\n') : '';
+		// TODO: 僅對於存在的分類才加入。
+		keywords = '';
 
 		return '{{date|' + report_date.format({
 			format : '%Y年%m月%d日',
@@ -115,7 +121,7 @@ function process_VOA_page(XMLHttp) {
 	}
 
 	wiki.page(title).edit(edit_wiki_page, {
-		summary : 'Import VOA news'
+		summary : '[[' + main_page + '|Import VOA news]]'
 	}, check_links);
 }
 
@@ -141,6 +147,6 @@ function check_links() {
 	}
 
 	wiki.page(main_page).edit(add_report, {
-		summary : 'Report of VOA-importing'
+		summary : 'Report of ' + processed_count + ' VOA-importing'
 	});
 }
