@@ -42,8 +42,8 @@ headline_labels = {
 	// 世界 全球
 	'國際' : {
 		// e.g., "​八月一日世界各報頭條搶先報 | 即時新聞 | 20160801 | 蘋果日報"
-		// "六月一日世界頭條報你知| 即時新聞| 20170601 | 蘋果日報"
-		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界頭條" site:appledaily.com.tw', '世界各報頭條' ],
+		// 2017/6 蘋果日報更改了頭條的格式: "六月一日世界頭條報你知| 即時新聞| 20170601 | 蘋果日報"
+		'蘋果日報 (台灣)' : [ '"%4Y%2m%2d" "世界頭條" site:appledaily.com.tw', '世界頭條' ],
 		// 
 		// '中央社' : [ '"%m月%d日" "世界主要報紙頭條" site:www.cna.com.tw', '國際' ],
 
@@ -913,7 +913,7 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 			}
 		});
 		CeL.debug('檢查標題關鍵字: [' + label_data[1] + '] in "' + title + '": '
-				+ (passed ? 'passed' : 'NG'), 0, 'remove_completed');
+				+ (passed ? 'passed' : '未發現需要的關鍵字詞'), 0, 'remove_completed');
 		if (!passed) {
 			return;
 		}
