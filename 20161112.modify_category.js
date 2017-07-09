@@ -165,6 +165,7 @@ function main_work(category_name, move_to, callback) {
 			move_to : move_to,
 			// 不作編輯作業。
 			// no_edit : true,
+			minor : true,
 			last : callback,
 			log_to : log_to,
 			summary : summary + ': [[Category:' + category_name

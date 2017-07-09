@@ -200,20 +200,20 @@ function write_data() {
 		// 初始模板。
 		if (!page_data.has_date) {
 			if (/{{ *[Dd]ate[\s\|]/.test(content)) {
-				throw '讀取頁面時未發現 {{date}} 模板，'
+				throw '讀取頁面時未發現 {{Date}} 模板，'
 				//
-				+ '寫入頁面時卻檢測到 "{{date"！請確認中途未被寫入，且程式無誤。';
+				+ '寫入頁面時卻檢測到 "{{Date"！請確認中途未被寫入，且程式無誤。';
 			}
 
-			CeL.debug('add {{date}}.', 0, 'write_data');
-			content = '{{date|' + use_date.format('%Y年%m月%d日')
+			CeL.debug('add {{Date}}.', 0, 'write_data');
+			content = '{{Date|' + use_date.format('%Y年%m月%d日')
 			//
 			+ '}}\n\n' + content.trim();
 		}
 
 		if (!page_data.has_header) {
 			CeL.debug('add header.', 0, 'write_data');
-			content = content.replace(/{{date.*?}}\n/, function(section) {
+			content = content.replace(/{{ *[Dd]ate.*?}}\n/, function(section) {
 				return section + '{{Headline item/header|'
 				//
 				+ use_date.format({
@@ -238,14 +238,14 @@ function write_data() {
 		}
 
 		if (has_new_data) {
-			CeL.debug('add {{source}}.', 0, 'write_data');
+			CeL.debug('add {{Source}}.', 0, 'write_data');
 			add_source_data = add_source_data.sort()
 			//
 			.unique_sorted().join('\n') + '\n';
 			content = content.replace(
 			//
 			/(?:\n|^)==\s*消息來源\s*==\n/, function(section) {
-				CeL.debug('add source after section.', 0, 'write_data');
+				CeL.debug('add {{Source}} after section.', 0, 'write_data');
 				section += add_source_data;
 				add_source_data = null;
 				return section;
@@ -269,7 +269,7 @@ function write_data() {
 			}
 
 			if (add_source_data) {
-				CeL.debug('add source at last.', 0, 'write_data');
+				CeL.debug('add {{Source}} at last.', 0, 'write_data');
 				// 不具此 section。
 				content = content.trim()
 				// * 各報報章及其網頁\n
@@ -278,9 +278,9 @@ function write_data() {
 		}
 
 		if (!page_data.has_navbox) {
-			CeL.debug('add 頭條導覽 {{headline navbox}}.', 0, 'write_data');
+			CeL.debug('add 頭條導覽 {{Headline navbox}}.', 0, 'write_data');
 			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
-			content = content.trim() + '\n\n{{headline navbox|'
+			content = content.trim() + '\n\n{{Headline navbox|'
 			// workaround...
 			+ (locale === '臺灣' ? '台灣' : locale) + '|'
 			//
@@ -627,7 +627,7 @@ function parse_鉅亨網_headline(response, publisher) {
 }
 
 // TODO: CNML格式
-// TODO: 去除非本期的{{source}}中國評論新聞：港澳部份報章頭條新聞標題
+// TODO: 去除非本期的{{Source}}中國評論新聞：港澳部份報章頭條新聞標題
 function parse_中國評論新聞_headline(response, publisher) {
 	CeL.debug('test 移動版。', 0, 'parse_中國評論新聞_headline');
 	var news_content = response.between('detail_content', '</div>')
@@ -796,7 +796,7 @@ function check_headline_data(labels_to_check) {
 					// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
 					// || headline_data.length === 0
 					) {
-						// 去掉出錯的{{source}}。
+						// 去掉出錯的{{Source}}。
 						add_source_data = add_source_data.filter(function(
 								source_template) {
 							return !source_template.includes(url);
@@ -954,7 +954,7 @@ function remove_completed(labels_to_check, label, title, url, to_add_source) {
 
 		// console.log(labels_to_check);
 		// add [[n:Template:source]]
-		add_source_data.push('* {{source|url=' + url
+		add_source_data.push('* {{Source|url=' + url
 		//
 		+ '|title=' + title.replace(/[\s\|]+/g, ' ')
 		// 不填作者:這些來源有些根本也沒附摘錄者，因此想填作者也不成
@@ -1282,7 +1282,7 @@ wiki.page(save_to_page, function(page_data) {
 			// return;
 		case 'Review':
 		case 'Develop':
-			// {{develop}}
+			// {{Develop}}
 			// @see [[維基新聞:文章標記]], [[Wikinews:Article stage tags]]
 			// [[Category:新闻标记模板]]
 			CeL.debug('stage node: ' + page_data.stage_node, 0);
