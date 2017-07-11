@@ -33,7 +33,20 @@ NOT_FOUND = ''.indexOf('_');
 var main_page_title = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g, link_data = CeL
 		.null_Object(), processed_count = 0;
 
-wiki.page(main_page_title, function(page_data) {
+if (0)
+	wiki.listen(function(row) {
+		console.log([ row.title, row.rev_id, row.row.rc_timestamp.toString(),
+				CeL.wiki.content_of(row.page_data).slice(0, 200) ]);
+		process_main_page(row.page_data);
+	}, {
+		interval : 500,
+		with_content : true,
+		filter : main_page_title
+	})
+
+wiki.page(main_page_title, process_main_page);
+
+function process_main_page(page_data) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
@@ -63,14 +76,16 @@ wiki.page(main_page_title, function(page_data) {
 	if (Object.keys(link_data).length > 0) {
 		CeL.log('Import VOA links:\n' + Object.keys(link_data).join('\n'));
 	}
-});
+}
 
 function process_VOA_page(XMLHttp) {
 	var status_code = XMLHttp.status,
 	//
 	response = XMLHttp.responseText;
 
-	var title = response.between('<meta name="title" content="', '"').trim(),
+	var this_link_data = link_data[XMLHttp.URL],
+	//
+	title = response.between('<meta name="title" content="', '"').trim(),
 	// 這裡列出的是一定會包含的tags
 	report = response.between('<div class="body-container">',
 			'<ul class="author-hlight">').between('<div class="wsw">', {
@@ -78,6 +93,12 @@ function process_VOA_page(XMLHttp) {
 	}), report_date = new Date(response.between('<time datetime="', '"')
 	// 這個時間竟然是錯的...
 	.replace('+00:00', '+08:00'));
+
+	if (!title || !report) {
+		this_link_data.note = 'ERROR';
+		check_links();
+		return;
+	}
 
 	// 去掉包含的圖片以及多媒體影片。
 	// TODO: 應該 parse HTML。
@@ -96,7 +117,6 @@ function process_VOA_page(XMLHttp) {
 
 	function edit_wiki_page(page_data) {
 		// 清空頁面將會執行下去。
-		var this_link_data = link_data[XMLHttp.URL];
 		if (CeL.wiki.content_of(page_data)) {
 			this_link_data.note = '本頁面已經有內容。';
 			CeL.err('本頁面已經有內容: ' + CeL.wiki.title_link_of(title));
@@ -127,7 +147,7 @@ function process_VOA_page(XMLHttp) {
 		}).join('\n') : '';
 
 		if (/<[a-z]/.test(report)) {
-			this_link_data.note = '因為報導中還存有HTML標籤，這份報導還必須經過審查。';
+			this_link_data.note = '因為報導中尚存有[[w:HTML標籤|]]，這份報導還必須經過整理。';
 		}
 
 		return '{{Date|' + report_date.format({
@@ -159,16 +179,13 @@ function check_links() {
 		return content.replace(PATTERN_link, function(all, link, sign) {
 			var this_link_data = link_data[link];
 
-			if (!this_link_data.OK) {
-				return all;
-			}
-			return '\n\* ['
-					+ link
-					+ ' '
-					+ this_link_data.title
-					+ ']'
+			return '\n\* '
+					+ (this_link_data.title ? '[' + link + ' '
+							+ this_link_data.title + ']' : link)
 					+ sign
-					+ '\n: {{Done}}'
+					+ '\n: {{'
+					+ (this_link_data.OK ? 'Done' : 'Cancelled')
+					+ '}}'
 					+ (this_link_data.user ? '{{Ping|' + this_link_data.user
 							+ '}}' : '')
 					+ CeL.wiki.title_link_of(this_link_data.title)

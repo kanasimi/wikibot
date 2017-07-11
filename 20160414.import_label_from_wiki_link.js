@@ -1256,8 +1256,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		var may_skip;
 		if (typeof error === 'object') {
 			if (error.code === 'last_data_failed') {
-				// 例如提供的 foreign title 錯誤，或是 foreign title 為
-				// redirected。
+				// 例如提供的 foreign title 錯誤，或是 foreign title 為 redirected。
 				// 抑或者存在 foreign title 頁面，但沒有 wikidata entity。
 				error = error.message;
 				may_skip = true;
@@ -1349,8 +1348,7 @@ function next_label_data_work() {
 	// 檢查 [[foreign_language:foreign_title]] 是否存在。
 	CeL.wiki.redirect_to([ foreign_language, foreign_title ], function(
 			redirect_data, page_data) {
-		// CeL.info('next_label_data_work.check_label:
-		// page_data:');
+		// CeL.info('next_label_data_work.check_label: page_data:');
 		// console.log(page_data);
 
 		if (!page_data || ('missing' in page_data)) {
@@ -1388,7 +1386,8 @@ function next_label_data_work() {
 				CeL.info('next_label_data_work.check_label: '
 						+ CeL.wiki.title_link_of(full_title) + ' → '
 						+ CeL.wiki.title_link_of(page_data.title) + '.');
-			// TODO: 處理作品被連結/導向到作者的情況
+			// TODO: 處理作品被連結/導向到作者的情況。
+			// TODO: 去掉被導向到 /^List of /, /の一覧$/ 的情況。
 			foreign_title = page_data.title;
 			// full_title 當作 key，不能改變。
 		}
