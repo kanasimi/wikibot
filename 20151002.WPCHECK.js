@@ -1177,7 +1177,7 @@ function check_tag(token, parent) {
 	&& !new RegExp('</' + end_tag + '\\s*>', 'i').test(matched[2])) {
 		end_tag = '</' + end_tag + '>';
 		// 添加 end_tag，保留 \s$。
-		return token.replace(/\s*$/, function(all) {
+		return token.toString().replace(/\s*$/, function(all) {
 			return end_tag + all;
 		}).replace_till_stable(
 		// 去除內容為空的 tag。

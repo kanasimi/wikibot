@@ -460,7 +460,6 @@ function parse_橙新聞_headline(response, publisher) {
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	// e.g., "<strong>headline</strong></p>\n<p>《文匯報》"
-	// e.g., "<p id="caption4">法國「法蘭西24」電視台頭條：倫敦恐攻 「伊斯蘭國」聲稱犯案</p>"
 	PATTERN = /<strong>([^<>]+)<\/strong>(?:[\s\n]+|<\/?p>)*[《「]([^《》「」]{1,20})[》」]/g;
 	count = 0;
 	while (matched = PATTERN.exec(news_content)) {
@@ -524,6 +523,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 
 	news_content.replace(/<strong[^<>]*>(.*?)<\/strong>/g, function(item) {
 		// assert: "<strong>美國《紐約時報》頭條<br />報紙標題</strong>"
+		// e.g., "<p id="caption4">法國「法蘭西24」電視台頭條：倫敦恐攻 「伊斯蘭國」聲稱犯案</p>"
 		item = item.replace(/<br(?:[^<>]*)>/ig, '\n')
 		// 去掉所有 tags without <!-- -->
 		.replace(/<\/?[a-z][^<>]*>/ig, '').trim();

@@ -30,21 +30,26 @@ NOT_FOUND = ''.indexOf('_');
 
 // CeL.set_debug(2);
 
-var main_page_title = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g, link_data = CeL
+var listen_all_time = true, main_page_title = 'User:' + user_name
+		+ '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g, link_data = CeL
 		.null_Object(), processed_count = 0;
 
-if (0)
-	wiki.listen(function(row) {
-		console.log([ row.title, row.rev_id, row.row.rc_timestamp.toString(),
-				CeL.wiki.content_of(row.page_data).slice(0, 200) ]);
-		process_main_page(row.page_data);
+if (listen_all_time) {
+	// 隨時監視
+	wiki.listen(function(page_data) {
+		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
+		CeL.debug([ page_data.title, page_data.revid, page_data.timestamp,
+				CeL.wiki.content_of(page_data).slice(0, 200) ], 0);
+		process_main_page(page_data);
 	}, {
-		interval : 500,
+		interval : 5000,
 		with_content : true,
 		filter : main_page_title
-	})
-
-wiki.page(main_page_title, process_main_page);
+	});
+} else {
+	// 僅僅執行一次
+	wiki.page(main_page_title, process_main_page);
+}
 
 function process_main_page(page_data) {
 	if (!page_data || ('missing' in page_data)) {
