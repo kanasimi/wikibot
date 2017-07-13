@@ -36,6 +36,7 @@
  KC&amp;ザ・サンシャイン・バンド
  列表: Q11597589
  {{仮リンク|民主党 (キプロス){{!}}民主党|en|Democratic Party (Cyprus)}}
+ https://www.wikidata.org/wiki/Special:AbuseLog?wpSearchUser=Cewbot&wpSearchTitle=&wpSearchFilter=90
 
  蜂 (喜劇) → label 蜂 + 説明 喜劇
  蜂 (曖昧さ回避), 蜂 (曖昧さ) → label 蜂
@@ -265,7 +266,22 @@ function for_each_page(page_data, messages) {
 
 	// ----------------------------------------------------
 
-	// 增加特定語系註記
+	/**
+	 * 增加特定語系註記。
+	 * 
+	 * @param foreign_language
+	 *            外國語言
+	 * @param foreign_title
+	 *            外語之標題
+	 * @param label
+	 *            本地語言標題
+	 * @param local_language
+	 *            本地語言
+	 * @param token
+	 *            包含此標題資訊之wikitext上下文
+	 * @param no_need_check
+	 *            不需檢查 foreign_title 是否存在。
+	 */
 	function add_label(foreign_language, foreign_title, label, local_language,
 			token, no_need_check) {
 
@@ -277,7 +293,10 @@ function for_each_page(page_data, messages) {
 			}
 		}
 		foreign_title = CeL.wiki.normalize_title(foreign_title);
-		label = CeL.wiki.normalize_title(label);
+		label = CeL.wiki.normalize_title(label)
+		// remove disambiguation information.
+		// e.g., [[Special:Diff/518108554]], [[目擊者 (1999年電影)]]
+		.replace(/\([^()]+\)$/, '');
 		if (false) {
 			// done by CeL.wiki.normalize_title().
 			label = label.replace(/_/g, ' ');
@@ -546,9 +565,40 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (foreign_title) {
-			// if (!en_titles.search_sorted(foreign_title))
-			add_label(use_language, title, foreign_title, foreign_language,
-					token, 1);
+			matched = title
+			// e.g., "Loser Man、Loser Guy、Loser Boy" "Event Data Recorder ， EDR"
+			.match(/^[a-z\d\-\s]{2,}(?:([、，;；])[a-z\d\-\s]{2,})+$/i)
+			// e.g., "Nimburg, Neuenburg", "Guide number, GN"
+			|| title.match(/^[a-z\d\-\s,;]{2,}(?:([,;])[a-z\d\-\s,;]{2,})+$/i)
+			// e.g., "高槻第一ジャンクション、たかつきだいいちジャンクション"
+			|| title.match(/^[^.。、，;；]{2,}(?:([、，;；])[^.。、，;；]{2,})+$/)
+			// e.g., "אִיָּר ,אייר"
+			|| title.match(/^[^.。、，;；]{2,}(?:(,)[^.。、，;；]{2,})+$/);
+			if (matched) {
+				title = title.split(matched[1]);
+			} else if (/或| or | and /i.test(title)) {
+				// e.g., "ThioTEPA 或 thiotepa"
+				title = [ title ];
+			}
+			if (Array.isArray(title)) {
+				// e.g., "Electronic waste, e-waste or e-scrap"
+				if (/或| or | and /i.test(title[title.length - 1])) {
+					matched = title.pop().split(/或| or | and /i);
+					title.append(matched);
+				}
+				title.forEach(function(title) {
+					title = title.trim();
+					if (title.length <= 3) {
+						return;
+					}
+					add_label(use_language, title, foreign_title,
+							foreign_language, token, 1);
+				});
+			} else {
+				// if (!en_titles.search_sorted(foreign_title))
+				add_label(use_language, title, foreign_title, foreign_language,
+						token, 1);
+			}
 
 		} else if (CeL.is_debug(2)) {
 			CeL.debug(CeL.wiki.title_link_of(title)
@@ -777,6 +827,7 @@ function create_label_data(callback) {
 	}
 
 	if (0) {
+		// 僅測試單一頁面
 		// for debug specified pages: @ function create_label_data
 		CeL.set_debug(2);
 		wiki.page('', for_each_page).run(after_read_page);
@@ -1387,9 +1438,16 @@ function next_label_data_work() {
 						+ CeL.wiki.title_link_of(full_title) + ' → '
 						+ CeL.wiki.title_link_of(page_data.title) + '.');
 			// TODO: 處理作品被連結/導向到作者的情況。
-			// TODO: 去掉被導向到 /^List of /, /の一覧$/ 的情況。
 			foreign_title = page_data.title;
 			// full_title 當作 key，不能改變。
+		}
+
+		// 去掉被導向到 /^List of /, /の一覧$/ 的情況。
+		// [[Wikipedia:格式手冊/獨立列表]], [[Wikipedia:Stand-alone lists]]
+		if (/List of|Timeline of|列表|年表|一覧/i.test(foreign_title)) {
+			CeL.info('next_label_data_work.check_label: Skip list: '
+					+ CeL.wiki.title_link_of(page_data.title));
+			return;
 		}
 
 		process_wikidata(full_title, foreign_language, foreign_title);
