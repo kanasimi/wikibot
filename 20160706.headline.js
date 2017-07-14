@@ -499,6 +499,11 @@ function parse_橙新聞_headline(response, publisher) {
 	return count;
 }
 
+// [ all, 國家, 報, 頭條 ]
+var PATTERN_國際頭條_1 = /^([^《》「」]*)[《「]([^《》「」]{1,20})[》」](?:頻道|網站|頭條)*(\n+.{4,200})?$/,
+//
+PATTERN_國際頭條_2 = /^[《「]?([^《》「」]{1,20})[》」]?(?:頻道|網站|頭條)+\n+(.{4,200})$/;
+
 function parse_臺灣蘋果日報_headline(response, publisher) {
 	var news_content = response.between('id="summary"', '</p>').between('>');
 
@@ -530,12 +535,11 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
-		var matched = item.match(
-		// [ all, 國家, 報, "頭條" ]
-		/^([^《》「」]*)[《「]([^《》「」]{1,20})[》」](?:頭條)?(\n+.{4,200})?$/),
+		var matched = item.match(PATTERN_國際頭條_1),
 		// 報紙標題。
 		headline;
 		if (matched) {
+			// e.g., 法國「法蘭西24」頻道網站頭條
 			country = matched[1];
 			media = matched[2];
 			if (!matched[3]) {
@@ -545,9 +549,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			}
 			headline = matched[3].trim();
 
-		} else if (country && (matched
-		//
-		= item.match(/^[《「]?([^《》「」]{1,20})[》」]?頭條\n+(.{4,200})$/))) {
+		} else if (country && (matched = item.match(PATTERN_國際頭條_2))) {
 			media = matched[1];
 			headline = matched[2];
 		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {

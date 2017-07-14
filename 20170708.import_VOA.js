@@ -3,6 +3,7 @@
 /*
 
  讓機器人自動匯入美國之音(VOA)新的報導。
+ 警告: 同時間只能有一隻程式在跑，否則可能會造成混亂！
 
  2017/7/8 21:05:40–23:41:07	初版試營運。
 
@@ -30,15 +31,19 @@ NOT_FOUND = ''.indexOf('_');
 
 // CeL.set_debug(2);
 
-var listen_all_time = true, main_page_title = 'User:' + user_name
-		+ '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g, link_data = CeL
-		.null_Object(), processed_count = 0;
+var main_page_title = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g;
 
-if (listen_all_time) {
-	// 隨時監視
+// 僅僅執行一次，一開始就執行一次。
+wiki.page(main_page_title, process_main_page);
+
+// listen all_time
+setTimeout(setup_listener, 10000);
+
+function setup_listener() {
+	// 隨時監視。
 	wiki.listen(function(page_data) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
-		CeL.debug([ page_data.title, page_data.revid, page_data.timestamp,
+		console.log([ page_data.title, page_data.revid, page_data.timestamp,
 				CeL.wiki.content_of(page_data).slice(0, 200) ], 0);
 		process_main_page(page_data);
 	}, {
@@ -46,9 +51,6 @@ if (listen_all_time) {
 		with_content : true,
 		filter : main_page_title
 	});
-} else {
-	// 僅僅執行一次
-	wiki.page(main_page_title, process_main_page);
 }
 
 function process_main_page(page_data) {
@@ -61,18 +63,26 @@ function process_main_page(page_data) {
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
 
+	var to_pass = {
+		link_data : CeL.null_Object(),
+		processed_count : 0,
+		process : process_VOA_page,
+		check_links : check_links
+	};
 	var matched;
 	while (matched = PATTERN_link.exec(content)) {
 		var link = matched[1];
 		if (link in link_data) {
-			CeL.err('連結重複了: ' + link);
+			CeL.error('連結重複了: ' + link);
 			continue;
 		}
 		link_data[link] = {
 			URL : link,
 			user : CeL.wiki.parse.user(matched[2])
 		};
-		CeL.get_URL(link, process_VOA_page, null, null, {
+		CeL.get_URL(link, function(XMLHttp) {
+			to_pass.process(XMLHttp);
+		}, null, null, {
 			// 美國之音網站似乎時不時會 Error: connect ETIMEDOUT
 			error_retry : 3
 		});
@@ -83,12 +93,25 @@ function process_main_page(page_data) {
 	}
 }
 
+var accepted_categories = '臺灣|台灣|台湾|香港|澳门|西藏|蒙古|朝鲜|中东|环境|人权|法律|宗教|经济|金融'
+		.split('|');
+
+(function() {
+	var category_hash = CeL.null_Object();
+	accepted_categories.forEach(function(category) {
+		category_hash[category] = true;
+	});
+	accepted_categories = category_hash;
+})();
+
 function process_VOA_page(XMLHttp) {
 	var status_code = XMLHttp.status,
 	//
 	response = XMLHttp.responseText;
 
-	var this_link_data = link_data[XMLHttp.URL],
+	var link_data = this.link_data,
+	//
+	this_link_data = link_data[XMLHttp.URL],
 	//
 	title = response.between('<meta name="title" content="', '"').trim(),
 	// 這裡列出的是一定會包含的tags
@@ -101,7 +124,7 @@ function process_VOA_page(XMLHttp) {
 
 	if (!title || !report) {
 		this_link_data.note = 'ERROR';
-		check_links();
+		this.check_links();
 		return;
 	}
 
@@ -124,12 +147,12 @@ function process_VOA_page(XMLHttp) {
 		// 清空頁面將會執行下去。
 		if (CeL.wiki.content_of(page_data)) {
 			this_link_data.note = '本頁面已經有內容。';
-			CeL.err('本頁面已經有內容: ' + CeL.wiki.title_link_of(title));
+			CeL.error('本頁面已經有內容: ' + CeL.wiki.title_link_of(title));
 			return;
 		}
 
 		if (this_link_data.OK) {
-			CeL.err('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.URL);
+			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.URL);
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 		this_link_data.OK = true;
@@ -142,11 +165,13 @@ function process_VOA_page(XMLHttp) {
 
 		var categories = response
 				.match(/<meta content="([^"]+)" name="news_keywords"/);
-		categories = categories ? '\n' + categories[1].split(/\s*,\s*/)
+		categories = categories ? '\n'
+		//
+		+ categories[1].replace(/港澳/, '香港,澳门').split(/\s*,\s*/)
 		// 目前僅自動加入國家或者各大洲的分類。
 		// TODO: 僅對於存在的分類才加入。
 		.filter(function(keyword) {
-			return /[洲國国]$/.test(keyword) || /^[臺台][灣湾]$/.test(keyword);
+			return /[洲國国]$/.test(keyword) || (keyword in accepted_categories);
 		}).map(function(keyword) {
 			return '[[Category:' + keyword + ']]';
 		}).join('\n') : '';
@@ -168,11 +193,11 @@ function process_VOA_page(XMLHttp) {
 
 	wiki.page(title).edit(edit_wiki_page, {
 		summary : '[[' + main_page_title + '|Import VOA news]]'
-	}, check_links);
+	}, check_links.bind(this));
 }
 
 function check_links() {
-	if (++processed_count < Object.keys(link_data).length) {
+	if (++this.processed_count < Object.keys(link_data).length) {
 		return;
 	}
 
@@ -200,6 +225,8 @@ function check_links() {
 	}
 
 	wiki.page(main_page_title).edit(add_report, {
-		summary : 'Report of ' + processed_count + ' VOA-importing request'
+		summary : 'Report of '
+		//
+		+ this.processed_count + ' VOA-importing request'
 	});
 }

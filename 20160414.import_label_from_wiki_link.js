@@ -1446,7 +1446,7 @@ function next_label_data_work() {
 		// [[Wikipedia:格式手冊/獨立列表]], [[Wikipedia:Stand-alone lists]]
 		if (/List of|Timeline of|列表|年表|一覧/i.test(foreign_title)) {
 			CeL.info('next_label_data_work.check_label: Skip list: '
-					+ CeL.wiki.title_link_of(page_data.title));
+					+ CeL.wiki.title_link_of(foreign_title));
 			return;
 		}
 
