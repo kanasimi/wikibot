@@ -462,7 +462,7 @@ function parse_橙新聞_headline(response, publisher) {
 	var matched,
 	// e.g., "<strong>headline</strong>《文匯報》"
 	// e.g., "<strong>headline</strong></p>\n<p>《文匯報》"
-	PATTERN = /<strong>([^<>]+)<\/strong>(?:[\s\n]+|<\/?p>)*[《「]([^《》「」]{1,20})[》」]/g;
+	PATTERN = /<strong>([^<>]+)<\/strong>(?:[\s\n]+|<\/?p>)*[《]([^《》]{1,20})[》]/g;
 	count = 0;
 	while (matched = PATTERN.exec(news_content)) {
 		count++;
@@ -472,7 +472,7 @@ function parse_橙新聞_headline(response, publisher) {
 	}
 
 	// e.g., "<strong>headline《文匯報》</strong>"
-	PATTERN = /<strong>([^<>]+)\s*[《「]([^《》「」]{1,20})[》」]\s*<\/strong>/g;
+	PATTERN = /<strong>([^<>]+)\s*[《]([^《》]{1,20})[》]\s*<\/strong>/g;
 	while (matched = PATTERN.exec(news_content)) {
 		matched[1] = matched[1].replace(/^[【\s]+/, '').replace(/[】\s]+$/, '');
 		if (matched[1].length < 80) {
@@ -488,7 +488,7 @@ function parse_橙新聞_headline(response, publisher) {
 		count++;
 		matched = matched[1].replace(/<\/?strong>/g, '');
 		var title;
-		matched = matched.replace(/[《「]([^《》「」]+)[》」]/, function($0, $1) {
+		matched = matched.replace(/[《]([^《》]+)[》]/, function($0, $1) {
 			title = $1;
 			return '';
 		}).trim();
@@ -501,12 +501,17 @@ function parse_橙新聞_headline(response, publisher) {
 	return count;
 }
 
-// [ all, 國家, 報, 頭條 ]
-var PATTERN_國際頭條_1 = /^([^《》「」]*)[《「]([^《》「」]{1,20})[》」](?:電視台|頻道|網站|頭條)*(\n+.{4,200})?$/,
+var
+// [ all, 國家, 報紙媒體, 本日頭條 ]
+PATTERN_國際頭條_有書名號 = /^([^《》「」]{0,8})[《]([^《》]{1,20})[》](?:電視台|頻道|網站|頭條)*(\n+.{4,200})?$/,
 //
-PATTERN_國際頭條_2 = /^[《「]?([^《》「」]{1,20})[》」]?(?:電視台|頻道|網站|頭條)+\n+(.{4,200})$/,
+PATTERN_國際頭條_有引號 = /^([^《》「」\-]{0,8}國)[「]([^《》「」]{1,20})[」](?:電視台|頻道|網站|頭條)*(\n+.{4,200})?$/,
+// [ all, 國內報紙媒體, 本日頭條 ]
+PATTERN_頭條_有破折號 = /^([^報\-《》「」]{1,5}報)-(.{4,200})$/,
+// [ all, 報紙媒體, 本日頭條 ]
+PATTERN_國際頭條_無書名號 = /^[《「]?([^《》「」]{1,20})[》」]?(?:電視台|頻道|網站)?頭條\n+(.{4,200})$/,
 // 美國|英國|法國
-PATTERN_國際頭條_3 = /^(.{1,4}國|日本|卡達)(.{2,})(頭條)?$/;
+PATTERN_國際頭條_國家開頭 = /^(.{1,4}國|日本|卡達)(.{2,}?)(?:頭條)?$/;
 
 function parse_臺灣蘋果日報_headline(response, publisher) {
 	var news_content = response.between('id="summary"', '</p>').between('>');
@@ -543,8 +548,10 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
-		CeL.debug('Parse item: ' + item, 0, 'parse_臺灣蘋果日報_headline');
-		var matched = item.match(PATTERN_國際頭條_1),
+		CeL.debug('Parse item: ' + item + ' (' + media + '@' + country + ')',
+				0, 'parse_臺灣蘋果日報_headline');
+		var matched = item.match(PATTERN_國際頭條_有書名號)
+				|| item.match(PATTERN_國際頭條_有引號),
 		// 報紙標題。
 		headline;
 		if (matched) {
@@ -552,35 +559,58 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			country = matched[1];
 			media = matched[2];
 			if (!matched[3]) {
-				CeL
-						.debug('Set PATTERN_國際頭條_1 country ' + country
-								+ ', media ' + media + ' (' + item + ')', 0,
-								'parse_臺灣蘋果日報_headline');
+				CeL.debug('Set '
+						+ (item.match(PATTERN_國際頭條_有書名號) ? 'PATTERN_國際頭條_有書名號'
+								: 'PATTERN_國際頭條_有引號') + ' country ' + country
+						+ ', media ' + media + ' (' + item + ')', 0,
+						'parse_臺灣蘋果日報_headline');
 				return;
 			}
 			headline = matched[3].trim();
 
-		} else if (country && (matched = item.match(PATTERN_國際頭條_2))) {
-			CeL.debug('Set PATTERN_國際頭條_2 country ' + country + ', media '
+		} else if (!country && (matched = item.match(PATTERN_頭條_有破折號))) {
+			media = matched[1];
+			headline = matched[2];
+			CeL.debug('Set PATTERN_頭條_有破折號 media ' + media + ', headline '
+					+ headline, 0, 'parse_臺灣蘋果日報_headline');
+
+		} else if (country && (matched = item.match(PATTERN_國際頭條_無書名號))) {
+			CeL.debug('Set PATTERN_國際頭條_無書名號 country ' + country + ', media '
 					+ media + ' (' + item + ')', 0, 'parse_臺灣蘋果日報_headline');
 			media = matched[1];
 			headline = matched[2];
+
 		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {
 			headline = matched[0];
 			if (headline.length < 16
-					&& (matched = headline.match(PATTERN_國際頭條_3))) {
+					&& (matched = headline.match(PATTERN_國際頭條_國家開頭))) {
 				// 卡達半島電視台網站頭條, 日本共同社中文網頭條
 				country = matched[1];
 				media = matched[2].replace(/(中文網|網站)$/, '');
-				CeL
-						.debug('Set PATTERN_國際頭條_3 country ' + country
-								+ ', media ' + media + ' (' + item + ')', 0,
-								'parse_臺灣蘋果日報_headline');
+				CeL.debug('Set PATTERN_國際頭條_國家開頭 country ' + country
+						+ ', media ' + media + ' (' + item + ')', 0,
+						'parse_臺灣蘋果日報_headline');
 				return;
+			}
+
+		} else if (!country && media
+				&& (matched = item.match(/^[\s\S]{4,200}$/))) {
+			// e.g., "蘋果日報重點新聞包括:"
+			matched = item.match(/^(.{2,9})重點新聞(?:包括)?\s*:\s*(\n+.{4,200})?/);
+			if (matched) {
+				if (media !== matched[1]) {
+					CeL.error('parse_臺灣蘋果日報_headline: 報紙媒體不相同 [' + publisher
+							+ ']: [' + item + '] (' + media + '!=='
+							+ matched[1] + ')');
+					return;
+				}
+				headline = matched[2];
+			} else if (!item.includes('\n')) {
+				headline = item;
 			}
 		}
 
-		if (!headline || !media || !country) {
+		if (!headline || !media) {
 			CeL.error('parse_臺灣蘋果日報_headline: Can not parse [' + publisher
 					+ ']: [' + item + ']');
 			return '';
