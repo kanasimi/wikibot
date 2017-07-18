@@ -226,7 +226,9 @@ function write_data() {
 		}
 
 		if (headline_data.length > 0) {
-			CeL.debug('add headline.', 0, 'write_data');
+			CeL.debug('add '
+			//
+			+ headline_data.length + ' headliness.', 0, 'write_data');
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
@@ -500,9 +502,11 @@ function parse_橙新聞_headline(response, publisher) {
 }
 
 // [ all, 國家, 報, 頭條 ]
-var PATTERN_國際頭條_1 = /^([^《》「」]*)[《「]([^《》「」]{1,20})[》」](?:頻道|網站|頭條)*(\n+.{4,200})?$/,
+var PATTERN_國際頭條_1 = /^([^《》「」]*)[《「]([^《》「」]{1,20})[》」](?:電視台|頻道|網站|頭條)*(\n+.{4,200})?$/,
 //
-PATTERN_國際頭條_2 = /^[《「]?([^《》「」]{1,20})[》」]?(?:頻道|網站|頭條)+\n+(.{4,200})$/;
+PATTERN_國際頭條_2 = /^[《「]?([^《》「」]{1,20})[》」]?(?:電視台|頻道|網站|頭條)+\n+(.{4,200})$/,
+// 美國|英國|法國
+PATTERN_國際頭條_3 = /^(.{1,4}國|日本|卡達)(.{2,})(頭條)?$/;
 
 function parse_臺灣蘋果日報_headline(response, publisher) {
 	var news_content = response.between('id="summary"', '</p>').between('>');
@@ -522,7 +526,11 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 
 	news_content = news_content.replace(
 	// <strong>法國24</strong><strong>電視台</strong>
-	/<\/strong> {0,2}<strong[^<>]*>(.{2,3}<\/strong>)/g, '$1');
+	// <strong>法國「法蘭西24</strong><strong>」頻道網站頭條</strong>
+	/<\/strong> {0,2}<strong[^<>]*>(.{2,9}<\/strong>)/g, function(all, token) {
+		// 預防token表示的是頭條
+		return /電視台|頻道|頭條/.test(token) ? token : all;
+	});
 	// TODO: "<br /><strong>義大利經歷1980</strong><strong>年以來最強地震 歷史建物倒塌</strong><br
 	// />義大利..."
 
@@ -535,6 +543,7 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 		if (!item) {
 			return;
 		}
+		CeL.debug('Parse item: ' + item, 0, 'parse_臺灣蘋果日報_headline');
 		var matched = item.match(PATTERN_國際頭條_1),
 		// 報紙標題。
 		headline;
@@ -543,23 +552,30 @@ function parse_臺灣蘋果日報_headline(response, publisher) {
 			country = matched[1];
 			media = matched[2];
 			if (!matched[3]) {
-				CeL.debug('Set #1 country ' + country + ', media ' + media
-						+ ' (' + item + ')', 0, 'parse_臺灣蘋果日報_headline');
+				CeL
+						.debug('Set PATTERN_國際頭條_1 country ' + country
+								+ ', media ' + media + ' (' + item + ')', 0,
+								'parse_臺灣蘋果日報_headline');
 				return;
 			}
 			headline = matched[3].trim();
 
 		} else if (country && (matched = item.match(PATTERN_國際頭條_2))) {
+			CeL.debug('Set PATTERN_國際頭條_2 country ' + country + ', media '
+					+ media + ' (' + item + ')', 0, 'parse_臺灣蘋果日報_headline');
 			media = matched[1];
 			headline = matched[2];
 		} else if (country && media && (matched = item.match(/^.{4,200}$/))) {
 			headline = matched[0];
-			if (headline.length < 9
-					&& (matched = headline.match(/^(.國|日本)(.{2,})$/))) {
+			if (headline.length < 16
+					&& (matched = headline.match(PATTERN_國際頭條_3))) {
+				// 卡達半島電視台網站頭條, 日本共同社中文網頭條
 				country = matched[1];
-				media = matched[2];
-				CeL.debug('Set #2 country ' + country + ', media ' + media
-						+ ' (' + item + ')', 0, 'parse_臺灣蘋果日報_headline');
+				media = matched[2].replace(/(中文網|網站)$/, '');
+				CeL
+						.debug('Set PATTERN_國際頭條_3 country ' + country
+								+ ', media ' + media + ' (' + item + ')', 0,
+								'parse_臺灣蘋果日報_headline');
 				return;
 			}
 		}

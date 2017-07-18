@@ -63,8 +63,8 @@ function process_main_page(page_data) {
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data);
 
-	var to_pass = {
-		link_data : CeL.null_Object(),
+	var link_data = CeL.null_Object(), to_pass = {
+		link_data : link_data,
 		processed_count : 0,
 		process : process_VOA_page,
 		check_links : check_links
@@ -93,7 +93,8 @@ function process_main_page(page_data) {
 	}
 }
 
-var accepted_categories = '臺灣|台灣|台湾|香港|澳门|西藏|蒙古|朝鲜|中东|环境|人权|法律|宗教|经济|金融'
+// @see [[Category:频道]]
+var accepted_categories = '臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东|环境|人权|法律|宗教|经济|金融'
 		.split('|');
 
 (function() {
@@ -197,6 +198,7 @@ function process_VOA_page(XMLHttp) {
 }
 
 function check_links() {
+	var link_data = this.link_data;
 	if (++this.processed_count < Object.keys(link_data).length) {
 		return;
 	}
