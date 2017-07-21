@@ -221,7 +221,6 @@ function 處理須合併的條目(page_data, messages) {
 	條目所含維護模板.forEach(function(template_name) {
 		var matched = CeL.wiki.parse.template(content, template_name, true);
 		if (!matched) {
-			// 當同時包含 Refimprove, RefImprove 時會算作兩個，但實質僅一個。
 			return;
 		}
 		// 不處理章節
@@ -238,7 +237,6 @@ function 處理須合併的條目(page_data, messages) {
 				+ content.slice(matched.lastIndex).trimStart();
 	});
 	if (多個問題_模板內容.length < 須合併模板數) {
-		// 當同時包含 Refimprove,RefImprove 時會算作兩個，但實質僅一個。
 		return [ CeL.wiki.edit.cancel, '資料庫中含有 ' + normalized_count(條目所含維護模板)
 		//
 		+ '個未重複的維護模板: [' + show_模板(條目所含維護模板)
@@ -251,7 +249,7 @@ function 處理須合併的條目(page_data, messages) {
 		//
 		+ (章節維護模板_count + 多個問題_模板內容.length < 須合併模板數
 		//
-		? '或許已被編輯過，或維護模板尚有未登記之別名？' : '') ];
+		? '或許條目已被編輯過，或維護模板尚有未登記之別名？' : '') ];
 	}
 	// 盡可能不改變原先維護模板之順序。
 	多個問題_模板內容.sort(function(a, b) {
@@ -388,7 +386,26 @@ CeL.wiki.cache([ {
 	retrieve : function() {
 		var list = [], 含有維護模板之頁面 = this.含有維護模板之頁面;
 		for ( var pageid in 含有維護模板之頁面) {
-			list.push(含有維護模板之頁面[pageid]);
+			var page_data = 含有維護模板之頁面[pageid];
+			list.push(page_data);
+			var 維護模板 = page_data.維護模板;
+			// 當同時包含 Refimprove, RefImprove 時會算作兩個，但實質僅一個。
+			if (維護模板.includes('RefImprove') && 維護模板.includes('Refimprove')) {
+				page_data.維護模板 = 維護模板.map(function(title) {
+					return title !== 'RefImprove';
+				});
+			}
+			if (維護模板.includes('Expand language')
+			// 當同時包含 Expand English,Expand language 時會算作兩個，但實質僅一個。
+			&& (維護模板.includes('Expand English')
+			// 因為各種Expand語言模板由{{Expand language}}生成。
+			|| 維護模板.includes('Expand Japanese')
+			//
+			|| 維護模板.includes('Expand Spanish'))) {
+				page_data.維護模板 = 維護模板.map(function(title) {
+					return title !== 'Expand language';
+				});
+			}
 		}
 		return list;
 	},

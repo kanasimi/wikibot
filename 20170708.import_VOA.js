@@ -53,7 +53,7 @@ function setup_listener() {
 	});
 }
 
-function process_main_page(page_data) {
+function process_main_page(page_data, error) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
