@@ -166,16 +166,22 @@ function process_VOA_page(XMLHttp) {
 
 		var categories = response
 				.match(/<meta content="([^"]+)" name="news_keywords"/);
-		categories = categories ? '\n'
-		//
-		+ categories[1].replace(/港澳/, '香港,澳门').split(/\s*,\s*/)
-		// 目前僅自動加入國家或者各大洲的分類。
-		// TODO: 僅對於存在的分類才加入。
-		.filter(function(keyword) {
-			return /[洲國国]$/.test(keyword) || (keyword in accepted_categories);
-		}).map(function(keyword) {
-			return '[[Category:' + keyword + ']]';
-		}).join('\n') : '';
+		if (categories) {
+			categories = categories[1].replace(/港澳/, '香港,澳门').split(/\s*,\s*/);
+			this_link_data.categories = categories;
+			categories = '\n' + categories
+			// 目前僅自動加入國家或者各大洲的分類。
+			// TODO: 僅對於存在的分類才加入。
+			.filter(function(keyword) {
+				return /[洲國国]$/.test(keyword)
+				//
+				|| (keyword in accepted_categories);
+			}).map(function(keyword) {
+				return '[[Category:' + keyword + ']]';
+			}).join('\n');
+		} else {
+			categories = '';
+		}
 
 		if (/<[a-z]/.test(report)) {
 			this_link_data.note = '因為報導中尚存有[[w:HTML標籤|]]，這份報導還必須經過整理。';
@@ -222,6 +228,9 @@ function check_links() {
 					+ (this_link_data.user ? '{{Ping|' + this_link_data.user
 							+ '}}' : '')
 					+ CeL.wiki.title_link_of(this_link_data.title)
+					// add categories (keywords) to report
+					+ (this_link_data.categories ? '('
+							+ this_link_data.categories.join(', ') + ')' : '')
 					+ (this_link_data.note ? "。'''" + this_link_data.note
 							+ "'''" : '') + ' --~~~~';
 		});
