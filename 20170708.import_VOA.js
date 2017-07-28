@@ -192,6 +192,7 @@ function process_VOA_page(XMLHttp) {
 				+ '}}' + categories;
 	}
 
+	CeL.set_debug(6);
 	wiki.page(title).edit(edit_wiki_page, {
 		summary : '[[' + main_page_title + '|Import VOA news]]'
 	}, check_links.bind(this));
@@ -230,5 +231,7 @@ function check_links() {
 		summary : 'Report of '
 		//
 		+ this.processed_count + ' VOA-importing request'
+	}).run(function() {
+		CeL.set_debug(0);
 	});
 }
