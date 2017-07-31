@@ -40,7 +40,7 @@ wiki.page(main_page_title, process_main_page);
 setTimeout(setup_listener, 10000);
 
 function setup_listener() {
-	// 隨時監視。
+	// 隨時監視 main_page_title。
 	wiki.listen(function(page_data) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
 		console.log([ page_data.title, page_data.revid, page_data.timestamp,
@@ -53,6 +53,9 @@ function setup_listener() {
 	});
 }
 
+// ----------------------------------------------------------------------------
+
+// 解析 main_page_title 看看是不是有新的申請。
 function process_main_page(page_data, error) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
@@ -88,13 +91,19 @@ function process_main_page(page_data, error) {
 		});
 	}
 
-	if (Object.keys(link_data).length > 0) {
-		CeL.log('Import VOA links:\n' + Object.keys(link_data).join('\n'));
+	var titles = Object.keys(link_data);
+	to_pass.count = titles.length;
+	if (to_pass.count > 0) {
+		CeL.log('process_main_page: Import ' + to_pass.count + ' VOA links:\n'
+				+ titles.join('\n'));
 	}
 }
 
+// ----------------------------------------------------------------------------
+
 // @see [[Category:频道]]
-var accepted_categories = '臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东|环境|人权|法律|宗教|经济|金融'
+var accepted_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
+		+ '|政治|法治|法律|人权' + '|社会|文化|教育|宗教|讣告' + '|财经|经济|金融' + '|科技|科学' + '|体育')
 		.split('|');
 
 (function() {
@@ -111,7 +120,7 @@ function process_VOA_page(XMLHttp) {
 	response = XMLHttp.responseText;
 
 	var link_data = this.link_data,
-	//
+	// assert: 沒有經過301轉換網址
 	this_link_data = link_data[XMLHttp.URL],
 	//
 	title = response.between('<meta name="title" content="', '"').trim(),
@@ -120,8 +129,10 @@ function process_VOA_page(XMLHttp) {
 			'<ul class="author-hlight">').between('<div class="wsw">', {
 		tail : '</div>'
 	}), report_date = new Date(response.between('<time datetime="', '"')
-	// 這個時間竟然是錯的...
+	// VOA 這個時間竟然是錯的，必須將之視作中原標準時間。
 	.replace('+00:00', '+08:00'));
+
+	// assert: typeof this_link_data === 'object'
 
 	if (!title || !report) {
 		this_link_data.note = 'ERROR';
@@ -198,15 +209,19 @@ function process_VOA_page(XMLHttp) {
 				+ '}}' + categories;
 	}
 
-	CeL.set_debug(6);
+	// CeL.set_debug(6);
 	wiki.page(title).edit(edit_wiki_page, {
 		summary : '[[' + main_page_title + '|Import VOA news]]'
 	}, check_links.bind(this));
 }
 
+// ----------------------------------------------------------------------------
+
 function check_links() {
 	var link_data = this.link_data;
-	if (++this.processed_count < Object.keys(link_data).length) {
+	++this.processed_count;
+	CeL.log('check_links: get ' + this.processed_count + '/' + this.count);
+	if (this.processed_count < this.count) {
 		return;
 	}
 
@@ -229,7 +244,7 @@ function check_links() {
 							+ '}}' : '')
 					+ CeL.wiki.title_link_of(this_link_data.title)
 					// add categories (keywords) to report
-					+ (this_link_data.categories ? '('
+					+ (this_link_data.categories ? ' ('
 							+ this_link_data.categories.join(', ') + ')' : '')
 					+ (this_link_data.note ? "。'''" + this_link_data.note
 							+ "'''" : '') + ' --~~~~';
@@ -241,6 +256,6 @@ function check_links() {
 		//
 		+ this.processed_count + ' VOA-importing request'
 	}).run(function() {
-		CeL.set_debug(0);
+		// CeL.set_debug(0);
 	});
 }
