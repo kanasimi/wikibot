@@ -65,9 +65,8 @@ function for_each_row(row) {
 		delete row.diff;
 		console.log(row);
 	}
-	if (!row.diff
-			|| !/^[a-z _]*talk:/.test(CeL.wiki.namespace.name_of_NO[row.ns])
-			&& !row.title.startsWith('Wikipedia:互助客栈/')) {
+	if (!row.diff || !row.title.startsWith('Wikipedia:互助客栈/')
+			&& !CeL.wiki.is_talk_namespace(row.ns)) {
 		return;
 	}
 
@@ -76,6 +75,8 @@ function for_each_row(row) {
 	if (row.diff.some(check_pair) || all_lines.length === 0) {
 		return;
 	}
+
+	// console.log([ row.pageid, row.title, row.user, row.revid ]);
 
 	function check_pair(pair) {
 		var to_index = pair.index[1], to_index_end;
