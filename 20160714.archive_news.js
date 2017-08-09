@@ -4,6 +4,14 @@
 
  2016/7/17 14:35:38	正式營運，轉成常態性運行作業。
 
+ @see
+ https://en.wikipedia.org/wiki/Wikipedia:Link_rot
+ https://en.wikipedia.org/wiki/Wikipedia:Citing_sources#Preventing_and_repairing_dead_links
+ https://meta.wikimedia.org/wiki/InternetArchiveBot
+ https://web.archive.org/
+ http://archive.is/
+ http://archivebot.at.ninjawedding.org:4567/
+
  */
 
 'use strict';

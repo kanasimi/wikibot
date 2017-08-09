@@ -50,14 +50,22 @@ function for_each_row(row) {
 		return;
 		console.log(row.diff);
 	}
+	if (!row.diff
 	// 跳過機器人所做的編輯。
-	if (!row.revisions || ('bot' in row)
+	|| ('bot' in row)
 	// 為了某些編輯不加 bot flag 的 bot。
 	|| /bot/i.test(row.user)
-	//
-	|| /\/archive/.test(row.title)) {
+	// 篩選頁面標題
+	|| !row.title.startsWith('Wikipedia:互助客栈/')
+	// 跳過封存頁面
+	|| /\/archive/.test(row.title) && !CeL.wiki.is_talk_namespace(row.ns)
+	// 篩選頁面內容
+	|| !row.revisions || !row.revisions[0]
+	// 跳過重定向頁
+	|| CeL.wiki.parse.redirect(row.revisions[0]['*'])) {
 		return;
 	}
+	// TODO: 去掉編輯頁首模板的情況
 	if (false) {
 		row.revisions.forEach(function(revision) {
 			delete revision['*'];
@@ -65,18 +73,6 @@ function for_each_row(row) {
 		delete row.diff;
 		console.log(row);
 	}
-	if (!row.diff || !row.title.startsWith('Wikipedia:互助客栈/')
-			&& !CeL.wiki.is_talk_namespace(row.ns)) {
-		return;
-	}
-
-	var to = row.diff.to, to_length = to.length, all_lines = [];
-	// 有些可能只是搬移，只要任何一行有簽名即可。
-	if (row.diff.some(check_pair) || all_lines.length === 0) {
-		return;
-	}
-
-	// console.log([ row.pageid, row.title, row.user, row.revid ]);
 
 	function check_pair(pair) {
 		var to_index = pair.index[1], to_index_end;
@@ -128,6 +124,12 @@ function for_each_row(row) {
 		}
 
 		all_lines.push(lines);
+	}
+
+	var to = row.diff.to, to_length = to.length, all_lines = [];
+	// 有些可能只是搬移，只要任何一行有簽名即可。
+	if (row.diff.some(check_pair) || all_lines.length === 0) {
+		return;
 	}
 
 	// 需要處理的diff。
