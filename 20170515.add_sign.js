@@ -73,6 +73,8 @@ function for_each_row(row) {
 	// 篩選頁面標題。
 	// 跳過封存/存檔頁面。
 	|| /\/(?:archive|存檔|存档|檔案|档案)/i.test(row.title)
+	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
+	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 	// 必須是白名單頁面，
 	|| !row.title.startsWith('Wikipedia:互助客栈/')
 	// ...或者討論頁面
@@ -80,7 +82,9 @@ function for_each_row(row) {
 	// 篩選頁面內容。
 	|| !row.revisions || !row.revisions[0]
 	// 跳過重定向頁。
-	|| CeL.wiki.parse.redirect(row.revisions[0]['*'])) {
+	|| CeL.wiki.parse.redirect(row.revisions[0]['*'])
+	// [[WP:SIGN]]
+	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')) {
 		return;
 	}
 	if (false) {
@@ -109,15 +113,22 @@ function for_each_row(row) {
 			console.log([ row.pageid, row.title, 'User:' + row.user,
 					'Special:Diff/' + row.revid ]);
 		}
-		var lines = [], diff_lines = [], line, matched;
+		var lines = [], diff_lines = [], line, matched, new_content;
 		while (to_index < to_length
 		// 比較頁面修訂差異。對於頁面每個修改的部分，都向後搜尋/檢查到章節末，提取出所有簽名。
 		&& !(line = to[to_index++]).startsWith('=')) {
 			if (line.startsWith('}}')) {
-				// 去掉編輯頁首模板的情況。
+				// e.g., 去掉編輯頁首模板的情況。
+				// 可能會漏判。
 				// TODO: 警告: 若在模板參數中加入了章節標題，則會被當作沒有簽名。
 				CeL.debug('跳過修改模板中參數的情況。', 1, 'check_pair');
-				return;
+				// reset: 跳過之前的。但是之後的還是得繼續檢查。
+				lines = [];
+				diff_lines = [];
+				line = line.replace(/.*}}/, '');
+				if (!line) {
+					return;
+				}
 			}
 			// 提取出所有簽名。
 			var user_list = CeL.wiki.parse.user.all(line);
@@ -136,6 +147,10 @@ function for_each_row(row) {
 							+ line);
 					edit_others = user_list;
 				}
+			} else if (row.user.length > 4 && line.includes(row.user)) {
+				// 只寫了用戶名，但是沒有加連結的情況。 e.g., [[Special:Diff/45609160]]
+				// 但是若僅僅在文字中提及時，可能會被漏掉。
+				return true;
 			}
 			if (to_index - 1 <= to_index_end) {
 				diff_lines.push(line);
@@ -165,6 +180,7 @@ function for_each_row(row) {
 		// TODO: 跳過搬移選舉結果
 		CeL.info(CeL.wiki.title_link_of(row) + ': 將可能修改了他人文字的編輯寫進記錄頁面 '
 				+ CeL.wiki.title_link_of(edit_others_log_to_page));
+		CeL.info('-'.repeat(75));
 		// TODO: 寫進記錄頁面。
 
 		// 終究是已經署名過了，因此不需要再處理。
@@ -187,5 +203,9 @@ function for_each_row(row) {
 	// [[Special:Diff/45360040]]
 	// [[MediaWiki:Talkpagetext/zh]]
 
+	return;
+
 	// 為沒有署名的編輯添加簽名標記。
+	// 若是row並非最新版，則會放棄編輯。
+	wiki.page(row).edit(new_content);
 }
