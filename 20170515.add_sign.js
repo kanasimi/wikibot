@@ -39,6 +39,28 @@ edit_others_log_to_page = 'User:' + user_name + '/edit others';
 // 監視最近更改的頁面。
 wiki.listen(for_each_row, {
 	// start : new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
+	// 做初步的篩選。
+	filter : function(row) {
+		if (false) {
+			console.log([ row.pageid, row.title, 'User:' + row.user,
+					'Special:Diff/' + row.revid ]);
+		}
+
+		var passed =
+		// 為了某些編輯不加 bot flag 的 bot。
+		!/bot/i.test(row.user)
+		// 篩選頁面標題。
+		// 跳過封存/存檔頁面。
+		&& !/\/(?:archive|存檔|存档|檔案|档案)/i.test(row.title)
+		// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
+		// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
+		// 必須是白名單頁面，
+		&& (row.title.startsWith('Wikipedia:互助客栈/')
+		// ...或者討論頁面
+		|| CeL.wiki.is_talk_namespace(row.ns));
+
+		return passed;
+	},
 	with_diff : {
 		LCS : true,
 		line : true,
@@ -46,6 +68,10 @@ wiki.listen(for_each_row, {
 		with_list : true
 	},
 	parameters : {
+		// 跳過機器人所做的編輯。
+		// You need the "patrol" or "patrolmarks" right to request the patrolled
+		// flag.
+		rcshow : '!bot',
 		rcprop : 'title|ids|sizes|flags|user'
 	},
 	interval : 500
@@ -55,10 +81,6 @@ wiki.listen(for_each_row, {
 function for_each_row(row) {
 	delete row.row;
 	if (false) {
-		console.log([ row.pageid, row.title, 'User:' + row.user,
-				'Special:Diff/' + row.revid ]);
-	}
-	if (false) {
 		CeL.set_debug();
 		console.log(row);
 		return;
@@ -66,19 +88,14 @@ function for_each_row(row) {
 	}
 	// 做初步的篩選: 以討論頁面為主。
 	if (!row.diff
-	// 跳過機器人所做的編輯。
-	|| ('bot' in row)
-	// 為了某些編輯不加 bot flag 的 bot。
-	|| /bot/i.test(row.user)
-	// 篩選頁面標題。
 	// 跳過封存/存檔頁面。
 	|| /\/(?:archive|存檔|存档|檔案|档案)/i.test(row.title)
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
-	// 必須是白名單頁面，
-	|| !row.title.startsWith('Wikipedia:互助客栈/')
-	// ...或者討論頁面
-	&& !CeL.wiki.is_talk_namespace(row.ns)
+	// 必須是白名單頁面
+	|| row.title.startsWith('Wikipedia:互助客栈')
+	//
+	&& !row.title.startsWith('Wikipedia:互助客栈/')
 	// 篩選頁面內容。
 	|| !row.revisions || !row.revisions[0]
 	// 跳過重定向頁。
@@ -117,6 +134,7 @@ function for_each_row(row) {
 		while (to_index < to_length
 		// 比較頁面修訂差異。對於頁面每個修改的部分，都向後搜尋/檢查到章節末，提取出所有簽名。
 		&& !(line = to[to_index++]).startsWith('=')) {
+			// TODO: [[Special:Diff/45623121]] [[Special:Diff/45628113]]
 			if (line.startsWith('}}')) {
 				// e.g., 去掉編輯頁首模板的情況。
 				// 可能會漏判。
@@ -147,8 +165,10 @@ function for_each_row(row) {
 							+ line);
 					edit_others = user_list;
 				}
-			} else if (row.user.length > 4 && line.includes(row.user)) {
-				// 只寫了用戶名，但是沒有加連結的情況。 e.g., [[Special:Diff/45609160]]
+			} else if (row.user.length > 4
+					// 只寫了用戶名，但是沒有加連結的情況。 e.g., [[Special:Diff/45178923]]
+					&& (new RegExp(CeL.to_RegExp_pattern(row.user).replace(
+							/[ _]/g, '[ _]'), 'i')).test(line)) {
 				// 但是若僅僅在文字中提及時，可能會被漏掉。
 				return true;
 			}
@@ -194,9 +214,9 @@ function for_each_row(row) {
 	}
 
 	CeL.info('需要處理的diff: ' + CeL.wiki.title_link_of(row));
+	console.log(all_lines);
 	console.log([ row.pageid, row.title, 'User:' + row.user,
 			'Special:Diff/' + row.revid ]);
-	console.log(all_lines);
 	CeL.info('-'.repeat(75));
 
 	// TODO: 通知使用者記得簽名
@@ -206,6 +226,7 @@ function for_each_row(row) {
 	return;
 
 	// 為沒有署名的編輯添加簽名標記。
+	// {{subst:unsigned|用戶名或IP|時間日期}}
 	// 若是row並非最新版，則會放棄編輯。
 	wiki.page(row).edit(new_content);
 }
