@@ -38,11 +38,11 @@ edit_others_log_to_page = 'User:' + user_name + '/edit others';
 
 // 監視最近更改的頁面。
 wiki.listen(for_each_row, {
-	// start : new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
+	start : new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
 	// 做初步的篩選。
 	filter : function(row) {
 		if (false) {
-			console.log([ row.pageid, row.title, 'User:' + row.user,
+			console.log([ row.title, 'User:' + row.user,
 					'Special:Diff/' + row.revid ]);
 		}
 
@@ -63,7 +63,8 @@ wiki.listen(for_each_row, {
 	},
 	with_diff : {
 		LCS : true,
-		line : true,
+		// line : true,
+		line : false,
 		index : 2,
 		with_list : true
 	},
@@ -112,14 +113,12 @@ function for_each_row(row) {
 		console.log(row);
 	}
 
-	function check_pair(pair) {
-		var to_index = pair.index[1], to_index_end;
-		if (Array.isArray(to_index)) {
-			to_index_end = to_index[1];
-			to_index = to_index[0];
-		} else {
-			to_index_end = to_index;
-		}
+	function check_pair(diff_pair) {
+		CeL.info('-'.repeat(75));
+		console.log(diff_pair);
+
+		var to_index = diff_pair.index[1], to_index_end = to_index[1];
+		to_index = to_index[0];
 		if (false) {
 			console.log('to_index: ' + to_index);
 		}
@@ -127,13 +126,13 @@ function for_each_row(row) {
 			return;
 		}
 		if (false) {
-			console.log([ row.pageid, row.title, 'User:' + row.user,
+			console.log([ row.title, 'User:' + row.user,
 					'Special:Diff/' + row.revid ]);
 		}
 		var lines = [], diff_lines = [], line, matched, new_content;
 		while (to_index < to_length
 		// 比較頁面修訂差異。對於頁面每個修改的部分，都向後搜尋/檢查到章節末，提取出所有簽名。
-		&& !(line = to[to_index++]).startsWith('=')) {
+		&& !(line = to[to_index++].trimEnd()).startsWith('=')) {
 			// TODO: [[Special:Diff/45623121]] [[Special:Diff/45628113]]
 			if (line.startsWith('}}')) {
 				// e.g., 去掉編輯頁首模板的情況。
@@ -161,8 +160,8 @@ function for_each_row(row) {
 				if (to_index - 1 <= to_index_end) {
 					CeL.warn('[[Special:Diff/' + row.revid + ']]: ' + row.user
 					// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯~~~~"
-					+ ' 可能編輯了 ' + user_list + ' 署名的文字（也可能是特意提及，或是搬移選舉結果）:\n'
-							+ line);
+					+ ' 可能編輯了 ' + user_list.join(', ')
+							+ ' 署名的文字（也可能是特意提及，或是搬移選舉結果）:\n' + line);
 					edit_others = user_list;
 				}
 			} else if (row.user.length > 4
@@ -189,6 +188,10 @@ function for_each_row(row) {
 		all_lines.push(lines);
 	}
 
+	CeL.info('='.repeat(75));
+	console.log([ row.title, 'User:' + row.user, 'Special:Diff/' + row.revid ]);
+	console.log(row.diff);
+
 	var to = row.diff.to, to_length = to.length, all_lines = [], edit_others;
 	// 對於頁面每個修改的部分，比較頁面修訂差異。
 	// 有些可能只是搬移，只要任何一行有簽名即可。
@@ -213,7 +216,7 @@ function for_each_row(row) {
 		return;
 	}
 
-	CeL.info('需要處理的diff: ' + CeL.wiki.title_link_of(row));
+	CeL.info('需要補簽名的diff: ' + CeL.wiki.title_link_of(row));
 	console.log(all_lines);
 	console.log([ row.pageid, row.title, 'User:' + row.user,
 			'Special:Diff/' + row.revid ]);
