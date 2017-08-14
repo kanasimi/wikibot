@@ -1287,9 +1287,13 @@ function fix_104(content, page_data, messages, config) {
 			// 正常無恙。
 			return all;
 		// 去尾。
-		while (name.endsWith(quote))
+		while (name.endsWith(quote)
+		// @see [[特別:差分/64875543/64936247]]
+		|| quote === '"' && name.endsWith('”')
+				&& !name.slice(0, -1).includes('”'))
 			name = name.slice(0, -1);
 		// 去頭。
+		// TODO: for "“"
 		while (name.startsWith(quote))
 			name = name.slice(1);
 		name = name.trim();
@@ -1301,10 +1305,10 @@ function fix_104(content, page_data, messages, config) {
 		}
 		// console.log(all);
 		if (name.endsWith(quote === '"' ? "'" : '"'))
-			name = name.slice(0, -1) + quote;
-		else
-			name += quote;
-		return '<ref name=' + quote + name + (single ? ' /' : '') + '>';
+			name = name.slice(0, -1);
+		return '<ref name=' + quote + name + quote
+		//
+		+ (single ? ' /' : '') + '>';
 	});
 
 	// 檢查是否有剩下出問題的情況。
