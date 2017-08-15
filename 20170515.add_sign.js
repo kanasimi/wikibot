@@ -12,12 +12,24 @@
  完成。正式運用。
 
  工作原理:
- # 監視最近更改的頁面。
- # 取得頁面資料。
- # 做初步的篩選: 以討論頁面為主。
- # 比較頁面修訂差異。對於頁面每個修改的部分，都向後搜尋/檢查到章節末，提取出所有簽名。跳過修改模板中參數的情況。
- # 將可能修改了他人文字的編輯寫進記錄頁面 。
- # 為沒有署名的編輯添加簽名標記。
+ # wiki.listen(): 監視最近更改的頁面。
+ # wiki.listen(): 取得頁面資料。
+ # filter_row(): 從頁面資訊做初步的篩選: 以討論頁面為主。
+ # for_each_row(): 解析頁面結構。比較頁面修訂差異。
+ # check_diff_pair(): 對於頁面每個修改的部分，都向後搜尋/檢查到章節末。
+ # check_sections(): 檢查每一段的差異、提取出所有簽名，並且做出相應的處理。
+ # for_each_row(): 將可能修改了他人文字的編輯寫進記錄頁面 [[User:cewbot/Signature check]]。
+ # for_each_row(): 為沒有署名的編輯添加簽名標記。
+
+ 一般說來在討論頁留言的用途有:
+ 在條目的討論頁首段添加上維基專題、條目里程碑、維護、評級模板。
+ TODO: 當一次性大量加入連續的文字時，僅僅當做一次編輯。例如貼上文件備查。 [[Special:Diff/45239349]]
+ 用戶在自己的討論頁首段添加上宣告或者維護模板。
+ 其他一般討論，應該加上署名。
+
+ @see
+ https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
+ https://zh.wikipedia.org/wiki/User:Crystal-bot
 
  */
 
@@ -29,14 +41,20 @@ require('./wiki loder.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-//
+// 本工具將產生記錄頁面 [[User:cewbot/Signature check]]。
 check_log_page = 'User:' + user_name + '/Signature check';
 
 // ----------------------------------------------------------------------------
 
 // CeL.set_debug(2);
 
-var test_the_page_only = '',
+// 只處理此一頁面。
+var test_the_page_only = "",
+// 回溯這麼多天。
+days_back_to = 70,
+// 除了在編輯首段的維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
+// 因為有些時候可能是把正文中的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
+sign_each_section = false,
 //
 with_diff = {
 	LCS : true,
@@ -44,66 +62,89 @@ with_diff = {
 	line : false,
 	index : 2,
 	with_list : true
-};
+},
+// 另可以破折號代替橫線。
+more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
+// 只有ASCII符號。
+PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/;
+
+// ----------------------------------------------------------------------------
+
+function show_page(row) {
+	CeL.log('* [[User:' + row.user + ']] 編輯了 [[Special:Diff/' + row.revid + '|'
+			+ row.title + ']]');
+}
+
+// 從頁面資訊做初步的篩選。
+function filter_row(row) {
+	if (CeL.is_debug(2)) {
+		show_page(row);
+	}
+
+	var passed =
+	// 為了某些編輯不加 bot flag 的 bot。
+	!/bot/i.test(row.user)
+	// 篩選頁面標題。
+	// 跳過封存/存檔頁面。
+	&& !/\/(?:archive|存檔|存档|檔案|档案)/i.test(row.title)
+	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
+	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
+	// 必須是白名單頁面，
+	&& (row.title.startsWith('Wikipedia:互助客栈/')
+	// ...或者討論頁面
+	|| CeL.wiki.is_talk_namespace(row.ns)
+	// for test
+	|| test_the_page_only && row.title === test_the_page_only)
+	// 篩選編輯摘要。排除還原的編輯。
+	&& !/还原|還原|revert|取消.*(编辑|編輯)|更改回|!nosign!/i.test(row.comment);
+
+	return passed;
+}
 
 if (test_the_page_only) {
+	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
+			+ ': 先取得頁面資料。');
 	wiki.page(test_the_page_only, function(page_data) {
 		var revision = CeL.wiki.content_of.revision(page_data);
 		page_data.user = revision.user;
 		page_data.timestamp = revision.timestamp;
+		page_data.revid = revision.revid;
+		// The edit comment / summary.
+		page_data.comment = revision.comment;
 
+		// 解析頁面結構。
 		CeL.wiki.parser(page_data).parse();
-		page_data.diff = CeL.LCS(CeL.wiki.parser(
-				CeL.wiki.content_of(page_data, -1)).parse().map(
-				function(token) {
-					return token.toString();
-				}), page_data.parsed.map(function(token) {
+		page_data.from_parsed = CeL.wiki.parser(
+				CeL.wiki.content_of(page_data, -1)).parse();
+		page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
+			return token.toString();
+		}), page_data.parsed.map(function(token) {
 			return token.toString();
 		}), Object.assign({
 			diff : true
 		}, with_diff));
 
-		// CeL.set_debug(2);
+		// 處理單一頁面的時候開啟偵錯模式。
+		CeL.set_debug(2);
 		if (CeL.is_debug(2))
 			console.log(page_data);
 		for_each_row(page_data);
 	}, {
-		rvprop : 'timestamp|content|user',
+		rvprop : 'ids|timestamp|content|user|comment',
 		rvlimit : 2
 	});
 
 } else {
-	// 監視最近更改的頁面。
+	CeL.info('開始監視' + (days_back_to > 0 ? ' ' + days_back_to + '天前起' : '最近')
+			+ '更改的頁面。');
 	wiki.listen(for_each_row, {
-		start : new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
-		// 做初步的篩選。
-		filter : function(row) {
-			if (false) {
-				console.log([ row.title, 'User:' + row.user,
-						'Special:Diff/' + row.revid ]);
-			}
-
-			var passed =
-			// 為了某些編輯不加 bot flag 的 bot。
-			!/bot/i.test(row.user)
-			// 篩選頁面標題。
-			// 跳過封存/存檔頁面。
-			&& !/\/(?:archive|存檔|存档|檔案|档案)/i.test(row.title)
-			// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
-			// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
-			// 必須是白名單頁面，
-			&& (row.title.startsWith('Wikipedia:互助客栈/')
-			// ...或者討論頁面
-			|| CeL.wiki.is_talk_namespace(row.ns));
-
-			return passed;
-		},
+		start : days_back_to,
+		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {
 			// 跳過機器人所做的編輯。
-			// You need the "patrol" or "patrolmarks" right to request the
-			// patrolled
-			// flag.
+			// You need the "patrol" or "patrolmarks" right
+			// to request the patrolled flag.
 			rcshow : '!bot',
 			rcprop : 'title|ids|sizes|flags|user'
 		},
@@ -113,19 +154,18 @@ if (test_the_page_only) {
 
 // ---------------------------------------------------------
 
-// 取得頁面資料。
 function for_each_row(row) {
 	delete row.row;
+	// CeL.set_debug(2);
 	if (false) {
-		CeL.set_debug();
 		console.log(row);
 		return;
 		console.log(row.diff);
 	}
-	// 做初步的篩選: 以討論頁面為主。
+	CeL.debug('做初步的篩選: 以討論頁面為主。', 5);
 	if (!row.diff
-	// 跳過封存/存檔頁面。
-	|| /\/(?:archive|存檔|存档|檔案|档案)/i.test(row.title)
+	// 跳過封存/存檔頁面。 e.g., [[Wikipedia talk:首页/header/preload]]
+	|| /\/(?:archive|存檔|存档|檔案|档案|header|preload)/i.test(row.title)
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 	// 必須是白名單頁面
@@ -140,7 +180,7 @@ function for_each_row(row) {
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')) {
 		return;
 	}
-	if (false) {
+	if (CeL.is_debug(4)) {
 		row.revisions.forEach(function(revision) {
 			delete revision['*'];
 		});
@@ -150,8 +190,7 @@ function for_each_row(row) {
 
 	if (CeL.is_debug(2)) {
 		CeL.info('='.repeat(75));
-		console.log([ row.title, 'User:' + row.user,
-				'Special:Diff/' + row.revid ]);
+		show_page(row);
 		console.log(row);
 	}
 
@@ -161,7 +200,7 @@ function for_each_row(row) {
 	// @see add_listener() in CeL.application.net.wiki
 	// row.diff.to[index] === row.parsed[index].toString();
 	var to = row.diff.to, to_length = to.length, all_lines = [],
-	// 第二個段落在row.parsed中的 index。
+	/** {Integer}第二個段落在row.parsed中的 index。 */
 	second_section_index = row.parsed.length;
 
 	row.parsed.some(function(token, index) {
@@ -170,19 +209,20 @@ function for_each_row(row) {
 			return true;
 		}
 	});
-	if (CeL.is_debug(2))
-		CeL.info('second_section_index: ' + second_section_index);
+	if (CeL.is_debug(2)) {
+		CeL.info('second_section_index: ' + second_section_index + '/'
+				+ row.diff.to.length);
+	}
 
 	// -----------------------------------------------------
 
-	var check_log = [], added_signs = 0;
+	var check_log = [], added_signs = 0, last_processed_index, queued_start;
 
 	// 對於頁面每個修改的部分，比較頁面修訂差異。
 	// 有些可能只是搬移，只要任何一行有簽名即可。
 	row.diff.forEach(check_diff_pair);
 
-	// 除了在編輯首段的維基專題、條目里程碑、維護模板之外，每個段落至少要有一個簽名。
-	function check_diff_pair(diff_pair) {
+	function check_diff_pair(diff_pair, diff_index) {
 		if (CeL.is_debug(2)) {
 			CeL.info('-'.repeat(75) + '\ncheck_diff_pair:');
 			console.log(diff_pair);
@@ -191,34 +231,45 @@ function for_each_row(row) {
 		// [ to_index_start, to_index_end ] = diff_pair.index[1]
 		var to_index_start = diff_pair.index[1];
 		if (!to_index_start) {
-			// deleted
+			CeL.debug('跳過: 這一段編輯刪除了文字 / deleted。', 2);
 			return;
 		}
 		var to_index_end = to_index_start[1];
 		to_index_start = to_index_start[0];
 
+		if (to_index_end < last_processed_index) {
+			CeL.debug('跳過: 這一段已經處理過。', 2);
+			return;
+		}
+
 		for (var to_index = to_index_start; to_index <= to_index_end; to_index++) {
 			var token = row.parsed[to_index];
 			if (to_index_start === to_index) {
 				if (typeof token === 'string' && !token.trim()) {
-					// 跳過一開始的空白。
+					CeL.debug('跳過一開始的空白。', 4);
 					to_index_start = to_index + 1;
 				}
+
+			} else if (!sign_each_section) {
+				continue;
+
 			} else if (token.type === 'section_title') {
 				// assert: to_index > to_index_start
-				// 這一小段編輯跨越了不同的段落。但是我們會檢查每個個別的段落，每個段落至少要有一個簽名。
-				check_section(to_index_start, to_index - 1, to_index);
+				CeL.debug('這一小段編輯跨越了不同的段落。但是我們會檢查每個個別的段落，每個段落至少要有一個簽名。', 4);
+				check_sections(to_index_start, to_index - 1, to_index,
+						diff_pair, diff_index);
 				// reset: 跳過之前的段落。但是之後的還是得繼續檢查。
 				to_index_start = to_index;
 			}
 		}
 
 		if (to_index_start >= to_index_end) {
+			last_processed_index = to_index_end;
 			return;
 		}
 
 		var next_section_index = to_index_end;
-		// 對於頁面每個修改的部分，都向後搜尋/檢查到章節末，提取出所有簽名。
+		CeL.debug('對於頁面每個修改的部分，都向後搜尋/檢查到章節末。', 4);
 		while (++next_section_index < row.parsed.length) {
 			var token = row.parsed[next_section_index];
 			if (token.type === 'section_title') {
@@ -226,37 +277,79 @@ function for_each_row(row) {
 			}
 		}
 
-		check_section(to_index_start, to_index_end, next_section_index);
+		if (!sign_each_section
+				&& next_section_index === (row.diff[diff_index + 1]
+				// 假如兩段之間沒有段落或者只有空白字元，那將會把他們合併在一起處理。
+				&& row.diff[diff_index + 1].index[1] && row.diff[diff_index + 1].index[1][0])) {
+			if (!(queued_start >= 0))
+				queued_start = to_index_start;
+			CeL.debug('合併段落 ' + [ diff_index, diff_index + 1 ]
+					+ '，start index: ' + queued_start + '。', 2);
+			return;
+		}
+
+		if (queued_start >= 0) {
+			CeL.debug('之前合併過段落，start index: ' + to_index_start + '→'
+					+ queued_start, 2);
+			to_index_start = queued_start;
+			queued_start = undefined;
+		}
+
+		// console.log([ to_index_end, next_section_index, row.parsed.length ]);
+
+		check_sections(to_index_start, to_index_end, next_section_index,
+				diff_pair, diff_index);
+		last_processed_index = next_section_index;
 	}
 
-	// 一般說來在討論頁留言的用途有:
-	// 在條目的討論頁首段添加上維基專題、條目里程碑、維護模板。
-	// TODO: 當一次性大量加入連續的文字時，僅僅當做一次編輯。例如貼上文件備查。 [[Special:Diff/45239349]]
-	// 用戶在自己的討論頁首段添加上宣告或者維護模板。
-	// 其他一般討論，應該加上署名。
-
-	function check_section(to_diff_start_index, to_diff_end_index,
-			next_section_index) {
+	// 檢查每一段的差異、提取出所有簽名，並且做出相應的處理。
+	function check_sections(to_diff_start_index, to_diff_end_index,
+			next_section_index, diff_pair, diff_index) {
 		if (CeL.is_debug(2)) {
-			CeL.info('-'.repeat(60) + '\ncheck_section:');
+			CeL.info('-'.repeat(60) + '\ncheck_sections: to:');
 			console.log(row.diff.to.slice(to_diff_start_index,
 					to_diff_end_index + 1));
-			CeL.info('-'.repeat(20));
+			CeL.info('-'.repeat(4) + ' ↑ diff part ↓ list to next section');
 			console.log(row.diff.to.slice(to_diff_end_index + 1,
 					next_section_index));
 		}
 
+		// --------------------------------------
+
 		function top_level_text_may_skip() {
 			var token_list = [];
 			// 取得最頂端階層、模板之外的wikitext文字。
-			for (var index = to_diff_start_index; index <= to_diff_end_index; index++) {
-				if (row.parsed[index].type === 'transclusion'
-				// 維護模板一般會從新的一行開始。
-				&& (index === 0 || row.diff.to[index - 1].endsWith('\n')))
+			for (var index = to_diff_start_index, previous_token = row.parsed[index - 1]; index <= to_diff_end_index; index++) {
+				var token = row.parsed[index];
+				if (token.type === 'transclusion'
+				//
+				&& (index === 0 || previous_token
+				//
+				&& (typeof previous_token === 'string'
+				// assert: 維護、評級模板一般會從新的一行開始。
+				? previous_token.endsWith('\n') :
+				// 當多個模板擠在同一行中時，算一個模板即可。
+				previous_token.type === 'transclusion'))) {
+					previous_token = token;
 					continue;
-				token_list.push(row.parsed[index]);
+				}
+				// console.log([ previous_token, index, token ]);
+				token_list.push(token);
+				previous_token = token;
 			}
-			return /^[ -@\[-`{-~]{0,4}$/.test(token_list.join('').trim());
+			if (false) {
+				// for e.g., "{{t1}}{{t2}}" in the same line.
+				token_list = token_list.map(function(token) {
+					token = token.toString()
+					// 採用這個方法會更好。
+					.replace_till_stable(/{{[^{}]+?}}/g, '');
+					return token;
+				});
+			}
+			token_list = token_list.join('').trim();
+			CeL.debug('首段文字: ' + JSON.stringify(token_list), 2);
+			// 首段文字只有ASCII符號。
+			return PATTERN_symbol_only.test(token_list);
 		}
 
 		if (to_diff_end_index < second_section_index) {
@@ -273,18 +366,20 @@ function for_each_row(row) {
 				}
 
 			} else if (CeL.wiki.is_talk_namespace(row.ns)) {
-				CeL.debug('測試是不是在條目的討論頁首段添加上維基專題、條目里程碑、維護模板。', 2);
+				CeL.debug('測試是不是在條目的討論頁首段添加上維基專題、條目里程碑、維護、評級模板。', 2);
 				if (top_level_text_may_skip()) {
 					// Skip: 忽略僅增加模板的情況。去掉編輯頁首模板的情況。
 					// e.g., 在首段落增加 {{地鐵專題}} {{臺灣專題|class=Cat|importance=NA}}
 					// {{香港專題|class=stub}} {{Maintained|}} {{translated page|}}
 					// {{ArticleHistory|}}
-					CeL.debug('跳過修改模板中參數的情況。', 1, 'check_section');
+					CeL.debug('跳過修改模板中參數的情況。', 1, 'check_sections');
 					return;
 				}
 			}
 			// 可能會漏判。
 		}
+
+		// --------------------------------------
 
 		CeL.debug('當作其他一般討論，應該加上署名。', 2);
 
@@ -292,7 +387,7 @@ function for_each_row(row) {
 		var section_wikitext = row.diff.to.slice(to_diff_start_index,
 				to_diff_end_index + 1);
 
-		for (var index = to_diff_end_index + 1; index <= next_section_index; index++) {
+		for (var index = to_diff_end_index + 1; index < next_section_index; index++) {
 			var token = row.diff.to[index];
 			section_wikitext.push(token);
 			// TODO: 應該使用 function for_each_token()
@@ -302,24 +397,88 @@ function for_each_row(row) {
 		}
 
 		section_wikitext = section_wikitext.join('');
+		if (CeL.wiki.content_of.revision(row).length > 1
+				&& CeL.wiki.content_of(row, -1).includes(
+						section_wikitext.trim())) {
+			// 可能需要人工手動檢查。可能是 diff 操作仍有可改善之處。寧可跳過漏報，不可錯殺。
+			// e.g., [[Special:Diff/45311637]]
+			check_log.push([ '此筆編輯之前就已經有這一段文字。', section_wikitext ]);
+			return;
+		}
+		if (PATTERN_symbol_only.test(section_wikitext)) {
+			// @see [[Special:Diff/45254729]]
+			check_log.push([ '此筆編輯僅僅添加了符號。', section_wikitext ]);
+			return;
+		}
+
+		// --------------------------------------
+
+		/** {Natural}下一個段落前最後一個不同之index。 */
+		var last_diff_index_before_next_section = to_diff_end_index,
+		// assert:to_next_diff_start_index >= 1
+		to_next_diff_start_index = to_diff_end_index + 1;
+		// 找出下一個段落前最後一個不同之處。
+		for (var index = diff_index; ++index < row.diff.length;) {
+			var to_diff_index = row.diff[index].index[1];
+			if (!to_diff_index) {
+				// 這一段變更只刪除了文字。
+				continue;
+			}
+			to_next_diff_start_index = to_diff_index[1]
+					|| to_next_diff_start_index;
+			if (to_diff_index[1] >= next_section_index) {
+				if (to_diff_index[0] < next_section_index) {
+					// 下一段變更開始於段落標題之前。把簽名加在段落標題最前之前。
+					last_diff_index_before_next_section = next_section_index - 1;
+				}
+				break;
+			}
+			if (to_diff_index[1] < next_section_index) {
+				last_diff_index_before_next_section = to_diff_index[1];
+				// 繼續檢查下一段變更。
+			}
+		}
+
+		// --------------------------------------
 
 		// 提取出所有簽名。
 		// TODO: 應該使用 function for_each_token()
 		var user_list = CeL.wiki.parse.user.all(section_wikitext);
 		// console.log([ 'row.user:', row.user, section_wikitext ]);
 
-		// [[Wikipedia:签名]] 簽名中必須至少包含該用戶的用戶頁、討論頁或貢獻頁其中一項的連結。
+		// [[Wikipedia:签名]]: 簽名中必須至少包含該用戶的用戶頁、討論頁或貢獻頁其中一項的連結。
 		if (user_list.length > 0) {
-			CeL.debug('直接跳過使用者編輯屬於自己的頁面。但是這在編輯同一段落中其他人的發言時可能會漏判。', 2);
 			if (user_list.includes(row.user)) {
 				// has user link
+				CeL.debug('直接跳過使用者' + row.user
+						+ '編輯屬於自己的頁面。但是這在編輯同一段落中其他人的發言時可能會漏判。', 2);
 				return;
 			}
 
-			check_log.push([ row.user
-			// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯~~~~"
-			+ ' 可能編輯了 ' + user_list.join(', ') + ' 署名的文字（也可能是特意提及，或是搬移選舉結果）',
-					section_wikitext ]);
+			var from_user_list = diff_pair[0].join('');
+			if (to_diff_end_index < last_diff_index_before_next_section) {
+				// 加上到下一個段落之前相同的部分。但是請注意，這可能造成漏報。
+				from_user_list += row.diff.to.slice(to_next_diff_start_index,
+						last_diff_index_before_next_section).join('');
+			}
+			from_user_list = CeL.wiki.parse.user.all(from_user_list);
+			user_list = user_list.filter(function(user) {
+				// 跳過對機器人的編輯做出的修訂。
+				return !/bot/i.test(user)
+				// 只有在原先文字中就存在的使用者，才可能是被修改到的。要不然就是本次編輯添加的，例如搬移選舉結果的情況。
+				&& from_user_list.includes(user);
+			});
+			// console.log([ from_user_list, user_list ]);
+			if (user_list.length > 0) {
+				check_log.push([ row.user
+				// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯~~~~"
+				+ ' 可能編輯了 ' + user_list.join(', ')
+				// e.g., 您創建的條目~~可能侵犯版權
+				+ ' 署名的文字（也可能是用戶' + row.user + '代簽名、特意提及、搬移條目討論，或是還原/撤銷編輯）',
+						section_wikitext ]);
+			} else {
+				CeL.debug('在舊版的文字中並沒有發現簽名。或許是因為整段搬移貼上？', 2);
+			}
 			CeL.debug('終究是已經署名過了，因此不需要再處理。', 2);
 			return;
 
@@ -337,21 +496,34 @@ function for_each_row(row) {
 			return;
 		}
 
-		CeL.info('需要補簽名的diff: ' + CeL.wiki.title_link_of(row));
-		console.log(section_wikitext);
-		console.log([ row.pageid, row.title, 'User:' + row.user,
-				'Special:Diff/' + row.revid ]);
-		CeL.info('-'.repeat(75));
+		// --------------------------------------
+		// 該簽名而未簽名。未簽補上簽名。
 
 		added_signs++;
-		row.diff.to[to_diff_end_index] += '{{subst:unsigned|' + row.user + '|'
-		// 該簽名而未簽名。未簽補上簽名。
+		check_log.push([
+				'需要在最後補上 User:' + row.user + ' 的簽名',
+				row.diff.to.slice(to_diff_start_index,
+						last_diff_index_before_next_section + 1).join('') ]);
+		row.diff.to[last_diff_index_before_next_section] = row.diff.to[last_diff_index_before_next_section]
+		// {{subst:unsigned|用戶名或IP|時間日期}}
+		.replace(/([\s\n]*)$/, '{{subst:unsigned|' + row.user + '|'
+		// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
 		+ (new Date(row.timestamp)).format({
 			format : '%Y年%m月%d日 (%w) %2H:%2M (UTC)',
-			zone : 0
+			zone : 0,
+			locale : 'cmn-Hant-TW'
 		}).replace('星期', '')
-		// TODO: for IPv6
-		+ (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(row.user) ? '|IP=1' : '') + '}}';
+		// for IPv4
+		+ (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(row.user)
+		// for IPv6
+		|| /[\da-f]{1,4}(?::[\da-f]{1,4}){7}/i.test(row.user) ? '|IP=1' : '')
+				+ '}}$1');
+
+		CeL.info('需要在最後補簽名的編輯: ' + CeL.wiki.title_link_of(row));
+		console.log(row.diff.to.slice(to_diff_start_index,
+				last_diff_index_before_next_section + 1).join(''));
+		show_page(row);
+		CeL.info('-'.repeat(75));
 	}
 
 	// -----------------------------------------------------
@@ -363,36 +535,47 @@ function for_each_row(row) {
 					+ CeL.wiki.title_link_of(check_log_page));
 			CeL.info('-'.repeat(75));
 		}
-		// 寫進記錄頁面。
 		check_log = check_log.map(function(log) {
-			log[0] += ' (' + log[1].length + ' chars):\n<pre><nowiki>';
+			log[0] += ' (' + log[1].length + ' 字):\n<pre><nowiki>';
 			var more = '';
-			if (log[1].length > 80 * 2) {
-				more = '...<pre><nowiki>' + log[1].slice(-80)
-						+ '</nowiki></pre>';
+			if (log[1].length > 80 * 2 + more_separator.length + 20) {
+				more = more_separator + log[1].slice(-80);
 				log[1] = log[1].slice(0, 80);
 			}
-			return log[0] + log[1].replace(/</g, '&lt;') + '</nowiki></pre>'
-					+ more;
+			// escape
+			return log[0] + log[1].replace(/</g, '&lt;') + more
+					+ '</nowiki></pre>';
 		});
-		check_log.unshift('; [[Special:Diff/' + row.revid + '|' + row.title
-				+ ']]:');
+		check_log.unshift((CeL.wiki.content_of.revision(row).length < 2
+		// 新頁面
+		? '; [[Special:Permalink/' + row.revid + '|' + row.title + ']]:'
+		// show diff link
+		: '; [[Special:Diff/' + row.revid + '|' + row.title + ']]:')
+		// add 編輯摘要。
+		+ (row.comment ? ' (' + row.comment + ')' : ''));
 		wiki.page(check_log_page).edit(check_log.join('\n* '), {
 			section : 'new',
 			sectiontitle : row.title,
 			nocreate : 1,
 			bot : 1,
-			summary : 'Report of [[Special:Diff/' + row.revid + ']]'
+			summary :
+			//
+			'Signature check report of [[Special:Diff/' + row.revid + ']]'
 		});
 	}
 
-	// TODO: 通知使用者記得簽名
+	// TODO: 用戶討論頁提示：如果在24小時內進行了3次未簽名的編輯，通知使用者記得簽名。
 	// [[Special:Diff/45360040]]
 	// [[MediaWiki:Talkpagetext/zh]]
 
-	// 為沒有署名的編輯添加簽名標記。
-	// {{subst:unsigned|用戶名或IP|時間日期}}
-	// 若是row並非最新版，則會放棄編輯。
-	if (added_signs && undefined)
-		wiki.page(row).edit(row.diff.to.join(''));
+	if (added_signs && undefined) {
+		CeL.debug('為沒有署名的編輯添加簽名標記。', 2);
+		// 若是row並非最新版，則會放棄編輯。
+		wiki.page(row).edit(row.diff.to.join(''), {
+			nocreate : 1,
+			summary :
+			//
+			'為[[Special:Diff/' + row.revid + '|' + row.user + '的編輯]]補簽名。'
+		});
+	}
 }

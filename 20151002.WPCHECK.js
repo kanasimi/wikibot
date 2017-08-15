@@ -1289,9 +1289,9 @@ function fix_104(content, page_data, messages, config) {
 		// 去尾。
 		while (name.endsWith(quote)
 		// @see [[特別:差分/64875543/64936247]]
-		|| quote === '"' && name.endsWith('”')
-				&& !name.slice(0, -1).includes('”'))
+		|| quote === '"' && /^[^"'“”]+”$/.test(name)) {
 			name = name.slice(0, -1);
+		}
 		// 去頭。
 		// TODO: for "“"
 		while (name.startsWith(quote))
