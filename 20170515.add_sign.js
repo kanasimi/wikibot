@@ -183,7 +183,7 @@ function for_each_row(row) {
 
 	var
 	/** {String}page content, maybe undefined. */
-	content = CeL.wiki.content_of(page_data);
+	content = CeL.wiki.content_of(row);
 
 	CeL.debug('做初步的篩選: 以討論頁面為主。', 5);
 	if (!row.diff
