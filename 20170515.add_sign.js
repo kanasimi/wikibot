@@ -50,11 +50,11 @@ check_log_page = 'User:' + user_name + '/Signature check';
 
 var
 // 只處理此一頁面。
-test_the_page_only = "User talk:腦控",
+test_the_page_only = "",
 // 測試模式
 test_mode = true,
 // 回溯這麼多天。
-days_back_to = 80,
+days_back_to = 90,
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 unsigned_notification = 3,
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
