@@ -49,7 +49,7 @@ check_log_page = 'User:' + user_name + '/Signature check';
 // CeL.set_debug(2);
 
 // 只處理此一頁面。
-var test_the_page_only = "",
+var test_the_page_only = "討論:NU'EST",
 // 回溯這麼多天。
 days_back_to = 80,
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
@@ -64,8 +64,10 @@ PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/;
 
 // ----------------------------------------------------------------------------
 
+// 測試模式
+var test_mode = true,
 // unsigned_user_hash[user][page title] = unsigned count
-var unsigned_user_hash = CeL.null_Object(),
+unsigned_user_hash = CeL.null_Object(),
 // 非內容的元素。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
 noncontent_type = {
 	category : true,
@@ -75,6 +77,20 @@ noncontent_type = {
 first_section_skip_type = {
 	category : true,
 	transclusion : true
+},
+//
+exclude_templates = {
+	Bot : true,
+	'Soft redirect' : true,
+	'Merged-from' : true,
+	'Merged-to' : true,
+	'圖片請求' : true,
+}, significant_templates = {
+// Quote : true,
+// 引用 : true,
+// 'Quote classic' : true,
+// Cita : true,
+// QUOTE : true,
 },
 //
 with_diff = {
@@ -88,6 +104,20 @@ with_diff = {
 function show_page(row) {
 	CeL.log('* [[User:' + row.user + ']] 編輯了 [[Special:Diff/' + row.revid + '|'
 			+ row.title + ']]');
+}
+
+function get_parsed_time(row) {
+	if (!row.parsed_time) {
+		// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
+		// should be the same as "~~~~~"
+		row.parsed_time = (new Date(row.timestamp)).format({
+			format : '%Y年%m月%d日 (%w) %2H:%2M (UTC)',
+			zone : 0,
+			locale : 'cmn-Hant-TW'
+		}).replace('星期', '');
+	}
+
+	return row.parsed_time;
 }
 
 // 從頁面資訊做初步的篩選。
@@ -113,7 +143,7 @@ function filter_row(row) {
 	|| test_the_page_only && row.title === test_the_page_only)
 	// 篩選編輯摘要。排除還原的編輯。
 	// "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
-	&& !/还原|還原|revert|取消.*(编辑|編輯)|更改回|!nosign!/i.test(row.comment);
+	&& !/还原|還原|revert|取消.*(编辑|編輯)|更改回|維護|!nosign!/i.test(row.comment);
 
 	return passed;
 }
@@ -132,7 +162,8 @@ if (test_the_page_only) {
 		// 解析頁面結構。
 		CeL.wiki.parser(page_data).parse();
 		page_data.from_parsed = CeL.wiki.parser(
-				CeL.wiki.content_of(page_data, -1)).parse();
+				page_data.revisions > 1 ? CeL.wiki.content_of(page_data, -1)
+						: '').parse();
 		page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
 			return token.toString();
 		}), page_data.parsed.map(function(token) {
@@ -201,6 +232,10 @@ function for_each_row(row) {
 	|| CeL.wiki.parse.redirect(row.revisions[0]['*'])
 	// [[WP:SIGN]]
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
+	// 跳過重定向頁。
+	// || content.includes('__STATICREDIRECT__')
+	// 跳過消歧義頁。
+	// || content.includes('__DISAMBIG__')
 	//
 	|| content.includes('{{NoAutosign}}')) {
 		return;
@@ -236,7 +271,7 @@ function for_each_row(row) {
 	});
 	if (CeL.is_debug(2)) {
 		CeL.info('second_section_index: ' + second_section_index + '/'
-				+ row.diff.to.length);
+				+ row.diff.to.length + ', row.diff.length: ' + row.diff.length);
 	}
 
 	// -----------------------------------------------------
@@ -289,6 +324,7 @@ function for_each_row(row) {
 		}
 
 		if (to_index_start > to_index_end) {
+			CeL.debug('跳過: 經過初始篩選，這一段已經不剩下任何內容。', 2);
 			last_processed_index = to_index_end;
 			return;
 		}
@@ -340,10 +376,22 @@ function for_each_row(row) {
 					next_section_index));
 		}
 
+		// 若是差異開始的地方是在段落中間，那就把開始的index向前移到段落起始之處。
+		// e.g., [[Special:Diff/45631425]]
+		while (!/\n\s*$/.test(row.diff.to[to_diff_start_index])
+		// 分割點的前或者後應該要有換行。
+		&& !/^\s*\n/.test(row.diff.to[to_diff_start_index - 1])
+		//
+		&& to_diff_start_index - 1 > 0) {
+			CeL.debug('差異開始的地方是在段落中間，把開始的index向前移到段落起始之處。', 2);
+			to_diff_start_index--;
+			// continue; 向後尋找剛好交界在換行的 token。
+		}
+
 		// 若是差異結束的地方是在段落中間，那就把結束的index向後移到段落結束之處。
 		// e.g., [[Special:Diff/45510337]]
 		while (!/\n\s*$/.test(row.diff.to[to_diff_end_index])
-		// 結束點的前或者後應該要有換行。
+		// 分割點的前或者後應該要有換行。
 		&& !/^\s*\n/.test(row.diff.to[to_diff_end_index + 1])
 		//
 		&& to_diff_end_index + 1 < next_section_index) {
@@ -381,7 +429,8 @@ function for_each_row(row) {
 		function first_section_text_may_skip() {
 			var token_list = [];
 			// 取得最頂端階層、模板之外的wikitext文字。
-			for (var index = to_diff_start_index, previous_token = row.parsed[index - 1]; index <= to_diff_end_index; index++) {
+			for (var index = to_diff_start_index, previous_token = row.parsed[index - 1]
+					|| ''; index <= to_diff_end_index; index++) {
 				var token = row.parsed[index];
 				// 完全忽略註解。
 				if (token.type === 'comment') {
@@ -401,6 +450,10 @@ function for_each_row(row) {
 					continue;
 				}
 				// console.log([ previous_token, index, token ]);
+				if (typeof token === 'string') {
+					// 去掉魔術字 Magic words
+					token = token.replace(/__[A-Z]{3,16}__/g, '');
+				}
 				token_list.push(token);
 				previous_token = token;
 			}
@@ -427,8 +480,7 @@ function for_each_row(row) {
 				if (CeL.wiki.parse.user(CeL.wiki.title_link_of(row), row.user)) {
 					CeL.debug('跳過使用者編輯屬於自己的頁面。', 2);
 					if (first_section_text_may_skip()) {
-						// Skip
-						return;
+						// Skip return;
 					}
 					// 對於非宣告的情況，即使是在自己的討論頁中留言，也應該要簽名。
 				}
@@ -459,7 +511,7 @@ function for_each_row(row) {
 
 		// --------------------------------------
 
-		CeL.debug('當作其他一般討論，應該加上署名。', 2);
+		CeL.debug('** 當作其他一般討論，應該加上署名。', 2);
 
 		// 從修改的地方開始，到第一個出現簽名的第一層token為止的文字。
 		var section_wikitext = row.diff.to.slice(to_diff_start_index,
@@ -495,7 +547,7 @@ function for_each_row(row) {
 		var matched = section_wikitext
 				.match(/<\/?(noinclude|onlyinclude|includeonly)([ >])/i);
 		if (matched) {
-			// 雖然這些嵌入包含宣告應該使用在template:命名空間，但是既然加了，還是得處理。
+			// 雖然這些嵌入包含宣告應該使用在 template: 命名空間，但是既然加了，還是得處理。
 			check_log.push([
 					'這段修改中有[[WP:TRANS|嵌入包含]]宣告如<code>&lt;' + matched[1]
 							+ '></code>，因此跳過不處理', section_wikitext ]);
@@ -579,10 +631,10 @@ function for_each_row(row) {
 			CeL.debug('在編輯自己的用戶頁，並且沒有發現任何簽名的情況下就跳過。', 2);
 			return;
 
-		} else if (row.user.length > 4
-		// e.g., [[Special:Diff/45178923]]
+		} else if (row.user.length >= (/^[ -\u007f]*$/.test(row.user) ? 4 : 2)
+		// 這項測試必須要用戶名稱夠長，以預防漏報。
 		&& (new RegExp(CeL.to_RegExp_pattern(row.user)
-		//
+		// e.g., [[Special:Diff/45178923]]
 		.replace(/[ _]/g, '[ _]'), 'i')).test(section_wikitext)) {
 			// 但是若僅僅在文字中提及時，可能會被漏掉，因此加個警告做紀錄。
 			check_log
@@ -613,23 +665,15 @@ function for_each_row(row) {
 		}
 		check_log.push([ (/2\d{3}年\d{1,2}月{1,2}日/.test(last_token)
 		//
-		? '編輯者或許已經加上日期與簽名，但是並不明確。仍然' : '') + '需要在最後補上'
+		? '編輯者或許已經加上日期與簽名，但是並不明確。仍然' : '')
+		// 會有編輯動作時，特別加強色彩。
+		+ '<b style="color:orange">需要在最後補上' + (is_IP_user ? 'IP用戶' : '用戶')
 		//
-		+ (is_IP_user ? 'IP用戶' : '用戶') + ' ' + row.user + ' 的簽名',
+		+ ' <b style="color:blue">' + row.user + '</b> 的簽名</b>',
 		// 一整段的文字。
 		row.diff.to.slice(to_diff_start_index,
 		//
 		last_diff_index_before_next_section + 1).join('') ]);
-
-		if (!row.parsed_time) {
-			// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
-			// should be the same as "~~~~~"
-			row.parsed_time = (new Date(row.timestamp)).format({
-				format : '%Y年%m月%d日 (%w) %2H:%2M (UTC)',
-				zone : 0,
-				locale : 'cmn-Hant-TW'
-			}).replace('星期', '');
-		}
 
 		// 添加簽名。
 		is_unsigned_user = true;
@@ -637,7 +681,7 @@ function for_each_row(row) {
 		row.diff.to[last_diff_index_before_next_section] = last_token
 		// {{subst:unsigned|用戶名或IP|時間日期}}
 		.replace(/([\s\n]*)$/, '{{subst:unsigned|' + row.user + '|'
-				+ row.parsed_time + (is_IP_user ? '|IP=1' : '') + '}}$1');
+				+ get_parsed_time(row) + (is_IP_user ? '|IP=1' : '') + '}}$1');
 
 		CeL.info('需要在最後補簽名的編輯: ' + CeL.wiki.title_link_of(row));
 		console.log(row.diff.to.slice(to_diff_start_index,
@@ -660,7 +704,8 @@ function for_each_row(row) {
 			if (!Array.isArray(log)) {
 				return log;
 			}
-			log[0] += ' (本段修改共 ' + log[1].length + ' 字):\n<pre><nowiki>';
+			// 維基語法元素與包含換行的字串長
+			log[0] += ' (本段修改共 ' + log[1].length + ' 字元):\n<pre><nowiki>';
 			var more = '';
 			if (log[1].length > 80 * 2 + more_separator.length + 20) {
 				more = more_separator + log[1].slice(-80);
@@ -671,19 +716,19 @@ function for_each_row(row) {
 			// 在<nowiki>中，-{}-仍有作用。
 			.replace(/-{/g, '&#x2d;{') + more + '</nowiki></pre>';
 		});
-		check_log.unshift((CeL.wiki.content_of.revision(row).length < 2
-		// 新頁面
-		? '; [[Special:Permalink/' + row.revid + '|' + row.title + ']]'
+		check_log.unshift((row.revisions.length > 1
 		// show diff link
-		: '; [[Special:Diff/' + row.revid + '|' + row.title + ']]')
+		? '; [[Special:Diff/' + row.revid + '|' + row.title + ']]'
+		// 新頁面
+		: '; [[Special:Permalink/' + row.revid + '|' + row.title + ']]'
 		//
-		+ ': '
+		) + ': '
 		// add [[Help:編輯摘要]]。
 		+ (row.comment ? '<code><nowiki>' + row.comment
 		//
 		+ '</nowiki></code> ' : '')
 		// add timestamp
-		+ '--' + (row.parsed_time || row.timestamp)
+		+ '--' + get_parsed_time(row)
 		//
 		);
 		wiki.page(check_log_page).edit(check_log.join('\n* '), {
@@ -703,7 +748,10 @@ function for_each_row(row) {
 		return;
 	}
 
-	return;
+	if (test_mode) {
+		CeL.debug('本次執行為測試模式，將不會寫入簽名。', 2);
+		return;
+	}
 
 	CeL.debug('為沒有署名的編輯添加簽名標記。', 2);
 	// 若是row並非最新版，則會放棄編輯。
