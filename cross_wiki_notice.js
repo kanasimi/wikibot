@@ -19,8 +19,10 @@ wiki = Wiki(true, 'https://zh.moegirl.org/api.php');
 // CeL.set_debug(2);
 if (false) {
 	wiki.page('User talk:' + owner_name, function(page_data) {
-		date_list = CeL.wiki.parse.date(CeL.wiki.content_of(page_data), true,
-				true);
+		date_list = CeL.wiki.parse.date(CeL.wiki.content_of(page_data), {
+			get_timevalue : true,
+			get_all_list : true
+		});
 		max = Math.max.apply(null, date_list);
 		CeL.log(new Date(max));
 	});

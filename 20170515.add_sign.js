@@ -2,12 +2,6 @@
 
 /*
 
-
- [[User talk:蘭斯特/TWA]]
- 應掛上{{bot}}或改到[[User:蘭斯特/TWA]]
-
- // TODO: id error!!!
-
  2017/5/15 21:30:19	初版試營運。
  完成。正式運用。
 
@@ -23,7 +17,7 @@
 
  一般說來在討論頁留言的用途有:
  在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。
- TODO: 當一次性大量加入連續的文字時，僅僅當做一次編輯。例如貼上文件備查。 [[Special:Diff/45239349]]
+ 當一次性大量加入連續的文字時，僅僅當做一次編輯。例如貼上文件備查。 [[Special:Diff/45239349]]
  用戶在自己的討論頁添加上宣告或者維護模板。
  其他一般討論，應該加上署名。
 
@@ -56,7 +50,7 @@ test_mode = true,
 // 回溯這麼多天。
 days_back_to = 90,
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
-unsigned_notification = 3,
+notification_limit_count = 3,
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
 // 因為有些時候可能是把正文中的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
 sign_each_section = false,
@@ -67,12 +61,14 @@ sign_each_section = false,
 more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
 // 只有ASCII符號。
 PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/,
-// 日期的模式
-PATTERN_date = /[12]\d{3}年\d{1,2}月{1,2}日/,
 // 只標示日期的存檔
-PATTERN_date_archive = /\/[12]\d{3}年(?:\d{1,2}(?:[\-~～]\d{1,2})?月(?:[\-~～](?:[12]\d{3}年)?\d{1,2}月)?)?(?:\/|$)/,
+PATTERN_date_archive = /\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = CeL.null_Object(),
+// no_link_user_hash[user][page title] = unsigned count
+no_link_user_hash = CeL.null_Object(),
+//
+KEY_COUNT = '#count',
 // 非內容的元素。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
 noncontent_type = {
 	category : true,
@@ -97,12 +93,8 @@ function show_page(row) {
 function get_parsed_time(row) {
 	if (!row.parsed_time) {
 		// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
-		// should be the same as "~~~~~"
-		row.parsed_time = (new Date(row.timestamp)).format({
-			format : '%Y年%m月%d日 (%w) %2H:%2M (UTC)',
-			zone : 0,
-			locale : 'cmn-Hant-TW'
-		}).replace('星期', '');
+		row.parsed_time = (new Date(row.timestamp))
+				.format(CeL.wiki.parse.date.format);
 	}
 
 	return row.parsed_time;
@@ -125,7 +117,7 @@ function filter_row(row) {
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 	// 必須是白名單頁面，
-	&& (row.title.startsWith('Wikipedia:互助客栈/')
+	&& (row.title.startsWith('Wikipedia:')
 	// ...或者討論頁面。
 	|| CeL.wiki.is_talk_namespace(row.ns)
 	// for test
@@ -142,6 +134,21 @@ function filter_row(row) {
 	}
 
 	return passed;
+}
+
+function add_count(row, hash, get_count) {
+	var pages_to_notify = hash[row.user];
+	if (get_count) {
+		return pages_to_notify ? pages_to_notify[KEY_COUNT] : 0;
+	}
+
+	if (!pages_to_notify) {
+		// initialization
+		pages_to_notify = hash[row.user] = CeL.null_Object();
+		pages_to_notify[KEY_COUNT] = 0;
+	}
+	pages_to_notify[row.title] = (pages_to_notify[row.title] | 0) + 1;
+	return ++pages_to_notify[KEY_COUNT];
 }
 
 if (test_the_page_only) {
@@ -219,7 +226,9 @@ function for_each_row(row) {
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 	// 必須是白名單頁面
-	|| row.title.startsWith('Wikipedia:互助客栈')
+	|| row.title.startsWith('Wikipedia:')
+	//
+	&& !row.title.startsWith('Wikipedia:机器人/申请/')
 	//
 	&& !row.title.startsWith('Wikipedia:互助客栈/')
 	// 篩選頁面內容。
@@ -272,7 +281,7 @@ function for_each_row(row) {
 
 	// -----------------------------------------------------
 
-	var check_log = [], added_signs = 0, last_processed_index, queued_start, is_unsigned_user;
+	var check_log = [], added_signs_or_notice = 0, last_processed_index, queued_start, is_no_link_user, is_unsigned_user;
 
 	// 對於頁面每個修改的部分，比較頁面修訂差異。
 	// 有些可能只是搬移，只要任何一行有簽名即可。
@@ -333,6 +342,8 @@ function for_each_row(row) {
 				break;
 			}
 		}
+		// assert: next_section_index === row.parsed.length
+		// || row.parsed[next_section_index].type === 'section_title'
 
 		if (!sign_each_section
 				&& next_section_index === (row.diff[diff_index + 1]
@@ -429,13 +440,14 @@ function for_each_row(row) {
 					return;
 				}
 				check_log.push([
-						'這一段編輯只加了模板、章節標題或者沒有具體意義的文字',
+						'這一段編輯只添加、修改了模板、章節標題或者沒有具體意義的文字',
 						row.diff.to.slice(to_diff_start_index,
 								to_diff_end_index + 1).join('') ]);
 				return;
 			}
 
-		} else if (CeL.wiki.is_talk_namespace(row.ns)) {
+		} else if (row.title.startsWith('Wikipedia:')
+				|| CeL.wiki.is_talk_namespace(row.ns)) {
 			CeL.debug('測試是不是在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。', 2);
 			if (this_section_text_may_skip()) {
 				// Skip: 忽略僅增加模板的情況。去掉編輯模板的情況。
@@ -449,6 +461,7 @@ function for_each_row(row) {
 		// 可能會漏判。
 
 		// --------------------------------------
+		// 確保 to_diff_start_index, to_diff_end_index 這兩個分割點都在段落之間而非段落中間。
 
 		// 若是差異開始的地方是在段落中間，那就把開始的index向前移到段落起始之處。
 		// e.g., [[Special:Diff/45631425]]
@@ -545,7 +558,7 @@ function for_each_row(row) {
 				.match(/<\/?(noinclude|onlyinclude|includeonly)([ >])/i);
 		if (matched) {
 			// 這些嵌入包含宣告應該使用在 template: 命名空間，若是要加上簽名，可能會有被含入時出現簽名的問題。
-			if (user_list.length > 0 && PATTERN_date.test(section_wikitext)) {
+			if (user_list.length > 0 && CeL.wiki.parse.date(section_wikitext)) {
 				CeL.debug('這段修改中有嵌入包含宣告<code>&lt;' + matched[1]
 						+ '></code>，但是因為有發現簽名，因此不跳過。', 2);
 			} else {
@@ -587,6 +600,8 @@ function for_each_row(row) {
 
 		// --------------------------------------
 
+		var last_token = row.diff.to[last_diff_index_before_next_section];
+
 		// [[Wikipedia:签名]]: 簽名中必須至少包含該用戶的用戶頁、討論頁或貢獻頁其中一項的連結。
 		if (user_list.length > 0) {
 			if (user_list.includes(row.user)) {
@@ -606,7 +621,7 @@ function for_each_row(row) {
 			user_list = user_list.filter(function(user) {
 				// 跳過對機器人的編輯做出的修訂。
 				return !/bot/i.test(user)
-				// 只有在原先文字中就存在的使用者，才可能是被修改到的。要不然就是本次編輯添加的，例如搬移選舉結果的情況。
+				// 跳過搬移選舉結果。只有在原先文字中就存在的使用者，才可能是被修改到的。要不然就是本次編輯添加的，例如搬移選舉結果的情況。
 				&& from_user_list.includes(user);
 			});
 			// console.log([ from_user_list, user_list ]);
@@ -630,10 +645,12 @@ function for_each_row(row) {
 			return;
 
 		} else if (row.user.length >= (/^[ -\u007f]*$/.test(row.user) ? 4 : 2)
-		// 這項測試必須要用戶名稱夠長，以預防漏報。
+		// 有簽名，缺少連結。這項測試必須要用戶名稱夠長，以預防漏報。
 		&& (new RegExp(CeL.to_RegExp_pattern(row.user)
 		// e.g., [[Special:Diff/45178923]]
-		.replace(/[ _]/g, '[ _]'), 'i')).test(section_wikitext)) {
+		.replace(/[ _]/g, '[ _]'), 'i')).test(section_wikitext)
+		// 測試假如有加入日期的時候。
+		|| CeL.wiki.parse.date(last_token)) {
 			// 但是若僅僅在文字中提及時，可能會被漏掉，因此加個警告做紀錄。
 			check_log
 					.push([
@@ -641,16 +658,17 @@ function for_each_row(row) {
 									+ row.user
 									+ ' 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期，但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
 							section_wikitext ]);
-			// TODO: 提醒: 您好，可能需要麻煩改變一下您的留言簽名格式 {{subst:Uw-signlink}} --~~~~
+			is_no_link_user = true;
+			added_signs_or_notice++;
 			return;
 		}
 
 		// --------------------------------------
 		// 該簽名而未簽名。未簽補上簽名。
 
-		added_signs++;
+		added_signs_or_notice++;
 
-		var last_token = row.diff.to[last_diff_index_before_next_section],
+		var
 		// 匿名使用者/未註冊用戶 [[WP:IP]]
 		is_IP_user =
 		// for IPv4
@@ -658,10 +676,10 @@ function for_each_row(row) {
 		// for IPv6
 		|| /[\da-f]{1,4}(?::[\da-f]{1,4}){7}/i.test(row.user);
 
-		check_log.push([ (PATTERN_date.test(last_token)
+		check_log.push([ (/([12]\d{3})年(1?\d)月([1-3]?\d)日 /.test(last_token)
 		//
 		? '編輯者或許已經加上日期與簽名，但是並不明確。仍然' : '')
-		// 會有編輯動作時，特別加強色彩。
+		// 會有編輯動作時，特別加強色彩。可以只看著色的部分，這些才是真正會補簽名的。
 		+ '<b style="color:orange">需要在最後補上' + (is_IP_user ? 'IP用戶' : '用戶')
 		// <b>中不容許有另一個<b>，只能改成<span>。
 		+ ' <span style="color:blue">' + row.user + '</span> 的簽名</b>',
@@ -689,7 +707,6 @@ function for_each_row(row) {
 	// 處理有需要注意的頁面。
 
 	if (check_log.length > 0) {
-		// TODO: 跳過搬移選舉結果
 		if (CeL.is_debug()) {
 			CeL.info(CeL.wiki.title_link_of(row) + ': 將可能修改了他人文字的編輯寫進記錄頁面 '
 					+ CeL.wiki.title_link_of(check_log_page));
@@ -715,7 +732,7 @@ function for_each_row(row) {
 		// show diff link
 		? '; [[Special:Diff/' + row.revid + '|' + row.title + ']]'
 		// 新頁面
-		: '; [[Special:Permalink/' + row.revid + '|' + row.title + ']]'
+		: '; [[Special:Permalink/' + row.revid + '|' + row.title + ']] (新頁面)'
 		//
 		) + ': '
 		// add [[Help:編輯摘要]]。
@@ -723,7 +740,7 @@ function for_each_row(row) {
 		//
 		+ '</nowiki></code> ' : '')
 		// add timestamp
-		+ '--' + get_parsed_time(row)
+		+ '--' + row.user + ' ' + get_parsed_time(row)
 		//
 		);
 		wiki.page(check_log_page).edit(check_log.join('\n* '), {
@@ -739,15 +756,44 @@ function for_each_row(row) {
 		});
 	}
 
-	if (!added_signs) {
-		CeL.debug('本次編輯不需要補上簽名。', 2);
+	if (!added_signs_or_notice) {
+		CeL.debug('本次編輯不需要補上簽名或提醒。', 2);
 		return;
 	}
 
 	if (test_mode) {
-		CeL.debug('本次執行為測試模式，將不會寫入簽名。', 2);
+		CeL.debug('本次執行為測試模式，將不會寫入簽名或者提醒。', 2);
 		return;
 	}
+
+	// -------------------------------------------
+
+	if (is_no_link_user
+			&& add_count(row, no_link_user_hash) > notification_limit_count) {
+		CeL.debug('用戶討論頁提示：如果留言者簽名沒有連結 ' + notification_limit_count
+				+ ' 次，通知使用者記得要改變簽名。', 2);
+		var pages_to_notify = Object.keys(no_link_user_hash[row.user]).map(
+				function(title) {
+					return CeL.wiki.title_link_of(title);
+				}).join(', ');
+		wiki.page('User:' + row.user).edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
+		//
+		+ pages_to_notify + '。謝謝您的參與。 --~~~~}}', {
+			section : 'new',
+			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
+			summary : 'bot: 提醒簽名記得加上連結，例如在文中所列的 '
+			//
+			+ pages_to_notify.length + ' 個頁面'
+		});
+		// reset no-link count of user
+		delete no_link_user_hash[row.user];
+	}
+
+	if (!is_unsigned_user) {
+		return;
+	}
+
+	// -------------------------------------------
 
 	CeL.debug('為沒有署名的編輯添加簽名標記。', 2);
 	// 若是row並非最新版，則會放棄編輯。
@@ -758,28 +804,21 @@ function for_each_row(row) {
 		'bot: 為[[Special:Diff/' + row.revid + '|' + row.user + '的編輯]]補簽名。'
 	});
 
-	if (!is_unsigned_user) {
-		return;
-	}
-
-	CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + unsigned_notification + ' 次，通知使用者記得簽名。', 2);
-	var unsigned_pages = unsigned_user_hash[row.user];
-	if (!unsigned_pages) {
-		unsigned_pages = unsigned_user_hash[row.user] = CeL.null_Object();
-	}
-	unsigned_pages[row.title] = (unsigned_pages[row.title] | 0) + 1;
-	if (unsigned_pages[row.title] > unsigned_notification) {
-		unsigned_pages = Object.keys(unsigned_pages).map(function(title) {
-			return CeL.wiki.title_link_of(title);
-		}).join(', ');
+	if (add_count(row, unsigned_user_hash) > notification_limit_count) {
+		CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + notification_limit_count
+				+ ' 次，通知使用者記得簽名。', 2);
+		var pages_to_notify = Object.keys(unsigned_user_hash[row.user]).map(
+				function(title) {
+					return CeL.wiki.title_link_of(title);
+				}).join(', ');
 		wiki.page('User:' + row.user).edit('{{subst:Uw-tilde||可能需要簽名的頁面例如 '
 		// [[MediaWiki:Talkpagetext/zh]]
-		+ unsigned_pages + '。謝謝您的參與。 --~~~~}}', {
+		+ pages_to_notify + '。謝謝您的參與。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '請記得在留言時署名',
 			summary : 'bot: 提醒記得簽名，例如在文中所列的 '
 			//
-			+ unsigned_pages.length + ' 個頁面'
+			+ pages_to_notify.length + ' 個頁面'
 		});
 		// reset unsigned count of user
 		delete unsigned_user_hash[row.user];

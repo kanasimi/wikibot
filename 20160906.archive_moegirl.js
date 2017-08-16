@@ -107,7 +107,10 @@ function for_board(page_data) {
 			if (needless) {
 				return;
 			}
-			var date_list = CeL.wiki.parse.date(token.toString(), true, true);
+			var date_list = CeL.wiki.parse.date(token.toString(), {
+				get_timevalue : true,
+				get_all_list : true
+			});
 			CeL
 					.debug('[' + token.toString() + '] → date_list: '
 							+ date_list, 4);
