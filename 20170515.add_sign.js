@@ -11,6 +11,8 @@
  # filter_row(): 從頁面資訊做初步的篩選: 以討論頁面為主。
  # for_each_row(): 解析頁面結構。比較頁面修訂差異。
  # check_diff_pair(): 對於頁面每個修改的部分，都向後搜尋/檢查到章節末。
+ # check_sections(): 檢查這一次的修訂中，是不是只添加、修改了模板、章節標題或者沒有具體意義的文字。
+ # check_sections(): 確保 to_diff_start_index, to_diff_end_index 這兩個分割點都在段落之間而非段落中間。
  # check_sections(): 檢查每一段的差異、提取出所有簽名，並且做出相應的處理。
  # for_each_row(): 將可能修改了他人文字的編輯寫進記錄頁面 [[User:cewbot/Signature check]]。
  # for_each_row(): 為沒有署名的編輯添加簽名標記。
@@ -76,7 +78,7 @@ noncontent_type = {
 	// assert: 若是有正式具有意義的內容，那麼應該在模板之外也應該要有文字。
 	transclusion : true
 },
-//
+// options to LCS() diff
 with_diff = {
 	LCS : true,
 	// line : true,
@@ -100,6 +102,7 @@ function get_parsed_time(row) {
 	return row.parsed_time;
 }
 
+// 從頁面資訊做初步的篩選
 function filter_row(row) {
 	if (CeL.is_debug(2)) {
 		show_page(row);
@@ -125,7 +128,7 @@ function filter_row(row) {
 	// 篩選編輯摘要。排除還原的編輯。
 	// GlobalReplace: use tool
 	// https://commons.wikimedia.org/wiki/Commons:GlobalReplace
-	!/还原|還原|revert|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!/i
+	!/还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!/i
 	// "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
 	.test(row.comment);
 
@@ -156,17 +159,21 @@ if (test_the_page_only) {
 			+ ': 先取得頁面資料。');
 	wiki.page(test_the_page_only, function(page_data) {
 		var revision = CeL.wiki.content_of.revision(page_data);
-		page_data.user = revision.user;
-		page_data.timestamp = revision.timestamp;
-		page_data.revid = revision.revid;
-		// The edit comment / summary.
-		page_data.comment = revision.comment;
-
 		// 解析頁面結構。
 		CeL.wiki.parser(page_data).parse();
-		page_data.from_parsed = CeL.wiki.parser(
-				page_data.revisions.length > 1 ? CeL.wiki.content_of(page_data,
-						-1) : '').parse();
+		// 模擬 wiki.listen() 這個函數的工作。
+		// @see add_listener() in CeL.application.net.wiki
+		Object.assign(page_data, {
+			user : revision.user,
+			timestamp : revision.timestamp,
+			revid : revision.revid,
+			// The edit comment / summary.
+			comment : revision.comment,
+			from_parsed : CeL.wiki.parser(
+					page_data.revisions.length > 1 ? CeL.wiki.content_of(
+							page_data, -1) : '').parse()
+		});
+
 		page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
 			return token.toString();
 		}), page_data.parsed.map(function(token) {
@@ -191,6 +198,7 @@ if (test_the_page_only) {
 	+ (days_back_to > 0 ? days_back_to + '天前起' : '最近') + '更改的頁面。');
 	wiki.listen(for_each_row, {
 		start : days_back_to,
+		delay : 60,
 		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {
@@ -200,7 +208,7 @@ if (test_the_page_only) {
 			rcshow : '!bot',
 			rcprop : 'title|ids|sizes|flags|user'
 		},
-		interval : 500
+		interval : test_mode ? 500 : 60 * 1000
 	});
 }
 
@@ -225,12 +233,18 @@ function for_each_row(row) {
 	|| /\/(?:archive|存檔|存档|檔案|档案|header|preload)/i.test(row.title)
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
+
 	// 必須是白名單頁面
 	|| row.title.startsWith('Wikipedia:')
-	//
-	&& !row.title.startsWith('Wikipedia:机器人/申请/')
+	// e.g., [[Wikipedia:頁面存廢討論]], [[Wikipedia:机器人/申请/...]]
+	&& !/討論|讨论|申請|申请/.test(row.title)
 	//
 	&& !row.title.startsWith('Wikipedia:互助客栈/')
+	//
+	&& !row.title.startsWith('Wikipedia:新条目推荐/候选')
+	//
+	&& row.title !== 'Wikipedia:知识问答'
+
 	// 篩選頁面內容。
 	|| !row.revisions || !row.revisions[0]
 	// 跳過重定向頁。
@@ -260,10 +274,10 @@ function for_each_row(row) {
 	}
 
 	// 比較頁面修訂差異。
-	// TODO: 正常情況下 token 都是完整的；但是也要應對一些編輯錯誤或者故意編輯錯誤。
 	// row.parsed, row.diff.to 的每一元素都是完整的 token；並且兩者的 index 相對應。
 	// @see add_listener() in CeL.application.net.wiki
 	// row.diff.to[index] === row.parsed[index].toString();
+	// TODO: 正常情況下 token 都是完整的；但是也要應對一些編輯錯誤或者故意編輯錯誤。
 	var to = row.diff.to, to_length = to.length, all_lines = [],
 	/** {Integer}第二個段落在row.parsed中的 index。 */
 	second_section_index = row.parsed.length;
@@ -370,7 +384,6 @@ function for_each_row(row) {
 		last_processed_index = next_section_index;
 	}
 
-	// 檢查每一段的差異、提取出所有簽名，並且做出相應的處理。
 	function check_sections(to_diff_start_index, to_diff_end_index,
 			next_section_index, diff_pair, diff_index) {
 		if (CeL.is_debug(2)) {
@@ -387,7 +400,7 @@ function for_each_row(row) {
 
 		// this edit paragraph within section
 		var this_section_text = '';
-		// 檢查這一次的修訂中，是不是只加了模板、章節標題或者沒有具體意義的文字。
+		// 檢查這一次的修訂中，是不是只添加、修改了模板、章節標題或者沒有具體意義的文字。
 		function this_section_text_may_skip() {
 			var token_list = [];
 			// 取得最頂端階層、模板之外的 wikitext 文字。
@@ -514,6 +527,7 @@ function for_each_row(row) {
 		}
 
 		// --------------------------------------
+		// 檢查每一段的差異、提取出所有簽名，並且做出相應的處理。
 
 		CeL.debug('** 當作其他一般討論，應該加上署名。', 2);
 
@@ -656,7 +670,7 @@ function for_each_row(row) {
 					.push([
 							'用戶 '
 									+ row.user
-									+ ' 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期，但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
+									+ ' 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期（請注意，只寫日期也會被跳過），但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
 							section_wikitext ]);
 			is_no_link_user = true;
 			added_signs_or_notice++;
@@ -668,13 +682,7 @@ function for_each_row(row) {
 
 		added_signs_or_notice++;
 
-		var
-		// 匿名使用者/未註冊用戶 [[WP:IP]]
-		is_IP_user =
-		// for IPv4
-		/^\d{1,3}(?:\.\d{1,3}){3}$/.test(row.user)
-		// for IPv6
-		|| /[\da-f]{1,4}(?::[\da-f]{1,4}){7}/i.test(row.user);
+		var is_IP_user = CeL.wiki.parse.user.is_IP(row.user);
 
 		check_log.push([ (/([12]\d{3})年(1?\d)月([1-3]?\d)日 /.test(last_token)
 		//
@@ -749,6 +757,8 @@ function for_each_row(row) {
 			nocreate : 1,
 			bot : 1,
 			summary : 'bot: Signature check report of '
+			//
+			+ '[[User' + row.user + "]]'s edit in "
 			//
 			+ CeL.wiki.title_link_of(row.title)
 			//
