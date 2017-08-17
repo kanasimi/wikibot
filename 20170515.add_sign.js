@@ -42,15 +42,13 @@ check_log_page = 'User:' + user_name + '/Signature check';
 
 // ----------------------------------------------------------------------------
 
-// CeL.set_debug(2);
-
 var
 // 只處理此一頁面。
 test_the_page_only = "",
-// 測試模式
+// 測試模式，將不會寫入簽名或者提醒。
 test_mode = true,
-// 回溯這麼多天。
-days_back_to = 90,
+// 回溯這麼多時間。最多約可回溯30天。
+time_back_to = test_mode && '90d',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
@@ -63,7 +61,7 @@ sign_each_section = false,
 more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
 // 只有ASCII符號。
 PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/,
-// 只標示日期的存檔
+// 只標示日期的存檔頁面標題。
 PATTERN_date_archive = /\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = CeL.null_Object(),
@@ -87,6 +85,8 @@ with_diff = {
 	with_list : true
 };
 
+// CeL.set_debug(2);
+
 function show_page(row) {
 	CeL.log('* [[User:' + row.user + ']] 編輯了 [[Special:Diff/' + row.revid + '|'
 			+ row.title + ']]');
@@ -108,6 +108,7 @@ function filter_row(row) {
 		show_page(row);
 	}
 
+	// passed === true: 要繼續處理這個頁面。
 	var passed =
 	// 為了某些編輯不加 bot flag 的 bot。
 	!/bot/i.test(row.user)
@@ -193,11 +194,8 @@ if (test_the_page_only) {
 	});
 
 } else {
-	CeL.info('開始監視 / scan '
-	//
-	+ (days_back_to > 0 ? days_back_to + '天前起' : '最近') + '更改的頁面。');
 	wiki.listen(for_each_row, {
-		start : days_back_to,
+		start : time_back_to,
 		delay : 60,
 		filter : filter_row,
 		with_diff : with_diff,
@@ -237,7 +235,8 @@ function for_each_row(row) {
 	// 必須是白名單頁面
 	|| row.title.startsWith('Wikipedia:')
 	// e.g., [[Wikipedia:頁面存廢討論]], [[Wikipedia:机器人/申请/...]]
-	&& !/討論|讨论|申請|申请/.test(row.title)
+	// NG: [[Wikipedia:模板消息/用戶討論名字空間]]
+	&& !/(?:討論|讨论|申請|申请)(?:\/|$)/.test(row.title)
 	//
 	&& !row.title.startsWith('Wikipedia:互助客栈/')
 	//
@@ -249,13 +248,9 @@ function for_each_row(row) {
 	|| !row.revisions || !row.revisions[0]
 	// 跳過重定向頁。
 	|| CeL.wiki.parse.redirect(row.revisions[0]['*'])
-	// [[WP:SIGN]]
+	// [[WP:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
-	// 跳過重定向頁。
-	// || content.includes('__STATICREDIRECT__')
-	// 跳過消歧義頁。
-	// || content.includes('__DISAMBIG__')
-	//
+	// 可以用 "{{NoAutosign}}" 來避免這個任務添加簽名標記。
 	|| content.includes('{{NoAutosign}}')) {
 		return;
 	}
@@ -758,7 +753,7 @@ function for_each_row(row) {
 			bot : 1,
 			summary : 'bot: Signature check report of '
 			//
-			+ '[[User' + row.user + "]]'s edit in "
+			+ '[[User:' + row.user + "]]'s edit in "
 			//
 			+ CeL.wiki.title_link_of(row.title)
 			//
