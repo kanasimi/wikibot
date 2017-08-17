@@ -27,6 +27,8 @@
  https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
  https://zh.wikipedia.org/wiki/User:Crystal-bot
 
+ TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[Special:Diff/45401508]]
+
  */
 
 'use strict';
@@ -196,7 +198,8 @@ if (test_the_page_only) {
 } else {
 	wiki.listen(for_each_row, {
 		start : time_back_to,
-		delay : 60,
+		// 檢測到未簽名的編輯後，機器人會等待60秒，以使用戶可以自行補簽。
+		delay : '60 s',
 		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {
@@ -721,6 +724,8 @@ function for_each_row(row) {
 			}
 			// 維基語法元素與包含換行的字串長
 			log[0] += ' (本段修改共 ' + log[1].length + ' 字元):\n<pre><nowiki>';
+			// 不需要顯示太多換行。
+			log[1] = log[1].trim();
 			var more = '';
 			if (log[1].length > 80 * 2 + more_separator.length + 20) {
 				more = more_separator + log[1].slice(-80);
@@ -786,7 +791,7 @@ function for_each_row(row) {
 		+ pages_to_notify + '。謝謝您的參與。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
-			summary : 'bot: 提醒簽名記得加上連結，例如在文中所列的 '
+			summary : 'bot test: 提醒簽名記得加上連結，例如在文中所列的 '
 			//
 			+ pages_to_notify.length + ' 個頁面'
 		});
@@ -806,7 +811,7 @@ function for_each_row(row) {
 		nocreate : 1,
 		summary :
 		//
-		'bot: 為[[Special:Diff/' + row.revid + '|' + row.user + '的編輯]]補簽名。'
+		'bot test: 為[[Special:Diff/' + row.revid + '|' + row.user + '的編輯]]補簽名。'
 	});
 
 	if (add_count(row, unsigned_user_hash) > notification_limit_count) {
@@ -821,7 +826,7 @@ function for_each_row(row) {
 		+ pages_to_notify + '。謝謝您的參與。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '請記得在留言時署名',
-			summary : 'bot: 提醒記得簽名，例如在文中所列的 '
+			summary : 'bot test: 提醒記得簽名，例如在文中所列的 '
 			//
 			+ pages_to_notify.length + ' 個頁面'
 		});
