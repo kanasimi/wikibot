@@ -27,7 +27,7 @@
  https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
  https://zh.wikipedia.org/wiki/User:Crystal-bot
 
- TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[Special:Diff/45401508]]
+ TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[Special:Diff/45401508]], [[Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
 
  */
 
@@ -47,10 +47,10 @@ check_log_page = 'User:' + user_name + '/Signature check';
 var
 // 只處理此一頁面。
 test_the_page_only = "",
-// 測試模式，將不會寫入簽名或者提醒。
-test_mode = true,
+// true: 測試模式，將不會寫入簽名或者提醒。
+test_mode = 0,
 // 回溯這麼多時間。最多約可回溯30天。
-time_back_to = test_mode && '90d',
+time_back_to = /* test_mode && */'90d',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
@@ -69,6 +69,13 @@ more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
 PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/,
 // 只標示日期的存檔頁面標題。
 PATTERN_date_archive = /\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/,
+// 跳過封存/存檔頁面。
+PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来自已转换的wiki文本讨论页的存档)/i,
+// 篩選編輯摘要。排除還原的編輯。
+// GlobalReplace: use tool
+// https://commons.wikimedia.org/wiki/Commons:GlobalReplace
+// "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
+PATTERN_revert_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!/i,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = CeL.null_Object(),
 // no_link_user_hash[user][page title] = unsigned count
@@ -117,7 +124,7 @@ function filter_row(row) {
 	// passed === true: 要繼續處理這個頁面。
 	var passed =
 	// 為了某些編輯不加 bot flag 的 bot。
-	!/bot/i.test(row.user)
+	!/bot/i.test(row.user) && row.user !== user_name
 	// 篩選頁面標題。跳過封存/存檔頁面。
 	&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
 	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
@@ -126,18 +133,16 @@ function filter_row(row) {
 	&& !PATTERN_date_archive.test(row.title)
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
+
 	// 必須是白名單頁面，
-	&& (row.title.startsWith('Wikipedia:')
+	&& (whitelist.includes(row.title) || row.title.startsWith('Wikipedia:')
 	// ...或者討論頁面。
 	|| CeL.wiki.is_talk_namespace(row.ns)
 	// for test
-	|| test_the_page_only && row.title === test_the_page_only) &&
-	// 篩選編輯摘要。排除還原的編輯。
-	// GlobalReplace: use tool
-	// https://commons.wikimedia.org/wiki/Commons:GlobalReplace
-	!/还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!/i
-	// "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
-	.test(row.comment);
+	|| test_the_page_only && row.title === test_the_page_only)
+
+	// 篩選編輯摘要。
+	&& !PATTERN_revert_summary.test(row.comment);
 
 	if (!passed) {
 		CeL.debug('從頁面資訊做初步的篩選: 直接跳過這個編輯', 2, 'filter_row');
@@ -213,7 +218,7 @@ if (test_the_page_only) {
 			rcshow : '!bot',
 			rcprop : 'title|ids|sizes|flags|user'
 		},
-		interval : test_mode ? 500 : 60 * 1000
+		interval : test_mode || time_back_to ? 500 : 60 * 1000
 	});
 }
 
@@ -230,7 +235,7 @@ function for_each_row(row) {
 
 	var
 	/** {String}page content, maybe undefined. */
-	content = CeL.wiki.content_of(row);
+	content = CeL.wiki.content_of(row, 0);
 
 	CeL.debug('做初步的篩選: 以討論頁面為主。', 5);
 	if (!row.diff
@@ -247,16 +252,18 @@ function for_each_row(row) {
 	&& row.title.startsWith('Wikipedia:')
 	// e.g., [[Wikipedia:頁面存廢討論/記錄/2017/08/12]], [[Wikipedia:机器人/申请/...]]
 	// NG: [[Wikipedia:頁面存廢討論]], [[Wikipedia:模板消息/用戶討論名字空間]]
-	&& !/(?:討論|讨论|申請|申请)\/)/.test(row.title)
+	&& !/(?:討論|讨论|申請|申请)\//.test(row.title)
 	//
 	&& !row.title.startsWith('Wikipedia:互助客栈/')
 	//
 	&& !row.title.startsWith('Wikipedia:新条目推荐/候选')
 
 	// 篩選頁面內容。
-	|| !row.revisions || !row.revisions[0]
+	|| !content
+	// 跳過封存/存檔頁面。
+	|| PATTERN_archive.test(content)
 	// 跳過重定向頁。
-	|| CeL.wiki.parse.redirect(row.revisions[0]['*'])
+	|| CeL.wiki.parse.redirect(content)
 	// [[WP:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
 	// 可以用 "{{NoAutosign}}" 來避免這個任務添加簽名標記。
@@ -763,12 +770,14 @@ function for_each_row(row) {
 			nocreate : 1,
 			bot : 1,
 			summary : 'bot: Signature check report of '
-			//
+			// 在編輯摘要中加上使用者連結，似乎還不至於驚擾到使用者。
 			+ '[[User:' + row.user + "]]'s edit in "
 			//
 			+ CeL.wiki.title_link_of(row.title)
 			//
-			+ ', [[Special:Diff/' + row.revid + ']]'
+			+ ', [[Special:Diff/' + row.revid + ']].'
+			//
+			+ (added_signs_or_notice ? ' ** Need add sign or notice **' : '')
 		});
 	}
 
