@@ -56,6 +56,10 @@ notification_limit_count = 3,
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
 // 因為有些時候可能是把正文中的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
 sign_each_section = false,
+//
+whitelist = [ 'Wikipedia:知识问答' ],
+//
+blacklist = [],
 
 // ----------------------------------------------------------------------------
 
@@ -235,17 +239,19 @@ function for_each_row(row) {
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 
-	// 必須是白名單頁面
-	|| row.title.startsWith('Wikipedia:')
-	// e.g., [[Wikipedia:頁面存廢討論]], [[Wikipedia:机器人/申请/...]]
-	// NG: [[Wikipedia:模板消息/用戶討論名字空間]]
-	&& !/(?:討論|讨论|申請|申请)(?:\/|$)/.test(row.title)
+	// 黑名單直接封殺
+	|| blacklist.includes(row.title)
+	// 白名單頁面可以省去其他的檢查
+	|| !whitelist.includes(row.title)
+	//
+	&& row.title.startsWith('Wikipedia:')
+	// e.g., [[Wikipedia:頁面存廢討論/記錄/2017/08/12]], [[Wikipedia:机器人/申请/...]]
+	// NG: [[Wikipedia:頁面存廢討論]], [[Wikipedia:模板消息/用戶討論名字空間]]
+	&& !/(?:討論|讨论|申請|申请)\/)/.test(row.title)
 	//
 	&& !row.title.startsWith('Wikipedia:互助客栈/')
 	//
 	&& !row.title.startsWith('Wikipedia:新条目推荐/候选')
-	//
-	&& row.title !== 'Wikipedia:知识问答'
 
 	// 篩選頁面內容。
 	|| !row.revisions || !row.revisions[0]
