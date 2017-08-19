@@ -43,6 +43,7 @@ wiki = Wiki(true),
 check_log_page = 'User:' + user_name + '/Signature check';
 
 // ----------------------------------------------------------------------------
+// 常用的主要設定
 
 var
 // 只處理此一頁面。
@@ -53,16 +54,17 @@ test_mode = !!test_the_page_only,
 time_back_to = test_mode ? '1d' : '1d',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
-// 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
-// 因為有些時候可能是把正文中的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
-sign_each_section = false,
-//
+// 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分不採取文字需要簽名的部分，那就不應該要列入檢查。
+// e.g., [[Wikipedia:頁面存廢討論/*]]
 whitelist = [ 'Wikipedia:知识问答' ],
 //
 blacklist = [],
 
 // ----------------------------------------------------------------------------
 
+// 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
+// 因為有些時候可能是把正文中許多段落的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
+sign_each_section = false,
 // 另可以破折號代替橫線。
 more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
 // 只有ASCII符號。
@@ -80,7 +82,7 @@ PATTERN_revert_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编
 unsigned_user_hash = CeL.null_Object(),
 // no_link_user_hash[user][page title] = unsigned count
 no_link_user_hash = CeL.null_Object(),
-//
+// 不可為頁面名稱。
 KEY_COUNT = '#count',
 // 非內容的元素。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
 noncontent_type = {
@@ -107,16 +109,6 @@ if (test_mode) {
 function show_page(row) {
 	CeL.log('* [[User:' + row.user + ']] 編輯了 [[Special:Diff/' + row.revid + '|'
 			+ row.title + ']]');
-}
-
-function get_parsed_time(row) {
-	if (!row.parsed_time) {
-		// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
-		row.parsed_time = (new Date(row.timestamp))
-				.format(CeL.wiki.parse.date.format);
-	}
-
-	return row.parsed_time;
 }
 
 // 從頁面資訊做初步的篩選
@@ -170,6 +162,9 @@ function add_count(row, hash, get_count) {
 	return ++pages_to_notify[KEY_COUNT];
 }
 
+// ----------------------------------------------------------------------------
+// main process
+
 if (test_the_page_only) {
 	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
 			+ ': 先取得頁面資料。');
@@ -212,7 +207,7 @@ if (test_the_page_only) {
 	wiki.listen(for_each_row, {
 		start : time_back_to,
 		// 檢測到未簽名的編輯後，機器人會等待60秒，以使用戶可以自行補簽。
-		delay : '60 s',
+		delay : '10 m',
 		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {
@@ -222,22 +217,33 @@ if (test_the_page_only) {
 			rcshow : '!bot',
 			rcprop : 'title|ids|sizes|flags|user'
 		},
-		interval : test_mode || time_back_to ? 500 : 60 * 1000
+		interval : test_mode || time_back_to ? 500 : 60 * 1000 && 500
 	});
 }
 
 // ---------------------------------------------------------
 
 // 篩選格式排版用。
+// @see CeL.wiki.plain_text(wikitext)
 function exclude_style(token_list) {
 	var list_without_style = [];
 	token_list.forEach(function(token) {
 		token = token.toString().replace(
-		//
+		// HTML tags 標籤通常不能夠代表意義。
 		/<\/?[a-z]+(\s[^<>]*)?>/g, '').split('\n');
 		list_without_style.append(token);
 	});
 	return list_without_style;
+}
+
+function get_parsed_time(row) {
+	if (!row.parsed_time) {
+		// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
+		row.parsed_time = (new Date(row.timestamp))
+				.format(CeL.wiki.parse.date.format);
+	}
+
+	return row.parsed_time;
 }
 
 function for_each_row(row) {
@@ -266,9 +272,10 @@ function for_each_row(row) {
 	|| !whitelist.includes(row.title)
 	//
 	&& row.title.startsWith('Wikipedia:')
-	// e.g., [[Wikipedia:頁面存廢討論/記錄/2017/08/12]], [[Wikipedia:机器人/申请/...]]
-	// NG: [[Wikipedia:頁面存廢討論]], [[Wikipedia:模板消息/用戶討論名字空間]]
-	&& !/(?:討論|讨论|申請|申请)\//.test(row.title)
+	// e.g., [[Wikipedia:机器人/申请/...]]
+	// NG: [[Wikipedia:頁面存廢討論/*]], [[Wikipedia:模板消息/用戶討論名字空間]]
+	// && !/(?:討論|讨论|申請|申请)\//.test(row.title)
+	&& !row.title.startsWith('Wikipedia:机器人/申请/')
 	//
 	&& !row.title.startsWith('Wikipedia:互助客栈/')
 	//
@@ -395,6 +402,7 @@ function for_each_row(row) {
 			}
 			// 篩選格式排版。
 			token_list = token_list.filter(function(token) {
+				// 在改變之前就已經有這一小段的話，就排除掉之。
 				return !from_without_style.some(function(_token) {
 					return _token.includes(token);
 				});
