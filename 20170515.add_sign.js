@@ -11,7 +11,7 @@
  # filter_row(): 從頁面資訊做初步的篩選: 以討論頁面為主。
  # for_each_row(): 解析頁面結構。比較頁面修訂差異。
  # check_diff_pair(): 對於頁面每個修改的部分，都向後搜尋/檢查到章節末。
- # check_sections(): 檢查這一次的修訂中，是不是只添加、修改了模板、章節標題或者沒有具體意義的文字。
+ # check_sections(): 檢查這一次的修訂中，是不是只添加、修改了模板、章節標題、格式排版或者沒有具體意義的文字。
  # check_sections(): 確保 to_diff_start_index, to_diff_end_index 這兩個分割點都在段落之間而非段落中間。
  # check_sections(): 檢查每一段的差異、提取出所有簽名，並且做出相應的處理。
  # for_each_row(): 將可能修改了他人文字的編輯寫進記錄頁面 [[User:cewbot/Signature check]]。
@@ -48,9 +48,9 @@ var
 // 只處理此一頁面。
 test_the_page_only = "",
 // true: 測試模式，將不會寫入簽名或者提醒。
-test_mode = false,
+test_mode = !!test_the_page_only,
 // 回溯這麼多時間。最多約可回溯30天。
-time_back_to = test_mode ? '31d' : '1d',
+time_back_to = test_mode ? '1d' : '1d',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
@@ -97,6 +97,10 @@ with_diff = {
 	index : 2,
 	with_list : true
 };
+
+if (test_mode) {
+	whitelist.push('Wikipedia:沙盒');
+}
 
 // CeL.set_debug(2);
 
@@ -224,6 +228,18 @@ if (test_the_page_only) {
 
 // ---------------------------------------------------------
 
+// 篩選格式排版用。
+function exclude_style(token_list) {
+	var list_without_style = [];
+	token_list.forEach(function(token) {
+		token = token.toString().replace(
+		//
+		/<\/?[a-z]+(\s[^<>]*)?>/g, '').split('\n');
+		list_without_style.append(token);
+	});
+	return list_without_style;
+}
+
 function for_each_row(row) {
 	delete row.row;
 	// CeL.set_debug(2);
@@ -318,100 +334,25 @@ function for_each_row(row) {
 			console.log(diff_pair);
 		}
 
-		// [ to_index_start, to_index_end ] = diff_pair.index[1]
-		var to_index_start = diff_pair.index[1];
-		if (!to_index_start) {
+		// [ to_diff_start_index, to_diff_end_index ] = diff_pair.index[1]
+		var to_diff_start_index = diff_pair.index[1];
+		if (!to_diff_start_index) {
 			CeL.debug('跳過: 這一段編輯刪除了文字 / deleted。', 2);
 			return;
 		}
-		var to_index_end = to_index_start[1];
-		to_index_start = to_index_start[0];
+		var to_diff_end_index = to_diff_start_index[1];
+		to_diff_start_index = to_diff_start_index[0];
 
-		if (to_index_end < last_processed_index) {
+		if (to_diff_end_index < last_processed_index) {
 			CeL.debug('跳過: 這一段已經處理過。', 2);
 			return;
 		}
 
-		for (var to_index = to_index_start; to_index <= to_index_end; to_index++) {
-			var token = row.parsed[to_index];
-			if (to_index_start === to_index) {
-				if (typeof token === 'string' && !token.trim()) {
-					CeL.debug('跳過一開始的空白。', 4);
-					to_index_start = to_index + 1;
-				}
-
-			} else if (!sign_each_section) {
-				continue;
-
-			} else if (token.type === 'section_title') {
-				// assert: to_index > to_index_start
-				CeL.debug('這一小段編輯跨越了不同的段落。但是我們會檢查每個個別的段落，每個段落至少要有一個簽名。', 4);
-				check_sections(to_index_start, to_index - 1, to_index,
-						diff_pair, diff_index);
-				// reset: 跳過之前的段落。但是之後的還是得繼續檢查。
-				to_index_start = to_index;
-			}
-		}
-
-		if (to_index_start > to_index_end) {
-			CeL.debug('跳過: 經過初始篩選，這一段已經不剩下任何內容。', 2);
-			last_processed_index = to_index_end;
-			return;
-		}
-
-		var next_section_index = to_index_end;
-		CeL.debug('對於頁面每個修改的部分，都向後搜尋/檢查到章節末。', 4);
-		while (++next_section_index < row.parsed.length) {
-			var token = row.parsed[next_section_index];
-			if (token.type === 'section_title') {
-				break;
-			}
-		}
-		// assert: next_section_index === row.parsed.length
-		// || row.parsed[next_section_index].type === 'section_title'
-
-		if (!sign_each_section
-				&& next_section_index === (row.diff[diff_index + 1]
-				// 假如兩段之間沒有段落或者只有空白字元，那將會把他們合併在一起處理。
-				&& row.diff[diff_index + 1].index[1] && row.diff[diff_index + 1].index[1][0])) {
-			if (!(queued_start >= 0))
-				queued_start = to_index_start;
-			CeL.debug('合併段落 ' + [ diff_index, diff_index + 1 ]
-					+ '，start index: ' + queued_start + '。', 2);
-			return;
-		}
-
-		if (queued_start >= 0) {
-			CeL.debug('之前合併過段落，start index: ' + to_index_start + '→'
-					+ queued_start, 2);
-			to_index_start = queued_start;
-			queued_start = undefined;
-		}
-
-		// console.log([ to_index_end, next_section_index, row.parsed.length ]);
-
-		check_sections(to_index_start, to_index_end, next_section_index,
-				diff_pair, diff_index);
-		last_processed_index = next_section_index;
-	}
-
-	function check_sections(to_diff_start_index, to_diff_end_index,
-			next_section_index, diff_pair, diff_index) {
-		if (CeL.is_debug(2)) {
-			CeL.info('-'.repeat(60) + '\ncheck_sections: to of '
-					+ CeL.wiki.title_link_of(row) + ':');
-			console.log(row.diff.to.slice(to_diff_start_index,
-					to_diff_end_index + 1));
-			CeL.info('-'.repeat(4) + ' ↑ diff part ↓ list to next section');
-			console.log(row.diff.to.slice(to_diff_end_index + 1,
-					next_section_index));
-		}
-
 		// --------------------------------------
+		// 前期篩選: 檢查這一次的修訂中，是不是只添加、修改了模板、章節標題、格式排版或者沒有具體意義的文字。
 
 		// this edit paragraph within section
 		var this_section_text = '';
-		// 檢查這一次的修訂中，是不是只添加、修改了模板、章節標題或者沒有具體意義的文字。
 		function this_section_text_may_skip() {
 			var token_list = [];
 			// 取得最頂端階層、模板之外的 wikitext 文字。
@@ -441,7 +382,23 @@ function for_each_row(row) {
 					return token;
 				});
 			}
-			token_list = token_list.join('').trim();
+
+			// 去除格式排版。
+			var from_without_style = exclude_style(diff_pair[0]);
+			token_list = exclude_style(token_list);
+			if (CeL.is_debug(2)) {
+				CeL.info('-'.repeat(50));
+				CeL.info('from_without_style:');
+				console.log(from_without_style);
+				CeL.info('to_without_style:');
+				console.log(token_list);
+			}
+			// 篩選格式排版。
+			token_list = token_list.filter(function(token) {
+				return !from_without_style.some(function(_token) {
+					return _token.includes(token);
+				});
+			}).join('').trim();
 			CeL.debug('本段篩選過的文字剩下 ' + JSON.stringify(token_list), 2);
 			// 本段文字只有ASCII符號。
 			return PATTERN_symbol_only.test(token_list);
@@ -464,7 +421,7 @@ function for_each_row(row) {
 					return;
 				}
 				check_log.push([
-						'這一段編輯只添加、修改了模板、章節標題或者沒有具體意義的文字',
+						'這一段編輯只添加、修改了模板、章節標題、格式排版或者沒有具體意義的文字',
 						row.diff.to.slice(to_diff_start_index,
 								to_diff_end_index + 1).join('') ]);
 				return;
@@ -483,6 +440,83 @@ function for_each_row(row) {
 			}
 		}
 		// 可能會漏判。
+
+		// --------------------------------------
+
+		for (var to_index = to_diff_start_index; to_index <= to_diff_end_index; to_index++) {
+			var token = row.parsed[to_index];
+			if (to_diff_start_index === to_index) {
+				if (typeof token === 'string' && !token.trim()) {
+					CeL.debug('跳過一開始的空白。', 4);
+					to_diff_start_index = to_index + 1;
+				}
+
+			} else if (!sign_each_section) {
+				continue;
+
+			} else if (token.type === 'section_title') {
+				// assert: to_index > to_diff_start_index
+				CeL.debug('這一小段編輯跨越了不同的段落。但是我們會檢查每個個別的段落，每個段落至少要有一個簽名。', 4);
+				check_sections(to_diff_start_index, to_index - 1, to_index,
+						diff_pair, diff_index);
+				// reset: 跳過之前的段落。但是之後的還是得繼續檢查。
+				to_diff_start_index = to_index;
+			}
+		}
+
+		if (to_diff_start_index > to_diff_end_index) {
+			CeL.debug('跳過: 經過初始篩選，這一段已經不剩下任何內容。', 2);
+			return;
+		}
+
+		var next_section_index = to_diff_end_index;
+		CeL.debug('對於頁面每個修改的部分，都向後搜尋/檢查到章節末。', 4);
+		while (++next_section_index < row.parsed.length) {
+			var token = row.parsed[next_section_index];
+			if (token.type === 'section_title') {
+				break;
+			}
+		}
+		// assert: next_section_index === row.parsed.length
+		// || row.parsed[next_section_index].type === 'section_title'
+
+		if (!sign_each_section
+				&& next_section_index === (row.diff[diff_index + 1]
+				// 假如兩段之間沒有段落或者只有空白字元，那將會把他們合併在一起處理。
+				&& row.diff[diff_index + 1].index[1] && row.diff[diff_index + 1].index[1][0])) {
+			if (!(queued_start >= 0))
+				queued_start = to_diff_start_index;
+			CeL.debug('合併段落 ' + [ diff_index, diff_index + 1 ]
+					+ '，start index: ' + queued_start + '。', 2);
+			return;
+		}
+
+		if (queued_start >= 0) {
+			CeL.debug('之前合併過段落，start index: ' + to_diff_start_index + '→'
+					+ queued_start, 2);
+			to_diff_start_index = queued_start;
+			queued_start = undefined;
+		}
+
+		// console.log([ to_diff_end_index, next_section_index,
+		// row.parsed.length ]);
+
+		check_sections(to_diff_start_index, to_diff_end_index,
+				next_section_index, diff_pair, diff_index);
+		last_processed_index = next_section_index;
+	}
+
+	function check_sections(to_diff_start_index, to_diff_end_index,
+			next_section_index, diff_pair, diff_index) {
+		if (CeL.is_debug(2)) {
+			CeL.info('-'.repeat(60) + '\ncheck_sections: to of '
+					+ CeL.wiki.title_link_of(row) + ':');
+			console.log(row.diff.to.slice(to_diff_start_index,
+					to_diff_end_index + 1));
+			CeL.info('-'.repeat(4) + ' ↑ diff part ↓ list to next section');
+			console.log(row.diff.to.slice(to_diff_end_index + 1,
+					next_section_index));
+		}
 
 		// --------------------------------------
 		// 確保 to_diff_start_index, to_diff_end_index 這兩個分割點都在段落之間而非段落中間。
@@ -822,12 +856,15 @@ function for_each_row(row) {
 
 	CeL.debug('為沒有署名的編輯添加簽名標記。', 2);
 	// 若是row並非最新版，則會放棄編輯。
-	wiki.page(row).edit(row.diff.to.join(''), {
-		nocreate : 1,
-		summary :
-		//
-		'bot test: 為[[Special:Diff/' + row.revid + '|' + row.user + '的編輯]]補簽名。'
-	});
+	wiki
+			.page(row)
+			.edit(
+					row.diff.to.join(''),
+					{
+						nocreate : 1,
+						summary : '[[Wikipedia:机器人/申请/Cewbot/15|bot test]]: 為[[Special:Diff/'
+								+ row.revid + '|' + row.user + '的編輯]]補簽名。'
+					});
 
 	if (add_count(row, unsigned_user_hash) > notification_limit_count) {
 		CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + notification_limit_count
