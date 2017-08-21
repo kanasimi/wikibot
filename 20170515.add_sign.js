@@ -54,7 +54,7 @@ test_mode = !!test_the_page_only,
 time_back_to = test_mode ? '1d' : '1d',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
-// 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分不採取文字需要簽名的部分，那就不應該要列入檢查。
+// 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
 whitelist = [ 'Wikipedia:知识问答' ],
 //
@@ -162,6 +162,17 @@ function add_count(row, hash, get_count) {
 	return ++pages_to_notify[KEY_COUNT];
 }
 
+function get_pages_to_notify(row, hash) {
+	var pages_to_notify = Object.keys(hash[row.user]).filter(function(title) {
+		return title !== KEY_COUNT;
+	}).map(function(title) {
+		return CeL.wiki.title_link_of(title);
+	});
+	// reset unsigned / no-link count of user
+	delete hash[row.user];
+	return pages_to_notify;
+}
+
 // ----------------------------------------------------------------------------
 // main process
 
@@ -206,8 +217,8 @@ if (test_the_page_only) {
 } else {
 	wiki.listen(for_each_row, {
 		start : time_back_to,
-		// 檢測到未簽名的編輯後，機器人會等待60秒，以使用戶可以自行補簽。
-		delay : '10 m',
+		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
+		delay : '10m',
 		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {
@@ -752,9 +763,11 @@ function for_each_row(row) {
 		// 添加簽名。
 		is_unsigned_user = true;
 
+		// TODO: last_token 若為 URL 或 [[mw:Help:Magic links]]，則應該先空一格。
+		// 但是因為 {{Unsigned}} 會從 HTML 標籤開始，因此就可以跳過這個步驟了。
 		row.diff.to[last_diff_index_before_next_section] = last_token
-		// {{subst:unsigned|用戶名或IP|時間日期}}
-		.replace(/([\s\n]*)$/, '{{subst:unsigned|' + row.user + '|'
+		// {{subst:Unsigned|用戶名或IP|時間日期}}
+		.replace(/([\s\n]*)$/, '{{subst:Unsigned|' + row.user + '|'
 				+ get_parsed_time(row) + (is_IP_user ? '|IP=1' : '') + '}}$1');
 
 		CeL.info('需要在最後補簽名的編輯: ' + CeL.wiki.title_link_of(row));
@@ -836,62 +849,59 @@ function for_each_row(row) {
 	// -------------------------------------------
 
 	if (is_no_link_user
-			&& add_count(row, no_link_user_hash) > notification_limit_count) {
+			&& add_count(row, no_link_user_hash) >= notification_limit_count) {
 		CeL.debug('用戶討論頁提示：如果留言者簽名沒有連結 ' + notification_limit_count
 				+ ' 次，通知使用者記得要改變簽名。', 2);
-		var pages_to_notify = Object.keys(no_link_user_hash[row.user]).map(
-				function(title) {
-					return CeL.wiki.title_link_of(title);
-				}).join(', ');
-		wiki.page('User:' + row.user).edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
-		//
-		+ pages_to_notify + '。謝謝您的參與。 --~~~~}}', {
-			section : 'new',
-			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
-			summary : 'bot test: 提醒簽名記得加上連結，例如在文中所列的 '
-			//
-			+ pages_to_notify.length + ' 個頁面'
-		});
-		// reset no-link count of user
-		delete no_link_user_hash[row.user];
+		var pages_to_notify = get_pages_to_notify(row, no_link_user_hash);
+		wiki.page('User talk:' + row.user).edit(
+				'{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
+				//
+				+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}',
+				{
+					section : 'new',
+					sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
+					summary :
+					//
+					'[[Wikipedia:机器人/申请/Cewbot/15|bot test]]: 提醒簽名記得加上連結，例如在文中所列的 '
+					//
+					+ pages_to_notify.length
+							+ ' 個頁面。若是您編輯了過去的留言，也請您在最後加上個簽名的連結'
+				});
 	}
+
+	// -------------------------------------------
 
 	if (!is_unsigned_user) {
 		return;
 	}
 
-	// -------------------------------------------
-
 	CeL.debug('為沒有署名的編輯添加簽名標記。', 2);
 	// 若是row並非最新版，則會放棄編輯。
-	wiki
-			.page(row)
-			.edit(
-					row.diff.to.join(''),
-					{
-						nocreate : 1,
-						summary : '[[Wikipedia:机器人/申请/Cewbot/15|bot test]]: 為[[Special:Diff/'
-								+ row.revid + '|' + row.user + '的編輯]]補簽名。'
-					});
+	wiki.page(row).edit(row.diff.to.join(''), {
+		nocreate : 1,
+		summary :
+		//
+		'[[Wikipedia:机器人/申请/Cewbot/15|bot test]]: 為[[Special:Diff/'
+		//
+		+ row.revid + '|' + row.user + '的編輯]]補簽名。'
+	});
 
-	if (add_count(row, unsigned_user_hash) > notification_limit_count) {
+	if (add_count(row, unsigned_user_hash) >= notification_limit_count) {
 		CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + notification_limit_count
 				+ ' 次，通知使用者記得簽名。', 2);
-		var pages_to_notify = Object.keys(unsigned_user_hash[row.user]).map(
-				function(title) {
-					return CeL.wiki.title_link_of(title);
-				}).join(', ');
-		wiki.page('User:' + row.user).edit('{{subst:Uw-tilde||可能需要簽名的頁面例如 '
-		// [[MediaWiki:Talkpagetext/zh]]
-		+ pages_to_notify + '。謝謝您的參與。 --~~~~}}', {
-			section : 'new',
-			sectiontitle : '請記得在留言時署名',
-			summary : 'bot test: 提醒記得簽名，例如在文中所列的 '
-			//
-			+ pages_to_notify.length + ' 個頁面'
-		});
-		// reset unsigned count of user
-		delete unsigned_user_hash[row.user];
+		var pages_to_notify = get_pages_to_notify(row, unsigned_user_hash);
+		wiki.page('User talk:' + row.user).edit(
+				'{{subst:Uw-tilde||可能需要簽名的頁面例如 '
+				// [[MediaWiki:Talkpagetext/zh]]
+				+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
+					section : 'new',
+					sectiontitle : '請記得在留言時署名',
+					summary :
+					//
+					'[[Wikipedia:机器人/申请/Cewbot/15|bot test]]: 提醒記得簽名，例如在文中所列的 '
+					//
+					+ pages_to_notify.length + ' 個頁面'
+				});
 	}
 
 }
