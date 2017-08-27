@@ -55,8 +55,12 @@ if (user_name) {
 
 require('./wiki configuration.js');
 
-// 若有 CeJS library 則用之。
+// ----------------------------------------------------------------------------
+// Load CeJS library.
+
+// npm: 若有 CeJS module 則用之。
 // global.use_cejs_mudule = true;
+
 require('./_CeL.loader.nodejs.js');
 
 // ----------------------------------------------------------------------------

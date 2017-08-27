@@ -51,7 +51,7 @@ test_the_page_only = "",
 // true: 測試模式，將不會寫入簽名或者提醒。
 test_mode = !!test_the_page_only,
 // 回溯這麼多時間。最多約可回溯30天。
-time_back_to = test_mode ? '1d' : '1d',
+time_back_to = test_mode ? '1h' : '1h',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
@@ -865,7 +865,7 @@ function for_each_row(row) {
 					'[[Wikipedia:机器人/申请/Cewbot/15|bot test]]: 提醒簽名記得加上連結，例如在文中所列的 '
 					//
 					+ pages_to_notify.length
-							+ ' 個頁面。若是您編輯了過去的留言，也請您在最後加上個簽名的連結'
+							+ ' 個頁面。若是您更新了過去的留言，也請您在最後加上個簽名的連結'
 				});
 	}
 
