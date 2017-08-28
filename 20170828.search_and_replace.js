@@ -5,6 +5,8 @@ search and replace wikitext
  2017/8/28 18:42:12	初版試營運。
  2017/8/28 20:15:24 完成。正式運用。
 
+@see [[mw:Manual:Pywikibot/replace.py]]
+
  */
 
 'use strict';
@@ -23,10 +25,10 @@ set_language('ja');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-
-replace_pairs = [ [ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
-		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ],
-		[ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ] ],
+// [ [ search_key, replace_to ], ... ]
+replace_pairs = [ [ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
+		[ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
+		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ] ],
 
 diff_id = 65258423,
 
@@ -41,7 +43,7 @@ if (replace_pairs.length === 2 && !Array.isArray(replace_pairs)) {
 }
 
 CeL.run_serial(for_pair, replace_pairs, function() {
-	CeL.log('Done.');
+	CeL.log(replace_pairs.length + ' pair(s) replaced.');
 });
 
 function for_pair(run_next, pair) {

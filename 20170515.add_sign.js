@@ -218,6 +218,7 @@ if (test_the_page_only) {
 	wiki.listen(for_each_row, {
 		start : time_back_to,
 		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
+		// 若是等待時間過長，可能會有其他人插入留言回覆。 [[Special:Diff/45941555]]
 		delay : '10m',
 		filter : filter_row,
 		with_diff : with_diff,
