@@ -33,7 +33,22 @@ summary = '[[' + (diff_id ? 'Special:Diff/' + diff_id : 'WP:BOTREQ')
 wiki.search(search_key, {
 	summary : summary,
 	each : function(page_data, messages, config) {
-		console.log(page_data.title);
+		/** {String}page title = page_data.title */
+		var title = CeL.wiki.title_of(page_data),
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 */
+		content = CeL.wiki.content_of(page_data);
+
+		if (!content) {
+			return [ CeL.wiki.edit.cancel,
+			//
+			'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+		}
+
+		return content.replace(/\[\[::en:/ig, '[[:en:');
 	},
 	log_to : log_to
+}, {
+	srlimit : 1
 });
