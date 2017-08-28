@@ -37,4 +37,3 @@ wiki.search(search_key, {
 	},
 	log_to : log_to
 });
-0;
