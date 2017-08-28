@@ -16,11 +16,17 @@ require('./wiki loder.js');
 /* global CeL */
 /* global Wiki */
 
+// Set default language. 改變預設之語言。 e.g., 'zh'
+// 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
+set_language('ja');
+
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'ja'),
+wiki = Wiki(true),
 
-search_key = /\[\[::en:/i,
+replace_pairs = [ [ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
+		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ],
+		[ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ] ],
 
 diff_id = 65258423,
 
@@ -30,25 +36,38 @@ summary = '[[' + (diff_id ? 'Special:Diff/' + diff_id : 'WP:BOTREQ')
 
 // ----------------------------------------------------------------------------
 
-wiki.search(search_key, {
-	summary : summary,
-	each : function(page_data, messages, config) {
-		/** {String}page title = page_data.title */
-		var title = CeL.wiki.title_of(page_data),
-		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
-		 */
-		content = CeL.wiki.content_of(page_data);
+if (replace_pairs.length === 2 && !Array.isArray(replace_pairs)) {
+	replace_pairs = [ replace_pairs ];
+}
 
-		if (!content) {
-			return [ CeL.wiki.edit.cancel,
-			//
-			'No contents: [[' + title + ']]! 沒有頁面內容！' ];
-		}
-
-		return content.replace(/\[\[::en:/ig, '[[:en:');
-	},
-	log_to : log_to
-}, {
-	srlimit : 1
+CeL.run_serial(for_pair, replace_pairs, function() {
+	CeL.log('Done.');
 });
+
+function for_pair(run_next, pair) {
+	// console.log(pair);
+	var search_key = pair[0], replace_to = pair[1];
+	wiki.search(search_key, {
+		summary : summary,
+		each : function(page_data, messages, config) {
+			/** {String}page title = page_data.title */
+			var title = CeL.wiki.title_of(page_data),
+			/**
+			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 */
+			content = CeL.wiki.content_of(page_data);
+
+			if (!content) {
+				return [ CeL.wiki.edit.cancel,
+				//
+				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+			}
+
+			return content.replace(search_key, replace_to);
+		},
+		last : run_next,
+		log_to : log_to
+	}, {
+		srlimit : 1
+	});
+}
