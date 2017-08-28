@@ -3,7 +3,7 @@
 search and replace wikitext
 
  2017/8/28 18:42:12	初版試營運。
-
+ 2017/8/28 20:15:24 完成。正式運用。
 
  */
 
@@ -68,6 +68,6 @@ function for_pair(run_next, pair) {
 		last : run_next,
 		log_to : log_to
 	}, {
-		srlimit : 1
+	// srlimit : 1
 	});
 }
