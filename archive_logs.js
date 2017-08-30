@@ -48,10 +48,15 @@ create_first = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 3)
 archive_index_starts = 1,
 // lastest_archive[title] = last index of archive
 lastest_archive = CeL.null_Object(),
-// archive prefix
-archive_prefix = '存檔|存档|過去ログ|Archive',
 // 將第一個 archive_prefix 作為預設 archive_prefix。
-default_archive_prefix = archive_prefix.replace(/\|.+$/, ''),
+default_archive_prefix = {
+	zh : '存檔',
+	zh_CN : '存档',
+	ja : '過去ログ',
+	en : 'Archive'
+},
+// archive prefix
+archive_prefix = Object.values(default_archive_prefix).join('|'),
 // archive_prefix_hash[title] = archive prefix of log page
 archive_prefix_hash = CeL.null_Object(),
 // [ all, log root, archive prefix, archive index ]
@@ -65,7 +70,7 @@ function archive_title(log_title, archive_index) {
 	// 須配合 PATTERN_log_archive。
 	return log_title
 			+ '/'
-			+ (archive_prefix_hash[log_title] || default_archive_prefix)
+			+ (archive_prefix_hash[log_title] || default_archive_prefix[use_language])
 			+ (archive_index || lastest_archive[log_title] || archive_index_starts);
 }
 
@@ -205,7 +210,7 @@ function for_log_page(page_data) {
 			// 頁面大小系統上限 2,048 KB = 2 MB。
 			log_page.length + log_size < 2e6 : !config.nocreate)) {
 				return "'''{{font color|#54f|#ff6|存檔長度" + log_size
-				//
+				// TODO: internationalization
 				+ "字元。}}'''\n" + content.slice(matched.index).trim();
 			}
 

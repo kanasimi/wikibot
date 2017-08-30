@@ -39,7 +39,7 @@ replace_pairs = [ [ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
 diff_id = '65287149/65287930';
 summary = 'FCバイエルン・ミュンヘン関連';
 replace_pairs = [ [ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
-		[ /\[\[バイエルン・ミュンヘン\|/g, '[[FCバイエルン・ミュンヘン|' ] ];
+		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
 /** {String}編輯摘要。總結報告。 */
 summary = '[['
@@ -80,7 +80,7 @@ function for_pair(run_next, pair) {
 		last : run_next,
 		log_to : log_to
 	}, {
-		// for test
-		srlimit : 1
+	// for test
+	// srlimit : 1
 	});
 }
