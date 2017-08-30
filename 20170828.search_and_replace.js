@@ -48,9 +48,12 @@ summary = '[['
 
 // ----------------------------------------------------------------------------
 
-if (replace_pairs.length === 2 && !Array.isArray(replace_pairs)) {
+if (replace_pairs.length === 2 && !Array.isArray(replace_pairs[0])) {
+	// e.g., replace_pairs = [ from, to ]
 	replace_pairs = [ replace_pairs ];
 }
+
+// CeL.set_debug(2);
 
 CeL.run_serial(for_pair, replace_pairs, function() {
 	CeL.log(replace_pairs.length + ' pair(s) replaced.');
