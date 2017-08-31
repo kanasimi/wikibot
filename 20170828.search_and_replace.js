@@ -29,16 +29,14 @@ wiki = Wiki(true),
 replace_pairs, summary, diff_id;
 
 // 2017/8/28
-diff_id = 65258423;
-summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼';
-replace_pairs = [ [ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
+diff_id = 65258423, summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', replace_pairs = [
+		[ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
 		[ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
 		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ] ];
 
 // 2017/8/29
-diff_id = '65287149/65287930';
-summary = 'FCバイエルン・ミュンヘン関連';
-replace_pairs = [ [ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
+diff_id = '65287149/65287930', summary = 'FCバイエルン・ミュンヘン関連', replace_pairs = [
+		[ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
 		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
 /** {String}編輯摘要。總結報告。 */
@@ -60,7 +58,7 @@ CeL.run_serial(for_pair, replace_pairs, function() {
 });
 
 function for_pair(run_next, pair) {
-	// console.log(pair);
+	// console.log([ 'pair:', pair ]);
 	var search_key = pair[0], replace_to = pair[1];
 	wiki.search(search_key, {
 		summary : summary,

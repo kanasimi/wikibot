@@ -103,6 +103,7 @@ _global.script_name = CeL.get_script_name()
 _global.summary = script_name;
 
 if (check_section) {
+	// 本工具將產生之記錄頁面。 log to page
 	log_to = 'User:' + user_name + '/log/' + check_section;
 } else if (script_name) {
 	CeL.warn('No task date assigned! 未指定任務日期。');

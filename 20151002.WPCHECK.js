@@ -247,7 +247,7 @@ function fix_2(content, page_data, messages, config) {
 	.replace(/<br\s*>\s*<[\/\\]br\s*>/gi, '<br />').replace(
 			/(<br(?:\s[^<>]*)?>)\s*<[\/\\]br\s*>/gi, '$1')
 	// '/' 在後, <br/>
-	.replace(/<\s*br\s*(?:[\\.?a-z\d•]|br)\s*[\/\\]?>/gi, '<br />')
+	.replace(/<\s*br(?:|\s[\\\/.?a-z\s\d•]*)>/gi, '<br />')
 	// '/' 在前, </br>
 	.replace(/<\s*[\\\/]\s*br\s*>/gi, '<br />')
 	// 前後都有 '/', </br/>
