@@ -54,7 +54,7 @@ time_back_to = test_mode ? '1h' : '2D',
 notification_limit_count = 3,
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
-whitelist = [ 'Wikipedia:知识问答' ],
+whitelist = [ 'Wikipedia:知识问答', '維基大典:會館' ],
 //
 blacklist = [],
 

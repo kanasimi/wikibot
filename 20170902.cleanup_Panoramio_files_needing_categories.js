@@ -17,15 +17,13 @@ require('./wiki loder.js');
 /* global CeL */
 /* global Wiki */
 
-// Set default language. 改變預設之語言。 e.g., 'zh'
-// 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'commons');
 
 // ----------------------------------------------------------------------------
 
-var
+var meaningful_categories = CeL.null_Object(),
 // https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
 page_options = {
 	rvprop : 'timestamp|content|user|flags'
@@ -35,7 +33,7 @@ edit_options = {
 	bot : 1,
 	minor : 1,
 	nocreate : 1,
-	summary : '[[Commons:Bots/Requests/Cewbot 4|bot test]]: Remove "needing categories" category which is already having category.'
+	summary : '[[Commons:Bots/Requests/Cewbot 4|bot test]]: Remove "needing categories" category which is already including category.'
 };
 
 get_files_of_category('Photos from Panoramio needing categories by date',
@@ -78,7 +76,7 @@ function for_file(page_data, error) {
 		return [ CeL.wiki.edit.cancel, 'skip' ];
 	}
 
-	var categories = [], needing_categories = [],
+	var categories = [], categories_to_check = [], needing_categories = [],
 	//
 	parser = CeL.wiki.parser(content).parse();
 	if (content !== parser.toString()) {
@@ -91,39 +89,69 @@ function for_file(page_data, error) {
 			category.index = index;
 			needing_categories.push(category);
 		} else if (!/Panoramio|Unidentified|Taken with/i.test(category.name)) {
-			// 剩下有許多是標示地點的分類
-			categories.push(category);
+			// exclude categories marked with __HIDDENCAT__
+			if (category.name in meaningful_categories) {
+				if (meaningful_categories[category.name]) {
+					// 剩下有許多是標示地點的分類
+					categories.push(category);
+				}
+			} else {
+				categories_to_check.push(category);
+			}
+		} else if (category.toString().includes('Panoramio_upload_bot')) {
+			category.parent[index] = category.toString().replace(/_/g, ' ');
 		}
 	});
 
 	if (needing_categories.length !== 1) {
 		throw title + ': needing_categories.length !== 1';
 	}
-	if (categories.length === 0) {
-		return [ CeL.wiki.edit.cancel, 'skip' ];
-	}
 
-	if (false) {
-		CeL.info(CeL.wiki.title_link_of(page_data) + ': ' + user);
-		console.log(categories.map(function(category) {
-			return category.name;
-		}));
-	}
-
-	// console.log(needing_categories);
-	needing_categories.forEach(function(category) {
-		if (category.parent[category.index] !== category) {
-			throw title + ': parent.index !== category';
+	function last_check_and_return() {
+		if (categories.length === 0) {
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
-		var parent = category.parent, index = category.index;
-		// Remove category
-		parent[index] = '';
-		// Remove space after category
-		while (/^[\s\n]+$/.test(parent[++index])) {
+
+		if (false) {
+			CeL.info(CeL.wiki.title_link_of(page_data) + ': ' + user);
+			console.log(categories.map(function(category) {
+				return category.name;
+			}));
+		}
+
+		// console.log(needing_categories);
+		needing_categories.forEach(function(category) {
+			if (category.parent[category.index] !== category) {
+				throw title + ': parent.index !== category';
+			}
+			var parent = category.parent, index = category.index;
+			// Remove category
 			parent[index] = '';
-		}
-	});
+			// Remove space after category
+			while (/^[\s\n]+$/.test(parent[++index])) {
+				parent[index] = '';
+			}
+		});
 
-	// return [ CeL.wiki.edit.cancel, 'skip' ];
-	return parser.toString();
+		// return [ CeL.wiki.edit.cancel, 'skip' ];
+		return parser.toString();
+	}
+
+	if (categories_to_check.length === 0) {
+		return last_check_and_return();
+	}
+
+	// Checking each category to exclude __HIDDENCAT__ categories.
+	categories_to_check.forEach(function(category) {
+		wiki.page(category.name, function(category_page) {
+			var meaningful = CeL.wiki.content_of(category_page);
+			meaningful = !meaningful || !meaningful.includes('__HIDDENCAT__');
+			meaningful_categories[category.name] = meaningful;
+			if (meaningful) {
+				categories.push(category);
+			}
+		});
+	});
+	wiki.page(page_data).edit(last_check_and_return);
+	return [ CeL.wiki.edit.cancel, 'skip' ];
 }
