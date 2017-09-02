@@ -48,8 +48,8 @@ var
 test_the_page_only = "",
 // true: 測試模式，將不會寫入簽名或者提醒。
 test_mode = !!test_the_page_only,
-// 回溯這麼多時間。最多約可回溯30天。
-time_back_to = test_mode ? '1h' : '1h',
+// 回溯這麼多時間。最多約可回溯30天。用個一兩天可以避免 jstart 必須常常檢查。
+time_back_to = test_mode ? '1h' : '2D',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
@@ -876,7 +876,7 @@ function for_each_row(row) {
 		nocreate : 1,
 		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
 		//
-		+ '的編輯]][[' + log_to + '|補簽名]]。本工具僅具提醒作用。若是您希望自己手動補簽名，請逕行修改即可。'
+		+ '的編輯]][[' + log_to + '|補簽名]]。本工具僅為紀錄用。若您希望自行手動補簽名，請逕行修改即可。'
 	});
 
 	if (add_count(row, unsigned_user_hash) >= notification_limit_count) {

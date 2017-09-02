@@ -180,8 +180,8 @@ function for_log_page(page_data) {
 	/** 寫入記錄頁面的存檔 */
 	function write_archive() {
 		var archive_page = archive_title(log_title);
-		summary = '歸檔封存作業: [[' + log_title + ']] → [[' + archive_page + ']] '
-				+ log_size + '字';
+		summary = '[[WP:ARCHIVE|歸檔封存作業]]: [[' + log_title + ']] → [['
+				+ archive_page + ']] ' + log_size + '字';
 		CeL.info('for_log_page: ' + summary);
 
 		var config = {

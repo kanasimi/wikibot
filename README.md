@@ -147,6 +147,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Detection of edit conflicts and <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code>.
 * Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, et al.
 * Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext) and modify wikitext inplace.
+* Listen to recent changes with diff function supported.
 
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import Wikimedia database backup dumps data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
