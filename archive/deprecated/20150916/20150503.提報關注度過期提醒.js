@@ -75,7 +75,7 @@ wiki
 			// 不合理或已處理過之 title。
 			return;
 
-		var days = (Date.now() - CeL.wiki.parse.Date(line
+		var days = (Date.now() - CeL.wiki.parse.date(line
 				.slice(token.lastIndex)))
 				/ ONE_DAY_LENGTH_VALUE | 0;
 		if (days < limit_days)

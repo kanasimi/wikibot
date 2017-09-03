@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20151002.WPCHECK.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20151002.WPCHECK.js use_project=zh
 
 /*
 
@@ -75,7 +75,7 @@ checkwiki_api_URL_id = checkwiki_api_URL + 'view=bots&offset=0&id=',
 NOT_FOUND = ''.indexOf('_'),
 
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true),
+wiki = Wiki(true, use_project),
 
 description_of_ID = [],
 

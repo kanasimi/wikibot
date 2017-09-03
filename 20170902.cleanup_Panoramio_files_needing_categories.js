@@ -146,6 +146,7 @@ function for_file(page_data, error) {
 		wiki.page(category.name, function(category_page) {
 			var meaningful = CeL.wiki.content_of(category_page);
 			meaningful = !meaningful || !meaningful.includes('__HIDDENCAT__');
+			// set cache
 			meaningful_categories[category.name] = meaningful;
 			if (meaningful) {
 				categories.push(category);

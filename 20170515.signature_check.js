@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20170515.add_sign.js; date) >> modify_link/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20170515.add_sign.js use_project=zh; date) >> modify_link/log &
 
 /*
 
@@ -38,7 +38,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true);
+wiki = Wiki(true, use_project);
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定
@@ -69,7 +69,7 @@ more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
 PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/,
 // 只標示日期的存檔頁面標題。
 PATTERN_date_archive = /\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/,
-// 跳過封存/存檔頁面。
+// 跳過封存/存檔頁面: [[Template:Talk archive]] and all redirects。
 PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来自已转换的wiki文本讨论页的存档)/i,
 // 篩選編輯摘要。排除還原的編輯。
 // GlobalReplace: use tool
@@ -109,7 +109,7 @@ function show_page(row) {
 			+ row.title + ']]');
 }
 
-// 從頁面資訊做初步的篩選
+// 從頁面資訊做初步的篩選。
 function filter_row(row) {
 	if (CeL.is_debug(2)) {
 		show_page(row);
@@ -249,8 +249,8 @@ function exclude_style(token_list) {
 function get_parsed_time(row) {
 	if (!row.parsed_time) {
 		// 補簽的時間戳能不能跟標準簽名格式一樣，讓時間轉換的小工具起效用。
-		row.parsed_time = (new Date(row.timestamp))
-				.format(CeL.wiki.parse.date.format);
+		row.parsed_time = CeL.wiki.parse.date.to_String(
+				new Date(row.timestamp), wiki);
 	}
 
 	return row.parsed_time;
@@ -635,7 +635,8 @@ function for_each_row(row) {
 				.match(/<\/?(noinclude|onlyinclude|includeonly)([ >])/i);
 		if (matched) {
 			// 這些嵌入包含宣告應該使用在 template: 命名空間，若是要加上簽名，可能會有被含入時出現簽名的問題。
-			if (user_list.length > 0 && CeL.wiki.parse.date(section_wikitext)) {
+			if (user_list.length > 0
+					&& CeL.wiki.parse.date(section_wikitext, wiki)) {
 				CeL.debug('這段修改中有嵌入包含宣告<code>&lt;' + matched[1]
 						+ '></code>，但是因為有發現簽名，因此不跳過。', 2);
 			} else {
@@ -726,7 +727,9 @@ function for_each_row(row) {
 		// e.g., [[Special:Diff/45178923]]
 		.replace(/[ _]/g, '[ _]'), 'i')).test(section_wikitext)
 		// 測試假如有加入日期的時候。
-		|| CeL.wiki.parse.date(last_token)) {
+		// {{Unsigned|user|2016年10月18日 (二) 00:04‎}}
+		// {{Unsigned|1=user=user|2=2016年10月17日 (一) 23:45‎}}
+		|| CeL.wiki.parse.date(last_token, wiki)) {
 			// 但是若僅僅在文字中提及時，可能會被漏掉，因此加個警告做紀錄。
 			check_log
 					.push([
