@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20170515.add_sign.js use_project=zh; date) >> modify_link/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20170515.signature_check.js use_language=zh-classical; date) >> modify_link/log &
 
 /*
 
@@ -38,7 +38,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, use_project);
+wiki = Wiki(true);
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定

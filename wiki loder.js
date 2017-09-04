@@ -175,8 +175,6 @@ _global.set_language = function(language) {
 
 set_language(CeL.env.arg_hash && CeL.env.arg_hash.use_language || 'zh');
 
-_global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
-
 if (CeL.env.arg_hash && CeL.env.arg_hash.debug > 0) {
 	CeL.set_debug(CeL.env.arg_hash.debug);
 }

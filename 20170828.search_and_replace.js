@@ -28,6 +28,8 @@ wiki = Wiki(true),
 // [ [ search_key, replace_to ], ... ]
 replace_pairs, summary, diff_id;
 
+// ----------------------------------------------------------------------------
+
 // 2017/8/28
 diff_id = 65258423, summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', replace_pairs = [
 		[ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
@@ -39,12 +41,16 @@ diff_id = '65287149/65287930', summary = 'FCバイエルン・ミュンヘン関
 		[ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
 		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
+// 2017/9/4
+diff_id = '65368586', summary = 'インターネットアーカイブ', replace_pairs = [
+		/\[\[インターネット・アーカイブ([\|#\]])/g, '[[インターネットアーカイブ$1' ];
+
+// ----------------------------------------------------------------------------
+
 /** {String}編輯摘要。總結報告。 */
 summary = '[['
 		+ (diff_id ? 'Special:Diff/' + diff_id + '#' + summary : 'WP:BOTREQ')
 		+ '|Bot作業依頼]]：' + summary + ' - [[' + log_to + '|log]]';
-
-// ----------------------------------------------------------------------------
 
 if (replace_pairs.length === 2 && !Array.isArray(replace_pairs[0])) {
 	// e.g., replace_pairs = [ from, to ]
@@ -81,7 +87,12 @@ function for_pair(run_next, pair) {
 		last : run_next,
 		log_to : log_to
 	}, {
-	// for test
-	// srlimit : 1
+		// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bsearch
+
+		// for test
+		// srlimit : 1,
+
+		// main + template
+		srnamespace : '0|10'
 	});
 }
