@@ -25,24 +25,24 @@ set_language('ja');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-// [ [ search_key, replace_to ], ... ]
+// replace_pairs = [ [ search_key, replace_to ], ... ]
 replace_pairs, summary, diff_id;
 
 // ----------------------------------------------------------------------------
 
 // 2017/8/28
-diff_id = 65258423, summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', replace_pairs = [
+summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', diff_id = 65258423, replace_pairs = [
 		[ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
 		[ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
 		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ] ];
 
 // 2017/8/29
-diff_id = '65287149/65287930', summary = 'FCバイエルン・ミュンヘン関連', replace_pairs = [
+summary = 'FCバイエルン・ミュンヘン関連', diff_id = '65287149/65287930', replace_pairs = [
 		[ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
 		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
 // 2017/9/4
-diff_id = '65368586', summary = 'インターネットアーカイブ', replace_pairs = [
+summary = 'インターネットアーカイブ', diff_id = 65368586, replace_pairs = [
 		/\[\[インターネット・アーカイブ([\|#\]])/g, '[[インターネットアーカイブ$1' ];
 
 // ----------------------------------------------------------------------------
@@ -92,7 +92,7 @@ function for_pair(run_next, pair) {
 		// for test
 		// srlimit : 1,
 
-		// main + template
-		srnamespace : '0|10'
+		// template + main
+		srnamespace : '10|0'
 	});
 }

@@ -128,9 +128,7 @@ function for_each_pages(page_data) {
 // 若有必要，此時得用 config.first 自行處理！
 function arrange_page(messages, pages, titles) {
 	// console.log(pages);
-	if (template_with_ns ===
-	//
-	CeL.wiki.title_of(pages[pages.length - 1])) {
+	if (template_with_ns === CeL.wiki.title_of(pages[pages.length - 1])) {
 		return;
 	}
 
@@ -138,7 +136,9 @@ function arrange_page(messages, pages, titles) {
 	var index = pages.length, page_data;
 	while (true) {
 		if (--index < 0) {
-			throw new Error('Not found: [[' + template_with_ns + ']]');
+			CeL.error('Not found: [[' + template_with_ns
+					+ ']]. 除非是比較巨型的模板，連結過多使模板本身並不在本批次中；否則這個錯誤不應該發生！');
+			return;
 		}
 		page_data = pages[index];
 		if (template_with_ns === CeL.wiki.title_of(page_data)) {

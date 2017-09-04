@@ -175,6 +175,7 @@ _global.set_language = function(language) {
 
 set_language(CeL.env.arg_hash && CeL.env.arg_hash.use_language || 'zh');
 
+// e.g., # node task.js debug=2
 if (CeL.env.arg_hash && CeL.env.arg_hash.debug > 0) {
 	CeL.set_debug(CeL.env.arg_hash.debug);
 }
@@ -206,7 +207,8 @@ _global.Wiki = function(login, API_URL) {
 	// set User-Agent to use:
 	// Special:ApiFeatureUsage&wpagent=CeJS script_name
 	wiki.get_URL_options.headers['User-Agent'] = CeL.get_URL.default_user_agent
-			+ ' ' + script_name;
+	// User-Agent 不可含有中文。
+	+ ' ' + encodeURI(CeL.get_script_name());
 
 	return wiki;
 };
