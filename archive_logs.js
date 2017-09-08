@@ -41,7 +41,13 @@ last_preserve_mark = {
 min_length = 5000,
 /** {Natural}超過了這個長度，才會造出首個存檔。 */
 min_length_create = 100000,
-/** {Boolean|String}超過了這個日期才會造出首個存檔。 e.g., '20160101'. 當前設定 3個月前 */
+/**
+ * {Boolean|String}造出首個存檔的最早日期。
+ * 
+ * 記錄檔的日期標示超過了這個日期才會造出首個存檔。這是為了避免有已經不會變更的古老記錄檔被強制造出存檔來。
+ * 
+ * e.g., '20160101'. 當前設定 3個月前
+ */
 create_first = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 3)
 		.format('%4Y%2m%2d'),
 /** {Natural}記錄頁面的存檔起始編號。 */
@@ -137,14 +143,19 @@ function for_log_page(page_data) {
 		if (!create_first) {
 			needless_reason = true;
 		} else if (log_title.replace(/^.+?(\d+)$/, '$1') <= create_first) {
+			// e.g., ('20170515' <= '20170609')
 			needless_reason = create_first + '之前的紀錄';
 		} else if (log_size <= min_length_create) {
 			needless_reason = min_length_create + '字以下的紀錄';
 		}
 
 		if (needless_reason) {
-			needless_reason = '原先不存在存檔子頁面，且已設定' + (needless_reason || '')
-					+ '不造出存檔子頁面。（若需要自動歸檔封存，您需要手動創建首個存檔子頁面。）';
+			needless_reason = '原先不存在存檔子頁面，且已設定'
+					+ (needless_reason || '')
+					+ '不造出存檔子頁面。（若需要自動歸檔封存，您需要手動創建首個存檔子頁面'
+					+ CeL.wiki.title_link_of(log_title + '/'
+							+ default_archive_prefix[use_language] + '1')
+					+ '。）';
 		}
 	}
 

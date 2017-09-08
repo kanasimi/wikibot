@@ -25,13 +25,22 @@ wiki = Wiki(true, 'wikinews');
 
 // ----------------------------------------------------------------------------
 
-var
-/** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
-NOT_FOUND = ''.indexOf('_');
+var main_page_title = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g;
+
+// @see [[Category:频道]]
+var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
+		+ '|政治|法治|法律|人权' + '|社会|文化|教育|宗教|讣告' + '|财经|经济|金融' + '|科技|科学' + '|体育')
+		.split('|');
+
+(function() {
+	var category_hash = CeL.null_Object();
+	preserve_categories.forEach(function(category) {
+		category_hash[category] = true;
+	});
+	preserve_categories = category_hash;
+})();
 
 // CeL.set_debug(2);
-
-var main_page_title = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g;
 
 // 僅僅執行一次，一開始就執行一次。
 wiki.page(main_page_title, process_main_page);
@@ -43,8 +52,10 @@ function setup_listener() {
 	// 隨時監視 main_page_title。
 	wiki.listen(function(page_data) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
-		console.log([ page_data.title, page_data.revid, page_data.timestamp,
-				CeL.wiki.content_of(page_data).slice(0, 200) ], 0);
+		if (0)
+			console.log([ page_data.title, page_data.revid,
+					page_data.timestamp,
+					CeL.wiki.content_of(page_data).slice(0, 200) ]);
 		process_main_page(page_data);
 	}, {
 		interval : 5000,
@@ -100,19 +111,6 @@ function process_main_page(page_data, error) {
 }
 
 // ----------------------------------------------------------------------------
-
-// @see [[Category:频道]]
-var accepted_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
-		+ '|政治|法治|法律|人权' + '|社会|文化|教育|宗教|讣告' + '|财经|经济|金融' + '|科技|科学' + '|体育')
-		.split('|');
-
-(function() {
-	var category_hash = CeL.null_Object();
-	accepted_categories.forEach(function(category) {
-		category_hash[category] = true;
-	});
-	accepted_categories = category_hash;
-})();
 
 function process_VOA_page(XMLHttp) {
 	var status_code = XMLHttp.status,
@@ -186,7 +184,7 @@ function process_VOA_page(XMLHttp) {
 			.filter(function(keyword) {
 				return /[洲國国]$/.test(keyword)
 				//
-				|| (keyword in accepted_categories);
+				|| (keyword in preserve_categories);
 			}).map(function(keyword) {
 				return '[[Category:' + keyword + ']]';
 			}).join('\n');

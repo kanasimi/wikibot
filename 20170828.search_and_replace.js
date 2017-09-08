@@ -92,6 +92,8 @@ function for_pair(run_next, pair) {
 		// for test
 		// srlimit : 1,
 
+		// module + template + main
+		// srnamespace : '828|10|0'
 		// template + main
 		srnamespace : '10|0'
 	});
