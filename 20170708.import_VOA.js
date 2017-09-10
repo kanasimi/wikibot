@@ -209,6 +209,8 @@ function process_VOA_page(XMLHttp) {
 
 	// CeL.set_debug(6);
 	wiki.page(title).edit(edit_wiki_page, {
+		// for 機器人轉載新聞稿。
+		tags : 'import news',
 		summary : '[[' + main_page_title + '|Import VOA news]]'
 	}, check_links.bind(this));
 }

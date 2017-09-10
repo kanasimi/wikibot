@@ -75,7 +75,7 @@ PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来
 // GlobalReplace: use tool
 // https://commons.wikimedia.org/wiki/Commons:GlobalReplace
 // "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
-PATTERN_revert_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!/i,
+PATTERN_revert_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!|!nobot!/i,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = CeL.null_Object(),
 // no_link_user_hash[user][page title] = unsigned count
@@ -297,7 +297,7 @@ function for_each_row(row) {
 	|| PATTERN_archive.test(content)
 	// 跳過重定向頁。
 	|| CeL.wiki.parse.redirect(content)
-	// [[WP:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
+	// [[Project:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
 	// 可以用 "{{NoAutosign}}" 來避免這個任務添加簽名標記。
 	|| content.includes('{{NoAutosign}}')) {

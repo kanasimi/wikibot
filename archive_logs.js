@@ -1,5 +1,5 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node archive_logs.js && date
-// cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js
+﻿// cd ~/wikibot && date && time /shared/bin/node archive_logs.js use_language=zh && date
+// cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js use_language=zh
 // archive logs. 歸檔封存機器人執行的記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
 /*
@@ -42,9 +42,9 @@ min_length = 5000,
 /** {Natural}超過了這個長度，才會造出首個存檔。 */
 min_length_create = 100000,
 /**
- * {Boolean|String}造出首個存檔的最早日期。
+ * {Boolean|String}會自動造出首個存檔的最早日期界限。
  * 
- * 記錄檔的日期標示超過了這個日期才會造出首個存檔。這是為了避免有已經不會變更的古老記錄檔被強制造出存檔來。
+ * 記錄檔的最後編輯日期標示超過了這個日期才會造出首個存檔。這是為了避免有已經不會變更的古老記錄檔被強制造出存檔來。
  * 
  * e.g., '20160101'. 當前設定 3個月前
  */
@@ -131,7 +131,7 @@ function for_log_page(page_data) {
 	matched = PATTERN_TITLE.exec(content);
 
 	if (!matched) {
-		needless_reason = '未發現程式運作紀錄章節標題';
+		needless_reason = '未發現程式運作紀錄章節標題（除了標頭說明之外看起來已經沒有任何新的記錄，或許已經存檔過、清空了。）';
 		// console.log(content);
 		// console.log(PATTERN_TITLE);
 	} else if (log_size < min_length) {
@@ -142,11 +142,13 @@ function for_log_page(page_data) {
 	} else if (!(log_title in lastest_archive)) {
 		if (!create_first) {
 			needless_reason = true;
-		} else if (log_title.replace(/^.+?(\d+)$/, '$1') <= create_first) {
-			// e.g., ('20170515' <= '20170609')
-			needless_reason = create_first + '之前的紀錄';
+		} else if (
+		// log_title.replace(/^.+?(\d+)$/, '$1') <= create_first
+		CeL.wiki.content_of.edit_time(page_data).format('%4Y%2m%2d') <= create_first) {
+			// 檢查最近的變更日期 e.g., ('20170515' <= '20170609')
+			needless_reason = ' ' + create_first + ' 之前編輯的紀錄';
 		} else if (log_size <= min_length_create) {
-			needless_reason = min_length_create + '字以下的紀錄';
+			needless_reason = ' ' + min_length_create + ' 字以下的紀錄';
 		}
 
 		if (needless_reason) {
