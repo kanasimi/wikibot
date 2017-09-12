@@ -20,39 +20,60 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-set_language('ja');
+// set_language('ja');
+set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
-// replace_pairs = [ [ search_key, replace_to ], ... ]
+// replace_pairs = [
+// [ search_key, replace_from, replace_to ],
+// [ search_key, replace_to ], ... ]
 replace_pairs, summary, diff_id;
 
 // ----------------------------------------------------------------------------
 
 // 2017/8/28
-summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', diff_id = 65258423, replace_pairs = [
-		[ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
+summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', diff_id = 65258423;
+replace_pairs = [ [ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
 		[ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
 		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ] ];
 
 // 2017/8/29
-summary = 'FCバイエルン・ミュンヘン関連', diff_id = '65287149/65287930', replace_pairs = [
-		[ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
+summary = 'FCバイエルン・ミュンヘン関連', diff_id = '65287149/65287930';
+replace_pairs = [ [ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
 		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
 // 2017/9/4
-summary = 'インターネットアーカイブ', diff_id = 65368586, replace_pairs = [
-		/\[\[インターネット・アーカイブ([\|#\]])/g, '[[インターネットアーカイブ$1' ];
+summary = 'インターネットアーカイブ', diff_id = 65368586;
+replace_pairs = [ /\[\[インターネット・アーカイブ([\|#\]])/g, '[[インターネットアーカイブ$1' ];
+
+// 2017/9/12 17:49:44
+summary = [ 'WikiProject Asessment banner replacement',
+		'[[Template:WikiProject Investment]] → [[Template:WikiProject Finance]]' ];
+diff_id = 799598464;
+replace_pairs = [
+// https://www.mediawiki.org/wiki/Help:CirrusSearch
+// 'hastemplate:"WikiProject Investment" -hastemplate:"WikiProject Finance"',
+'hastemplate:"WikiProject Investment"',
+		/{{ *WikiProject[ _]Investment *(\|[^{}]*)?}}/,
+		'{{WikiProject Finance$1}}' ];
 
 // ----------------------------------------------------------------------------
 
+if (!Array.isArray(summary)) {
+	// [ section title of [[WP:BOTREQ]], title shown ]
+	summary = [ summary, summary ];
+}
+
 /** {String}編輯摘要。總結報告。 */
 summary = '[['
-		+ (diff_id ? 'Special:Diff/' + diff_id + '#' + summary : 'WP:BOTREQ')
-		+ '|Bot作業依頼]]：' + summary + ' - [[' + log_to + '|log]]';
+		+ (diff_id ? 'Special:Diff/' + diff_id
+				+ (summary[0] ? '#' + summary[0] : '') : 'WP:BOTREQ') + '|'
+		+ (use_language === 'ja' ? 'Bot作業依頼' : 'Bot request') + ']]: '
+		+ summary[1] + ' - [[' + log_to + '|log]]';
 
-if (replace_pairs.length === 2 && !Array.isArray(replace_pairs[0])) {
+if (!Array.isArray(replace_pairs[0])) {
 	// e.g., replace_pairs = [ from, to ]
 	replace_pairs = [ replace_pairs ];
 }
@@ -65,7 +86,16 @@ CeL.run_serial(for_pair, replace_pairs, function() {
 
 function for_pair(run_next, pair) {
 	// console.log([ 'pair:', pair ]);
-	var search_key = pair[0], replace_to = pair[1];
+	var search_key = pair[0], replace_from, replace_to;
+	if (pair.length === 2) {
+		replace_from = pair[0];
+		replace_to = pair[1];
+	} else {
+		// assert: pair.length === 3
+		replace_from = pair[1];
+		replace_to = pair[2];
+	}
+
 	wiki.search(search_key, {
 		summary : summary,
 		each : function(page_data, messages, config) {
@@ -82,7 +112,45 @@ function for_pair(run_next, pair) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 			}
 
-			return content.replace(search_key, replace_to);
+			// return content.replace(replace_from, replace_to);
+
+			// ------------------------------------------------------
+			// 不造成重複的 template。
+
+			var Investment_parameters = content.match(replace_from);
+			if (!Investment_parameters) {
+				return [ CeL.wiki.edit.cancel, 'Nothing to replace' ];
+			}
+			Investment_parameters
+			//
+			= Investment_parameters[1].replace(/\s/g, '');
+			var PATTERN_Finance = /{{ *WikiProject[ _]Finance *(\|[^{}]*)?}}/,
+			//
+			Finance_parameters = content.match(PATTERN_Finance);
+			if (Finance_parameters) {
+				Finance_parameters = Finance_parameters[1].replace(/\s/g, '');
+				if (!Finance_parameters && Investment_parameters) {
+					// "{{Finance}}""{{Investment|...}}"
+					// → """{{Investment|...}}"
+					content = content.replace(PATTERN_Finance, '');
+					// and will → """{{Finance|...}}"
+					Finance_parameters = null;
+				}
+			}
+			if (Investment_parameters && Finance_parameters
+			//
+			&& !Finance_parameters.includes(Investment_parameters)) {
+				// "{{Finance|p1}}""{{Investment|p2}}"
+				return [
+						CeL.wiki.edit.cancel,
+						'<nowiki>' + content.match(replace_from)[1] + ' != '
+								+ content.match(PATTERN_Finance)[1]
+								+ '</nowiki>' ];
+			}
+			// "{{Investment|p}}" → "{{Finance|p}}"
+			// "{{Finance|p1}}""{{Investment|p1}}" → "{{Finance|p1}}"""
+			return content.replace(replace_from, Finance_parameters ? ''
+					: replace_to);
 		},
 		last : run_next,
 		log_to : log_to
@@ -95,6 +163,8 @@ function for_pair(run_next, pair) {
 		// module + template + main
 		// srnamespace : '828|10|0'
 		// template + main
-		srnamespace : '10|0'
+		// srnamespace : '10|0'
+		// talk
+		srnamespace : '1'
 	});
 }

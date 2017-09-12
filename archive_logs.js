@@ -35,7 +35,9 @@ PATTERN_LOG_TITLE = /^([^:]+):([^:\/]+)\/log\/(\d{8})$/,
 last_preserve_mark = {
 	zh : '運作記錄',
 	// 作業結果報告
-	ja : '結果'
+	ja : '結果',
+	// work report, operation report, summary
+	en : 'report'
 },
 /** {Natural}超過了這個長度才會被搬移。 */
 min_length = 5000,
@@ -59,7 +61,8 @@ default_archive_prefix = {
 	zh : '存檔',
 	zh_CN : '存档',
 	ja : '過去ログ',
-	en : 'Archive'
+	// e.g., "Archive 1"
+	en : 'Archive '
 },
 // archive prefix
 archive_prefix = Object.values(default_archive_prefix).join('|'),
@@ -181,6 +184,7 @@ function for_log_page(page_data) {
 		}, {
 			// remove log.
 			summary : summary + ' #2/2 移除記錄',
+			bot : 1,
 			nocreate : had_failed ? 0 : 1
 		}, function(title, error) {
 			if (error)
@@ -200,6 +204,7 @@ function for_log_page(page_data) {
 		var config = {
 			// append log.
 			summary : summary + ' #1/2 添附記錄',
+			bot : 1,
 			section : 'new',
 			sectiontitle : (new Date).format('%4Y%2m%2d') + '歸檔封存'
 		};
