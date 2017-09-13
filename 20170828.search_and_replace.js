@@ -123,12 +123,13 @@ function for_pair(run_next, pair) {
 			}
 			Investment_parameters
 			//
-			= Investment_parameters[1].replace(/\s/g, '');
+			= Investment_parameters[1].replace(/\s/g, '').toLowerCase();
 			var PATTERN_Finance = /{{ *WikiProject[ _]Finance *(\|[^{}]*)?}}/,
 			//
 			Finance_parameters = content.match(PATTERN_Finance);
 			if (Finance_parameters) {
-				Finance_parameters = Finance_parameters[1].replace(/\s/g, '');
+				Finance_parameters = Finance_parameters[1].replace(/\s/g, '')
+						.toLowerCase();
 				if (!Finance_parameters && Investment_parameters) {
 					// "{{Finance}}""{{Investment|...}}"
 					// → """{{Investment|...}}"
@@ -141,12 +142,16 @@ function for_pair(run_next, pair) {
 			//
 			&& !Finance_parameters.includes(Investment_parameters)) {
 				// "{{Finance|p1}}""{{Investment|p2}}"
-				return [
-						CeL.wiki.edit.cancel,
-						'<nowiki>' + content.match(replace_from)[1] + ' != '
-								+ content.match(PATTERN_Finance)[1]
-								+ '</nowiki>' ];
+				var warning = "'''<nowiki>" + content.match(replace_from)[0]
+						+ "</nowiki>''' != '''<nowiki>"
+						+ content.match(PATTERN_Finance)[0] + "</nowiki>'''";
+				// return [ CeL.wiki.edit.cancel, warning ];
+
+				// just replace those too.
+				// "{{Finance|p1}}""{{Investment|p2}}" → "{{Finance|p1}}"
+				messages.add(warning, page_data);
 			}
+
 			// "{{Investment|p}}" → "{{Finance|p}}"
 			// "{{Finance|p1}}""{{Investment|p1}}" → "{{Finance|p1}}"""
 			return content.replace(replace_from, Finance_parameters ? ''
@@ -158,7 +163,7 @@ function for_pair(run_next, pair) {
 		// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bsearch
 
 		// for test
-		// srlimit : 1,
+		// srlimit : 5,
 
 		// module + template + main
 		// srnamespace : '828|10|0'
