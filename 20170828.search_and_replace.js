@@ -121,15 +121,14 @@ function for_pair(run_next, pair) {
 			if (!Investment_parameters) {
 				return [ CeL.wiki.edit.cancel, 'Nothing to replace' ];
 			}
-			Investment_parameters
-			//
-			= Investment_parameters[1].replace(/\s/g, '').toLowerCase();
+			Investment_parameters = (Investment_parameters[1] || '').replace(
+					/\s/g, '').toLowerCase();
 			var PATTERN_Finance = /{{ *WikiProject[ _]Finance *(\|[^{}]*)?}}/,
 			//
 			Finance_parameters = content.match(PATTERN_Finance);
 			if (Finance_parameters) {
-				Finance_parameters = Finance_parameters[1].replace(/\s/g, '')
-						.toLowerCase();
+				Finance_parameters = (Finance_parameters[1] || '').replace(
+						/\s/g, '').toLowerCase();
 				if (!Finance_parameters && Investment_parameters) {
 					// "{{Finance}}""{{Investment|...}}"
 					// → """{{Investment|...}}"
@@ -163,7 +162,7 @@ function for_pair(run_next, pair) {
 		// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bsearch
 
 		// for test
-		// srlimit : 5,
+		// srlimit : 100,
 
 		// module + template + main
 		// srnamespace : '828|10|0'
