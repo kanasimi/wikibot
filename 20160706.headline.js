@@ -143,11 +143,8 @@ to_remind = 'kanashimi';
 // ---------------------------------------------------------------------//
 
 function finish_up() {
-	CeL.debug('更新/清除緩存並重新載入/重新整理/刷新維基新聞首頁。', 0, 'finish_up');
-	CeL.get_URL(
-	// 極端做法：re-edit the same contents
-	// TODO: https://www.mediawiki.org/w/api.php?action=help&modules=purge
-	'https://zh.wikinews.org/w/index.php?title=Wikinews:首页&action=purge');
+	CeL.debug('更新維基新聞首頁。', 0, 'finish_up');
+	wiki.purge('Wikinews:首页');
 
 	if (!parse_error_label_list) {
 		CeL.debug('No parse error. End.', 0, 'finish_up');

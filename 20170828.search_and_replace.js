@@ -52,12 +52,15 @@ replace_pairs = [ /\[\[インターネット・アーカイブ([\|#\]])/g, '[[�
 summary = [ 'WikiProject Asessment banner replacement',
 		'[[Template:WikiProject Investment]] → [[Template:WikiProject Finance]]' ];
 diff_id = 799598464;
-replace_pairs = [
 // https://www.mediawiki.org/wiki/Help:CirrusSearch
 // 'hastemplate:"WikiProject Investment" -hastemplate:"WikiProject Finance"',
-'hastemplate:"WikiProject Investment"',
-		/{{ *WikiProject[ _]Investment *(\|[^{}]*)?}}/,
-		'{{WikiProject Finance$1}}' ];
+replace_pairs = [
+		'hastemplate:"WikiProject Investment"',
+		// "{{WP__Investment}}" is also OK! Treat as "{{WP Investment}}"
+		// e.g., [[en:Talk:W. David Wilson]]
+		/{{ *(?:(?:WikiProject|WP)[ _]+Investment|WPINVESTMENT)(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}(\n?)/,
+		'{{WikiProject Finance$1}}$2' ];
+var PATTERN_Finance = /{{ *(?:WikiProject|WP)[ _]+Finance(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}/;
 
 // ----------------------------------------------------------------------------
 
@@ -123,9 +126,7 @@ function for_pair(run_next, pair) {
 			}
 			Investment_parameters = (Investment_parameters[1] || '').replace(
 					/\s/g, '').toLowerCase();
-			var PATTERN_Finance = /{{ *WikiProject[ _]Finance *(\|[^{}]*)?}}/,
-			//
-			Finance_parameters = content.match(PATTERN_Finance);
+			var Finance_parameters = content.match(PATTERN_Finance);
 			if (Finance_parameters) {
 				Finance_parameters = (Finance_parameters[1] || '').replace(
 						/\s/g, '').toLowerCase();
@@ -168,7 +169,7 @@ function for_pair(run_next, pair) {
 		// srnamespace : '828|10|0'
 		// template + main
 		// srnamespace : '10|0'
-		// talk
-		srnamespace : '1'
+		// talk + template_talk + category_talk
+		srnamespace : '1|11|15'
 	});
 }
