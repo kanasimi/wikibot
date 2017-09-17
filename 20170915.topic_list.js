@@ -2,6 +2,7 @@
 
  Add topic list to talk page. 增加討論頁面主題列表。為議增目錄。
 
+2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
  完成。正式運用。
 
@@ -10,6 +11,42 @@ node 20170915.topic_list.js
 node 20170915.topic_list.js use_language=zh-classical
 
 @see [[zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[User:WhitePhosphorus-bot/RFBA_Status]]
+
+
+
+
+TODO:
+Flow 的問題是不支援繁簡轉換，沒有在大流量頁面嘗試過。長篇內容是否合適Flow還真不清楚。排版還是不夠靈活。難以處理需要修訂版本刪除的編輯。
+https://ja.wikipedia.org/wiki/Wikipedia:Bot%E4%BD%9C%E6%A5%AD%E4%BE%9D%E9%A0%BC
+https://ja.wikipedia.org/wiki/Wikipedia:%E4%BA%95%E6%88%B8%E7%AB%AF
+https://commons.wikimedia.org/wiki/Commons:Bots/Work_requests
+https://zh.moegirl.org/Talk:%E8%AE%A8%E8%AE%BA%E7%89%88
+https://zh-classical.wikipedia.org/wiki/%E7%B6%AD%E5%9F%BA%E5%A4%A7%E5%85%B8:%E6%9C%83%E9%A4%A8
+https://zh.wikipedia.org/wiki/Wikipedia:%E4%BA%92%E5%8A%A9%E5%AE%A2%E6%A0%88/%E6%8A%80%E6%9C%AF
+https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E4%BD%9C%E4%B8%9A%E8%AF%B7%E6%B1%82
+https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E6%8F%90%E8%AE%AE
+https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E7%94%B3%E8%AF%B7
+https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
+https://en.wikipedia.org/wiki/Wikipedia:Bot_requests
+https://zh.wikinews.org/wiki/Wikinews:%E8%8C%B6%E9%A6%86
+
+讀取每一個章節/子頁面的資料:標題,參與討論者,討論發言的時間
+	TODO: 不必然是章節，也可以有其它不同的分割方法。
+討論議題列表可以放在另外一頁，也可以在當前頁面中。
+討論議題列表可以挑選欄位:議題的標題，發起人與發起時間(Created)，最後留言者與最後時間(Last editor)，特定使用者最後留言與最後時間(e.g., Last BAG editor)，議體進度狀態(Status:Approved for trial/Trial complete/Approved/...)
+討論議題列表可以依狀態表現不同的顏色
+可以在 __TOC__ , __NEWSECTIONLINK__ 之後才開始檢查
+可以自動把文字分到新的子頁面
+
+
+
+archive
+可以依照指示存檔到不同的page
+	存檔可以用編號為主或者以日期,"丁酉年"為主
+存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
+存檔完可以直接刪除，只留下oldid
+
+
 
  */
 
@@ -30,8 +67,11 @@ var talk_page = use_language === 'zh-classical' ? '維基大典:會館' : 'Wikin
 
 // ----------------------------------------------------------------------------
 
-// 當管理員的名單變更時需要重新執行!
-var sysop_hash = CeL.null_Object();
+// 當管理員的名單變更時需要重新執行程式!
+var special_users = {
+	sysop : CeL.null_Object()
+};
+
 wiki.allusers(function(list) {
 	if (list.next_index) {
 		throw 'Too many users so we do not get full list!';
@@ -40,7 +80,7 @@ wiki.allusers(function(list) {
 	var sysop_list = [];
 	list.forEach(function(user) {
 		if (!user.groups.includes('bot')) {
-			sysop_hash[user.name] = user.userid;
+			special_users.sysop[user.name] = user.userid;
 			sysop_list.push(user.name);
 		}
 	});
@@ -85,15 +125,38 @@ if (false) {
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
-// [[Template:Dts]]
-function sort_key(key) {
-	return '<span class="sortkey" style="display:none;speak:none;">' + key
-			+ '</span>';
+// [[en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
+var table_heads = {
+	'zh-classical' : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 近易 !! 有秩 !! data-sort-type="isoDate" | 有秩近易',
+	// 序號 Topics主題 participants
+	zh : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最後發言 !! data-sort-type="isoDate" | 最後更新 !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新'
+};
+
+function data_sort(key) {
+	var type;
+	if (typeof key === 'number') {
+		type = 'number';
+	} else if (CeL.is_Date(key)) {
+		type = 'isoDate';
+		key = key.toISOString();
+	}
+
+	key = 'data-sort-value="' + key + '" ';
+	if (type) {
+		key = 'data-sort-type="' + type + '" ' + key;
+	}
+	return key;
 }
 
-function local_number(number) {
-	return use_language === 'zh-classical' ? sort_key(number.pad(3))
-			+ (number === 0 ? '無' : CeL.to_Chinese_numeral(number)) : number;
+function local_number(number, attributes) {
+	if (use_language === 'zh-classical') {
+		return (attributes ? attributes + ' ' : '')
+		//
+		+ 'data-sort-value="' + number + '" | '
+		// None, N/A
+		+ (number === 0 ? '無' : CeL.to_Chinese_numeral(number));
+	}
+	return (attributes ? attributes + ' | ' : '') + number;
 }
 
 function generate_topic_list(page_data) {
@@ -104,29 +167,33 @@ function generate_topic_list(page_data) {
 		throw 'parser error';
 	}
 
-	var section_table = [
-			'{| class="wikitable sortable collapsible"',
-			'|-',
-			use_language === 'zh-classical' ? '! 序 !! 議題 !! 覆 !! 末議者 !! 近易 !! 有秩 !! 有秩近易'
-					// 序號 Topics
-					: '! # !! 話題 !! 回應 !! 最後發言 !! 最後更新 !! 管理員發言 !! 管理員更新' ];
+	var section_table = [ '{| class="wikitable sortable collapsible"', '|-',
+			table_heads[use_language] ];
+
 	parser.each_section(function(section, index) {
-		function show_name_dates(last_update_index) {
-			// None, N/A
-			var user = '', date = '', style;
+		function add_name_and_date(last_update_index) {
+			var user = '', date = '', additional_attributes;
 			if (last_update_index >= 0) {
 				var days = (new Date - section.dates[last_update_index])
 						/ ONE_DAY_LENGTH_VALUE;
-				style = days > 7 ? 'background-color:#bbb;' : '';
-				user = '[[User:' + section.users[last_update_index] + '|]]';
-				date = sort_key(section.dates[last_update_index].getTime())
+				date = data_sort(section.dates[last_update_index])
+						+ '| '
 						+ CeL.wiki.parse.date.to_String(
 								section.dates[last_update_index], wiki);
+				additional_attributes
+				//
+				= days > 7 ? 'style="background-color:#bbb;" '
+				//
+				: 24 * days < 1 ? 'style="background-color:#ddf;" ' : '';
+				user = (additional_attributes ? '| ' : '') + '[[User:'
+						+ section.users[last_update_index] + '|]]';
 			} else {
-				style = 'background-color:#ff4;';
+				// 沒有發現此 user group 之發言。
+				additional_attributes = 'style="background-color:#ff4;" | ';
 			}
-			style = style ? 'style="' + style + '" | ' : '';
-			row.push(style + user, style + date);
+			row
+					.push(additional_attributes + user, additional_attributes
+							+ date);
 		}
 
 		if (index === 0) {
@@ -135,17 +202,20 @@ function generate_topic_list(page_data) {
 		}
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
-		var row = [ local_number(index) ];
-		row.push('| [[' + talk_page + '#' + section.section_title.title + '|'
-				+ section.section_title.title + ']]',
-		//
-		section.replies ? local_number(section.replies)
-				: 'style="background-color:#f88;" | ' + local_number(0));
+		var row = [
+				local_number(index),
+				'[[' + talk_page + '#' + section.section_title.title + '|'
+						+ section.section_title.title + ']]',
+				local_number(section.replies, section.replies >= 1 ? ''
+						: 'style="background-color:#fcc;"'),
+				local_number(section.users.unique().length) ];
+		// 發言次數: section.users.length
+		// 發起人: section.users[0]
 
-		show_name_dates(section.last_update_index);
+		add_name_and_date(section.last_update_index);
 
-		show_name_dates(parser.each_section
-				.last_user_index(section, sysop_hash));
+		add_name_and_date(parser.each_section.last_user_index(section,
+				special_users.sysop));
 
 		section_table.push('|-\n| ' + row.join(' || '));
 	}, {
