@@ -625,7 +625,8 @@ function for_each_row(row) {
 		}
 
 		// TODO: 應該使用 function for_each_token()
-		var user_list = CeL.wiki.parse.user.all(section_wikitext);
+		var user_hash = CeL.wiki.parse.user.all(section_wikitext), user_list = Object
+				.keys(user_hash);
 		CeL.debug('row.user: [' + row.user + ']. 提取出所有簽名: '
 				+ user_list.join(', '), 2);
 		CeL.debug(section_wikitext, 4);

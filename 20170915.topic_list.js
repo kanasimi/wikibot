@@ -1,9 +1,13 @@
 ﻿/*
 
- topic list
+ Add topic list to talk page. 增加討論頁面主題列表。為議增目錄。
 
 2017/9/16 12:33:6	初版試營運。
  完成。正式運用。
+
+
+node 20170915.topic_list.js
+node 20170915.topic_list.js use_language=zh-classical
 
 @see [[zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[User:WhitePhosphorus-bot/RFBA_Status]]
 
@@ -17,12 +21,6 @@ require('./wiki loder.js');
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */
 /* global Wiki */
-
-// Set default language. 改變預設之語言。 e.g., 'zh'
-// 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-// set_language('ja');
-// set_language('en');
-set_language('zh-classical');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -87,9 +85,15 @@ if (false) {
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
+// [[Template:Dts]]
+function sort_key(key) {
+	return '<span class="sortkey" style="display:none;speak:none;">' + key
+			+ '</span>';
+}
+
 function local_number(number) {
-	return use_language === 'zh-classical' ? number === 0 ? '無' : CeL
-			.to_Chinese_numeral(number) : number;
+	return use_language === 'zh-classical' ? sort_key(number.pad(3))
+			+ (number === 0 ? '無' : CeL.to_Chinese_numeral(number)) : number;
 }
 
 function generate_topic_list(page_data) {
@@ -103,7 +107,7 @@ function generate_topic_list(page_data) {
 	var section_table = [
 			'{| class="wikitable sortable collapsible"',
 			'|-',
-			use_language === 'zh-classical' ? '! 序 !! 議題 !! 覆 !! 用戶 !! 近易 !! 有秩 !! 有秩近易'
+			use_language === 'zh-classical' ? '! 序 !! 議題 !! 覆 !! 末議者 !! 近易 !! 有秩 !! 有秩近易'
 					// 序號 Topics
 					: '! # !! 話題 !! 回應 !! 最後發言 !! 最後更新 !! 管理員發言 !! 管理員更新' ];
 	parser.each_section(function(section, index) {
@@ -114,9 +118,10 @@ function generate_topic_list(page_data) {
 				var days = (new Date - section.dates[last_update_index])
 						/ ONE_DAY_LENGTH_VALUE;
 				style = days > 7 ? 'background-color:#bbb;' : '';
-				user = section.users[last_update_index];
-				date = CeL.wiki.parse.date.to_String(
-						section.dates[last_update_index], wiki);
+				user = '[[User:' + section.users[last_update_index] + '|]]';
+				date = sort_key(section.dates[last_update_index].getTime())
+						+ CeL.wiki.parse.date.to_String(
+								section.dates[last_update_index], wiki);
 			} else {
 				style = 'background-color:#ff4;';
 			}
@@ -135,7 +140,7 @@ function generate_topic_list(page_data) {
 				+ section.section_title.title + ']]',
 		//
 		section.replies ? local_number(section.replies)
-				: 'style="background-color:#f44;" | ' + local_number(0));
+				: 'style="background-color:#f88;" | ' + local_number(0));
 
 		show_name_dates(section.last_update_index);
 
