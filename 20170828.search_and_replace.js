@@ -20,8 +20,8 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-// set_language('ja');
-set_language('en');
+set_language('ja');
+// set_language('en');
 
 var
 /** {Object}wiki operator 操作子. */
@@ -62,6 +62,10 @@ replace_pairs = [
 		'{{WikiProject Finance$1}}$2' ];
 var PATTERN_Finance = /{{ *(?:WikiProject|WP)[ _]+Finance(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}/;
 
+// 2017/9/18 16:30:56
+summary = '乃木坂46メンバーのMain2の書き換え', diff_id = '65542796/65549970';
+replace_pairs = [ 'insource:"乃木坂46#出演"', /乃木坂46#出演/g, '乃木坂46の出演一覧' ];
+
 // ----------------------------------------------------------------------------
 
 if (!Array.isArray(summary)) {
@@ -81,7 +85,7 @@ if (!Array.isArray(replace_pairs[0])) {
 	replace_pairs = [ replace_pairs ];
 }
 
-// CeL.set_debug(2);
+// CeL.set_debug(6);
 
 CeL.run_serial(for_pair, replace_pairs, function() {
 	CeL.log(replace_pairs.length + ' pair(s) replaced.');
@@ -115,10 +119,11 @@ function for_pair(run_next, pair) {
 				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 			}
 
-			// return content.replace(replace_from, replace_to);
+			return content.replace(replace_from, replace_to);
 
 			// ------------------------------------------------------
 			// 不造成重複的 template。
+			return;
 
 			var Investment_parameters = content.match(replace_from);
 			if (!Investment_parameters) {
@@ -160,16 +165,13 @@ function for_pair(run_next, pair) {
 		last : run_next,
 		log_to : log_to
 	}, {
-		// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bsearch
+	// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bsearch
 
-		// for test
-		// srlimit : 100,
+	// for test
+	// srlimit : 1,
 
-		// module + template + main
-		// srnamespace : '828|10|0'
-		// template + main
-		// srnamespace : '10|0'
-		// talk + template_talk + category_talk
-		srnamespace : '1|11|15'
+	// srnamespace : 'module|template|category|main'
+	// srnamespace : 'template|main'
+	// srnamespace : 'talk|template_talk|category_talk'
 	});
 }

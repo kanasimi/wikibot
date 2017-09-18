@@ -30,19 +30,17 @@ https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
 https://en.wikipedia.org/wiki/Wikipedia:Bot_requests
 https://zh.wikinews.org/wiki/Wikinews:%E8%8C%B6%E9%A6%86
 
-讀取每一個章節/子頁面的資料:標題,參與討論者,討論發言的時間
-	TODO: 不必然是章節，也可以有其它不同的分割方法。
+TODO:
 討論議題列表可以放在另外一頁，也可以在當前頁面中。
 討論議題列表可以挑選欄位:議題的標題，發起人與發起時間(Created)，最後留言者與最後時間(Last editor)，特定使用者最後留言與最後時間(e.g., Last BAG editor)，議體進度狀態(Status:Approved for trial/Trial complete/Approved/...)
-討論議題列表可以依狀態表現不同的顏色
 可以在 __TOC__ , __NEWSECTIONLINK__ 之後才開始檢查
-可以自動把文字分到新的子頁面
-
+相關發言者訂閱功能
 
 
 archive
 可以依照指示存檔到不同的page
 	存檔可以用編號為主或者以日期,"丁酉年"為主
+	可以自動把文字分到新的子頁面
 存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
 存檔完可以直接刪除，只留下oldid
 
@@ -63,12 +61,19 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, use_language === 'zh-classical' ? undefined : 'wikinews');
 
-var talk_page = use_language === 'zh-classical' ? '維基大典:會館' : 'Wikinews:茶馆', topic_postfix = '/topic list';
+var talk_page = use_language === 'zh-classical' ? '維基大典:會館' : 'Wikinews:茶馆',
+// 討論議題列表放在另外一頁。
+topic_postfix = '/topic list';
 
 // ----------------------------------------------------------------------------
 
-// 當管理員的名單變更時需要重新執行程式!
+// 特定使用者: 當管理員的名單變更時需要重新執行程式!
 var special_users = {
+	// [[Category:Wikipedia bot operators]], {{bot|~}},
+	// [[Template:Infobox bot]]
+	botop : CeL.null_Object(),
+	// [[WP:BAG]], [[Wikipedia:Bot Approvals Group]], [[維基百科:機器人審核小組]]
+	BAG : CeL.null_Object(),
 	sysop : CeL.null_Object()
 };
 
@@ -127,7 +132,7 @@ var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 // [[en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
 var table_heads = {
-	'zh-classical' : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 近易 !! 有秩 !! data-sort-type="isoDate" | 有秩近易',
+	'zh-classical' : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 !! 有秩 !! data-sort-type="isoDate" | 有秩新易',
 	// 序號 Topics主題 participants
 	zh : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最後發言 !! data-sort-type="isoDate" | 最後更新 !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新'
 };
@@ -176,12 +181,14 @@ function generate_topic_list(page_data) {
 			if (last_update_index >= 0) {
 				var days = (new Date - section.dates[last_update_index])
 						/ ONE_DAY_LENGTH_VALUE;
-				date = data_sort(section.dates[last_update_index])
-						+ '| '
-						+ CeL.wiki.parse.date.to_String(
-								section.dates[last_update_index], wiki);
-				additional_attributes
+				date = CeL.wiki.parse.date.to_String(
+						section.dates[last_update_index], wiki);
+				var date_too_long = date.display_width() > 34;
+				date = data_sort(section.dates[last_update_index]) + '| '
 				//
+				+ (date_too_long ? '<small>' + date + '</small>' : date);
+				additional_attributes
+				// 討論議題列表依狀態表現不同的顏色
 				= days > 7 ? 'style="background-color:#bbb;" '
 				//
 				: 24 * days < 1 ? 'style="background-color:#ddf;" ' : '';
@@ -202,10 +209,15 @@ function generate_topic_list(page_data) {
 		}
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
-		var row = [
+		var title = section.section_title.title,
+		// 當標題過長時，縮小標題字型。
+		title_too_long = title.display_width() > 40,
+		//		
+		row = [
 				local_number(index),
-				'[[' + talk_page + '#' + section.section_title.title + '|'
-						+ section.section_title.title + ']]',
+				(title_too_long ? '<small>' : '') + '[[' + talk_page + '#'
+						+ title + '|' + title + ']]'
+						+ (title_too_long ? '</small>' : ''),
 				local_number(section.replies, section.replies >= 1 ? ''
 						: 'style="background-color:#fcc;"'),
 				local_number(section.users.unique().length) ];
@@ -231,7 +243,7 @@ function generate_topic_list(page_data) {
 	.edit(section_table.join('\n'), {
 		bot : 1,
 		nocreate : 1,
-		summary : 'generate topic list'
+		summary : 'generate topic list: ' + parser.sections.length + ' topics'
 	})
 	// 更新主頁面。
 	.purge(talk_page);
