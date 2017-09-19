@@ -2,8 +2,8 @@
 
 search and replace wikitext
 
- 2017/8/28 18:42:12	初版試營運。
- 2017/8/28 20:15:24 完成。正式運用。
+2017/8/28 18:42:12	初版試營運。
+2017/8/28 20:15:24	完成。正式運用。
 
 @see [[mw:Manual:Pywikibot/replace.py]]
 
@@ -20,16 +20,15 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-set_language('ja');
+// set_language('ja');
 // set_language('en');
-
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 // replace_pairs = [
 // [ search_key, replace_from, replace_to ],
 // [ search_key, replace_to ], ... ]
-replace_pairs, summary, diff_id;
+replace_pairs, diff_id;
 
 // ----------------------------------------------------------------------------
 
@@ -66,6 +65,10 @@ var PATTERN_Finance = /{{ *(?:WikiProject|WP)[ _]+Finance(?:[ \n]+|<!--[\s\S]+?-
 summary = '乃木坂46メンバーのMain2の書き換え', diff_id = '65542796/65549970';
 replace_pairs = [ 'insource:"乃木坂46#出演"', /乃木坂46#出演/g, '乃木坂46の出演一覧' ];
 
+// 2017/9/19 16:37:22
+summary = '申請批量更正中國大陸城市商業銀行模板', diff_id = '46059917/46250288';
+replace_pairs = [ /中华人民共和国地方商业银行/g, '中华人民共和国城市商业银行' ];
+
 // ----------------------------------------------------------------------------
 
 if (!Array.isArray(summary)) {
@@ -76,8 +79,10 @@ if (!Array.isArray(summary)) {
 /** {String}編輯摘要。總結報告。 */
 summary = '[['
 		+ (diff_id ? 'Special:Diff/' + diff_id
-				+ (summary[0] ? '#' + summary[0] : '') : 'WP:BOTREQ') + '|'
-		+ (use_language === 'ja' ? 'Bot作業依頼' : 'Bot request') + ']]: '
+				+ (summary[0] ? '#' + summary[0] : '') : 'WP:BOTREQ')
+		+ '|'
+		+ (use_language === 'ja' ? 'Bot作業依頼'
+				: use_language === 'zh' ? '機器人作業請求' : 'Bot request') + ']]: '
 		+ summary[1] + ' - [[' + log_to + '|log]]';
 
 if (!Array.isArray(replace_pairs[0])) {
@@ -104,7 +109,6 @@ function for_pair(run_next, pair) {
 	}
 
 	wiki.search(search_key, {
-		summary : summary,
 		each : function(page_data, messages, config) {
 			/** {String}page title = page_data.title */
 			var title = CeL.wiki.title_of(page_data),
@@ -115,8 +119,7 @@ function for_pair(run_next, pair) {
 
 			if (!content) {
 				return [ CeL.wiki.edit.cancel,
-				//
-				'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+						'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 			}
 
 			return content.replace(replace_from, replace_to);
@@ -162,6 +165,7 @@ function for_pair(run_next, pair) {
 			return content.replace(replace_from, Finance_parameters ? ''
 					: replace_to);
 		},
+		summary : summary,
 		last : run_next,
 		log_to : log_to
 	}, {

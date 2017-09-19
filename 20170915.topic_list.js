@@ -284,7 +284,9 @@ function generate_topic_list(page_data) {
 				+ (date_too_long ? '<small>' + date + '</small>' : date);
 				additional_attributes
 				// 討論議題列表依狀態表現不同的顏色
-				= days > 7 ? 'style="background-color:#bbb;" '
+				= days > 31 ? 'style="background-color:#bbb;" '
+				//
+				: days > 7 ? 'style="background-color:#ddd;" '
 				//
 				: 24 * days < 1 ? 'style="background-color:#ddf;" ' : '';
 				user = (additional_attributes ? '| ' : '') + '[[User:'
