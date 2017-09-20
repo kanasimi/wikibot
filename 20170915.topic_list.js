@@ -59,7 +59,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, use_language === 'zh-classical' ? undefined : 'wikinews');
+wiki = Wiki(true, use_language === 'zh-classical' ? 'zh-classical' : 'wikinews');
 
 var talk_page = use_language === 'zh-classical' ? '維基大典:會館' : 'Wikinews:茶馆',
 // 討論議題列表放在另外一頁。
@@ -122,7 +122,7 @@ get_allusers('bureaucrat', 'bureaucrat|steward|oversight');
 get_allusers('admin', 'sysop|bureaucrat|steward|oversight');
 
 // [[WP:BAG]], [[Wikipedia:Bot Approvals Group]], [[維基百科:機器人審核小組]]
-wiki.page('WP:BAG', function(page_data) {
+wiki.page('Project:BAG', function(page_data) {
 	var title = CeL.wiki.title_of(page_data),
 	/**
 	 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
@@ -312,8 +312,9 @@ function generate_topic_list(page_data) {
 		//		
 		row = [
 				local_number(index),
-				(title_too_long ? '<small>' : '') + '[[' + talk_page + '#'
-						+ title + '|' + title + ']]'
+				(title_too_long ? '<small>' : '') + '[[' + talk_page
+				// 預防在遇到標題包含模板時，因為不能解析連模板最後產出的結果，連結會失效。
+				+ '#{{anchorencode:' + title + '}}|' + title + ']]'
 						+ (title_too_long ? '</small>' : ''),
 				local_number(section.replies, section.replies >= 1 ? ''
 						: 'style="background-color:#fcc;"'),

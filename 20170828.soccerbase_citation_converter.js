@@ -63,16 +63,21 @@ wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 				return;
 			}
 
-			var matched = token.parameters.url.match(/player_id=(\d+)/);
+			var matched = token.parameters.url
+			//
+			.match(/player_id(?:=|%3D)(\d+)/);
 			if (!matched || !matched[1]) {
 				CeL.error(CeL.wiki.title_link_of(title) + ': No player id: '
 						+ token);
+				return;
 			}
-			var parameters = [ matched[1] ];
+			// [ player_id, season_id ]
+			var parameters = [ matched[1], null ];
 
-			matched = token.parameters.title && token.parameters.title
-			// get season_id from title
-			.match(/Games played by ([a-zA-Z \d]{2,})/);
+			matched = token.parameters.title
+					&& token.parameters.title.toString()
+					// get season_id from title
+					.match(/Games played by ([a-zA-Z \d]{2,})/);
 			if (matched) {
 				matched = matched[1].match(
 				//
@@ -81,13 +86,19 @@ wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 				parameters[1] = matched[2] | 0;
 				parameters[2] = 'name=' + matched[1].trim();
 			} else if (matched = token.parameters.title
+			// e.g., "Sergio Aguero {{!}} Football Stats {{!}} Manchester City
+			// {{!}} Season 2002/2003 {{!}} Soccer Base"
+			&& token.parameters.title.match(/[Ss]eason (\d+)/)) {
+				if (1900 < matched[1] && matched[1] < 2100)
+					parameters[1] = +matched[1];
+			} else if (token.parameters.title
 					// get name from title
 					&& /^[A-Z][a-z]{1,}(?: +[A-Z][a-z]{1,})*$/
 							.test(token.parameters.title)) {
 				parameters[2] = 'name=' + token.parameters.title.trim();
 			}
 			// get season_id from url
-			matched = token.parameters.url.match(/season_id=(\d+)/);
+			matched = token.parameters.url.match(/season_id(?:=|%3D)(\d+)/);
 			if (matched && matched[1] && (matched = matched[1] | 0) > 0) {
 				// See [[Template:Soccerbase season]]
 				matched = matched > 145 ? matched + 1867 : matched + 1870;
@@ -128,5 +139,5 @@ wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 	log_to : log_to
 }, {
 	// for test
-	srlimit : 5,
+	srlimit : 20,
 });

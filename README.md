@@ -1,6 +1,6 @@
-﻿# CeJS wikipedia bots demo
-Some Wikipedia bot examples using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
-採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js)來製作維基百科機器人的範例。
+﻿# CeJS MediaWiki bots demo
+Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
+採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js)來製作 MediaWiki (維基百科/維基數據) 機器人的範例。
 
 ## Node.js usage
 
