@@ -314,7 +314,8 @@ function generate_topic_list(page_data) {
 				local_number(index),
 				(title_too_long ? '<small>' : '') + '[[' + talk_page
 				// 預防在遇到標題包含模板時，因為不能解析連模板最後產出的結果，連結會失效。
-				+ '#{{anchorencode:' + title + '}}|' + title + ']]'
+				// 但在包含{{para|p}}的情況下連結依然會失效。
+				+ '#' + title + '|' + title + ']]'
 						+ (title_too_long ? '</small>' : ''),
 				local_number(section.replies, section.replies >= 1 ? ''
 						: 'style="background-color:#fcc;"'),

@@ -33,6 +33,8 @@ summary = '[[Special:PermanentLink/801307589#SoccerbaseBot|Bot request]]: '
 
 // CeL.set_debug(6);
 
+var PATTERN_normal_title = /Games played by ([A-Z][A-Za-z]{1,}(?: +[A-Z][A-Za-z]{1,})*)(?: in )?([12]\d{3})/;
+
 wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 	each : function(page_data, messages, config) {
 		/** {String}page title = page_data.title */
@@ -74,29 +76,30 @@ wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 			// [ player_id, season_id ]
 			var parameters = [ matched[1], null ];
 
-			matched = token.parameters.title
-					&& token.parameters.title.toString()
-					// get season_id from title
-					.match(/Games played by ([a-zA-Z \d]{2,})/);
-			if (matched) {
-				matched = matched[1].match(
-				//
-				/^([A-Z][a-z]{1,}(?: +[A-Z][a-z]{1,})*)(?: in (\d+))?$/);
-				// season_id
-				parameters[1] = matched[2] | 0;
-				parameters[2] = 'name=' + matched[1].trim();
-			} else if (matched = token.parameters.title
-			// e.g., "Sergio Aguero {{!}} Football Stats {{!}} Manchester City
-			// {{!}} Season 2002/2003 {{!}} Soccer Base"
-			&& token.parameters.title.match(/[Ss]eason (\d+)/)) {
-				if (1900 < matched[1] && matched[1] < 2100)
-					parameters[1] = +matched[1];
-			} else if (token.parameters.title
-					// get name from title
-					&& /^[A-Z][a-z]{1,}(?: +[A-Z][a-z]{1,})*$/
-							.test(token.parameters.title)) {
-				parameters[2] = 'name=' + token.parameters.title.trim();
+			if (token.parameters.title) {
+				// get season_id from title
+				// e.g., "Paul McShane"
+				matched = token.parameters.title.toString().match(
+						PATTERN_normal_title);
+				if (matched) {
+					// season_id
+					parameters[1] = matched[2] | 0;
+					parameters[2] = 'name=' + matched[1].trim();
+				} else if (matched =
+				// e.g., "Sergio Aguero {{!}} Football Stats {{!}} Manchester
+				// City {{!}} Season 2002/2003 {{!}} Soccer Base"
+				token.parameters.title.toString().match(/[Ss]eason (\d+)/)) {
+					if (1900 < matched[1] && matched[1] < 2100)
+						parameters[1] = +matched[1];
+				} else if (
+				// get name from title
+				/^[A-Z][A-Za-z]{1,}(?: +[A-Z][A-Za-z]{1,})*$/
+						.test(token.parameters.title)) {
+					parameters[2] = 'name='
+							+ token.parameters.title.toString().trim();
+				}
 			}
+
 			// get season_id from url
 			matched = token.parameters.url.match(/season_id(?:=|%3D)(\d+)/);
 			if (matched && matched[1] && (matched = matched[1] | 0) > 0) {
@@ -138,6 +141,6 @@ wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 	summary : summary,
 	log_to : log_to
 }, {
-	// for test
-	srlimit : 20,
+// for test
+// srlimit : 20,
 });

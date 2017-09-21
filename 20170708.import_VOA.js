@@ -202,9 +202,9 @@ function process_VOA_page(XMLHttp) {
 			zone : 8
 		}) + '}}\n\n' + report + '\n\n== 資料來源 ==\n{{VOA|url=' + XMLHttp.URL
 				+ '|title=' + title + '}}\n{{'
-				// 文章都設定為 Review。
-				+ (this_link_data.note ? 'Review' : 'Publish' && 'Review')
-				+ '}}' + categories;
+				// 有問題的文章都設定為 Review。
+				+ (this_link_data.note ? 'Review' : 'Publish') + '}}'
+				+ categories;
 	}
 
 	// CeL.set_debug(6);

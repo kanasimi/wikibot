@@ -21,10 +21,7 @@ require('./wiki loder.js');
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
 // set_language('ja');
-// set_language('en');
 var
-/** {Object}wiki operator 操作子. */
-wiki = Wiki(true),
 // replace_pairs = [
 // [ search_key, replace_from, replace_to ],
 // [ search_key, replace_to ], ... ]
@@ -33,21 +30,25 @@ replace_pairs, diff_id;
 // ----------------------------------------------------------------------------
 
 // 2017/8/28
+set_language('ja');
 summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', diff_id = 65258423;
 replace_pairs = [ [ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
 		[ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
 		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ] ];
 
 // 2017/8/29
+set_language('ja');
 summary = 'FCバイエルン・ミュンヘン関連', diff_id = '65287149/65287930';
 replace_pairs = [ [ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
 		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
 // 2017/9/4
+set_language('ja');
 summary = 'インターネットアーカイブ', diff_id = 65368586;
 replace_pairs = [ /\[\[インターネット・アーカイブ([\|#\]])/g, '[[インターネットアーカイブ$1' ];
 
 // 2017/9/12 17:49:44
+set_language('en');
 summary = [ 'WikiProject Asessment banner replacement',
 		'[[Template:WikiProject Investment]] → [[Template:WikiProject Finance]]' ];
 diff_id = 799598464;
@@ -62,14 +63,27 @@ replace_pairs = [
 var PATTERN_Finance = /{{ *(?:WikiProject|WP)[ _]+Finance(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}/;
 
 // 2017/9/18 16:30:56
+set_language('ja');
 summary = '乃木坂46メンバーのMain2の書き換え', diff_id = '65542796/65549970';
 replace_pairs = [ 'insource:"乃木坂46#出演"', /乃木坂46#出演/g, '乃木坂46の出演一覧' ];
 
 // 2017/9/19 16:37:22
+set_language('zh');
 summary = '申請批量更正中國大陸城市商業銀行模板', diff_id = '46059917/46250288';
 replace_pairs = [ /中华人民共和国地方商业银行/g, '中华人民共和国城市商业银行' ];
 
+// 2017/9/21 17:13:4
+set_language('en');
+summary = 'Fix adaptivepath links', diff_id = '801185223/801407891';
+replace_pairs = [
+		/https:\/\/web\.archive\.org\/web\/\d+\/http:\/\/www\.adaptivepath\.com\//g,
+		'http://www.adaptivepath.org/' ];
+
 // ----------------------------------------------------------------------------
+
+var
+/** {Object}wiki operator 操作子. */
+wiki = Wiki(true);
 
 if (!Array.isArray(summary)) {
 	// [ section title of [[WP:BOTREQ]], title shown ]
