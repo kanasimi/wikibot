@@ -7,7 +7,7 @@
  完成。正式運用。
 
 
-node 20170915.topic_list.js
+node 20170915.topic_list.js use_project=wikinews
 node 20170915.topic_list.js use_language=zh-classical
 
 @see [[zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[User:WhitePhosphorus-bot/RFBA_Status]]
@@ -59,7 +59,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, use_language === 'zh-classical' ? 'zh-classical' : 'wikinews');
+wiki = Wiki(true);
 
 var talk_page = use_language === 'zh-classical' ? '維基大典:會館' : 'Wikinews:茶馆',
 // 討論議題列表放在另外一頁。
@@ -159,7 +159,7 @@ wiki.page('Project:BAG', function(page_data) {
 
 	note_special_users('BAG');
 }, {
-	redirects : 1,
+	redirects : 1
 });
 
 if (botop_page[CeL.wiki.site_name(wiki)]) {
@@ -230,6 +230,15 @@ var table_heads = {
 	'zh-classical' : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 !! 有秩 !! data-sort-type="isoDate" | 有秩新易',
 	// 序號 Topics主題 participants
 	zh : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最後發言 !! data-sort-type="isoDate" | 最後更新 !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新'
+}, table_columns = 'NO|title|reply|participants|last user|last update|last admin|last admin update';
+
+var section_values = {
+	NO : function(section, index) {
+		return local_number(index);
+	},
+	title : function(section, index) {
+		return index;
+	}
 };
 
 function data_sort(key) {
@@ -320,8 +329,8 @@ function generate_topic_list(page_data) {
 				local_number(section.replies, section.replies >= 1 ? ''
 						: 'style="background-color:#fcc;"'),
 				local_number(section.users.unique().length) ];
-		// 發言次數: section.users.length
-		// 發起人: section.users[0]
+		// 發言次數 discussions conversations: section.users.length
+		// 發起人 first user: section.users[0]
 
 		add_name_and_date(section.last_update_index);
 

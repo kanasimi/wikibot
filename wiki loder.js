@@ -158,16 +158,12 @@ if (bot_directory) {
 	}
 }
 
-if (false) {
-	/** {revision_cacher}記錄處理過的文章。 */
-	_global.processed_data = new CeL.wiki.revision_cacher(base_directory
-			+ 'processed.' + use_language + '.json');
-}
-
 // ----------------------------------------------------------------------------
 
 /** {String}本次任務使用的語言。 */
 _global.use_language = '';
+
+_global.use_project = undefined;
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function(language) {
@@ -187,17 +183,23 @@ if (CeL.env.arg_hash && CeL.env.arg_hash.debug > 0) {
 
 // ----------------------------------------------------------------------------
 
+if (false) {
+	/** {revision_cacher}記錄處理過的文章。 */
+	_global.processed_data = new CeL.wiki.revision_cacher(base_directory
+			+ 'processed.' + use_language + '.json');
+}
+
 /** Wiki() return {Object}wiki operator 操作子. */
 _global.Wiki = function(login, API_URL) {
 	if (!login) {
-		return new CeL.wiki(null, null, API_URL);
+		return new CeL.wiki(null, null, API_URL || use_project);
 	}
 
 	var un = user_name, pw = _global.user_password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
 	var wiki = CeL.wiki.login(un, pw, {
-		API_URL : API_URL,
+		API_URL : API_URL || use_project,
 		preserve_password : true
 	});
 	if (typeof check_section === 'string') {

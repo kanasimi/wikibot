@@ -1,6 +1,6 @@
 ﻿/*
 
-SoccerbaseBot
+SoccerbaseBot: Converting all citations link to Soccerbase using {{soccerbase season}}
 
 2017/9/19 19:1:2	初版試營運。
 
@@ -33,6 +33,7 @@ summary = '[[Special:PermanentLink/801307589#SoccerbaseBot|Bot request]]: '
 
 // CeL.set_debug(6);
 
+// TODO: name=Jô
 var PATTERN_normal_title = /Games played by ([A-Z][A-Za-z]{1,}(?: +[A-Z][A-Za-z]{1,})*)(?: in )?([12]\d{3})/;
 
 wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
@@ -57,7 +58,7 @@ wiki.search('insource:"//www.soccerbase.com/players/player.sd?"', {
 		}
 
 		parser.each('template', function(token, index) {
-			if (token.name !== 'Cite web'
+			if (token.name !== 'Cite web' && token.name !== 'Cite news'
 			//
 			|| !token.parameters.url || !token.parameters.url
 			//
