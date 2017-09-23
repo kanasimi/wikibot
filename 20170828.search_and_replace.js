@@ -79,6 +79,11 @@ replace_pairs = [
 		/https:\/\/web\.archive\.org\/web\/\d+\/http:\/\/www\.adaptivepath\.com\//g,
 		'http://www.adaptivepath.org/' ];
 
+// 2017/9/23 10:17:20
+set_language('ja');
+summary = '「朝日放送・テレビ朝日金曜9時枠の連続ドラマ」関連のリンク修正', diff_id = 65646041;
+replace_pairs = [ /テレビ朝日・ABC金曜9時枠の連続ドラマ/g, '朝日放送・テレビ朝日金曜9時枠の連続ドラマ' ];
+
 // ----------------------------------------------------------------------------
 
 var

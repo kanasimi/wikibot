@@ -86,7 +86,6 @@ function for_file(page_data, error) {
 
 	parser.each('category', function(category, index) {
 		if (category.name.includes('needing categories')) {
-			category.index = index;
 			needing_categories.push(category);
 		} else if (!/Panoramio|Unidentified|Taken with/i.test(category.name)) {
 			// exclude categories marked with __HIDDENCAT__
@@ -101,6 +100,8 @@ function for_file(page_data, error) {
 		} else if (category.toString().includes('Panoramio_upload_bot')) {
 			category.parent[index] = category.toString().replace(/_/g, ' ');
 		}
+	}, {
+		add_index : true
 	});
 
 	if (needing_categories.length !== 1) {

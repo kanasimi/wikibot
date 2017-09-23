@@ -1,6 +1,6 @@
 ﻿/*
 
- Add topic list to talk page. 增加討論頁面主題列表。為議增目錄。
+ Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -61,7 +61,8 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
 
-var talk_page = use_language === 'zh-classical' ? '維基大典:會館' : 'Wikinews:茶馆',
+var main_talk_page = use_language === 'zh-classical' ? '維基大典:會館'
+		: 'Wikinews:茶馆',
 // 討論議題列表放在另外一頁。
 topic_postfix = '/topic list';
 
@@ -199,17 +200,17 @@ wiki.run(function() {
 // ----------------------------------------------------------------------------
 
 if (false) {
-	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(talk_page) + ': 先取得頁面資料。');
-	wiki.page(talk_page, generate_topic_list);
+	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(main_talk_page) + ': 先取得頁面資料。');
+	wiki.page(main_talk_page, generate_topic_list);
 } else {
-	wiki.page(talk_page, generate_topic_list);
+	wiki.page(main_talk_page, generate_topic_list);
 	wiki.listen(generate_topic_list, {
 		// start : new Date,
 
 		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
 		// 若是等待時間過長，可能會有其他人插入留言回覆。 [[Special:Diff/45941555]]
 		delay : '0m',
-		filter : talk_page,
+		filter : main_talk_page,
 		with_content : true,
 		parameters : {
 			// 跳過機器人所做的編輯。
@@ -230,15 +231,42 @@ var table_heads = {
 	'zh-classical' : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 !! 有秩 !! data-sort-type="isoDate" | 有秩新易',
 	// 序號 Topics主題 participants
 	zh : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最後發言 !! data-sort-type="isoDate" | 最後更新 !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新'
-}, table_columns = 'NO|title|reply|participants|last user|last update|last admin|last admin update';
+}, table_columns = 'NO;title;replies;participants;last_user;last_date;last_admin;last_admin_date';
 
 var section_values = {
 	NO : function(section, index) {
 		return local_number(index);
 	},
-	title : function(section, index) {
-		return index;
-	}
+	title : function(section) {
+		var title = section.section_title.title,
+		// 當標題過長時，縮小標題字型。
+		title_too_long = title.display_width() > 40;
+		return (title_too_long ? '<small>' : '') + '[[' + main_talk_page
+		// 預防在遇到標題包含模板時，因為不能解析連模板最後產出的結果，連結會失效。
+		// 但在包含{{para|p}}的情況下連結依然會失效。
+		+ '#' + title + '|' + title + ']]' + (title_too_long ? '</small>' : '');
+	},
+	// 發言次數 discussions conversations
+	discussions : function(section) {
+		return local_number(section.users.length);
+	},
+	// 參與討論人數
+	participants : function(section) {
+		return local_number(section.users.unique().length);
+	},
+	// reply
+	replies : function(section) {
+		return local_number(section.replies, section.replies >= 1 ? ''
+				: 'style="background-color:#fcc;"');
+	},
+	// 發起人
+	first_user : function(section) {
+		return section.users[0];
+	},
+	// 最後發言
+	last_user : function(section) {
+		return section.users[section.users.length - 1];
+	},
 };
 
 function data_sort(key) {
@@ -315,22 +343,10 @@ function generate_topic_list(page_data) {
 		}
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
-		var title = section.section_title.title,
-		// 當標題過長時，縮小標題字型。
-		title_too_long = title.display_width() > 40,
-		//		
-		row = [
-				local_number(index),
-				(title_too_long ? '<small>' : '') + '[[' + talk_page
-				// 預防在遇到標題包含模板時，因為不能解析連模板最後產出的結果，連結會失效。
-				// 但在包含{{para|p}}的情況下連結依然會失效。
-				+ '#' + title + '|' + title + ']]'
-						+ (title_too_long ? '</small>' : ''),
-				local_number(section.replies, section.replies >= 1 ? ''
-						: 'style="background-color:#fcc;"'),
-				local_number(section.users.unique().length) ];
-		// 發言次數 discussions conversations: section.users.length
-		// 發起人 first user: section.users[0]
+		var row = [ section_values.NO(section, index),
+				section_values.title(section, index),
+				section_values.replies(section, index),
+				section_values.participants(section, index) ];
 
 		add_name_and_date(section.last_update_index);
 
@@ -346,7 +362,7 @@ function generate_topic_list(page_data) {
 
 	section_table.push('|}');
 
-	wiki.page(talk_page + topic_postfix)
+	wiki.page(main_talk_page + topic_postfix)
 	// TODO: CeL.wiki.array_to_table(section_table)
 	.edit(section_table.join('\n'), {
 		bot : 1,
@@ -354,5 +370,5 @@ function generate_topic_list(page_data) {
 		summary : 'generate topic list: ' + parser.sections.length + ' topics'
 	})
 	// 更新主頁面。
-	.purge(talk_page);
+	.purge(main_talk_page);
 }

@@ -20,10 +20,12 @@ wiki = Wiki(true);
 
 // ----------------------------------------------------------------------------
 
-var page_title = 'Draft:List of the Paleozoic life of Alabama';
+var page_list = [ 'Draft:List of the Paleozoic life of Alabama' ];
 
-wiki.page(page_title, for_each_main_page, {
-	redirects : 1
+page_list.forEach(function(page_title) {
+	wiki.page(page_title, for_each_main_page, {
+		redirects : 1
+	});
 });
 
 function for_each_main_page(page_data) {
@@ -41,16 +43,26 @@ function for_each_main_page(page_data) {
 		throw 'parser error';
 	}
 
-	var links = CeL.null_Object(), files = CeL.null_Object(), insert_after;
-	parser.each('link', function(token, index) {
-		links[CeL.wiki.normalize_title(token[0].toString())] = null;
+	var first_section_index = 0, links = CeL.null_Object(), files = CeL
+			.null_Object(), insert_after;
+	// skip the lead section
+	parser.each('section_title', function(token, index) {
+		first_section_index = index;
+		return parser.each.exit;
 	});
-	parser.each('file', function(token, index) {
-		token.index = index;
+	parser.each('link', function(token) {
+		links[CeL.wiki.normalize_title(token[0].toString())] = null;
+	}, {
+		slice : first_section_index
+	});
+	parser.each('file', function(token) {
 		insert_after = token;
 		var file_title = CeL.wiki.normalize_title(token[0].toString()).replace(
 				/^[^:]+:/, '');
 		files[file_title] = null;
+	}, {
+		slice : first_section_index,
+		add_index : true
 	});
 	links = Object.keys(links);
 	CeL.log(links.length + ' pages to scan.');
@@ -72,19 +84,64 @@ function for_each_main_page(page_data) {
 			throw 'parser error';
 		}
 
-		parser.each('file', function(token, index) {
-			var file_title = CeL.wiki.normalize_title(token[0].toString())
-					.replace(/^[^:]+:/, '');
+		// skip the lead section
+		var first_section_index = 0;
+		parser.each('section_title', function(token, index) {
+			first_section_index = index;
+			return parser.each.exit;
+		});
+
+		function add_file(file_title, token) {
 			if (file_title in files) {
 				// Skip files we already have.
 				return;
 			}
-			token = token.toString();
+
+			// keep all images right-aligned.
+			token = token.toString().replace(/(^|\|) *left *($|\|)/g,
+					'$1right$2');
+			if (/\[\[ *:/.test(token)) {
+				// e.g., "[[:File:image]]"
+				return;
+			}
+			if (!token.includes('right')) {
+				// append right-aligned parameter.
+				token = token.includes('|') ? token.replace(/\|/, '|right|')
+						: token.replace(/\]\]$/, '|right]]');
+			}
+			// add source
+			token += '<!-- ' + page_data.title + ' -->';
 			if (!(file_title in files_to_add)) {
 				files_to_add[file_title] = [ token ];
 			} else if (!files_to_add[file_title].includes(token)) {
 				files_to_add[file_title].push(token);
 			}
+		}
+
+		// add image from information box
+		parser.each('template', function(token, index) {
+			if (!token.parameters.image) {
+				return;
+			}
+			if (typeof token.parameters.image !== 'string') {
+				console.log(token.parameters.image);
+				throw 'parameters.image is not string';
+			}
+			var file_title = CeL.wiki.normalize_title(token.parameters.image);
+			add_file(file_title, '[[File:'
+					+ file_title
+					+ '|thumb|right|'
+					+ (token.parameters.image_caption || CeL.wiki
+							.title_link_of(page_data.title)) + ']]');
+		});
+
+		parser.each('file', function(token) {
+			var file_title = CeL.wiki.normalize_title(token[0].toString())
+					.replace(/^[^:]+:/, '');
+
+			add_file(file_title, token);
+		}, {
+			slice : first_section_index
 		});
 	}
 
