@@ -49,7 +49,9 @@ function for_each_main_page(page_data) {
 	parser.each('section_title', function(token, index) {
 		first_section_index = index + 1;
 		return parser.each.exit;
-	});
+	}, false,
+	// 只檢查第一層之章節標題。
+	1);
 	parser.each('link', function(token) {
 		main_page_links[CeL.wiki.normalize_title(token[0].toString())] = null;
 	}, {
@@ -89,7 +91,9 @@ function for_each_main_page(page_data) {
 		parser.each('section_title', function(token, index) {
 			first_section_index = index;
 			return parser.each.exit;
-		});
+		}, false,
+		// 只檢查第一層之章節標題。
+		1);
 
 		function add_file(file_title, token) {
 			if (file_title in main_page_files) {

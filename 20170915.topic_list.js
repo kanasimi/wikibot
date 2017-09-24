@@ -9,7 +9,7 @@ node 20170915.topic_list.js use_language=zh
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
-2017/9/24 13:56:48	use paage_configurations
+2017/9/24 13:56:48	use page_configurations
  完成。正式運用。
 
 
@@ -66,7 +66,7 @@ botop_page = {
 	zhwiki : '維基百科機器人所有者',
 	zhwikinews : '維基新聞機器人所有者',
 	enwiki : 'Wikipedia bot operators'
-}, paage_configurations = {
+}, page_configurations = {
 	// 'jawiki:Wikipedia:Bot/使用申請 ' : {},
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : '/topic list',
@@ -231,7 +231,7 @@ wiki.run(function() {
 // ----------------------------------------------------------------------------
 
 var main_talk_pages = [];
-Object.keys(paage_configurations).forEach(function(wiki_and_page_title) {
+Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
 	var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/);
 	if (matched[1] === CeL.wiki.site_name(wiki)) {
 		main_talk_pages.push(matched[2]);
@@ -248,7 +248,7 @@ wiki.run(function() {
 	});
 	// return;
 
-	wiki.listen(generate_topic_list, {
+	wiki.listen(pre_fetch_sub_pages, {
 		// start : new Date,
 
 		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
@@ -437,10 +437,124 @@ function local_number(number, attributes) {
 	return (attributes ? attributes + ' | ' : '') + number;
 }
 
+var section_index_filter = CeL.wiki.parser.paser_prototype.each_section.index_filter;
+function get_column_operators(page_configuration) {
+	var column_operators = page_configuration.column_operators;
+	if (Array.isArray(column_operators)) {
+		return column_operators;
+	}
+
+	column_operators = page_configuration.columns.split(';');
+
+	column_operators = column_operators.map(function(value_type) {
+		var operator = page_configuration.operators
+				&& page_configuration.operators[value_type]
+				|| section_column_operators[value_type];
+		if (operator) {
+			return operator;
+		}
+
+		var matched = value_type.toLowerCase().replace(/[ _]+/g, '_')
+		// [ all, date type, user group filter, output type ]
+		.match(/^(first|last)_(.*?)(?:_(set|name|date))?$/),
+		//
+		user_group_filter = matched
+				&& (!matched[2] || matched[2] === 'user' ? true
+						: special_users[matched[2]]);
+		if (!user_group_filter) {
+			throw 'get_column_operators: Unknown value type: ' + value_type;
+		}
+
+		var date_type = matched[1], output_type = matched[3];
+		return function(section) {
+			var index = date_type === 'last' && user_group_filter === true
+			//
+			? section.last_update_index
+			//
+			: section_index_filter(section, user_group_filter, date_type);
+
+			return output_type === 'set' ? add_user_name_and_date_set(section,
+					index)
+			//
+			: output_type === 'date' ? section.dates[index]
+					: section.users[index];
+		};
+	});
+
+	// cache
+	page_configuration.column_operators = column_operators;
+	return column_operators;
+}
+
 // ----------------------------------------------------------------------------
 
-function pre_feach_sub_pages(page_data, error) {
-	generate_topic_list(page_data);
+function pre_fetch_sub_pages(page_data, error) {
+	var parser = CeL.wiki.parser(page_data).parse();
+	if (!parser) {
+		return [
+				CeL.wiki.edit.cancel,
+				'No contents: ' + CeL.wiki.title_link_of(page_data)
+						+ '! 沒有頁面內容！' ];
+	}
+
+	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parser.toString(),
+				'diff'));
+		throw 'parser error';
+	}
+
+	var page_configuration = page_configurations[CeL.wiki.site_name(wiki) + ':'
+			+ page_data.title];
+	if (!page_configuration.transclusion_target) {
+		generate_topic_list(page_data);
+	}
+
+	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = CeL.null_Object();
+	// check transclusions
+	parser.each('transclusion', function(token, index, parent) {
+		// page_title
+		var page_title = page_configuration.transclusion_target(token);
+		if (!page_title) {
+			return;
+		}
+
+		page_title = CeL.wiki.normalize_title(page_title);
+		token.index = index;
+		token.parent = parent;
+		sub_pages_to_fetch_hash[page_title] = token;
+		sub_pages_to_fetch.push(page_title);
+	}, false,
+	// 只檢查第一層之 transclusion。
+	1);
+
+	if (sub_pages_to_fetch.length === 0) {
+		generate_topic_list(page_data);
+	}
+
+	wiki.page(sub_pages_to_fetch, function(page_data_list) {
+		// @see main_work @ wiki_API.prototype.work
+		if (page_data_list.length !== sub_pages_to_fetch.length) {
+			throw 'Some pages error!';
+		}
+
+		// insert page contents and re-parse
+		page_data_list.forEach(function(sub_page_data) {
+			var token = sub_pages_to_fetch_hash[sub_page_data.title];
+			if (!token) {
+				throw '取得了未指定的頁面: ' + CeL.wiki.title_link_of(sub_page_data);
+			}
+			token.parent
+			//
+			.splice(token.index, 1, CeL.wiki.content_of(sub_page_data));
+		});
+
+		CeL.wiki.parser(page_data, {
+			wikitext : CeL.wiki.content_of(page_data)
+		}).parse();
+		generate_topic_list(page_data);
+	}, {
+		multi : true
+	});
 }
 
 // ----------------------------------------------------------------------------
@@ -453,48 +567,13 @@ function generate_topic_list(page_data) {
 		throw 'parser error';
 	}
 
-	var paage_configuration = paage_configurations[CeL.wiki.site_name(wiki)
-			+ ':' + page_data.title],
+	var page_configuration = page_configurations[CeL.wiki.site_name(wiki) + ':'
+			+ page_data.title],
 	// plainlinks
 	section_table = [ '{| class="wikitable sortable collapsible"', '|-',
-			paage_configuration.heads ],
+			page_configuration.heads ],
 	//
-	column_operators = paage_configuration.columns.split(';');
-
-	column_operators = column_operators.map(function(value_type) {
-		var operator = paage_configuration.operators
-				&& paage_configuration.operators[value_type]
-				|| section_column_operators[value_type];
-		if (operator) {
-			return operator;
-		}
-
-		var matched = value_type.toLowerCase().replace(/[ _]+/g, '_')
-		// [ all, date type, user group filter, output type ]
-		.match(/^(first|last)_(.*?)(?:_(set|name|date))?$/);
-		var user_group_filter = matched
-				&& (!matched[2] || matched[2] === 'user' ? true
-						: special_users[matched[2]]);
-		if (!user_group_filter) {
-			throw 'Unknown value type: ' + value_type;
-		}
-
-		var date_type = matched[1], output_type = matched[3];
-		return function(section) {
-			var index = date_type === 'last' && user_group_filter === true
-			//
-			? section.last_update_index
-			//
-			: parser.each_section.index_filter(section, user_group_filter,
-					date_type);
-
-			return output_type === 'set' ? add_user_name_and_date_set(section,
-					index)
-			//
-			: output_type === 'date' ? section.dates[index]
-					: section.users[index];
-		};
-	});
+	column_operators = get_column_operators(page_configuration);
 
 	parser.each_section(function(section, section_index) {
 		if (section_index === 0) {
@@ -525,7 +604,7 @@ function generate_topic_list(page_data) {
 	section_table.push('|}');
 
 	// 討論議題列表放在另外一頁。
-	var topic_page = paage_configuration.topic_page;
+	var topic_page = page_configuration.topic_page;
 	if (topic_page.startsWith('/')) {
 		topic_page = page_data.title + topic_page;
 	}
