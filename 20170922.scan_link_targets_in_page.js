@@ -43,15 +43,15 @@ function for_each_main_page(page_data) {
 		throw 'parser error';
 	}
 
-	var first_section_index = 0, links = CeL.null_Object(), files = CeL
+	var first_section_index = 0, main_page_links = CeL.null_Object(), main_page_files = CeL
 			.null_Object(), insert_after;
 	// skip the lead section
 	parser.each('section_title', function(token, index) {
-		first_section_index = index;
+		first_section_index = index + 1;
 		return parser.each.exit;
 	});
 	parser.each('link', function(token) {
-		links[CeL.wiki.normalize_title(token[0].toString())] = null;
+		main_page_links[CeL.wiki.normalize_title(token[0].toString())] = null;
 	}, {
 		slice : first_section_index
 	});
@@ -59,14 +59,14 @@ function for_each_main_page(page_data) {
 		insert_after = token;
 		var file_title = CeL.wiki.normalize_title(token[0].toString()).replace(
 				/^[^:]+:/, '');
-		files[file_title] = null;
+		main_page_files[file_title] = null;
 	}, {
 		slice : first_section_index,
 		add_index : true
 	});
-	links = Object.keys(links);
-	CeL.log(links.length + ' pages to scan.');
-	// console.log(files);
+	main_page_links = Object.keys(main_page_links);
+	CeL.log(main_page_links.length + ' pages to scan.');
+	// console.log(main_page_files);
 
 	var files_to_add = CeL.null_Object();
 	function scan_link_target(page_data) {
@@ -92,7 +92,7 @@ function for_each_main_page(page_data) {
 		});
 
 		function add_file(file_title, token) {
-			if (file_title in files) {
+			if (file_title in main_page_files) {
 				// Skip files we already have.
 				return;
 			}
@@ -172,6 +172,6 @@ function for_each_main_page(page_data) {
 		last : write_back_to_page,
 		no_edit : true,
 		redirects : 1
-	}, links);
+	}, main_page_links);
 
 }
