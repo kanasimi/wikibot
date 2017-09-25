@@ -50,11 +50,17 @@ function for_each_main_page(page_data) {
 		first_section_index = index + 1;
 		return parser.each.exit;
 	}, false,
-	// 只檢查第一層之章節標題。
+	// Only check the first level.
 	1);
-	parser.each('link', function(token) {
+	parser.each('link', function(token, index, parent) {
+		while (parent = parent.parent) {
+			// Skip [[File:image.png| [[link inside file]] ]]
+			if (parent.type === 'file')
+				return;
+		}
 		main_page_links[CeL.wiki.normalize_title(token[0].toString())] = null;
 	}, {
+		add_index : 'all',
 		slice : first_section_index
 	});
 	parser.each('file', function(token) {
@@ -92,7 +98,7 @@ function for_each_main_page(page_data) {
 			first_section_index = index;
 			return parser.each.exit;
 		}, false,
-		// 只檢查第一層之章節標題。
+		// Only check the first level.
 		1);
 
 		function add_file(file_title, token) {
@@ -128,6 +134,16 @@ function for_each_main_page(page_data) {
 				return;
 			}
 			if (typeof token.parameters.image !== 'string') {
+				if (token.parameters.image.some(function(sub_token) {
+					if (sub_token.type === 'file' && sub_token[0][1]) {
+						var file_title = CeL.wiki
+								.normalize_title(sub_token[0][1]);
+						add_file(file_title, sub_token.toString());
+						return true;
+					}
+				})) {
+					return;
+				}
 				console.log(token.parameters.image);
 				throw 'parameters.image is not string';
 			}
@@ -159,9 +175,14 @@ function for_each_main_page(page_data) {
 		if (file_list.length === 0) {
 			return;
 		}
-		insert_after.parent.splice(insert_after.index + 1, 0,
-		//
-		'\n' + file_list.join('\n'));
+		if (insert_after) {
+			insert_after.parent.splice(insert_after.index + 1, 0,
+			//
+			'\n' + file_list.join('\n'));
+		} else {
+			// append to article
+			parser.push('\n' + file_list.join('\n'));
+		}
 		CeL.log(file_list.length + ' file descriptions to add');
 		wiki.page(page_data).edit(parser.toString(), {
 			summary : 'Scan links of an article'
@@ -175,7 +196,8 @@ function for_each_main_page(page_data) {
 		each : scan_link_target,
 		last : write_back_to_page,
 		no_edit : true,
-		redirects : 1
+		page_options : {
+			redirects : 1
+		}
 	}, main_page_links);
-
 }
