@@ -78,6 +78,8 @@ function for_each_main_page(page_data) {
 
 	var files_to_add = CeL.null_Object();
 	function scan_link_target(page_data) {
+		// console.log(page_data);
+		// console.trace(page_data);
 		var parser = CeL.wiki.parser(page_data).parse();
 		if (!parser) {
 			return [
@@ -101,7 +103,7 @@ function for_each_main_page(page_data) {
 		// Only check the first level.
 		1);
 
-		function add_file(file_title, token) {
+		function add_file(file_title, token, comment) {
 			if (file_title in main_page_files) {
 				// Skip files we already have.
 				return;
@@ -120,7 +122,8 @@ function for_each_main_page(page_data) {
 						: token.replace(/\]\]$/, '|right]]');
 			}
 			// add source
-			token += '<!-- ' + page_data.title + ' -->';
+			token += '<!-- ' + CeL.wiki.title_link_of(page_data)
+					+ (comment ? ': ' + comment : '') + ' -->';
 			if (!(file_title in files_to_add)) {
 				files_to_add[file_title] = [ token ];
 			} else if (!files_to_add[file_title].includes(token)) {
@@ -148,13 +151,26 @@ function for_each_main_page(page_data) {
 				throw 'parameters.image is not string';
 			}
 			var file_title = CeL.wiki.normalize_title(token.parameters.image);
-			add_file(file_title, '[[File:'
-					+ file_title
-					+ '|thumb|right|'
-					+ (token.parameters.image_caption || CeL.wiki
-							.title_link_of(page_data.title)) + ']]');
+			add_file(file_title,
+					'[[File:'
+							+ file_title
+							+ '|thumb|right|'
+							+ (token.parameters.image_caption || CeL.wiki
+									.title_link_of(page_data)).toString()
+									.trim() + ']]', token.name);
 		});
 
+		// add directly [[File:image]] from the lead section
+		parser.each('file', function(token) {
+			var file_title = CeL.wiki.normalize_title(token[0].toString())
+					.replace(/^[^:]+:/, '');
+
+			add_file(file_title, token, 'lead section');
+		}, {
+			slice : [ 0, first_section_index ],
+			max_depth : 1
+		});
+		// add all [[File:image]] from the rest sections
 		parser.each('file', function(token) {
 			var file_title = CeL.wiki.normalize_title(token[0].toString())
 					.replace(/^[^:]+:/, '');
@@ -197,6 +213,7 @@ function for_each_main_page(page_data) {
 		last : write_back_to_page,
 		no_edit : true,
 		page_options : {
+			multi : 'keep index',
 			redirects : 1
 		}
 	}, main_page_links);

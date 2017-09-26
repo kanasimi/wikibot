@@ -2,9 +2,9 @@
 
 Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 
-node 20170915.topic_list.js use_project=wikinews
-node 20170915.topic_list.js use_language=zh-classical
-node 20170915.topic_list.js use_language=zh
+node 20170915.topic_list.js use_project=wikinews &
+node 20170915.topic_list.js use_language=zh-classical &
+node 20170915.topic_list.js use_language=zh &
 
 
 2017/9/10 22:31:46	開始計畫。
@@ -60,12 +60,11 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-// TODO: get page title from wikidata
-botop_page = {
-	jawiki : 'Botを運用しているウィキペディアン',
-	zhwiki : '維基百科機器人所有者',
-	zhwikinews : '維基新聞機器人所有者',
-	enwiki : 'Wikipedia bot operators'
+// Will get page title from wikidata
+botop_sitelinks = {
+	enwiki : {
+		title : 'Category:Wikipedia bot operators'
+	}
 },
 // 一般用討論頁面設定
 general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;participants;last_user_set;last_admin_set', general_page_configuration = {
@@ -111,31 +110,66 @@ page_configurations = {
 		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! <small>最新BAG</small> !! data-sort-type="isoDate" | <small>BAG最後更新</small>',
 		columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
 		transclusion_target : function(token) {
-			if (token.name.startsWith(this.title + '/'))
+			if (token.name.startsWith(this.title + '/')) {
 				return token.name;
+			}
+			// for zhwiki
+			if (/^(?:維基百科|维基百科|Wikipedia|Project):(?:機器人|机器人)\/(?:申請|申请)\//i
+					.test(token.name)) {
+				return token.name;
+			}
 
-			if (token.name.startsWith('/') && token.name !== '/header')
+			if (token.name.startsWith('/') && token.name !== '/header') {
 				return this.title + token.name;
+			}
 		},
 		level_filter : [ 2, 3 ],
-		twist_filter : {
-			BAG : function(section, user_group_filter) {
-				// [[Wikipedia:机器人/申请/preload2]]
-				var applicants = [], exit = this.each.exit;
-				// 尋找標題之外的第一個使用的連結
-				this.each.call(section, 'link', function(token) {
-					var user_name = CeL.wiki.parse.user(token.toString());
-					if (user_name) {
-						applicants.push(user_name);
-						if (!/bot/i.test(user_name))
-							return exit;
-					}
-				});
+		section_filter : function(section) {
+			// [[Wikipedia:机器人/申请/preload2]]
+			// get bot name from link in section title.
+			var bot_name = CeL.wiki.parse
+					.user(section.section_title.toString());
+			if (/bot/i.test(bot_name)) {
+				section.bot_name = bot_name;
+			}
 
-				// 帶有審核意味的討論，審查者欄位應該去掉申請人。
+			// 申請人。
+			var applicants = section.applicants = [], exit = this.each.exit;
+			// 尋找標題之外的第一個bot使用者連結。
+			this.each.call(section, 'link', function(token) {
+				var user_name = CeL.wiki.parse.user(token.toString());
+				if (user_name) {
+					if (/bot/i.test(user_name)) {
+						if (!section.bot_name) {
+							// 可能只是文章中的討論，因此不做設定。
+							// section.bot_name = user_name;
+						} else if (section.bot_name !== user_name) {
+							CeL.warn(section.section_title.title + ': '
+									+ section.bot_name + ' !== ' + user_name);
+						}
+					} else {
+						applicants.push(user_name);
+						return exit;
+					}
+				}
+			});
+
+			if (false) {
+				console
+						.log([ section.bot_name, applicants,
+								section.section_title.toString(),
+								section.section_title ]);
+				console.log(section.toString());
+			}
+			return section.bot_name && applicants.length > 0;
+		},
+		twist_filter : {
+			// 帶有審核意味的討論，審查者欄位應該去掉申請人。
+			BAG : function(section, user_group_filter) {
 				var new_filter = CeL.null_Object();
 				for ( var user_name in user_group_filter) {
-					if (!applicants.includes(user_name)) {
+					if (!section.applicants.includes(user_name)
+							&& section.bot_name !== user_name) {
 						new_filter[user_name] = true;
 					}
 				}
@@ -143,12 +177,11 @@ page_configurations = {
 
 				// for {Array}user_group_filter
 				return user_group_filter.map(function(user_name) {
-					return !applicants.includes(user_name);
+					return !section.applicants.includes(user_name);
 				});
 			}
 		},
 		operators : {
-			// TODO: 操作者
 			title : function(section) {
 				var title = section.section_title.title, attributes,
 				//
@@ -166,6 +199,13 @@ page_configurations = {
 				return attributes + '[[' + this.page.title + '#' + title + '|'
 						+ matched + ']]';
 			},
+			bot_name : function(section) {
+				return section.bot_name;
+			},
+			// 操作者/申請人
+			applicants : function(section) {
+				return section.applicants.join(', ');
+			},
 			status : check_BRFA_status
 		}
 	},
@@ -178,132 +218,9 @@ page_configurations = {
 
 // CeL.set_debug(6);
 
-// 特定使用者名單(hash): 當使用者權限變更時必須重新執行程式！
-var special_users = CeL.null_Object(), full_group_name = {
-	bureaucrat : 'bureaucrats',
-	botop : 'bot operators',
-	bot : 'bots',
-	admin : 'administrators'
-};
-
-function note_special_users(group_name) {
-	var user_name_list = Object.keys(special_users[group_name]).sort();
-	CeL.log('All ' + user_name_list.length + ' '
-			+ (full_group_name[group_name] || group_name) + ' confirmed: '
-			+ user_name_list.join(', ') + '.');
-}
-
-function get_allusers(group_name, augroup) {
-	// reset
-	special_users[group_name] = CeL.null_Object();
-	wiki.allusers(function(list) {
-		if (list.next_index) {
-			throw 'Too many users so we do not get full list of ' + group_name
-					+ '!';
-		}
-		// console.log(list);
-		list.forEach(function(user_data) {
-			if (group_name === 'bot' || !user_data.groups.includes('bot')) {
-				special_users[group_name][user_data.name] = user_data;
-			}
-		});
-		note_special_users(group_name);
-	}, {
-		augroup : augroup || group_name,
-		auprop : 'groups',
-		// The parameters "augroup" and "auexcludegroup" can not be used
-		// together.
-		// auexcludegroup : 'bot',
-		limit : 'max'
-	});
-}
-
-get_allusers('bot');
-get_allusers('bureaucrat', 'bureaucrat|steward|oversight');
-// 取得管理員列表
-// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Ballusers
-get_allusers('admin', 'sysop|bureaucrat|steward|oversight');
-
-// [[WP:BAG]], [[Wikipedia:Bot Approvals Group]], [[維基百科:機器人審核小組]]
-// TODO: 這裡的篩選方法會把頁面中所有的使用者都納入這個群體，包括不活躍與離職的。
-wiki.page('Project:BAG', function(page_data) {
-	var title = CeL.wiki.title_of(page_data),
-	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
-	 */
-	content = CeL.wiki.content_of(page_data);
-
-	if (!content) {
-		// 行政員可利用[[Special:Makebot]]核可機器人權限。
-		special_users.BAG = special_users.bureaucrat;
-		special_users.no_BAG = true;
-		return;
-	}
-
-	// reset
-	special_users.BAG = CeL.null_Object()
-
-	var user_hash = CeL.wiki.parse.user.all(content);
-	for ( var user_name in user_hash) {
-		if (user_name && !(user_name in special_users.bot)
-				&& !/bot/i.test(user_name)) {
-			special_users.BAG[user_name] = true;
-		}
-	}
-
-	var matched, PATTERN_template_user = /{{ *user *\| *([^#\|\[\]{}\/]+)/ig;
-
-	while (matched = PATTERN_template_user.exec(content)) {
-		var user_name = CeL.wiki.normalize_title(matched[1]);
-		if (user_name && !(user_name in special_users.bot)
-				&& !/bot/i.test(user_name)) {
-			special_users.BAG[user_name] = true;
-		}
-	}
-
-	note_special_users('BAG');
-}, {
-	redirects : 1
-});
-
-if (botop_page[CeL.wiki.site_name(wiki)]) {
-	// reset
-	special_users.botop = CeL.null_Object();
-	// [[Category:Wikipedia bot operators]]
-	// TODO: {{bot|bot operator}}, {{Infobox bot}}
-	wiki.categorymembers(botop_page[CeL.wiki.site_name(wiki)], function(list) {
-		if (list.next_index) {
-			throw 'Too many users so we do not get full list!';
-		}
-		// console.log(list);
-		var user_namespace = CeL.wiki.namespace('user');
-		list.forEach(function(user_data) {
-			if (user_data.ns !== user_namespace
-					|| /[#\|\[\]{}\/]/.test(user_data.title)) {
-				return;
-			}
-			var user_name = user_data.title.replace(/^[^:]+:/, '');
-			if (user_name && !(user_name in special_users.bot)
-					&& !/bot/i.test(user_name)) {
-				special_users.botop[user_name] = user_data;
-			}
-		});
-		note_special_users('botop');
-	}, {
-		limit : 'max'
-	});
-}
-
-wiki.run(function() {
-	// cache the special users
-	CeL.fs_write('special_users.' + CeL.wiki.site_name(wiki) + '.json', JSON
-			.stringify(special_users));
-});
-
-// ----------------------------------------------------------------------------
-
 // main talk pages **of this wiki**
 var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
+
 Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
 	var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/);
 	if (matched[1] === CeL.wiki.site_name(wiki)) {
@@ -320,31 +237,170 @@ if (main_talk_pages.length > 0) {
 	CeL.error('No talk page to process for ' + CeL.wiki.site_name(wiki) + '!');
 }
 
-wiki.run(function() {
-	// 首先生成一輪。
-	main_talk_pages.forEach(function(page_title) {
-		wiki.page(page_title, pre_fetch_sub_pages);
-	});
-	// return;
+var special_users;
+Wiki(false, 'en').page(botop_sitelinks.enwiki)
+//
+.data(function(entity) {
+	botop_sitelinks = entity.sitelinks;
 
-	wiki.listen(pre_fetch_sub_pages, {
-		// start : new Date,
+	get_special_users(function(_special_users) {
+		special_users = _special_users;
 
-		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
-		// 若是等待時間過長，可能會有其他人插入留言回覆。 [[Special:Diff/45941555]]
-		delay : '0m',
-		filter : main_talk_pages,
-		with_content : true,
-		parameters : {
-			// 跳過機器人所做的編輯。
-			// You need the "patrol" or "patrolmarks" right
-			// to request the patrolled flag.
-			rcshow : '!bot',
-			rcprop : 'title|ids|sizes|flags|user'
-		},
-		interval : '5s'
+		// 首先生成一輪。
+		main_talk_pages.forEach(function(page_title) {
+			wiki.page(page_title, pre_fetch_sub_pages);
+		});
+		// return;
+
+		wiki.listen(pre_fetch_sub_pages, {
+			// start : new Date,
+
+			// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
+			// 若是等待時間過長，可能會有其他人插入留言回覆。 [[Special:Diff/45941555]]
+			delay : '0m',
+			filter : main_talk_pages,
+			with_content : true,
+			parameters : {
+				// 跳過機器人所做的編輯。
+				// You need the "patrol" or "patrolmarks" right to request the
+				// patrolled flag.
+				rcshow : '!bot',
+				rcprop : 'title|ids|sizes|flags|user'
+			},
+			interval : '5s'
+		});
 	});
 });
+
+// ----------------------------------------------------------------------------
+
+// 取得特定使用者名單(hash): 當使用者權限變更時必須重新執行程式！
+function get_special_users(callback, options) {
+
+	var special_users = CeL.null_Object(), full_group_name = {
+		bureaucrat : 'bureaucrats',
+		botop : 'bot operators',
+		bot : 'bots',
+		admin : 'administrators'
+	};
+
+	function note_special_users(group_name) {
+		var user_name_list = Object.keys(special_users[group_name]).sort();
+		CeL.log('All ' + user_name_list.length + ' '
+				+ (full_group_name[group_name] || group_name) + ' confirmed: '
+				+ user_name_list.join(', ') + '.');
+	}
+
+	function get_allusers(group_name, augroup) {
+		// reset
+		special_users[group_name] = CeL.null_Object();
+		wiki.allusers(function(list) {
+			if (list.next_index) {
+				throw 'Too many users so we do not get full list of '
+						+ group_name + '!';
+			}
+			// console.log(list);
+			list.forEach(function(user_data) {
+				if (group_name === 'bot' || !user_data.groups.includes('bot')) {
+					special_users[group_name][user_data.name] = user_data;
+				}
+			});
+			note_special_users(group_name);
+		}, {
+			augroup : augroup || group_name,
+			auprop : 'groups',
+			// The parameters "augroup" and "auexcludegroup" can not be used
+			// together.
+			// auexcludegroup : 'bot',
+			limit : 'max'
+		});
+	}
+
+	get_allusers('bot');
+	get_allusers('bureaucrat', 'bureaucrat|steward|oversight');
+	// 取得管理員列表
+	// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Ballusers
+	get_allusers('admin', 'sysop|bureaucrat|steward|oversight');
+
+	// [[WP:BAG]], [[Wikipedia:Bot Approvals Group]], [[維基百科:機器人審核小組]]
+	// TODO: 這裡的篩選方法會把頁面中所有的使用者都納入這個群體，包括不活躍與離職的。
+	wiki.page('Project:BAG', function(page_data) {
+		var title = CeL.wiki.title_of(page_data),
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 */
+		content = CeL.wiki.content_of(page_data);
+
+		if (!content) {
+			// 行政員可利用[[Special:Makebot]]核可機器人權限。
+			special_users.BAG = special_users.bureaucrat;
+			special_users.no_BAG = true;
+			return;
+		}
+
+		// reset
+		special_users.BAG = CeL.null_Object()
+
+		var user_hash = CeL.wiki.parse.user.all(content);
+		for ( var user_name in user_hash) {
+			if (user_name && !(user_name in special_users.bot)
+					&& !/bot/i.test(user_name)) {
+				special_users.BAG[user_name] = true;
+			}
+		}
+
+		var matched,
+		//
+		PATTERN_template_user = /{{ *user *\| *([^#\|\[\]{}\/]+)/ig;
+
+		while (matched = PATTERN_template_user.exec(content)) {
+			var user_name = CeL.wiki.normalize_title(matched[1]);
+			if (user_name && !(user_name in special_users.bot)
+					&& !/bot/i.test(user_name)) {
+				special_users.BAG[user_name] = true;
+			}
+		}
+
+		note_special_users('BAG');
+	}, {
+		redirects : 1
+	});
+
+	var botop_page = botop_sitelinks[CeL.wiki.site_name(wiki)];
+	if (botop_page && (botop_page = botop_page.title)) {
+		// reset
+		special_users.botop = CeL.null_Object();
+		// TODO: {{bot|bot operator}}, {{Infobox bot}}
+		wiki.categorymembers(botop_page, function(list) {
+			if (list.next_index) {
+				throw 'Too many users so we do not get full list!';
+			}
+			// console.log(list);
+			var user_namespace = CeL.wiki.namespace('user');
+			list.forEach(function(user_data) {
+				if (user_data.ns !== user_namespace
+						|| /[#\|\[\]{}\/]/.test(user_data.title)) {
+					return;
+				}
+				var user_name = user_data.title.replace(/^[^:]+:/, '');
+				if (user_name && !(user_name in special_users.bot)
+						&& !/bot/i.test(user_name)) {
+					special_users.botop[user_name] = user_data;
+				}
+			});
+			note_special_users('botop');
+		}, {
+			limit : 'max'
+		});
+	}
+
+	wiki.run(function() {
+		// cache the special users
+		CeL.fs_write('special_users.' + CeL.wiki.site_name(wiki) + '.json',
+				JSON.stringify(special_users));
+		callback(special_users);
+	});
+}
 
 // ----------------------------------------------
 // status functions
@@ -431,7 +487,8 @@ function check_BRFA_status(section) {
 	this.each.call(section, 'template', function(token) {
 		if (token.name in {
 			BotTrial : true,
-			BotExtendedTrial : true
+			BotExtendedTrial : true,
+			BotOnHold : true
 		}) {
 			status = 'style="background-color:#cfc;" | ' + token;
 		} else if (token.name in {
@@ -460,6 +517,7 @@ function check_BRFA_status(section) {
 			status = token.toString();
 		}
 	});
+	// TODO: 提醒申請者
 	return status || '';
 }
 
@@ -488,8 +546,8 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		: days > 7 ? 'style="background-color:#ddd;" '
 		// 最近1小時內: 淺綠色
 		: 24 * days < 1 ? 'style="background-color:#efe;" '
-		// 最近1日內: 淺藍色
-		: days < 1 ? 'style="background-color:#ddf;" ' : '';
+		// 超過1小時到最近1日內: 淺藍色
+		: days < 1 ? 'style="background-color:#eef;" ' : '';
 		user = (additional_attributes ? '| ' : '') + '[[User:'
 				+ section.users[user_and_date_index] + '|]]';
 	} else {
@@ -701,7 +759,7 @@ function pre_fetch_sub_pages(page_data, error) {
 		var transclusions = 0;
 		// insert page contents and re-parse
 		page_data_list.forEach(function(sub_page_data) {
-			var title = sub_page_data.convert_from || sub_page_data.title,
+			var title = sub_page_data.original_title || sub_page_data.title,
 			//
 			token = sub_pages_to_fetch_hash[title];
 			if (!token) {
@@ -727,7 +785,8 @@ function pre_fetch_sub_pages(page_data, error) {
 		}
 		generate_topic_list(page_data);
 	}, {
-		multi : true
+		multi : true,
+		redirects : 1
 	});
 }
 
@@ -741,13 +800,22 @@ function generate_topic_list(page_data) {
 	section_table = [ '{| class="wikitable sortable collapsible"', '|-',
 			page_configuration.heads ],
 	//
-	column_operators = get_column_operators(page_configuration);
+	column_operators = get_column_operators(page_configuration),
+	//
+	topic_count = 0;
 
 	parser.each_section(function(section, section_index) {
 		if (section_index === 0) {
 			// 跳過頁首設定與公告區。
 			return;
 		}
+
+		if (page_configuration.section_filter
+				&& !page_configuration.section_filter.call(parser, section)) {
+			return;
+		}
+
+		topic_count++;
 
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
@@ -790,7 +858,7 @@ function generate_topic_list(page_data) {
 		nocreate : 1,
 		summary : 'generate topic list: '
 		// -1: 跳過頁首設定與公告區。
-		+ (parser.sections.length - 1) + ' topics'
+		+ topic_count + ' topics'
 	})
 	// 更新主頁面。
 	.purge(page_data.title);
