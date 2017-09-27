@@ -532,8 +532,14 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 	if (user_and_date_index >= 0) {
 		var days = (new Date - section.dates[user_and_date_index])
 				/ ONE_DAY_LENGTH_VALUE;
-		date = CeL.wiki.parse.date.to_String(
-				section.dates[user_and_date_index], wiki);
+		date = section.dates[user_and_date_index];
+		if (true) {
+			// 採用短日期格式。
+			date = date.format('%Y-%2m-%2d %2H:%2M');
+		} else {
+			// 簽名的日期格式。
+			date = CeL.wiki.parse.date.to_String(date, wiki);
+		}
 		var date_too_long = date.display_width() > 34;
 		date = data_sort_attributes(section.dates[user_and_date_index]) + '| '
 		//
