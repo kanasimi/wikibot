@@ -2,9 +2,9 @@
 
 Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 
-node 20170915.topic_list.js use_project=wikinews &
-node 20170915.topic_list.js use_language=zh-classical &
 node 20170915.topic_list.js use_language=zh &
+node 20170915.topic_list.js use_language=zh-classical &
+node 20170915.topic_list.js use_project=wikinews &
 
 
 2017/9/10 22:31:46	開始計畫。
@@ -209,7 +209,12 @@ page_configurations = {
 			status : check_BRFA_status
 		}
 	},
+	'zhwiki:Wikipedia:互助客栈/消息' : general_page_configuration,
+	'zhwiki:Wikipedia:互助客栈/方针' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration,
+	'zhwiki:Wikipedia:互助客栈/求助' : general_page_configuration,
+	'zhwiki:Wikipedia:互助客栈/条目探讨' : general_page_configuration,
+	'zhwiki:Wikipedia:互助客栈/其他' : general_page_configuration,
 	'zhwikinews:Wikinews:茶馆' : general_page_configuration,
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
@@ -536,6 +541,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		if (true) {
 			// 採用短日期格式。
 			date = date.format('%Y-%2m-%2d %2H:%2M');
+			// 因為不確定閱覽者的時區，因此不能夠再做進一步的處理，例如 CeL.date.indicate_date_time() 。
 		} else {
 			// 簽名的日期格式。
 			date = CeL.wiki.parse.date.to_String(date, wiki);
@@ -558,7 +564,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				+ section.users[user_and_date_index] + '|]]';
 	} else {
 		// 沒有發現此 user group 之發言。
-		additional_attributes = 'style="background-color:#ffa;" | ';
+		additional_attributes = 'style="background-color:#ffc;" | ';
 	}
 
 	return [ additional_attributes + user, additional_attributes + date ];
@@ -592,6 +598,10 @@ var section_column_operators = {
 	replies : function(section) {
 		return local_number(section.replies, section.replies >= 1 ? ''
 				: 'style="background-color:#fcc;"');
+	},
+	// word count
+	words : function(section) {
+		return CeL.count_word(section.toString());
 	}
 };
 
@@ -808,7 +818,7 @@ function generate_topic_list(page_data) {
 	//
 	column_operators = get_column_operators(page_configuration),
 	//
-	topic_count = 0;
+	topic_count = 0, new_topics = [];
 
 	parser.each_section(function(section, section_index) {
 		if (section_index === 0) {
@@ -822,6 +832,11 @@ function generate_topic_list(page_data) {
 		}
 
 		topic_count++;
+
+		if (Date.now() - section.dates[section.last_update_index] < CeL
+				.to_millisecond('1m')) {
+			new_topics.push(section.section_title.title);
+		}
 
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
@@ -865,6 +880,8 @@ function generate_topic_list(page_data) {
 		summary : 'generate topic list: '
 		// -1: 跳過頁首設定與公告區。
 		+ topic_count + ' topics'
+		//
+		+ (new_topics.length > 0 ? ', new: ' + new_topics.join('; ') : '')
 	})
 	// 更新主頁面。
 	.purge(page_data.title);
