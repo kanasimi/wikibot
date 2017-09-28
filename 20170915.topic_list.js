@@ -564,7 +564,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				+ section.users[user_and_date_index] + '|]]';
 	} else {
 		// 沒有發現此 user group 之發言。
-		additional_attributes = 'style="background-color:#ffc;" | ';
+		additional_attributes = 'style="background-color:#ffd;" | ';
 	}
 
 	return [ additional_attributes + user, additional_attributes + date ];
@@ -581,7 +581,10 @@ var section_column_operators = {
 		var title = section.section_title.title,
 		// 當標題過長時，縮小標題字型。
 		title_too_long = title.display_width() > 40;
-		return (title_too_long ? '<small>' : '') + '[[' + this.page.title
+		// 限制標題欄的寬度。
+		return (title_too_long ? 'style="max-width: 20em;" | <small>' : '')
+		//
+		+ '[[' + this.page.title
 		// 預防在遇到標題包含模板時，因為不能解析連模板最後產出的結果，連結會失效。
 		// 但在包含{{para|p}}的情況下連結依然會失效。
 		+ '#' + title + '|' + title + ']]' + (title_too_long ? '</small>' : '');

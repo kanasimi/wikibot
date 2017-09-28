@@ -163,6 +163,7 @@ if (bot_directory) {
 /** {String}本次任務使用的語言。 */
 _global.use_language = '';
 
+// project = language_code.family
 _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
