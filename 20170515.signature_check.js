@@ -821,21 +821,27 @@ function for_each_row(row) {
 		+ '--' + row.user + ' ' + get_parsed_time(row)
 		//
 		);
-		wiki.page(log_to).edit(check_log.join('\n* '), {
-			section : 'new',
-			sectiontitle : row.title,
-			nocreate : 1,
-			bot : 1,
-			summary : 'bot: Signature check report of '
-			// 在編輯摘要中加上使用者連結，似乎還不至於驚擾到使用者。
-			+ '[[User:' + row.user + "]]'s edit in "
-			//
-			+ CeL.wiki.title_link_of(row.title)
-			//
-			+ ', [[Special:Diff/' + row.revid + ']].'
-			//
-			+ (added_signs_or_notice ? ' ** Need add sign or notice **' : '')
-		});
+
+		if (added_signs_or_notice || test_mode) {
+			// 有做動作的時候才記錄，避免記錄過於繁雜。
+			wiki.page(log_to).edit(check_log.join('\n* '), {
+				section : 'new',
+				sectiontitle : row.title,
+				nocreate : 1,
+				bot : 1,
+				summary : 'bot: Signature check report of '
+				// 在編輯摘要中加上使用者連結，似乎還不至於驚擾到使用者。
+				+ '[[User:' + row.user + "]]'s edit in "
+				//
+				+ CeL.wiki.title_link_of(row.title)
+				//
+				+ ', [[Special:Diff/' + row.revid + ']].'
+				//
+				+ (added_signs_or_notice
+				//
+				? ' ** Need add sign or notice **' : '')
+			});
+		}
 	}
 
 	if (!added_signs_or_notice) {
