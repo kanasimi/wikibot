@@ -690,20 +690,20 @@ function for_each_row(row) {
 				return;
 			}
 
-			var from_user_list = diff_pair[0].join('');
+			var from_user_hash = diff_pair[0].join('');
 			if (to_diff_end_index < last_diff_index_before_next_section) {
 				// 加上到下一個段落之前相同的部分。但是請注意，這可能造成漏報。
-				from_user_list += row.diff.to.slice(to_next_diff_start_index,
+				from_user_hash += row.diff.to.slice(to_next_diff_start_index,
 						last_diff_index_before_next_section).join('');
 			}
-			from_user_list = CeL.wiki.parse.user.all(from_user_list);
+			from_user_hash = CeL.wiki.parse.user.all(from_user_hash);
 			user_list = user_list.filter(function(user) {
 				// 跳過對機器人的編輯做出的修訂。
 				return !/bot/i.test(user)
 				// 跳過搬移選舉結果。只有在原先文字中就存在的使用者，才可能是被修改到的。要不然就是本次編輯添加的，例如搬移選舉結果的情況。
-				&& from_user_list.includes(user);
+				&& (user in from_user_hash);
 			});
-			// console.log([ from_user_list, user_list ]);
+			// console.log([ from_user_hash, user_list ]);
 			if (user_list.length > 0) {
 				check_log.push([ row.user
 				// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯~~~~"
