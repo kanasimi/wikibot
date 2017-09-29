@@ -5,6 +5,7 @@ Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄
 node 20170915.topic_list.js use_language=zh &
 node 20170915.topic_list.js use_language=zh-classical &
 node 20170915.topic_list.js use_project=wikinews &
+node 20170915.topic_list.js use_language=ja &
 
 
 2017/9/10 22:31:46	開始計畫。
@@ -67,10 +68,16 @@ botop_sitelinks = {
 	}
 },
 // 一般用討論頁面設定
-general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;participants;last_user_set;last_admin_set', general_page_configuration = {
+max_width = '24em',
+// need to add {{/topic list}} to {{/header}}
+general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;participants;last_user_set'
+// 不應該列出管理員那兩欄，似乎暗示著管理員與其他用戶不是平等的。
+// + ';last_admin_set'
+, general_page_configuration = {
 	zh : {
 		topic_page : general_topic_page,
-		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新',
+		// !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新
+		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新',
 		columns : general_page_columns
 	},
 	'zh-classical' : {
@@ -84,8 +91,8 @@ page_configurations = {
 	// 'jawiki:Wikipedia:Bot/使用申請 ' : {},
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 依頼 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | 最終更新日時 !! <small>Bot運用者更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small> || 進捗',
-		columns : 'NO;title;replies;participants;last_user_set;last_botop_set;status',
+		heads : '! # !! 依頼 !! 進捗 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | 最終更新日時 !! <small>Bot運用者更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
+		columns : 'NO;title;status;replies;participants;last_user_set;last_botop_set',
 		operators : {
 			status : check_BOTREQ_status
 		}
@@ -540,7 +547,10 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		date = section.dates[user_and_date_index];
 		if (true) {
 			// 採用短日期格式。
-			date = date.format('%Y-%2m-%2d %2H:%2M');
+			date = date.format({
+				format : '%Y-%2m-%2d %2H:%2M UTC',
+				zone : 0
+			});
 			// 因為不確定閱覽者的時區，因此不能夠再做進一步的處理，例如 CeL.date.indicate_date_time() 。
 		} else {
 			// 簽名的日期格式。
@@ -550,18 +560,22 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		date = data_sort_attributes(section.dates[user_and_date_index]) + '| '
 		//
 		+ (date_too_long ? '<small>' + date + '</small>' : date);
-		// 討論議題列表依狀態表現不同的顏色
+		// 討論議題列表依狀態表現不同的顏色。
 		additional_attributes
-		// 超過一個月: 深灰色
+		// 超過一個月: 深灰色。
 		= days > 31 ? 'style="background-color:#bbb;" '
-		// 超過一禮拜到一個月: 淺灰色
+		// 超過一禮拜到一個月: 淺灰色。
 		: days > 7 ? 'style="background-color:#ddd;" '
-		// 最近1小時內: 淺綠色
+		// 最近1小時內: 淺綠色。
 		: 24 * days < 1 ? 'style="background-color:#efe;" '
-		// 超過1小時到最近1日內: 淺藍色
+		// 超過1小時到最近1日內: 淺藍色。
 		: days < 1 ? 'style="background-color:#eef;" ' : '';
-		user = (additional_attributes ? '| ' : '') + '[[User:'
-				+ section.users[user_and_date_index] + '|]]';
+		user = section.users[user_and_date_index];
+		user = (additional_attributes ? '| ' : '')
+		// 對於匿名IP用戶則顯示編輯紀錄。
+		+ (CeL.wiki.parse.user.is_IP(user) ? '[[Special:Contributions/'
+		//
+		+ user + '|' + user + ']]' : '[[User:' + user + '|]]');
 	} else {
 		// 沒有發現此 user group 之發言。
 		additional_attributes = 'style="background-color:#ffd;" | ';
@@ -582,9 +596,9 @@ var section_column_operators = {
 		// 當標題過長時，縮小標題字型。
 		title_too_long = title.display_width() > 40;
 		// 限制標題欄的寬度。
-		return (title_too_long ? 'style="max-width: 20em;" | <small>' : '')
-		//
-		+ '[[' + this.page.title
+		return (title_too_long ? 'style="max-width: ' + max_width
+		// [[Template:Small]]
+		+ ';" | <small>' : '') + '[[' + this.page.title
 		// 預防在遇到標題包含模板時，因為不能解析連模板最後產出的結果，連結會失效。
 		// 但在包含{{para|p}}的情況下連結依然會失效。
 		+ '#' + title + '|' + title + ']]' + (title_too_long ? '</small>' : '');

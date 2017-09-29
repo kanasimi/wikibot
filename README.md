@@ -124,8 +124,6 @@ wiki.data('維基數據沙盒2', function(data) {
 });
 ```
 
-For the "wiki loder.js" using in the examples, See [wiki loder.sample.js](https://github.com/kanasimi/wikibot/blob/master/archive/wiki%20loder.sample.js).
-
 
 ## Screenshot
 Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151002.WPCHECK.js) (fix_16 only):
