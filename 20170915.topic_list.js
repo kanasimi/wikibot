@@ -82,7 +82,8 @@ general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;par
 	},
 	'zh-classical' : {
 		topic_page : general_topic_page,
-		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 !! 有秩 !! data-sort-type="isoDate" | 有秩新易',
+		// !! 有秩 !! data-sort-type="isoDate" | 有秩新易
+		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易',
 		columns : general_page_columns
 	}
 }[use_language],
