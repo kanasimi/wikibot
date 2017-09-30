@@ -19,6 +19,11 @@ summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:My
 // --------------------------------------------------------
 
 clean_wiki(
+		'test',
+		'{{Sandbox}}\n== Please start your testing below this line ==\n',
+		'Clearing the sandbox. If you want keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may checking the revision history of the sandbox.');
+
+clean_wiki(
 		'zh',
 		'{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n== 請在這行文字底下進行您的測試 ==\n');
 
@@ -26,7 +31,7 @@ clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測�
 
 clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
-function clean_wiki(wiki, replace_to) {
+function clean_wiki(wiki, replace_to, _summary) {
 	/** {Object}wiki operator 操作子. */
 	wiki = Wiki(true, wiki);
 
@@ -43,8 +48,23 @@ function clean_wiki(wiki, replace_to) {
 			});
 		}
 		// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
-		wiki.edit(replace_to, {
-			summary : summary,
+		wiki.edit(function(page_data) {
+			// 運作原理: 在清除前後空白之後，若是與預設的文字相同，就不會更動。
+			if (replace_to.trim() === CeL.wiki.content_of(page_data).trim()) {
+				return [ CeL.wiki.edit.cancel, 'skip' ];
+			}
+
+			if (CeL.wiki.site_name(wiki) === 'zhwiki'
+			// 為 Jimmy-bot 特設
+			&& replace_to.replace(/==[^=]+==\n$/, '').trim()
+			//
+			=== CeL.wiki.content_of(page_data).trim()) {
+				return [ CeL.wiki.edit.cancel, 'skip' ];
+			}
+
+			return replace_to;
+		}, {
+			summary : _summary || summary,
 			nocreate : 1,
 			bot : 1
 		});
