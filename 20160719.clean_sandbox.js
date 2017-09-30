@@ -21,7 +21,7 @@ summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:My
 clean_wiki(
 		'test',
 		'{{Sandbox}}\n== Please start your testing below this line ==\n',
-		'Clearing the sandbox. If you want keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may checking the revision history of the sandbox.');
+		'Clearing the sandbox. If you want to keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
 
 clean_wiki(
 		'zh',
@@ -44,13 +44,22 @@ function clean_wiki(wiki, replace_to, _summary) {
 			// 頂多一開始執行一次。
 			wiki.protect({
 				protections : 'move=sysop',
-				reason : summary + ': 預防公共測試區被隨意移動'
+				reason : (_summary || summary) + ': 預防公共測試區被隨意移動.'
+						+ ' Incase the public sandbox being moved.'
 			});
 		}
 		// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
 		wiki.edit(function(page_data) {
+			var
+			/**
+			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 */
+			content = CeL.wiki.content_of(page_data);
+
 			// 運作原理: 在清除前後空白之後，若是與預設的文字相同，就不會更動。
-			if (replace_to.trim() === CeL.wiki.content_of(page_data).trim()) {
+			if (replace_to.trim() === content.trim()
+			// 但也不能太過份。
+			&& !/[\n\s]{3}$/.test(content) && !/^[\n\s]{3}/.test(content)) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
 			}
 
@@ -58,7 +67,7 @@ function clean_wiki(wiki, replace_to, _summary) {
 			// 為 Jimmy-bot 特設
 			&& replace_to.replace(/==[^=]+==\n$/, '').trim()
 			//
-			=== CeL.wiki.content_of(page_data).trim()) {
+			=== content.trim()) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
 			}
 

@@ -76,13 +76,13 @@ general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;par
 , general_page_configuration = {
 	zh : {
 		topic_page : general_topic_page,
-		// !! 管理員發言 !! data-sort-type="isoDate" | 管理員更新
+		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新
 		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新',
 		columns : general_page_columns
 	},
 	'zh-classical' : {
 		topic_page : general_topic_page,
-		// !! 有秩 !! data-sort-type="isoDate" | 有秩新易
+		// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易
 		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易',
 		columns : general_page_columns
 	}
@@ -92,7 +92,7 @@ page_configurations = {
 	// 'jawiki:Wikipedia:Bot/使用申請 ' : {},
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 依頼 !! 進捗 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | 最終更新日時 !! <small>Bot運用者更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
+		heads : '! # !! 依頼 !! 進捗 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | 最終更新日時 !! <small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
 		columns : 'NO;title;status;replies;participants;last_user_set;last_botop_set',
 		operators : {
 			status : check_BOTREQ_status
@@ -101,7 +101,7 @@ page_configurations = {
 	// 序號 Topics主題
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 需求 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! <small>最新機器人操作者</small> !! data-sort-type="isoDate" | <small>機器人操作者最後更新</small>',
+		heads : '! # !! 需求 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者最後更新</small>',
 		// first_user_set: 發起人與發起時間(Created)
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
@@ -115,7 +115,7 @@ page_configurations = {
 	},
 	'zhwiki:Wikipedia:机器人/申请' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! <small>最新BAG</small> !! data-sort-type="isoDate" | <small>BAG最後更新</small>',
+		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! <small>最新[[WP:BAG|BAG]]</small> !! data-sort-type="isoDate" | <small>BAG最後更新</small>',
 		columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
 		transclusion_target : function(token) {
 			if (token.name.startsWith(this.title + '/')) {
@@ -421,8 +421,15 @@ function get_special_users(callback, options) {
 function check_BOTREQ_status(section) {
 	var status, to_exit = this.each.exit;
 	this.each.call(section, 'template', function(token) {
-		if (token.name === '解決済み') {
-			status = 'style="background-color:#dfd;" | ' + token.name;
+		if (token.name in {
+			Resolved : true,
+			Solved : true,
+			已解決 : true,
+			解決済み : true
+		}) {
+			status = 'style="background-color:#efe;" | '
+			// [[ja:Template:解決済み]]
+			+ '[[File:Check mark.svg|20px|link=]] ' + token.name;
 			return to_exit;
 		}
 		if (token.name === 'BOTREQ') {
@@ -471,6 +478,12 @@ function check_BOTREQ_status(section) {
 			未完成 : true,
 			中止 : true,
 
+			'On hold' : true,
+			OnHold : true,
+			擱置 : true,
+			搁置 : true,
+			保留 : true,
+
 			Withdrawn : true,
 			撤回請求 : true,
 			撤回 : true,
@@ -478,6 +491,12 @@ function check_BOTREQ_status(section) {
 			Cancelled : true,
 			取消 : true,
 			已取消 : true,
+
+			除去 : true,
+			取り下げ : true,
+			終了 : true,
+			自動失効 : true,
+			依頼無効 : true,
 
 			Declined : true,
 			駁回 : true,
@@ -501,7 +520,12 @@ function check_BRFA_status(section) {
 		if (token.name in {
 			BotTrial : true,
 			BotExtendedTrial : true,
-			BotOnHold : true
+			BotOnHold : true,
+
+			'On hold' : true,
+			OnHold : true,
+			擱置 : true,
+			搁置 : true
 		}) {
 			status = 'style="background-color:#cfc;" | ' + token;
 		} else if (token.name in {
@@ -548,10 +572,11 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		date = section.dates[user_and_date_index];
 		if (true) {
 			// 採用短日期格式。
-			date = date.format({
-				format : '%Y-%2m-%2d %2H:%2M UTC',
-				zone : 0
-			});
+			date = date
+					.format({
+						format : '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span> UTC',
+						zone : 0
+					});
 			// 因為不確定閱覽者的時區，因此不能夠再做進一步的處理，例如 CeL.date.indicate_date_time() 。
 		} else {
 			// 簽名的日期格式。
@@ -647,7 +672,19 @@ function local_number(number, attributes) {
 				// None, N/A
 				+ (number === 0 ? '無' : CeL.to_Chinese_numeral(number));
 	}
-	return (attributes ? attributes + ' | ' : '') + number;
+
+	var style = 'text-align:right;';
+	if (!attributes) {
+		if (!style) {
+			return number;
+		}
+		attributes = 'style="' + style + '"';
+	} else if (!attributes.includes('style="')) {
+		attributes += ' style="' + style + '"';
+	} else {
+		attributes = attributes.replace('style="', 'style="' + style);
+	}
+	return attributes + ' | ' + number;
 }
 
 var section_index_filter = CeL.wiki.parser.paser_prototype.each_section.index_filter;

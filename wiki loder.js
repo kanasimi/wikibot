@@ -212,11 +212,13 @@ _global.Wiki = function(login, API_URL) {
 	if (!wiki.get_URL_options.headers) {
 		wiki.get_URL_options.headers = CeL.null_Object();
 	}
-	// set User-Agent to use:
-	// Special:ApiFeatureUsage&wpagent=CeJS script_name
-	wiki.get_URL_options.headers['User-Agent'] = CeL.get_URL.default_user_agent
-	// User-Agent 不可含有中文。
-	+ ' ' + encodeURI(CeL.get_script_name());
+	if (CeL.get_script_name()) {
+		// set User-Agent to use:
+		// Special:ApiFeatureUsage&wpagent=CeJS script_name
+		wiki.get_URL_options.headers['User-Agent'] = CeL.get_URL.default_user_agent
+				// User-Agent 不可含有中文。
+				+ ' ' + encodeURI(CeL.get_script_name());
+	}
 
 	return wiki;
 };
