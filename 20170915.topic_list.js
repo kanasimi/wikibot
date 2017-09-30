@@ -519,13 +519,7 @@ function check_BRFA_status(section) {
 	this.each.call(section, 'template', function(token) {
 		if (token.name in {
 			BotTrial : true,
-			BotExtendedTrial : true,
-			BotOnHold : true,
-
-			'On hold' : true,
-			OnHold : true,
-			擱置 : true,
-			搁置 : true
+			BotExtendedTrial : true
 		}) {
 			status = 'style="background-color:#cfc;" | ' + token;
 		} else if (token.name in {
@@ -546,6 +540,15 @@ function check_BRFA_status(section) {
 			BotDenied : true
 		}) {
 			status = 'style="background-color:#fcc;" | ' + token;
+		} else if (token.name in {
+			BotOnHold : true,
+
+			'On hold' : true,
+			OnHold : true,
+			擱置 : true,
+			搁置 : true
+		}) {
+			status = 'style="background-color:#ccc;" | ' + token;
 		} else if (token.name in {
 			BotStatus : true,
 			BotComment : true,
