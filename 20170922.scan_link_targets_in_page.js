@@ -28,6 +28,10 @@ page_list.forEach(function(page_title) {
 	});
 });
 
+function join_by_new_line() {
+	return this.join('\n');
+}
+
 function for_each_main_page(page_data) {
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (!parser) {
@@ -43,38 +47,47 @@ function for_each_main_page(page_data) {
 		throw 'parser error';
 	}
 
-	var first_section_index = 0, main_page_links = CeL.null_Object(), main_page_files = CeL
-			.null_Object(), insert_after;
-	// skip the lead section
-	parser.each('section_title', function(token, index) {
-		first_section_index = index + 1;
-		return parser.each.exit;
-	}, false,
-	// Only check the first level.
-	1);
-	parser.each('link', function(token, index, parent) {
-		while (parent = parent.parent) {
-			// Skip [[File:image.png| [[link inside file]] ]]
-			if (parent.type === 'file')
-				return;
+	var main_page_links = CeL.null_Object(), main_page_files = CeL
+			.null_Object();
+	parser.each_section(function(section, section_index) {
+		// skip the lead section
+		if (section_index === 0) {
+			return;
 		}
-		main_page_links[CeL.wiki.normalize_title(token[0].toString())] = null;
+
+		parser.each.call(section, 'link', function(token, index, parent) {
+			while (parent = parent.parent) {
+				// Skip [[File:image.png| [[link inside file]] ]]
+				if (parent.type === 'file')
+					return;
+			}
+
+			var link_page_title = CeL.wiki.normalize_title(token[0].toString())
+					.replace(/^[^:]+:/, '');
+			if (link_page_title in main_page_links) {
+				CeL.warn('The link ' + token + ' appears more than one time. '
+				//
+				+ 'I will keep the first location to insert the images.');
+				return;
+			}
+			// main_page_links[link page title] = section the link is located
+			main_page_links[link_page_title] = section;
+		});
+
+		parser.each.call(section, 'file', function(token) {
+			var file_title = CeL.wiki.normalize_title(token[0].toString())
+					.replace(/^[^:]+:/, '');
+			main_page_files[file_title] = null;
+		});
 	}, {
-		add_index : 'all',
-		slice : first_section_index
+		max_depth : undefined,
+		add_index : 'all'
 	});
-	parser.each('file', function(token) {
-		insert_after = token;
-		var file_title = CeL.wiki.normalize_title(token[0].toString()).replace(
-				/^[^:]+:/, '');
-		main_page_files[file_title] = null;
-	}, {
-		slice : first_section_index,
-		add_index : true
-	});
-	main_page_links = Object.keys(main_page_links);
-	CeL.log(main_page_links.length + ' pages to scan.');
+
+	CeL.log(Object.keys(main_page_links).length + ' pages to scan.');
 	// console.log(main_page_files);
+
+	// ------------------------------------------
 
 	var files_to_add = CeL.null_Object();
 	function scan_link_target(page_data) {
@@ -125,7 +138,15 @@ function for_each_main_page(page_data) {
 			token += '<!-- ' + CeL.wiki.title_link_of(page_data)
 					+ (comment ? ': ' + comment : '') + ' -->';
 			if (!(file_title in files_to_add)) {
-				files_to_add[file_title] = [ token ];
+				var section_to_insert = main_page_links[page_data.original_title
+						|| page_data.title];
+				if (!section_to_insert) {
+					throw 'No section configured: '
+							+ CeL.wiki.title_link_of(page_data.original_title
+									|| page_data.title);
+				}
+				var file_tokens = files_to_add[file_title] = [ token ];
+				file_tokens.section = section_to_insert;
 			} else if (!files_to_add[file_title].includes(token)) {
 				files_to_add[file_title].push(token);
 			}
@@ -182,28 +203,34 @@ function for_each_main_page(page_data) {
 	}
 
 	function write_back_to_page() {
-		var file_list = [];
+		var file_count = 0;
 		for ( var file_title in files_to_add) {
-			files_to_add[file_title].forEach(function(token) {
-				file_list.push(token);
-			})
+			var file_tokens = files_to_add[file_title],
+			// Insert the file descriptions to the section the link located.
+			section_to_insert = file_tokens.section;
+			if (section_to_insert.file_descriptions) {
+				section_to_insert.file_descriptions.append(file_tokens);
+			} else {
+				file_tokens.unshift(section_to_insert.section_title);
+				file_tokens.toString = join_by_new_line;
+				// directly replace the section-title-token
+				parser[section_to_insert.section_title.index] = file_tokens;
+				section_to_insert.file_descriptions = file_tokens;
+			}
+			file_count += file_tokens.length;
 		}
-		if (file_list.length === 0) {
+		if (file_count === 0) {
+			CeL.info(CeL.wiki.title_link_of(page_data)
+					+ ': No new image to add.');
 			return;
 		}
-		if (insert_after) {
-			insert_after.parent.splice(insert_after.index + 1, 0,
-			//
-			'\n' + file_list.join('\n'));
-		} else {
-			// append to article
-			parser.push('\n' + file_list.join('\n'));
-		}
-		CeL.log(file_list.length + ' file descriptions to add');
+
+		CeL.log(CeL.wiki.title_link_of(page_data) + ': ' + file_count
+				+ ' file descriptions to add.');
 		wiki.page(page_data).edit(parser.toString(), {
-			summary : 'Scan links of an article'
+			summary : 'Scan links of an article' + ' and adding '
 			//
-			+ ' and listing pictures used in these links',
+			+ file_count + ' file descriptions used in these links',
 			bot : 1
 		});
 	}
@@ -216,5 +243,5 @@ function for_each_main_page(page_data) {
 			multi : 'keep index',
 			redirects : 1
 		}
-	}, main_page_links);
+	}, Object.keys(main_page_links));
 }

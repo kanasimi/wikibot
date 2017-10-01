@@ -2,10 +2,12 @@
 
 Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 
-node 20170915.topic_list.js use_language=zh &
-node 20170915.topic_list.js use_language=zh-classical &
-node 20170915.topic_list.js use_project=wikinews &
-node 20170915.topic_list.js use_language=ja &
+jstop cron-tools.cewbot-20170915.topic_list.zh;jstop cron-tools.cewbot-20170915.topic_list.zh-classical;jstop cron-tools.cewbot-20170915.topic_list.wikinews;jstop cron-tools.cewbot-20170915.topic_list.ja
+
+/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh
+/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh-classical
+/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikinews
+/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=ja
 
 
 2017/9/10 22:31:46	開始計畫。
@@ -837,7 +839,7 @@ function pre_fetch_sub_pages(page_data, error) {
 			//
 			token = sub_pages_to_fetch_hash[title];
 			if (!token) {
-				throw '取得了未指定的頁面: ' + CeL.wiki.title_link_of(sub_page_data);
+				throw '取得了未設定的頁面: ' + CeL.wiki.title_link_of(sub_page_data);
 			}
 			if (!(sub_page_data.title in sub_page_to_main)) {
 				// 有嵌入其他議題/子頁面的，也得一併監視。
