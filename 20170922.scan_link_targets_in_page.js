@@ -2,8 +2,8 @@
 
 scan link targets in page
 
-2017/9/22 16:20:25	初版試營運。
- 完成。正式運用。
+2017/9/22 16:20:25	the initial version and trial run 初版試營運。
+ Deploying to production. 完成。正式運用。
 
  */
 
