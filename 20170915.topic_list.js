@@ -2,7 +2,10 @@
 
 Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 
-jstop cron-tools.cewbot-20170915.topic_list.zh;jstop cron-tools.cewbot-20170915.topic_list.zh-classical;jstop cron-tools.cewbot-20170915.topic_list.wikinews;jstop cron-tools.cewbot-20170915.topic_list.ja
+jstop cron-tools.cewbot-20170915.topic_list.zh;
+jstop cron-tools.cewbot-20170915.topic_list.zh-classical;
+jstop cron-tools.cewbot-20170915.topic_list.wikinews;
+jstop cron-tools.cewbot-20170915.topic_list.ja;
 
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh-classical
@@ -237,9 +240,12 @@ page_configurations = {
 var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
 
 Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
-	var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/);
-	if (matched[1] === CeL.wiki.site_name(wiki)) {
+	var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/),
+	//
+	project = CeL.wiki.site_name(wiki);
+	if (matched[1] === project) {
 		main_talk_pages.push(matched[2]);
+		page_configurations[wiki_and_page_title].project = project;
 	}
 });
 if (main_talk_pages.length > 0) {
@@ -420,8 +426,8 @@ function get_special_users(callback, options) {
 // ----------------------------------------------
 // status functions
 
-function check_BOTREQ_status(section, section_index, page_configuration) {
-	var status, to_exit = this.each.exit;
+function check_BOTREQ_status(section, section_index) {
+	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
 	this.each.call(section, 'template', function(token) {
 		if (token.name in {
 			Resolved : true,
@@ -439,7 +445,7 @@ function check_BOTREQ_status(section, section_index, page_configuration) {
 			status = (token[1] || '').toString().toLowerCase().trim();
 			if (status === 'done' || status === '完了') {
 				status = 'style="background-color:#dfd;" | ' + token;
-				if (page_configuration.project === 'jawiki') {
+				if (project === 'jawiki') {
 					// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
 					status += '、確認待ち';
 				}
@@ -477,7 +483,7 @@ function check_BOTREQ_status(section, section_index, page_configuration) {
 			已確認 : true
 		}) {
 			status = 'style="background-color:#dfd;" | ' + token;
-			if (page_configuration.project === 'jawiki'
+			if (project === 'jawiki'
 			// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
 			&& token.name === '完了') {
 				status += '、確認待ち';
@@ -809,7 +815,6 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
-	page_configuration.project = CeL.wiki.site_name(wiki);
 	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = CeL.null_Object();
 	// check transclusions
 	parser.each('transclusion', function(token, index, parent) {
@@ -917,8 +922,7 @@ function generate_topic_list(page_data) {
 		var row = [];
 
 		column_operators.forEach(function(operator) {
-			var values = operator.call(parser, section, section_index,
-					page_configuration);
+			var values = operator.call(parser, section, section_index);
 			if (Array.isArray(values)) {
 				row.append(values);
 			} else {
