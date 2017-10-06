@@ -420,7 +420,7 @@ function get_special_users(callback, options) {
 // ----------------------------------------------
 // status functions
 
-function check_BOTREQ_status(section) {
+function check_BOTREQ_status(section, section_index, page_configuration) {
 	var status, to_exit = this.each.exit;
 	this.each.call(section, 'template', function(token) {
 		if (token.name in {
@@ -439,6 +439,10 @@ function check_BOTREQ_status(section) {
 			status = (token[1] || '').toString().toLowerCase().trim();
 			if (status === 'done' || status === '完了') {
 				status = 'style="background-color:#dfd;" | ' + token;
+				if (page_configuration.project === 'jawiki') {
+					// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
+					status += '、確認待ち';
+				}
 			} else if (status) {
 				status = token.toString();
 			}
@@ -473,6 +477,11 @@ function check_BOTREQ_status(section) {
 			已確認 : true
 		}) {
 			status = 'style="background-color:#dfd;" | ' + token;
+			if (page_configuration.project === 'jawiki'
+			// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
+			&& token.name === '完了') {
+				status += '、確認待ち';
+			}
 
 		} else if (token.name in {
 			Undone : true,
@@ -497,6 +506,7 @@ function check_BOTREQ_status(section) {
 			除去 : true,
 			取り下げ : true,
 			終了 : true,
+			失効 : true,
 			自動失効 : true,
 			依頼無効 : true,
 
@@ -799,6 +809,7 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
+	page_configuration.project = CeL.wiki.site_name(wiki);
 	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = CeL.null_Object();
 	// check transclusions
 	parser.each('transclusion', function(token, index, parent) {
@@ -847,6 +858,9 @@ function pre_fetch_sub_pages(page_data, error) {
 				sub_page_to_main[sub_page_data.title] = page_data.title;
 			}
 			// 直接取代。
+			// 其他提醒的格式可以參考
+			// https://www.mediawiki.org/w/api.php?action=help&modules=expandtemplates
+			// <!-- {{Template}} starts -->...<!-- {{Template}} end -->
 			token.parent[token.index] = '\n{{Transclusion start|' + title
 					+ '}}\n' + CeL.wiki.content_of(sub_page_data)
 					+ '\n{{Transclusion end|' + title + '}}\n';
@@ -903,7 +917,8 @@ function generate_topic_list(page_data) {
 		var row = [];
 
 		column_operators.forEach(function(operator) {
-			var values = operator.call(parser, section, section_index);
+			var values = operator.call(parser, section, section_index,
+					page_configuration);
 			if (Array.isArray(values)) {
 				row.append(values);
 			} else {
