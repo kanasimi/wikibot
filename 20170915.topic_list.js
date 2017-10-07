@@ -11,6 +11,7 @@ jstop cron-tools.cewbot-20170915.topic_list.ja;
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh-classical
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikinews
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=ja
+node 20170915.topic_list.js use_project=wikisource
 
 
 2017/9/10 22:31:46	開始計畫。
@@ -73,7 +74,7 @@ botop_sitelinks = {
 	}
 },
 // 一般用討論頁面設定
-max_width = '24em',
+max_title_length = 40, max_width = '24em',
 // need to add {{/topic list}} to {{/header}}
 general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;participants;last_user_set'
 // 不應該列出管理員那兩欄，似乎暗示著管理員與其他用戶不是平等的。
@@ -162,13 +163,14 @@ default_BRFA_configurations = {
 				attributes = data_sort_attributes(matched[1] + ' '
 						+ (+matched[2]).pad(3))
 						+ '| ';
-				matched = matched[1] + ' <sup>' + matched[2] + '</sup>';
+				matched = matched[1].replace(/</g, '&lt;') + ' <sup>'
+						+ matched[2] + '</sup>';
 			} else {
 				attributes = '';
-				matched = title;
+				matched = title.replace(/</g, '&lt;');
 			}
-			return attributes + '[[' + this.page.title + '#' + title + '|'
-					+ matched + ']]';
+			return attributes + '[[' + this.page.title + '#'
+					+ title.replace(/</g, '&lt;') + '|' + matched + ']]';
 		},
 		bot_name : function(section) {
 			return section.bot_name;
@@ -666,7 +668,9 @@ var section_column_operators = {
 	title : function(section) {
 		var title = section.section_title.title,
 		// 當標題過長時，縮小標題字型。
-		title_too_long = title.display_width() > 40;
+		title_too_long = title.display_width() > max_title_length;
+		// e.g., <ref>
+		title = title.replace(/</g, '&lt;');
 		// 限制標題欄的寬度。
 		return (title_too_long ? 'style="max-width: ' + max_width
 		// [[Template:Small]]
