@@ -93,12 +93,109 @@ general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;par
 	}
 }[use_language],
 //
+default_BRFA_configurations = {
+	topic_page : general_topic_page,
+	columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
+	// 篩選章節標題
+	section_filter : function(section) {
+		// [[Wikipedia:机器人/申请/preload2]]
+		// get bot name from link in section title.
+		var bot_name = CeL.wiki.parse.user(section.section_title.toString());
+		if (/bot/i.test(bot_name)) {
+			section.bot_name = bot_name;
+		}
+
+		// 申請人。
+		var applicants = section.applicants = [], exit = this.each.exit;
+		// 尋找標題之外的第一個bot使用者連結。
+		this.each.call(section, 'link', function(token) {
+			var user_name = CeL.wiki.parse.user(token.toString());
+			if (user_name) {
+				if (/bot/i.test(user_name)) {
+					if (!section.bot_name) {
+						// 可能只是文章中的討論，因此不做設定。
+						// section.bot_name = user_name;
+					} else if (section.bot_name !== user_name) {
+						CeL.warn(section.section_title.title + ': '
+								+ section.bot_name + ' !== ' + user_name);
+					}
+				} else {
+					applicants.push(user_name);
+					return exit;
+				}
+			}
+		});
+
+		if (false) {
+			console.log([ section.bot_name, applicants,
+					section.section_title.toString(), section.section_title ]);
+			console.log(section.toString());
+		}
+		return section.bot_name && applicants.length > 0;
+	},
+	twist_filter : {
+		// 帶有審核意味的討論，審查者欄位應該去掉申請人。
+		BAG : function(section, user_group_filter) {
+			var new_filter = CeL.null_Object();
+			for ( var user_name in user_group_filter) {
+				if (!section.applicants.includes(user_name)
+						&& section.bot_name !== user_name) {
+					new_filter[user_name] = true;
+				}
+			}
+			return new_filter;
+
+			// for {Array}user_group_filter
+			return user_group_filter.map(function(user_name) {
+				return !section.applicants.includes(user_name);
+			});
+		}
+	},
+	// column operators
+	operators : {
+		title : function(section) {
+			var title = section.section_title.title, attributes,
+			//
+			matched = title.match(/^(.+[^\d])(\d{1,3})$/);
+			if (matched) {
+				matched[1] = matched[1].trimEnd();
+				attributes = data_sort_attributes(matched[1] + ' '
+						+ (+matched[2]).pad(3))
+						+ '| ';
+				matched = matched[1] + ' <sup>' + matched[2] + '</sup>';
+			} else {
+				attributes = '';
+				matched = title;
+			}
+			return attributes + '[[' + this.page.title + '#' + title + '|'
+					+ matched + ']]';
+		},
+		bot_name : function(section) {
+			return section.bot_name;
+		},
+		// 操作者/申請人
+		applicants : function(section) {
+			return section.applicants.join(', ');
+		},
+		status : check_BRFA_status
+	}
+},
+//
 page_configurations = {
-	// 'jawiki:Wikipedia:Bot/使用申請 ' : {},
+	'jawiki:Wikipedia:Bot/使用申請' : Object.assign(Object
+			.clone(default_BRFA_configurations), {
+		heads : '! # !! Bot使用申請 !! 進捗 !! <small>返答</small>'
+				+ ' !! <small title="議論に参加する人数">人数</small>'
+				+ ' !! 最終更新者 !! data-sort-type="isoDate" | 最終更新日時'
+				// 審議者・決裁者
+				+ ' !! <small>[[WP:BUR|決裁者]]更新</small>'
+				+ ' !! data-sort-type="isoDate" | <small>決裁者最後更新</small>'
+	}),
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
 		heads : '! # !! 依頼 !! 進捗 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | 最終更新日時 !! <small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
 		columns : 'NO;title;status;replies;participants;last_user_set;last_botop_set',
+		// column operators
 		operators : {
 			status : check_BOTREQ_status
 		}
@@ -118,10 +215,15 @@ page_configurations = {
 			status : check_BOTREQ_status
 		}
 	},
-	'zhwiki:Wikipedia:机器人/申请' : {
-		topic_page : general_topic_page,
-		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 !! <small>最新[[WP:BAG|BAG]]</small> !! data-sort-type="isoDate" | <small>BAG最後更新</small>',
-		columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
+	'zhwiki:Wikipedia:机器人/申请' : Object.assign(Object
+			.clone(default_BRFA_configurations), {
+		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small>'
+				+ ' !! <small title="參與討論人數">參與</small>'
+				+ ' !! 最新發言 !! data-sort-type="isoDate" | 最後更新'
+				+ ' !! <small>最新[[WP:BAG|BAG]]</small>'
+				+ ' !! data-sort-type="isoDate" | <small>BAG最後更新</small>',
+		// 要篩選的章節標題層級
+		level_filter : [ 2, 3 ],
 		transclusion_target : function(token) {
 			if (token.name.startsWith(this.title + '/')) {
 				return token.name;
@@ -135,93 +237,8 @@ page_configurations = {
 			if (token.name.startsWith('/') && token.name !== '/header') {
 				return this.title + token.name;
 			}
-		},
-		level_filter : [ 2, 3 ],
-		section_filter : function(section) {
-			// [[Wikipedia:机器人/申请/preload2]]
-			// get bot name from link in section title.
-			var bot_name = CeL.wiki.parse
-					.user(section.section_title.toString());
-			if (/bot/i.test(bot_name)) {
-				section.bot_name = bot_name;
-			}
-
-			// 申請人。
-			var applicants = section.applicants = [], exit = this.each.exit;
-			// 尋找標題之外的第一個bot使用者連結。
-			this.each.call(section, 'link', function(token) {
-				var user_name = CeL.wiki.parse.user(token.toString());
-				if (user_name) {
-					if (/bot/i.test(user_name)) {
-						if (!section.bot_name) {
-							// 可能只是文章中的討論，因此不做設定。
-							// section.bot_name = user_name;
-						} else if (section.bot_name !== user_name) {
-							CeL.warn(section.section_title.title + ': '
-									+ section.bot_name + ' !== ' + user_name);
-						}
-					} else {
-						applicants.push(user_name);
-						return exit;
-					}
-				}
-			});
-
-			if (false) {
-				console
-						.log([ section.bot_name, applicants,
-								section.section_title.toString(),
-								section.section_title ]);
-				console.log(section.toString());
-			}
-			return section.bot_name && applicants.length > 0;
-		},
-		twist_filter : {
-			// 帶有審核意味的討論，審查者欄位應該去掉申請人。
-			BAG : function(section, user_group_filter) {
-				var new_filter = CeL.null_Object();
-				for ( var user_name in user_group_filter) {
-					if (!section.applicants.includes(user_name)
-							&& section.bot_name !== user_name) {
-						new_filter[user_name] = true;
-					}
-				}
-				return new_filter;
-
-				// for {Array}user_group_filter
-				return user_group_filter.map(function(user_name) {
-					return !section.applicants.includes(user_name);
-				});
-			}
-		},
-		operators : {
-			title : function(section) {
-				var title = section.section_title.title, attributes,
-				//
-				matched = title.match(/^(.+[^\d])(\d{1,3})$/);
-				if (matched) {
-					matched[1] = matched[1].trimEnd();
-					attributes = data_sort_attributes(matched[1] + ' '
-							+ (+matched[2]).pad(3))
-							+ '| ';
-					matched = matched[1] + ' <sup>' + matched[2] + '</sup>';
-				} else {
-					attributes = '';
-					matched = title;
-				}
-				return attributes + '[[' + this.page.title + '#' + title + '|'
-						+ matched + ']]';
-			},
-			bot_name : function(section) {
-				return section.bot_name;
-			},
-			// 操作者/申請人
-			applicants : function(section) {
-				return section.applicants.join(', ');
-			},
-			status : check_BRFA_status
 		}
-	},
+	}),
 	'zhwiki:Wikipedia:互助客栈/消息' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/方针' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration,
@@ -229,6 +246,7 @@ page_configurations = {
 	'zhwiki:Wikipedia:互助客栈/条目探讨' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/其他' : general_page_configuration,
 	'zhwikinews:Wikinews:茶馆' : general_page_configuration,
+	'zhwikisource:Wikisource:写字间' : general_page_configuration,
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
 
@@ -312,7 +330,7 @@ function get_special_users(callback, options) {
 				+ user_name_list.join(', ') + '.');
 	}
 
-	function get_allusers(group_name, augroup) {
+	function get_allusers(group_name, augroup, callback) {
 		// reset
 		special_users[group_name] = CeL.null_Object();
 		wiki.allusers(function(list) {
@@ -322,11 +340,16 @@ function get_special_users(callback, options) {
 			}
 			// console.log(list);
 			list.forEach(function(user_data) {
-				if (group_name === 'bot' || !user_data.groups.includes('bot')) {
+				if (group_name === 'bot'
+				// 排除掉所有機器人。
+				|| !user_data.groups.includes('bot')) {
 					special_users[group_name][user_data.name] = user_data;
 				}
 			});
 			note_special_users(group_name);
+			if (callback) {
+				callback();
+			}
 		}, {
 			augroup : augroup || group_name,
 			auprop : 'groups',
@@ -337,9 +360,13 @@ function get_special_users(callback, options) {
 		});
 	}
 
+	// 必須先取得bot這個群組以利後續檢查排除掉所有機器人。
 	get_allusers('bot');
-	get_allusers('bureaucrat', 'bureaucrat|steward|oversight');
-	// 取得管理員列表
+	get_allusers('bureaucrat', 'bureaucrat|steward|oversight', function() {
+		// 行政員以上可利用[[Special:Makebot]]核可機器人權限，為當然成員。
+		special_users.BAG = Object.clone(special_users.bureaucrat);
+	});
+	// 取得管理員列表。
 	// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Ballusers
 	get_allusers('admin', 'sysop|bureaucrat|steward|oversight');
 
@@ -353,14 +380,10 @@ function get_special_users(callback, options) {
 		content = CeL.wiki.content_of(page_data);
 
 		if (!content) {
-			// 行政員可利用[[Special:Makebot]]核可機器人權限。
-			special_users.BAG = special_users.bureaucrat;
+			// 沒有特別設置BAG群組。
 			special_users.no_BAG = true;
 			return;
 		}
-
-		// reset
-		special_users.BAG = CeL.null_Object()
 
 		var user_hash = CeL.wiki.parse.user.all(content);
 		for ( var user_name in user_hash) {
@@ -371,7 +394,7 @@ function get_special_users(callback, options) {
 		}
 
 		var matched,
-		//
+		// 注意: 這個方法會把不活躍成員和離任成員也都列進去。
 		PATTERN_template_user = /{{ *user *\| *([^#\|\[\]{}\/]+)/ig;
 
 		while (matched = PATTERN_template_user.exec(content)) {
@@ -553,6 +576,8 @@ function check_BRFA_status(section) {
 			status = 'style="background-color:#ccf;" | ' + token;
 		} else if (token.name in {
 			BotWithdrawn : true,
+			取り下げ : true,
+
 			BotExpired : true,
 			BotRevoked : true,
 			BotDenied : true
@@ -718,6 +743,7 @@ function get_column_operators(page_configuration) {
 	column_operators = page_configuration.columns.split(';');
 
 	column_operators = column_operators.map(function(value_type) {
+		// column operators
 		var operator = page_configuration.operators
 				&& page_configuration.operators[value_type]
 				|| section_column_operators[value_type];
