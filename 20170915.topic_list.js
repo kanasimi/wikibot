@@ -76,26 +76,33 @@ botop_sitelinks = {
 },
 // 一般用討論頁面設定
 max_title_length = 40, max_width = '24em',
+
 // need to add {{/topic list}} to {{/header}}
-general_topic_page = '/topic list', general_page_columns = 'NO;title;replies;participants;last_user_set'
+general_topic_page = '/topic list', general_page_configuration = {
+	topic_page : general_topic_page,
+	// general_page_columns
+	columns : 'NO;title;replies;participants;last_user_set'
 // 不應該列出管理員那兩欄，似乎暗示著管理員與其他用戶不是平等的。
 // + ';last_admin_set'
-, general_page_configuration = {
+}, localized_page_configuration = {
 	zh : {
-		topic_page : general_topic_page,
-		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新
-		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC',
-		columns : general_page_columns
+		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" |
+		// 管理員更新
+		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
 	},
 	'zh-classical' : {
-		topic_page : general_topic_page,
 		// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易
-		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 UTC',
-		columns : general_page_columns
+		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 UTC'
+	},
+	ja : {
+		// 質問や提案、議論
+		heads : '! # !! 話題 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
 	}
-}[use_language],
-//
-default_BRFA_configurations = {
+}[use_language];
+
+Object.assign(general_page_configuration, localized_page_configuration);
+
+var default_BRFA_configurations = {
 	topic_page : general_topic_page,
 	columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
 	// 篩選章節標題
@@ -164,7 +171,7 @@ default_BRFA_configurations = {
 				attributes = data_sort_attributes(matched[1] + ' '
 						+ (+matched[2]).pad(3))
 						+ '| ';
-				matched = matched[1] + ' <sup>' + matched[2] + '</sup>';
+				matched = matched[1] + ' <sub>' + matched[2] + '</sub>';
 			} else {
 				attributes = '';
 				matched = title;
@@ -185,15 +192,14 @@ default_BRFA_configurations = {
 },
 //
 page_configurations = {
-	'jawiki:Wikipedia:Bot/使用申請' : Object.assign(Object
-			.clone(default_BRFA_configurations), {
+	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
 		heads : '! # !! Bot使用申請 !! 進捗 !! <small>返答</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
 				+ ' !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
 				// 審議者・決裁者
 				+ ' !! <small>[[WP:BUR|決裁者]]更新</small>'
 				+ ' !! data-sort-type="isoDate" | <small>決裁者最後更新 UTC</small>'
-	}),
+	}, default_BRFA_configurations),
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
 		heads : '! # !! 依頼 !! 進捗 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small> !! <small>[[Template:User bot owner|Bot運用者]]更新 UTC</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
@@ -203,8 +209,14 @@ page_configurations = {
 			status : check_BOTREQ_status
 		}
 	},
-	// Template:井戸端から誘導, Template:井戸端サブページ
-	// 'jawiki:Wikipedia:井戸端' : {},
+	// TODO: Template:井戸端から誘導
+	'jawiki:Wikipedia:井戸端' : Object.assign({
+		transclusion_target : function(token) {
+			if (token.name === '井戸端サブページ' && token.parameters.title) {
+				return 'Wikipedia:井戸端/subj/' + token.parameters.title;
+			}
+		}
+	}, general_page_configuration),
 
 	// 序號 Topics主題
 	'zhwiki:Wikipedia:机器人/作业请求' : {
@@ -221,8 +233,7 @@ page_configurations = {
 			status : check_BOTREQ_status
 		}
 	},
-	'zhwiki:Wikipedia:机器人/申请' : Object.assign(Object
-			.clone(default_BRFA_configurations), {
+	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
 		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small>'
 				+ ' !! <small title="參與討論人數">參與</small>'
 				+ ' !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
@@ -244,7 +255,7 @@ page_configurations = {
 				return this.title + token.name;
 			}
 		}
-	}),
+	}, default_BRFA_configurations),
 	'zhwiki:Wikipedia:互助客栈/消息' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/方针' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration,
@@ -858,7 +869,7 @@ function pre_fetch_sub_pages(page_data, error) {
 	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = CeL.null_Object();
 	// check transclusions
 	parser.each('transclusion', function(token, index, parent) {
-		// page_title
+		// transclusion page title
 		var page_title = page_configuration.transclusion_target.call(page_data,
 				token);
 		if (!page_title) {
@@ -933,9 +944,9 @@ function generate_topic_list(page_data) {
 	page_configuration = page_data.page_configuration,
 	//
 	section_table = [
-			'<!-- This page will be auto-generated by bot. Please contact me to improve the tool. -->'
-					// plainlinks
-					+ '{| class="wikitable sortable collapsible"', '|-',
+			'<!-- This page will be auto-generated by bot. Please contact me to improve the tool. -->',
+			// plainlinks
+			'{| class="wikitable sortable collapsible"', '|-',
 			page_configuration.heads ],
 	//
 	column_operators = get_column_operators(page_configuration),
