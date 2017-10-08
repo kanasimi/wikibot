@@ -36,7 +36,9 @@ edit_options = {
 	bot : 1,
 	minor : 1,
 	nocreate : 1
-};
+},
+// Mark all subcategories as {{Hiddencat}}
+mark_HIDDENCAT = false;
 
 get_files_of_category('Photos from Panoramio needing categories by date');
 
@@ -49,12 +51,33 @@ function get_files_of_category(category, callback) {
 			if (page.ns === CeL.wiki.namespace.hash.category) {
 				// Search all sub-categories.
 				get_files_of_category(page, run_next);
+				if (mark_HIDDENCAT) {
+					wiki.page(page).edit(function(page_data) {
+						var content = CeL.wiki.content_of(page_data);
+						if (!content || content.includes('__HIDDENCAT__')
+						//
+						|| /{{ *Hiddencat/i.test(content)) {
+							return [ CeL.wiki.edit.cancel, 'skip' ];
+						}
+						return content + '\n{{Hiddencat}}';
+					}, Object.assign({
+						summary : 'Mark all subcategories of ' + category
+						//
+						+ ' as {{Hiddencat}}'
+					}, edit_options));
+				}
+
 			} else if (page.ns === CeL.wiki.namespace.hash.file) {
+				if (mark_HIDDENCAT) {
+					setTimeout(run_next, 0);
+					return;
+				}
 				CeL.debug('處理頁面 ' + CeL.wiki.title_link_of(page), 1,
 						'get_files_of_category');
 				wiki.page(page, for_file.bind({
 					run_next : run_next
 				}), page_options);
+
 			} else {
 				CeL.log('Skip ' + CeL.wiki.title_link_of(page));
 			}
@@ -100,7 +123,8 @@ function for_file(page_data, error) {
 	parser.each('category', function(category, index) {
 		if (category.name.includes('needing categories')) {
 			needing_categories.push(category);
-		} else if (!/Panoramio|Unidentified|Taken with/i.test(category.name)) {
+		} else if (!/Panoramio|Unidentified|Taken with|taken on/i
+				.test(category.name)) {
 			// exclude categories marked with __HIDDENCAT__
 			if (category.name in meaningful_categories) {
 				if (meaningful_categories[category.name]) {
@@ -165,14 +189,21 @@ function for_file(page_data, error) {
 		// Checking each category to exclude __HIDDENCAT__ categories.
 		categories_to_check.forEach(function(category) {
 			wiki.page('Category:' + category.name, function(category_page) {
-				var meaningful = CeL.wiki.content_of(category_page);
+				var meaningful = CeL.wiki.content_of(category_page,
+						'expandtemplates');
 				meaningful = !meaningful
-						|| !meaningful.includes('__HIDDENCAT__');
+						|| !meaningful.includes('__HIDDENCAT__')
+						//
+						|| /{{Photographs taken on navbox *\|/
+						//
+						.test(meaningful);
 				// set cache
 				meaningful_categories[category.name] = meaningful;
 				if (meaningful) {
 					categories.push(category);
 				}
+			}, {
+				expandtemplates : true
 			});
 		});
 	}
