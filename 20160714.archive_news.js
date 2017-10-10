@@ -216,7 +216,7 @@ function archive_page() {
 						+ error_logs.length + ' lines.');
 				if (error_logs.length > 0) {
 					error_logs.unshift('<!-- 本條目會定期更新，毋須手動修正。 -->\n'
-							+ '請幫忙修復這些文章。機器人將在修復後，於下次執行作業時自動保護。 --~~~~');
+							+ '請幫忙修復這些文章。機器人將在修復完畢、待時限過後自動保護。 --~~~~');
 					error_logs.push(
 					//
 					'\n<noinclude>[[Category:管理員例行工作]]\n'

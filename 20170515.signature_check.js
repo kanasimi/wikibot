@@ -26,6 +26,7 @@
  @see
  https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
  https://zh.wikipedia.org/wiki/User:Crystal-bot
+ [[Template:Nosign]]
 
  TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[Special:Diff/45401508]], [[Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
 

@@ -139,7 +139,7 @@ function for_board(page_data) {
 		CeL.log('need archive: [' + section_title + ']');
 		archive_count++;
 		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
-				+ CeL.wiki.normalize_section_title(section_title) + '}}\n';
+				+ section_title + '}}\n';
 		for (var i = slice[0] + 1; i < slice[1]; i++) {
 			// stupid way
 			parser[i] = '';

@@ -17,6 +17,8 @@
  https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
  https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
 
+ @see
+ [[Special:LintErrors]]
  [[:ja:Wikipedia:雑草とり]]
  [[ja:プロジェクト:ウィキ文法のチェック/Translation]]
 

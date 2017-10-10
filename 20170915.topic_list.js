@@ -1,6 +1,6 @@
 ﻿/*
 
-Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
+Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。見やすい議題一覧の作成。
 
 jstop cron-tools.cewbot-20170915.topic_list.zh;
 jstop cron-tools.cewbot-20170915.topic_list.zh-classical;
@@ -74,9 +74,10 @@ botop_sitelinks = {
 		title : 'Category:Wikipedia bot operators'
 	}
 },
-// 一般用討論頁面設定
-max_title_length = 40, max_width = '24em',
+// 當標題過長，>max_title_length 時，縮小標題字型。
+max_title_length = 40, max_title_display_width = '24em', max_date_length = 34,
 
+// 一般用討論頁面設定。
 // need to add {{/topic list}} to {{/header}}
 general_topic_page = '/topic list', general_page_configuration = {
 	topic_page : general_topic_page,
@@ -86,13 +87,13 @@ general_topic_page = '/topic list', general_page_configuration = {
 // + ';last_admin_set'
 }, localized_page_configuration = {
 	zh : {
-		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" |
-		// 管理員更新
+		// 序號 Topics主題
 		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
+	// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新
 	},
 	'zh-classical' : {
-		// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易
 		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 UTC'
+	// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易
 	},
 	ja : {
 		// 質問や提案、議論
@@ -102,9 +103,30 @@ general_topic_page = '/topic list', general_page_configuration = {
 
 Object.assign(general_page_configuration, localized_page_configuration);
 
+// default configurations for BRFA 機器人申請
 var default_BRFA_configurations = {
 	topic_page : general_topic_page,
 	columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
+	// 要含入並且監視的頁面。
+	// e.g., {{Wikipedia:Bot/使用申請/InternetArchiveBot}}
+	transclusion_target : function(token) {
+		if (/\/(?:header|ヘッダ)$/i.test(token.name)) {
+			// 跳過標頭。
+			return;
+		}
+
+		if (token.name.startsWith('/')) {
+			return this.title + token.name;
+		}
+		if (token.name.startsWith(this.title + '/')) {
+			return token.name;
+		}
+		// for zhwiki
+		if (/^(?:維基百科|维基百科|Wikipedia|Project):(?:機器人|机器人)\/(?:申請|申请)\//i
+				.test(token.name)) {
+			return token.name;
+		}
+	},
 	// 篩選章節標題
 	section_filter : function(section) {
 		// [[Wikipedia:机器人/申请/preload2]]
@@ -163,22 +185,20 @@ var default_BRFA_configurations = {
 	// column operators
 	operators : {
 		title : function(section) {
-			var title = section.section_title.title, attributes,
+			var attributes = '';
+
+			section.section_title.link[2]
+			// [2]: display_text
+			= section.section_title.link[2]
 			//
-			matched = title.match(/^(.+[^\d])(\d{1,3})$/);
-			if (matched) {
-				matched[1] = matched[1].trimEnd();
-				attributes = data_sort_attributes(matched[1] + ' '
-						+ (+matched[2]).pad(3))
+			.replace(/^(.+[^\d])(\d{1,3})$/, function(all, front, NO) {
+				NO = NO | 0;
+				attributes = data_sort_attributes(front + ' ' + NO.pad(3))
 						+ '| ';
-				matched = matched[1] + ' <sub>' + matched[2] + '</sub>';
-			} else {
-				attributes = '';
-				matched = title;
-			}
-			return attributes
-					+ CeL.wiki.normalize_section_title.to_wikilink(title,
-							this.page.title, matched);
+				return front.trimEnd() + ' <sub>' + NO + '</sub>';
+			});
+
+			return attributes + section.section_title.link;
 		},
 		bot_name : function(section) {
 			return section.bot_name;
@@ -190,8 +210,9 @@ var default_BRFA_configurations = {
 		status : check_BRFA_status
 	}
 },
-//
+// page configurations for all supported talk pages
 page_configurations = {
+	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
 		heads : '! # !! Bot使用申請 !! 進捗 !! <small>返答</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
@@ -218,7 +239,6 @@ page_configurations = {
 		}
 	}, general_page_configuration),
 
-	// 序號 Topics主題
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
 		heads : '! # !! 需求 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新 UTC</small>',
@@ -240,21 +260,7 @@ page_configurations = {
 				+ ' !! <small>最新[[WP:BAG|BAG]]</small>'
 				+ ' !! data-sort-type="isoDate" | <small>BAG最後更新 UTC</small>',
 		// 要篩選的章節標題層級
-		level_filter : [ 2, 3 ],
-		transclusion_target : function(token) {
-			if (token.name.startsWith(this.title + '/')) {
-				return token.name;
-			}
-			// for zhwiki
-			if (/^(?:維基百科|维基百科|Wikipedia|Project):(?:機器人|机器人)\/(?:申請|申请)\//i
-					.test(token.name)) {
-				return token.name;
-			}
-
-			if (token.name.startsWith('/') && token.name !== '/header') {
-				return this.title + token.name;
-			}
-		}
+		level_filter : [ 2, 3 ]
 	}, default_BRFA_configurations),
 	'zhwiki:Wikipedia:互助客栈/消息' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/方针' : general_page_configuration,
@@ -303,37 +309,38 @@ if (main_talk_pages.length > 0) {
 }
 
 var special_users;
-Wiki(false, 'en').page(botop_sitelinks.enwiki)
+function main_process(_special_users) {
+	special_users = _special_users;
+
+	// 首先生成一輪。
+	main_talk_pages.forEach(function(page_title) {
+		wiki.page(page_title, pre_fetch_sub_pages);
+	});
+	// return;
+
+	wiki.listen(pre_fetch_sub_pages, {
+		// start : new Date,
+
+		// 延遲時間
+		// delay : '0m',
+		filter : main_talk_pages,
+		with_content : true,
+		parameters : {
+			// 跳過機器人所做的編輯。
+			// You need the "patrol" or "patrolmarks" right to request the
+			// patrolled flag.
+			rcshow : '!bot',
+			rcprop : 'title|ids|sizes|flags|user'
+		},
+		interval : '5s'
+	});
+}
+
+new CeL.wiki(null, null, 'en').page(botop_sitelinks.enwiki)
 //
 .data(function(entity) {
-	botop_sitelinks = entity.sitelinks;
-
-	get_special_users(function(_special_users) {
-		special_users = _special_users;
-
-		// 首先生成一輪。
-		main_talk_pages.forEach(function(page_title) {
-			wiki.page(page_title, pre_fetch_sub_pages);
-		});
-		// return;
-
-		wiki.listen(pre_fetch_sub_pages, {
-			// start : new Date,
-
-			// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
-			// 若是等待時間過長，可能會有其他人插入留言回覆。 [[Special:Diff/45941555]]
-			delay : '0m',
-			filter : main_talk_pages,
-			with_content : true,
-			parameters : {
-				// 跳過機器人所做的編輯。
-				// You need the "patrol" or "patrolmarks" right to request the
-				// patrolled flag.
-				rcshow : '!bot',
-				rcprop : 'title|ids|sizes|flags|user'
-			},
-			interval : '5s'
-		});
+	get_special_users(main_process, {
+		botop_sitelinks : entity.sitelinks
 	});
 });
 
@@ -341,6 +348,10 @@ Wiki(false, 'en').page(botop_sitelinks.enwiki)
 
 // 取得特定使用者名單(hash): 當使用者權限變更時必須重新執行程式！
 function get_special_users(callback, options) {
+	var botop_sitelinks = options && options.botop_sitelinks;
+	if (!botop_sitelinks) {
+		TODO;
+	}
 
 	var special_users = CeL.null_Object(), full_group_name = {
 		bureaucrat : 'bureaucrats',
@@ -650,10 +661,10 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 			});
 			// 因為不確定閱覽者的時區，因此不能夠再做進一步的處理，例如 CeL.date.indicate_date_time() 。
 		} else {
-			// 簽名的日期格式。
+			// 採用簽名的日期格式。
 			date = CeL.wiki.parse.date.to_String(date, wiki);
 		}
-		var date_too_long = date.display_width() > 34;
+		var date_too_long = date.display_width() > max_date_length;
 		date = data_sort_attributes(section.dates[user_and_date_index]) + '| '
 		//
 		+ (date_too_long ? '<small>' + date + '</small>' : date);
@@ -693,10 +704,10 @@ var section_column_operators = {
 		// 當標題過長時，縮小標題字型。
 		title_too_long = title.display_width() > max_title_length;
 		// 限制標題欄的寬度。 [[Template:Small]]
-		return (title_too_long ? 'style="max-width: ' + max_width
+		return (title_too_long ? 'style="max-width: ' + max_title_display_width
 				+ ';" | <small>' : '')
-				+ CeL.wiki.normalize_section_title.to_wikilink(title,
-						this.page.title) + (title_too_long ? '</small>' : '');
+				+ section.section_title.link
+				+ (title_too_long ? '</small>' : '');
 	},
 	// 發言次數 discussions conversations
 	discussions : function(section) {
@@ -890,6 +901,7 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
+	// 處理要含入並且監視的頁面。
 	CeL.debug(sub_pages_to_fetch.length + ' pages to load:\n'
 			+ sub_pages_to_fetch.join('\n'), 1, 'pre_fetch_sub_pages');
 

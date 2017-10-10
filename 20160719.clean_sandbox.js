@@ -27,15 +27,25 @@ clean_wiki(
 		'zh',
 		'{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n== 請在這行文字底下進行您的測試 ==\n');
 
+clean_wiki(
+		'zh',
+		'{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n{{S/wnote}}\n== 請在這行文字底下進行您的測試 ==\n',
+		null, 'User talk:Sandbox for user warnings~zhwiki');
+
+// TODO: Special:链入页面/Template:Sandbox, [[zh:Wikipedia:使用指南 (编辑)/沙盒]],
+// [[Template:沙盒]], [[Draft:沙盒]], [[Category:Foo]]
+// TODO: [[模块:沙盒]], [[File:沙盒.png]]
+
 clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n');
 
 clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
-function clean_wiki(wiki, replace_to, _summary) {
+function clean_wiki(wiki, replace_to, _summary, page) {
 	/** {Object}wiki operator 操作子. */
 	wiki = Wiki(true, wiki);
 
-	wiki.redirect_to('Project:Sandbox', function(redirect_data, page_data) {
+	wiki.redirect_to(page || 'Project:Sandbox', function(redirect_data,
+			page_data) {
 		// console.log(page_data.response.query);
 		// console.log(redirect_data);
 
