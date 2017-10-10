@@ -124,7 +124,7 @@ var default_BRFA_configurations = {
 			return token.name;
 		}
 	},
-	// 篩選章節標題
+	// 篩選章節標題。
 	section_filter : function(section) {
 		// [[Wikipedia:机器人/申请/preload2]]
 		// get bot name from link in section title.
@@ -141,13 +141,15 @@ var default_BRFA_configurations = {
 			var user_name = CeL.wiki.parse.user(token.toString());
 			if (user_name) {
 				if (CeL.wiki.PATTERN_BOT_NAME.test(user_name)
-						|| (bot_name in special_users.bot)) {
+						|| (user_name in special_users.bot)) {
 					if (!section.bot_name) {
 						// 可能只是文章中的討論，因此不做設定。
 						// section.bot_name = user_name;
 					} else if (section.bot_name !== user_name) {
-						CeL.warn(section.section_title.title + ': '
-								+ section.bot_name + ' !== ' + user_name);
+						CeL.warn(section.section_title.title
+								+ ': Find 2 bots: ' + section.bot_name
+								+ ' !== ' + user_name);
+						// console.log(special_users.bot);
 					}
 				} else {
 					applicants.push(user_name);
