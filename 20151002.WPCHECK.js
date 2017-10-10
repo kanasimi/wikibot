@@ -12,6 +12,7 @@
  https://github.com/scfc/checkwiki/blob/pu/tools-migration/bin/checkwiki.pl
 
  TODO:
+ [[Special:LintErrors]]
  [[WP:維基化]]
  https://en.wikipedia.org/wiki/Wikipedia:WikiProject_Check_Wikipedia
  https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes

@@ -105,7 +105,7 @@ function for_file(page_data, error) {
 	}
 
 	var revision = CeL.wiki.content_of.revision(page_data), user = revision.user;
-	if (('bot' in revision) || /bot/i.test(user)) {
+	if (('bot' in revision) || CeL.wiki.PATTERN_BOT_NAME.test(user)) {
 		// Untouched. e.g., 'Panoramio upload bot'
 		this.run_next();
 		return;

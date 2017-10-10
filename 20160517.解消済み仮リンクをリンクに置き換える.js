@@ -20,6 +20,9 @@
  @see
  https://github.com/liangent/mediawiki-maintenance/blob/master/cleanupILH_DOM.php
 
+ TODO:
+ 如果來自{{Translation/Ref}}所引起的話，則請檢查<article>參數。
+
  */
 
 'use strict';

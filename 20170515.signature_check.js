@@ -119,7 +119,7 @@ function filter_row(row) {
 	// passed === true: 要繼續處理這個頁面。
 	var passed =
 	// 為了某些編輯不加 bot flag 的 bot。
-	!/bot/i.test(row.user) && row.user !== user_name
+	!CeL.wiki.PATTERN_BOT_NAME.test(row.user) && row.user !== user_name
 	// 篩選頁面標題。跳過封存/存檔頁面。
 	&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
 	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
@@ -701,7 +701,7 @@ function for_each_row(row) {
 			from_user_hash = CeL.wiki.parse.user.all(from_user_hash);
 			user_list = user_list.filter(function(user) {
 				// 跳過對機器人的編輯做出的修訂。
-				return !/bot/i.test(user)
+				return !CeL.wiki.PATTERN_BOT_NAME.test(user)
 				// 跳過搬移選舉結果。只有在原先文字中就存在的使用者，才可能是被修改到的。要不然就是本次編輯添加的，例如搬移選舉結果的情況。
 				&& (user in from_user_hash);
 			});

@@ -18,33 +18,30 @@ jstop cron-tools.cewbot-20170915.topic_list.wikisource;
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
 2017/9/24 13:56:48	use page_configurations
- 完成。正式運用。
+2017/10/10 16:17:28	完成。正式運用。
 
 
-@see [[zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[User:WhitePhosphorus-bot/RFBA_Status]]
+@see [[zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[User:WhitePhosphorus-bot/RFBA_Status]],
+ https://zh.moegirl.org/Widget:TalkToc ($('#toc'))
 
 
 
 TODO:
 Flow 的問題是不支援繁簡轉換，沒有在大流量頁面嘗試過。長篇內容是否合適Flow還真不清楚。排版還是不夠靈活。難以處理需要修訂版本刪除的編輯。
-https://ja.wikipedia.org/wiki/Wikipedia:Bot%E4%BD%9C%E6%A5%AD%E4%BE%9D%E9%A0%BC
-https://ja.wikipedia.org/wiki/Wikipedia:%E4%BA%95%E6%88%B8%E7%AB%AF
 https://commons.wikimedia.org/wiki/Commons:Bots/Work_requests
 https://zh.moegirl.org/Talk:%E8%AE%A8%E8%AE%BA%E7%89%88
-https://zh-classical.wikipedia.org/wiki/%E7%B6%AD%E5%9F%BA%E5%A4%A7%E5%85%B8:%E6%9C%83%E9%A4%A8
-https://zh.wikipedia.org/wiki/Wikipedia:%E4%BA%92%E5%8A%A9%E5%AE%A2%E6%A0%88/%E6%8A%80%E6%9C%AF
-https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E4%BD%9C%E4%B8%9A%E8%AF%B7%E6%B1%82
+'zhwiki:Wikipedia:机器人/提议'
 https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E6%8F%90%E8%AE%AE
-https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E7%94%B3%E8%AF%B7
 https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
 https://en.wikipedia.org/wiki/Wikipedia:Bot_requests
-https://zh.wikinews.org/wiki/Wikinews:%E8%8C%B6%E9%A6%86
+
 
 TODO:
 討論議題列表可以放在另外一頁，也可以在當前頁面中。
 可以在 __TOC__ , __NEWSECTIONLINK__ 之後才開始檢查 main_talk_pages
 相關發言者訂閱功能 via ping
-
+get time via revisions information
+自動計算投票票數
 
 archive
 可以依照指示存檔到不同的page
@@ -82,22 +79,22 @@ max_title_length = 40, max_title_display_width = '24em', max_date_length = 34,
 general_topic_page = '/topic list', general_page_configuration = {
 	topic_page : general_topic_page,
 	// general_page_columns
-	columns : 'NO;title;replies;participants;last_user_set'
+	columns : 'NO;title;discussions;participants;last_user_set'
 // 不應該列出管理員那兩欄，似乎暗示著管理員與其他用戶不是平等的。
 // + ';last_admin_set'
 }, localized_page_configuration = {
 	zh : {
 		// 序號 Topics主題
-		heads : '! # !! 話題 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
+		heads : '! # !! 話題 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
 	// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新
 	},
 	'zh-classical' : {
-		heads : '! data-sort-type="number" | 序 !! 議題 !! data-sort-type="number" | 覆 !! data-sort-type="number" | 參議 !! 末議者 !! data-sort-type="isoDate" | 新易 UTC'
+		heads : '! data-sort-type="number" | <small>序</small> !! 議題 !! data-sort-type="number" | <small title="議論數">論</small> !! data-sort-type="number" | <small title="參議者數">參議</small> !! 末議者 !! data-sort-type="isoDate" | 新易 UTC'
 	// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易
 	},
 	ja : {
 		// 質問や提案、議論
-		heads : '! # !! 話題 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
+		heads : '! # !! 話題 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
 	}
 }[use_language];
 
@@ -106,7 +103,7 @@ Object.assign(general_page_configuration, localized_page_configuration);
 // default configurations for BRFA 機器人申請
 var default_BRFA_configurations = {
 	topic_page : general_topic_page,
-	columns : 'NO;title;status;replies;participants;last_user_set;last_BAG_set',
+	columns : 'NO;title;status;discussions;participants;last_user_set;last_BAG_set',
 	// 要含入並且監視的頁面。
 	// e.g., {{Wikipedia:Bot/使用申請/InternetArchiveBot}}
 	transclusion_target : function(token) {
@@ -132,7 +129,8 @@ var default_BRFA_configurations = {
 		// [[Wikipedia:机器人/申请/preload2]]
 		// get bot name from link in section title.
 		var bot_name = CeL.wiki.parse.user(section.section_title.toString());
-		if (/bot/i.test(bot_name)) {
+		if (CeL.wiki.PATTERN_BOT_NAME.test(bot_name)
+				|| (bot_name in special_users.bot)) {
 			section.bot_name = bot_name;
 		}
 
@@ -142,7 +140,8 @@ var default_BRFA_configurations = {
 		this.each.call(section, 'link', function(token) {
 			var user_name = CeL.wiki.parse.user(token.toString());
 			if (user_name) {
-				if (/bot/i.test(user_name)) {
+				if (CeL.wiki.PATTERN_BOT_NAME.test(user_name)
+						|| (bot_name in special_users.bot)) {
 					if (!section.bot_name) {
 						// 可能只是文章中的討論，因此不做設定。
 						// section.bot_name = user_name;
@@ -214,7 +213,7 @@ var default_BRFA_configurations = {
 page_configurations = {
 	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
-		heads : '! # !! Bot使用申請 !! 進捗 !! <small>返答</small>'
+		heads : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
 				+ ' !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
 				// 審議者・決裁者
@@ -223,8 +222,8 @@ page_configurations = {
 	}, default_BRFA_configurations),
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 依頼 !! 進捗 !! <small>返答</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small> !! <small>[[Template:User bot owner|Bot運用者]]更新 UTC</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
-		columns : 'NO;title;status;replies;participants;last_user_set;last_botop_set',
+		heads : '! # !! 依頼 !! 進捗 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small> !! <small>[[Template:User bot owner|Bot運用者]]更新 UTC</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
+		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		// column operators
 		operators : {
 			status : check_BOTREQ_status
@@ -241,20 +240,20 @@ page_configurations = {
 
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 需求 !! 進度 !! <small>回應</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新 UTC</small>',
+		heads : '! # !! 需求 !! 進度 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新 UTC</small>',
 		// first_user_set: 發起人與發起時間(Created)
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
 		// last_BAG_set: 特定使用者 special_users.BAG 最後留言者與最後時間(Last BAG editor)
 		// last_BAG_set: 最後BAG編輯者+BAG最後編輯於
-		columns : 'NO;title;status;replies;participants;last_user_set;last_botop_set',
+		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		operators : {
 			// 議體進度狀態
 			status : check_BOTREQ_status
 		}
 	},
 	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
-		heads : '! # !! 機器人申請 !! 進度 !! <small>回應</small>'
+		heads : '! # !! 機器人申請 !! 進度 !! <small>發言</small>'
 				+ ' !! <small title="參與討論人數">參與</small>'
 				+ ' !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
 				+ ' !! <small>最新[[WP:BAG|BAG]]</small>'
@@ -425,7 +424,7 @@ function get_special_users(callback, options) {
 		var user_hash = CeL.wiki.parse.user.all(content);
 		for ( var user_name in user_hash) {
 			if (user_name && !(user_name in special_users.bot)
-					&& !/bot/i.test(user_name)) {
+					&& !CeL.wiki.PATTERN_BOT_NAME.test(user_name)) {
 				special_users.BAG[user_name] = true;
 			}
 		}
@@ -437,7 +436,7 @@ function get_special_users(callback, options) {
 		while (matched = PATTERN_template_user.exec(content)) {
 			var user_name = CeL.wiki.normalize_title(matched[1]);
 			if (user_name && !(user_name in special_users.bot)
-					&& !/bot/i.test(user_name)) {
+					&& !CeL.wiki.PATTERN_BOT_NAME.test(user_name)) {
 				special_users.BAG[user_name] = true;
 			}
 		}
@@ -465,7 +464,7 @@ function get_special_users(callback, options) {
 				}
 				var user_name = user_data.title.replace(/^[^:]+:/, '');
 				if (user_name && !(user_name in special_users.bot)
-						&& !/bot/i.test(user_name)) {
+						&& !CeL.wiki.PATTERN_BOT_NAME.test(user_name)) {
 					special_users.botop[user_name] = user_data;
 				}
 			});
@@ -679,6 +678,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		// 超過1小時到最近1日內: 淺藍色。
 		: days < 1 ? 'style="background-color:#eef;" ' : '';
 		user = section.users[user_and_date_index];
+		// TODO: link to diff
 		user = (additional_attributes ? '| ' : '')
 		// 對於匿名IP用戶則顯示編輯紀錄。
 		+ (CeL.wiki.parse.user.is_IP(user) ? '[[Special:Contributions/'
@@ -709,18 +709,25 @@ var section_column_operators = {
 				+ section.section_title.link
 				+ (title_too_long ? '</small>' : '');
 	},
-	// 發言次數 discussions conversations
+	// discussions conversations, 發言次數, 発言数
 	discussions : function(section) {
-		return local_number(section.users.length);
+		return local_number(section.users.length,
+				section.users.length >= 1 ? ''
+						: 'style="background-color:#fcc;"');
 	},
 	// 參與討論人數
 	participants : function(section) {
-		return local_number(section.users.unique().length);
+		return local_number(section.users.unique().length, section.users
+				.unique().length >= 1 ? '' : 'style="background-color:#fcc;"');
 	},
-	// reply
+	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
 	replies : function(section) {
+		// 有不同的人回應才算上回應數。
 		return local_number(section.replies, section.replies >= 1 ? ''
 				: 'style="background-color:#fcc;"');
+	},
+	created : function(section) {
+		// TODO: the datetime the subpage created
 	},
 	// word count
 	words : function(section) {
