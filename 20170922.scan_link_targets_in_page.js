@@ -3,7 +3,7 @@
 scan link targets in page
 
 2017/9/22 16:20:25	the initial version and trial run 初版試營運。
- Deploying to production. 完成。正式運用。
+2017/10/10 10:15:22	Deploying to production. 完成。正式運用。
 
  */
 
@@ -20,19 +20,33 @@ wiki = Wiki(true);
 
 // ----------------------------------------------------------------------------
 
-var page_list = [ 'Draft:List of the Paleozoic life of Alabama' ];
+var page_list = 'Draft:List of the Paleozoic life of Alabama|Draft:List of the Paleozoic life of Alaska|Draft:List of the Paleozoic life of Arizona|Draft:List of the Paleozoic life of Arkansas|Draft:List of the Paleozoic life of California|Draft:List of the Paleozoic life of Colorado|Draft:List of the Paleozoic life of Connecticut|Draft:List of the Paleozoic life of Delaware|Draft:List of the Paleozoic life of Florida|Draft:List of the Paleozoic life of Georgia (U.S. state)|Draft:List of the Paleozoic life of Hawaii|Draft:List of the Paleozoic life of Idaho|Draft:List of the Paleozoic life of Illinois|Draft:List of the Paleozoic life of Indiana|Draft:List of the Paleozoic life of Iowa|Draft:List of the Paleozoic life of Kansas|Draft:List of the Paleozoic life of Kentucky|Draft:List of the Paleozoic life of Louisiana|Draft:List of the Paleozoic life of Maine|Draft:List of the Paleozoic life of Maryland|Draft:List of the Paleozoic life of Massachusetts|Draft:List of the Paleozoic life of Michigan|Draft:List of the Paleozoic life of Minnesota|Draft:List of the Paleozoic life of Mississippi|Draft:List of the Paleozoic life of Missouri|Draft:List of the Paleozoic life of Montana|Draft:List of the Paleozoic life of Nebraska|Draft:List of the Paleozoic life of Nevada|Draft:List of the Paleozoic life of New Hampshire|Draft:List of the Paleozoic life of New Jersey|Draft:List of the Paleozoic life of New Mexico|Draft:List of the Paleozoic life of New York (state)|Draft:List of the Paleozoic life of North Carolina|Draft:List of the Paleozoic life of North Dakota|Draft:List of the Paleozoic life of Ohio|Draft:List of the Paleozoic life of Oklahoma|Draft:List of the Paleozoic life of Oregon|Draft:List of the Paleozoic life of Pennsylvania|Draft:List of the Paleozoic life of Rhode Island|Draft:List of the Paleozoic life of South Carolina|Draft:List of the Paleozoic life of South Dakota|Draft:List of the Paleozoic life of Tennessee|Draft:List of the Paleozoic life of Texas|Draft:List of the Paleozoic life of Utah|Draft:List of the Paleozoic life of Vermont|Draft:List of the Paleozoic life of Virginia|Draft:List of the Paleozoic life of Washington (state)|Draft:List of the Paleozoic life of West Virginia|Draft:List of the Paleozoic life of Wisconsin|Draft:List of the Paleozoic life of Wyoming'
+		.split('|').slice(0);
 
-page_list.forEach(function(page_title) {
-	wiki.page(page_title, for_each_main_page, {
+// 注意: 跑兩次的話會掃瞄到先前加入的圖片描述中的連結!
+// Warning: Further execution will scan the descriptions added in previous task!
+// Be careful!
+CeL.run_serial(function(run_next, page_title) {
+	CeL.info('Scan ' + CeL.wiki.title_link_of(page_title) + '...');
+	wiki.page(page_title, function(page_data, error) {
+		if (error) {
+			CeL.error(error);
+			run_next();
+			return;
+		}
+		for_each_main_page(page_data, run_next);
+	}, {
 		redirects : 1
 	});
+}, page_list, function() {
+	CeL.info('All ' + page_list.length + ' pages scanned.');
 });
 
 function join_by_new_line() {
 	return this.join('\n');
 }
 
-function for_each_main_page(page_data) {
+function for_each_main_page(page_data, run_next) {
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (!parser) {
 		return [
@@ -90,19 +104,19 @@ function for_each_main_page(page_data) {
 	// ------------------------------------------
 
 	var files_to_add = CeL.null_Object();
-	function scan_link_target(page_data) {
-		// console.log(page_data);
-		// console.trace(page_data);
-		var parser = CeL.wiki.parser(page_data).parse();
+	function scan_link_target(linked_page_data) {
+		// console.log(linked_page_data);
+		// console.trace(linked_page_data);
+		var parser = CeL.wiki.parser(linked_page_data).parse();
 		if (!parser) {
 			return [
 					CeL.wiki.edit.cancel,
-					'No contents: ' + CeL.wiki.title_link_of(page_data)
+					'No contents: ' + CeL.wiki.title_link_of(linked_page_data)
 							+ '! 沒有頁面內容！' ];
 		}
 
-		if (CeL.wiki.content_of(page_data) !== parser.toString()) {
-			console.log(CeL.LCS(CeL.wiki.content_of(page_data), parser
+		if (CeL.wiki.content_of(linked_page_data) !== parser.toString()) {
+			console.log(CeL.LCS(CeL.wiki.content_of(linked_page_data), parser
 					.toString(), 'diff'));
 			throw 'parser error';
 		}
@@ -135,15 +149,16 @@ function for_each_main_page(page_data) {
 						: token.replace(/\]\]$/, '|right]]');
 			}
 			// add source
-			token += '<!-- ' + CeL.wiki.title_link_of(page_data)
+			token += '<!-- ' + CeL.wiki.title_link_of(linked_page_data)
 					+ (comment ? ': ' + comment : '') + ' -->';
 			if (!(file_title in files_to_add)) {
-				var section_to_insert = main_page_links[page_data.original_title
-						|| page_data.title];
+				var section_to_insert = main_page_links[linked_page_data.original_title
+						|| linked_page_data.title];
 				if (!section_to_insert) {
 					throw 'No section configured: '
-							+ CeL.wiki.title_link_of(page_data.original_title
-									|| page_data.title);
+							+ CeL.wiki
+									.title_link_of(linked_page_data.original_title
+											|| linked_page_data.title);
 				}
 				var file_tokens = files_to_add[file_title] = [ token ];
 				file_tokens.section = section_to_insert;
@@ -154,31 +169,54 @@ function for_each_main_page(page_data) {
 
 		// add image from information box
 		parser.each('template', function(token, index) {
-			if (!token.parameters.image) {
+			var image_file = token.parameters.image;
+			if (!image_file) {
 				return;
 			}
-			if (typeof token.parameters.image !== 'string') {
-				if (token.parameters.image.some(function(sub_token) {
+			if (typeof image_file !== 'string') {
+				var some_tokens_is_not_string;
+				if (image_file.some(function(sub_token, index) {
 					if (sub_token.type === 'file' && sub_token[0][1]) {
 						var file_title = CeL.wiki
 								.normalize_title(sub_token[0][1]);
 						add_file(file_title, sub_token.toString());
 						return true;
 					}
+					if (sub_token.type === 'comment') {
+						// e.g., [[Acidiscus]]
+						// @[[Draft:List of the Paleozoic life of New York
+						// (state)]]
+
+						// remove comments
+						// image_file[index] = '';
+					} else if (typeof sub_token !== 'string') {
+						some_tokens_is_not_string = sub_token.type;
+					}
 				})) {
 					return;
 				}
-				console.log(token.parameters.image);
-				throw 'parameters.image is not string';
+
+				if (some_tokens_is_not_string) {
+					// wrong link??
+					CeL.error(CeL.wiki.title_link_of(linked_page_data) + '@'
+							+ CeL.wiki.title_link_of(page_data)
+							+ ': parameters.image is not string: has type '
+							+ some_tokens_is_not_string);
+					console.log(image_file);
+					// e.g., [[Spica]]
+					// @[[Draft:List of the Paleozoic life of Texas]]
+					return;
+					throw ' parameters.image is not string';
+				}
+				image_file = image_file.toString();
 			}
-			var file_title = CeL.wiki.normalize_title(token.parameters.image);
-			add_file(file_title,
-					'[[File:'
-							+ file_title
-							+ '|thumb|right|'
-							+ (token.parameters.image_caption || CeL.wiki
-									.title_link_of(page_data)).toString()
-									.trim() + ']]', token.name);
+			var file_title = CeL.wiki.normalize_title(image_file);
+			add_file(file_title, '[[File:'
+					+ file_title
+					+ '|thumb|right|'
+					+ (token.parameters.image_file_caption || CeL.wiki
+							.title_link_of(linked_page_data)).toString().trim()
+					+ ']]', token.name);
 		});
 
 		// add directly [[File:image]] from the lead section
@@ -222,17 +260,18 @@ function for_each_main_page(page_data) {
 		if (file_count === 0) {
 			CeL.info(CeL.wiki.title_link_of(page_data)
 					+ ': No new image to add.');
+			run_next();
 			return;
 		}
 
 		CeL.log(CeL.wiki.title_link_of(page_data) + ': ' + file_count
 				+ ' file descriptions to add.');
 		wiki.page(page_data).edit(parser.toString(), {
-			summary : 'Scan links of an article' + ' and adding '
+			summary : 'Scan links of articles and adding '
 			//
-			+ file_count + ' file descriptions used in these links',
+			+ file_count + ' new file descriptions used in these links',
 			bot : 1
-		});
+		}).run(run_next);
 	}
 
 	wiki.work({
