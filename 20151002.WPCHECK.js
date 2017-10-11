@@ -19,7 +19,7 @@
  https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
 
  @see
- [[Special:LintErrors]]
+ [[Special:LintErrors]] https://www.mediawiki.org/wiki/Help:Extension:Linter
  [[:ja:Wikipedia:雑草とり]]
  [[ja:プロジェクト:ウィキ文法のチェック/Translation]]
 

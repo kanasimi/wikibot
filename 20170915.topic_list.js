@@ -136,27 +136,32 @@ var default_BRFA_configurations = {
 
 		// 申請人。
 		var applicants = section.applicants = [], exit = this.each.exit;
+
+		// TODO: jawiki 必須尋找{{UserG|JJMC89}}
+
 		// 尋找標題之外的第一個bot使用者連結。
-		this.each.call(section, 'link', function(token) {
-			var user_name = CeL.wiki.parse.user(token.toString());
-			if (user_name) {
-				if (CeL.wiki.PATTERN_BOT_NAME.test(user_name)
-						|| (user_name in special_users.bot)) {
-					if (!section.bot_name) {
-						// 可能只是文章中的討論，因此不做設定。
-						// section.bot_name = user_name;
-					} else if (section.bot_name !== user_name) {
-						CeL.warn(section.section_title.title
-								+ ': Find 2 bots: ' + section.bot_name
-								+ ' !== ' + user_name);
-						// console.log(special_users.bot);
+		if (applicants.length > 0) {
+			this.each.call(section, 'link', function(token) {
+				var user_name = CeL.wiki.parse.user(token.toString());
+				if (user_name) {
+					if (CeL.wiki.PATTERN_BOT_NAME.test(user_name)
+							|| (user_name in special_users.bot)) {
+						if (!section.bot_name) {
+							// 可能只是文章中的討論，因此不做設定。
+							// section.bot_name = user_name;
+						} else if (section.bot_name !== user_name) {
+							CeL.warn(section.section_title.title
+									+ ': Find 2 bots: ' + section.bot_name
+									+ ' !== ' + user_name);
+							// console.log(special_users.bot);
+						}
+					} else {
+						applicants.push(user_name);
+						return exit;
 					}
-				} else {
-					applicants.push(user_name);
-					return exit;
 				}
-			}
-		});
+			});
+		}
 
 		if (false) {
 			console.log([ section.bot_name, applicants,
@@ -713,14 +718,16 @@ var section_column_operators = {
 	},
 	// discussions conversations, 發言次數, 発言数
 	discussions : function(section) {
-		return local_number(section.users.length,
-				section.users.length >= 1 ? ''
-						: 'style="background-color:#fcc;"');
+		// TODO: 其實是計算簽名與日期的數量。因此假如機器人等權限申請的部分多了一個簽名，就會造成多計算一次。
+		return local_number(section.users.length, section.users.length >= 2
+		// 火熱的討論採用不同顏色。
+		? section.users.length >= 10 ? 'style="background-color:#ffe;' : ''
+				: 'style="background-color:#fcc;"');
 	},
 	// 參與討論人數
 	participants : function(section) {
 		return local_number(section.users.unique().length, section.users
-				.unique().length >= 1 ? '' : 'style="background-color:#fcc;"');
+				.unique().length === 1 ? 'style="background-color:#fcc;"' : '');
 	},
 	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
 	replies : function(section) {

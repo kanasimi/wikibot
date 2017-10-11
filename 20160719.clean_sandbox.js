@@ -14,7 +14,9 @@
 require('./wiki loder.js');
 
 // 其實正有點「公共測試區是從二級標題旁的編輯按鈕開始進行編輯」這樣的意思。為了使瀏覽者知道此頁之特殊性質，因此才保留{{沙盒頂部}}與編輯提示。公共測試區應該是任何編輯者想測試時都能清爽的做測試。當測試完成便告一段落。若想保留較長時間，可以在自己的測試區，或者翻閱歷史紀錄、採用草稿功能等。
-summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:MyPage/Sandbox|個人測試區]]作測試，或者翻閱歷史紀錄。';
+summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:MyPage/Sandbox|個人測試區]]作測試，或者翻閱歷史紀錄。',
+// 若是最後編輯時間到執行的時刻小於這個時間間隔，則跳過清理。
+min_interval = '30m';
 
 // --------------------------------------------------------
 
@@ -23,6 +25,7 @@ clean_wiki(
 		'{{Sandbox}}\n== Please start your testing below this line ==\n',
 		'Clearing the sandbox. If you want to keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
 
+// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
 clean_wiki(
 		'zh',
 		'{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n== 請在這行文字底下進行您的測試 ==\n');
@@ -58,8 +61,15 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 						+ ' Incase the public sandbox being moved.'
 			});
 		}
-		// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
 		wiki.edit(function(page_data) {
+			// 在執行清理工作前，先行檢查用戶最後編輯時間。
+			var time_diff = Date.now()
+					- Date.parse(page_data.revisions[0].timestamp);
+			if (time_diff < CeL.date.to_millisecond(min_interval)) {
+				return [ CeL.wiki.edit.cancel,
+						'用戶最後編輯時間短於' + min_interval + '，跳過清理。' ];
+			}
+
 			var
 			/**
 			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
