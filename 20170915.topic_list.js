@@ -140,7 +140,7 @@ var default_BRFA_configurations = {
 		// TODO: jawiki 必須尋找{{UserG|JJMC89}}
 
 		// 尋找標題之外的第一個bot使用者連結。
-		if (applicants.length > 0) {
+		if (applicants.length === 0) {
 			this.each.call(section, 'link', function(token) {
 				var user_name = CeL.wiki.parse.user(token.toString());
 				if (user_name) {
