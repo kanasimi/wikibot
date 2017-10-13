@@ -34,6 +34,7 @@ https://zh.moegirl.org/Talk:%E8%AE%A8%E8%AE%BA%E7%89%88
 https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E6%8F%90%E8%AE%AE
 https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
 https://en.wikipedia.org/wiki/Wikipedia:Bot_requests
+w:ja:Wikipedia:議論が盛んなノート
 
 TODO:
 討論議題列表可以放在另外一頁，也可以在當前頁面中。
@@ -243,6 +244,8 @@ page_configurations = {
 	},
 	// TODO: Template:井戸端から誘導
 	'jawiki:Wikipedia:井戸端' : Object.assign({
+		// 初期設定は折りたたんだ状態で
+		header_class : 'wikitable sortable collapsible collapsed',
 		timezone : 9,
 		transclusion_target : function(token) {
 			if (token.name === '井戸端サブページ' && token.parameters.title) {
@@ -343,7 +346,8 @@ function main_process(_special_users) {
 		// start : new Date,
 
 		// 延遲時間
-		// delay : '0m',
+		// 検出後30秒ほどのタイムラグを設けて
+		delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
 		filter : main_talk_pages,
 		with_content : true,
 		parameters : {
