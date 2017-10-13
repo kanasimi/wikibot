@@ -117,6 +117,7 @@ function for_file(page_data, error) {
 	parser = CeL.wiki.parser(content).parse();
 	if (content !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
+		console.log(CeL.LCS(content, parser.toString(), 'diff'));
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 

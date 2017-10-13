@@ -172,7 +172,9 @@ function for_each_page(page_data, messages) {
 		// console.log(book_title);
 		wiki.page(page_data).edit_data(function(entity) {
 			if (!entity) {
+				// 暫時還沒有建立維基數據的資料。
 				CeL.error('No entity got: ' + CeL.wiki.title_of(page_data));
+				return;
 			}
 			var parameters = token.parameters,
 			//

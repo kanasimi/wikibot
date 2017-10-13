@@ -327,7 +327,9 @@ function add_dead_link_mark(page_data, link_hash) {
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: [[' + page_data.title + ']]';
+		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parser.toString(),
+				'diff'));
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
 	// assert: parser.parsed === true

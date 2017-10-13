@@ -35,7 +35,6 @@ https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E6%8F%90%E8
 https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
 https://en.wikipedia.org/wiki/Wikipedia:Bot_requests
 
-
 TODO:
 討論議題列表可以放在另外一頁，也可以在當前頁面中。
 可以在 __TOC__ , __NEWSECTIONLINK__ 之後才開始檢查 main_talk_pages
@@ -84,17 +83,20 @@ general_topic_page = '/topic list', general_page_configuration = {
 // + ';last_admin_set'
 }, localized_page_configuration = {
 	zh : {
+		timezone : 8,
 		// 序號 Topics主題
-		heads : '! # !! 話題 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
-	// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新
+		headers : '! # !! 話題 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
+	// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
 	},
 	'zh-classical' : {
-		heads : '! data-sort-type="number" | <small>序</small> !! 議題 !! data-sort-type="number" | <small title="議論數">論</small> !! data-sort-type="number" | <small title="參議者數">參議</small> !! 末議者 !! data-sort-type="isoDate" | 新易 UTC'
-	// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易
+		timezone : 8,
+		headers : '! data-sort-type="number" | <small>序</small> !! 議題 !! data-sort-type="number" | <small title="議論數">論</small> !! data-sort-type="number" | <small title="參議者數">參議</small> !! 末議者 !! data-sort-type="isoDate" | 新易(UTC+8)'
+	// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易(UTC+8)
 	},
 	ja : {
+		timezone : 9,
 		// 質問や提案、議論
-		heads : '! # !! 話題 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
+		headers : '! # !! 話題 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
 	}
 }[use_language];
 
@@ -220,16 +222,19 @@ var default_BRFA_configurations = {
 page_configurations = {
 	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
-		heads : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
+		timezone : 9,
+		headers : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
-				+ ' !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small>'
+				+ ' !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
 				// 審議者・決裁者
 				+ ' !! <small>[[WP:BUR|決裁者]]更新</small>'
-				+ ' !! data-sort-type="isoDate" | <small>決裁者最後更新 UTC</small>'
+				+ ' !! data-sort-type="isoDate"'
+				+ ' | <small>決裁者最後更新(UTC+9)</small>'
 	}, default_BRFA_configurations),
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 依頼 !! 進捗 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時 UTC</small> !! <small>[[Template:User bot owner|Bot運用者]]更新 UTC</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時</small>',
+		timezone : 9,
+		headers : '! # !! 依頼 !! 進捗 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small> !! <small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時(UTC+9)</small>',
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		// column operators
 		operators : {
@@ -238,6 +243,7 @@ page_configurations = {
 	},
 	// TODO: Template:井戸端から誘導
 	'jawiki:Wikipedia:井戸端' : Object.assign({
+		timezone : 9,
 		transclusion_target : function(token) {
 			if (token.name === '井戸端サブページ' && token.parameters.title) {
 				return 'Wikipedia:井戸端/subj/' + token.parameters.title;
@@ -247,7 +253,8 @@ page_configurations = {
 
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
-		heads : '! # !! 需求 !! 進度 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新 UTC</small>',
+		timezone : 8,
+		headers : '! # !! 需求 !! 進度 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
 		// first_user_set: 發起人與發起時間(Created)
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
@@ -260,11 +267,13 @@ page_configurations = {
 		}
 	},
 	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
-		heads : '! # !! 機器人申請 !! 進度 !! <small>發言</small>'
-				+ ' !! <small title="參與討論人數">參與</small>'
-				+ ' !! 最新發言 !! data-sort-type="isoDate" | 最後更新 UTC'
-				+ ' !! <small>最新[[WP:BAG|BAG]]</small>'
-				+ ' !! data-sort-type="isoDate" | <small>BAG最後更新 UTC</small>',
+		timezone : 8,
+		headers : '! # !! 機器人申請 !! 進度 !! <small>發言</small>'
+				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
+				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
+				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
+				+ ' !! data-sort-type="isoDate"'
+				+ ' | <small>BAG最後更新(UTC+8)</small>',
 		// 要篩選的章節標題層級
 		level_filter : [ 2, 3 ]
 	}, default_BRFA_configurations),
@@ -275,12 +284,18 @@ page_configurations = {
 	'zhwiki:Wikipedia:互助客栈/条目探讨' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/其他' : general_page_configuration,
 
-	'zhwikinews:Wikinews:茶馆' : general_page_configuration,
+	'zhwikinews:Wikinews:茶馆' : Object.assign({
+		timezone : 8
+	}, general_page_configuration),
 
 	'zhwikisource:Wikisource:写字间' : Object.assign({
+		timezone : 8,
+		// 維基文庫沒有"collapsible"，改為"mw-collapsible"。兩者並用會造成兩個都顯示。
+		header_class : 'wikitable sortable mw-collapsible',
 		postfix : function(section_table) {
-			section_table.unshift("'''關於為討論頁面增加主題列表的功能"
-					+ "[[Wikisource:机器人#User:cewbot|正申請中]]，請提供意見，謝謝。'''");
+			if (false)
+				section_table.unshift("'''關於為討論頁面增加主題列表的功能"
+						+ "[[Wikisource:机器人#User:cewbot|正申請中]]，請提供意見，謝謝。'''");
 			section_table.push('[[Category:维基文库]]');
 		}
 	}, general_page_configuration),
@@ -656,14 +671,15 @@ var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 function add_user_name_and_date_set(section, user_and_date_index) {
 	var user = '', date = '', additional_attributes;
 	if (user_and_date_index >= 0) {
-		var days = (new Date - section.dates[user_and_date_index])
+		var parser = this, days = (new Date - section.dates[user_and_date_index])
 				/ ONE_DAY_LENGTH_VALUE;
 		date = section.dates[user_and_date_index];
 		if (true) {
 			// 採用短日期格式。
 			date = date.format({
 				format : '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
-				zone : 0
+				// 採用當個項目最多人所處的時區。
+				zone : parser.page.page_configuration.timezone || 0
 			});
 			// 因為不確定閱覽者的時區，因此不能夠再做進一步的處理，例如 CeL.date.indicate_date_time() 。
 		} else {
@@ -783,7 +799,7 @@ function local_number(number, attributes) {
 	return attributes + ' | ' + number;
 }
 
-var section_index_filter = CeL.wiki.parser.paser_prototype.each_section.index_filter;
+var section_index_filter = CeL.wiki.parser.parser_prototype.each_section.index_filter;
 function get_column_operators(page_configuration) {
 	var column_operators = page_configuration.column_operators;
 	if (Array.isArray(column_operators)) {
@@ -837,13 +853,14 @@ function get_column_operators(page_configuration) {
 				index = section.last_update_index;
 			} else {
 				index = section_index_filter(section,
-						twist_filter ? twist_filter.call(this, section,
-								user_group_filter) : user_group_filter,
-						date_type);
+				// this: parser
+				twist_filter ? twist_filter.call(this, section,
+						user_group_filter) : user_group_filter, date_type);
 			}
 
-			return output_type === 'set' ? add_user_name_and_date_set(section,
-					index)
+			return output_type === 'set'
+			// this: parser
+			? add_user_name_and_date_set.call(this, section, index)
 			//
 			: output_type === 'date' ? section.dates[index]
 					: section.users[index];
@@ -873,9 +890,10 @@ function pre_fetch_sub_pages(page_data, error) {
 	}
 
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
 		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parser.toString(),
 				'diff'));
-		throw 'parser error';
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
 	var page_configuration = page_data.page_configuration
@@ -973,9 +991,10 @@ function generate_topic_list(page_data) {
 	//
 	section_table = [
 			'<!-- This page will be auto-generated by bot. Please contact me to improve the tool. -->',
+			'{| class="' + (page_configuration.header_class
 			// plainlinks
-			'{| class="wikitable sortable collapsible"', '|-',
-			page_configuration.heads ],
+			|| 'wikitable sortable collapsible') + '"', '|-',
+			page_configuration.headers ],
 	//
 	column_operators = get_column_operators(page_configuration),
 	//
