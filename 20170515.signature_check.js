@@ -55,9 +55,9 @@ time_back_to = test_mode ? '1h' : '2D',
 notification_limit_count = 3,
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
-whitelist = [ 'Wikipedia:知识问答', '維基大典:會館' ],
-//
-blacklist = [],
+whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館' ],
+// 黑名單直接封殺。黑名單的優先度高於白名單。
+blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引' ],
 
 // ----------------------------------------------------------------------------
 
@@ -278,7 +278,7 @@ function for_each_row(row) {
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 
-	// 黑名單直接封殺
+	// 黑名單直接封殺。黑名單的優先度高於白名單。
 	|| blacklist.includes(row.title)
 	// 白名單頁面可以省去其他的檢查
 	|| !whitelist.includes(row.title)

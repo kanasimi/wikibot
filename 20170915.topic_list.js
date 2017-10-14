@@ -21,7 +21,7 @@ jstop cron-tools.cewbot-20170915.topic_list.wikisource;
 2017/10/10 16:17:28	完成。正式運用。
 
 
-@see [[zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[User:WhitePhosphorus-bot/RFBA_Status]],
+@see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[w:zh:User:WhitePhosphorus-bot/RFBA_Status]], [[w:ja:Wikipedia:議論が盛んなノート]],
  https://zh.moegirl.org/Widget:TalkToc ($('#toc'))
 
 
@@ -34,7 +34,7 @@ https://zh.moegirl.org/Talk:%E8%AE%A8%E8%AE%BA%E7%89%88
 https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E6%8F%90%E8%AE%AE
 https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
 https://en.wikipedia.org/wiki/Wikipedia:Bot_requests
-w:ja:Wikipedia:議論が盛んなノート
+
 
 TODO:
 討論議題列表可以放在另外一頁，也可以在當前頁面中。
@@ -244,13 +244,19 @@ page_configurations = {
 	},
 	// TODO: Template:井戸端から誘導
 	'jawiki:Wikipedia:井戸端' : Object.assign({
-		// 初期設定は折りたたんだ状態で
+		// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
+		// 初期設定は折り畳んだ状態で
 		header_class : 'wikitable sortable collapsible collapsed',
 		timezone : 9,
 		transclusion_target : function(token) {
 			if (token.name === '井戸端サブページ' && token.parameters.title) {
 				return 'Wikipedia:井戸端/subj/' + token.parameters.title;
 			}
+		},
+		postfix : function(section_table) {
+			section_table.push("↑'''この議題一覧表に関する議論は"
+					+ "現在[[Wikipedia‐ノート:井戸端|ノートページ]]で行われています。"
+					+ "皆様のご意見をお願いいたします。'''");
 		}
 	}, general_page_configuration),
 
@@ -346,6 +352,7 @@ function main_process(_special_users) {
 		// start : new Date,
 
 		// 延遲時間
+		// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
 		// 検出後30秒ほどのタイムラグを設けて
 		delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
 		filter : main_talk_pages,
