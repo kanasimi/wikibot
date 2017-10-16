@@ -15,6 +15,28 @@
 
  */
 
+// --------------------------------------------------------
+// 2017/10/16 15:52:22
+// for remove new in a range
+if (false) {
+	// node
+	require('./wiki loder.js');
+	/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
+	var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
+	var wiki = Wiki(true, 'wikinews'), locale = '香港';
+	var date_value = Date.parse('2017/8/22');
+	while ((date_value += ONE_DAY_LENGTH_VALUE) < Date.now()) {
+		var use_date = new Date(date_value);
+		var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條';
+		wiki.page(save_to_page).remove({
+			bot : 1,
+			reason : '因為採用了舊的新聞來源，因此將之刪除。'
+		});
+	}
+}
+
+// --------------------------------------------------------
+
 'use strict';
 
 // Load CeJS library and modules.
@@ -56,6 +78,7 @@ headline_labels = {
 		'中國評論通訊社' : [ '"%m月%d日" "國際" "頭條新聞" site:hk.crntt.com', '國際' ]
 	},
 
+	// 香港的部分因為2017年8月23日起已經沒有資料來源，所以停止更新了。
 	'香港' : {
 		// http://www.orangenews.hk/news/paperheadline/
 		// 7月11日你要知的香港頭條新聞-資訊睇睇先-橙新聞
@@ -138,7 +161,7 @@ day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 // 後一天, 隔天 the day after
 day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE),
 
-to_remind = 'kanashimi';
+to_remind = owner_name;
 
 // ---------------------------------------------------------------------//
 
@@ -225,7 +248,7 @@ function write_data() {
 		if (headline_data.length > 0) {
 			CeL.debug('add '
 			//
-			+ headline_data.length + ' headliness.', 0, 'write_data');
+			+ headline_data.length + ' headlines.', 0, 'write_data');
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
@@ -234,6 +257,12 @@ function write_data() {
 				.unique_sorted().join('\n') + '\n';
 				return section;
 			});
+		}
+
+		if (has_new_data === 0) {
+			// 沒有新頭條時不寫入資料。
+			CeL.debug('沒有新 headline 資料。Skip.', 0, 'write_data');
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
 		if (has_new_data) {

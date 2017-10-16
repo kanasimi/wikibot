@@ -23,11 +23,16 @@ wiki = Wiki(true);
 var page_list = 'Draft:List of the Paleozoic life of Alabama|Draft:List of the Paleozoic life of Alaska|Draft:List of the Paleozoic life of Arizona|Draft:List of the Paleozoic life of Arkansas|Draft:List of the Paleozoic life of California|Draft:List of the Paleozoic life of Colorado|Draft:List of the Paleozoic life of Connecticut|Draft:List of the Paleozoic life of Delaware|Draft:List of the Paleozoic life of Florida|Draft:List of the Paleozoic life of Georgia (U.S. state)|Draft:List of the Paleozoic life of Hawaii|Draft:List of the Paleozoic life of Idaho|Draft:List of the Paleozoic life of Illinois|Draft:List of the Paleozoic life of Indiana|Draft:List of the Paleozoic life of Iowa|Draft:List of the Paleozoic life of Kansas|Draft:List of the Paleozoic life of Kentucky|Draft:List of the Paleozoic life of Louisiana|Draft:List of the Paleozoic life of Maine|Draft:List of the Paleozoic life of Maryland|Draft:List of the Paleozoic life of Massachusetts|Draft:List of the Paleozoic life of Michigan|Draft:List of the Paleozoic life of Minnesota|Draft:List of the Paleozoic life of Mississippi|Draft:List of the Paleozoic life of Missouri|Draft:List of the Paleozoic life of Montana|Draft:List of the Paleozoic life of Nebraska|Draft:List of the Paleozoic life of Nevada|Draft:List of the Paleozoic life of New Hampshire|Draft:List of the Paleozoic life of New Jersey|Draft:List of the Paleozoic life of New Mexico|Draft:List of the Paleozoic life of New York (state)|Draft:List of the Paleozoic life of North Carolina|Draft:List of the Paleozoic life of North Dakota|Draft:List of the Paleozoic life of Ohio|Draft:List of the Paleozoic life of Oklahoma|Draft:List of the Paleozoic life of Oregon|Draft:List of the Paleozoic life of Pennsylvania|Draft:List of the Paleozoic life of Rhode Island|Draft:List of the Paleozoic life of South Carolina|Draft:List of the Paleozoic life of South Dakota|Draft:List of the Paleozoic life of Tennessee|Draft:List of the Paleozoic life of Texas|Draft:List of the Paleozoic life of Utah|Draft:List of the Paleozoic life of Vermont|Draft:List of the Paleozoic life of Virginia|Draft:List of the Paleozoic life of Washington (state)|Draft:List of the Paleozoic life of West Virginia|Draft:List of the Paleozoic life of Wisconsin|Draft:List of the Paleozoic life of Wyoming'
 		.split('|').slice(0);
 
+// 2017/10/13 21:43:44
+page_list = 'Draft:List of the Mesozoic life of Alabama|Draft:List of the Mesozoic life of Alaska|Draft:List of the Mesozoic life of Arizona|Draft:List of the Mesozoic life of Arkansas|Draft:List of the Mesozoic life of California|Draft:List of the Mesozoic life of Colorado|Draft:List of the Mesozoic life of Connecticut|Draft:List of the Mesozoic life of Delaware|Draft:List of the Mesozoic life of Florida|Draft:List of the Mesozoic life of Georgia (U.S. state)|Draft:List of the Mesozoic life of Hawaii|Draft:List of the Mesozoic life of Idaho|Draft:List of the Mesozoic life of Illinois|Draft:List of the Mesozoic life of Indiana|Draft:List of the Mesozoic life of Iowa|Draft:List of the Mesozoic life of Kansas|Draft:List of the Mesozoic life of Kentucky|Draft:List of the Mesozoic life of Louisiana|Draft:List of the Mesozoic life of Maine|Draft:List of the Mesozoic life of Maryland|Draft:List of the Mesozoic life of Massachusetts|Draft:List of the Mesozoic life of Michigan|Draft:List of the Mesozoic life of Minnesota|Draft:List of the Mesozoic life of Mississippi|Draft:List of the Mesozoic life of Missouri|Draft:List of the Mesozoic life of Montana|Draft:List of the Mesozoic life of Nebraska|Draft:List of the Mesozoic life of Nevada|Draft:List of the Mesozoic life of New Hampshire|Draft:List of the Mesozoic life of New Jersey|Draft:List of the Mesozoic life of New Mexico|Draft:List of the Mesozoic life of New York (state)|Draft:List of the Mesozoic life of North Carolina|Draft:List of the Mesozoic life of North Dakota|Draft:List of the Mesozoic life of Ohio|Draft:List of the Mesozoic life of Oklahoma|Draft:List of the Mesozoic life of Oregon|Draft:List of the Mesozoic life of Pennsylvania|Draft:List of the Mesozoic life of Rhode Island|Draft:List of the Mesozoic life of South Carolina|Draft:List of the Mesozoic life of South Dakota|Draft:List of the Mesozoic life of Tennessee|Draft:List of the Mesozoic life of Texas|Draft:List of the Mesozoic life of Utah|Draft:List of the Mesozoic life of Vermont|Draft:List of the Mesozoic life of Virginia|Draft:List of the Mesozoic life of Washington (state)|Draft:List of the Mesozoic life of West Virginia|Draft:List of the Mesozoic life of Wisconsin|Draft:List of the Mesozoic life of Wyoming'
+		.split('|').slice(0);
+
 // 注意: 跑兩次的話會掃瞄到先前加入的圖片描述中的連結!
 // Warning: Further execution will scan the descriptions added in previous task!
 // Be careful!
-CeL.run_serial(function(run_next, page_title) {
-	CeL.info('Scan ' + CeL.wiki.title_link_of(page_title) + '...');
+CeL.run_serial(function(run_next, page_title, index) {
+	CeL.info('Scan ' + index + '/' + page_list.length + ' '
+			+ CeL.wiki.title_link_of(page_title) + '...');
 	wiki.page(page_title, function(page_data, error) {
 		if (error) {
 			CeL.error(error);
@@ -56,9 +61,10 @@ function for_each_main_page(page_data, run_next) {
 	}
 
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+		// debug 用. check parser, test if parser working properly.
 		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parser.toString(),
 				'diff'));
-		throw 'parser error';
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
 	var main_page_links = CeL.null_Object(), main_page_files = CeL
@@ -105,6 +111,11 @@ function for_each_main_page(page_data, run_next) {
 
 	var files_to_add = CeL.null_Object();
 	function scan_link_target(linked_page_data) {
+		if (!linked_page_data) {
+			// e.g., has link "[[ ]]"
+			return [ CeL.wiki.edit.cancel, 'No page data' ];
+		}
+
 		// console.log(linked_page_data);
 		// console.trace(linked_page_data);
 		var parser = CeL.wiki.parser(linked_page_data).parse();
@@ -116,9 +127,10 @@ function for_each_main_page(page_data, run_next) {
 		}
 
 		if (CeL.wiki.content_of(linked_page_data) !== parser.toString()) {
+			// debug 用. check parser, test if parser working properly.
 			console.log(CeL.LCS(CeL.wiki.content_of(linked_page_data), parser
 					.toString(), 'diff'));
-			throw 'parser error';
+			throw 'Parser error: ' + CeL.wiki.title_link_of(linked_page_data);
 		}
 
 		// skip the lead section

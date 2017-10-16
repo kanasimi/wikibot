@@ -12,14 +12,13 @@
  https://github.com/scfc/checkwiki/blob/pu/tools-migration/bin/checkwiki.pl
 
  TODO:
- [[Special:LintErrors]]
  [[WP:維基化]]
  https://en.wikipedia.org/wiki/Wikipedia:WikiProject_Check_Wikipedia
  https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
  https://www.mediawiki.org/wiki/API:Edit_-_Set_user_preferences
 
  @see
- [[Special:LintErrors]] https://www.mediawiki.org/wiki/Help:Extension:Linter
+ [[Special:LintErrors]] https://www.mediawiki.org/wiki/Help:Extension:Linter https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors
  [[:ja:Wikipedia:雑草とり]]
  [[ja:プロジェクト:ウィキ文法のチェック/Translation]]
 

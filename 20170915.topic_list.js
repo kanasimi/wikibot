@@ -254,9 +254,9 @@ page_configurations = {
 			}
 		},
 		postfix : function(section_table) {
-			section_table.push("↑'''この議題一覧表に関する議論は"
-					+ "現在[[Wikipedia‐ノート:井戸端|ノートページ]]で行われています。"
-					+ "皆様のご意見をお願いいたします。'''");
+			section_table.push("↑'''この議題一覧表に関する議論は現在[[Wikipedia‐ノート:井戸端"
+					+ "#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について"
+					+ "|ノートページ]]で行われています。皆様のご意見をお願いいたします。'''");
 		}
 	}, general_page_configuration),
 
