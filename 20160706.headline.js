@@ -259,7 +259,7 @@ function write_data() {
 			});
 		}
 
-		if (has_new_data === 0) {
+		if (!has_new_data) {
 			// 沒有新頭條時不寫入資料。
 			CeL.debug('沒有新 headline 資料。Skip.', 0, 'write_data');
 			return [ CeL.wiki.edit.cancel, 'skip' ];
