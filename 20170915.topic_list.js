@@ -243,6 +243,7 @@ page_configurations = {
 		}
 	},
 	// TODO: Template:井戸端から誘導
+	// 被認為無用
 	'jawiki:Wikipedia:井戸端' : Object.assign({
 		// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
 		// 初期設定は折り畳んだ状態で
@@ -253,7 +254,7 @@ page_configurations = {
 				return 'Wikipedia:井戸端/subj/' + token.parameters.title;
 			}
 		},
-		postfix : function(section_table) {
+		_postfix : function(section_table) {
 			section_table.push("↑'''この議題一覧表に関する議論は現在[[Wikipedia‐ノート:井戸端"
 					+ "#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について"
 					+ "|ノートページ]]で行われています。皆様のご意見をお願いいたします。'''");
@@ -300,7 +301,8 @@ page_configurations = {
 	'zhwikisource:Wikisource:写字间' : Object.assign({
 		timezone : 8,
 		// 維基文庫沒有"collapsible"，改為"mw-collapsible"。兩者並用會造成兩個都顯示。
-		header_class : 'wikitable sortable mw-collapsible',
+		// 加上「metadata」class，這樣在移動版頁面中將不再顯示主題列表。
+		header_class : 'wikitable sortable mw-collapsible metadata',
 		postfix : function(section_table) {
 			if (false)
 				section_table.unshift("'''關於為討論頁面增加主題列表的功能"
@@ -1076,7 +1078,9 @@ function generate_topic_list(page_data) {
 		// -1: 跳過頁首設定與公告區。
 		+ topic_count + ' topics'
 		//
-		+ (new_topics.length > 0 ? ', new: ' + new_topics.join('; ') : '')
+		+ (new_topics.length > 0
+		//
+		? ', new reply: ' + new_topics.join('; ') : '')
 	})
 	// 更新主頁面。
 	.purge(page_data.title);
