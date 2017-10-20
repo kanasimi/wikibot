@@ -15,8 +15,10 @@ require('./wiki loder.js');
 
 // 其實正有點「公共測試區是從二級標題旁的編輯按鈕開始進行編輯」這樣的意思。為了使瀏覽者知道此頁之特殊性質，因此才保留{{沙盒頂部}}與編輯提示。公共測試區應該是任何編輯者想測試時都能清爽的做測試。當測試完成便告一段落。若想保留較長時間，可以在自己的測試區，或者翻閱歷史紀錄、採用草稿功能等。
 summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:MyPage/Sandbox|個人測試區]]作測試，或者翻閱歷史紀錄。';
+// 強制更新。
+var force = CeL.env.arg_hash && CeL.env.arg_hash.force,
 // 若是最後編輯時間到執行的時刻小於這個時間間隔，則跳過清理。
-var min_interval = '30m';
+min_interval = '30m', JD = CeL.date.Julian_day(new Date);
 
 // --------------------------------------------------------
 
@@ -41,8 +43,11 @@ clean_wiki(
 
 clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n');
 
-clean_wiki('wikisource', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', null,
-		'Wikisource:沙盒');
+// 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
+if (force || JD % 7 === 0) {
+	clean_wiki('wikisource', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', null,
+			'Wikisource:沙盒');
+}
 
 clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
@@ -105,13 +110,12 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 
 // --------------------------------------------------------
 
-var force = CeL.env.arg_hash && CeL.env.arg_hash.force,
 /** {Object}wiki operator 操作子. */
-moegirl = Wiki(true, 'https://zh.moegirl.org/api.php');
+var moegirl = Wiki(true, 'https://zh.moegirl.org/api.php');
 
 // 一天個人認為還是略嫌小。——From AnnAngela the sysop
 // 改2天一次試試。
-if (force || (new Date).getDate() % 2 === 1) {
+if (force || JD % 2 === 0) {
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
 	moegirl.page('Help:沙盒‎‎').edit('{{沙盒顶部}}\n== 請在這行文字底下進行您的測試 ==\n', {
 		summary : summary,
