@@ -823,7 +823,7 @@ function check_headline_data(labels_to_check) {
 	if (add_source_data.length === 0) {
 		CeL.debug('沒有新 source 資料，或者全部錯誤。', 0, 'check_headline_data');
 		// 依然持續執行，因為可能需要補上其他闕漏資料。
-		// return;
+		return;
 	}
 
 	// add_source_data.sort();

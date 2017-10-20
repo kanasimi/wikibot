@@ -53,14 +53,25 @@ test_mode = !!test_the_page_only,
 time_back_to = test_mode ? '1h' : '2D',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
+//
+project_name = CeL.wiki.site_name(wiki),
+//
+project_page_prefix = {
+	zhwiki : 'Wikipedia:',
+	zh_classicalwiki : '維基大典:',
+	zhwikinews : 'Wikinews:',
+	zhwikisource : 'Wikisource:'
+}[project_name],
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
-whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館' ],
+whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館',
+		'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员' ],
 // 黑名單直接封殺。黑名單的優先度高於白名單。
 blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引' ],
 
 // ----------------------------------------------------------------------------
 
+// 為每個段落都補簽名。
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
 // 因為有些時候可能是把正文中許多段落的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
 sign_each_section = false,
@@ -130,7 +141,9 @@ function filter_row(row) {
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 
 	// 必須是白名單頁面，
-	&& (whitelist.includes(row.title) || row.title.startsWith('Wikipedia:')
+	&& (whitelist.includes(row.title)
+	//
+	|| row.title.startsWith(project_page_prefix)
 	// ...或者討論頁面。
 	|| CeL.wiki.is_talk_namespace(row.ns)
 	// for test
@@ -447,7 +460,7 @@ function for_each_row(row) {
 				return;
 			}
 
-		} else if (row.title.startsWith('Wikipedia:')
+		} else if (row.title.startsWith(project_page_prefix)
 				|| CeL.wiki.is_talk_namespace(row.ns)) {
 			CeL.debug('測試是不是在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。', 2);
 			if (this_section_text_may_skip()) {

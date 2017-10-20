@@ -14,7 +14,7 @@
 require('./wiki loder.js');
 
 // 其實正有點「公共測試區是從二級標題旁的編輯按鈕開始進行編輯」這樣的意思。為了使瀏覽者知道此頁之特殊性質，因此才保留{{沙盒頂部}}與編輯提示。公共測試區應該是任何編輯者想測試時都能清爽的做測試。當測試完成便告一段落。若想保留較長時間，可以在自己的測試區，或者翻閱歷史紀錄、採用草稿功能等。
-summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:MyPage/Sandbox|個人測試區]]作測試，或者翻閱歷史紀錄。',
+summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:MyPage/Sandbox|個人測試區]]作測試，或者翻閱歷史紀錄。';
 // 若是最後編輯時間到執行的時刻小於這個時間間隔，則跳過清理。
 var min_interval = '30m';
 
@@ -40,6 +40,9 @@ clean_wiki(
 // TODO: [[模块:沙盒]], [[File:沙盒.png]]
 
 clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n');
+
+clean_wiki('wikisource', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', null,
+		'Wikisource:沙盒');
 
 clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
