@@ -200,6 +200,7 @@ function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
 	// console.log(save_to_page);
+	// console.log(headline_data);
 	wiki.page(save_to_page).edit(function(page_data) {
 		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
@@ -245,6 +246,12 @@ function write_data() {
 			});
 		}
 
+		if (headline_data.length === 0) {
+			// 沒有新頭條時不寫入資料。
+			CeL.debug('沒有新 headline 資料。Skip.', 0, 'write_data');
+			return [ CeL.wiki.edit.cancel, 'skip' ];
+		}
+
 		if (headline_data.length > 0) {
 			CeL.debug('add '
 			//
@@ -257,12 +264,6 @@ function write_data() {
 				.unique_sorted().join('\n') + '\n';
 				return section;
 			});
-		}
-
-		if (!has_new_data) {
-			// 沒有新頭條時不寫入資料。
-			CeL.debug('沒有新 headline 資料。Skip.', 0, 'write_data');
-			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
 		if (has_new_data) {

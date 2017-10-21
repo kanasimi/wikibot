@@ -117,7 +117,7 @@ var
 wiki = Wiki(true),
 
 // for debug specified pages. 只處理此一頁面。
-test_the_page_only = "フランシス・ライン",
+test_the_page_only = "",
 
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 1000,
@@ -310,6 +310,8 @@ function for_each_page(page_data, messages) {
 		? foreign_title === label
 		// e.g., [[:en:Björn Eriksson (civil servant)|Björn Eriksson]]
 		: foreign_title.length > label.length && foreign_title.includes(label))) {
+			CeL.debug('不處理各自包含者: [' + label + '], foreign_title: '
+					+ foreign_title, 2, 'add_label');
 			return;
 		}
 
@@ -362,6 +364,8 @@ function for_each_page(page_data, messages) {
 		// CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
 
 		label_data_length++;
+		CeL.debug('label_data_length: ' + label_data_length, 2, 'add_label');
+		// console.log(raw_data_file_stream);
 
 		// [ At what local page title, token,
 		// foreign_language, foreign_title, local_language, local_title,
@@ -381,7 +385,10 @@ function for_each_page(page_data, messages) {
 
 	// parse 跨語言連結模板
 	CeL.wiki.parse.every(parse_templates, content, function(token) {
-		// console.log(token);
+		if (CeL.is_debug(2)) {
+			CeL.info('parse 跨語言連結模板:');
+			console.log(token);
+		}
 
 		var foreign_language, foreign_title, label,
 		//
@@ -461,6 +468,9 @@ function for_each_page(page_data, messages) {
 			break;
 		}
 
+		CeL.debug('Get label: ' + label + ' → [' + CeL.wiki.plain_text(label)
+				+ '], foreign title: [' + foreign_language + ':'
+				+ foreign_title + ']', 2);
 		if (label && (label = CeL.wiki.plain_text(label)) && isNaN(label)
 		// label, title 不可包含 {{}}[[]]。
 		&& !/[{}\[\]]{2}/.test(label)
@@ -786,6 +796,7 @@ function merge_label_data(callback) {
 
 		if (!(full_title in label_data)) {
 			++label_data_length;
+			// console.trace('label_data_length: ' + label_data_length);
 			if (label_data_length <= log_limit) {
 				// 此 label 指向
 				CeL.slog([ 'parse_line: ' + label_data_length + ':',
@@ -857,8 +868,14 @@ function create_label_data(callback) {
 	CeL.wiki.page.rvprop += '|ids';
 
 	function after_read_page() {
-		raw_data_file_stream.close();
-		merge_label_data(callback);
+		// 在 .end() 之後馬上 .close() 會造成最後的資料尚未寫入!
+		raw_data_file_stream.end();
+		raw_data_file_stream.on('finish', function() {
+			CeL.info('after_read_page: Close [' + raw_data_file_path
+					+ '], start merge_label_data()');
+			raw_data_file_stream.close();
+			merge_label_data(callback);
+		});
 	}
 
 	if (test_the_page_only) {
@@ -1174,7 +1191,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 			// 新舊 label 之檢測需置於檢測重複的読み仮名前，預防輸入等價的仮名。
 			if (include_label(o_label, f_label)) {
-				CeL.debug('跳過從文章的開頭部分辨識出之外國原文label: '
+				CeL.debug('跳過從文章的開頭部分辨識出之外國原文 label: '
 				// 確保目標 wiki 無等價之 label。
 				+ entity.id + ': [[' + foreign_language
 				//
@@ -1380,9 +1397,10 @@ function next_label_data_work() {
 			// Finally: Write to cache file.
 			processed_data.write();
 
-			var message = script_name + ': 已處理完畢 Wikidata 部分。';
-			if (modify_Wikipedia)
-				message += '開始處理 ' + use_language + ' Wikipedia 上的頁面。';
+			var message = script_name + ': 已處理完畢 Wikidata 部分。'
+			//
+			+ (modify_Wikipedia ? '開始處理 ' : '已設定不') + '處理 ' + use_language
+					+ ' Wikipedia 上的頁面。';
 			CeL.log(message);
 		});
 
