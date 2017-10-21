@@ -128,9 +128,11 @@ function filter_row(row) {
 	}
 
 	// passed === true: 要繼續處理這個頁面。
-	var passed =
-	// 為了某些編輯不加 bot flag 的 bot。
-	!CeL.wiki.PATTERN_BOT_NAME.test(row.user) && row.user !== user_name
+	var passed = test_the_page_only
+	// for test
+	? row.title === test_the_page_only
+	// 跳過機器人的編輯。為了某些編輯不加 bot flag 的 bot。
+	: !CeL.wiki.PATTERN_BOT_NAME.test(row.user) && row.user !== user_name
 	// 篩選頁面標題。跳過封存/存檔頁面。
 	&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
 	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
@@ -142,12 +144,10 @@ function filter_row(row) {
 
 	// 必須是白名單頁面，
 	&& (whitelist.includes(row.title)
-	//
-	|| row.title.startsWith(project_page_prefix)
-	// ...或者討論頁面。
+	// 或者討論頁面，
 	|| CeL.wiki.is_talk_namespace(row.ns)
-	// for test
-	|| test_the_page_only && row.title === test_the_page_only)
+	// 或者只有維基百科的有額外的頁面、需要測試[[Wikipedia:]]。
+	|| row.title.startsWith('Wikipedia:'))
 
 	// 篩選編輯摘要。
 	&& !PATTERN_revert_summary.test(row.comment);
