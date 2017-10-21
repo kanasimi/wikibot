@@ -45,7 +45,7 @@ wiki = Wiki(true);
 // 常用的主要設定
 
 var
-// 只處理此一頁面。
+// for debug specified pages. 只處理此一頁面。
 test_the_page_only = "",
 // true: 測試模式，將不會寫入簽名或者提醒。
 test_mode = !!test_the_page_only,

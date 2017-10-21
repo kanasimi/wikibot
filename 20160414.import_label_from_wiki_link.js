@@ -1,7 +1,5 @@
 ﻿// (cd ~/wikibot && date && hostname && nohup time node 20160414.import_label_from_wiki_link.js; date) >> import_label_from_wiki_link/log &
 
-// for debug specified pages: @ function create_label_data
-
 /*
 
  base_directory/
@@ -117,6 +115,9 @@ CeL.run('application.debug.log');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
+
+// for debug specified pages. 只處理此一頁面。
+test_the_page_only = "フランシス・ライン",
 
 /** {Natural}所欲紀錄的最大筆數。 */
 log_limit = 1000,
@@ -860,11 +861,10 @@ function create_label_data(callback) {
 		merge_label_data(callback);
 	}
 
-	if (0) {
-		// 僅測試單一頁面
-		// for debug specified pages: @ function create_label_data
+	if (test_the_page_only) {
+		// 僅測試此單一頁面。
 		CeL.set_debug(2);
-		wiki.page('', for_each_page).run(after_read_page);
+		wiki.page(test_the_page_only, for_each_page).run(after_read_page);
 		return;
 	}
 
