@@ -22,38 +22,11 @@ min_interval = '30m', JD = CeL.date.Julian_day(new Date);
 
 // --------------------------------------------------------
 
-clean_wiki(
-		'test',
-		'{{Sandbox}}\n== Please start your testing below this line ==\n',
-		'Clearing the sandbox. If you want to keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
-
-// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
-clean_wiki(
-		'zh',
-		'{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n== 請在這行文字底下進行您的測試 ==\n');
-
-clean_wiki(
-		'zh',
-		'{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n{{S/wnote}}\n== 請在這行文字底下進行您的測試 ==\n',
-		null, 'User talk:Sandbox for user warnings~zhwiki');
-
-// TODO: Special:链入页面/Template:Sandbox, [[zh:Wikipedia:使用指南 (编辑)/沙盒]],
-// [[Template:沙盒]], [[Draft:沙盒]], [[Category:Foo]]
-// TODO: [[模块:沙盒]], [[File:沙盒.png]]
-
-clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n');
-
-// 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
-if (force || JD % 7 === 0) {
-	clean_wiki('wikisource', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', null,
-			'Wikisource:沙盒');
-}
-
-clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
-
 function clean_wiki(wiki, replace_to, _summary, page) {
-	/** {Object}wiki operator 操作子. */
-	wiki = Wiki(true, wiki);
+	if (!CeL.wiki.is_wiki_API(wiki)) {
+		/** {Object}wiki operator 操作子. */
+		wiki = Wiki(true, wiki);
+	}
 
 	wiki.redirect_to(page || 'Project:Sandbox', function(redirect_data,
 			page_data) {
@@ -107,6 +80,48 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 		});
 	});
 }
+
+// --------------------------------------------------------
+
+clean_wiki(
+		'test',
+		'{{Sandbox}}\n== Please start your testing below this line ==\n',
+		'Clearing the sandbox. If you want to keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
+
+// --------------------------
+
+var zhwiki = Wiki(true, 'zh'),
+// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
+zhwiki_announcement = '{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n';
+clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n');
+// @see [[Special:链入页面/Template:Sandbox]]
+// TODO: [[模块:沙盒]], [[File:沙盒.png]]
+clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n', null,
+		'Wikipedia:使用指南 (编辑)/沙盒');
+clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n', null,
+		'Draft:沙盒');
+clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n', null,
+		'Category:Foo');
+clean_wiki(zhwiki, '<noinclude>' + zhwiki_announcement
+		+ '== 請在這行文字底下進行您的測試 ==</noinclude>\n', null, 'Template:沙盒');
+clean_wiki(zhwiki, zhwiki_announcement + '{{S/wnote}}\n== 請在這行文字底下進行您的測試 ==\n',
+		null, 'User talk:Sandbox for user warnings~zhwiki');
+
+// --------------------------
+
+clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n');
+
+// --------------------------
+
+// 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
+if (force || JD % 7 === 0) {
+	clean_wiki('wikisource', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', null,
+			'Wikisource:沙盒');
+}
+
+// --------------------------
+
+clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
 // --------------------------------------------------------
 

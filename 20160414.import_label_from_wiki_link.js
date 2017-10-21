@@ -733,6 +733,40 @@ function for_each_page(page_data, messages) {
 
 // ----------------------------------------------------------------------------
 
+// 本函數並沒有被使用到。
+function get_enwiki_titles() {
+	/** node.js file system module */
+	var node_fs = require('fs'), execSync = require('child_process').execSync,
+	//
+	dump_dir = '/public/dumps/public/enwiki/'
+	//
+	fso_name_list = node_fs.readdirSync(dump_dir),
+	//
+	latest_id = fso_name_list.sort().pop(),
+	// e.g., 'enwiki-20171001-all-titles-in-ns0'
+	titles_file = 'enwiki-' + latest_id + '-all-titles-in-ns0';
+	// dump_directory: see "wiki loder.js"
+	execSync('/bin/gzip -cd "' + dump_dir + latest_id + '/' + titles_file
+			+ '.gz" > "' + dump_directory + titles_file + '"');
+
+	return CeL.fs_read(dump_directory + titles_file,
+	/**
+	 * 若直接讀入 all-titles-in-ns0，會出現 <code>
+	FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
+	 * </code>
+	 * 但若要每個查詢一次資料庫，不如乾脆列入排程。因此跳過此步。
+	 * 
+	 * <code>
+	cd /shared/cache/ && gzip -cd /public/dumps/public/enwiki/20171001/enwiki-20171001-all-titles-in-ns0.gz > enwiki-20171001-all-titles-in-ns0
+	 * </code>
+	 */
+	'utf8').toLowerCase().split('\n').filter(function(title) {
+		return /^[a-z][a-z\d\-\s,]{3,}$/i.test(title);
+	}).sort();
+}
+
+// ----------------------------------------------------------------------------
+
 function merge_label_data(callback) {
 
 	function parse_line(line) {
@@ -841,7 +875,7 @@ function create_label_data(callback) {
 		// cache path prefix
 		directory : base_directory,
 		// 指定 dump file 放置的 directory。
-		// dump_directory : bot_directory + 'dumps/',
+		// dump_directory: see "wiki loder.js"
 		dump_directory : dump_directory,
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。
@@ -1101,6 +1135,10 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 
 	}).edit_data(function(entity, error) {
 		if (error) {
+			CeL.error('[' + (entity && entity.id
+			//
+			|| foreign_language + ':' + foreign_title) + ']:');
+			CeL.error(error);
 			return [ CeL.wiki.edit.cancel,
 			//
 			'Error: ' + error.messages ];
@@ -1617,22 +1655,7 @@ CeL.wiki.cache([ {
 }, false && {
 	type : 'callback',
 	file_name : 'en_titles.json',
-	list : function() {
-		return CeL.fs_read('/shared/dumps/enwiki-20160601-all-titles-in-ns0',
-		/**
-		 * 若直接讀入 all-titles-in-ns0，會出現 <code>
-		FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
-		 * </code>
-		 * 但若要每個查詢一次資料庫，不如乾脆列入排程。因此跳過此步。
-		 * 
-		 * <code>
-		cd /shared/dumps/ && gzip -cd /public/dumps/public/enwiki/20160601/enwiki-20160601-all-titles-in-ns0.gz > enwiki-20160601-all-titles-in-ns0
-		 * </code>
-		 */
-		'utf8').toLowerCase().split('\n').filter(function(title) {
-			return /^[a-z][a-z\d\-\s,]{3,}$/i.test(title);
-		}).sort();
-	},
+	list : get_enwiki_titles,
 	operator : function(data) {
 		en_titles = data;
 	}
