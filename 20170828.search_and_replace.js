@@ -27,31 +27,37 @@ var
 // replace_pairs = [
 // [ search_key, replace_from, replace_to ],
 // [ search_key, replace_to ], ... ]
-replace_pairs, diff_id;
+replace_pairs, diff_id, section_title;
+
+summary = '';
 
 // ----------------------------------------------------------------------------
 
+// --------------------------
 // 2017/8/28
 set_language('ja');
-summary = '英語版ウィキペディアへのウィキリンク書式の修正依頼', diff_id = 65258423;
+section_title = '英語版ウィキペディアへのウィキリンク書式の修正依頼', diff_id = 65258423;
 replace_pairs = [ [ /\[\[:+(en|de):+\1:+/ig, '[[:$1:' ],
 		[ /\[\[:{2,}(en|de):+/ig, '[[:$1:' ],
 		[ /\[\[:(en|de):{2,}/ig, '[[:$1:' ] ];
 
+// --------------------------
 // 2017/8/29
 set_language('ja');
-summary = 'FCバイエルン・ミュンヘン関連', diff_id = '65287149/65287930';
+section_title = 'FCバイエルン・ミュンヘン関連', diff_id = '65287149/65287930';
 replace_pairs = [ [ /\[\[(バイエルン・ミュンヘン)\]\]/g, '[[FCバイエルン・ミュンヘン|$1]]' ],
 		[ /\[\[バイエルン・ミュンヘン([\|#])/g, '[[FCバイエルン・ミュンヘン$1' ] ];
 
+// --------------------------
 // 2017/9/4
 set_language('ja');
-summary = 'インターネットアーカイブ', diff_id = 65368586;
+section_title = 'インターネットアーカイブ', diff_id = 65368586;
 replace_pairs = [ /\[\[インターネット・アーカイブ([\|#\]])/g, '[[インターネットアーカイブ$1' ];
 
+// --------------------------
 // 2017/9/12 17:49:44
 set_language('en');
-summary = [ 'WikiProject Asessment banner replacement',
+section_title = [ 'WikiProject Asessment banner replacement',
 		'[[Template:WikiProject Investment]] → [[Template:WikiProject Finance]]' ];
 diff_id = 799598464;
 // https://www.mediawiki.org/wiki/Help:CirrusSearch
@@ -64,31 +70,36 @@ replace_pairs = [
 		'{{WikiProject Finance$1}}$2' ];
 var PATTERN_Finance = /{{ *(?:WikiProject|WP)[ _]+Finance(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}/;
 
+// --------------------------
 // 2017/9/18 16:30:56
 set_language('ja');
-summary = '乃木坂46メンバーのMain2の書き換え', diff_id = '65542796/65549970';
+section_title = '乃木坂46メンバーのMain2の書き換え', diff_id = '65542796/65549970';
 replace_pairs = [ 'insource:"乃木坂46#出演"', /乃木坂46#出演/g, '乃木坂46の出演一覧' ];
 
+// --------------------------
 // 2017/9/19 16:37:22
 set_language('zh');
-summary = '申請批量更正中國大陸城市商業銀行模板', diff_id = '46059917/46250288';
+section_title = '申請批量更正中國大陸城市商業銀行模板', diff_id = '46059917/46250288';
 replace_pairs = [ /中华人民共和国地方商业银行/g, '中华人民共和国城市商业银行' ];
 
+// --------------------------
 // 2017/9/21 17:13:4
 set_language('en');
-summary = 'Fix adaptivepath links', diff_id = '801185223/801407891';
+section_title = 'Fix adaptivepath links', diff_id = '801185223/801407891';
 replace_pairs = [
 		/https:\/\/web\.archive\.org\/web\/\d+\/http:\/\/www\.adaptivepath\.com\//g,
 		'http://www.adaptivepath.org/' ];
 
+// --------------------------
 // 2017/9/23 10:17:20
 set_language('ja');
-summary = '「朝日放送・テレビ朝日金曜9時枠の連続ドラマ」関連のリンク修正', diff_id = 65646041;
+section_title = '「朝日放送・テレビ朝日金曜9時枠の連続ドラマ」関連のリンク修正', diff_id = 65646041;
 replace_pairs = [ /テレビ朝日・ABC金曜9時枠の連続ドラマ/g, '朝日放送・テレビ朝日金曜9時枠の連続ドラマ' ];
 
+// --------------------------
 // 2017/9/30 20:39:30
 set_language('ja');
-summary = '毎日放送とテレビ愛知制作のアニメの内部リンク貼り替え依頼', diff_id = 65748692;
+section_title = '毎日放送とテレビ愛知制作のアニメの内部リンク貼り替え依頼', diff_id = 65748692;
 // TODO: parameters in templates.
 // e.g., [[新伍のワガママ大百科]] "放送枠 = 毎日放送制作土曜夕方6時枠"
 // e.g., [[2012年のテレビアニメ (日本)]] "{{Main|毎日放送制作日曜夕方5時枠}}"
@@ -99,10 +110,27 @@ replace_pairs = [
 		[ /\[\[ *テレビ愛知制作土曜朝8時枠 *([\|#\]])/g, '[[テレビ愛知制作土曜朝8時枠のアニメ$1' ],
 		[ /\{\{ *テレビ愛知制作土曜朝8時枠 *([\|#\}])/g, '{{テレビ愛知制作土曜朝8時枠のアニメ$1' ] ];
 
+// --------------------------
 // 2017/9/30 21:20:42
 set_language('ja');
-summary = '「スッキリ (テレビ番組)」関連のリンク修正', diff_id = 65749317;
+section_title = '「スッキリ (テレビ番組)」関連のリンク修正', diff_id = 65749317;
 replace_pairs = [ /\{\{ *スッキリ!! *([\|#\}])/g, '{{スッキリ (テレビ番組)$1' ];
+
+// --------------------------
+// 2017/10/22 6:32:57
+set_language('ja');
+section_title = 'ロボマスターズ', diff_id = '65749913/65763833';
+summary = 'ROBO MASTERS THE ANIMATED SERIES→ROBOMASTERS THE ANIMATED SERIESのリンク元修正';
+replace_pairs = [ /ROBO MASTERS THE ANIMATED SERIES/g,
+		'ROBOMASTERS THE ANIMATED SERIES' ];
+
+// --------------------------
+// 2017/10/22 6:58:26
+set_language('ja');
+section_title = '「帰れまサンデー」へのリンクの変更依頼', diff_id = 66004907;
+replace_pairs = [ [ /\[\[ *帰れま10#帰れまサンデー *\| *帰れまサンデー\]\]/g, '[[帰れまサンデー]]' ],
+		[ /\[\[ *帰れま10#帰れまサンデー *([\|\]])/g, '[[帰れまサンデー$1' ],
+		[ /\[\[ *帰れま10 *\| *帰れまサンデープラス *\]\]/g, '[[帰れまサンデー|帰れまサンデープラス]]' ] ];
 
 // ----------------------------------------------------------------------------
 
@@ -110,6 +138,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
 
+summary = summary || section_title;
 if (!Array.isArray(summary)) {
 	// [ section title of [[WP:BOTREQ]], title shown ]
 	summary = [ summary, summary ];

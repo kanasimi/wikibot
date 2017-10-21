@@ -1503,6 +1503,8 @@ function next_label_data_work() {
 		if (/List of|Timeline of|列表|年表|一覧/i.test(foreign_title)) {
 			CeL.info('next_label_data_work.check_label: Skip list: '
 					+ CeL.wiki.title_link_of(foreign_title));
+			// do next.
+			setImmediate(next_label_data_work);
 			return;
 		}
 
