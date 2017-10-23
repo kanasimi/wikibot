@@ -5,6 +5,12 @@
  2017/5/15 21:30:19	初版試營運。
  2017/8/18 23:50:52 完成。正式運用。
 
+ 移植時，需要準備好:
+ {{Template:Unsigned}}
+ {{Template:Uw-signlink}}
+ {{Template:Uw-tilde}}
+
+
  工作原理:
  # wiki.listen(): 監視最近更改的頁面。
  # wiki.listen(): 取得頁面資料。
@@ -24,9 +30,11 @@
  其他一般討論，應該加上署名。
 
  @see
+ https://en.wikipedia.org/wiki/User:SineBot
  https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
  https://zh.wikipedia.org/wiki/User:Crystal-bot
- [[Template:Nosign]]
+ optional:
+ {{Template:Nosign}}
 
  TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[Special:Diff/45401508]], [[Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
 
@@ -314,7 +322,7 @@ function for_each_row(row) {
 	|| CeL.wiki.parse.redirect(content)
 	// [[Project:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
-	// 可以用 "{{NoAutosign}}" 來避免這個任務添加簽名標記。
+	// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
 	|| content.includes('{{NoAutosign}}')) {
 		return;
 	}
@@ -785,7 +793,9 @@ function for_each_row(row) {
 		row.diff.to[last_diff_index_before_next_section] = last_token
 		// {{subst:Unsigned|用戶名或IP|時間日期}}
 		.replace(/([\s\n]*)$/, '{{subst:Unsigned|' + row.user + '|'
-				+ get_parsed_time(row) + (is_IP_user ? '|IP=1' : '') + '}}$1');
+				+ get_parsed_time(row) + (is_IP_user ? '|IP=1' : '') + '}}'
+				// + '<!-- Autosigned by ' + user_name + ' -->'
+				+ '$1');
 
 		CeL.info('需要在最後補簽名的編輯: ' + CeL.wiki.title_link_of(row));
 		console.log(row.diff.to.slice(to_diff_start_index,
@@ -899,8 +909,9 @@ function for_each_row(row) {
 	// 若是row並非最新版，則會放棄編輯。
 	wiki.page(row).edit(row.diff.to.join(''), {
 		nocreate : 1,
+		// TODO: add section_title
 		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
-		//
+		// Signing comment by
 		+ '的編輯]][[' + log_to + '|補簽名]]。本工具僅為紀錄用。若您希望自行手動補簽名，請逕行修改即可。'
 	});
 

@@ -48,7 +48,8 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 					- Date.parse(page_data.revisions[0].timestamp);
 			if (time_diff < CeL.date.to_millisecond(min_interval)) {
 				return [ CeL.wiki.edit.cancel,
-						'用戶最後編輯時間短於' + min_interval + '，跳過清理。' ];
+				// 這一次沒清理到的話，會等到下一次再清理。
+				'用戶最後編輯時間短於' + min_interval + '，跳過清理。' ];
 			}
 
 			var
