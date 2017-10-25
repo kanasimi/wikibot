@@ -46,8 +46,11 @@ function get_linterrors(category, for_lint_error, options) {
 		action += '&lntfrom=' + options.from;
 	}
 
-	wiki.query_api(action, function for_error_list(data, error) {
+	CeL.wiki.query(action, function for_error_list(data, error) {
 		data.query.linterrors.forEach(for_lint_error);
+	}, null, {
+		// [KEY_SESSION]
+		session : wiki
 	});
 }
 
