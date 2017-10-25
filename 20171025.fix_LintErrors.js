@@ -31,28 +31,26 @@ wiki = Wiki(true);
 
 // ----------------------------------------------------------------------------
 // CeL.set_debug(6);
-get_linterrors('bogus-image-options', for_error_list, {});
+get_linterrors('bogus-image-options', for_lint_error, {});
 
-function get_linterrors(category, callback, options) {
+function get_linterrors(category, for_lint_error, options) {
 	options = CeL.setup_options(options);
 
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	if ('namespace' in options) {
-		action += 'lntnamespace=' + (CeL.namespace(options.namespace) || 0);
+		action += '&lntnamespace=' + (CeL.namespace(options.namespace) || 0);
 	}
-	action += 'lntlimit=' + (options.limit || ('max' && 2));
+	action += '&lntlimit=' + (options.limit || ('max' && 2));
 	if (options.from >= 0) {
-		action += 'lntfrom=' + options.from;
+		action += '&lntfrom=' + options.from;
 	}
 
-	CeL.wiki.query(action, function(data, error) {
-		data.query.linterrors.forEach(callback);
-	}, null, {
-		session : wiki
+	wiki.query_api(action, function for_error_list(data, error) {
+		data.query.linterrors.forEach(for_lint_error);
 	});
 }
 
-function for_error_list(error_data) {
+function for_lint_error(error_data) {
 	console.log(error_data);
 }
