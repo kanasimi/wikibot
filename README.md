@@ -59,13 +59,44 @@ wiki
 
 Wikidata example:
 ``` JavaScript
-// Set up the wiki instance.
-var wiki = CeL.wiki.login(user_name, password, 'en');
+// Cache the id of "性質" first. 先快取必要的屬性id值。
+CeL.wiki.data.search.use_cache('性質', function(id_list) {
+	// Get the id of property '性質' first.
+	// and here we get the id of '性質': "P31"
+	CeL.log(id_list);
+	// 執行剩下的程序. run rest codes.
+}, {
+	must_callback : true,
+	type : 'property'
+});
 
-wiki.data('維基數據沙盒2', function(data) {
-	// Here we are running the callback.
-	var data_JSON = data;
-}).edit_data(function(entity) {
+// ----------------------------
+// rest codes:
+
+// Set up the wiki instance.
+var wiki = CeL.wiki.login(user_name, password, 'zh');
+
+wiki.data('維基數據沙盒2', function(data_JSON) {
+	data_JSON.value('性質', {
+		// resolve wikibase-item
+		resolve_item : true
+	}, function(entity) {
+		// get "Wikidata Sandbox"
+		CeL.log(entity.value('label', 'en'));
+	});
+});
+
+// Old style. The same effect as codes above.
+wiki.data('維基數據沙盒2', function(data_JSON) {
+	wiki.data(data_JSON.value('性質'), function(entity) {
+		// via wikidata_entity_value()
+		// get "维基数据测试沙盒"
+		CeL.log(entity.value('label'));
+	});
+});
+
+// edit properties
+wiki.edit_data(function(entity) {
 	// add new / set single value with references
 	return {
 		生物俗名 : '維基數據沙盒2',
@@ -120,8 +151,9 @@ wiki.data('維基數據沙盒2', function(data) {
 
 }, {
 	bot : 1,
-	summary : 'bot test: edit property'
+	summary : 'bot test: edit properties'
 });
+
 ```
 
 
