@@ -57,6 +57,9 @@ wiki
 });
 ```
 
+* [A sample for wiki_session.query()](https://github.com/kanasimi/wikibot/blob/9727497238c81cfe8189bcafdb6bb17684720a9d/20171025.fix_LintErrors.js)
+* [A sample for CeL.wiki.query()](https://github.com/kanasimi/wikibot/blob/3913874380093eebae250442c083e74883239620/20171025.fix_LintErrors.js)
+
 Wikidata example:
 ``` JavaScript
 // Cache the id of "性質" first. 先快取必要的屬性id值。
