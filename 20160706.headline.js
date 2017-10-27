@@ -246,7 +246,11 @@ function write_data() {
 			});
 		}
 
-		if (headline_data.length === 0) {
+		if (headline_data.length === 0
+		// 原先已經有資料，並且是Review狀態的時候，還是需要更改一下。
+		&& !(page_data.stage_node.name === 'Review'
+		// 已經有頭條新聞資料時，直接標示{{Publish}}。
+		&& all_headlines > 2)) {
 			// 沒有新頭條時不寫入資料。
 			CeL.debug('沒有新 headline 資料。Skip.', 0, 'write_data');
 			return [ CeL.wiki.edit.cancel, 'skip' ];

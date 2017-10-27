@@ -95,6 +95,7 @@ PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来
 // GlobalReplace: use tool
 // https://commons.wikimedia.org/wiki/Commons:GlobalReplace
 // "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
+// @see [[Wikipedia:Twinkle]] ([[WP:TW]])
 PATTERN_revert_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|GlobalReplace|!nosign!|!nobot!/i,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = CeL.null_Object(),

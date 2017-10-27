@@ -374,6 +374,7 @@ function main_process(_special_users) {
 new CeL.wiki(null, null, 'en').page(botop_sitelinks.enwiki)
 //
 .data(function(entity) {
+	// console.log(entity);
 	get_special_users(main_process, {
 		botop_sitelinks : entity.sitelinks
 	});
