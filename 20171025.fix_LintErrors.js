@@ -51,7 +51,14 @@ function get_linterrors(category, for_lint_error, options) {
 				return;
 			}
 			// console.log(lint_error_page);
-			wiki.page(lint_error_page, for_lint_error);
+			wiki.page(lint_error_page).edit(for_lint_error, {
+				summary : 'ウィキ文法修正: '
+				// 画像オプション
+				+ '[[Special:LintErrors/bogus-image-options|問題のある文件設定]]',
+				bot : 1,
+				minor : 1,
+				nocreate : 1
+			});
 		});
 	});
 }
@@ -71,7 +78,46 @@ function for_lint_error(page_data) {
 						+ '! 沒有頁面內容！' ];
 	}
 
-	CeL.log(CeL.wiki.title_link_of(page_data) + ': '
-			+ content.slice(page_data.location[0], page_data.location[1])
-			+ ' -- ' + JSON.stringify(page_data.params.items));
+	var file_text = content.slice(page_data.location[0], page_data.location[1]), file_link = CeL.wiki
+			.parse(file_text);
+	CeL.log(CeL.wiki.title_link_of(page_data) + ': ' + file_link + ' -- '
+			+ JSON.stringify(page_data.params.items));
+	if (file_link.type !== 'file' || file_text !== file_link.toString()) {
+		CeL.log(file_text);
+		CeL.log(file_link.toString());
+		console.log(file_link);
+		throw page_data.title;
+	}
+
+	// console.log(file_link);
+	for (var index = 2; index < file_link.length; index++) {
+		var file_option = file_link[index].trim();
+		if (file_option === '') {
+			// 刪除空的檔案選項
+			file_link.splice(index--, 1);
+			continue;
+		}
+
+		if (file_link.slice(index).some(function(option) {
+			return file_option.trim() === option.trim();
+		})) {
+			// 刪除重複的檔案選項
+			file_link.splice(index--, 1);
+			continue;
+		}
+
+		var matched = file_option.match(/^(?:(?:\d{1,3})? *[x*])? *\d{1,3}$/);
+		if (matched) {
+			// 只有數值的選項加上"px"
+			file_link[index] = file_option.replace(/ /g, '') + 'px';
+			continue;
+		}
+
+		if (/^(link|alt|lang|page|thumb|thumbnail) +=/.test(file_option)) {
+			// 等號前方不可有空格。
+			file_link[index] = file_option.replace(
+					/^(link|alt|lang|page|thumb|thumbnail) +=/, '$1=');
+		}
+
+	}
 }

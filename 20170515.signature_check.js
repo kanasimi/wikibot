@@ -33,6 +33,7 @@
  https://en.wikipedia.org/wiki/User:SineBot
  https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
  https://zh.wikipedia.org/wiki/User:Crystal-bot
+ [[ja:User:Cpro/checksigniture.js]]
  optional:
  {{Template:Nosign}}
 
