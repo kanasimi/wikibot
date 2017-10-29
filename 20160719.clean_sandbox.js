@@ -65,9 +65,20 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
 			}
 
+			/**
+			 * <code>
+			var PATTERN = /\n==[^=]+==([\n\s]*(?:<[^<>]+>)?)\n?$/;
+			'header</noinclude>'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==</noinclude>\n'.replace(PATTERN, '$1').trim()
+			'header'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==\n'.replace(PATTERN, '$1').trim()
+			'header\n</noinclude>'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==\n</noinclude>\n'.replace(PATTERN, '$1').trim()
+			'header\n'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==\n'.replace(PATTERN, '$1').trim()
+			</code>
+			 */
 			if (CeL.wiki.site_name(wiki) === 'zhwiki'
 			// 為 Jimmy-bot 特設, 避免與 Jimmy-bot 編輯戰. e.g., [[Template:沙盒]]
-			&& replace_to.replace(/==[^=]+==\s*(<[^<>]+>)?\n$/, '').trim()
+			&& replace_to.replace(
+			//
+			/\n==[^=]+==([\n\s]*(?:<[^<>]+>)?)\n?$/, '$1').trim()
 			//
 			=== content.trim()) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
