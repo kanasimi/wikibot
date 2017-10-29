@@ -66,8 +66,8 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 			}
 
 			if (CeL.wiki.site_name(wiki) === 'zhwiki'
-			// 為 Jimmy-bot 特設
-			&& replace_to.replace(/==[^=]+==\n$/, '').trim()
+			// 為 Jimmy-bot 特設, 避免與 Jimmy-bot 編輯戰. e.g., [[Template:沙盒]]
+			&& replace_to.replace(/==[^=]+==\s*(<[^<>]+>)?\n$/, '').trim()
 			//
 			=== content.trim()) {
 				return [ CeL.wiki.edit.cancel, 'skip' ];
@@ -93,6 +93,7 @@ clean_wiki(
 
 var zhwiki = Wiki(true, 'zh'),
 // <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
+// ここから下に書き込んでください。
 zhwiki_announcement = '{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n';
 clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n');
 // @see [[Special:链入页面/Template:Sandbox]]
