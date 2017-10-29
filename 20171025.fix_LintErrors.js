@@ -21,13 +21,18 @@ require('./wiki loder.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 // 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-set_language('ja');
+set_language('zh');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
 
 /** {String}編輯摘要。總結報告。 */
+summary = use_language === 'zh' ? '修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]'
+		: 'ウィキ文法修正: '
+		// 画像オプション
+		+ '[[Special:LintErrors/bogus-image-options|問題のある文件設定]]';
+summary = 'bot test: ' + summary;
 
 // ----------------------------------------------------------------------------
 // CeL.set_debug(6);
@@ -39,7 +44,7 @@ function get_linterrors(category, for_lint_error, options) {
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max' && 400));
+	action += '&lntlimit=' + (options.limit || ('max' && 200));
 	if (options.from >= 0) {
 		action += '&lntfrom=' + options.from;
 	}
@@ -52,10 +57,10 @@ function get_linterrors(category, for_lint_error, options) {
 				return;
 			}
 			// console.log(lint_error_page);
+
+			// TODO: 一次取得多個個頁面的內容。
 			wiki.page(lint_error_page).edit(for_lint_error, {
-				summary : 'ウィキ文法修正: '
-				// 画像オプション
-				+ '[[Special:LintErrors/bogus-image-options|問題のある文件設定]]',
+				summary : summary,
 				bot : 1,
 				minor : 1,
 				nocreate : 1
@@ -68,20 +73,30 @@ var
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_');
 
+// use edit distance
+var options_to_test = 'right,left,thumb,none,upright,middle'.split(','),
+// 有效選項別名 alias
+alias = {
+	// 有效選項別名 alias
+	缩略图 : 'thumb',
+	有框 : 'frame',
+	左 : 'left',
+	右 : 'right',
+},
+// edit distance 過大者
 // wring → right
-var typo = {
-	// TODO: use edit distance
-	rihgt : 'right',
-	light : 'right',
-	ight : 'right',
-	righ : 'right',
-	rigth : 'right',
-	rigtht : 'right',
-	rightt : 'right',
-	nono : 'none',
-
-	uplight : 'upright'
+typo = {
+	rghigt : 'right',
+	'valign=center' : 'center',
+	central : 'center'
 };
+
+if (false) {
+	for ( var key in typo) {
+		var value = typo[key];
+		CeL.log(key + ' vs ' + value + ': ' + CeL.edit_distance(key, value));
+	}
+}
 
 function for_lint_error(page_data) {
 	/** {String}page title = page_data.title */
@@ -103,14 +118,19 @@ function for_lint_error(page_data) {
 	CeL.log(CeL.wiki.title_link_of(page_data) + ': ' + file_link + ' -- '
 			+ JSON.stringify(bad_items));
 	if (file_link.type !== 'file' || file_text !== file_link.toString()) {
-		CeL.log(file_text);
+		if (Date.now() - Date.parse(page_data.revisions[0].timestamp) < 60 * 60 * 1000) {
+			return [ CeL.wiki.edit.cancel, '可能是剛剛才做過變更，LintErrors 資料庫還沒有來得及更新？' ];
+		}
+
+		CeL.log('='.repeat(80));
+		CeL.log('file_text:\n' + file_text);
 		CeL.log('-'.repeat(80));
-		CeL.log(file_link.toString());
+		CeL.log('file_link:\n' + file_link.toString());
 		console.log(file_link);
-		delete page_data.revision;
+		delete page_data.revisions;
 		console.log(page_data);
 		throw (file_text !== file_link.toString() ? 'Parser error: '
-				: 'file_link.type = ' + file_link.type + ' !== "file": ')
+				: 'file_link.type = "' + file_link.type + '" !== "file": ')
 				+ CeL.wiki.title_link_of(page_data);
 	}
 
@@ -121,7 +141,7 @@ function for_lint_error(page_data) {
 	function register_option(index, message) {
 		var file_option = file_link[index].toString();
 		if (message) {
-			message += ':' + file_option.trim();
+			message += ':' + JSON.stringify(file_option.trim());
 			// CeL.info('register_option: ' + message);
 			_this.summary += ' ' + message;
 		}
@@ -146,60 +166,42 @@ function for_lint_error(page_data) {
 					+ JSON.stringify(file_option));
 		}
 
+		// ------------------------------------------------
 		// 刪除掉一定是錯的選項。
 
 		if (file_option === ''
 		// 最後一個空白被視為不輸入 caption。
-		&& index < file_link.length - 1) {
-			register_option(index, '刪除空的檔案選項');
+		// 但是經過測試，最後一個為空白時也可以刪掉。
+		// && index < file_link.length - 1
+		) {
+			register_option(index, '刪除空檔案選項');
 			file_link.splice(index--, 1);
 			continue;
 		}
 
-		// 刪除掉重複的選項。
-
-		if (index + 1 < file_link.length) {
-			if (false) {
-				CeL.log('Find ' + JSON.stringify(file_option) + ' in:');
-				console.log(file_link.slice(index + 1));
-			}
-
-			var check_list = file_link.slice(index + 1);
-			// 向後搜尋是否有相同的，跳過 caption，不檢查 caption。
-			if (check_list.some(function(option, _index) {
-				option = option.toString().trim();
-				if (false) {
-					CeL.log('Check: [' + _index + '/' + (check_list.length - 1)
-							+ ']' + option);
-				}
-
-				return _index === check_list.length - 1
-				// caption 包含本 option
-				// e.g., [[File:...|ABC|ABC DEF]]
-				? option.covers(file_option)
-				// 重複的檔案選項。
-				// e.g., [[File:...|right|right|...]]
-				: option === file_option;
-			})) {
-				register_option(index, '刪除重複的檔案選項');
-				file_link.splice(index--, 1);
-				continue;
-			}
-
-			// 去掉類別重複的檔案選項: 每種類別只能設定一個值，多出來沒有作用的應該刪掉。
-			var type = CeL.wiki.file_options[file_option];
-			if (type) {
-				if (false) {
-					CeL.info(type + ': ' + file_link[type] + ' vs. '
-							+ file_option);
-				}
-				if (file_link[type] !== file_option) {
-					register_option(index, '去掉類別重複的檔案選項');
-					file_link.splice(index--, 1);
-					continue;
-				}
-			}
+		if (file_option in {
+			// 這些絕不可被拿來當作描述。
+			links : true,
+			size : true,
+			align : true,
+			position : true,
+			'default' : true,
+			caption : true
 		}
+		// 最後一個空白被視為不輸入 caption。
+		// && index < file_link.length - 1
+		|| (file_option.length === 1 && file_option.charCodeAt(0) < 256
+		// e.g., "]"
+		|| /^[\[\]!@#$%^&*()_+=~`{}<>,.?\\\/]+$/.test(file_option))
+				&& bad_items.includes(file_option)) {
+			register_option(index, '刪除未規範且無效的檔案選項');
+			file_link.splice(index--, 1);
+			continue;
+		}
+
+		// ------------------------------------------------
+		// 測試其他可以判別的檔案選項。採取白名單原則，只改變能夠判別的以避免誤殺。
+		// 必須放在"刪除掉重複的選項"之前，以處理如[[File:name.jpg|20|2017 CE]]。
 
 		// 這幾個必須要設定指定的值。
 		if (file_option in {
@@ -207,7 +209,7 @@ function for_lint_error(page_data) {
 			alt : true,
 			lang : true
 		}) {
-			register_option(index, '刪除指定值的檔案選項');
+			register_option(index, '刪除需要指定值但未設定的檔案選項');
 			file_link.splice(index--, 1);
 			continue;
 		}
@@ -216,22 +218,18 @@ function for_lint_error(page_data) {
 		// ↑ 不檢查 caption。
 		&& !(file_option in CeL.wiki.file_options)
 		// e.g., [[File:name.jpg|name|.jpg]]
-		&& file_link[0].toString().covers(file_option)) {
-			register_option(index, '刪除與檔名重複的檔案選項');
+		&& file_link[0].toString().includes(file_option)) {
+			register_option(index, '刪除與檔名重複且無作用的檔案選項');
 			file_link.splice(index--, 1);
 			continue;
 		}
 
-		// 測試其他可以判別的檔案選項。採取白名單原則，只改變能夠判別的以避免誤殺。
-
 		var matched = file_option
 				// 不可以篩到 200px 之類!
-				.match(/^(?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})(?: *(?:PX|pix|[oO][xX]))?$/);
+				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|xp|@x|px\]|pc|pix|pxx|[oO][xX])?$/);
 		if (matched) {
-			register_option(index, '為數值選項加上"px"');
-			file_link[index] = file_option.replace(/ /g, '').replace(
-					/PX|[oO][xX]/, '')
-					+ 'px';
+			register_option(index, '修正尺寸選項為px單位');
+			file_link[index] = matched[1].replace(/ /g, '') + 'px';
 			continue;
 		}
 		if (file_option !== '' && !isNaN(file_option)) {
@@ -252,16 +250,70 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
-		if (file_option in typo) {
-			register_option(index, '修正"' + typo[file_option] + '"之誤植');
-			file_link[index] = typo[file_option];
+		if ((file_option in {
+			float : true,
+			small : true,
+			mini : true,
+			miniatur : true
+		})
+		// file_link.file_type === 'thumb'
+		&& file_link.file_type) {
+			// e.g., [[File:i.png|float|right|thumb|...]]
+			register_option(index, '已指定type=' + file_link.file_type
+					+ '，刪除非正規且無效的格式設定');
+			file_link.splice(index--, 1);
 			continue;
 		}
 
-		if (file_option === 'float' && file_link.type) {
-			// e.g., [[File:i.png|float|right|thumb|...]]
-			register_option(index, '修正CSS式格式設定');
+		if ((file_option in alias)
+		//
+		&& file_link.some(function(option, _index) {
+			return _index > 2 && index !== _index
+			//
+			&& alias[file_option] === option.toString().trim();
+		})) {
+			// e.g., [[File:i.svg|缩略图|thumb]] → [[File:i.svg|thumb]]
+			register_option(index, '刪除"' + alias[file_option] + '"同類別之別名');
 			file_link.splice(index--, 1);
+			continue;
+		}
+
+		if (file_option.toLowerCase() in typo) {
+			file_option = file_option.toLowerCase();
+			register_option(index, '修正"' + typo[file_option] + '"之誤植');
+			if (file_link.some(function(option, _index) {
+				return _index > 2 && index !== _index
+				//
+				&& typo[file_option] === option.toString().trim();
+			})) {
+				// e.g., [[File:i.svg|righ|right]] → [[File:i.svg|right]]
+				file_link.splice(index--, 1);
+			} else {
+				// e.g., [[File:i.svg|righ]] → [[File:i.svg|right]]
+				file_link[index] = typo[file_option];
+			}
+			continue;
+		}
+
+		var correct_name = null;
+		if (options_to_test.some(function(option) {
+			if (file_option in CeL.wiki.file_options) {
+				// 已經是正規的名稱
+				return;
+			}
+			var edit_distance = CeL.edit_distance(file_option.toLowerCase(),
+					option);
+			if (false) {
+				CeL.log('edit_distance(' + file_option + ', ' + option + ') = '
+						+ edit_distance);
+			}
+			if (0 < edit_distance && edit_distance <= 2) {
+				correct_name = option;
+				return true;
+			}
+		})) {
+			register_option(index, '修正"' + correct_name + '"之誤植');
+			file_link[index] = correct_name;
 			continue;
 		}
 
@@ -270,11 +322,86 @@ function for_lint_error(page_data) {
 		// 經測試，等號前方不可有空格。
 		/^(link|alt|lang|page|thumb|thumbnail) +=/, function(all, option_name) {
 			changed = true;
-			register_option(index, '修正等號前方不的空格');
 			return option_name + '=';
 		});
 		if (changed) {
+			register_option(index, '修正等號前方的空格');
 			file_link[index] = file_option;
+			continue;
+		}
+
+		var changed = false;
+		file_option = file_option.replace(/^ *(title|Alt) *(=|$)/,
+		//
+		function(all, name, sign) {
+			if (name === 'alt') {
+				return all;
+			}
+			changed = true;
+			return 'alt' + sign;
+		});
+		if (changed) {
+			register_option(index, '修正錯誤的圖片替代文字用法');
+			file_link[index] = file_option;
+			continue;
+		}
+
+		// TODO: "Panorama", "float right", "hochkant=1.5", "260pxright",
+		// "leftright", "upright1.5", "framepx200", "<!--...-->", "uptight=1.2",
+		// "90%", "topleft", "<center></center>", "thumbtime=11", "250px}right",
+		// "May 2007", "upleft=1", "220pxnail", "vignette"
+
+		// TODO: [[File:i.svg|caption_1|caption_2]]
+
+		// ------------------------------------------------
+		// 刪除掉重複的選項。
+
+		if (index + 1 < file_link.length) {
+			if (false) {
+				CeL.log('Find ' + JSON.stringify(file_option) + ' in:');
+				console.log(file_link.slice(index + 1));
+			}
+
+			var check_list = file_link.slice(index + 1);
+			// 向後搜尋是否有相同的，跳過 caption，不檢查 caption。
+			if (check_list.some(function(option, _index) {
+				option = option.toString().trim();
+				if (false) {
+					CeL.log('Check: [' + _index + '/' + (check_list.length - 1)
+							+ ']' + option);
+				}
+
+				return _index === check_list.length - 1
+				// 去掉正規的檔案選項。
+				&& !(file_option in CeL.wiki.file_options)
+						&& !/^\d+px$/.test(file_option)
+				// caption 包含本 option
+				// e.g., [[File:...|ABC|ABC DEF]]
+				? option.covers(file_option)
+				// 重複的檔案選項。
+				// e.g., [[File:...|right|right|...]]
+				: option === file_option;
+			})) {
+				register_option(index, '刪除重複的檔案選項');
+				file_link.splice(index--, 1);
+				continue;
+			}
+		}
+
+		// TODO: file_option.covers(caption)
+
+		// 去掉類別重複的檔案選項: 每種類別只能設定一個值，多出來沒有作用的應該刪掉。
+		var type = CeL.wiki.file_options[file_option];
+		if (type) {
+			if (false) {
+				CeL.info(type + ': ' + file_link[type] + ' vs. ' + file_option);
+			}
+			if (file_link[type] && file_link[type] !== file_option) {
+				register_option(index, '已指定' + type + '=' + file_link[type]
+						+ '，去掉類別相同而無效的檔案選項');
+				file_link.splice(index--, 1);
+				continue;
+			}
 		}
 
 	}
@@ -288,7 +415,7 @@ function for_lint_error(page_data) {
 		CeL.log(CeL.display_align(message));
 	}
 	if (bad_items.length > 0) {
-		CeL.warn('Bad item left: ' + JSON.stringify(bad_items));
+		CeL.warn('Bad item(s) left: ' + JSON.stringify(bad_items));
 	}
 
 	return;

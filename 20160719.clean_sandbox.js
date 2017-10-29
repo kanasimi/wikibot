@@ -106,19 +106,25 @@ var zhwiki = Wiki(true, 'zh'),
 // <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
 // ここから下に書き込んでください。
 zhwiki_announcement = '{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n';
-clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n');
+clean_wiki(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
+);
+
+// 預防改完以後又被 Jimmy-bot 改過來，現在採用相同的格式。
+
 // @see [[Special:链入页面/Template:Sandbox]]
 // TODO: [[模块:沙盒]], [[File:沙盒.png]]
-clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n', null,
-		'Wikipedia:使用指南 (编辑)/沙盒');
-clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n', null,
-		'Draft:沙盒');
-clean_wiki(zhwiki, zhwiki_announcement + '== 請在這行文字底下進行您的測試 ==\n', null,
-		'Category:Foo');
+clean_wiki(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
+, null, 'Wikipedia:使用指南 (编辑)/沙盒');
+clean_wiki(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
+, null, 'Draft:沙盒');
+clean_wiki(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
+, null, 'Category:Foo');
 clean_wiki(zhwiki, '<noinclude>' + zhwiki_announcement
-		+ '== 請在這行文字底下進行您的測試 ==</noinclude>\n', null, 'Template:沙盒');
-clean_wiki(zhwiki, zhwiki_announcement + '{{S/wnote}}\n== 請在這行文字底下進行您的測試 ==\n',
-		null, 'User talk:Sandbox for user warnings~zhwiki');
+// + '== 請在這行文字底下進行您的測試 ==</noinclude>\n'
+, null, 'Template:沙盒');
+clean_wiki(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
+// + '== 請在這行文字底下進行您的測試 ==\n'
+, null, 'User talk:Sandbox for user warnings~zhwiki');
 
 // --------------------------
 
