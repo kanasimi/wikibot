@@ -5,8 +5,10 @@
 
 @see
 [[Special:LintErrors]]
+https://en.wikipedia.org/wiki/Wikipedia:Picture_tutorial
 https://www.mediawiki.org/wiki/Help:Extension:Linter
 https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors
+
 
  */
 
@@ -29,10 +31,9 @@ wiki = Wiki(true);
 
 /** {String}編輯摘要。總結報告。 */
 summary = use_language === 'zh' ? '修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]'
-		: 'ウィキ文法修正: '
-		// 画像オプション
-		+ '[[Special:LintErrors/bogus-image-options|問題のある文件設定]]';
-summary = 'bot test: ' + summary;
+		// 文件設定の修正
+		: 'ウィキ文法修正: [[Special:LintErrors/bogus-image-options|間違った画像オプション]]';
+// summary = 'bot test: ' + summary;
 
 // ----------------------------------------------------------------------------
 // CeL.set_debug(6);
@@ -44,7 +45,7 @@ function get_linterrors(category, for_lint_error, options) {
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max' && 200));
+	action += '&lntlimit=' + (options.limit || ('max' && 400));
 	if (options.from >= 0) {
 		action += '&lntfrom=' + options.from;
 	}
@@ -59,7 +60,9 @@ function get_linterrors(category, for_lint_error, options) {
 			// console.log(lint_error_page);
 
 			// TODO: 一次取得多個個頁面的內容。
-			wiki.page(lint_error_page).edit(for_lint_error, {
+			wiki.page(lint_error_page, {
+				rvprop : 'content|timestamp|ids'
+			}).edit(for_lint_error, {
 				summary : summary,
 				bot : 1,
 				minor : 1,
@@ -74,15 +77,29 @@ var
 NOT_FOUND = ''.indexOf('_');
 
 // use edit distance
-var options_to_test = 'right,left,thumb,none,upright,middle'.split(','),
-// 有效選項別名 alias
-alias = {
-	// 有效選項別名 alias
-	缩略图 : 'thumb',
-	有框 : 'frame',
-	左 : 'left',
-	右 : 'right',
-},
+var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
+// 有效選項別名 alias: alias → official name 正式名稱
+file_option_alias = {
+	// https://de.wikipedia.org/wiki/Hilfe:Bilder#Miniatur
+	de : {
+		mini : 'thumb',
+		miniatur : 'thumb',
+		hochkant : 'upright'
+	},
+
+	zh : {
+		缩略图 : 'thumb',
+		有框 : 'frame',
+		左 : 'left',
+		右 : 'right'
+	},
+
+	'' : {
+		float : 'thumb',
+		small : 'thumb'
+	}
+}, local_option_alias = file_option_alias[language_code] || CeL.null_Object(), foreign_option_alias = CeL
+		.null_Object(),
 // edit distance 過大者
 // wring → right
 typo = {
@@ -91,6 +108,15 @@ typo = {
 	central : 'center'
 };
 
+for ( var language_code in file_option_alias) {
+	if (language_code !== use_language) {
+		var option_alias = file_option_alias[language_code];
+		for ( var alias in option_alias) {
+			foreign_option_alias[alias] = [ language_code, option_alias[alias] ];
+		}
+	}
+}
+
 if (false) {
 	for ( var key in typo) {
 		var value = typo[key];
@@ -98,6 +124,7 @@ if (false) {
 	}
 }
 
+// https://en.wikipedia.org/wiki/Wikipedia:Extended_image_syntax
 function for_lint_error(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
@@ -143,6 +170,10 @@ function for_lint_error(page_data) {
 		if (message) {
 			message += ':' + JSON.stringify(file_option.trim());
 			// CeL.info('register_option: ' + message);
+			if (false)
+				_this.summary += ' [{{fullurl:' + CeL.wiki.title_of(page_data)
+						+ '|action=edit&oldid=' + page_data.revisions[0].revid
+						+ '&lintid=' + page_data.lintId + '}} ' + message + ']';
 			_this.summary += ' ' + message;
 		}
 		var _index = bad_items.indexOf(file_option);
@@ -160,7 +191,11 @@ function for_lint_error(page_data) {
 	// file_link: [ file namespace, section_title,
 	// parameters 1, parameters 2, parameters..., caption ]
 	for (var index = 2; index < file_link.length; index++) {
-		var file_option = file_link[index].toString().trim();
+		var file_option = file_link[index].toString().trim(),
+		//
+		file_option_is_not_caption = !file_link.caption
+		// 不檢查 caption。
+		|| file_option !== file_link.caption.toString().trim();
 		if (false) {
 			CeL.info('Check [' + index + '/' + file_link.length + ']: '
 					+ JSON.stringify(file_option));
@@ -187,13 +222,14 @@ function for_lint_error(page_data) {
 			position : true,
 			'default' : true,
 			caption : true
-		}
-		// 最後一個空白被視為不輸入 caption。
-		// && index < file_link.length - 1
-		|| (file_option.length === 1 && file_option.charCodeAt(0) < 256
+
+		} || file_option_is_not_caption
+		//
+		&& (file_option.length === 1 && file_option.charCodeAt(0) < 256
 		// e.g., "]"
 		|| /^[\[\]!@#$%^&*()_+=~`{}<>,.?\\\/]+$/.test(file_option))
 				&& bad_items.includes(file_option)) {
+			// 非正規且無效的格式設定
 			register_option(index, '刪除未規範且無效的檔案選項');
 			file_link.splice(index--, 1);
 			continue;
@@ -209,13 +245,14 @@ function for_lint_error(page_data) {
 			alt : true,
 			lang : true
 		}) {
-			register_option(index, '刪除需要指定值但未設定的檔案選項');
+			// 設定
+			register_option(index, '刪除需要指定值但未指定值的檔案選項');
 			file_link.splice(index--, 1);
 			continue;
 		}
 
-		if (index < file_link.length - 1
-		// ↑ 不檢查 caption。
+		if (file_option_is_not_caption
+		//
 		&& !(file_option in CeL.wiki.file_options)
 		// e.g., [[File:name.jpg|name|.jpg]]
 		&& file_link[0].toString().includes(file_option)) {
@@ -237,7 +274,7 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
-		matched = file_option.match(/^(width|height) *= *(\d+)(?: *px)?$/i);
+		var matched = file_option.match(/^(width|height) *= *(\d+)(?: *px)?$/i);
 		if (matched) {
 			register_option(index, '將尺寸選項改為正規形式');
 			if (matched[1].toLowerCase() === 'width') {
@@ -250,34 +287,54 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
-		if ((file_option in {
-			float : true,
-			small : true,
-			mini : true,
-			miniatur : true
-		})
-		// file_link.file_type === 'thumb'
-		&& file_link.file_type) {
+		// ----------------------------
+
+		var matched = file_option.match(/^([^=]*)(?:=(.*))?/), file_option_name = matched[1], file_option_value = matched[2];
+
+		if (file_option_name in foreign_option_alias) {
+			// [ language_code, official name ]
+			var option_alias_data = foreign_option_alias[file_option_name];
+			var type = CeL.wiki.file_options[option_alias_data[1]];
+			if (file_link[type]
+					&& (file_link[type] !== file_option_name || file_link[file_link[type]] !== (typeof file_option_value === 'string' ? file_option_value
+							.trim()
+							: file_option_value))) {
+				register_option(index, '已指定' + type + '=' + file_link[type]
+						+ '，刪除同類別之非正規且無效的檔案選項');
+				file_link.splice(index--, 1);
+				continue;
+			}
+
+			register_option(index, option_alias_data[0] ? '將其他語系('
+					+ option_alias_data[0] + ')的檔案選項改為本wiki相對應的檔案選項"'
+					+ option_alias_data[1] + '"'
 			// e.g., [[File:i.png|float|right|thumb|...]]
-			register_option(index, '已指定type=' + file_link.file_type
-					+ '，刪除非正規且無效的格式設定');
-			file_link.splice(index--, 1);
+			: '將非正規且無效之檔案選項改為效用最接近的檔案選項"' + option_alias_data[1] + '"');
+			file_link[index] = option_alias_data[1]
+					+ (typeof file_option_value === 'string' ? '='
+							+ file_option_value : '');
 			continue;
 		}
 
-		if ((file_option in alias)
+		if ((file_option_name in local_option_alias)
 		//
 		&& file_link.some(function(option, _index) {
 			return _index > 2 && index !== _index
+			// 跳過 file namespace, section_title 以及自身。
+			&& local_option_alias[file_option_name]
 			//
-			&& alias[file_option] === option.toString().trim();
+			=== option.toString().trim();
 		})) {
 			// e.g., [[File:i.svg|缩略图|thumb]] → [[File:i.svg|thumb]]
-			register_option(index, '刪除"' + alias[file_option] + '"同類別之別名');
+			register_option(index, '刪除"' + local_option_alias[file_option_name]
+					+ '"同類別之別名');
 			file_link.splice(index--, 1);
 			continue;
 		}
 
+		// ----------------------------
+
+		// 檢查特別指定的誤植。
 		if (file_option.toLowerCase() in typo) {
 			file_option = file_option.toLowerCase();
 			register_option(index, '修正"' + typo[file_option] + '"之誤植');
@@ -295,10 +352,11 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
+		// 檢查一般的檔案選項誤植。
 		var correct_name = null;
 		if (options_to_test.some(function(option) {
 			if (file_option in CeL.wiki.file_options) {
-				// 已經是正規的名稱
+				// 已經是正規的名稱。
 				return;
 			}
 			var edit_distance = CeL.edit_distance(file_option.toLowerCase(),
@@ -307,7 +365,7 @@ function for_lint_error(page_data) {
 				CeL.log('edit_distance(' + file_option + ', ' + option + ') = '
 						+ edit_distance);
 			}
-			if (0 < edit_distance && edit_distance <= 2) {
+			if (1 <= edit_distance && edit_distance <= 2) {
 				correct_name = option;
 				return true;
 			}
@@ -317,21 +375,25 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
+		// ----------------------------
+
 		var changed = false;
 		file_option = file_option.replace(
+		// @see parse_wikitext() @ CeL.wiki
+		/^(thumb|thumbnail|upright|link|alt|lang|page|thumbtime|start|end|class) +=/
 		// 經測試，等號前方不可有空格。
-		/^(link|alt|lang|page|thumb|thumbnail) +=/, function(all, option_name) {
+		, function(all, option_name) {
 			changed = true;
 			return option_name + '=';
 		});
 		if (changed) {
-			register_option(index, '修正等號前方的空格');
+			register_option(index, '修正等號前方的空格，此空格將使選項無效');
 			file_link[index] = file_option;
 			continue;
 		}
 
 		var changed = false;
-		file_option = file_option.replace(/^ *(title|Alt) *(=|$)/,
+		file_option = file_option.replace(/^(title|Alt) *(=|$)/,
 		//
 		function(all, name, sign) {
 			if (name === 'alt') {
@@ -346,7 +408,7 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
-		// TODO: "Panorama", "float right", "hochkant=1.5", "260pxright",
+		// TODO: 全景圖 "Panorama", "float right", "hochkant=1.5", "260pxright",
 		// "leftright", "upright1.5", "framepx200", "<!--...-->", "uptight=1.2",
 		// "90%", "topleft", "<center></center>", "thumbtime=11", "250px}right",
 		// "May 2007", "upleft=1", "220pxnail", "vignette"
@@ -398,7 +460,7 @@ function for_lint_error(page_data) {
 			}
 			if (file_link[type] && file_link[type] !== file_option) {
 				register_option(index, '已指定' + type + '=' + file_link[type]
-						+ '，去掉類別相同而無效的檔案選項');
+						+ '，去掉相同類別的無效檔案選項');
 				file_link.splice(index--, 1);
 				continue;
 			}
@@ -418,7 +480,7 @@ function for_lint_error(page_data) {
 		CeL.warn('Bad item(s) left: ' + JSON.stringify(bad_items));
 	}
 
-	return;
+	// return;
 	return content.slice(0, page_data.location[0]) + file_link
 			+ content.slice(page_data.location[1]);
 }
