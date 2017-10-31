@@ -98,7 +98,7 @@ file_option_alias = {
 		float : 'thumb',
 		small : 'thumb'
 	}
-}, local_option_alias = file_option_alias[language_code] || CeL.null_Object(), foreign_option_alias = CeL
+}, local_option_alias = file_option_alias[use_language] || CeL.null_Object(), foreign_option_alias = CeL
 		.null_Object(),
 // edit distance 過大者
 // wring → right
