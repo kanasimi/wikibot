@@ -119,7 +119,7 @@ clean_wiki(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您
 , null, 'Draft:沙盒');
 clean_wiki(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
 , null, 'Category:Foo');
-clean_wiki(zhwiki, '<noinclude>' + zhwiki_announcement
+clean_wiki(zhwiki, '<noinclude>' + zhwiki_announcement.trim()
 // + '== 請在這行文字底下進行您的測試 =='
 + '</noinclude>\n', null, 'Template:沙盒');
 clean_wiki(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
