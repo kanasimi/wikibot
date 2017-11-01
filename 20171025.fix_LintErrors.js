@@ -1,6 +1,6 @@
 ﻿/*
 
-	初版試營運。
+	初版完成，試營運。
 
 
 @see
@@ -36,8 +36,10 @@ summary = use_language === 'zh' ? '修正維基語法: [[Special:LintErrors/bogu
 // summary = 'bot test: ' + summary;
 
 // ----------------------------------------------------------------------------
+
 // CeL.set_debug(6);
-get_linterrors('bogus-image-options', for_lint_error, {});
+
+get_linterrors('bogus-image-options', for_bogus_image_options);
 
 function get_linterrors(category, for_lint_error, options) {
 	options = CeL.setup_options(options);
@@ -51,26 +53,55 @@ function get_linterrors(category, for_lint_error, options) {
 	}
 
 	wiki.query_API(action, function for_error_list(data, error) {
-		data.query.linterrors.forEach(function(lint_error_page) {
-			if (lint_error_page.templateInfo.name
-			// 問題出在transclusion的模板，而不是本page。
-			|| ('multiPartTemplateBlock' in lint_error_page.templateInfo)) {
-				return;
-			}
-			// console.log(lint_error_page);
-
-			// TODO: 一次取得多個個頁面的內容。
-			wiki.page(lint_error_page, {
-				rvprop : 'content|timestamp|ids'
-			}).edit(for_lint_error, {
-				summary : summary,
-				bot : 1,
-				minor : 1,
-				nocreate : 1
-			});
+		var linterrors = data.query.linterrors;
+		linterrors.for_lint_error = for_lint_error;
+		linterrors.processed = 0;
+		// 一個一個處理檔案，處理完之後就釋放記憶體，以減少記憶體的消耗。
+		CeL.run_serial(get_page_contents, linterrors, function() {
+			CeL.info(linterrors.processed
+			//
+			+ '/' + linterrors.length + ' done.');
 		});
 	});
 }
+
+function get_page_contents(run_next, lint_error_page, index, linterrors) {
+	if (lint_error_page.templateInfo.name
+	// 問題出在transclusion的模板，而不是本page。
+	|| ('multiPartTemplateBlock' in lint_error_page.templateInfo)) {
+		run_next();
+		return;
+	}
+	lint_error_page.task_index = index;
+	lint_error_page.task_length = linterrors.length;
+
+	if (false && index < 227) {
+		run_next();
+		return;
+	}
+	// CeL.set_debug(6);
+
+	if (CeL.is_debug(3)) {
+		console.log(lint_error_page);
+	}
+
+	// TODO: 一次取得多個個頁面的內容。
+	wiki.page(lint_error_page, {
+		rvprop : 'content|timestamp|ids'
+	}).edit(linterrors.for_lint_error, {
+		summary : summary,
+		bot : 1,
+		minor : 1,
+		nocreate : 1
+	}, function() {
+		linterrors.processed++;
+		// free
+		linterrors[index] = null;
+		run_next();
+	});
+}
+
+// ----------------------------------------------------------------------------
 
 var
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
@@ -85,6 +116,11 @@ file_option_alias = {
 		mini : 'thumb',
 		miniatur : 'thumb',
 		hochkant : 'upright'
+	},
+
+	// https://fr.wikipedia.org/wiki/Aide:Ins%C3%A9rer_une_image_(wikicode,_avanc%C3%A9)
+	fr : {
+		vignette : 'thumb'
 	},
 
 	zh : {
@@ -125,7 +161,7 @@ if (false) {
 }
 
 // https://en.wikipedia.org/wiki/Wikipedia:Extended_image_syntax
-function for_lint_error(page_data) {
+function for_bogus_image_options(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	/**
@@ -140,9 +176,12 @@ function for_lint_error(page_data) {
 						+ '! 沒有頁面內容！' ];
 	}
 
-	var file_text = content.slice(page_data.location[0], page_data.location[1]), file_link = CeL.wiki
-			.parse(file_text), bad_items = page_data.params.items;
-	CeL.log(CeL.wiki.title_link_of(page_data) + ': ' + file_link + ' -- '
+	var file_text = content.slice(page_data.location[0], page_data.location[1]);
+	CeL.debug('Bad token: ' + JSON.stringify(file_text), 3,
+			'for_bogus_image_options');
+	var file_link = CeL.wiki.parse(file_text), bad_items = page_data.params.items;
+	CeL.log(page_data.task_index + '/' + page_data.task_length + ' '
+			+ CeL.wiki.title_link_of(page_data) + ': ' + file_link + ' -- '
 			+ JSON.stringify(bad_items));
 	if (file_link.type !== 'file' || file_text !== file_link.toString()) {
 		if (Date.now() - Date.parse(page_data.revisions[0].timestamp) < 60 * 60 * 1000) {
@@ -202,7 +241,7 @@ function for_lint_error(page_data) {
 		}
 
 		// ------------------------------------------------
-		// 刪除掉一定是錯的選項。
+		CeL.debug('刪除掉一定是錯的選項。', 3, 'for_bogus_image_options');
 
 		if (file_option === ''
 		// 最後一個空白被視為不輸入 caption。
@@ -236,7 +275,8 @@ function for_lint_error(page_data) {
 		}
 
 		// ------------------------------------------------
-		// 測試其他可以判別的檔案選項。採取白名單原則，只改變能夠判別的以避免誤殺。
+		CeL.debug('測試其他可以判別的檔案選項。', 3, 'for_bogus_image_options');
+		// 採取白名單原則，只改變能夠判別的以避免誤殺。
 		// 必須放在"刪除掉重複的選項"之前，以處理如[[File:name.jpg|20|2017 CE]]。
 
 		// 這幾個必須要設定指定的值。
@@ -299,14 +339,21 @@ function for_lint_error(page_data) {
 					&& (file_link[type] !== file_option_name || file_link[file_link[type]] !== (typeof file_option_value === 'string' ? file_option_value
 							.trim()
 							: file_option_value))) {
-				register_option(index, '已指定' + type + '=' + file_link[type]
-						+ '，刪除同類別之非正規且無效的檔案選項');
+				register_option(index, '已指定'
+						+ type
+						+ '='
+						+ file_link[type]
+						+ '，刪除同類別之'
+						+ (option_alias_data[0] ? '其他語系('
+								+ option_alias_data[0] + ')' : '非正規且無效')
+						+ '的檔案選項');
 				file_link.splice(index--, 1);
 				continue;
 			}
 
-			register_option(index, option_alias_data[0] ? '將其他語系('
-					+ option_alias_data[0] + ')的檔案選項改為本wiki相對應的檔案選項"'
+			register_option(index, option_alias_data[0] ? '將'
+					+ (option_alias_data[0] ? '其他語系(' + option_alias_data[0]
+							+ ')' : '非正規且無效') + '的檔案選項改為本wiki相對應的檔案選項"'
 					+ option_alias_data[1] + '"'
 			// e.g., [[File:i.png|float|right|thumb|...]]
 			: '將非正規且無效之檔案選項改為效用最接近的檔案選項"' + option_alias_data[1] + '"');
@@ -319,7 +366,7 @@ function for_lint_error(page_data) {
 		if ((file_option_name in local_option_alias)
 		//
 		&& file_link.some(function(option, _index) {
-			return _index > 2 && index !== _index
+			return _index >= 2 && index !== _index
 			// 跳過 file namespace, section_title 以及自身。
 			&& local_option_alias[file_option_name]
 			//
@@ -334,12 +381,12 @@ function for_lint_error(page_data) {
 
 		// ----------------------------
 
-		// 檢查特別指定的誤植。
+		CeL.debug('檢查特別指定的誤植。', 3, 'for_bogus_image_options');
 		if (file_option.toLowerCase() in typo) {
 			file_option = file_option.toLowerCase();
 			register_option(index, '修正"' + typo[file_option] + '"之誤植');
 			if (file_link.some(function(option, _index) {
-				return _index > 2 && index !== _index
+				return _index >= 2 && index !== _index
 				//
 				&& typo[file_option] === option.toString().trim();
 			})) {
@@ -352,7 +399,7 @@ function for_lint_error(page_data) {
 			continue;
 		}
 
-		// 檢查一般的檔案選項誤植。
+		CeL.debug('檢查一般的檔案選項誤植。', 3, 'for_bogus_image_options');
 		var correct_name = null;
 		if (options_to_test.some(function(option) {
 			if (file_option in CeL.wiki.file_options) {
@@ -411,12 +458,12 @@ function for_lint_error(page_data) {
 		// TODO: 全景圖 "Panorama", "float right", "hochkant=1.5", "260pxright",
 		// "leftright", "upright1.5", "framepx200", "<!--...-->", "uptight=1.2",
 		// "90%", "topleft", "<center></center>", "thumbtime=11", "250px}right",
-		// "May 2007", "upleft=1", "220pxnail", "vignette"
+		// "May 2007", "upleft=1", "220pxnail"
 
 		// TODO: [[File:i.svg|caption_1|caption_2]]
 
 		// ------------------------------------------------
-		// 刪除掉重複的選項。
+		CeL.debug('刪除掉重複的選項。', 3, 'for_bogus_image_options');
 
 		if (index + 1 < file_link.length) {
 			if (false) {
@@ -452,7 +499,8 @@ function for_lint_error(page_data) {
 
 		// TODO: file_option.covers(caption)
 
-		// 去掉類別重複的檔案選項: 每種類別只能設定一個值，多出來沒有作用的應該刪掉。
+		CeL.debug('去掉類別重複的檔案選項: 每種類別只能設定一個值，多出來沒有作用的應該刪掉。', 3,
+				'for_bogus_image_options');
 		var type = CeL.wiki.file_options[file_option];
 		if (type) {
 			if (false) {
