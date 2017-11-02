@@ -345,9 +345,14 @@ function for_each_page(page_data, messages) {
 					add_label(foreign_language, foreign_title, label_CHT,
 							'zh-hant', token, no_need_check);
 					if (!local_language)
-						// label 照理應該是簡體 (zh-cn)。
-						// treat zh-hans as zh-cn
-						local_language = 'zh-cn';
+						// 非繁體的 label 照理應該是簡體 (zh-hans)。
+						// treat zh-hans as zh-hans
+						local_language = 'zh-hans';
+
+					// language fallback :[[mw:Localisation statistics]]
+					// (zh-hk, zh-mo, zh-tw) → zh-hant (→ zh?)
+					// (zh-cn, zh-sg) → zh-hans (→ zh?)
+					// no zh-my?
 				} else {
 					// 繁簡標題相同，採用 local_language = 'zh' 即可。
 				}

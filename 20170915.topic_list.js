@@ -315,6 +315,10 @@ page_configurations = {
 
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
+if (0)
+	page_configurations = {
+		'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration
+	};
 
 // ----------------------------------------------------------------------------
 

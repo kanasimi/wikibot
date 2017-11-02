@@ -76,7 +76,9 @@ project_page_prefix = {
 whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館',
 		'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员' ],
 // 黑名單直接封殺。黑名單的優先度高於白名單。
-blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引' ],
+// 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這個頁面補簽名。
+// 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
+blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikisource:管理员' ],
 
 // ----------------------------------------------------------------------------
 
@@ -242,7 +244,7 @@ if (test_the_page_only) {
 		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
 		// 若是等待時間過長，可能會有其他人插入留言回覆。 [[zh:Special:Diff/45941555]],
 		// [[zh:Special:Diff/46397467]]
-		delay : '4m',
+		delay : '2m',
 		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {
