@@ -124,7 +124,10 @@ function process_VOA_page(XMLHttp) {
 	title = response.between('<meta name="title" content="', '"').trim(),
 	// 這裡列出的是一定會包含的tags
 	report = response.between('<div class="body-container">',
-			'<ul class="author-hlight">').between('<div class="wsw">', {
+	// 有些文章沒有 "<ul class="author-hlight">"
+	// e.g.,
+	// view-source:https://www.voachinese.com/a/supreme-court-adjourns-hearings-of-former-catalan-lawmakers-20171102/4097188.html
+	'<div id="comments" ').between('<div class="wsw">', {
 		tail : '</div>'
 	}), report_date = new Date(response.between('<time datetime="', '"')
 	// VOA 這個時間竟然是錯的，必須將之視作中原標準時間。
@@ -133,6 +136,7 @@ function process_VOA_page(XMLHttp) {
 	// assert: typeof this_link_data === 'object'
 
 	if (!title || !report) {
+		CeL.error('Can not get: ' + XMLHttp.URL);
 		this_link_data.note = 'ERROR';
 		this.check_links();
 		return;

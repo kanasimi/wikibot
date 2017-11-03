@@ -9,6 +9,7 @@ https://en.wikipedia.org/wiki/Wikipedia:Picture_tutorial
 https://www.mediawiki.org/wiki/Help:Extension:Linter
 https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors
 
+這個任務需要倚賴[https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors LintErrors API]，因此已經編輯過的頁面就沒有辦法簡單的指定頁面後再重新編輯。
 
  */
 
@@ -47,7 +48,7 @@ function get_linterrors(category, for_lint_error, options) {
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max' && 400));
+	action += '&lntlimit=' + (options.limit || ('max' && 600));
 	if (options.from >= 0) {
 		action += '&lntfrom=' + options.from;
 	}
@@ -109,6 +110,18 @@ NOT_FOUND = ''.indexOf('_');
 
 // use edit distance
 var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
+// 這些絕不可被拿來當作描述。
+not_file_option = {
+	links : true,
+	size : true,
+	width : true,
+	hright : true,
+	align : true,
+	position : true,
+	'default' : true,
+	caption : true,
+	Caption : true
+},
 // 有效選項別名 alias: alias → official name 正式名稱
 file_option_alias = {
 	// https://de.wikipedia.org/wiki/Hilfe:Bilder#Miniatur
@@ -127,7 +140,9 @@ file_option_alias = {
 		缩略图 : 'thumb',
 		有框 : 'frame',
 		左 : 'left',
-		右 : 'right'
+		右 : 'right',
+		中 : 'center',
+		居中 : 'center'
 	},
 
 	'' : {
@@ -141,6 +156,7 @@ file_option_alias = {
 typo = {
 	rghigt : 'right',
 	'valign=center' : 'center',
+	'align=right' : 'right',
 	central : 'center'
 };
 
@@ -253,16 +269,7 @@ function for_bogus_image_options(page_data) {
 			continue;
 		}
 
-		if (file_option in {
-			// 這些絕不可被拿來當作描述。
-			links : true,
-			size : true,
-			align : true,
-			position : true,
-			'default' : true,
-			caption : true
-
-		} || file_option_is_not_caption
+		if ((file_option in not_file_option) || file_option_is_not_caption
 		//
 		&& (file_option.length === 1 && file_option.charCodeAt(0) < 256
 		// e.g., "]"
@@ -303,7 +310,7 @@ function for_bogus_image_options(page_data) {
 
 		var matched = file_option
 				// 不可以篩到 200px 之類!
-				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|xp|@x|px\]|pc|pix|pxx|[oO][xX])?$/);
+				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|xp|@x|px\]|pc|pix|pxx|pxl|[oO][xX])?$/);
 		if (matched) {
 			register_option(index, '修正尺寸選項為px單位');
 			file_link[index] = matched[1].replace(/ /g, '') + 'px';
@@ -450,7 +457,7 @@ function for_bogus_image_options(page_data) {
 			return 'alt' + sign;
 		});
 		if (changed) {
-			register_option(index, '修正錯誤的圖片替代文字用法');
+			register_option(index, '修正錯誤的圖片替代文字用法(必須用小寫的"alt")');
 			file_link[index] = file_option;
 			continue;
 		}

@@ -315,10 +315,12 @@ page_configurations = {
 
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
-if (0)
+
+if (0) {
 	page_configurations = {
 		'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration
 	};
+}
 
 // ----------------------------------------------------------------------------
 
@@ -350,7 +352,7 @@ var special_users;
 function main_process(_special_users) {
 	special_users = _special_users;
 
-	// 首先生成一輪。
+	// 首先生成一輪討論頁面主題列表。
 	main_talk_pages.forEach(function(page_title) {
 		wiki.page(page_title, pre_fetch_sub_pages);
 	});
@@ -1025,6 +1027,12 @@ function generate_topic_list(page_data) {
 	topic_count = 0, new_topics = [];
 
 	parser.each_section(function(section, section_index) {
+		if (false) {
+			console.log('' + section.section_title);
+			if (section_index >= 12)
+				console.log(section);
+		}
+
 		if (section_index === 0) {
 			// 跳過頁首設定與公告區。
 			return;
@@ -1062,6 +1070,15 @@ function generate_topic_list(page_data) {
 		// set options[KEY_SESSION] for parse_date()
 		session : wiki
 	});
+
+	if (0) {
+		parser.each(function(token) {
+			console.log(token);
+		}, {
+			modify : false,
+			max_depth : 1
+		});
+	}
 
 	section_table.push('|}');
 	if (page_configuration.postfix) {
