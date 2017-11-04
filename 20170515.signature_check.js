@@ -60,6 +60,10 @@ test_the_page_only = "",
 test_mode = !!test_the_page_only,
 // 回溯這麼多時間。最多約可回溯30天。用個一兩天可以避免 jstart 必須常常檢查。
 time_back_to = test_mode ? '1h' : '2D',
+// 檢查簽名的延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
+// 若是等待時間過長，可能會有其他人插入留言回覆。 [[zh:Special:Diff/45941555]],
+// [[zh:Special:Diff/46397467]]
+delay_time = '2m',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
 //
@@ -239,12 +243,10 @@ if (test_the_page_only) {
 	});
 
 } else {
+	CeL.info('檢查簽名的延遲時間: ' + delay_time);
 	wiki.listen(for_each_row, {
 		start : time_back_to,
-		// 延遲時間: 檢測到未簽名的編輯後，機器人會等待 .delay，以使用戶可以自行補簽。
-		// 若是等待時間過長，可能會有其他人插入留言回覆。 [[zh:Special:Diff/45941555]],
-		// [[zh:Special:Diff/46397467]]
-		delay : '2m',
+		delay : delay_time,
 		filter : filter_row,
 		with_diff : with_diff,
 		parameters : {

@@ -246,8 +246,10 @@ page_configurations = {
 	// 被認為無用
 	'jawiki:Wikipedia:井戸端' : Object.assign({
 		// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
-		// 初期設定は折り畳んだ状態で
-		header_class : 'wikitable sortable collapsible collapsed',
+		// 初期設定は折り畳んだ状態で (collapsed)
+		// [[Wikipedia:議論が盛んなノート]]の更新Botをフッタに対応させ、
+		// [[Wikipedia:井戸端/topic list]]を取り込んでみました。こちらでは表示の折り畳みは不要かと思われます
+		header_class : 'wikitable sortable collapsible',
 		timezone : 9,
 		transclusion_target : function(token) {
 			if (token.name === '井戸端サブページ' && token.parameters.title) {
@@ -316,7 +318,7 @@ page_configurations = {
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
 
-if (0) {
+if (false) {
 	page_configurations = {
 		'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration
 	};
@@ -1009,6 +1011,7 @@ function pre_fetch_sub_pages(page_data, error) {
 }
 
 // ----------------------------------------------------------------------------
+// 生成菜單的主函數
 
 function generate_topic_list(page_data) {
 	var parser = CeL.wiki.parser(page_data),
@@ -1039,7 +1042,8 @@ function generate_topic_list(page_data) {
 		}
 
 		if (page_configuration.section_filter
-				&& !page_configuration.section_filter.call(parser, section)) {
+		// 篩選議題。
+		&& !page_configuration.section_filter.call(parser, section)) {
 			return;
 		}
 
@@ -1071,7 +1075,7 @@ function generate_topic_list(page_data) {
 		session : wiki
 	});
 
-	if (0) {
+	if (false) {
 		parser.each(function(token) {
 			console.log(token);
 		}, {
@@ -1092,7 +1096,7 @@ function generate_topic_list(page_data) {
 		topic_page = page_data.title + topic_page;
 	}
 
-	if (0) {
+	if (false) {
 		console.log(section_table.join('\n'));
 		throw 'generate_topic_list: No edit';
 	}

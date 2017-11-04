@@ -9,7 +9,7 @@ https://en.wikipedia.org/wiki/Wikipedia:Picture_tutorial
 https://www.mediawiki.org/wiki/Help:Extension:Linter
 https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors
 
-這個任務需要倚賴[https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors LintErrors API]，因此已經編輯過的頁面就沒有辦法簡單的指定頁面後再重新編輯。
+這個任務需要倚賴[https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors LintErrors API]，因此已經編輯過的頁面就沒有辦法簡單的指定頁面後再重新編輯。這邊另外做了一些編輯給您參考，請在編輯記錄中找尋關鍵字"修正維基語法:"，謝謝。
 
  */
 
@@ -118,9 +118,9 @@ not_file_option = {
 	hright : true,
 	align : true,
 	position : true,
-	'default' : true,
 	caption : true,
-	Caption : true
+	Caption : true,
+	'default' : true
 },
 // 有效選項別名 alias: alias → official name 正式名稱
 file_option_alias = {
