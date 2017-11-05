@@ -123,7 +123,16 @@ function for_file(page_data, error) {
 
 	parser.each('category', function(category, index) {
 		if (category.name.includes('needing categories')) {
-			needing_categories.push(category);
+			if (category.name.includes(
+			/**
+			 * <code>
+			remove "Category:Photos from Panoramio needing categories as of 2017-XX-XX"
+			but not "Category:Photos from Panoramio ID XXXXXX needing categories", "Category:Media needing category review as of XXX"
+			</code>
+			 */
+			'Category:Photos from Panoramio needing categories as of')) {
+				needing_categories.push(category);
+			}
 		} else if (!/Panoramio|Unidentified|Taken with|taken on/i
 				.test(category.name)) {
 			// exclude categories marked with __HIDDENCAT__
