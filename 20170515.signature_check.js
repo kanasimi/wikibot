@@ -149,6 +149,8 @@ function filter_row(row) {
 	? row.title === test_the_page_only
 	// 跳過機器人的編輯。為了某些編輯不加 bot flag 的 bot。
 	: !CeL.wiki.PATTERN_BOT_NAME.test(row.user) && row.user !== user_name
+	//
+	&& row.user !== 'MediaWiki message delivery'
 	// 篩選頁面標題。跳過封存/存檔頁面。
 	&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
 	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]

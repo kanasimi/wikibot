@@ -110,7 +110,7 @@ NOT_FOUND = ''.indexOf('_');
 
 // use edit distance
 var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
-// 這些絕不可被拿來當作描述。
+// 這些絕不可被拿來當作caption描述者。
 not_file_option = {
 	links : true,
 	size : true,
@@ -145,13 +145,14 @@ file_option_alias = {
 		居中 : 'center'
 	},
 
+	// for all language
 	'' : {
 		float : 'thumb',
 		small : 'thumb'
 	}
 }, local_option_alias = file_option_alias[use_language] || CeL.null_Object(), foreign_option_alias = CeL
 		.null_Object(),
-// edit distance 過大者
+// 登記 edit distance 過大者
 // wring → right
 typo = {
 	rghigt : 'right',
@@ -270,7 +271,7 @@ function for_bogus_image_options(page_data) {
 		}
 
 		if ((file_option in not_file_option) || file_option_is_not_caption
-		//
+		// 這一項所列出的為長度極短、非有意義文字
 		&& (file_option.length === 1 && file_option.charCodeAt(0) < 256
 		// e.g., "]"
 		|| /^[\[\]!@#$%^&*()_+=~`{}<>,.?\\\/]+$/.test(file_option))
@@ -286,7 +287,7 @@ function for_bogus_image_options(page_data) {
 		// 採取白名單原則，只改變能夠判別的以避免誤殺。
 		// 必須放在"刪除掉重複的選項"之前，以處理如[[File:name.jpg|20|2017 CE]]。
 
-		// 這幾個必須要設定指定的值。
+		// 這幾個 file option 必須要設定指定的值。
 		if (file_option in {
 			link : true,
 			alt : true,

@@ -130,7 +130,7 @@ function for_file(page_data, error) {
 			but not "Category:Photos from Panoramio ID XXXXXX needing categories", "Category:Media needing category review as of XXX"
 			</code>
 			 */
-			'Category:Photos from Panoramio needing categories as of')) {
+			'Panoramio needing categories as of')) {
 				needing_categories.push(category);
 			}
 		} else if (!/Panoramio|Unidentified|Taken with|taken on/i
