@@ -18,22 +18,59 @@ https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
+// language support
+var i18n = {
+	en : {
+		'修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]' : 'Fix LintErrors: [[Special:LintErrors/bogus-image-options|Bogus file options]]'
+	},
+	ja : {
+		format : '表示形式',
+		location : '配置位置',
+		alignment : '垂直方向の位置',
+
+		// 文件設定の修正
+		'修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]' : 'ウィキ文法修正: [[Special:LintErrors/bogus-image-options|間違った画像オプション]]',
+		// [[Help:画像の表示]]
+		'刪除空檔案選項' : '空のオプションを削除する',
+		'刪除未規範且無效的檔案選項' : '無効なオプションを削除する',
+		'刪除需要指定值但未指定值的檔案選項' : '必須引数を指定していない無効なオプションを削除する',
+		'刪除與檔名重複且無作用的檔案選項' : 'ファイル名と重複した無効なオプションを削除する',
+		'修正尺寸選項為px單位' : 'サイズの単位をpxに修正する',
+		'將尺寸選項改為正規形式' : 'サイズ単位の正規化',
+
+		'已指定%1=%2，刪除同類別之非正規且無效的檔案選項' : '%1を"%2"に指定した。同種類の無効なオプションを削除する',
+		'已指定%1=%2，刪除同類別之其他語系(%3)的檔案選項' : '%1を"%2"に指定した。他言語(%3)同種類の無効なオプションを削除する',
+
+		'將其他語系(%1)的檔案選項改為本wiki相對應的檔案選項"%2"' : '他言語(%1)のオプションを該当オプション"%2"に変更する',
+		'將非正規檔案選項改為效用最接近的檔案選項""%1"' : '非正規オプションを最も近い効果のオプション"%1"に変更する',
+
+		'刪除與"%1"同類別、重複設定之別名' : '"%1"と同種類、重複した別名オプションを削除する',
+		'修正"%1"之誤植' : '"%1"の誤植を修正する',
+		'修正等號前方的空格，此空格將使選項無效' : '等号の前のスペースを削除する。このスペースはオプションを無効化する。',
+		'修正錯誤的圖片替代文字用法(必須用小寫的"alt")' : '代替文の書式を修正する(小文字の"alt"を使用する)',
+		'刪除重複的檔案選項' : '重複したオプションを削除する',
+		'已指定%1=%2，去掉相同類別的無效檔案選項' : '%1を"%2"に指定した。同種類の無効なオプションを削除する'
+	}
+};
+
+(function() {
+	for ( var language in i18n) {
+		if (language === use_language)
+			CeL.gettext.set_text(i18n[language], language);
+	}
+})();
+
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */
 /* global Wiki */
-
-// Set default language. 改變預設之語言。 e.g., 'zh'
-// 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-set_language('zh');
 
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
 
 /** {String}編輯摘要。總結報告。 */
-summary = use_language === 'zh' ? '修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]'
-		// 文件設定の修正
-		: 'ウィキ文法修正: [[Special:LintErrors/bogus-image-options|間違った画像オプション]]';
+summary = CeL
+		.gettext('修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]');
 // summary = 'bot test: ' + summary;
 
 // ----------------------------------------------------------------------------
@@ -48,7 +85,7 @@ function get_linterrors(category, for_lint_error, options) {
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max' && 1000));
+	action += '&lntlimit=' + (options.limit || ('max' && 800));
 	if (options.from >= 0) {
 		action += '&lntfrom=' + options.from;
 	}
@@ -108,7 +145,7 @@ var
 /** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
 NOT_FOUND = ''.indexOf('_');
 
-// use edit distance
+// use edit distance. 較難符合、常用的應置於前。
 var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
 // 這些絕不可被拿來當作caption描述者。
 not_file_option = {
@@ -212,7 +249,8 @@ function for_bogus_image_options(page_data) {
 			+ CeL.wiki.title_link_of(page_data) + ': ' + file_link + ' -- '
 			+ JSON.stringify(bad_items));
 	if (file_link.type !== 'file' || file_text !== file_link.toString()) {
-		if (Date.now() - Date.parse(page_data.revisions[0].timestamp) < 60 * 60 * 1000) {
+		if (file_link.type !== 'file'
+				&& Date.now() - Date.parse(page_data.revisions[0].timestamp) < 60 * 60 * 1000) {
 			return [ CeL.wiki.edit.cancel, '可能是剛剛才做過變更，LintErrors 資料庫還沒有來得及更新？' ];
 		}
 
@@ -235,7 +273,8 @@ function for_bogus_image_options(page_data) {
 	function register_option(index, message) {
 		var file_option = file_link[index].toString();
 		if (message) {
-			message += ':' + JSON.stringify(file_option.trim());
+			message = CeL.gettext(message) + ':'
+					+ JSON.stringify(file_option.trim());
 			// CeL.info('register_option: ' + message);
 			if (false)
 				_this.summary += ' [{{fullurl:' + CeL.wiki.title_of(page_data)
@@ -300,7 +339,7 @@ function for_bogus_image_options(page_data) {
 
 		// 這幾個 file option 必須要設定指定的值。
 		if (file_option in {
-			link : true,
+			// 不包含link
 			alt : true,
 			lang : true
 		}) {
@@ -321,20 +360,21 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var matched = file_option
-				// 不可以篩到 200px 之類!
-				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|xp|dx|@x|px\]|pc|pix|pxx|pxl|[oO][xX])?$/);
+				// 不可以篩到 200px 之類正規用法!
+				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|pix|pxx|pxl|xp|dx|@x|px\]|pc|pz|[oO][xX])?$/);
 		if (matched) {
 			register_option(index, '修正尺寸選項為px單位');
 			file_link[index] = matched[1].replace(/ /g, '') + 'px';
 			continue;
 		}
 		if (file_option !== '' && !isNaN(file_option)) {
+			// 尺寸過大或者過小
 			CeL.warn('Invalid number: ' + file_option);
 			continue;
 		}
 
 		var matched = file_option
-				.match(/^(width|height|pi?x) *= *(\d+)(?: *px)?$/i);
+				.match(/^(width|height|pi?x) *= *(?:" *)?(\d+)(?: *px)?(?:" *)?$/i);
 		if (matched) {
 			register_option(index, '將尺寸選項改為正規形式');
 			if (matched[1].toLowerCase() === 'height') {
@@ -349,34 +389,34 @@ function for_bogus_image_options(page_data) {
 
 		// ----------------------------
 
-		var matched = file_option.match(/^([^=]*)(?:=(.*))?/), file_option_name = matched[1], file_option_value = matched[2];
+		var matched = file_option.match(/^([^=]*)(?:=([\s\S]*))?/),
+		// 對於有參數的檔案選項，file_option_name=file_option_value
+		file_option_name = matched[1].trim(), file_option_value = matched[2]
+				&& matched[2].trim() || undefined;
 
 		if (file_option_name in foreign_option_alias) {
+			// 為其他語系
 			// [ language_code, official name ]
 			var option_alias_data = foreign_option_alias[file_option_name];
 			var type = CeL.wiki.file_options[option_alias_data[1]];
 			if (file_link[type]
-					&& (file_link[type] !== file_option_name || file_link[file_link[type]] !== (typeof file_option_value === 'string' ? file_option_value
-							.trim()
-							: file_option_value))) {
-				register_option(index, '已指定'
-						+ type
-						+ '='
-						+ file_link[type]
-						+ '，刪除同類別之'
-						+ (option_alias_data[0] ? '其他語系('
-								+ option_alias_data[0] + ')' : '非正規且無效')
-						+ '的檔案選項');
+					// 實際使用的檔案選項與當前所要測試的檔案選項(採用其他語系)不同。
+					// 對當前所要測試的檔案選項類別，已經有指定了這種類別的檔案選項，但是並不是但是當前所要測試的檔案選項。
+					&& (file_link[type] !== file_option_name || file_link[file_link[type]] !== file_option_value)) {
+				register_option(index, option_alias_data[0] ? CeL.gettext(
+						'已指定%1=%2，刪除同類別之其他語系(%3)的檔案選項', type, file_link[type],
+						option_alias_data[0]) : CeL.gettext(
+						'已指定%1=%2，刪除同類別之非正規且無效的檔案選項', type, file_link[type]));
 				file_link.splice(index--, 1);
 				continue;
 			}
 
-			register_option(index, option_alias_data[0] ? '將'
-					+ (option_alias_data[0] ? '其他語系(' + option_alias_data[0]
-							+ ')' : '非正規且無效') + '的檔案選項改為本wiki相對應的檔案選項"'
-					+ option_alias_data[1] + '"'
+			// 實際使用的檔案選項與當前所要測試的檔案選項(採用其他語系)相同。
+			register_option(index, option_alias_data[0] ? CeL.gettext(
+					'將其他語系(%1)的檔案選項改為本wiki相對應的檔案選項"%2"', option_alias_data[0],
+					option_alias_data[1])
 			// e.g., [[File:i.png|float|right|thumb|...]]
-			: '將非正規且無效之檔案選項改為效用最接近的檔案選項"' + option_alias_data[1] + '"');
+			: CeL.gettext('將非正規檔案選項改為效用最接近的檔案選項""%1"', option_alias_data[1]));
 			file_link[index] = option_alias_data[1]
 					+ (typeof file_option_value === 'string' ? '='
 							+ file_option_value : '');
@@ -384,7 +424,7 @@ function for_bogus_image_options(page_data) {
 		}
 
 		if ((file_option_name in local_option_alias)
-		//
+		// 為本wiki語系別名
 		&& file_link.some(function(option, _index) {
 			return _index >= 2 && index !== _index
 			// 跳過 file namespace, section_title 以及自身。
@@ -392,9 +432,10 @@ function for_bogus_image_options(page_data) {
 			//
 			=== option.toString().trim();
 		})) {
+			// redundant 冗餘
 			// e.g., [[File:i.svg|缩略图|thumb]] → [[File:i.svg|thumb]]
-			register_option(index, '刪除"' + local_option_alias[file_option_name]
-					+ '"同類別之別名');
+			register_option(index, CeL.gettext('刪除與"%1"同類別、重複設定之別名',
+					local_option_alias[file_option_name]));
 			file_link.splice(index--, 1);
 			continue;
 		}
@@ -404,7 +445,7 @@ function for_bogus_image_options(page_data) {
 		CeL.debug('檢查特別指定的誤植。', 3, 'for_bogus_image_options');
 		if (file_option.toLowerCase() in typo) {
 			file_option = file_option.toLowerCase();
-			register_option(index, '修正"' + typo[file_option] + '"之誤植');
+			register_option(index, CeL.gettext('修正"%1"之誤植', typo[file_option]));
 			if (file_link.some(function(option, _index) {
 				return _index >= 2 && index !== _index
 				//
@@ -419,26 +460,31 @@ function for_bogus_image_options(page_data) {
 			continue;
 		}
 
-		CeL.debug('檢查一般的檔案選項誤植。', 3, 'for_bogus_image_options');
+		CeL.debug('以 edit distance 檢查一般的檔案選項誤植。', 3, 'for_bogus_image_options');
 		var correct_name = null;
-		if (options_to_test.some(function(option) {
-			if (file_option in CeL.wiki.file_options) {
+		file_option_name = file_option_name.toLowerCase();
+		if (file_option_name
+		//
+		&& options_to_test.some(function(option) {
+			if (file_option_name in CeL.wiki.file_options) {
 				// 已經是正規的名稱。
 				return;
 			}
-			var edit_distance = CeL.edit_distance(file_option.toLowerCase(),
-					option);
+			var edit_distance = CeL.edit_distance(file_option_name, option);
 			if (false) {
-				CeL.log('edit_distance(' + file_option + ', ' + option + ') = '
-						+ edit_distance);
+				CeL.log('edit_distance('
+				//
+				+ file_option_name + ', ' + option + ') = ' + edit_distance);
 			}
 			if (1 <= edit_distance && edit_distance <= 2) {
 				correct_name = option;
 				return true;
 			}
 		})) {
-			register_option(index, '修正"' + correct_name + '"之誤植');
-			file_link[index] = correct_name;
+			register_option(index, CeL.gettext('修正"%1"之誤植', correct_name));
+			file_link[index] = correct_name
+					+ (typeof file_option_value === 'string' ? '='
+							+ file_option_value : '');
 			continue;
 		}
 
@@ -507,7 +553,7 @@ function for_bogus_image_options(page_data) {
 				// caption 包含本 option
 				// e.g., [[File:...|ABC|ABC DEF]]
 				? option.covers(file_option)
-				// 重複的檔案選項。
+				// 冗餘重複的檔案選項。
 				// e.g., [[File:...|right|right|...]]
 				: option === file_option;
 			})) {
@@ -527,8 +573,8 @@ function for_bogus_image_options(page_data) {
 				CeL.info(type + ': ' + file_link[type] + ' vs. ' + file_option);
 			}
 			if (file_link[type] && file_link[type] !== file_option) {
-				register_option(index, '已指定' + type + '=' + file_link[type]
-						+ '，去掉相同類別的無效檔案選項');
+				register_option(index, CeL.gettext('已指定%1=%2，去掉相同類別的無效檔案選項',
+						type, file_link[type]));
 				file_link.splice(index--, 1);
 				continue;
 			}
@@ -537,6 +583,8 @@ function for_bogus_image_options(page_data) {
 	}
 
 	file_link = file_link.toString();
+
+	_this.summary += ' lintId=' + page_data.lintId;
 	if (file_text === file_link) {
 		CeL.info('No change: ' + file_text);
 	} else {
