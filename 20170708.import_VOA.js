@@ -25,7 +25,7 @@ wiki = Wiki(true, 'wikinews');
 
 // ----------------------------------------------------------------------------
 
-var main_page_title = 'User:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g;
+var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n\*\s*(https:[^\s]+)([^\n]+)/g;
 
 // @see [[Category:频道]]
 var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
@@ -43,13 +43,15 @@ var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印
 // CeL.set_debug(2);
 
 // 僅僅執行一次，一開始就執行一次。
-wiki.page(main_page_title, process_main_page);
+wiki.page(main_operation_title, process_main_page, {
+	redirects : 1
+});
 
 // listen all_time
 setTimeout(setup_listener, 10000);
 
 function setup_listener() {
-	// 隨時監視 main_page_title。
+	// 隨時監視 main_operation_title。
 	wiki.listen(function(page_data) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
 		if (0)
@@ -60,17 +62,24 @@ function setup_listener() {
 	}, {
 		interval : 5000,
 		with_content : true,
-		filter : main_page_title
+		filter : main_operation_title
 	});
 }
 
 // ----------------------------------------------------------------------------
 
-// 解析 main_page_title 看看是不是有新的申請。
+// 解析 main_operation_title 看看是不是有新的申請。
 function process_main_page(page_data, error) {
 	if (!page_data || ('missing' in page_data)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
+	}
+
+	// for redirects
+	if (main_operation_title !== page_data.title) {
+		CeL.info('Redirects: ' + CeL.wiki.title_link_of(main_operation_title)
+				+ '→' + CeL.wiki.title_link_of(page_data.title));
+		main_operation_title = page_data.title;
 	}
 
 	var
@@ -122,23 +131,30 @@ function process_VOA_page(XMLHttp) {
 	this_link_data = link_data[XMLHttp.URL],
 	//
 	title = response.between('<meta name="title" content="', '"').trim(),
+	// 報導的時間。
+	report_date = new Date(response.between('<time datetime="', '"')
+	// VOA 這個時間竟然是錯的，必須將之視作中原標準時間。
+	.replace('+00:00', '+08:00')),
 	// 解析頁面以取得內容。
 	// 這裡列出的是一定會包含的tags
-	report = response.between('<div class="body-container">',
+	report = response.between('<div class="body-container">');
 	// 有些文章沒有 "<ul class="author-hlight">"
 	// e.g.,
-	// view-source:https://www.voachinese.com/a/supreme-court-adjourns-hearings-of-former-catalan-lawmakers-20171102/4097188.html
-	'<div id="comments" ').between('<div class="wsw">', {
+	// https://www.voachinese.com/a/supreme-court-adjourns-hearings-of-former-catalan-lawmakers-20171102/4097188.html
+	// 有些文章沒有 '<div class="comments comments-pangea">'
+	// e.g.,
+	// https://www.voachinese.com/a/air-filter-20171024/4084304.html
+	report = report.between(null, '<ul class="author-hlight">')
+			|| report.between(null, '<div id="comments" ');
+	report = report.between('<div class="wsw">', {
 		tail : '</div>'
-	}), report_date = new Date(response.between('<time datetime="', '"')
-	// VOA 這個時間竟然是錯的，必須將之視作中原標準時間。
-	.replace('+00:00', '+08:00'));
+	});
 
 	// assert: typeof this_link_data === 'object'
 
 	if (!title || !report) {
-		CeL.error('Can not get: ' + XMLHttp.URL);
-		this_link_data.note = 'ERROR';
+		this_link_data.note = response ? '無法解析頁面，需要更新解析頁面這部分的程式碼。' : '無法取得頁面內容';
+		CeL.error(this_link_data.note + ': ' + XMLHttp.URL);
 		this.check_links();
 		return;
 	}
@@ -216,7 +232,7 @@ function process_VOA_page(XMLHttp) {
 	wiki.page(title).edit(edit_wiki_page, {
 		// for 機器人轉載新聞稿。
 		tags : 'import news',
-		summary : '[[' + main_page_title + '|Import VOA news]]'
+		summary : '[[' + main_operation_title + '|Import VOA news]]'
 	}, check_links.bind(this));
 }
 
@@ -256,7 +272,7 @@ function check_links() {
 		});
 	}
 
-	wiki.page(main_page_title).edit(add_report, {
+	wiki.page(main_operation_title).edit(add_report, {
 		summary : 'Report of '
 		//
 		+ this.processed_count + ' VOA-importing request'

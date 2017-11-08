@@ -152,8 +152,7 @@ file_option_alias = {
 		float : 'thumb',
 		small : 'thumb'
 	}
-}, local_option_alias = file_option_alias[use_language] || CeL.null_Object(), foreign_option_alias = CeL
-		.null_Object(),
+}, local_option_alias, foreign_option_alias = CeL.null_Object(),
 // 登記 edit distance 過大者
 // wring → right
 typo = {
@@ -165,21 +164,29 @@ typo = {
 	central : 'center'
 };
 
-for ( var language_code in file_option_alias) {
-	if (language_code !== use_language) {
+(function() {
+	for ( var language_code in file_option_alias) {
 		var option_alias = file_option_alias[language_code];
-		for ( var alias in option_alias) {
-			foreign_option_alias[alias] = [ language_code, option_alias[alias] ];
+		if (language_code === use_language) {
+			local_option_alias = option_alias;
+		} else {
+			for ( var alias in option_alias) {
+				foreign_option_alias[alias] = [ language_code,
+						option_alias[alias] ];
+			}
 		}
 	}
-}
+	local_option_alias = local_option_alias || CeL.null_Object();
 
-if (false) {
-	for ( var key in typo) {
-		var value = typo[key];
-		CeL.log(key + ' vs ' + value + ': ' + CeL.edit_distance(key, value));
+	if (false) {
+		for ( var key in typo) {
+			var value = typo[key];
+			CeL.log(key + ' vs ' + value + ': '
+			//
+			+ CeL.edit_distance(key, value));
+		}
 	}
-}
+})();
 
 // https://en.wikipedia.org/wiki/Wikipedia:Extended_image_syntax
 function for_bogus_image_options(page_data) {
