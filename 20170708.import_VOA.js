@@ -160,7 +160,7 @@ function process_VOA_page(XMLHttp) {
 	function edit_wiki_page(page_data) {
 		// 清空頁面將會執行下去。
 		if (CeL.wiki.content_of(page_data)) {
-			this_link_data.note = '本頁面已經有內容。';
+			this_link_data.note = CeL.wiki.title_link_of(title) + ': 本頁面已經有內容。';
 			CeL.error('本頁面已經有內容: ' + CeL.wiki.title_link_of(title));
 			return;
 		}

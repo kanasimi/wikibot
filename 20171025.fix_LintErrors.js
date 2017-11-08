@@ -48,7 +48,7 @@ function get_linterrors(category, for_lint_error, options) {
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max' && 600));
+	action += '&lntlimit=' + (options.limit || ('max' && 1000));
 	if (options.from >= 0) {
 		action += '&lntfrom=' + options.from;
 	}
@@ -114,6 +114,8 @@ var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
 not_file_option = {
 	links : true,
 	size : true,
+	auto : true,
+	image : true,
 	width : true,
 	hright : true,
 	align : true,
@@ -156,6 +158,8 @@ file_option_alias = {
 // wring → right
 typo = {
 	rghigt : 'right',
+	靠右 : 'right',
+	靠左 : 'left',
 	'valign=center' : 'center',
 	'align=right' : 'right',
 	central : 'center'
@@ -311,7 +315,7 @@ function for_bogus_image_options(page_data) {
 
 		var matched = file_option
 				// 不可以篩到 200px 之類!
-				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|xp|@x|px\]|pc|pix|pxx|pxl|[oO][xX])?$/);
+				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|xp|dx|@x|px\]|pc|pix|pxx|pxl|[oO][xX])?$/);
 		if (matched) {
 			register_option(index, '修正尺寸選項為px單位');
 			file_link[index] = matched[1].replace(/ /g, '') + 'px';
@@ -322,15 +326,16 @@ function for_bogus_image_options(page_data) {
 			continue;
 		}
 
-		var matched = file_option.match(/^(width|height) *= *(\d+)(?: *px)?$/i);
+		var matched = file_option
+				.match(/^(width|height|pi?x) *= *(\d+)(?: *px)?$/i);
 		if (matched) {
 			register_option(index, '將尺寸選項改為正規形式');
-			if (matched[1].toLowerCase() === 'width') {
+			if (matched[1].toLowerCase() === 'height') {
+				// e.g., "height=200"
+				file_link[index] = 'x' + matched[2] + 'px';
+			} else {
 				// e.g., "width=200"
 				file_link[index] = matched[2] + 'px';
-			} else {
-				// height
-				file_link[index] = 'x' + matched[2] + 'px';
 			}
 			continue;
 		}

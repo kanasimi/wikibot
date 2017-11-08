@@ -86,7 +86,7 @@ general_topic_page = '/topic list', general_page_configuration = {
 	zh : {
 		timezone : 8,
 		// 序號 Topics主題
-		headers : '! # !! 話題 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
+		headers : '! # !! 話題 !! <small title="發言數/發言人次(實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 	// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
 	},
 	'zh-classical' : {
@@ -97,7 +97,7 @@ general_topic_page = '/topic list', general_page_configuration = {
 	ja : {
 		timezone : 9,
 		// 質問や提案、議論
-		headers : '! # !! 話題 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
+		headers : '! # !! 話題 !! <small title="発言数">発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
 	}
 }[use_language];
 
@@ -753,7 +753,9 @@ normalize_time_style_hash(long_to_short);
 	|| list_legend['zh'];
 	list_legend_used = [
 			'{| class="wikitable" style="float:left;margin-left:.5em;"',
-			'! ' + _list_legend.header, '|-' ];
+			// TODO: .header 應該用 caption
+			// title: 相對於機器人最後一次編輯
+			'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
 	for ( var time_interval in _list_legend) {
 		if (time_interval === 'header') {
 			continue;
@@ -763,6 +765,7 @@ normalize_time_style_hash(long_to_short);
 		|| long_to_short[time_interval] || '') + ' | '
 				+ _list_legend[time_interval], '|-');
 	}
+	// {{clearright}}
 	list_legend_used.push('|}', '{{-}}');
 	// free
 	list_legend = null;
