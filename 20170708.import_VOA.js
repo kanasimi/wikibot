@@ -122,6 +122,7 @@ function process_VOA_page(XMLHttp) {
 	this_link_data = link_data[XMLHttp.URL],
 	//
 	title = response.between('<meta name="title" content="', '"').trim(),
+	// 解析頁面以取得內容。
 	// 這裡列出的是一定會包含的tags
 	report = response.between('<div class="body-container">',
 	// 有些文章沒有 "<ul class="author-hlight">"

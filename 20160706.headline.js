@@ -248,7 +248,7 @@ function write_data() {
 
 		if (headline_data.length === 0
 		// 原先已經有資料，並且是Review狀態的時候，還是需要更改一下。
-		&& !(page_data.stage_node.name === 'Review'
+		&& !(page_data.stage_node && page_data.stage_node.name === 'Review'
 		// 已經有頭條新聞資料時，直接標示{{Publish}}。
 		&& all_headlines > 2)) {
 			// 沒有新頭條時不寫入資料。
