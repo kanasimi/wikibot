@@ -51,6 +51,7 @@ wiki.page(main_operation_title, process_main_page, {
 setTimeout(setup_listener, 10000);
 
 function setup_listener() {
+	CeL.set_debug(2);
 	// 隨時監視 main_operation_title。
 	wiki.listen(function(page_data) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
@@ -60,6 +61,7 @@ function setup_listener() {
 					CeL.wiki.content_of(page_data).slice(0, 200) ]);
 		process_main_page(page_data);
 	}, {
+		// start : '1h',
 		interval : 5000,
 		with_content : true,
 		filter : main_operation_title

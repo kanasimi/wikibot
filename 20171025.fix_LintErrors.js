@@ -1,6 +1,6 @@
 ﻿/*
 
-	初版完成，試營運。
+2017/11/9 20:13:38	初版完成，試營運。
 
 
 @see
@@ -46,6 +46,7 @@ var i18n = {
 
 		'刪除與"%1"同類別、重複設定之別名' : '"%1"と同種類、重複した別名オプションを削除する',
 		'修正"%1"之誤植' : '"%1"の誤植を修正する',
+		'修正位置選項之誤植' : '配置位置オプションの誤植を修正する',
 		'修正等號前方的空格，此空格將使選項無效' : '等号の前のスペースを削除する。このスペースはオプションを無効化する。',
 		'修正錯誤的圖片替代文字用法(必須用小寫的"alt")' : '代替文の書式を修正する(小文字の"alt"を使用する)',
 		'刪除重複的檔案選項' : '重複したオプションを削除する',
@@ -77,7 +78,10 @@ summary = CeL
 
 // CeL.set_debug(6);
 
-get_linterrors('bogus-image-options', for_bogus_image_options);
+get_linterrors('bogus-image-options', for_bogus_image_options, {
+	// including File, Template, Category
+	namespace : '0|6|10|14'
+});
 
 function get_linterrors(category, for_lint_error, options) {
 	options = CeL.setup_options(options);
@@ -85,8 +89,9 @@ function get_linterrors(category, for_lint_error, options) {
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
 	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max' && 800));
+	action += '&lntlimit=' + (options.limit || ('max'));
 	if (options.from >= 0) {
+		// Lint ID to start querying from
 		action += '&lntfrom=' + options.from;
 	}
 
@@ -113,7 +118,7 @@ function get_page_contents(run_next, lint_error_page, index, linterrors) {
 	lint_error_page.task_index = index;
 	lint_error_page.task_length = linterrors.length;
 
-	if (false && index < 227) {
+	if (index < 1200) {
 		run_next();
 		return;
 	}
@@ -147,9 +152,13 @@ NOT_FOUND = ''.indexOf('_');
 
 // use edit distance. 較難符合、常用的應置於前。
 var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
+// option : may has "=". e.g., "upright=2"
+options_may_has_sign = 'upright'.split(','),
 // 這些絕不可被拿來當作caption描述者。
 not_file_option = {
+	'&nbsp;' : true,
 	links : true,
+	user : true,
 	size : true,
 	auto : true,
 	inline : true,
@@ -157,6 +166,7 @@ not_file_option = {
 	width : true,
 	hright : true,
 	align : true,
+	title : true,
 	position : true,
 	caption : true,
 	Caption : true,
@@ -171,34 +181,48 @@ file_option_alias = {
 		hochkant : 'upright'
 	},
 
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesFr_8php_source.html
 	// https://fr.wikipedia.org/wiki/Aide:Ins%C3%A9rer_une_image_(wikicode,_avanc%C3%A9)
 	fr : {
 		vignette : 'thumb'
 	},
 
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesZh__hans_8php_source.html
 	zh : {
 		缩略图 : 'thumb',
 		有框 : 'frame',
+		无框 : 'frameless',
+		语言 : 'lang',
 		左 : 'left',
 		右 : 'right',
-		中 : 'center',
-		居中 : 'center'
+		居中 : 'center',
+		右上 : 'upright',
+		边框 : 'border',
+		无 : 'none'
 	},
 
 	// for all language
 	'' : {
 		float : 'thumb',
+		// mini in de?
 		small : 'thumb'
 	}
 }, local_option_alias, foreign_option_alias = CeL.null_Object(),
 // 登記 edit distance 過大者
-// wring → right
+// wrong → right
 typo = {
 	rghigt : 'right',
+	中 : 'center',
+	中心 : 'center',
+	置中 : 'center',
 	靠右 : 'right',
 	靠左 : 'left',
-	'valign=center' : 'center',
-	'align=right' : 'right',
+	無 : 'none',
+	縮圖 : 'thumb',
+	// 經測試"無框"不被視為有效選項
+	無框 : 'frameless',
+	// miniatur in de
+	miniatyr : 'thumb',
 	central : 'center'
 };
 
@@ -253,6 +277,10 @@ function for_bogus_image_options(page_data) {
 		if (file_link.type !== 'file'
 				&& Date.now() - Date.parse(page_data.revisions[0].timestamp) < 60 * 60 * 1000) {
 			return [ CeL.wiki.edit.cancel, '可能是剛剛才做過變更，LintErrors 資料庫還沒有來得及更新？' ];
+		}
+		// Template
+		if (page_data.ns === 10 || page_data.title === '自我复制') {
+			return [ CeL.wiki.edit.cancel, '取得的token並非[[File:]]' ];
 		}
 
 		CeL.log('='.repeat(80));
@@ -361,8 +389,8 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var matched = file_option
-				// 不可以篩到 200px 之類正規用法!
-				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|pix|pxx|pxl|pxb|xp|dx|@x|px\]|pc|pz|[oO][xX])?$/);
+				// 不可以篩到 200px, x150px 之類正規用法!
+				.match(/^(?:Px=?|px=?)?((?:(?:\d{1,3})? *[xX*×])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|pix|pxx|pxt|pxs|pxu|pxl|pxb|px}|px\.|px\]|\(px\)|xp|dx|@x|pc|pg|ps|pv|pz|[oO][xX]|点|圖元)?$/);
 		if (matched) {
 			register_option(index, '修正尺寸選項為px單位');
 			file_link[index] = matched[1].replace(/ /g, '') + 'px';
@@ -444,8 +472,9 @@ function for_bogus_image_options(page_data) {
 		// ----------------------------
 
 		CeL.debug('檢查特別指定的誤植。', 3, 'for_bogus_image_options');
-		if (file_option.toLowerCase() in typo) {
-			file_option = file_option.toLowerCase();
+		var matched = file_option.trim().toLowerCase();
+		if (matched in typo) {
+			file_option = matched;
 			register_option(index, CeL.gettext('修正"%1"之誤植', typo[file_option]));
 			if (file_link.some(function(option, _index) {
 				return _index >= 2 && index !== _index
@@ -465,12 +494,17 @@ function for_bogus_image_options(page_data) {
 		var correct_name = null;
 		file_option_name = file_option_name.toLowerCase();
 		if (file_option_name
+		// 跳過已經是正規名稱的情況。
+		&& !(file_option_name in CeL.wiki.file_options)
 		//
 		&& options_to_test.some(function(option) {
-			if (file_option_name in CeL.wiki.file_options) {
-				// 已經是正規的名稱。
+			if (typeof file_option_value === 'string'
+			// 既然想測試的選項不應包含等號，但是本選項有等號，那麼就不會是誤認。
+			// e.g., "upleft=1" 不應該被當作 "left=1"
+			&& !options_may_has_sign.includes(option)) {
 				return;
 			}
+
 			var edit_distance = CeL.edit_distance(file_option_name, option);
 			if (false) {
 				CeL.log('edit_distance('
@@ -478,6 +512,7 @@ function for_bogus_image_options(page_data) {
 				+ file_option_name + ', ' + option + ') = ' + edit_distance);
 			}
 			if (1 <= edit_distance && edit_distance <= 2) {
+				// 兩個選項極為接近，可能是誤植
 				correct_name = option;
 				return true;
 			}
@@ -486,6 +521,19 @@ function for_bogus_image_options(page_data) {
 			file_link[index] = correct_name
 					+ (typeof file_option_value === 'string' ? '='
 							+ file_option_value : '');
+			continue;
+		}
+
+		// ----------------------------
+
+		// e.g., 'valign=center' : 'center', 'align=right' : 'right',
+		// "float right", "float:right", "align=riht"
+		var matched = file_option
+				.match(/^ *(?:float|align|valign|align-cap) *[=: ]*"?(right|left|center)"? *$/i);
+		if (matched) {
+			// location
+			register_option(index, '修正位置選項之誤植');
+			file_link[index] = matched[1].toLowerCase();
 			continue;
 		}
 
@@ -507,7 +555,7 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var changed = false;
-		file_option = file_option.replace(/^ *(title|Alt) *=/i,
+		file_option = file_option.replace(/^ *(title|Alt\d*) *=/i,
 		//
 		function(all, name) {
 			if (name === 'alt') {
@@ -523,11 +571,10 @@ function for_bogus_image_options(page_data) {
 			continue;
 		}
 
-		// TODO: 全景圖 "Panorama", "float right", "hochkant=1.5", "260pxright",
-		// "leftright", "upright1.5", "framepx200", "<!--...-->", "uptight=1.2",
+		// TODO: 全景圖 "Panorama", "260pxright", "200pxleft", "400pt",
+		// "leftright", "upright1.5", "framepx200", "<!--...-->",
 		// "90%", "topleft", "<center></center>", "thumbtime=11", "250px}right",
 		// "May 2007", "upleft=1", "220pxnail", "250pxright", "250pxright",
-		// "float right"
 
 		// TODO: [[File:i.svg|caption_1|caption_2]]
 
