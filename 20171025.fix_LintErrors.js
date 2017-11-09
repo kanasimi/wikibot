@@ -152,6 +152,7 @@ not_file_option = {
 	links : true,
 	size : true,
 	auto : true,
+	inline : true,
 	image : true,
 	width : true,
 	hright : true,
@@ -361,7 +362,7 @@ function for_bogus_image_options(page_data) {
 
 		var matched = file_option
 				// 不可以篩到 200px 之類正規用法!
-				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|pix|pxx|pxl|xp|dx|@x|px\]|pc|pz|[oO][xX])?$/);
+				.match(/^(?:px=?)?((?:(?:\d{1,3})? *[xX*])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|pix|pxx|pxl|pxb|xp|dx|@x|px\]|pc|pz|[oO][xX])?$/);
 		if (matched) {
 			register_option(index, '修正尺寸選項為px單位');
 			file_link[index] = matched[1].replace(/ /g, '') + 'px';
@@ -506,14 +507,15 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var changed = false;
-		file_option = file_option.replace(/^(title|Alt) *(=|$)/,
+		file_option = file_option.replace(/^ *(title|Alt) *=/i,
 		//
-		function(all, name, sign) {
+		function(all, name) {
 			if (name === 'alt') {
+				// 已經是正確的了。
 				return all;
 			}
 			changed = true;
-			return 'alt' + sign;
+			return 'alt=';
 		});
 		if (changed) {
 			register_option(index, '修正錯誤的圖片替代文字用法(必須用小寫的"alt")');
@@ -524,7 +526,8 @@ function for_bogus_image_options(page_data) {
 		// TODO: 全景圖 "Panorama", "float right", "hochkant=1.5", "260pxright",
 		// "leftright", "upright1.5", "framepx200", "<!--...-->", "uptight=1.2",
 		// "90%", "topleft", "<center></center>", "thumbtime=11", "250px}right",
-		// "May 2007", "upleft=1", "220pxnail"
+		// "May 2007", "upleft=1", "220pxnail", "250pxright", "250pxright",
+		// "float right"
 
 		// TODO: [[File:i.svg|caption_1|caption_2]]
 
