@@ -9,6 +9,8 @@ node 20170828.search_and_replace.js
 
 @see [[mw:Manual:Pywikibot/replace.py]]
 
+TODO: 同一個replace test中多個replace pair。
+
  */
 
 'use strict';
@@ -144,6 +146,17 @@ replace_pairs = [
 		[ 'insource:"[[帰れま10|帰れまサンデープラス]]"',
 				/\[\[ *帰れま10 *\| *帰れまサンデープラス *\]\]/g, '[[帰れまサンデー|帰れまサンデープラス]]' ] ];
 
+// --------------------------
+// 2017/11/10 19:28:29
+set_language('zh');
+section_title = '修復先前Uploadvionotice模板的地區詞轉換錯誤', diff_id = 46870119;
+replace_pairs = [
+		[ 'insource:"-{zh-cn:文件; zh-tw:檔案;}-"', /-{zh-cn:文件; zh-tw:檔案;}-/g,
+				'-{zh-cn:文件;zh-tw:檔案;}-' ],
+// [ 'insource:"-{zh-cn:信息; zh-tw:資訊;}-"', /-{zh-cn:信息; zh-tw:資訊;}-/g,
+// '-{zh-cn:信息;zh-tw:資訊;}-' ]
+];
+
 // ----------------------------------------------------------------------------
 
 var
@@ -202,6 +215,12 @@ function for_pair(run_next, pair) {
 						'No contents: [[' + title + ']]! 沒有頁面內容！' ];
 			}
 
+			// 額外的替換作業。
+			if (false) {
+				content = content.replace(/-{zh-cn:信息; zh-tw:資訊;}-/g,
+						'-{zh-cn:信息;zh-tw:資訊;}-');
+			}
+
 			return content.replace(replace_from, replace_to);
 
 			// ------------------------------------------------------
@@ -257,5 +276,6 @@ function for_pair(run_next, pair) {
 	// srnamespace : 'module|template|category|main'
 	// srnamespace : 'template|main'
 	// srnamespace : 'talk|template_talk|category_talk'
+	// srnamespace : 'User talk'
 	});
 }
