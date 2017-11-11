@@ -88,8 +88,10 @@ function get_linterrors(category, for_lint_error, options) {
 
 	var action = 'query&list=linterrors&lntcategories=' + category;
 
-	action += '&lntnamespace=' + (CeL.wiki.namespace(options.namespace) || 0);
-	action += '&lntlimit=' + (options.limit || ('max'));
+	if (options.namespace || options.namespace === undefined)
+		action += '&lntnamespace='
+				+ (CeL.wiki.namespace(options.namespace) || 0);
+	action += '&lntlimit=' + (options.limit || 'max');
 	if (options.from >= 0) {
 		// Lint ID to start querying from
 		action += '&lntfrom=' + options.from;
@@ -118,7 +120,7 @@ function get_page_contents(run_next, lint_error_page, index, linterrors) {
 	lint_error_page.task_index = index;
 	lint_error_page.task_length = linterrors.length;
 
-	if (index < 1200) {
+	if (index < 0) {
 		run_next();
 		return;
 	}
@@ -151,7 +153,8 @@ var
 NOT_FOUND = ''.indexOf('_');
 
 // use edit distance. 較難符合、常用的應置於前。
-var options_to_test = 'upright,right,left,thumb,none,middle'.split(','),
+var options_to_test = 'upright,right,left,thumb,none,middle,frame,center'
+		.split(','),
 // option : may has "=". e.g., "upright=2"
 options_may_has_sign = 'upright'.split(','),
 // 這些絕不可被拿來當作caption描述者。
@@ -174,8 +177,12 @@ not_file_option = {
 },
 // 有效選項別名 alias: alias → official name 正式名稱
 file_option_alias = {
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesDe_8php_source.html
 	// https://de.wikipedia.org/wiki/Hilfe:Bilder#Miniatur
 	de : {
+		rechts : 'right',
+		// links : 'left',
+		zentriert : 'center',
 		mini : 'thumb',
 		miniatur : 'thumb',
 		hochkant : 'upright'
@@ -184,18 +191,84 @@ file_option_alias = {
 	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesFr_8php_source.html
 	// https://fr.wikipedia.org/wiki/Aide:Ins%C3%A9rer_une_image_(wikicode,_avanc%C3%A9)
 	fr : {
+		droite : 'right',
+		gauche : 'left',
+		// centre : 'center',
 		vignette : 'thumb'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesIt_8php_source.html
+	it : {
+		destra : 'right',
+		sinistra : 'left'
+	},
+
+	// 烏克蘭語
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesUk_8php_source.html
+	uk : {
+		'праворуч' : 'right',
+		'справа' : 'right'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesPt_8php_source.html
+	pt : {
+		direita : 'right',
+		esquerda : 'left'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesEs_8php_source.html
+	es : {
+		derecha : 'right',
+		izquierda : 'left'
+	},
+
+	// 加泰蘭語, 加泰隆尼亞語
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesCa_8php_source.html
+	ca : {
+		'dreta' : 'right'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesHu_8php_source.html
+	hu : {
+		'jobbra' : 'right',
+		'jobb' : 'right',
+		'balra' : 'left',
+		'bal' : 'left',
+		'bélyegkép' : 'thumb'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesVi_8php_source.html
+	// 越南語
+	vi : {
+		'phải' : 'right',
+		'trái' : 'left',
+		'nhỏ' : 'thumb'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesKo_8php_source.html
+	ko : {
+		오른쪽 : 'right',
+		왼쪽 : 'left',
+		// 픽셀 : 'px',
+		썸네일 : 'thumb'
+	},
+
+	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesJa_8php_source.html
+	ja : {
+		左 : 'left',
+		右 : 'right',
+		サムネイル : 'thumb'
 	},
 
 	// https://doc.wikimedia.org/mediawiki-core/master/php/MessagesZh__hans_8php_source.html
 	zh : {
+		左 : 'left',
+		右 : 'right',
+		居中 : 'center',
 		缩略图 : 'thumb',
 		有框 : 'frame',
 		无框 : 'frameless',
 		语言 : 'lang',
-		左 : 'left',
-		右 : 'right',
-		居中 : 'center',
 		右上 : 'upright',
 		边框 : 'border',
 		无 : 'none'
@@ -203,6 +276,8 @@ file_option_alias = {
 
 	// for all language
 	'' : {
+		central : 'center',
+		medium : 'middle',
 		float : 'thumb',
 		// mini in de?
 		small : 'thumb'
@@ -211,19 +286,23 @@ file_option_alias = {
 // 登記 edit distance 過大者
 // wrong → right
 typo = {
-	rghigt : 'right',
 	中 : 'center',
 	中心 : 'center',
 	置中 : 'center',
 	靠右 : 'right',
+	右側 : 'right',
 	靠左 : 'left',
 	無 : 'none',
 	縮圖 : 'thumb',
+	略縮圖 : 'thumb',
 	// 經測試"無框"不被視為有效選項
 	無框 : 'frameless',
-	// miniatur in de
+	// miniatur in de?
+	miniature : 'thumb',
 	miniatyr : 'thumb',
-	central : 'center'
+
+	rt : 'right',
+	rghigt : 'right'
 };
 
 (function() {
@@ -279,7 +358,8 @@ function for_bogus_image_options(page_data) {
 			return [ CeL.wiki.edit.cancel, '可能是剛剛才做過變更，LintErrors 資料庫還沒有來得及更新？' ];
 		}
 		// Template
-		if (page_data.ns === 10 || page_data.title === '自我复制') {
+		if (page_data.ns === 10 || page_data.title === '自我复制'
+				|| page_data.title === '美洲原住民吉祥物爭議') {
 			return [ CeL.wiki.edit.cancel, '取得的token並非[[File:]]' ];
 		}
 
@@ -389,11 +469,21 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var matched = file_option
+		// e.g., '"200px"'
+		.match(/^ *" *((?:(?:\d{2,4})? *[xX*×])? *(?:\d{2,4})) *px *" *$/)
+				|| file_option
+						// e.g., "200Px", "px=200"
+						// "pxnail" 多為如 "thumb|320pxnail"
+						.match(/^ *"? *(?:p?Px[= ]*|size[= ]*)?((?:(?:\d{2,4})? *[xX*×])? *(?:\d{2,4})) *(pixel|Px|p|x|p[a-z~.}\[\]!@]x|px[a-z~.}\[\]!@]|\(px\)|xp|[d@]x|p[cdgprsvz]|pt|pxnail|[oO][xX]|点|圖元|пкс|픽셀)? *"? *$/i);
+		if (matched
 				// 不可以篩到 200px, x150px 之類正規用法!
-				.match(/^(?:Px=?|px=?)?((?:(?:\d{1,3})? *[xX*×])? *(?:\d{1,3})) *(?:Px|[Pp]X|p|x|plx|pcx|pix|pxx|pxt|pxs|pxu|pxl|pxb|px}|px\.|px\]|\(px\)|xp|dx|@x|pc|pg|ps|pv|pz|[oO][xX]|点|圖元)?$/);
-		if (matched) {
+				&& matched[2] !== 'px'
+				// \d{2,3}: 不可以篩到 2013 之類!
+				&& ((matched[1] = matched[1].replace(/ /g, '').toLowerCase()) < 1000 || matched[2])
+				//
+				&& (matched[2] !== 'pt' || matched[1] > 200)) {
 			register_option(index, '修正尺寸選項為px單位');
-			file_link[index] = matched[1].replace(/ /g, '') + 'px';
+			file_link[index] = matched[1] + 'px';
 			continue;
 		}
 		if (file_option !== '' && !isNaN(file_option)) {
@@ -403,7 +493,7 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var matched = file_option
-				.match(/^(width|height|pi?x) *= *(?:" *)?(\d+)(?: *px)?(?:" *)?$/i);
+				.match(/^(width|height|pi?x) *(?:[=:] *)?(?:" *)?(\d{2,4})(?: *px)?(?:" *)?$/i);
 		if (matched) {
 			register_option(index, '將尺寸選項改為正規形式');
 			if (matched[1].toLowerCase() === 'height') {
@@ -527,9 +617,9 @@ function for_bogus_image_options(page_data) {
 		// ----------------------------
 
 		// e.g., 'valign=center' : 'center', 'align=right' : 'right',
-		// "float right", "float:right", "align=riht"
+		// "float right", "float:right"
 		var matched = file_option
-				.match(/^ *(?:float|align|valign|align-cap) *[=: ]*"?(right|left|center)"? *$/i);
+				.match(/^ *(?:float|align|valign|align-cap|Position) *[=: ]*"?(right|left|center)"? *$/i);
 		if (matched) {
 			// location
 			register_option(index, '修正位置選項之誤植');
@@ -555,8 +645,8 @@ function for_bogus_image_options(page_data) {
 		}
 
 		var changed = false;
-		file_option = file_option.replace(/^ *(title|Alt\d*) *=/i,
-		//
+		file_option = file_option.replace(/^ *(title|A?lt\d*|alt text) *=/i,
+		// 不可以篩到 "alt=" 之類正規用法!
 		function(all, name) {
 			if (name === 'alt') {
 				// 已經是正確的了。
@@ -571,10 +661,14 @@ function for_bogus_image_options(page_data) {
 			continue;
 		}
 
-		// TODO: 全景圖 "Panorama", "260pxright", "200pxleft", "400pt",
-		// "leftright", "upright1.5", "framepx200", "<!--...-->",
+		// TODO: |缩略图|有框|
+
+		// TODO: 全景圖 "Panorama", "260pxright", "200pxleft", "400pt", "1500xp",
+		// "leftright", "upright1.5", "framepx200", "<!--...-->", "right=0.9",
 		// "90%", "topleft", "<center></center>", "thumbtime=11", "250px}right",
-		// "May 2007", "upleft=1", "220pxnail", "250pxright", "250pxright",
+		// "May 2007", "upleft=1.5", "250pxright", "rt", "18\n0px", "300pxleft",
+		// "align=riht", "800pt", "Link=", "800px-Hamilton_Japan_2015.jpg",
+		// "border=no", "center-right", "250p\n\n\nx", "right1880年"
 
 		// TODO: [[File:i.svg|caption_1|caption_2]]
 
@@ -602,7 +696,7 @@ function for_bogus_image_options(page_data) {
 						&& !/^\d+px$/.test(file_option)
 				// caption 包含本 option
 				// e.g., [[File:...|ABC|ABC DEF]]
-				? option.covers(file_option)
+				? option.covers(file_option, 'ignore_marks')
 				// 冗餘重複的檔案選項。
 				// e.g., [[File:...|right|right|...]]
 				: option === file_option;
