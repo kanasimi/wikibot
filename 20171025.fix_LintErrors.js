@@ -317,7 +317,15 @@ typo = {
 			}
 		}
 	}
-	local_option_alias = local_option_alias || CeL.null_Object();
+	if (local_option_alias) {
+		for ( var alias in local_option_alias) {
+			// e.g., ja 與 zh 皆有 "左"，但不必算作外來的。
+			if (alias in foreign_option_alias)
+				delete foreign_option_alias[alias];
+		}
+	} else {
+		local_option_alias = CeL.null_Object();
+	}
 
 	if (false) {
 		for ( var key in typo) {
