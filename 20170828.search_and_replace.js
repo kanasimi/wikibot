@@ -157,6 +157,20 @@ replace_pairs = [
 // '-{zh-cn:信息;zh-tw:資訊;}-' ]
 ];
 
+// --------------------------
+// 2017/11/10 19:28:29
+set_language('zh');
+section_title = '移除上海教堂、上海宗教建筑模板', diff_id = 46915146;
+replace_pairs = [
+		[
+				'hastemplate:"上海宗教建筑"',
+				/{{ *(?:上海宗教建筑|上海宗教建築|上海教堂)(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}(\n?)/g,
+				'' ],
+		[
+				'hastemplate:"上海教堂"',
+				/{{ *(?:上海宗教建筑|上海宗教建築|上海教堂)(?:[ \n]+|<!--[\s\S]+?-->)*(\|[^{}]*)?}}(\n?)/g,
+				'' ] ];
+
 // ----------------------------------------------------------------------------
 
 var
@@ -199,6 +213,10 @@ function for_pair(run_next, pair) {
 		// assert: pair.length === 3
 		replace_from = pair[1];
 		replace_to = pair[2];
+	}
+	if (!search_key || !replace_from) {
+		CeL.warn('未設定搜尋標的: ' + JSON.stringify(pair));
+		return;
 	}
 
 	wiki.search(search_key, {

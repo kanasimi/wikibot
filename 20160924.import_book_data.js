@@ -36,6 +36,9 @@ set_properties_hash = CeL.null_Object(),
 
 all_properties = {
 	著者 : 'author',
+	// 作品的原始語言
+	// 電影或表演作品最初創作時的語言。對於書面作品則已棄用，請改用P407（作品或名字的語言）
+	// it is possible to access any edition using 版本屬於或翻譯自 (P629) and 版本 (P747) properties, not just translations.
 	// 原語 : 'P364',
 	//
 	// ジャンル or: 著作物の主題 (P921): e.g., "[[紀伝体]]の歴史書", "[[長編小説]]",

@@ -319,7 +319,7 @@ typo = {
 	}
 	if (local_option_alias) {
 		for ( var alias in local_option_alias) {
-			// e.g., ja 與 zh 皆有 "左"，但不必算作外來的。
+			// e.g., ja 與 zh 皆有 "左"，但"左"不必算作其他語系。
 			if (alias in foreign_option_alias)
 				delete foreign_option_alias[alias];
 		}
