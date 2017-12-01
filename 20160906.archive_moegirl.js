@@ -34,12 +34,15 @@ archive_boundary_10 = Date.now() - 10 * 24 * 60 * 60 * 1000,
 // NG: 申請擔任巡查員的討論串，將於提權且歡迎結束的3日（即72小時）後進行存檔。
 // NG: 申請升職管理員的討論串，將於投票結束且討論結束的3日（即72小時）後進行存檔。
 archive_boundary_3 = Date.now() - 3 * 24 * 60 * 60 * 1000,
-// 每月1號：刪除所有{{saved}}提示模板。
+// 每月1號：刪除所有{{Saved}}提示模板。
 remove_old_notice_section = (new Date(Date.now()
 // to UTC+0
 + (new Date).getTimezoneOffset() * 60 * 1000
 // Use UTC+8
 + 8 * 60 * 60 * 1000)).getUTCDate() === 1;
+
+// remove_old_notice_section = true;
+// CeL.set_debug(2);
 
 wiki.page('Talk:讨论版', for_board).page('Talk:提问求助区', for_board);
 
@@ -77,13 +80,15 @@ function for_board(page_data) {
 			CeL.error('No title: ' + section_text);
 			return;
 		}
-		CeL.debug('Process ' + section_title);
+		CeL.debug('Process ' + section_title + ' (' + section_text.length
+				+ ' chars)');
 
-		if (section_text.length < 100
-				// 跳過已存檔{{Saved}}, {{movedto}}
+		// 當內容過長的時候，可能是有特殊的情況，就不自動移除。已調高上限。
+		if (section_text.length < 150
+				// 跳過已存檔{{Saved}}, {{Movedto}}
 				&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
 						.test(section_text)) {
-			// 每月1號：刪除所有{{saved}}提示模板。
+			// 每月1號：刪除所有{{Saved}}提示模板。
 			if (remove_old_notice_section) {
 				remove_count++;
 				for (var i = slice[0] - 1; i < slice[1]; i++) {
@@ -94,7 +99,7 @@ function for_board(page_data) {
 			return;
 		}
 
-		var needless,
+		var needless = undefined,
 		// 所有日期戳記皆在此 archive_boundary_date 前，方進行存檔。
 		// CeL.log(index+': '+new Date(latest));
 		// 都做成10天存檔
@@ -111,9 +116,9 @@ function for_board(page_data) {
 				get_timevalue : true,
 				get_all_list : true
 			});
-			CeL
-					.debug('[' + token.toString() + '] → date_list: '
-							+ date_list, 4);
+			CeL.debug('[' + token.toString()
+			//
+			+ '] → date_list: ' + date_list, 4);
 			CeL.debug(token, 3);
 			if (date_list.length === 0) {
 				// 跳過一個日期都沒有的討論串
@@ -132,7 +137,7 @@ function for_board(page_data) {
 			return;
 		}
 		if (needless === undefined) {
-			CeL.info('跳過一個文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
+			CeL.warn('跳過一個文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
 			return;
 		}
 
@@ -167,12 +172,20 @@ function for_board(page_data) {
 				CeL.log(parser[parser_index].toString() + section_text.trim());
 			}
 			// return;
-			return content + '\n\n== ' + section_title
-			// append 存檔段落(討論串)內容
-			+ ' ==\n' + section_text.trim();
+			return section_text.trim();
+			if (false) {
+				return content + '\n\n== ' + section_title
+				// append 存檔段落(討論串)內容
+				+ ' ==\n' + section_text.trim();
+			}
+
 		}, {
 			bot : 1,
 			tags : tags,
+			// append 存檔段落(討論串)內容
+			section : 'new',
+			// 章節標題。
+			sectiontitle : section_title,
 			summary : '存檔過期討論串:' + section_title
 			//
 			+ '←' + CeL.wiki.title_link_of(page_data)
@@ -203,6 +216,6 @@ function for_board(page_data) {
 		});
 	} else {
 		CeL.log(CeL.wiki.title_link_of(page_data.title)
-				+ ': Nothing needs to be changed.');
+				+ ': Nothing needs to change.');
 	}
 }

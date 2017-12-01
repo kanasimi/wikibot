@@ -267,6 +267,7 @@ file_option_alias = {
 		居中 : 'center',
 		缩略图 : 'thumb',
 		有框 : 'frame',
+		链接 : 'link',
 		无框 : 'frameless',
 		语言 : 'lang',
 		右上 : 'upright',

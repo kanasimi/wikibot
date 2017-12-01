@@ -41,7 +41,7 @@ TODO:
 可以在 __TOC__ , __NEWSECTIONLINK__ 之後才開始檢查 main_talk_pages
 相關發言者訂閱功能 via ping
 get time via revisions information
-自動計算投票票數
+自動計算投票票數 [[模板:RFX count]]
 
 archive
 可以依照指示存檔到不同的page

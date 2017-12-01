@@ -878,7 +878,6 @@ function create_label_data(callback) {
 		raw_data_file_stream.on('finish', function() {
 			CeL.info('after_read_page: Close [' + raw_data_file_path
 					+ '], start merge_label_data()');
-			raw_data_file_stream.close();
 			merge_label_data(callback);
 		});
 	}
