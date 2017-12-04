@@ -647,6 +647,12 @@ function check_BOTREQ_status(section, section_index) {
 function check_BRFA_status(section) {
 	var status, to_exit = this.each.exit;
 	this.each.call(section, 'template', function(token) {
+		// [[w:zh:Template:StatusBRFA]]
+		if (token.name === 'StatusBRFA') {
+			status = token.toString();
+			return to_exit;
+		}
+
 		if (token.name in {
 			BotTrial : true,
 			BotExtendedTrial : true

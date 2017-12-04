@@ -97,7 +97,7 @@ function clean_wiki(wiki, replace_to, _summary, page) {
 
 clean_wiki(
 		'test',
-		'{{Sandbox}}\n== Please start your testing below this line ==\n',
+		'<noinclude>{{Sandbox}}</noinclude>\n== Please start your testing below this line ==\n',
 		'Clearing the sandbox. If you want to keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
 
 // --------------------------
@@ -128,19 +128,22 @@ clean_wiki(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
 
 // --------------------------
 
-clean_wiki('wikinews', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n');
+clean_wiki('wikinews',
+		'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n');
 
 // --------------------------
 
 // 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
 if (force || JD % 7 === 0) {
-	clean_wiki('wikisource', '{{Sandbox}}\n== 請在這行文字底下進行您的測試 ==\n', null,
+	clean_wiki('wikisource',
+			'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n', null,
 			'Wikisource:沙盒');
 }
 
 // --------------------------
 
-clean_wiki('zh-classical', '{{Sandbox}}\n== 請於此行文下習纂而莫去本行以上文 ==\n');
+clean_wiki('zh-classical',
+		'<noinclude>{{Sandbox}}</noinclude>\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
 // --------------------------------------------------------
 
@@ -150,8 +153,9 @@ var moegirl = Wiki(true, 'https://zh.moegirl.org/api.php');
 // 一天個人認為還是略嫌小。——From AnnAngela the sysop
 // 改2天一次試試。
 if (force || JD % 2 === 0) {
+	moegirl.page('Help:沙盒‎‎').edit('<noinclude>{{沙盒顶部}}</noinclude>\n'
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
-	moegirl.page('Help:沙盒‎‎').edit('{{沙盒顶部}}\n== 請在這行文字底下進行您的測試 ==\n', {
+	+ '== 請在這行文字底下進行您的測試 ==\n', {
 		summary : summary,
 		nocreate : 1,
 		// [[Special:tags]] "tag應該多加一個【Bot】tag"

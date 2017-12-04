@@ -79,7 +79,7 @@ summary = CeL
 // CeL.set_debug(6);
 
 get_linterrors('bogus-image-options', for_bogus_image_options, {
-	// including File, Template, Category
+	// including main, File, Template, Category
 	namespace : '0|6|10|14'
 });
 
