@@ -270,7 +270,7 @@ page_configurations = {
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
 		timezone : 8,
-		headers : '! # !! 需求 !! 進度 !! <small>發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
+		headers : '! # !! 需求 !! 進度 !! <small title="發言數/發言人次(實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
 		// first_user_set: 發起人與發起時間(Created)
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
@@ -284,7 +284,8 @@ page_configurations = {
 	},
 	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
 		timezone : 8,
-		headers : '! # !! 機器人申請 !! 進度 !! <small>發言</small>'
+		headers : '! # !! 機器人申請 !! 進度'
+				+ ' !! <small title="發言數/發言人次(實際上為簽名數)">發言</small>'
 				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
 				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
@@ -642,17 +643,38 @@ function check_BOTREQ_status(section, section_index) {
 	return status || '';
 }
 
-// [[Template:BAG_Tools]], [[Template:Status2]], [[Template:StatusBRFA]]
 // 議體進度狀態(Status:Approved for trial/Trial complete/Approved/...)
 function check_BRFA_status(section) {
 	var status, to_exit = this.each.exit;
 	this.each.call(section, 'template', function(token) {
 		// [[w:zh:Template:StatusBRFA]]
 		if (token.name === 'StatusBRFA') {
-			status = token.toString();
+			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。
+			status = token.toString().replace(/(}})$/, '|prefix=$1');
+			var BRFA_status = token.parameters[1] || 'new';
+			if (/^(?:tri|tiral|測試|测试)$/.test(BRFA_status)) {
+				status = 'style="background-color:#cfc;" | ' + status;
+			} else if (/^(?:new|tric|trial complete|測試完成|测试完成)$/
+			//
+			.test(BRFA_status)) {
+				status = 'style="background-color:#ffc;" | ' + status;
+			} else if (/^(?:\+|app|approved|批准)$/.test(BRFA_status)) {
+				status = 'style="background-color:#ccf;" | ' + status;
+			} else if (
+			//
+			/^(?:\-|den|deny|denied|拒絕|拒绝|wit|withdraw|撤回|rev|revoke|revoked|撤銷|撤销)$/
+			//
+			.test(BRFA_status)) {
+				status = 'style="background-color:#fcc;" | ' + status;
+			} else if (/^(?:exp|expire|expired|過期|过期|\?|dis|discuss|討論|讨论)$/
+			//
+			.test(BRFA_status)) {
+				status = 'style="background-color:#ddd;" | ' + status;
+			}
 			return to_exit;
 		}
 
+		// [[Template:BAG_Tools]], [[Template:Status2]]
 		if (token.name in {
 			BotTrial : true,
 			BotExtendedTrial : true
@@ -758,10 +780,11 @@ normalize_time_style_hash(long_to_short);
 	// e.g., 'zh-classical'
 	|| list_legend['zh'];
 	list_legend_used = [
-			'{| class="wikitable" style="float:left;margin-left:.5em;"',
-			// TODO: .header 應該用 caption
-			// title: 相對於機器人最後一次編輯
-			'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
+	// collapsed
+	'{| class="wikitable collapsible" style="float:left;margin-left:.5em;"',
+	// TODO: .header 應該用 caption
+	// title: 相對於機器人最後一次編輯
+	'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
 	for ( var time_interval in _list_legend) {
 		if (time_interval === 'header') {
 			continue;
