@@ -26,7 +26,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
 // [[Special:tags]] "tag應該多加一個【Bot】tag"
-tags = '快速存档讨论串|Bot',
+tags = 'Bot|快速存档讨论串',
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
 // 討論串10日無回復，則將標題進行複製、討論內容進行剪切存檔。
 // 在「兩討論區」中，保留標題、內容存檔的討論串，其標題將於每月1日0時刪除。

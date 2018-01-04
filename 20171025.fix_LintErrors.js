@@ -72,6 +72,9 @@ wiki = Wiki(true);
 /** {String}編輯摘要。總結報告。 */
 summary = CeL
 		.gettext('修正維基語法: [[Special:LintErrors/bogus-image-options|有問題的檔案選項]]');
+if (use_language === 'zh') {
+	summary = summary.replace(/(修正維基語法)/, '[[Wikipedia:机器人/申请/Cewbot/18|$1]]');
+}
 // summary = 'bot test: ' + summary;
 
 // ----------------------------------------------------------------------------
@@ -79,8 +82,13 @@ summary = CeL
 // CeL.set_debug(6);
 
 get_linterrors('bogus-image-options', for_bogus_image_options, {
+	// limit : 80,
+
+	// 根據Tech News: 2017-49 "其他wiki在必須修復的錯誤都修復完成之時也將會切換"，看起來修正錯誤是必須的？
+	// 正式批准運作於所有名字空間。
+	namespace : use_language === 'zh' ? ''
 	// including main, File, Template, Category
-	namespace : '0|6|10|14'
+	: '0|6|10|14'
 });
 
 function get_linterrors(category, for_lint_error, options) {
@@ -103,9 +111,8 @@ function get_linterrors(category, for_lint_error, options) {
 		linterrors.processed = 0;
 		// 一個一個處理檔案，處理完之後就釋放記憶體，以減少記憶體的消耗。
 		CeL.run_serial(get_page_contents, linterrors, function() {
-			CeL.info(linterrors.processed
-			//
-			+ '/' + linterrors.length + ' done.');
+			CeL.info(linterrors.processed + '/' + linterrors.length
+					+ ' finished.');
 		});
 	});
 }
@@ -386,7 +393,7 @@ function for_bogus_image_options(page_data) {
 
 	// console.log(file_link);
 
-	var _this = this;
+	var _this = this, fix_list = [];
 
 	function register_option(index, message) {
 		var file_option = file_link[index].toString();
@@ -394,11 +401,7 @@ function for_bogus_image_options(page_data) {
 			message = CeL.gettext(message) + ':'
 					+ JSON.stringify(file_option.trim());
 			// CeL.info('register_option: ' + message);
-			if (false)
-				_this.summary += ' [{{fullurl:' + CeL.wiki.title_of(page_data)
-						+ '|action=edit&oldid=' + page_data.revisions[0].revid
-						+ '&lintid=' + page_data.lintId + '}} ' + message + ']';
-			_this.summary += ' ' + message;
+			fix_list.push(message);
 		}
 		var _index = bad_items.indexOf(file_option);
 		if (_index === NOT_FOUND) {
@@ -496,8 +499,7 @@ function for_bogus_image_options(page_data) {
 			continue;
 		}
 		if (file_option !== '' && !isNaN(file_option)) {
-			// 尺寸過大或者過小
-			CeL.warn('Invalid number: ' + file_option);
+			CeL.warn('Invalid number 尺寸過大或者過小: ' + file_option);
 			continue;
 		}
 
@@ -703,7 +705,7 @@ function for_bogus_image_options(page_data) {
 				// 去掉正規的檔案選項。
 				&& !(file_option in CeL.wiki.file_options)
 						&& !/^\d+px$/.test(file_option)
-				// caption 包含本 option
+				// caption 包含本 option。
 				// e.g., [[File:...|ABC|ABC DEF]]
 				? option.covers(file_option, 'ignore_marks')
 				// 冗餘重複的檔案選項。
@@ -735,9 +737,41 @@ function for_bogus_image_options(page_data) {
 
 	}
 
+	if (bad_items.length === 1 && !/\| *alt/i.test(file_link.toString())
+	// 當只有一個錯誤選項，且可以為替代文字的時候，將之當作替代文字。在這些錯誤中，似乎有很多是忽略掉"alt="造成。
+	&& bad_items[0].trim().length > 8
+			&& !/[=<>]|{\||\|}|{{|}}/.test(bad_items[0])
+			&& !/^[a-z\d]*$/i.test(bad_items[0].trim())
+			&& !/^alt/i.test(bad_items[0].trim())) {
+		var index = NOT_FOUND;
+		file_link.some(function(item, _index) {
+			item = item.toString();
+			if (item === bad_items[0]) {
+				if (index === NOT_FOUND) {
+					index = _index;
+				} else {
+					// 有超過一個與錯誤選項相同的選項。
+					index = NOT_FOUND;
+					return true;
+				}
+			}
+		});
+		if (index > 0) {
+			register_option(index, '修正錯誤的圖片替代文字用法(必須用小寫的"alt")');
+			file_link[index] = 'alt=' + file_link[index].toString().trim();
+		}
+	}
+
 	file_link = file_link.toString();
 
-	_this.summary += ' lintId=' + page_data.lintId;
+	fix_list = fix_list.unique();
+	fix_list.push('lintId=' + page_data.lintId);
+	_this.summary += ' ' + fix_list.join(' ');
+	if (false) {
+		_this.summary += ' [{{fullurl:' + CeL.wiki.title_of(page_data)
+				+ '|action=edit&oldid=' + page_data.revisions[0].revid
+				+ '&lintid=' + page_data.lintId + '}} ' + message + ']';
+	}
 	if (file_text === file_link) {
 		CeL.info('No change: ' + file_text);
 	} else {

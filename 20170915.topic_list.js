@@ -309,6 +309,7 @@ page_configurations = {
 		timezone : 8,
 		// 維基文庫沒有"collapsible"，改為"mw-collapsible"。兩者並用會造成兩個都顯示。
 		// 加上「metadata」class，這樣在移動版頁面中將不再顯示主題列表。
+		// /「metadata」樣式改為「navbox」樣式，這樣起到的作用是一樣的...?
 		header_class : 'wikitable sortable mw-collapsible metadata',
 		postfix : function(section_table) {
 			if (false)

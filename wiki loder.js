@@ -70,7 +70,7 @@ require('./_CeL.loader.nodejs.js');
 CeL.env.domain_location = 'resource/';
 
 // ----------------------------------------------------------------------------
-// Load module.
+// Load modules.
 
 // CeL.env.no_catch = true;
 // CeL.set_debug(3);
