@@ -98,12 +98,15 @@ PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/,
 PATTERN_date_archive = /\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/,
 // 跳過封存/存檔頁面: [[Template:Talk archive]] and all redirects。
 PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来自已转换的wiki文本讨论页的存档)/i,
-// 篩選編輯摘要。排除還原的編輯。
+// 篩選編輯摘要。排除還原、自動的編輯。
 // GlobalReplace: use tool
 // https://commons.wikimedia.org/wiki/Commons:GlobalReplace
 // "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
 // @see [[Wikipedia:Twinkle]] ([[WP:TW]])
-PATTERN_revert_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|!nosign!|!nobot!|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
+PATTERN_revert_or_bot_summary = /还原|還原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|替换引用|!nosign!|!nobot!|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
+// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
+// 請機器人注意: 本頁面不採用補簽名
+PATTERN_ignore = /本頁面不.{0,3}補簽名/,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = CeL.null_Object(),
 // no_link_user_hash[user][page title] = unsigned count
@@ -168,7 +171,7 @@ function filter_row(row) {
 	|| row.title.startsWith('Wikipedia:'))
 
 	// 篩選編輯摘要。
-	&& !PATTERN_revert_summary.test(row.comment);
+	&& !PATTERN_revert_or_bot_summary.test(row.comment);
 
 	if (!passed) {
 		CeL.debug('從頁面資訊做初步的篩選: 直接跳過這個編輯', 2, 'filter_row');
@@ -256,7 +259,8 @@ if (test_the_page_only) {
 			// You need the "patrol" or "patrolmarks" right
 			// to request the patrolled flag.
 			rcshow : '!bot',
-			rcprop : 'title|ids|sizes|flags|user'
+			// 擷取資料的時候要加上filter_row()需要的資料，例如編輯摘要。
+			rcprop : 'title|ids|sizes|flags|user|comment'
 		},
 		interval : test_mode || time_back_to ? 500 : 60 * 1000 && 500
 	});
@@ -331,7 +335,7 @@ function for_each_row(row) {
 	// [[Project:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
 	// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
-	|| content.includes('{{NoAutosign}}')) {
+	|| content.includes('{{NoAutosign}}' || PATTERN_ignore.test(content))) {
 		return;
 	}
 	if (CeL.is_debug(4)) {
