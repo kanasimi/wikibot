@@ -489,7 +489,7 @@ CeL.wiki.cache([ {
 		//
 		+ content + '|}\n\n[[Category:按月分类的维基百科维护分类]]\n[[Category:维基百科维护]]'
 		//
-		+ '\n[[Category:需要清理的条目]]\n[[Category:维基百科条目清理]]\n';
+		+ '\n[[Category:需要维基化的页面]]\n[[Category:维基百科条目清理]]\n';
 
 		wiki.page(title + '/計數').edit(String(count), {
 			summary : _summary + '數'
