@@ -70,7 +70,7 @@ function for_board(page_data) {
 	var archive_title = page_data.title + '/存档/' + (new Date).format('%Y年%2m月');
 
 	sections.forEach(function(parser_index, section_index) {
-		var section_title = parser[parser_index].title,
+		var section_title = parser[parser_index].join('').trim(),
 		// +1: 跳過 section title 本身
 		slice = [ parser_index + 1,
 				sections[section_index + 1] || parser.length ],
