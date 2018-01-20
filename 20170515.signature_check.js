@@ -902,7 +902,7 @@ function for_each_row(row) {
 		//
 		.edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
 		//
-		+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
+		+ pages_to_notify.join(', ') + '。謝謝您參與討論。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
 			summary : 'bot: [[' + log_to + '|提醒簽名記得加上連結]]，例如在文中所列的 '

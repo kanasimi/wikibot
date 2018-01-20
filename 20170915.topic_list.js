@@ -688,6 +688,8 @@ function check_BRFA_status(section) {
 		}) {
 			status = 'style="background-color:#ffc;" | ' + token;
 		} else if (token.name in {
+			対処 : true,
+
 			BotSpeedy : true,
 			BotApproved : true
 		}) {
@@ -696,6 +698,8 @@ function check_BRFA_status(section) {
 			BotWithdrawn : true,
 			Withdrawn : true,
 			取り下げ : true,
+			却下 : true,
+			'×' : true,
 
 			BotExpired : true,
 			BotRevoked : true,
@@ -795,8 +799,8 @@ normalize_time_style_hash(long_to_short);
 		|| long_to_short[time_interval] || '') + ' | '
 				+ _list_legend[time_interval], '|-');
 	}
-	// {{clearright}}
-	list_legend_used.push('|}', '{{-}}');
+	// {{clearright}}, {{-}}
+	list_legend_used.push('|}', '{{Clear}}');
 	// free
 	list_legend = null;
 })();
