@@ -129,6 +129,7 @@ var default_BRFA_configurations = {
 	},
 	// 篩選章節標題。
 	section_filter : function(section) {
+
 		// [[Wikipedia:机器人/申请/preload2]]
 		// get bot name from link in section title.
 		var bot_name = CeL.wiki.parse.user(section.section_title.toString());
@@ -166,11 +167,14 @@ var default_BRFA_configurations = {
 			});
 		}
 
+		// for debug
 		if (false) {
+			console.log('-'.repeat(80));
 			console.log([ section.bot_name, applicants,
 					section.section_title.toString(), section.section_title ]);
 			console.log(section.toString());
 		}
+
 		return section.bot_name && applicants.length > 0;
 	},
 	twist_filter : {
@@ -278,7 +282,7 @@ page_configurations = {
 		// last_BAG_set: 最後BAG編輯者+BAG最後編輯於
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		operators : {
-			// 議體進度狀態
+			// 議體進度狀態。
 			status : check_BOTREQ_status
 		}
 	},
@@ -291,9 +295,62 @@ page_configurations = {
 				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
 				+ ' !! data-sort-type="isoDate"'
 				+ ' | <small>BAG最後更新(UTC+8)</small>',
-		// 要篩選的章節標題層級
+		// 要篩選的章節標題層級。
 		level_filter : [ 2, 3 ]
 	}, default_BRFA_configurations),
+	'zhwiki:Wikipedia:机器用户/申请' : Object.assign({
+		timezone : 8,
+		headers : '! # !! 機器用戶申請 !! 進度'
+				+ ' !! <small title="發言數/發言人次(實際上為簽名數)">發言</small>'
+				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
+				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
+				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
+				+ ' !! data-sort-type="isoDate"'
+				+ ' | <small>BAG最後更新(UTC+8)</small>',
+		// 要篩選的章節標題層級。
+		level_filter : 3
+	}, Object.assign(CeL.null_Object(), default_BRFA_configurations, {
+		transclusion_target : null,
+		section_filter : function(section) {
+
+			// [[Wikipedia:机器人/申请/preload2]]
+			// get bot name from link in section title.
+			var applicants_name = CeL.wiki.parse.user(section.section_title
+					.toString());
+			if (applicants_name) {
+				section.bot_name = applicants_name;
+			}
+
+			// 申請人。
+			var applicants = section.applicants = [], exit = this.each.exit;
+
+			// TODO: jawiki 必須尋找{{UserG|JJMC89}}
+
+			// 尋找標題之外的第一個bot使用者連結。
+			if (applicants.length === 0) {
+				this.each.call(section, 'link', function(token) {
+					var user_name = CeL.wiki.parse.user(token.toString());
+					if (user_name) {
+						applicants.push(user_name);
+						return exit;
+					}
+				});
+			}
+
+			// for debug
+			if (false) {
+				console.log('-'.repeat(80));
+				console
+						.log([ section.bot_name, applicants,
+								section.section_title.toString(),
+								section.section_title ]);
+				console.log(section.toString());
+			}
+
+			console.log(section.bot_name && applicants.length);
+			return section.bot_name && applicants.length > 0;
+		}
+	})),
 	'zhwiki:Wikipedia:互助客栈/消息' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/方针' : general_page_configuration,
 	'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration,
@@ -668,6 +725,30 @@ function check_BRFA_status(section) {
 			.test(BRFA_status)) {
 				status = 'style="background-color:#fcc;" | ' + status;
 			} else if (/^(?:exp|expire|expired|過期|过期|\?|dis|discuss|討論|讨论)$/
+			//
+			.test(BRFA_status)) {
+				status = 'style="background-color:#ddd;" | ' + status;
+			}
+			return to_exit;
+		}
+
+		if (token.name in {
+			'Rfp/status' : true,
+			Status2 : true,
+			Donestatus : true
+		}) {
+			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。
+			status = token.toString().replace(/(}})$/, '|prefix=$1');
+			var BRFA_status = token.parameters[1] || 'new';
+			if (/^(?:\+|Done|done|完成)$/.test(BRFA_status)) {
+				status = 'style="background-color:#ccf;" | ' + status;
+			} else if (
+			//
+			/^(?:\-|Not done|not done|拒絕|拒绝|驳回|駁回|未完成)$/
+			//
+			.test(BRFA_status)) {
+				status = 'style="background-color:#fcc;" | ' + status;
+			} else if (/^(?:on hold|擱置|搁置|等待|等待中|OH|oh|hold|Hold|\*|\?)$/
 			//
 			.test(BRFA_status)) {
 				status = 'style="background-color:#ddd;" | ' + status;
