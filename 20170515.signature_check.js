@@ -742,6 +742,7 @@ function for_each_row(row) {
 			if (user_list.length > 0) {
 				check_log.push([ row.user
 				// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯~~~~"
+				// {{Ping}}模板通知必須搭配簽名（~~~~）
 				+ ' 可能編輯了 ' + user_list.join(', ')
 				// e.g., 您創建的條目~~可能侵犯版權
 				+ ' 署名的文字（也可能是用戶' + row.user
