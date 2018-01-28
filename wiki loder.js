@@ -119,7 +119,7 @@ _global.home_directory = CeL.wiki.wmflabs ? '/data/project/' + user_name + '/'
 		: '';
 /** {String}bot base directory */
 _global.bot_directory = CeL.wiki.wmflabs ? home_directory + 'wikibot/' : '';
-/** {String}預設之 base directory。 */
+/** {String}預設之本任務獨有的 base directory。衍生檔案如記錄檔、cache 等將置放此目錄下。 */
 _global.base_directory = '';
 
 if (script_name) {
@@ -226,6 +226,7 @@ _global.Wiki = function(login, API_URL) {
 // ----------------------------------------------------------------------------
 
 // prepare directory: delete cache, reset base directory.
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 // e.g., prepare_directory(base_directory);
 // TODO: use move
 _global.prepare_directory = function(directory, clean) {

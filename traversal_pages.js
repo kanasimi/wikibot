@@ -78,6 +78,7 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 prepare_directory(base_directory, true);
 
 // Set the umask to share the xml dump file.

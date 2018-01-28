@@ -5,6 +5,12 @@
 
 @see
 
+badge:
+https://www.wikidata.org/wiki/Wikidata:Database_reports/badged_items_without_claims
+https://www.mediawiki.org/wiki/Manual:Page_props_table
+https://en.wikipedia.org/wiki/User:FACBot/flc.pl
+https://www.wikidata.org/wiki/User:DeltaBot
+https://github.com/Pascalco/DeltaBot/blob/master/badges.py
 
  */
 
@@ -21,12 +27,16 @@ wiki = Wiki(true),
 //
 MIN_COUNT = 50, reget = true,
 //
-most_sitelinked_items_filename = 'most_sitelinked_items.json';
+most_sitelinked_items_filename = base_directory + 'most_sitelinked_items.json';
 
 /** {String}編輯摘要。總結報告。 */
 summary = '';
 
 // ----------------------------------------------------------------------------
+// main
+
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
+prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 

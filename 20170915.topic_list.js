@@ -387,6 +387,10 @@ if (false) {
 }
 
 // ----------------------------------------------------------------------------
+// main
+
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
+prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
@@ -516,6 +520,7 @@ function get_special_users(callback, options) {
 
 	// [[WP:BAG]], [[Wikipedia:Bot Approvals Group]], [[維基百科:機器人審核小組]]
 	// TODO: 這裡的篩選方法會把頁面中所有的使用者都納入這個群體，包括不活躍與離職的。
+	// TODO: using [[Template:BAG_topicon]]
 	wiki.page('Project:BAG', function(page_data) {
 		var title = CeL.wiki.title_of(page_data),
 		/**
@@ -584,11 +589,14 @@ function get_special_users(callback, options) {
 
 	wiki.run(function() {
 		// cache the special users
-		CeL.fs_write('special_users.' + CeL.wiki.site_name(wiki) + '.json',
-				JSON.stringify(special_users));
+		CeL.fs_write(get_special_users.log_file_prefix
+				+ CeL.wiki.site_name(wiki) + '.json', JSON
+				.stringify(special_users));
 		callback(special_users);
 	});
 }
+
+get_special_users.log_file_prefix = base_directory + 'special_users.';
 
 // ----------------------------------------------
 // status functions
