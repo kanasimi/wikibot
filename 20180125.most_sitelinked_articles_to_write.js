@@ -25,7 +25,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 //
-MIN_COUNT = 50, reget = true,
+MIN_COUNT = 50, reget = false,
 //
 most_sitelinked_items_filename = base_directory + 'most_sitelinked_items.json';
 
@@ -49,8 +49,94 @@ SQL_session = new CeL.wiki.SQL(function(error) {
 }, 'wikidata');
 
 get_most_sitelinked_items(function(items_of_count, item_count_pairs) {
-	get_most_sitelinked_items_exclude_language('zh', function(items_of_count,
-			item_list) {
+
+	var language = 'zh';
+	get_most_sitelinked_items_exclude_language(language, function(
+			items_of_count, item_list) {
+
+		// 排除非條目之頁面。
+		function exclude_non_article(error, rows) {
+			if (error) {
+				throw error;
+			}
+
+			var _non_article_item_list = rows.map(function(row) {
+				return row.ips_item_id;
+			});
+
+			non_article_item_list.append(_non_article_item_list);
+			var data_filename = most_sitelinked_items_filename.replace(
+					/(\.[a-z]+)?$/, '.exclude_' + language
+					//
+					+ '.non_article.$1');
+			CeL.write_file(data_filename, JSON.stringify(non_article_item_list
+					.sort()));
+			// Release memory. 釋放被占用的記憶體.
+			non_article_item_list = null;
+
+			var index_of_non_article = 0,
+			//
+			this_non_article = _non_article_item_list[0];
+
+			// item_list_to_check -= _non_article_item_list
+			item_list_to_check = item_list_to_check.filter(function(item_id) {
+				if (item_id === this_non_article) {
+					this_non_article
+					//
+					= _non_article_item_list[++index_of_non_article];
+				} else {
+					return true;
+				}
+			});
+
+			CeL.info(language + ': ' + item_list_to_check.length + ' items. '
+					+ item_list_to_check.slice(0, 200));
+		}
+
+		var non_article_item_list = [], item_list_to_check = [],
+		//
+		index_of_non_article = 0, this_non_article = non_article_item_list[0];
+
+		item_list.forEach(function(item_id) {
+			while (this_non_article < item_id) {
+				this_non_article
+				//
+				= non_article_item_list[++index_of_non_article];
+			}
+			if (this_non_article === item_id) {
+				this_non_article
+				//
+				= non_article_item_list[++index_of_non_article];
+			} else {
+				item_list_to_check.push(item_id);
+			}
+		});
+
+		// Release memory. 釋放被占用的記憶體.
+		item_list = null;
+
+		SQL_session.SQL(
+		//
+		'SELECT ips_item_id FROM wb_items_per_site WHERE ips_item_id IN ('
+				+ item_list_to_check.join(',')
+				+ ') AND (ips_site_page LIKE "Template:%"'
+				+ ' OR ips_site_page LIKE "Category:%"'
+				+ ' OR ips_site_page LIKE "Wikipedia:%"'
+				// + ' OR ips_site_page LIKE "% Talk:%"'
+				+ ' OR ips_site_page LIKE "Project:%"'
+				+ ' OR ips_site_page LIKE "Portal:%"'
+				+ ' OR ips_site_page LIKE "Help:%"'
+				+ ') GROUP BY ips_item_id ORDER BY ips_item_id',
+				exclude_non_article);
+
+		return;
+
+		for ( var link_count in items_of_count) {
+			link_count = +link_count;
+		}
+
+		return;
+
 		get_most_sitelinked_items_exclude_language('ja', function(
 				items_of_count, item_list) {
 			SQL_session.connection.destroy();
@@ -66,13 +152,17 @@ get_most_sitelinked_items(function(items_of_count, item_count_pairs) {
 			reget : reget,
 			item_count_pairs : item_count_pairs
 		});
+
 	}, {
 		reget : reget,
 		item_count_pairs : item_count_pairs
 	});
+
 }, {
 	reget : reget
 });
+
+// ----------------------------------------------------------------------------
 
 // get sitelink count of wikidata items
 // https://www.mediawiki.org/wiki/Wikibase/Schema/wb_items_per_site
@@ -108,7 +198,7 @@ function get_most_sitelinked_items(callback, options) {
 
 	if (!options.reget) {
 		var JSON_data = CeL.read_file(data_filename);
-		if (JSON_data) {
+		if (JSON_data && (JSON_data = JSON.parse(JSON_data))) {
 			callback(JSON_data[0], JSON_data[1]);
 			return;
 		}
@@ -147,6 +237,7 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 				return;
 			}
 
+			// item_list = [ item_id, item_id, item_id, ... ]
 			item_list.push(item_id);
 			var link_count = pair[1];
 			// items_of_count[link_count] = [ item_id, item_id, item_id, ... ]
@@ -172,7 +263,7 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 
 	if (!options.reget) {
 		var JSON_data = CeL.read_file(data_filename);
-		if (JSON_data) {
+		if (JSON_data && (JSON_data = JSON.parse(JSON_data))) {
 			callback(JSON_data[0], JSON_data[1]);
 			return;
 		}

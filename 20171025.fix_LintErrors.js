@@ -147,7 +147,7 @@ function get_page_contents(run_next, lint_error_page, index, linterrors) {
 		nocreate : 1
 	}, function() {
 		linterrors.processed++;
-		// free
+		// Release memory. 釋放被占用的記憶體.
 		linterrors[index] = null;
 		run_next();
 	});

@@ -133,7 +133,7 @@ function for_source_pages(pages, titles, title) {
 				template_text[title] = template_data[page_data.title][1];
 			});
 			// CeL.show_value(template_text);
-			// free
+			// Release memory. 釋放被占用的記憶體.
 			template_data = null;
 			CeL.debug('讀取' + to_language + '頁面內容。');
 			to_wiki.page(titles, function(pages) {
