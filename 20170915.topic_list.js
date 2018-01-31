@@ -607,14 +607,39 @@ function check_BOTREQ_status(section, section_index) {
 		if (token.name in {
 			Resolved : true,
 			Solved : true,
+			済み : true,
 			已解決 : true,
 			解決済み : true
 		}) {
+			// 這個做法可以去掉模板中的簽名。
 			status = 'style="background-color:#efe;" | '
 			// [[ja:Template:解決済み]]
-			+ '[[File:Check mark.svg|20px|link=]] ' + token.name;
+			+ '{{ ' + token.name + '}}';
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
 		}
+
+		if (token.name in {
+			未解決 : true,
+			失効 : true
+		}) {
+			// 這個做法可以去掉模板中的簽名。
+			status = 'style="background-color:#fdd;" | ' + '{{ ' + token.name
+					+ '}}';
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
+			return to_exit;
+		}
+
+		if (token.name in {
+			スタック : true
+		}) {
+			// 這個做法可以去掉模板中的簽名。
+			status = 'style="background-color:#ffc;" | ' + '{{ ' + token.name
+					+ '}}';
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
+			return to_exit;
+		}
+
 		if (token.name === 'BOTREQ') {
 			// [[Template:BOTREQ]]
 			status = (token[1] || '').toString().toLowerCase().trim();
@@ -737,6 +762,7 @@ function check_BRFA_status(section) {
 			.test(BRFA_status)) {
 				status = 'style="background-color:#ddd;" | ' + status;
 			}
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
 		}
 
@@ -761,6 +787,7 @@ function check_BRFA_status(section) {
 			.test(BRFA_status)) {
 				status = 'style="background-color:#ddd;" | ' + status;
 			}
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
 		}
 
@@ -890,7 +917,7 @@ normalize_time_style_hash(long_to_short);
 	}
 	// {{clearright}}, {{-}}
 	list_legend_used.push('|}', '{{Clear}}');
-	// free
+	// Release memory. 釋放被占用的記憶體.
 	list_legend = null;
 })();
 
