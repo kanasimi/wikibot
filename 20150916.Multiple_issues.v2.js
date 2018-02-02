@@ -493,11 +493,11 @@ CeL.wiki.cache([ {
 		+ '\n[[Category:需要维基化的页面]]\n[[Category:维基百科条目清理]]\n';
 
 		wiki.page(title + '/計數').edit(String(count), {
-			summary : _summary + '數'
+			summary : _summary + '數: ' + count
 		});
 
 		wiki.page(title).edit(content, {
-			summary : _summary
+			summary : _summary + ': ' + count + '條'
 		});
 
 		return 含有太多維護模板之頁面.map(function(list, index) {

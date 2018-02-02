@@ -12,6 +12,9 @@ https://en.wikipedia.org/wiki/User:FACBot/flc.pl
 https://www.wikidata.org/wiki/User:DeltaBot
 https://github.com/Pascalco/DeltaBot/blob/master/badges.py
 
+{{仮リンク|{{label|Q30}}|wikidata|Q30}}
+{{illm|WD=Q30}}
+
  */
 
 'use strict';
@@ -52,17 +55,11 @@ get_most_sitelinked_items(function(item_count_pairs) {
 
 	var language = 'zh';
 	get_most_sitelinked_items_exclude_language(language, function(item_list) {
-		exclude_non_article(item_list, {
+		exclude_non_article(item_list, for_item_list_passed, {
 			language : language,
 			reget : reget,
 			item_count_pairs : item_count_pairs
 		});
-		return;
-
-		for ( var link_count in items_of_count) {
-			link_count = +link_count;
-		}
-
 		return;
 
 		get_most_sitelinked_items_exclude_language('ja', function(
@@ -224,7 +221,7 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 			write_most_sitelinked_items_exclude_language);
 }
 
-function exclude_non_article(item_list, options) {
+function exclude_non_article(item_list, callback, options) {
 	// 排除非條目之頁面。
 	function write_non_article(error, rows) {
 		if (error) {
@@ -248,8 +245,8 @@ function exclude_non_article(item_list, options) {
 		this_non_article = new_non_article_item_list[0];
 
 		// 第二次篩選。
-		// item_list_to_check -= new_non_article_item_list
-		item_list_to_check = item_list_to_check.filter(function(item_id) {
+		// item_list = item_list_to_check - new_non_article_item_list
+		item_list = item_list_to_check.filter(function(item_id) {
 			if (item_id === this_non_article) {
 				this_non_article
 				//
@@ -259,11 +256,8 @@ function exclude_non_article(item_list, options) {
 			}
 		});
 
-		CeL.info(options.language + ': ' + item_list_to_check.length
-				+ ' items.');
-		CeL.log(item_list_to_check.slice(0, 100).map(function(item_id) {
-			return item_id + ': ' + options.item_count_pairs[item_id] + '\n';
-		}));
+		// item_list = [ item_id, item_id, item_id, ... ]
+		callback(item_list, options);
 	}
 
 	options = CeL.setup_options(options);
@@ -310,11 +304,14 @@ function exclude_non_article(item_list, options) {
 			+ item_list_to_check.join(',')
 			+ ') AND (ips_site_page LIKE "Template:%"'
 			+ ' OR ips_site_page LIKE "Category:%"'
+			// e.g., Q1458045 Category:工程技術
+			+ ' OR ips_site_page LIKE "Kategorie:%"'
 			+ ' OR ips_site_page LIKE "Wikipedia:%"'
 			// + ' OR ips_site_page LIKE "% Talk:%"'
 			+ ' OR ips_site_page LIKE "Project:%"'
 			+ ' OR ips_site_page LIKE "Portal:%"'
 			+ ' OR ips_site_page LIKE "Help:%"'
+			+ ' OR ips_site_page LIKE "MediaWiki:%"'
 			+ ') GROUP BY ips_item_id ORDER BY ips_item_id';
 
 	CeL.info('exclude_non_article: Run SQL: '
@@ -322,4 +319,44 @@ function exclude_non_article(item_list, options) {
 
 	// 取得 item_list 中所有非條目的 item項目。
 	SQL_session.SQL(SQL_get_non_article, write_non_article);
+}
+
+function for_item_list_passed(item_list, options) {
+	options = CeL.setup_options(options);
+
+	SQL_session.connection.destroy();
+	CeL.info('for_item_list_passed: ' + options.language + ': '
+			+ item_list.length + ' items.');
+
+	var index_of_pairs = 0, this_item_count_pair = item_count_pairs[0],
+	//
+	items_of_count = CeL.null_Object();
+	item_list.forEach(function(item_id) {
+		while (this_item_count_pair[0] < item_id) {
+			this_item_count_pair = item_count_pairs[++index_of_pairs];
+		}
+		if (item_id !== this_item_count_pair[0]) {
+			CeL.error('Not found: item id ' + item_id + '. Next pair: '
+					+ this_item_count_pair
+					+ '. You may need to re-get all list again!');
+			return;
+		}
+
+		var link_count = this_item_count_pair[1];
+		// items_of_count[link_count]
+		// = [ item_id, item_id, item_id, ... ]
+		if (items_of_count[link_count]) {
+			items_of_count[link_count].push(item_id);
+		} else {
+			items_of_count[link_count] = [ item_id ];
+		}
+	});
+
+	Object.keys(items_of_count).sort(CeL.descending)
+	//
+	.forEach(function(link_count) {
+		link_count = +link_count;
+		var item_list = items_of_count[link_count];
+		CeL.info(link_count + ': [' + item_list.length + '] ' + item_list);
+	});
 }
