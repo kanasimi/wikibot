@@ -478,9 +478,9 @@ CeL.wiki.cache([ {
 			});
 			count += list.length;
 			return list.length > 0 ? '|-\n| ' + index + ' || 共'
-			//
-			+ list.length + '條目。\n\n[[' + list.join(']], [[') + ']]\n' : '';
-		}).reverse().join('\n').replace(/\n{2,}/g, '\n');
+			// \n\n
+			+ list.length + '條目。\n[[' + list.join(']], [[') + ']]' : '';
+		}).reverse().join('\n').replace(/\n{2,}/g, '\n').trim();
 
 		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n'
 		//
@@ -488,9 +488,11 @@ CeL.wiki.cache([ {
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
 		//
-		+ content + '|}\n\n[[Category:按月分类的维基百科维护分类]]\n[[Category:维基百科维护]]'
+		+ content + '\n|}\n\n[[Category:按月分类的维基百科维护分类]]\n[[Category:维基百科维护]]'
 		//
-		+ '\n[[Category:需要维基化的页面]]\n[[Category:维基百科条目清理]]\n';
+		+ '\n[[Category:需要维基化的页面]]\n[[Category:维基百科条目清理]]\n'
+		//
+		+ '[[Category:需要清理的条目]]\n';
 
 		wiki.page(title + '/計數').edit(String(count), {
 			summary : _summary + '數: ' + count

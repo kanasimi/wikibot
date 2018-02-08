@@ -208,8 +208,9 @@ message_set = {
 		// Category:多語言連結已存在連結
 		Category_has_local_page : 'Category:有蓝链却未移除内部链接助手模板的页面',
 		report_page : '需要修正的跨語言連結',
-		// fix_category : 'Category:跨語言連結有問題的頁面', Category:連結格式不正確的條目
-		fix_category : 'Category:维基百科积压工作',
+		// fix_category : 'Category:跨語言連結有問題的頁面', Category:連結格式不正確的條目,
+		// Category:维基百科积压工作, Category:维基百科条目清理
+		fix_category : 'Category:需要清理的条目',
 		report_summary : '跨語言連結清理報告',
 		manual_correction_required : '這裡列出了需修正的跨語言連結。本列表將由機器人自動更新。',
 		edit : '編',

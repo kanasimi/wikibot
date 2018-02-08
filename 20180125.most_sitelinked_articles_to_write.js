@@ -13,7 +13,7 @@ https://www.wikidata.org/wiki/User:DeltaBot
 https://github.com/Pascalco/DeltaBot/blob/master/badges.py
 
 {{仮リンク|{{label|Q30}}|wikidata|Q30}}
-{{illm|WD=Q30}}
+{{Illm|WD=Q30}}
 
  */
 
@@ -24,11 +24,7 @@ require('./wiki loder.js');
 
 CeL.run('application.storage');
 
-var
-/** {Object}wiki operator 操作子. */
-wiki = Wiki(true),
-//
-MIN_COUNT = 50, reget = false,
+var MIN_COUNT = 50, reget = false,
 //
 most_sitelinked_items_filename = base_directory + 'most_sitelinked_items.json';
 
@@ -303,15 +299,18 @@ function exclude_non_article(item_list, callback, options) {
 	var SQL_get_non_article = 'SELECT ips_item_id FROM wb_items_per_site WHERE ips_item_id IN ('
 			+ item_list_to_check.join(',')
 			+ ') AND (ips_site_page LIKE "Template:%"'
+			+ ' OR ips_site_page LIKE "Vorlage:%"'
 			+ ' OR ips_site_page LIKE "Category:%"'
 			// e.g., Q1458045 Category:工程技術
 			+ ' OR ips_site_page LIKE "Kategorie:%"'
-			+ ' OR ips_site_page LIKE "Wikipedia:%"'
 			// + ' OR ips_site_page LIKE "% Talk:%"'
 			+ ' OR ips_site_page LIKE "Project:%"'
 			+ ' OR ips_site_page LIKE "Portal:%"'
 			+ ' OR ips_site_page LIKE "Help:%"'
+			+ ' OR ips_site_page LIKE "Module:%"'
 			+ ' OR ips_site_page LIKE "MediaWiki:%"'
+			+ ' OR ips_site_page LIKE "Wikipedia:%"'
+			+ ' OR ips_site_page LIKE "Wikisource:%"'
 			+ ') GROUP BY ips_item_id ORDER BY ips_item_id';
 
 	CeL.info('exclude_non_article: Run SQL: '
@@ -328,7 +327,13 @@ function for_item_list_passed(item_list, options) {
 	CeL.info('for_item_list_passed: ' + options.language + ': '
 			+ item_list.length + ' items.');
 
-	var index_of_pairs = 0, this_item_count_pair = item_count_pairs[0],
+	var
+	/** {Object}wiki operator 操作子. */
+	wiki = Wiki(true, options.language),
+	//
+	item_count_pairs = options.item_count_pairs,
+	//
+	index_of_pairs = 0, this_item_count_pair = item_count_pairs[0],
 	//
 	items_of_count = CeL.null_Object();
 	item_list.forEach(function(item_id) {
@@ -352,11 +357,27 @@ function for_item_list_passed(item_list, options) {
 		}
 	});
 
+	var content = [ '以下列出最多語言版本的待撰條目。有些條目已經存在，是因為有消歧義的問題，或者需要合併、被分割（重新導向）等。',
+			'* 本條目會每周更新，毋須手動修正。 ~~~~', '', '{| class="wikitable"',
+			'! 語言數 !! 中文維基百科欠缺的條目' ];
+
 	Object.keys(items_of_count).sort(CeL.descending)
 	//
 	.forEach(function(link_count) {
 		link_count = +link_count;
 		var item_list = items_of_count[link_count];
 		CeL.info(link_count + ': [' + item_list.length + '] ' + item_list);
+		content.push('|-\n| ' + link_count + ' || 共'
+		// \n\n
+		+ item_list.length + '條目。\n' + item_list.map(function(item_id) {
+			return '{{Illm|WD=Q' + item_id + '|preserve=1}}';
+		}).join(', '));
+	});
+
+	content.push('|}');
+	content = content.join('\n');
+
+	wiki.page('Wikipedia:最多語言版本的待撰條目/自動更新').edit(content, {
+		nocreater : 1
 	});
 }
