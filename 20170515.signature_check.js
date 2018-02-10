@@ -741,7 +741,7 @@ function for_each_row(row) {
 			// console.log([ from_user_hash, user_list ]);
 			if (user_list.length > 0) {
 				check_log.push([ row.user
-				// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯~~~~"
+				// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯 --~~~~"
 				// {{Ping}}模板通知必須搭配簽名（~~~~）
 				+ ' 可能編輯了 ' + user_list.join(', ')
 				// e.g., 您創建的條目~~可能侵犯版權

@@ -50,6 +50,7 @@ SQL_session = new CeL.wiki.SQL(function(error) {
 get_most_sitelinked_items(function(item_count_pairs) {
 
 	var language = 'zh';
+
 	get_most_sitelinked_items_exclude_language(language, function(item_list) {
 		exclude_non_article(item_list, for_item_list_passed, {
 			language : language,
@@ -358,8 +359,8 @@ function for_item_list_passed(item_list, options) {
 	});
 
 	var content = [ '以下列出最多語言版本的待撰條目。有些條目已經存在，是因為有消歧義的問題，或者需要合併、被分割（重新導向）等。',
-			'* 本條目會每周更新，毋須手動修正。 ~~~~', '', '{| class="wikitable"',
-			'! 語言數 !! 中文維基百科欠缺的條目' ];
+	// --~~~~
+	'* 本條目會每周更新，毋須手動修正。', '', '{| class="wikitable"', '! 語言數 !! 中文維基百科欠缺的條目' ];
 
 	Object.keys(items_of_count).sort(CeL.descending)
 	//

@@ -367,6 +367,7 @@ page_configurations = {
 		// 維基文庫沒有"collapsible"，改為"mw-collapsible"。兩者並用會造成兩個都顯示。
 		// 加上「metadata」class，這樣在移動版頁面中將不再顯示主題列表。
 		// /「metadata」樣式改為「navbox」樣式，這樣起到的作用是一樣的...?
+		// https://zh.m.wikisource.org/wiki/Wikisource:%E5%86%99%E5%AD%97%E9%97%B4
 		header_class : 'wikitable sortable mw-collapsible metadata',
 		postfix : function(section_table) {
 			if (false)
@@ -901,11 +902,11 @@ normalize_time_style_hash(long_to_short);
 	// e.g., 'zh-classical'
 	|| list_legend['zh'];
 	list_legend_used = [
-	// collapsed
-	'{| class="wikitable collapsible" style="float:left;margin-left:.5em;"',
-	// TODO: .header 應該用 caption
-	// title: 相對於機器人最後一次編輯
-	'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
+			// collapsed
+			'{| class="wikitable collapsible metadata" style="float:left;margin-left:.5em;"',
+			// TODO: .header 應該用 caption
+			// title: 相對於機器人最後一次編輯
+			'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
 	for ( var time_interval in _list_legend) {
 		if (time_interval === 'header') {
 			continue;
