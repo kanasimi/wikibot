@@ -153,11 +153,8 @@ function process_VOA_page(XMLHttp) {
 	|| report.between(null, '<div id="comments" ')
 	|| report.between(null, '<div class="media-block-wrap')
 	|| report;
-	report = report.between('<div class="wsw">');
-	report = report.between(null, {
-		tail : '</ul>'
-	}) || report;
-	report = report.between(null, {
+	// 不能從 "</ul>" 截斷，會造成第二段之後消失。
+	report = report.between('<div class="wsw">', {
 		tail : '</div>'
 	});
 
@@ -228,7 +225,7 @@ function process_VOA_page(XMLHttp) {
 			categories = '';
 		}
 
-		if (/<[a-z]/.test(report)) {
+		if (/<[a-z][^<>]*>/.test(report)) {
 			this_link_data.note = '因為報導中尚存有[[w:HTML標籤|]]，這份報導還必須經過整理。';
 		}
 
