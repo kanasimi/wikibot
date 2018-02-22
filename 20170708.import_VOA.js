@@ -147,6 +147,8 @@ function process_VOA_page(XMLHttp) {
 	// e.g.,
 	// https://www.voachinese.com/a/air-filter-20171024/4084304.html
 	report = report.between(null, '<ul class="author-hlight">')
+	// e.g., https://www.voachinese.com/a/pence-nokor-20180221/4263630.html
+	|| report.between(null, '<div class="c-author')
 			|| report.between(null, '<div id="comments" ');
 	report = report.between('<div class="wsw">', {
 		tail : '</div>'
