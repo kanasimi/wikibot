@@ -180,6 +180,9 @@ function process_VOA_page(XMLHttp) {
 	report = CeL.wiki.HTML_to_wikitext(report)
 	// ignore style, remove <p style="...">...</p>
 	.replace(/<p[^<>]*>([^<>]*)<\/p>[\s\n]*/g, '$1\n\n')
+	// 去掉結尾無用的 HTML tags. e.g.,
+	// https://www.voachinese.com/a/cultural-odyssey-20180126-earth-sweltered/4226492.html
+	.replace(/(<\/?[a-z]+>[\s\n]*)+$/g, '')
 	.trim();
 
 	if (!(report_date.getTime() > 0)) {
