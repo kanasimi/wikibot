@@ -159,7 +159,7 @@ function process_VOA_page(XMLHttp) {
 	}) || report;
 	report = report.between(null, {
 		tail : '</div>'
-	}) || report;
+	});
 
 	// assert: typeof this_link_data === 'object'
 
@@ -178,7 +178,10 @@ function process_VOA_page(XMLHttp) {
 	function(all, innerHTML) {
 		var index = innerHTML.lastIndexOf('<div');
 		return index > 0 ? all.slice(0, index) : '';
-	}).replace(/<span class="dateline">.+?<\/span>/, '');
+	})
+	// remove <p style="...">...</p>
+	.replace(/<p[^<>]*>([^<>]*)<\/p>[\s\n]*/, '$1\n\n')
+	.replace(/<span class="dateline">.+?<\/span>/, '');
 	report = CeL.wiki.HTML_to_wikitext(report).trim();
 
 	if (!(report_date.getTime() > 0)) {
