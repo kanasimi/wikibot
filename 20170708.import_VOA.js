@@ -51,7 +51,7 @@ wiki.page(main_operation_title, process_main_page, {
 setTimeout(setup_listener, 10000);
 
 function setup_listener() {
-	CeL.set_debug(2);
+	// CeL.set_debug(2);
 	// 隨時監視 main_operation_title。
 	wiki.listen(function(page_data) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
@@ -147,9 +147,10 @@ function process_VOA_page(XMLHttp) {
 	// e.g.,
 	// https://www.voachinese.com/a/air-filter-20171024/4084304.html
 	report = report.between(null, '<ul class="author-hlight">')
-	// e.g., https://www.voachinese.com/a/pence-nokor-20180221/4263630.html
+	// Author's Profile e.g.,
+	// https://www.voachinese.com/a/pence-nokor-20180221/4263630.html
 	|| report.between(null, '<div class="c-author')
-			|| report.between(null, '<div id="comments" ');
+			|| report.between(null, '<div id="comments" ') || report;
 	report = report.between('<div class="wsw">', {
 		tail : '</div>'
 	});
@@ -258,9 +259,12 @@ function check_links() {
 		return content.replace(PATTERN_link, function(all, link, sign) {
 			var this_link_data = link_data[link];
 
-			return '\n\* '
+			return '\n* '
 					+ (this_link_data.title ? '[' + link + ' '
-							+ this_link_data.title + ']' : link)
+							+ this_link_data.title + ']'
+							// 對 link 添加一點變化，以避免下一次再執行的時候重複處理。
+							// 這一段會造成 JSDoc 沒辦法格式化。
+							: ('{{' + (this_link_data.OK ? 'Done' : 'Cancelled') + '}} ') + link)
 					+ sign
 					+ '\n: {{'
 					+ (this_link_data.OK ? 'Done' : 'Cancelled')
