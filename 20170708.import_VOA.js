@@ -179,10 +179,11 @@ function process_VOA_page(XMLHttp) {
 		var index = innerHTML.lastIndexOf('<div');
 		return index > 0 ? all.slice(0, index) : '';
 	})
-	// remove <p style="...">...</p>
-	.replace(/<p[^<>]*>([^<>]*)<\/p>[\s\n]*/, '$1\n\n')
 	.replace(/<span class="dateline">.+?<\/span>/, '');
-	report = CeL.wiki.HTML_to_wikitext(report).trim();
+	report = CeL.wiki.HTML_to_wikitext(report)
+	// ignore style, remove <p style="...">...</p>
+	.replace(/<p[^<>]*>([^<>]*)<\/p>[\s\n]*/g, '$1\n\n')
+	.trim();
 
 	if (!(report_date.getTime() > 0)) {
 		report_date = new Date;
