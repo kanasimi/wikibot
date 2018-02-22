@@ -150,10 +150,16 @@ function process_VOA_page(XMLHttp) {
 	// Author's Profile e.g.,
 	// https://www.voachinese.com/a/pence-nokor-20180221/4263630.html
 	|| report.between(null, '<div class="c-author')
-			|| report.between(null, '<div id="comments" ') || report;
-	report = report.between('<div class="wsw">', {
+	|| report.between(null, '<div id="comments" ')
+	|| report.between(null, '<div class="media-block-wrap')
+	|| report;
+	report = report.between('<div class="wsw">');
+	report = report.between(null, {
+		tail : '</ul>'
+	}) || report;
+	report = report.between(null, {
 		tail : '</div>'
-	});
+	}) || report;
 
 	// assert: typeof this_link_data === 'object'
 
