@@ -340,7 +340,8 @@ function for_each_old_page(page_data) {
 							+ '|大幅修改過]]。'
 							+ (edit_distance ? '[[w:en:edit distance|編輯距離]]'
 									+ edit_distance : (size > 0 ? '多' : '少')
-									+ '了' + Math.abs(size) + '字元') + '。');
+									+ '了' + Math.abs(size) + '字元')
+							+ "。請管理員檢核過後'''手動保護'''這篇文章。");
 				}
 			}
 		}
