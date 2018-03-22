@@ -727,6 +727,7 @@ function replace_to_rtl_lang(all, language, text) {
 // [{{fullurl:Special:RecentChanges|tagfilter=unicode other}} other]
 // [{{fullurl:Special:RecentChanges|tagfilter=unicode misc}} misc]
 // TODO: {{PUA|\uf06e}}
+// 加入不可見字元, 零寬空格 U+200B
 fix_16.title = '去除條目中之不可見字符與Unicode控制字符';
 function fix_16(content, page_data, messages, config) {
 	content = content

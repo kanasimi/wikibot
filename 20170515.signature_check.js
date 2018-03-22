@@ -82,7 +82,8 @@ whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基�
 // 黑名單直接封殺。黑名單的優先度高於白名單。
 // 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這個頁面補簽名。
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
-blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikisource:管理员' ],
+blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
+		'Wikisource:管理员' ],
 
 // ----------------------------------------------------------------------------
 
@@ -313,7 +314,7 @@ function for_each_row(row) {
 
 	// 黑名單直接封殺。黑名單的優先度高於白名單。
 	|| blacklist.includes(row.title)
-	// 白名單頁面可以省去其他的檢查
+	// 白名單頁面可以省去其他的檢查。
 	|| !whitelist.includes(row.title)
 	//
 	&& row.title.startsWith('Wikipedia:')

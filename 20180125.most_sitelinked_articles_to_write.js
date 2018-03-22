@@ -24,7 +24,9 @@ require('./wiki loder.js');
 
 CeL.run('application.storage');
 
-var MIN_COUNT = 50, reget = false,
+var MIN_COUNT = 50,
+// 有 cache 會導致未更新。
+reget = true,
 //
 most_sitelinked_items_filename = base_directory + 'most_sitelinked_items.json';
 
