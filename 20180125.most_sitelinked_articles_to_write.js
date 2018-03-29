@@ -24,7 +24,8 @@ require('./wiki loder.js');
 
 CeL.run('application.storage');
 
-var MIN_COUNT = 50,
+// 34 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。
+var MIN_COUNT = 35,
 // 有 cache 會導致未更新。
 reget = true,
 //
