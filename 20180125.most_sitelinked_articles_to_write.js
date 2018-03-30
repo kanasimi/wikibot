@@ -363,7 +363,7 @@ function for_item_list_passed(item_list, options) {
 
 	var content = [ '以下列出最多語言版本的待撰條目。有些條目已經存在，是因為有消歧義的問題，或者需要合併、被分割（重新導向）等。',
 	// --~~~~
-	'* 本條目會每周更新，毋須手動修正。', '', '{| class="wikitable"', '! 語言數 !! 中文維基百科欠缺的條目' ];
+	'* 本條目會每周更新，毋須手動修正。', '', '{| class="wikitable"', '! 語言數 !! 中文維基百科欠缺的條目' ], item_counter = 0;
 
 	Object.keys(items_of_count).sort(CeL.descending)
 	//
@@ -371,6 +371,7 @@ function for_item_list_passed(item_list, options) {
 		link_count = +link_count;
 		var item_list = items_of_count[link_count];
 		CeL.info(link_count + ': [' + item_list.length + '] ' + item_list);
+		item_counter += item_list.length;
 		content.push('|-\n| ' + link_count + ' || 共'
 		// \n\n
 		+ item_list.length + '條目。\n' + item_list.map(function(item_id) {
@@ -382,6 +383,7 @@ function for_item_list_passed(item_list, options) {
 	content = content.join('\n');
 
 	wiki.page('Wikipedia:最多語言版本的待撰條目/自動更新').edit(content, {
-		nocreater : 1
+		nocreate : 1,
+		summary : '自動更新‎最多語言版本的待撰條目: 共' + item_counter + '條目。'
 	});
 }
