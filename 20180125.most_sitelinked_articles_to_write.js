@@ -24,7 +24,7 @@ require('./wiki loder.js');
 
 CeL.run('application.storage');
 
-// 34 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。
+// 34 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。 [[Wikipedia:模板限制]]
 var MIN_COUNT = 35,
 // 有 cache 會導致未更新。
 reget = true,

@@ -23,6 +23,7 @@ jstop cron-tools.cewbot-20170915.topic_list.wikisource;
 
 @see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[w:zh:User:WhitePhosphorus-bot/RFBA_Status]], [[w:ja:Wikipedia:議論が盛んなノート]],
  https://zh.moegirl.org/Widget:TalkToc ($('#toc'))
+ https://meta.wikimedia.org/wiki/Tech/News/2018/13/zh	已被棄用的#toc和#toctitle CSS ID將會被移除。如果您的wiki仍在使用它們作為假目錄，那麼它們將失去應有樣式。如有需要可以替換為.toc和.toctitle CSS類。
 
 
 
