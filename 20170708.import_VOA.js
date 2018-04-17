@@ -7,7 +7,6 @@
 
  2017/7/8 21:05:40–23:41:07	初版試營運。
 
-
  */
 
 'use strict';
@@ -53,13 +52,12 @@ setTimeout(setup_listener, 10000);
 function setup_listener() {
 	// CeL.set_debug(2);
 	// 隨時監視 main_operation_title。
-	wiki.listen(function(page_data) {
-		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(page_data));
+	wiki.listen(function(row) {
+		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(row));
 		if (0)
-			console.log([ page_data.title, page_data.revid,
-					page_data.timestamp,
-					CeL.wiki.content_of(page_data).slice(0, 200) ]);
-		process_main_page(page_data);
+			console.log([ row.title, row.revid, row.timestamp,
+					CeL.wiki.content_of(row).slice(0, 200) ]);
+		process_main_page(row);
 	}, {
 		// start : '1h',
 		interval : 5000,
@@ -71,22 +69,22 @@ function setup_listener() {
 // ----------------------------------------------------------------------------
 
 // 解析 main_operation_title 看看是不是有新的申請。
-function process_main_page(page_data, error) {
-	if (!page_data || ('missing' in page_data)) {
+function process_main_page(row, error) {
+	if (!row || ('missing' in row)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}
 
 	// for redirects
-	if (main_operation_title !== page_data.title) {
+	if (main_operation_title !== row.title) {
 		CeL.info('Redirects: ' + CeL.wiki.title_link_of(main_operation_title)
-				+ '→' + CeL.wiki.title_link_of(page_data.title));
-		main_operation_title = page_data.title;
+				+ '→' + CeL.wiki.title_link_of(row.title));
+		main_operation_title = row.title;
 	}
 
 	var
 	/** {String}page content, maybe undefined. */
-	content = CeL.wiki.content_of(page_data);
+	content = CeL.wiki.content_of(row);
 
 	var link_data = CeL.null_Object(), to_pass = {
 		link_data : link_data,
@@ -104,6 +102,8 @@ function process_main_page(page_data, error) {
 		link_data[link] = {
 			URL : link,
 			user : CeL.wiki.parse.user(matched[2])
+			// 自動取得編輯者名稱
+			|| row.user
 		};
 		CeL.get_URL(link, function(XMLHttp) {
 			to_pass.process(XMLHttp);
