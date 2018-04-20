@@ -212,7 +212,7 @@ message_set = {
 		// Category:维基百科积压工作, Category:需要清理的条目, Category:维基百科条目清理
 		fix_category : 'Category:维基百科条目清理',
 		report_summary : '跨語言連結清理報告',
-		manual_correction_required : '這裡列出了需修正的跨語言連結。本列表將由機器人自動更新。',
+		manual_correction_required : '這裡列出了需人工修正的跨語言連結。本列表將由機器人自動更新。',
 		edit : '編',
 		report_1 : ':: ……共發生了',
 		report_2 : '次。',
@@ -240,7 +240,8 @@ message_set = {
 		missing_foreign : '所對應的外語條目不存在。',
 		foreign_is_disambiguation : '所對應的外語頁面為消歧義頁。',
 		foreign_redirect_to_section : '所對應的外語頁面重定向到了條目章節。',
-		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到Wikidata。',
+		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到正確的Wikidata項目。',
+		// 由於一些重定向不是常用的名稱，因此由機器人直接重定向可能不太妥當。這時仍需人工判別。
 		different_local_title : '所對應的中文條目標題與模板參數所列出的不相符。',
 		local_title_too_new : '中文條目過新，將過幾天再測試。',
 		not_exist : '不存在',
