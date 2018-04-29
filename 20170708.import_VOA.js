@@ -24,7 +24,7 @@ wiki = Wiki(true, 'wikinews');
 
 // ----------------------------------------------------------------------------
 
-var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*:]?\s*(https:[^\s]+)([^\n]+)/g;
+var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*:]?\s*(https:[^\s]+)(\s[^\n]*)?/g;
 
 // @see [[Category:频道]]
 var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
@@ -43,6 +43,7 @@ var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印
 
 // 僅僅執行一次，一開始就執行一次。
 wiki.page(main_operation_title, process_main_page, {
+	rvprop : 'content|timestamp|user',
 	redirects : 1
 });
 
@@ -70,6 +71,9 @@ function setup_listener() {
 
 // 解析 main_operation_title 看看是不是有新的申請。
 function process_main_page(row, error) {
+	// console.log(row);
+	// console.log(CeL.wiki.content_of.revision(row).user);
+	
 	if (!row || ('missing' in row)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
@@ -104,6 +108,8 @@ function process_main_page(row, error) {
 			user : CeL.wiki.parse.user(matched[2])
 			// 自動取得編輯者名稱
 			|| row.user
+			// row.revisions[0].user
+			|| CeL.wiki.content_of.revision(row).user
 		};
 		CeL.get_URL(link, function(XMLHttp) {
 			to_pass.process(XMLHttp);
@@ -160,8 +166,11 @@ function process_VOA_page(XMLHttp) {
 
 	// assert: typeof this_link_data === 'object'
 
+	// console.log(title);
+	// console.log(report);
+	
 	if (!title || !report) {
-		this_link_data.note = response ? '無法解析頁面，需要更新解析頁面這部分的程式碼。' : '無法取得頁面內容';
+		this_link_data.note = response ? '無法解析頁面，需要更新解析頁面這部分的程式碼。' : '無法取得頁面內容。';
 		CeL.error(this_link_data.note + ': ' + XMLHttp.URL);
 		this.check_links();
 		return;
@@ -232,6 +241,16 @@ function process_VOA_page(XMLHttp) {
 			this_link_data.note = '因為報導中尚存有[[w:HTML標籤|]]，這份報導還必須經過整理。';
 		}
 
+		// {"edit":{"spamblacklist":"bit.ly/VOAIO-youtube|youtu.be/KdlNsp0gmh4","result":"Failure"}}
+		report = report.replace(/\[([^\[\]\s]+)([^\[\]]*)\]/g, function(all, link, title) {
+			if (/youtu\.be|bit\.ly/.test(link)) {
+				this_link_data.note = '已去掉廣告連結。';
+				return all;
+			}
+		});
+		
+		// console.log(report);
+		// throw 974513456;
 		return '{{Date|' + report_date.format({
 			format : '%Y年%m月%d日',
 			// CST
@@ -253,7 +272,7 @@ function process_VOA_page(XMLHttp) {
 
 // ----------------------------------------------------------------------------
 
-function check_links() {
+function check_links(title, error) {
 	var link_data = this.link_data;
 	++this.processed_count;
 	CeL.log('check_links: get ' + this.processed_count + '/' + this.count);
@@ -268,25 +287,30 @@ function check_links() {
 
 		return content.replace(PATTERN_link, function(all, link, sign) {
 			var this_link_data = link_data[link];
+			if (this_link_data.OK && error) {
+				delete this_link_data.OK;
+				this_link_data.note = error;
+			}
+			// console.log(this_link_data);
 
 			return '\n* '
-					+ (this_link_data.title ? '[' + link + ' '
-							+ this_link_data.title + ']'
-							// 對 link 添加一點變化，以避免下一次再執行的時候重複處理。
-							// 這一段會造成 JSDoc 沒辦法格式化。
-							: ('{{' + (this_link_data.OK ? 'Done' : 'Cancelled') + '}} ') + link)
-					+ sign
-					+ '\n: {{'
-					+ (this_link_data.OK ? 'Done' : 'Cancelled')
-					+ '}}'
-					+ (this_link_data.user ? '{{Ping|' + this_link_data.user
-							+ '}}' : '')
-					+ CeL.wiki.title_link_of(this_link_data.title)
-					// add categories (keywords) to report
-					+ (this_link_data.categories ? ' ('
-							+ this_link_data.categories.join(', ') + ')' : '')
-					+ (this_link_data.note ? "。'''" + this_link_data.note
-							+ "'''" : '') + ' --~~~~';
+			+ (this_link_data.title ? '[' + link + ' '
+					+ this_link_data.title + ']'
+					// 對 link 添加一點變化，以避免下一次再執行的時候重複處理。
+					// 這一段會造成 JSDoc 沒辦法格式化。
+					: ('{{' + (this_link_data.OK ? 'Done' : 'Cancelled') + '}} ') + link)
+			+ (sign ? sign : this_link_data.user ? ' --[[User:' + this_link_data.user + '|]]' : '')
+			+ '\n: {{'
+			+ (this_link_data.OK ? 'Done' : 'Cancelled')
+			+ '}}'
+			+ (this_link_data.user ? '{{Ping|' + this_link_data.user
+					+ '}}' : '')
+			+ CeL.wiki.title_link_of(this_link_data.title)
+			// add categories (keywords) to report
+			+ (this_link_data.categories ? ' ('
+					+ this_link_data.categories.join(', ') + ')' : '')
+			+ (this_link_data.note ? "。'''" + this_link_data.note
+					+ "'''" : '') + ' --~~~~';
 		});
 	}
 
