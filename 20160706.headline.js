@@ -56,8 +56,8 @@ url_cache_hash = CeL.null_Object(),
 label_cache_hash = CeL.null_Object(),
 // headline_hash[publisher] = [ {String}headline ]
 headline_hash = CeL.null_Object(),
-// 需要新加入的 headline_data = [ '{{HI|...}}', ... ]
-headline_data = [],
+// 需要新加入的 headline_wikitext_list = [ '{{HI|...}}', ... ]
+headline_wikitext_list = [],
 // 包括已處理與未處理過的headline。
 all_headlines = 0,
 // locale=香港
@@ -139,6 +139,7 @@ parse_error_label_list,
 
 use_date = new Date,
 
+// copy from data.date.
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
@@ -200,7 +201,7 @@ function write_data() {
 	CeL.debug('寫入報紙頭條新聞標題資料。', 0, 'write_data');
 
 	// console.log(save_to_page);
-	// console.log(headline_data);
+	// console.log(headline_wikitext_list);
 	wiki.page(save_to_page).edit(function(page_data) {
 		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
@@ -246,7 +247,7 @@ function write_data() {
 			});
 		}
 
-		if (headline_data.length === 0
+		if (headline_wikitext_list.length === 0
 		// 原先已經有資料，並且是Review狀態的時候，還是需要更改一下。
 		&& !(page_data.stage_node && page_data.stage_node.name === 'Review'
 		// 已經有頭條新聞資料時，直接標示{{Publish}}。
@@ -256,14 +257,14 @@ function write_data() {
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
-		if (headline_data.length > 0) {
+		if (headline_wikitext_list.length > 0) {
 			CeL.debug('add '
 			//
-			+ headline_data.length + ' headlines.', 0, 'write_data');
+			+ headline_wikitext_list.length + ' headlines.', 0, 'write_data');
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
-				section += headline_data.sort()
+				section += headline_wikitext_list.sort()
 				//
 				.unique_sorted().join('\n') + '\n';
 				return section;
@@ -328,8 +329,10 @@ function write_data() {
 		//
 		+ ', all_headlines ' + all_headlines
 		//
-		+ ', headline_data[' + headline_data.length + ']:', 0, 'write_data');
-		console.log(headline_data);
+		+ ', headline_wikitext_list['
+		//
+		+ headline_wikitext_list.length + ']:', 0, 'write_data');
+		console.log(headline_wikitext_list);
 		if (page_data.stage_node) {
 			if (page_data.stage_node.name === 'Review'
 			// 已經有頭條新聞資料時，直接標示{{Publish}}。
@@ -356,7 +359,7 @@ function write_data() {
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
 			+ (has_new_data && !parse_error_label_list
 			//
-			&& headline_data.length > 0 ? '{{Publish}}'
+			&& headline_wikitext_list.length > 0 ? '{{Publish}}'
 			// 必須有新資料才{{Publish}}。
 			: '{{Review}}') + '\n';
 		}
@@ -412,7 +415,7 @@ function add_to_headline_hash(publisher, headline, source, is_new) {
 
 		headline_hash[publisher].push(headline);
 		if (is_new) {
-			headline_data.push(wikitext);
+			headline_wikitext_list.push(wikitext);
 		}
 		return;
 	}
@@ -423,7 +426,7 @@ function add_to_headline_hash(publisher, headline, source, is_new) {
 	}
 	headline_hash[publisher] = [ headline ];
 	if (is_new) {
-		headline_data.push(wikitext);
+		headline_wikitext_list.push(wikitext);
 	}
 }
 
@@ -873,7 +876,7 @@ function check_headline_data(labels_to_check) {
 					var result = parse_headline[label](response, label);
 					if (!(result > 0)
 					// 照理來說經過 parse 就應該有東西。但 add_headline() 會去掉重複的。
-					// || headline_data.length === 0
+					// || headline_wikitext_list.length === 0
 					) {
 						// 去掉出錯的{{Source}}。
 						add_source_data = add_source_data.filter(function(
@@ -1305,12 +1308,13 @@ function check_labels(labels_to_check) {
 
 // CeL.set_debug(2);
 
-wiki.page(save_to_page, function(page_data) {
+wiki.page(save_to_page, function parse_headline_page(page_data) {
 	save_to_page = page_data;
 	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 	var labels_to_check = Object.clone(headline_labels, true);
 	if (!page_data || ('missing' in page_data)) {
-		CeL.info('[[' + page_data.title + ']]: 此頁面不存在/已刪除。');
+		CeL.info('parse_headline_page: [[' + page_data.title
+				+ ']]: 此頁面不存在/已刪除。');
 		check_labels(labels_to_check);
 		return;
 	}

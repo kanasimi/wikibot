@@ -773,7 +773,7 @@ function for_each_row(row) {
 					.push([
 							'用戶 '
 									+ row.user
-									+ ' 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期（請注意，只寫日期也會被跳過），但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
+									+ ' 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期（請注意，只寫日期也會被跳過不補簽名），但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
 							section_wikitext ]);
 			is_no_link_user = true;
 			added_signs_or_notice++;
