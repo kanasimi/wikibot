@@ -16,6 +16,12 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
+CeL.run(
+// CeL.character.load(), 僅在要設定 this.charset 時才需要載入。
+'data.character');
+
+CeL.character.load('big5');
+
 var working_queue = CeL.null_Object(),
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
@@ -273,16 +279,20 @@ function write_data() {
 			+ headline_link(day_after) + '}}\n';
 		}
 
-		CeL.debug('stage node: ' + page_data.stage_node
-		//
-		+ ', all_headlines ' + all_headlines
-		//
-		+ ', headline_wikitext_list['
-		//
-		+ headline_wikitext_list.length + ']:', 1, 'write_data');
 		if (CeL.is_debug()) {
+			CeL.debug('stage node: ' + page_data.stage_node
+			//
+			+ ', all_headlines ' + all_headlines
+			//
+			+ ', headline_wikitext_list['
+			//
+			+ headline_wikitext_list.length + ']:', 1, 'write_data');
 			console.log(headline_wikitext_list);
 		}
+		CeL.info('write_data: add '
+		//
+		+ headline_wikitext_list.length + ' headlines.');
+
 		if (page_data.stage_node) {
 			if (page_data.stage_node.name === 'Review'
 			// 已經有頭條新聞資料時，直接標示{{Publish}}。
@@ -352,7 +362,7 @@ function preparse_headline_data(headline_data) {
 				headline : matched[2]
 			};
 		} else if (matched = headline_data.toString().match(
-				/([\s\S]+?)\s+<!--\s(http\S+?)\s-->/)) {
+				/([\s\S]+?)\s+<!--\s(https?:\/\/\S+?)\s-->/)) {
 			headline_data = {
 				url : matched[2],
 				headline : matched[1]
@@ -375,6 +385,8 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 			return;
 	}
 
+	// 頭條不允許換行。
+	headline = headline.replace(/\n/g, '　');
 	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 1,
 			'add_to_headline_hash');
 
@@ -475,73 +487,122 @@ function add_headline(publisher, headline_data, source) {
 
 // ----------------------------------------------------------------------------
 
-var
-// 臺灣主要報刊 頭條 要聞
-source_configurations = {
-	自由時報 : {
-		url : 'http://news.ltn.com.tw/list/newspaper/focus/'
-				+ (new Date).format('%Y%2m%2d'),
-		parser : parser_自由時報
-	},
-	蘋果日報 : {
-		url : 'https://tw.news.appledaily.com/headline/daily',
-		parser : parser_蘋果日報
-	},
-	聯合報 : {
-		url : 'https://udn.com/news/cate/2/6638',
-		parser : parser_聯合報
-	},
-	// 中時電子報
-	中國時報 : {
-		// url : 'http://www.chinatimes.com/newspapers/',
-		url : 'http://www.chinatimes.com/newspapers/2601',
-		parser : parser_中國時報
-	},
-	工商時報 : {
-		url : 'http://www.chinatimes.com/newspapers/2602',
-		parser : parser_中國時報
-	},
-	旺報 : {
-		url : 'http://www.chinatimes.com/newspapers/2603',
-		parser : parser_中國時報
+var source_configurations = {
+	// 臺灣主要報刊 頭條 要聞
+	// 自由時報: 6點的時候可能還是昨天的新聞
+	// 人間福報, 青年日報: 可能到下午才會出新訊息
+	臺灣 : {
+		自由時報 : {
+			url : 'http://news.ltn.com.tw/list/newspaper/focus/'
+					+ use_date.format('%Y%2m%2d'),
+			parser : parser_自由時報
+		},
+		蘋果日報 : {
+			url : 'https://tw.news.appledaily.com/headline/daily',
+			parser : parser_蘋果日報_臺灣
+		},
+		聯合報 : {
+			url : 'https://udn.com/news/cate/2/6638',
+			parser : parser_聯合報
+		},
+		聯合電子報 : {
+			url : 'http://paper.udn.com/papers.php?pname=PID0001',
+			parser : parser_聯合電子報
+		},
+		// 聯合財經網 來自最具權威的財經新聞報「經濟日報」
+		// TODO: https://money.udn.com/money/index
+		經濟日報 : {
+			url : 'http://paper.udn.com/papers.php?pname=PID0008',
+			parser : parser_聯合電子報
+		},
+		// udn午後快報
+		聯合晚報 : {
+			url : 'http://paper.udn.com/papers.php?pname=PID0003',
+			parser : parser_聯合電子報
+		},
+
+		// 中時電子報
+		中國時報 : {
+			// url : 'http://www.chinatimes.com/newspapers/',
+			url : 'http://www.chinatimes.com/newspapers/2601',
+			parser : parser_中國時報
+		},
+		工商時報 : {
+			url : 'http://www.chinatimes.com/newspapers/2602',
+			parser : parser_中國時報
+		},
+		旺報 : {
+			url : 'http://www.chinatimes.com/newspapers/2603',
+			parser : parser_中國時報
+		},
+
+		國語日報 : {
+			// url : 'http://www.mdnkids.com/',
+			// parser : parser_國語日報_top
+
+			url : 'http://www.mdnkids.com/news/',
+			parser : parser_國語日報
+		},
+		人間福報 : {
+			// 今日新聞/焦點/
+			url : 'http://merit-times.net/category/%E4%BB%8A%E6%97%A5%E6%96%B0%E8%81%9E/%E7%84%A6%E9%BB%9E/',
+			parser : parser_人間福報
+		},
+		青年日報 : {
+			url : 'https://www.ydn.com.tw/News/List/2',
+			parser : parser_青年日報
+		},
 	},
 
-	國語日報 : {
-		// url : 'http://www.mdnkids.com/',
-		// parser : parser_國語日報_top
+	香港 : {
+		文匯報 : {
+			url : 'http://pdf.wenweipo.com/index.html',
+			charset : 'big5',
+			parser : parser_文匯報
+		},
+		大公報 : {
+			url : 'http://news.takungpao.com/paper/',
+			parser : parser_大公報
+		},
+		星島日報 : {
+			url : 'http://std.stheadline.com/daily/daily.php',
+			parser : parser_星島日報
+		},
+		東方日報 : {
+			url : 'http://orientaldaily.on.cc/cnt/news/'
+					+ use_date.format('%Y%2m%2d') + '/js/articleList-news.js',
+			parser : parser_東方日報
+		},
+		蘋果日報 : {
+			url : 'https://hk.appledaily.com/catalog/index/',
+			parser : parser_蘋果日報_香港
+		},
+		香港經濟日報 : {
+			url : 'http://paper.hket.com/srap001/%E8%A6%81%E8%81%9E',
+			parser : parser_香港經濟日報
+		},
+	}
 
-		url : 'http://www.mdnkids.com/news/',
-		parser : parser_國語日報
-	},
-	人間福報 : {
-		// 今日新聞/焦點/
-		url : 'http://merit-times.net/category/%E4%BB%8A%E6%97%A5%E6%96%B0%E8%81%9E/%E7%84%A6%E9%BB%9E/',
-		parser : parser_人間福報
-	},
-	青年日報 : {
-		url : 'https://www.ydn.com.tw/News/List/2',
-		parser : parser_青年日報
-	},
-};
+}[locale];
 
-// http://pdf.wenweipo.com/index.html
-// http://news.takungpao.com/paper/
-// http://std.stheadline.com/daily/daily.php
 // http://www.singpao.com.hk/index.php?fi=news1
-// http://orientaldaily.on.cc/
 // https://news.mingpao.com/pns/%E8%A6%81%E8%81%9E/web_tc/section/20180512/s00001
-// https://hk.appledaily.com/catalog/index/
-// http://www.hket.com/eti
 
 function for_source(source_id) {
 	var source_data = source_configurations[source_id];
-	working_queue[source_id] = source_data.url;
 	CeL.debug(source_id + ':	' + source_data.url, 1, for_source);
+	working_queue[source_id] = source_data.url;
 
 	CeL.get_URL(source_data.url, function(XMLHttp, error) {
 		var html = XMLHttp.responseText,
 		//
 		headline_list = source_data.parser.call(source_data, html);
+
+		if (!headline_list || !headline_list.length) {
+			CeL.warn('No headline got: ' + source_id);
+			check_queue(source_id);
+			return;
+		}
 
 		if (!(source_data.url in label_cache_hash)) {
 			CeL.debug('登記url，以避免重複加入url: ' + source_data.url, 1, 'for_source');
@@ -567,7 +628,7 @@ function for_source(source_id) {
 		});
 		// console.log(headline_list);
 		check_queue(source_id);
-	});
+	}, source_data.charset);
 }
 
 function check_source() {
@@ -604,16 +665,16 @@ function get_label(html) {
 
 function is_today(date) {
 	var today = new Date(use_date.getTime());
-	today.setHours(3, 0, 0);
+	today.setHours(0, 0, 0, 0);
 	var timevalue_diff = (CeL.is_Date(date) ? date : date.date) - today;
-	return 0 < timevalue_diff && timevalue_diff < ONE_DAY_LENGTH_VALUE;
+	return 0 <= timevalue_diff && timevalue_diff < ONE_DAY_LENGTH_VALUE;
 }
 
 function is_yesterday(date) {
 	var today = new Date(use_date.getTime());
-	today.setHours(3, 0, 0);
+	today.setHours(3, 0, 0, 0);
 	var timevalue_diff = today - (CeL.is_Date(date) ? date : date.date);
-	return 0 < timevalue_diff && timevalue_diff < ONE_DAY_LENGTH_VALUE;
+	return 0 <= timevalue_diff && timevalue_diff < ONE_DAY_LENGTH_VALUE;
 }
 
 // ----------------------------------------------------------------------------
@@ -634,7 +695,7 @@ function parser_自由時報(html) {
 	return headline_list;
 }
 
-function parser_蘋果日報(html) {
+function parser_蘋果日報_臺灣(html) {
 	var list = html.between('<header class="schh">', '<header class="schh">'), headline_list = [],
 	//
 	PATTERN_headline = /<h1><a href="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
@@ -663,6 +724,26 @@ function parser_聯合報(html) {
 		if (is_yesterday(headline)) {
 			headline_list.push(headline);
 			if (headline_list.length >= 2)
+				break;
+		}
+	}
+	return headline_list;
+}
+
+function parser_聯合電子報(html) {
+	var list = html.between('<div class="history_list">', '<script'), headline_list = [],
+	//
+	PATTERN_headline = /<a class='iframe' href="([^"<>]+)">([\s\S]+?)<\/a>[\s\S]+? class="date">([\d\-]+)<\/li>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(matched[3])
+		};
+
+		if (is_today(headline)) {
+			headline_list.push(headline);
+			if (headline_list.length >= 9)
 				break;
 		}
 	}
@@ -729,7 +810,7 @@ function parser_人間福報(html) {
 			date : new Date(matched[4])
 		};
 
-		if (headline.headline !== '新聞千里眼'
+		if (headline.headline !== '新聞千里眼' && headline.headline !== '一周大事'
 				&& !headline.headline.startsWith('社論') && is_today(headline)) {
 			headline_list.push(headline);
 			if (headline_list.length >= 9)
@@ -742,7 +823,7 @@ function parser_人間福報(html) {
 function parser_青年日報(html) {
 	var list = html.between('<div class="news-list-hero">') || html, headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)" class="post-preview" title="([^"<>]+)">/g, matched;
+	PATTERN_headline = /<a href="([^"<>]+)" class="post-preview" title="([^"<>]+)">\s*(?:<img src="\/ArticleFile\/(\d{8})\/)?/g, matched;
 	list = list.between(null, '<ul class="news-list">') || list;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
@@ -750,7 +831,128 @@ function parser_青年日報(html) {
 			headline : matched[2]
 		};
 
+		if (matched[3]) {
+			matched = matched[3].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+			headline.date = new Date(matched);
+			if (!is_today(headline))
+				continue;
+		}
+
 		headline_list.push(headline);
+	}
+	return headline_list;
+}
+
+// ------------------------------------
+
+function parser_文匯報(html) {
+	var list = html.between('<h3>A01版面新聞</h3>', '</div>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)" target="_blank">([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2])
+		};
+		matched = headline.url.match(/\/(20\d{2}\/\d{2}\/\d{2})\//);
+		if (matched) {
+			headline.date = new Date(matched[1]);
+			if (!is_today(headline))
+				continue;
+		}
+		headline_list.push(headline);
+	}
+	return headline_list;
+}
+
+function parser_大公報(html) {
+	var list = html.between('<ul class="txtlist">', '<ul class="txtlist">'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)" target="_black">([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2])
+		};
+		matched = headline.url.match(/\/(20\d{2})\/(\d{2})(\d{2})\//);
+		if (matched) {
+			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
+			headline.date = new Date(matched);
+			if (!is_today(headline))
+				continue;
+		}
+		headline_list.push(headline);
+	}
+	return headline_list;
+}
+
+function parser_星島日報(html) {
+	var list = html.between('<div class="top-news">', '</div>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)" title="([^"<>]+)">/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://std.stheadline.com/daily/' + matched[1],
+			headline : get_label(matched[2])
+		};
+		headline_list.push(headline);
+	}
+	return headline_list;
+}
+
+function parser_東方日報(html) {
+	var list = eval(html.between('=')), headline_list = [];
+	// console.log(list);
+	list.forEach(function(news) {
+		if (!news.is_main_article) {
+			return;
+		}
+		var headline = {
+			url : 'http://orientaldaily.on.cc/cnt/news/' + news.pubdate + '/'
+					+ news.sect_L3 + '_' + news.priority + '.html',
+			headline : news.title,
+			date : new Date(news.pubdate.replace(/^(\d{4})(\d{2})(\d{2})$/,
+					'$1-$2-$3'))
+		};
+		if (is_today(headline))
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_蘋果日報_香港(html) {
+	var list = html.between('<div class="title">頭條</div>', '</ul>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2])
+		};
+		matched = headline.url.match(/article\/(20\d{2})(\d{2})(\d{2})\//);
+		if (matched) {
+			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
+			headline.date = new Date(matched);
+			if (!is_today(headline))
+				continue;
+		}
+		headline_list.push(headline);
+	}
+	return headline_list;
+}
+
+function parser_香港經濟日報(html) {
+	var list = html.between('>要聞</div>', '<script '), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)"[\s\S]*? title="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : encodeURI(matched[1]),
+			headline : get_label(matched[2])
+		};
+		headline_list.push(headline);
+		if (headline_list.length >= 3)
+			break;
 	}
 	return headline_list;
 }
