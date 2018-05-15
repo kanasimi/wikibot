@@ -62,6 +62,7 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 // 手動設定前一天。
 // use_date.setDate(-1);
 
+// 报纸头条
 var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
 // 前一天, the day before
 day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
@@ -581,11 +582,29 @@ var source_configurations = {
 			url : 'http://paper.hket.com/srap001/%E8%A6%81%E8%81%9E',
 			parser : parser_香港經濟日報
 		},
+		成報 : {
+			// http://www.singpao.com.hk/index.php?fi=newspdf
+			url : 'http://www.singpao.com.hk/index.php?fi=history',
+			post_data : {
+				date : use_date.format('%Y-%2m-%2d')
+			},
+			parser : parser_成報
+		},
+	},
+
+	// 中国大陆报纸列表
+	中國大陸 : {
+		人民日报 : {
+			// http://paper.people.com.cn/rmrb/
+			url : 'http://paper.people.com.cn/rmrb/html/'
+					+ use_date.format('%Y-%2m/%2d/')
+					+ 'nbs.D110000renmrb_01.htm',
+			parser : parser_人民日报
+		},
 	}
 
 }[locale];
 
-// http://www.singpao.com.hk/index.php?fi=news1
 // https://news.mingpao.com/pns/%E8%A6%81%E8%81%9E/web_tc/section/20180512/s00001
 
 function for_source(source_id) {
@@ -628,7 +647,7 @@ function for_source(source_id) {
 		});
 		// console.log(headline_list);
 		check_queue(source_id);
-	}, source_data.charset);
+	}, source_data.charset, source_data.post_data);
 }
 
 function check_source() {
@@ -762,7 +781,7 @@ function parser_中國時報(html) {
 			type : get_label(matched[3])
 		};
 		headline_list.push(headline);
-		if (headline_list.length >= 3)
+		if (headline_list.length >= 4)
 			break;
 	}
 	return headline_list;
@@ -951,7 +970,51 @@ function parser_香港經濟日報(html) {
 			headline : get_label(matched[2])
 		};
 		headline_list.push(headline);
-		if (headline_list.length >= 3)
+		if (headline_list.length >= 4)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_成報(html) {
+	var list = html.between("<font class='history_title'>要聞港聞</font>",
+			"<font class='history_title'>"), headline_list = [],
+	//
+	PATTERN_headline = /<a href='([^'<>]+)' class='title_bk16'>(?:<img [^<>]+>)?([\s\S]+?)(?:\((\d{4}-\d{2}-\d{2})\))?<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://www.singpao.com.hk/' + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		if (matched[3]) {
+			headline.date = new Date(matched[3]);
+			if (!is_today(headline))
+				continue;
+		}
+
+		headline_list.push(headline);
+		if (headline_list.length >= 4)
+			break;
+	}
+	return headline_list;
+}
+
+// ------------------------------------
+
+function parser_人民日报(html) {
+	var list = html, headline_list = [],
+	//
+	PATTERN_headline = /<a href=([^"'<>]+)><script>document\.write\(view\("([^"]+)"\)\)<\/script><\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://paper.people.com.cn/rmrb/html/'
+					+ use_date.format('%Y-%2m/%2d/') + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 4)
 			break;
 	}
 	return headline_list;
