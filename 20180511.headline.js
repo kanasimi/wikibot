@@ -393,17 +393,13 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 
 	all_headlines++;
 
-	var wikitext = '{{HI|' + publisher + '|'
+	var wikitext = '{{HI|' + publisher + '|' + headline
 	//
-	+ (headline_data.url ? headline_data.url.includes('=')
+	+ (headline_data.url ? '|url=' + headline_data.url : '')
 	//
-	? headline + ' <!-- ' + headline_data.url + ' -->'
+	+ (source ? '|source=' + source : '')
 	//
-	: '[' + headline_data.url.replace(/=/g, '%3D') + ' ' + headline
-	//
-	+ ']' : headline)
-	//
-	+ (source ? '|source=' + source : '') + '}}';
+	+ '}}';
 
 	if (Array.isArray(headline_hash[publisher])) {
 		if (headline_hash[publisher].includes(headline)) {
@@ -590,6 +586,12 @@ var source_configurations = {
 			},
 			parser : parser_成報
 		},
+
+	// 明報
+	// https://news.mingpao.com/pns/%E8%A6%81%E8%81%9E/web_tc/section/20180512/s00001
+
+	// 香港商報
+	// http://www.hkcd.com.hk/node_30602.htm
 	},
 
 	// 中国大陆报纸列表
@@ -601,11 +603,29 @@ var source_configurations = {
 					+ 'nbs.D110000renmrb_01.htm',
 			parser : parser_人民日报
 		},
+		广州日报 : {
+			url : 'http://gzdaily.dayoo.com/pc/html/'
+					+ use_date.format('%Y-%2m/%2d/') + 'node_1.htm',
+			parser : parser_广州日报
+		},
+		南方日报 : {
+			url : 'http://epaper.southcn.com/nfdaily/html/'
+					+ use_date.format('%Y-%2m/%2d/') + 'node_2.htm',
+			parser : parser_南方日报
+		},
+		// http://www.ckxxbao.com/
+		参考消息 : {
+			url : 'http://www.cankaoxiaoxi.com/china/szyw/',
+			parser : parser_参考消息
+		},
+		环球时报 : {
+			url : 'http://www.fx361.com/bk/hqsb/'
+					+ use_date.format('%Y-%2m-%2d') + '.html',
+			parser : parser_环球时报
+		},
 	}
 
 }[locale];
-
-// https://news.mingpao.com/pns/%E8%A6%81%E8%81%9E/web_tc/section/20180512/s00001
 
 function for_source(source_id) {
 	var source_data = source_configurations[source_id];
@@ -1020,6 +1040,80 @@ function parser_人民日报(html) {
 	return headline_list;
 }
 
+function parser_广州日报(html) {
+	var list = html.between('<div id="btdh"', '</table>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"'<>]+)">([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://gzdaily.dayoo.com/pc/html/'
+					+ use_date.format('%Y-%2m/%2d/') + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 4)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_南方日报(html) {
+	var list = html.between('<li id="bt_nav"><span>标题导航</span>').between(
+			'>第A01版：要闻</a>', '<a id=pageLink '), headline_list = [],
+	//
+	PATTERN_headline = /<a target="_blank" href=([^"'<>]+)>([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://epaper.southcn.com/nfdaily/html/'
+					+ use_date.format('%Y-%2m/%2d/') + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_参考消息(html) {
+	var list = html.between('<div class="inner">', '</div>'), headline_list = [],
+	//
+	PATTERN_headline = /<span[\s\S]*?>(\d{4}-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2})<\/span><a href="([^"'<>]+)"[^<>]*?>([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[2],
+			headline : get_label(matched[3]),
+			date : new Date(matched[1]),
+		};
+
+		if (is_today(headline)) {
+			headline_list.push(headline);
+			if (headline_list.length >= 4)
+				break;
+		}
+	}
+	return headline_list;
+}
+
+function parser_环球时报(html) {
+	var list = html.between('<h5>01版：要闻</h5>', '</ul>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)" title="([^"<>]+)">/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://www.fx361.com' + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
 // ----------------------------------------------------------------------------
 
 // CeL.set_debug(2);
@@ -1061,7 +1155,11 @@ wiki.page(save_to_page, function parse_headline_page(page_data) {
 		case 'Headline item':
 		case 'HI':
 			add_to_headline_hash(token.parameters[1].toString(),
-					token.parameters[2], token.parameters.source);
+			//
+			token.parameters.url ? {
+				url : token.parameters.url,
+				headline : token.parameters[2].toString()
+			} : token.parameters[2], token.parameters.source);
 			break;
 
 		case 'Source':
