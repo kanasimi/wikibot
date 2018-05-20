@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20180511.headline.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20180511.headline.js locale=香港
 
 /*
 
@@ -23,6 +23,9 @@ CeL.run(
 CeL.character.load('big5');
 
 var working_queue = CeL.null_Object(),
+//
+user_agent = 'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36',
+
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews'),
 
@@ -537,6 +540,7 @@ var source_configurations = {
 			// url : 'http://www.mdnkids.com/',
 			// parser : parser_國語日報_top
 
+			// TODO: 國語日報 /news/ 可能遇到 ERR_TOO_MANY_REDIRECTS。
 			url : 'http://www.mdnkids.com/news/',
 			parser : parser_國語日報
 		},
@@ -629,6 +633,12 @@ var source_configurations = {
 	},
 
 	國際 : {
+		// 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
+		自由時報 : {
+			url : 'http://news.ltn.com.tw/list/newspaper/world/'
+					+ use_date.format('%Y%2m%2d'),
+			parser : parser_自由時報
+		},
 		朝日新聞中文網 : {
 			url : 'http://www.asahichinese-f.com/',
 			parser : parser_朝日新聞中文網
@@ -646,11 +656,6 @@ var source_configurations = {
 			// https://cn.nytimes.com/tools/r.html?url=/zh-hant/&langkey=zh-hant
 			url : 'https://cn.nytimes.com/zh-hant/',
 			parser : parser_紐約時報中文網
-		},
-		自由時報 : {
-			url : 'http://news.ltn.com.tw/list/newspaper/world/'
-					+ use_date.format('%Y%2m%2d'),
-			parser : parser_自由時報
 		},
 	}
 
@@ -702,7 +707,12 @@ function for_source(source_id) {
 		});
 		// console.log(headline_list);
 		check_queue(source_id);
-	}, source_data.charset, source_data.post_data);
+	}, source_data.charset, source_data.post_data, {
+		timeout : 30 * 1000,
+		headers : Object.assign({
+			'User-Agent' : user_agent
+		})
+	});
 }
 
 function check_source() {
