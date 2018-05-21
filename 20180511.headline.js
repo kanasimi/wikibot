@@ -216,9 +216,12 @@ function write_data() {
 		}
 
 		if (headline_wikitext_list.length > 0) {
-			CeL.debug('add '
+			CeL.info('write_data: add '
 			//
-			+ headline_wikitext_list.length + ' headlines.', 1, 'write_data');
+			+ headline_wikitext_list.length + ' headlines');
+			this.summary += ': add '
+			//
+			+ headline_wikitext_list.length + ' headlines'
 			content = content.replace(/{{Headline item\/header.*?}}\n/,
 			//
 			function(section) {
@@ -293,9 +296,6 @@ function write_data() {
 			+ headline_wikitext_list.length + ']:', 1, 'write_data');
 			console.log(headline_wikitext_list);
 		}
-		CeL.info('write_data: add '
-		//
-		+ headline_wikitext_list.length + ' headlines.');
 
 		if (page_data.stage_node) {
 			if (page_data.stage_node.name === 'Review'
@@ -657,7 +657,30 @@ var source_configurations = {
 			url : 'https://cn.nytimes.com/zh-hant/',
 			parser : parser_紐約時報中文網
 		},
-	}
+	},
+
+	東南亞 : {
+		菲律宾商报 : {
+			url : 'http://www.shangbao.com.ph/',
+			parser : parser_菲律宾商报
+		},
+
+		// https://zh.wikipedia.org/wiki/%E9%A6%AC%E4%BE%86%E8%A5%BF%E4%BA%9E%E5%A0%B1%E5%88%8A%E5%88%97%E8%A1%A8
+
+		/**
+		 * <code>
+		// use https://projectshield.withgoogle.com/public/
+		光华日报 : {
+			url : 'http://www.kwongwah.com.my/',
+			parser : parser_光华日报
+		},
+		</code>
+		 */
+		馬來西亞東方日報 : {
+			url : 'http://www.orientaldaily.com.my/',
+			parser : parser_馬來西亞東方日報
+		},
+	},
 
 }[locale];
 
@@ -669,10 +692,23 @@ function for_source(source_id) {
 	CeL.get_URL(source_data.url, function(XMLHttp, error) {
 		var html = XMLHttp.responseText,
 		//
-		headline_list = source_data.parser.call(source_data, html);
+		headline_list;
+
+		try {
+			headline_list = source_data.parser.call(source_data, html);
+		} catch (error) {
+			if (!parse_error_label_list) {
+				parse_error_label_list = CeL.null_Object();
+			}
+			CeL.debug('Parse [' + source_id + '] (' + source_data.url + '): '
+					+ error, 0, 'next_label');
+			parse_error_label_list[label + '_' + index] = error;
+		}
 
 		if (!headline_list || !headline_list.length) {
-			CeL.warn('No headline got: ' + source_id);
+			var error = 'No headline got';
+			CeL.warn(error + ': ' + source_id);
+			error_label_list.push(source_id);
 			check_queue(source_id);
 			return;
 		}
@@ -877,7 +913,7 @@ function parser_國語日報(html) {
 	PATTERN_headline = /<a href="([^"<>]+)" class="newsbox_menu_txt">([\s\S]+?)<\/a>/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
-			url : 'http://www.mdnkids.com/news/' + matched[1],
+			url : this.url + matched[1],
 			headline : get_label(matched[2])
 		};
 		headline_list.push(headline);
@@ -1202,7 +1238,7 @@ function parser_朝日新聞中文網(html) {
 	PATTERN_headline = /<a href="([^"<>]+)">[\s\S]*?<span class="TopHeadline">([\s\S]+?)<\/span>[\s\S]*?<span class="Date">([^<>]+)<\/span>/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
-			url : 'http://www.asahichinese-f.com/' + matched[1],
+			url : this.url + matched[1],
 			headline : get_label(matched[2]),
 			date : new Date(matched[3])
 		};
@@ -1223,6 +1259,9 @@ function parser_日经中文网(html) {
 			url : matched[1],
 			headline : get_label(matched[2])
 		};
+		if (headline.url.includes('/tag/')) {
+			continue;
+		}
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
@@ -1260,6 +1299,62 @@ function parser_紐約時報中文網(html) {
 		};
 		if (matched[2] !== headline.headline)
 			headline.headline += ' ' + matched[2];
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+// ------------------------------------
+
+function parser_菲律宾商报(html) {
+	var list = html.between('<ul class="border-top padding-top10">', '</ul>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)">([\s\S]+?)<\/li>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : this.url + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_光华日报(html) {
+	var list = html.between('<span>重点新闻</span>', '<span>今日头条'), headline_list = [],
+	//
+	PATTERN_headline = /<h6 class="entry-title"><a href="([^"<>]+)">([\s\S]+?)<\/a>[\s\S]+?<span class="entry-date[^<>]+>([\s\S]+?)<\/span>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(get_label(matched[3]))
+		};
+
+		if (is_today(headline)) {
+			headline_list.push(headline);
+			if (headline_list.length >= 9)
+				break;
+		}
+	}
+	return headline_list;
+}
+
+function parser_馬來西亞東方日報(html) {
+	var list = html.between('<section class="alternate">', '</section>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)" title="([^<>"]+)">/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2])
+		};
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
