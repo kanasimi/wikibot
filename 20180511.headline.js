@@ -601,7 +601,9 @@ var source_configurations = {
 	// https://news.mingpao.com/pns/%E8%A6%81%E8%81%9E/web_tc/section/20180512/s00001
 	},
 
-	// 中国大陆报纸列表
+	// [[澳門報紙列表]]
+
+	// [[中国大陆报纸列表]]
 	中國大陸 : {
 		人民日报 : {
 			// http://paper.people.com.cn/rmrb/
@@ -665,7 +667,7 @@ var source_configurations = {
 			parser : parser_菲律宾商报
 		},
 
-		// https://zh.wikipedia.org/wiki/%E9%A6%AC%E4%BE%86%E8%A5%BF%E4%BA%9E%E5%A0%B1%E5%88%8A%E5%88%97%E8%A1%A8
+		// [[馬來西亞報刊列表]]
 
 		/**
 		 * <code>
@@ -679,6 +681,14 @@ var source_configurations = {
 		馬來西亞東方日報 : {
 			url : 'http://www.orientaldaily.com.my/',
 			parser : parser_馬來西亞東方日報
+		},
+		星洲网 : {
+			url : 'http://www.sinchew.com.my/news/',
+			parser : parser_星洲网
+		},
+		联合早报 : {
+			url : 'https://www.zaobao.com.sg/znews/singapore',
+			parser : parser_联合早报
 		},
 	},
 
@@ -774,8 +784,9 @@ function check_queue(finished_work) {
 function get_label(html) {
 	if (html) {
 		return CeL.HTML_to_Unicode(
-				html.replace(/\s*<br(?:\/| [^<>]*)?>/ig, '\n').replace(
-						/<[^<>]+>/g, '')
+				html.replace(/<!--[\s\S]*?-->/g, '').replace(
+						/\s*<br(?:\/| [^<>]*)?>/ig, '\n').replace(/<[^<>]+>/g,
+						'')
 				// incase 以"\r"為主。
 				.replace(/\r\n?/g, '\n')).trim()
 		// .replace(/\s{2,}/g, ' ').replace(/\s?\n+/g, '\n')
@@ -1359,6 +1370,46 @@ function parser_馬來西亞東方日報(html) {
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
 			break;
+	}
+	return headline_list;
+}
+
+function parser_星洲网(html) {
+	var list = html.between(
+	//
+	'<div class="views-row views-row-1 views-row-odd views-row-first">', '<h1'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://www.sinchew.com.my' + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_联合早报(html) {
+	var list = html.between('<div class="post-list view-content">',
+			'<div class="content">'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)"[^<>]*><div class="post-detail">([\s\S]+?)<\/a>[\s\S]+?<span class="datestamp">(\d{2})\/(\d{2})\/(\d{4})<\/span>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'https://www.zaobao.com.sg' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(matched[5] + '-' + matched[4] + '-' + matched[3])
+		};
+
+		if (is_today(headline)) {
+			headline_list.push(headline);
+			if (headline_list.length >= 9)
+				break;
+		}
 	}
 	return headline_list;
 }
