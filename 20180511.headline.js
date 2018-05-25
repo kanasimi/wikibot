@@ -381,16 +381,25 @@ function preparse_headline_data(headline_data) {
 function add_to_headline_hash(publisher, headline_data, source, is_new) {
 	headline_data = preparse_headline_data(headline_data);
 
-	var headline = typeof headline_data === 'object' && headline_data.headline
-			|| headline_data.toString();
+	var headline;
 
 	if (typeof headline_data === 'object') {
-		if (headline_data.url in url_cache_hash)
+		if (headline_data.url in url_cache_hash) {
+			// 已經處理過這個頭條。
 			return;
+		}
+
+		if ('headline' in headline_data) {
+			if (!headline_data.headline) {
+				// 跳過空的頭條。
+				return;
+			}
+			headline = headline_data.headline;
+		}
 	}
 
 	// 頭條不允許換行。
-	headline = headline.replace(/\n/g, '　');
+	headline = (headline || headline_data.toString()).replace(/\n/g, '　');
 	CeL.debug('登記此 headline: [' + publisher + ']: [' + headline + '].', 1,
 			'add_to_headline_hash');
 
@@ -634,6 +643,7 @@ var source_configurations = {
 		},
 	},
 
+	// http://hi2100.com/LIFE/NEWS.htm
 	國際 : {
 		// 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
 		自由時報 : {
