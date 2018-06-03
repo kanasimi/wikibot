@@ -161,7 +161,7 @@ function filter_row(row) {
 	&& !/存檔|存档/i.test(row.title)
 	// 參考過去幾年的慣例，只要投票者有列明身分、對話頁和貢獻，不用四個波浪號並沒有問題。
 	// e.g., [[Wikipedia_talk:動員令/第十六次動員令/投票]]
-	&& !/^Wikipedia(?:[ _]talk)?:動員令\//i.test(row.title)
+	&& !/^Wikipedia(?:[ _]talk)?:動員令\/.+?\/投票$/i.test(row.title)
 	// 只標示日期的存檔
 	&& !PATTERN_date_archive.test(row.title)
 	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
