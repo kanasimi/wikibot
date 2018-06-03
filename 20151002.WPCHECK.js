@@ -969,6 +969,7 @@ function fix_65(content, page_data, messages, config) {
 // ------------------------------------
 
 // fix 10-ISBN...
+// [[mw:Requests for comment/Future of magic links]]
 // prevent: "title -sub_title- ISBN..."
 // TODO: {{ISBNT|ISBN 123456789}}, {{ISBN|ISBN 123456789}}
 // TODO: <nowiki>ISBN 1234567890</nowiki>, <nowiki>ISBN </nowiki>1234567890
