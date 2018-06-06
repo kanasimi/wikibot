@@ -370,9 +370,13 @@ function for_each_old_page(page_data) {
 			return '';
 	}, true);
 
+	var do_not_need_source =
+	// 2018/6/6 19:34:4
+	page_data.title.includes('香港天氣報告') || page_data.title.includes('深圳天气预报‎‎')
 	// accept 報紙頭條 without source per IRC
-	var do_not_need_source = page_data.title.includes('報紙頭條')
-			|| page_data.title.includes('报纸头条');
+	// || page_data.title.includes('報紙頭條')
+	// || page_data.title.includes('报纸头条')
+	;
 	CeL.debug('[[' + page_data.title + ']]: '
 			+ (do_not_need_source ? 'do not ' : '') + 'need source', 2,
 			'for_each_old_page');
