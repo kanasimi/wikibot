@@ -1264,9 +1264,11 @@ function parser_朝日新聞中文網(html) {
 			date : new Date(matched[3])
 		};
 
-		headline_list.push(headline);
-		if (headline_list.length >= 9)
-			break;
+		if (is_today(headline)) {
+			headline_list.push(headline);
+			if (headline_list.length >= 9)
+				break;
+		}
 	}
 	return headline_list;
 }
@@ -1317,7 +1319,12 @@ function parser_紐約時報中文網(html) {
 		var headline = {
 			url : 'https://cn.nytimes.com/' + matched[1],
 			headline : get_label(matched[3])
-		};
+		}, date = matched[1].match(/\/(20\d{2})([01]\d)([0-3]\d)\//);
+		if (date) {
+			headline.date = new Date(date[1] + '-' + date[2] + '-' + date[3]);
+			if (!is_today(headline))
+				continue;
+		}
 		if (matched[2] !== headline.headline)
 			headline.headline += ' ' + matched[2];
 
