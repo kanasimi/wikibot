@@ -1285,6 +1285,14 @@ function parser_日经中文网(html) {
 		if (headline.url.includes('/tag/')) {
 			continue;
 		}
+		matched = headline.url.match(/-(20\d{2})-([01]\d)-([0-3]\d)-/);
+		if (matched
+		//
+		|| (matched = headline.url.match(/-(20\d{2})([01]\d)([0-3]\d)\.html$/))) {
+			headline.date = new Date(date[1] + '-' + date[2] + '-' + date[3]);
+			if (!is_today(headline))
+				continue;
+		}
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
