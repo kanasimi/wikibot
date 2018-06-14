@@ -1289,7 +1289,8 @@ function parser_日经中文网(html) {
 		if (matched
 		//
 		|| (matched = headline.url.match(/-(20\d{2})([01]\d)([0-3]\d)\.html$/))) {
-			headline.date = new Date(date[1] + '-' + date[2] + '-' + date[3]);
+			headline.date = new Date(matched[1] + '-' + matched[2] + '-'
+					+ matched[3]);
 			if (!is_today(headline))
 				continue;
 		}
