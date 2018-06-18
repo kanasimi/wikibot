@@ -1287,7 +1287,7 @@ function parser_日经中文网(html) {
 		}
 		matched = headline.url.match(/-(20\d{2})-([01]\d)-([0-3]\d)-/);
 		if (matched
-		//
+		// 由網址判斷新聞日期。
 		|| (matched = headline.url.match(/-(20\d{2})([01]\d)([0-3]\d)\.html$/))) {
 			headline.date = new Date(matched[1] + '-' + matched[2] + '-'
 					+ matched[3]);
@@ -1311,6 +1311,16 @@ function parser_華爾街日報中文網(html) {
 			url : matched[1],
 			headline : get_label(matched[2])
 		};
+		matched = headline.url
+		// 由網址判斷新聞日期。
+		.match(/-(20\d{2})([01]\d)([0-3]\d)([0-2]\d)([0-5]\d)([0-5]\d)/);
+		if (matched) {
+			headline.date = new Date(matched[1] + '-' + matched[2] + '-'
+					+ matched[3] + 'T' + matched[4] + ':' + matched[5] + ':'
+					+ matched[6]);
+			if (!is_today(headline))
+				continue;
+		}
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
