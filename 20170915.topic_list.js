@@ -140,7 +140,7 @@ var default_BRFA_configurations = {
 		}
 
 		// 申請人。
-		var applicants = section.applicants = [], exit = this.each.exit;
+		var applicants = section.applicants = [], to_exit = this.each.exit;
 
 		// TODO: jawiki 必須尋找{{UserG|JJMC89}}
 
@@ -148,6 +148,7 @@ var default_BRFA_configurations = {
 		if (applicants.length === 0) {
 			this.each.call(section, 'link', function(token) {
 				var user_name = CeL.wiki.parse.user(token.toString());
+				// console.log(user_name);
 				if (user_name) {
 					if (CeL.wiki.PATTERN_BOT_NAME.test(user_name)
 							|| (user_name in special_users.bot)) {
@@ -161,8 +162,10 @@ var default_BRFA_configurations = {
 							// console.log(special_users.bot);
 						}
 					} else {
+						// console.log(token);
 						applicants.push(user_name);
-						return exit;
+						// console.log(to_exit);
+						return to_exit;
 					}
 				}
 			});
@@ -323,17 +326,18 @@ page_configurations = {
 			}
 
 			// 申請人。
-			var applicants = section.applicants = [], exit = this.each.exit;
+			var applicants = section.applicants = [], to_exit = this.each.exit;
 
 			// TODO: jawiki 必須尋找{{UserG|JJMC89}}
 
 			// 尋找標題之外的第一個bot使用者連結。
 			if (applicants.length === 0) {
 				this.each.call(section, 'link', function(token) {
+					// console.log(token);
 					var user_name = CeL.wiki.parse.user(token.toString());
 					if (user_name) {
 						applicants.push(user_name);
-						return exit;
+						return to_exit;
 					}
 				});
 			}

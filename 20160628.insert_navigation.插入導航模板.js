@@ -1,12 +1,15 @@
 ﻿// cd ~/wikibot && date && time ../node/bin/node 20160628.insert_navigation.插入導航模板.js && date
-// cd /d D:\USB\cgi-bin\program\wiki && node 20160628.insert_navigation.插入導航模板.js
+// cd /d D:\USB\cgi-bin\program\wiki && node 20160628.insert_navigation.插入導航模板.js template_name BOTREQ_diff_id
 // Insert navigation template (navigation boxes, navboxes).
 // 對指定之[[WP:導航模板|]]中所有列表頁面，都插入此導航模板。若有[[WP:重定向|]]頁，則回頭將導航模板中之連結改成重定向的目標。
 
 /*
 
  usage:
- node 20160628.insert_navigation.插入導航模板.js template_name [diff_id]
+ node 20160628.insert_navigation.插入導航模板.js template_name [BOTREQ_diff_id]
+
+ e.g.,
+ node 20160628.insert_navigation.插入導航模板.js 中国经济 49849923
 
  2016/4/3 21:24:7	初版試營運。批量連接Template:廣州
  2016/6/28 22:27:52	批量連接Template:深圳、Template:南京
@@ -30,10 +33,10 @@ wiki = Wiki(true);
 
 var
 
-diff_id = process.argv[3],
+BOTREQ_diff_id = process.argv[3],
 
 // process.argv:
-// ['node','20160628.insert_navigation.js','template name']
+// ['node','20160628.insert_navigation.插入導航模板.js','template name']
 template_name = process.argv[2];
 if (!template_name) {
 	// throw new Error('No template name specified!');
@@ -176,7 +179,10 @@ wiki.links(template_with_ns, function(pages, titles, title) {
 	wiki.work({
 		each : for_each_pages,
 		// 採用 {{tlx|template_name}} 時，[[Special:最近更改]]頁面無法自動解析成 link。
-		summary : summary + ': [[Template:' + template_name + ']]',
+		summary : summary + ': [[Template:' + template_name + ']]'
+				+ (BOTREQ_diff_id > 0 ? ' [[Special:Diff/' + BOTREQ_diff_id
+				//
+				+ '|Bot作業請求]]' : '') + ' - [[' + log_to + '|log]]',
 		log_to : log_to,
 		before : arrange_page,
 		last : finish_work

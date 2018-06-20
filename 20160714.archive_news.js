@@ -528,7 +528,7 @@ function for_each_old_page(page_data) {
 	// 去掉過多之空白字元。
 	.replace(/\n{3,}/g, '\n\n');
 
-	// 無更動
+	// 無更動 沒有變更 No modification made
 	if (current_content === page_data.revisions[0]['*']) {
 		do_protect();
 		return;

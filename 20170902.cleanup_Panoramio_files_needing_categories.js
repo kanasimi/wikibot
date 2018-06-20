@@ -41,6 +41,7 @@ edit_options = {
 mark_HIDDENCAT = false;
 
 get_files_of_category('Photos from Panoramio needing categories by date');
+// get_files_of_category('Photos from Panoramio needing categories by ID');
 
 function get_files_of_category(category, callback) {
 	wiki.categorymembers(category, function(list) {
