@@ -1012,7 +1012,7 @@ var section_column_operators = {
 	// 參與討論人數
 	participants : function(section) {
 		return local_number(section.users.unique().length, section.users
-				.unique().length === 1 ? 'style="background-color:#fcc;"' : '');
+				.unique().length >= 2 ? '' : 'style="background-color:#fcc;"');
 	},
 	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
 	replies : function(section) {
