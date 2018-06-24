@@ -906,6 +906,15 @@ function parser_中國時報(html) {
 			headline : get_label(matched[2]),
 			type : get_label(matched[3])
 		};
+
+		matched = matched[1].match(/\/(20\d{2})([01]\d)([0-3]\d)/);
+		if (matched) {
+			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
+			headline.date = new Date(matched);
+			if (!is_today(headline))
+				continue;
+		}
+
 		headline_list.push(headline);
 		if (headline_list.length >= 4)
 			break;
@@ -968,7 +977,7 @@ function parser_人間福報(html) {
 function parser_青年日報(html) {
 	var list = html.between('<div class="news-list-hero">') || html, headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)" class="post-preview" title="([^"<>]+)">\s*(?:<img src="\/ArticleFile\/(\d{8})\/)?/g, matched;
+	PATTERN_headline = /<a href="([^"<>]+)" class="post-preview" title="([^"<>]+)">\s*(?:<img src="\/ArticleFile\/(\d{8})\/)?([\s\S]+?)<\/li>/g, matched;
 	list = list.between(null, '<ul class="news-list">') || list;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
@@ -977,8 +986,15 @@ function parser_青年日報(html) {
 		};
 
 		if (matched[3]) {
-			matched = matched[3].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-			headline.date = new Date(matched);
+			matched[3] = matched[3].replace(/(20\d{2})([01]\d)([0-3]\d)/,
+					'$1-$2-$3');
+			headline.date = new Date(matched[3]);
+			if (!is_today(headline))
+				continue;
+		}
+
+		if (matched[4] = matched[4].match(/<time[^"<>]*>([^"<>]+)<\/time>/)) {
+			headline.date = new Date(matched[4][1]);
 			if (!is_today(headline))
 				continue;
 		}
@@ -1396,12 +1412,21 @@ function parser_光华日报(html) {
 function parser_馬來西亞東方日報(html) {
 	var list = html.between('<section class="alternate">', '</section>'), headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)" title="([^<>"]+)">/g, matched;
+	PATTERN_headline = /<img [^<>]*?data-original="([^"<>]*)"[^<>]*>[\s\S]*?<a href="([^"<>]+)" title="([^<>"]+)">/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
-			url : matched[1],
-			headline : get_label(matched[2])
+			url : matched[2],
+			headline : get_label(matched[3])
 		};
+
+		// 由網址判斷新聞日期。
+		matched = matched[1].match(/\/(20\d{2})([01]\d)([0-3]\d)\//);
+		if (matched) {
+			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
+			headline.date = new Date(matched);
+			if (!is_today(headline))
+				continue;
+		}
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
