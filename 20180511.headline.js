@@ -530,18 +530,20 @@ var source_configurations = {
 			parser : parser_聯合電子報
 		},
 
-		// 中時電子報
+		// 中時電子報 焦點要聞 可以得到完整標題
 		中國時報 : {
 			// url : 'http://www.chinatimes.com/newspapers/',
-			url : 'http://www.chinatimes.com/newspapers/2601',
+			url : 'http://www.chinatimes.com/newspapers/260102',
 			parser : parser_中國時報
 		},
+		// 財經要聞
 		工商時報 : {
-			url : 'http://www.chinatimes.com/newspapers/2602',
+			url : 'http://www.chinatimes.com/newspapers/260202',
 			parser : parser_中國時報
 		},
+		// 焦點新聞
 		旺報 : {
-			url : 'http://www.chinatimes.com/newspapers/2603',
+			url : 'http://www.chinatimes.com/newspapers/260301',
 			parser : parser_中國時報
 		},
 
@@ -896,6 +898,13 @@ function parser_聯合電子報(html) {
 }
 
 function parser_中國時報(html) {
+	// 取得完整頭條標題。
+	var title_list = html.between('<meta name="description"', '>').between(
+			' content="', '"');
+	title_list = title_list.between('】') || title_list;
+	title_list = title_list.split(';');
+	// console.log(title_list);
+
 	var list = html.between('<div class="listRight">',
 			'<div class="pagination clear-fix">'), headline_list = [],
 	//
@@ -913,6 +922,17 @@ function parser_中國時報(html) {
 			headline.date = new Date(matched);
 			if (!is_today(headline))
 				continue;
+		}
+
+		// 當頭條標題被截斷的時候，以完整的標題取代之。
+		if (headline.headline.endsWith('...')) {
+			matched = headline.headline.slice(0, -'...'.length);
+			title_list.some(function(title) {
+				if (title.startsWith(matched)) {
+					headline.headline = title;
+					return true;
+				}
+			});
 		}
 
 		headline_list.push(headline);
