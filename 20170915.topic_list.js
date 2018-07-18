@@ -232,6 +232,8 @@ page_configurations = {
 	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
 		timezone : 9,
+		// 僅會顯示包含"bot"的標題
+		// @see CeL.wiki.PATTERN_BOT_NAME
 		headers : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
 				+ ' !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'

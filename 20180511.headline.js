@@ -702,6 +702,9 @@ var source_configurations = {
 			url : 'https://www.zaobao.com.sg/znews/singapore',
 			parser : parser_联合早报
 		},
+
+	// http://www.udnbkk.com/
+	// 泰國現有6家中文報紙，即《世界日報》（銷量最大、廣告最多）、《星暹日報》（微信公賬號做得最成功）、《亞洲日報》（最本土化，每天都有泰國時評）、《中華日報》(唯一一家上市公司)、《京華中原聯合報》及《新中原報》。
 	},
 
 }[locale];

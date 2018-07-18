@@ -5,10 +5,12 @@
 
 @see
 [[Special:LintErrors]]
+https://www.mediawiki.org/wiki/Extension:Linter
 https://en.wikipedia.org/wiki/Wikipedia:Picture_tutorial
 https://www.mediawiki.org/wiki/Help:Extension:Linter
 https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors
 https://en.wikipedia.org/wiki/Wikipedia:HTML5#Obsolete_elements_and_attributes
+https://tools.wmflabs.org/fireflytools/linter/zhwiki
 
 這個任務需要倚賴[https://www.mediawiki.org/w/api.php?action=help&modules=query%2Blinterrors LintErrors API]，因此已經編輯過的頁面就沒有辦法簡單的指定頁面後再重新編輯。這邊另外做了一些編輯給您參考，請在編輯記錄中找尋關鍵字"修正維基語法:"，謝謝。
 
@@ -374,8 +376,9 @@ function for_bogus_image_options(page_data) {
 				&& Date.now() - Date.parse(page_data.revisions[0].timestamp) < 60 * 60 * 1000) {
 			return [ CeL.wiki.edit.cancel, '可能是剛剛才做過變更，LintErrors 資料庫還沒有來得及更新？' ];
 		}
-		// Template
-		if (page_data.ns === 10 || page_data.title === '自我复制'
+		// 10: Template, 2,3: 使用者+討論
+		if (page_data.ns === 10 || page_data.ns === 2 || page_data.ns === 3
+				|| page_data.title === '自我复制'
 				|| page_data.title === '美洲原住民吉祥物爭議') {
 			return [ CeL.wiki.edit.cancel, '取得的token並非[[File:]]' ];
 		}
