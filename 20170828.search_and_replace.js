@@ -12,6 +12,9 @@ node 20170828.search_and_replace.js
 TODO: 同一個replace test中多個replace pair。
 https://www.mediawiki.org/wiki/Help:Extension:AdvancedSearch
 
+for カテゴリ:
+check {{リダイレクトの所属カテゴリ}}
+
  */
 
 'use strict';

@@ -133,7 +133,11 @@ modify_Wikipedia = false;
 
 // ----------------------------------------------------------------------------
 
-var is_zh = use_language === 'zh', is_CJK = is_zh || use_language === 'ja',
+var
+/** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
+NOT_FOUND = ''.indexOf('_'),
+
+is_zh = use_language === 'zh', is_CJK = is_zh || use_language === 'ja',
 // label_data['foreign_language:foreign_title']
 // = [ { language: {Array}labels }, {Array}titles, {Array}revid ]
 label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
@@ -714,9 +718,17 @@ function for_each_page(page_data, messages) {
 		if (label.length > foreign_title.length) {
 			var index = label.indexOf(foreign_title);
 			if (index > 0 && /[(（]/.test(label.charAt(index - 1))
-					&& /[)）]/.test(label.charAt(index + foreign_title.length)))
+					&& /[)）]/.test(label.charAt(index + foreign_title.length))) {
 				label = label.slice(0, index - 1)
 						+ label.slice(index + foreign_title.length + 1);
+			} else if (index !== NOT_FOUND) {
+				// assert: label.includes(foreign_title)
+
+				// 照理來說應該是 [[:ko:기린|キリン]]。
+				// 但是對於 [[:ko:기린|기린（キリン）]] 或 [[:ko:기린|기린]] 這樣的情況就只好跳過。
+				// @see [[:ja:麒麟]]
+				continue;
+			}
 		}
 
 		label = label
