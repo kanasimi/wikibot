@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160414.import_label_from_wiki_link.js; date) >> import_label_from_wiki_link/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20160414.import_label_from_wiki_link.js use_language=ja; date) >> import_label_from_wiki_link/log &
 
 /*
 
@@ -116,7 +116,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-// for debug specified pages. 只處理此一頁面。
+// for debug specified pages. 只處理此一頁面。僅測試此單一頁面。
 test_the_page_only = "",
 
 /** {Natural}所欲紀錄的最大筆數。 */
@@ -507,6 +507,11 @@ function for_each_page(page_data, messages) {
 	 * 從文章的開頭部分[[WP:LEAD|導言章節]]辨識出本地語言(本國語言)以及外國原文label。 此階段所加的，必須先確定 en
 	 * 無此條目。最晚在 wikidata 階段需要確保目標 wiki 無此條目。
 	 * 
+	 * 注意: 同一個template標籤之內，應該只放一組專有名詞。因此
+	 * <code>{{lang-en-short|pseudoscience, pseudo-science}}</code> 應該要改成
+	 * <code>{{lang-en-short|pseudoscience}}、{{lang-en-short|pseudo-science}}</code>
+	 * TODO: 在有多組專有名詞的情況下，本工具只會匯入第一個 template。
+	 * 
 	 * TODO: Q32956 之類 foreign_language 判別不當的情況。
 	 * 
 	 * <code>
@@ -585,6 +590,21 @@ function for_each_page(page_data, messages) {
 		}
 
 		if (foreign_title) {
+			// Exclude [[w:ja:疑似科学]]:
+			// "{{lang-en-short|pseudoscience, pseudo-science}}"
+			matched = foreign_title.split(/[,;]/);
+			var pieces = matched.map(function(token) {
+				return token.trim().replace(/-/g, '').toLowerCase();
+			}).filter(function(token) {
+				return !!token;
+			}).unique();
+			if (pieces === 1) {
+				// 取第一個有內容的 foreign label。
+				matched.some(function(token) {
+					return foreign_title = token.trim();
+				});
+			}
+
 			matched = title
 			// e.g., "Loser Man、Loser Guy、Loser Boy" "Event Data Recorder ， EDR"
 			.match(/^[a-z\d\-\s]{2,}(?:([、，;；])[a-z\d\-\s]{2,})+$/i)
@@ -895,7 +915,7 @@ function create_label_data(callback) {
 	}
 
 	if (test_the_page_only) {
-		// 僅測試此單一頁面。
+		// for debug specified pages. 只處理此一頁面。僅測試此單一頁面。
 		CeL.set_debug(2);
 		wiki.page(test_the_page_only, for_each_page).run(after_read_page);
 		return;
