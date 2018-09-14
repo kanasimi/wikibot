@@ -866,7 +866,9 @@ function for_each_row(row) {
 
 		if (added_signs_or_notice || test_mode) {
 			// 有做動作的時候才記錄，避免記錄過於繁雜。
-			wiki.page(log_to).edit(check_log.join('\n* '), {
+			wiki.page(log_to, {
+				redirects : 1
+			}).edit(check_log.join('\n* '), {
 				section : 'new',
 				sectiontitle : row.title,
 				nocreate : 1,
@@ -903,9 +905,9 @@ function for_each_row(row) {
 		CeL.debug('用戶討論頁提示：如果留言者簽名沒有連結 ' + notification_limit_count
 				+ ' 次，通知使用者記得要改變簽名。', 2);
 		var pages_to_notify = get_pages_to_notify(row, no_link_user_hash);
-		wiki.page('User talk:' + row.user)
-		//
-		.edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
+		wiki.page('User talk:' + row.user, {
+			redirects : 1
+		}).edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
 		//
 		+ pages_to_notify.join(', ') + '。謝謝您參與討論。 --~~~~}}', {
 			section : 'new',
@@ -924,7 +926,9 @@ function for_each_row(row) {
 
 	CeL.debug('為沒有署名的編輯添加簽名標記。', 2);
 	// 若是row並非最新版，則會放棄編輯。
-	wiki.page(row).edit(row.diff.to.join(''), {
+	wiki.page(row, {
+		redirects : 1
+	}).edit(row.diff.to.join(''), {
 		nocreate : 1,
 		// TODO: add section_title
 		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
@@ -938,9 +942,9 @@ function for_each_row(row) {
 		CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + notification_limit_count
 				+ ' 次，通知使用者記得簽名。', 2);
 		var pages_to_notify = get_pages_to_notify(row, unsigned_user_hash);
-		wiki.page('User talk:' + row.user)
-		//
-		.edit('{{subst:Uw-tilde||可能需要簽名的頁面例如 '
+		wiki.page('User talk:' + row.user, {
+			redirects : 1
+		}).edit('{{subst:Uw-tilde||可能需要簽名的頁面例如 '
 		// [[MediaWiki:Talkpagetext/zh]]
 		+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
 			section : 'new',

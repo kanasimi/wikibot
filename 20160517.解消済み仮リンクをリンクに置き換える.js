@@ -443,8 +443,10 @@ function check_final_work() {
 			messages.unshift('List ' + (listed === all ? 'all ' + all
 			//
 			: listed + '/' + all + ' (' + (100 * listed / all | 0) + '%)')
+			// 本次報告僅列出所有出問題頁面的大約 ?%。
+			+ ' of all problematic pages.',
 			//
-			+ ' pages.', message_set.manual_correction_required + ' --~~~~');
+			message_set.manual_correction_required + ' --~~~~');
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}

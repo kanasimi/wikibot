@@ -65,9 +65,12 @@ ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 CeL.log('開始處理 ' + summary + ' 作業', true);
 
 // CeL.set_debug(4);
-wiki
-// 取得提報關注度不足頁面內容。
-.page(notability_report, function(page_data) {
+// 取得提報關注度不足頁面內容並且處理。
+wiki.page(notability_report, report_notability, {
+	redirects : 1
+});
+
+function report_notability(page_data) {
 	var id_pages = CeL.null_Object(), user_denied = CeL.null_Object(),
 	// page_status[title] = [ line index of content, status ]
 	page_status = CeL.null_Object(), notified_pages = CeL.null_Object(),
@@ -150,6 +153,7 @@ wiki
 				if (user_denied[user])
 					CeL.log(user_denied[user] + ': ' + user);
 			}, {
+				redirects : 1,
 				flow_view : 'header'
 			});
 		}
@@ -273,7 +277,9 @@ wiki
 				//
 				+ page_list.join('<span style="color:#777;">、</span>'));
 				// 提醒個別用戶，作出通知。
-				wiki.page('User_talk:' + user)
+				wiki.page('User_talk:' + user, {
+					redirects : 1
+				})
 				// {{Notability-talk}}此模板前面會自動加上分行，對非WP:Flow頁面，後面須自行加上簽名。
 				.edit(user_messages.join('\n') + ' --~~~~', {
 					// 若您不想接受關注度提醒，請利用{{bots|optout=afd}}模板。
@@ -289,7 +295,9 @@ wiki
 			});
 
 			// 最終將處理結果寫入提報關注度不足頁面。
-			wiki.page(notability_report).edit(關注度不足提報頁面內容.join('\n'), {
+			wiki.page(notability_report, {
+				redirects : 1
+			}).edit(關注度不足提報頁面內容.join('\n'), {
 				summary : 'bot: ' + summary + '處理結果',
 				bot : 1,
 				nocreate : 1
@@ -333,11 +341,12 @@ wiki
 				});
 			}
 
-			messages.unshift(messages.length
-			//
-			+ ' 用戶 @ ' + (new Date).format('%4Y%2m%2d'));
+			messages.unshift(messages.length + ' 用戶 @ '
+					+ (new Date).format('%4Y%2m%2d'));
 			// 將報告結果寫入 log 頁面。
-			wiki.page(log_to).edit(messages.join('\n'), {
+			wiki.page(log_to, {
+				redirects : 1
+			}).edit(messages.join('\n'), {
 				section : 'new',
 				sectiontitle : summary + ' ' + (new Date).format('%Y%2m%2d'),
 				summary : 'bot: ' + summary + '報告',
@@ -350,4 +359,4 @@ wiki
 		},
 		log_to : false
 	}, pages);
-});
+}
