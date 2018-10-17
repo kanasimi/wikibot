@@ -1,10 +1,10 @@
 ﻿/**
  * @name 20170108.upload_TaiBNET_media.js
- *
+ * 
  * @fileoverview Upload images/videos from TaiBNET.
- *
+ * 
  * [[commons:Commons:Bots/Requests/Cewbot‎]] 放棄
- *
+ * 
  * @since 2017/1/5 19:57:49
  */
 
@@ -184,6 +184,7 @@ function parse_list_html(html, callback) {
 }
 
 function upload_media(media_data, callback) {
+	// media description
 	var upload_text = [
 			'== {{int:filedesc}} ==',
 			'{{information',
@@ -244,7 +245,9 @@ function upload_media(media_data, callback) {
 		}
 	}, function(data, error) {
 		if (error) {
-			CeL.error(typeof error === 'object' ? JSON.stringify(error) : error);
+			CeL
+					.error(typeof error === 'object' ? JSON.stringify(error)
+							: error);
 			if (data) {
 				if (data.warnings) {
 					CeL.warn(JSON.stringify(data.warnings));

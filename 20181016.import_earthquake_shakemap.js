@@ -15,12 +15,12 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-var fetch = CeL.fetch;
-
+var fetch = CeL.fetch,
 /** {Object}wiki operator 操作子. */
-// var wiki = Wiki(true, 'commons');
+var wiki = Wiki(true, 'commons' && 'test');
+
 fetch(
-		// https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=6&orderby=time-asc&starttime=2018-09-01
+		// https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=6&orderby=time-asc&starttime=2016-04-10&endtime=2016-04-20
 		'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=6&orderby=time-asc&starttime='
 				// 回溯20天
 				+ (new Date(Date.now() - 20 * 24 * 60 * 60 * 1000))
@@ -30,21 +30,40 @@ fetch(
 
 }).then(function(json) {
 	var iterator = Promise.resolve(), length = json.features.length;
-	// → detail
 	json.features.forEach(function(feature, index) {
 		// for_each_feature
 		iterator = iterator.then(function() {
+			// → detail
+			process.stdout.write('fetch	' + feature.properties.detail + '\r');
 			return fetch(feature.properties.detail).then(function(response) {
+				// Did You Feel It? https://earthquake.usgs.gov/data/dyfi/
 				return response.json();
-			}).then(function(json) {
-				var shakemaps = json.properties.products.shakemap;
+			}).then(function(detail) {
+				if (detail.properties.status !== "reviewed")
+					return;
+
+				// https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us20005hzn&format=geojson
+				var eventtime = new Date(detail.properties.time);
+
+				// intensity map
+				var shakemaps = detail.properties.products.shakemap;
 				// →"download/intensity.jpg":{"contentType":"image/jpeg","lastModified":1539216091000,"length":79442,"url":"https://earthquake.usgs.gov/archive/product/shakemap/us1000habl/us/1539216097797/download/intensity.jpg"}
 				shakemaps.forEach(function(shakemap) {
+					var filename = eventtime.format('%4Y-%2m-%2d ')
+					// "year title earthquake shakemap %4Y-%2m-%2d.jpg"
+					+ detail.properties.place.replace(/^.+? of /, '')
+					//
+					+ ' M' + detail.properties.mag + ' '
+					//
+					+ detail.properties.type + ' shakemap.jpg';
 					console.log((index + 1) + '/' + length + '	'
 					//
-					+ feature.id + ' ' + feature.properties.title + '	'
+					+ detail.id + ' ' + detail.properties.title + '	'
 					//
 					+ shakemap.contents["download/intensity.jpg"].url);
+					console.log('	' + filename);
+
+					// add [[Category:ShakeMaps]]
 				});
 			});
 		});
