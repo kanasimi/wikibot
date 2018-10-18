@@ -183,6 +183,7 @@ function parse_list_html(html, callback) {
 	upload_next();
 }
 
+// @see 20181016.import_earthquake_shakemap.js
 function upload_media(media_data, callback) {
 	// media description
 	var upload_text = [
@@ -211,7 +212,10 @@ function upload_media(media_data, callback) {
 					// 注意: TaiBNET採用scientific name而非binomial。
 					+ media_data.scientific_name + '}}}}',
 			"{{information field|name=scientific name|value=''"
-					+ media_data.scientific_name + "''}}", '}}', '',
+					+ media_data.scientific_name + "''}}",
+
+			'}}', '',
+
 			// Add by {{TaiBNET}}
 			// '[[Category:TaiBNET media]]',
 
@@ -221,7 +225,7 @@ function upload_media(media_data, callback) {
 			'[[Category:' + media_data.scientific_name + ']]' ];
 
 	upload_text = upload_text.join('\n');
-	CeL.debug(upload_text, 2);
+	CeL.debug(upload_text, 2, 'upload_media');
 
 	media_data.file_name += media_data.media_url.match(/\.[a-z]+$/i)[0];
 	CeL.log(media_data.media_url + '\n→ ' + media_data.file_name);
@@ -243,6 +247,7 @@ function upload_media(media_data, callback) {
 						XMLHttp.responseText);
 			}
 		}
+
 	}, function(data, error) {
 		if (error) {
 			CeL
