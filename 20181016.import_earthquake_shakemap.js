@@ -30,11 +30,16 @@ if (media_directory) {
 }
 
 fetch(
-		// https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=6&orderby=time-asc&starttime=2016-04-10&endtime=2016-04-20
-		'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=6&orderby=time-asc&starttime='
-				// 回溯20天
-				+ (new Date(Date.now() - 10 * 24 * 60 * 60 * 1000))
-						.format('%4Y-%2m-%2d')).then(function(response) {
+// https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=6&orderby=time-asc&starttime=2016-04-10&endtime=2016-04-20
+'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude='
+// Import M 6+ earthquakes
++ 6 + '&orderby=time-asc&starttime='
+// 回溯 20天
++ (new Date(Date.now() - 20 * 24 * 60 * 60 * 1000))
+//
+.format('%4Y-%2m-%2d'))
+//
+.then(function(response) {
 	// response.text().then(console.log);
 	return response.json();
 
@@ -131,7 +136,8 @@ function upload_media(media_data, shakemap, detail) {
 			'',
 
 			'[[Category:ShakeMaps]]',
-			'[[Category:' + media_data.date.format('%4Y-%2m-%2d') + ']]',
+			// the day category
+			// '[[Category:' + media_data.date.format('%4Y-%2m-%2d') + ']]',
 			'[[Category:Earthquakes of ' + media_data.date.getUTCFullYear()
 					+ ']]', '[[Category:Maps of earthquakes in '
 			// Should be country name
