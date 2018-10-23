@@ -154,15 +154,27 @@ function check_media(media_data, product_data, detail, index, length) {
 
 }
 
+function linking_place(place) {
+	var matched = place
+			&& place.match(/^(.+ of (?:the )?)?(.+?)(?:(, )([^,]+))?$/);
+
+	return matched ? (matched[1] || '')
+			+ '[[:en:'
+			+ matched[2]
+			+ '|'
+			+ matched[2]
+			+ ']]'
+			+ (matched[4] ? matched[3] + '[[:en:' + matched[4] + '|'
+					+ matched[4] + ']]' : '') : place || '';
+}
+
 // @see 20170108.upload_TaiBNET_media.放棄.js
 function upload_media(media_data, product_data, detail) {
 	var place = product_data.properties['event-description'];
-	// e.g., "Northwest of the Kuril Islands"
+	// e.g., "Northwest of the Kuril Islands",
+	// "Vancouver Island, Canada Region"
 	place = place && place.toTitleCase(true);
-	var matched = place && place.match(/^(.+ of (?:the )?)(.+)$/),
-	// e.g., "269km NW of Ozernovskiy, Russia"
-	matched2 = detail.properties.place
-			.match(/^(.+ of (?:the )?)(.+?)(, ([^,]+))?$/);
+	// detail.properties.place: e.g., "269km NW of Ozernovskiy, Russia"
 
 	// media description
 	var upload_text = [
@@ -178,26 +190,12 @@ function upload_media(media_data, product_data, detail) {
 					// max ground-shaking intensity
 					+ (product_data.properties.maxmmi ? ', maximum [[:en:Mercalli intensity scale|intensity]] '
 							+ product_data.properties.maxmmi
-							: '')
-					+ ' '
-					+ detail.properties.type
+							: '') + ' ' + detail.properties.type
 					+ (detail.properties.tsunami ? ' with tsunami' : '')
 					// https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us1000h3p4&format=geojson
-					+ (place ? ' near '
-							+ (matched ? matched[1] + '[[:en:' + matched[2]
-									+ '|' + matched[2] : '[[:en:' + place + '|'
-									+ place) + ']]' : '')
+					+ (place ? ' near ' + linking_place(place) : '')
 					//
-					+ ' ('
-					+ (matched2 ? matched2[1]
-							+ '[[:en:'
-							+ matched2[2]
-							+ '|'
-							+ matched2[2]
-							+ ']]'
-							+ (matched2[4] ? ', [[:en:' + matched2[4] + '|'
-									+ matched2[4] + ']]' : '')
-							: detail.properties.place) + '), '
+					+ ' (' + linking_place(detail.properties.place) + '), '
 					// 震源深度
 					+ product_data.properties.depth
 					+ ' km [[:en:depth of focus (tectonics)|depth]].' + '}}',
