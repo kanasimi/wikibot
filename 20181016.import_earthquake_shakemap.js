@@ -156,7 +156,8 @@ function check_media(media_data, product_data, detail, index, length) {
 
 function linking_place(place) {
 	var matched = place
-			&& place.match(/^(.+ of (?:the )?)?(.+?)(?:(, )([^,]+))?$/);
+			&& place
+					.match(/^(.+ of (?:the )?)?(.+?)( Region)?(?:(, )([^,]+))?$/);
 
 	return matched ? (matched[1] || '')
 			+ '[[:en:'
@@ -164,15 +165,18 @@ function linking_place(place) {
 			+ '|'
 			+ matched[2]
 			+ ']]'
-			+ (matched[4] ? matched[3] + '[[:en:' + matched[4] + '|'
-					+ matched[4] + ']]' : '') : place || '';
+			// matched[3]: " Region" || undefined
+			+ (matched[3] || '')
+			// matched[4]: ", "
+			+ (matched[5] ? matched[4] + '[[:en:' + matched[5] + '|'
+					+ matched[5] + ']]' : '') : place || '';
 }
 
 // @see 20170108.upload_TaiBNET_media.放棄.js
 function upload_media(media_data, product_data, detail) {
 	var place = product_data.properties['event-description'];
 	// e.g., "Northwest of the Kuril Islands",
-	// "Vancouver Island, Canada Region"
+	// "Vancouver Island, Canada Region", "Fiji Region"
 	place = place && place.toTitleCase(true);
 	// detail.properties.place: e.g., "269km NW of Ozernovskiy, Russia"
 
