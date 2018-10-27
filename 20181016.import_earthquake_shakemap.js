@@ -7,6 +7,7 @@
  2018/10/20 10:23:22	add DYFI City Map
 
  TODO: isoseismal map
+ TODO: update images
  */
 
 // ----------------------------------------------------------------------------
@@ -15,22 +16,32 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
+CeL.run('application.storage');
+
 var fetch = CeL.fetch,
 // isTTY: 為 nodejs: interactive 互動形式。
 is_console = process.stdout.isTTY
 // Windows 7 to Windows 10
 || process.env.SESSIONNAME === 'Console',
 //
-media_directory = base_directory + 'media/' && null, skip_cached = true,
+geojson_directory = base_directory + 'data/',
+//
+media_directory = base_directory + 'media/', skip_cached = false,
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'commons'/* && 'test' */);
 
 // ----------------------------------------------------------------------------
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
-if (media_directory) {
+if (geojson_directory || media_directory) {
 	prepare_directory(base_directory);
-	prepare_directory(media_directory);
+	geojson_directory && prepare_directory(geojson_directory);
+	media_directory && prepare_directory(media_directory);
+}
+
+function remove_stamp(json_text) {
+	// e.g., "indexid":"169910722","indexTime":1540252594561,
+	return json_text.replace(/"indexid":"\d+","indexTime":\d+,/g, '');
 }
 
 fetch(
@@ -39,8 +50,8 @@ fetch(
 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude='
 // Import M 6+ earthquakes
 + 6 + '&orderby=time-asc&starttime='
-// 回溯 20天
-+ (new Date(Date.now() - CeL.to_millisecond('20D')))
+// 回溯 30天
++ (new Date(Date.now() - CeL.to_millisecond('30D')))
 //
 .format('%4Y-%2m-%2d'))
 //
@@ -61,8 +72,29 @@ fetch(
 				+ feature.properties.detail + '\r');
 			}
 			return fetch(feature.properties.detail).then(function(response) {
-				return response.json();
-			}).then(function(detail) {
+				return Promise.all(
+				//
+				[ response, response.text(), response.json() ]);
+			}).then(function(response) {
+				var text = response[1], detail = response[2];
+				response = response[0];
+				// console.log(response);
+				// console.log(detail);
+				var data_filename = geojson_directory + detail.id + '.json',
+				//
+				original_text = CeL.read_file(data_filename);
+				if (!original_text || remove_stamp(text)
+				// .indexid, .indexTime 會次次不同!
+				// 不可用 Buffer.compare(original_text,response.body)
+				!== remove_stamp(original_text.toString())) {
+					if (original_text) {
+						CeL.move_file(data_filename,
+						//
+						CeL.next_fso_NO_unused(data_filename));
+					}
+					CeL.write_file(data_filename, response.body);
+				}
+
 				// https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson_detail.php
 				if (detail.properties.status !== "reviewed"
 				//
@@ -252,6 +284,8 @@ function upload_media(media_data, product_data, detail) {
 		text : upload_text,
 		comment : 'Import USGS ' + detail.properties.type + ' map, '
 				+ product_data.type + ' id: ' + product_data.id,
+		// must be set to reupload
+		// ignorewarnings : undefined,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
