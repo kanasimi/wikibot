@@ -81,8 +81,9 @@ CeL.run([ 'interact.DOM', 'application.debug',
 'application.net.wiki',
 // Add color to console messages. 添加主控端報告的顏色。
 'interact.console',
-// for CeL.env.arg_hash, CeL.wiki.cache(), CeL.fs_mkdir(), CeL.wiki.read_dump()
-'application.platform.nodejs' ]);
+// for 'application.platform.nodejs': CeL.env.arg_hash, CeL.wiki.cache(),
+// CeL.fs_mkdir(), CeL.wiki.read_dump()
+'application.storage' ]);
 
 // ----------------------------------------------------------------------------
 

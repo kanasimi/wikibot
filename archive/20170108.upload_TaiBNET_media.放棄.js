@@ -25,7 +25,7 @@ configurations = CeL.fs_read(configurations_path) || CeL.null_Object(),
 last_media_index = configurations.last_media_index | 0,
 
 list_directory = base_directory + 'list/', item_directory = base_directory
-		+ 'item/', media_directory = base_directory + 'media/',
+		+ 'item/',
 
 count_一 = 10, count_丨 = 10, count_per_list = count_一 * count_丨,
 //
@@ -34,8 +34,8 @@ BASE_URL = 'http://taibnet.sinica.edu.tw/chi/',
 // http://taibnet.sinica.edu.tw/chi/listallpic.php?pc=10&pr=10&ord=`date`&dere=+asc&C1=Y&C2=Y&C3=Y&C4=Y&page=1
 MENU_BASE_URL = BASE_URL + 'listallpic.php?pc=' + count_一 + '&pr=' + count_丨
 		+ '&ord=`date`&dere=+asc&C1=Y&C2=Y&C3=Y&C4=Y&page=',
-
-skip_cached = true,
+/** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
+skip_cached = true, media_directory = base_directory + 'media/',
 
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'commons');
@@ -75,7 +75,7 @@ function for_list(html) {
 
 	// done
 	configurations.last_media_index = last_media_index;
-	CeL.fs_write(configurations_path, configurations);
+	CeL.write_file(configurations_path, configurations);
 }
 
 function get_label(html) {
@@ -243,7 +243,7 @@ function upload_media(media_data, callback) {
 				+ media_data.media_id,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
-				CeL.fs_write(media_directory + media_data.file_name,
+				CeL.write_file(media_directory + media_data.file_name,
 						XMLHttp.responseText);
 			}
 		}

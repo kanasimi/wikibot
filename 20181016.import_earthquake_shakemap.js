@@ -16,8 +16,6 @@
 // Load CeJS library and modules.
 require('./wiki loder.js');
 
-CeL.run('application.storage');
-
 var fetch = CeL.fetch,
 // isTTY: 為 nodejs: interactive 互動形式。
 is_console = process.stdout.isTTY
@@ -25,8 +23,8 @@ is_console = process.stdout.isTTY
 || process.env.SESSIONNAME === 'Console',
 //
 geojson_directory = base_directory + 'data/',
-//
-media_directory = base_directory + 'media/', skip_cached = false,
+/** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
+skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'commons'/* && 'test' */);
 
@@ -289,7 +287,7 @@ function upload_media(media_data, product_data, detail) {
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
-					CeL.fs_write(media_directory + media_data.file_name,
+					CeL.write_file(media_directory + media_data.file_name,
 							XMLHttp.responseText);
 			}
 		}
