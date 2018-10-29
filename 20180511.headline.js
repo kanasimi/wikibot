@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20180511.headline.js locale=香港
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20180511.headline.js locale=國際 wikimedia=incubator
 
 /*
 
@@ -27,7 +27,10 @@ var working_queue = CeL.null_Object(),
 user_agent = 'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36',
 
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'wikinews'),
+wiki = Wiki(true, CeL.env.arg_hash && CeL.env.arg_hash.wikimedia || 'wikinews'),
+
+page_prefix = CeL.env.arg_hash && CeL.env.arg_hash.wikimedia === 'incubator' ? 'Wn/cdo/'
+		: '',
 
 // url_cache_hash[url] = {String}title;
 url_cache_hash = CeL.null_Object(),
@@ -80,14 +83,18 @@ to_remind = owner_name;
 // create Category:2016年9月報紙頭條 2016年9月香港報紙頭條
 // [[Category:2016年報紙頭條]]
 function create_category() {
-	wiki.page('Category:' + use_date.format('%Y年%m月') + '報紙頭條')
+	wiki.page('Category:' + page_prefix + use_date.format('%Y年%m月') + '報紙頭條')
 	//
 	.edit(function(page_data) {
 		var content = CeL.wiki.content_of(page_data) || '';
-		if (!content || !/\[\[Category:\d{4}年報紙頭條(?:\||\]\])/.test(content)) {
+		if (!content
+		// (?:[a-z\/]*?\/)?: page_prefix
+		|| !/\[\[Category:(?:[a-z\/]*?\/)?\d{4}年報紙頭條(?:\||\]\])/
+		//
+		.test(content)) {
 			content = content.trim() + '\n[[Category:'
 			//
-			+ use_date.format('%Y年') + '報紙頭條]]';
+			+ page_prefix + use_date.format('%Y年') + '報紙頭條]]';
 		}
 
 		return content;
@@ -97,7 +104,9 @@ function create_category() {
 	});
 
 	var _locale = locale === '臺灣' ? '台灣' : locale;
-	wiki.page('Category:' + use_date.format('%Y年%m月') + _locale + '報紙頭條')
+	wiki.page(
+			'Category:' + page_prefix + use_date.format('%Y年%m月') + _locale
+					+ '報紙頭條')
 	//
 	.edit(function(page_data) {
 		var content = CeL.wiki.content_of(page_data) || '';

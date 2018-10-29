@@ -7,7 +7,6 @@
  2018/10/20 10:23:22	add DYFI City Map
 
  TODO: isoseismal map
- TODO: update images
  */
 
 // ----------------------------------------------------------------------------
@@ -26,7 +25,7 @@ geojson_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'commons'/* && 'test' */);
+wiki = Wiki(true, 'commons' /* && 'test' */);
 
 // ----------------------------------------------------------------------------
 
@@ -81,17 +80,22 @@ fetch(
 				var data_filename = geojson_directory + detail.id + '.json',
 				//
 				original_text = CeL.read_file(data_filename);
-				if (!original_text || remove_stamp(text)
-				// .indexid, .indexTime 會次次不同!
-				// 不可用 Buffer.compare(original_text,response.body)
-				!== remove_stamp(original_text.toString())) {
-					if (original_text) {
-						CeL.move_file(data_filename,
-						//
-						CeL.next_fso_NO_unused(data_filename));
+				if (original_text) {
+					if (remove_stamp(text)
+					// .indexid, .indexTime 會次次不同!
+					// 不可用 Buffer.compare(original_text,response.body)
+					=== remove_stamp(original_text.toString())) {
+						// There are already the same files.
+						return;
 					}
-					CeL.write_file(data_filename, response.body);
+
+					detail.was_updated = true;
+					CeL.move_file(data_filename,
+					// updated. update images
+					CeL.next_fso_NO_unused(data_filename));
 				}
+
+				CeL.write_file(data_filename, response.body);
 
 				// https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson_detail.php
 				if (detail.properties.status !== "reviewed"
@@ -167,7 +171,7 @@ function check_media(media_data, product_data, detail, index, length) {
 	// CeL.log('check_media: [[File:' + media_data.file_name + ']]');
 	wiki.page('File:' + media_data.file_name, function(page_data) {
 		// Skip exists file on Wikimedia Commons
-		if ('missing' in page_data) {
+		if (('missing' in page_data) || detail.was_updated) {
 			CeL.log((index + 1) + '/' + length + '	'
 			//
 			+ detail.id + ' ' + detail.properties.title
@@ -187,7 +191,7 @@ function check_media(media_data, product_data, detail, index, length) {
 function linking_place(place) {
 	var matched = place
 			&& place
-					.match(/^(.+ of (?:the )?)?(.+?)( Region)?(?:(, )([^,]+))?$/);
+					.match(/^(.+ of (?:the )?|Offshore )?(.+?)( Region)?(?:(, )([^,]+))?$/);
 
 	return matched ? (matched[1] || '')
 			+ '[[:en:'
@@ -207,6 +211,7 @@ function upload_media(media_data, product_data, detail) {
 	var place = product_data.properties['event-description'];
 	// e.g., "Northwest of the Kuril Islands",
 	// "Vancouver Island, Canada Region", "Fiji Region"
+	// "Offshore El Salvador"
 	place = place && place.toTitleCase(true);
 	// detail.properties.place: e.g., "269km NW of Ozernovskiy, Russia"
 
@@ -283,7 +288,7 @@ function upload_media(media_data, product_data, detail) {
 		comment : 'Import USGS ' + detail.properties.type + ' map, '
 				+ product_data.type + ' id: ' + product_data.id,
 		// must be set to reupload
-		// ignorewarnings : undefined,
+		ignorewarnings : 1,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
