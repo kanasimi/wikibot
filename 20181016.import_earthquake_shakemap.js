@@ -255,7 +255,9 @@ function upload_media(media_data, product_data, detail) {
 
 			// add categories
 
-			'[[Category:' + (product_data.type === 'dyfi' ? 'Intensity maps'
+			'[[Category:' + (product_data.type === 'dyfi'
+			//
+			? 'USGS community internet intensity maps'
 			// assert: product_data.type === 'shakemap'
 			: 'ShakeMaps') + ']]',
 
@@ -285,8 +287,9 @@ function upload_media(media_data, product_data, detail) {
 	wiki.upload(media_data.media_url, {
 		filename : media_data.file_name,
 		text : upload_text,
-		comment : 'Import USGS ' + detail.properties.type + ' map, '
-				+ product_data.type + ' id: ' + product_data.id,
+		comment : 'Import USGS ' + (detail.was_updated ? 'updated ' : '')
+				+ detail.properties.type + ' map, ' + product_data.type
+				+ ' id: ' + product_data.id,
 		// must be set to reupload
 		ignorewarnings : 1,
 		form_data : {
@@ -298,6 +301,7 @@ function upload_media(media_data, product_data, detail) {
 		}
 
 	}, function(data, error) {
+		console.log(data);
 		if (error) {
 			CeL
 					.error(typeof error === 'object' ? JSON.stringify(error)
