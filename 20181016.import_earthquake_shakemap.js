@@ -6,7 +6,11 @@
  2018/10/18 13:27:26	初版試營運
  2018/10/20 10:23:22	add DYFI City Map
 
- TODO: isoseismal map
+ TODO: Template:Location map
+ TODO: Template:Globe location
+ TODO: Template:Map
+
+ TODO: [[Category:USGS isoseismal maps]]
  */
 
 // ----------------------------------------------------------------------------
@@ -219,7 +223,8 @@ function upload_media(media_data, product_data, detail) {
 	var upload_text = [
 			'== {{int:filedesc}} ==',
 			'{{information',
-			// 美國地質調查局公布的2018年地震烈度分布圖 地震矩規模
+			// 美國地質調查局公布的2018年地震震度分布圖 地震矩規模 地震震度圖。
+			// 美國地質調查局提供的本次地震震度分布圖，震央以五角星標識。
 			'|description={{en|'
 					+ (product_data.type === 'dyfi' ? 'Intensity map'
 							: product_data.type.toTitleCase(true))
@@ -238,6 +243,7 @@ function upload_media(media_data, product_data, detail) {
 					// 震源深度
 					+ product_data.properties.depth
 					+ ' km [[:en:depth of focus (tectonics)|depth]].' + '}}',
+			// {{Original upload date|}} (原始上傳日期)
 			'|date=' + media_data.date.format('%4Y-%2m-%2d'),
 			'|source=' + detail.properties.url,
 			// United States Geological Survey
@@ -247,6 +253,7 @@ function upload_media(media_data, product_data, detail) {
 			// '|other_fields=',
 
 			'}}',
+			// {{Object location|0|0}}
 			'',
 
 			'== {{int:license-header}} ==',
@@ -256,13 +263,15 @@ function upload_media(media_data, product_data, detail) {
 			// add categories
 
 			'[[Category:' + (product_data.type === 'dyfi'
-			//
+			// also: [[Category:United States Geological Survey maps]]
 			? 'USGS community internet intensity maps'
 			// assert: product_data.type === 'shakemap'
 			: 'ShakeMaps') + ']]',
 
 			// Do not add the day category
 			// '[[Category:' + media_data.date.format('%4Y-%2m-%2d') + ']]',
+
+			// [[Category:2018 earthquakes]]
 			'[[Category:Earthquakes of ' + media_data.date.getUTCFullYear()
 					+ ']]',
 
@@ -284,12 +293,20 @@ function upload_media(media_data, product_data, detail) {
 		return;
 	}
 
+	var date = product_data.id.match(/\d+$/);
+	if (date && Date.now() > (date = +date)
+			&& Date.now() - date < CeL.to_millisecond('3D')) {
+		date = new Date(date);
+	} else
+		date = null;
+
 	wiki.upload(media_data.media_url, {
 		filename : media_data.file_name,
 		text : upload_text,
 		comment : 'Import USGS ' + (detail.was_updated ? 'updated ' : '')
 				+ detail.properties.type + ' map, ' + product_data.type
-				+ ' id: ' + product_data.id,
+				+ ' id: ' + product_data.id
+				+ (date ? ' (' + date.toISOString() + ')' : ''),
 		// must be set to reupload
 		ignorewarnings : 1,
 		form_data : {
