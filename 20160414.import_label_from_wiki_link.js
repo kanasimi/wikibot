@@ -264,6 +264,18 @@ function for_each_page(page_data, messages) {
 		return;
 	}
 
+	// ----------------------------------------------------
+
+	if (/^\d+月(\d+日)?/.test(title) || /^\d+年(\d+月)?$/.test(title)) {
+		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
+	}
+
+	if (/^訃報 2018年1?\d月$/.test(title)) {
+		return [ CeL.wiki.edit.cancel, '[[d:Special:Diff/781564206|機械翻訳修正中]]' ];
+	}
+
+	// ----------------------------------------------------
+
 	// Check if page_data had processed useing revid.
 	if (processed_data.had(page_data)) {
 		return;
@@ -494,12 +506,6 @@ function for_each_page(page_data, messages) {
 					+ CeL.wiki.title_link_of(title));
 		}
 	});
-
-	// ----------------------------------------------------
-
-	if (/^\d+月(\d+日)?/.test(title) || /^\d+年(\d+月)?$/.test(title)) {
-		return [ CeL.wiki.edit.cancel, '跳過日期條目，常會有意象化、隱喻、象徵的表達方式。' ];
-	}
 
 	// ----------------------------------------------------
 
