@@ -244,7 +244,8 @@ function upload_media(media_data, product_data, detail) {
 					+ product_data.properties.depth
 					+ ' km [[:en:depth of focus (tectonics)|depth]].' + '}}',
 			// {{Original upload date|}} (原始上傳日期)
-			'|date=' + media_data.date.format('%4Y-%2m-%2d'),
+			// [[commons:Module:ISOdate]]僅接受"YYYY-MM-DD HH:MM:SS"格式。
+			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
 			'|source=' + detail.properties.url,
 			// United States Geological Survey
 			'|author={{label|Q193755}}',
