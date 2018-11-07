@@ -7,6 +7,7 @@
 
  立即停止作業: see [[n:User:Cewbot/Stop]]
 
+ Wikimedia Toolforge 採用UTC，對 UTC+8 的新聞資料來源只能在 0時到 16時之間截取。
 
  */
 
@@ -50,7 +51,7 @@ locale = CeL.env.arg_hash && CeL.env.arg_hash.locale || '臺灣',
 add_source_data = [],
 // [ label, label, ... ]
 error_label_list = [],
-// {Object}parse_error_label_list[label _ NO] = error
+// {Object}parse_error_label_list[source_id] = error
 parse_error_label_list,
 
 use_date = new Date,
@@ -153,12 +154,14 @@ function finish_up() {
 		|| parse_error_label_list[label_NO]));
 	}
 	CeL.debug('最後將重大 parse error 通知程式作者。', 1, 'finish_up');
-	wiki.page('User talk:' + to_remind + '/parse error').edit(
+	wiki.page('User talk:' + to_remind
+	// 寫入到子頁面不會提醒使用者。
+	+ '/headline parse error').edit(
 	//
 	error_message.join('\n'), {
 		section : 'new',
-		sectiontitle : 'News parse error',
-		summary : 'News parse error report',
+		sectiontitle : 'News headline parse error',
+		summary : 'News headline parse error report',
 		nocreate : 1
 	});
 
@@ -560,8 +563,11 @@ var source_configurations = {
 			// url : 'http://www.mdnkids.com/',
 			// parser : parser_國語日報_top
 
-			// TODO: 國語日報 /news/ 可能遇到 ERR_TOO_MANY_REDIRECTS。
-			url : 'http://www.mdnkids.com/news/',
+			// TODO: 國語日報 http: /news/ 可能遇到 ERR_TOO_MANY_REDIRECTS。
+
+			// https://github.com/nodejs/node/issues/21088
+			// 國語日報的憑證有問題。node8已無法取得內容，只能用node6。
+			url : 'https://www.mdnkids.com/news/',
 			parser : parser_國語日報
 		},
 		人間福報 : {
@@ -601,7 +607,8 @@ var source_configurations = {
 			parser : parser_蘋果日報_香港
 		},
 		香港經濟日報 : {
-			url : 'http://paper.hket.com/srap001/%E8%A6%81%E8%81%9E',
+			url : 'https://paper.hket.com/srap001/要聞?dis='
+					+ use_date.format('%Y%2m%2d'),
 			parser : parser_香港經濟日報
 		},
 		成報 : {
@@ -613,7 +620,7 @@ var source_configurations = {
 			parser : parser_成報
 		},
 		香港商報 : {
-			url : 'http://www.hkcd.com.hk/node_30602.htm',
+			url : 'http://today.hkcd.com/node_2401.html',
 			parser : parser_香港商報
 		},
 
@@ -723,20 +730,22 @@ function for_source(source_id) {
 	CeL.debug(source_id + ':	' + source_data.url, 1, for_source);
 	working_queue[source_id] = source_data.url;
 
-	CeL.get_URL(source_data.url, function(XMLHttp, error) {
+	CeL.get_URL(/[^\x20-\x7f]/.test(source_data.url)
+	//
+	? encodeURI(source_data.url) : source_data.url, function(XMLHttp, error) {
 		var html = XMLHttp.responseText,
 		//
 		headline_list;
 
 		try {
-			headline_list = source_data.parser.call(source_data, html);
+			headline_list = html && source_data.parser.call(source_data, html);
 		} catch (error) {
 			if (!parse_error_label_list) {
 				parse_error_label_list = CeL.null_Object();
 			}
 			CeL.debug('Parse [' + source_id + '] (' + source_data.url + '): '
 					+ error, 0, 'next_label');
-			parse_error_label_list[label + '_' + index] = error;
+			parse_error_label_list[source_id] = error;
 		}
 
 		if (!headline_list || !headline_list.length) {
@@ -872,7 +881,7 @@ function parser_聯合報(html) {
 	var list = html.between('<div class="area category_box_list">',
 			'<div class="area category_box_list">'), headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)"[^<>]*><h2>([\s\S]+?)<\/h2><\/a><div class="info"><div class="dt">([\s\S]+?)<\/div>/g, matched;
+	PATTERN_headline = /<a href="([^"<>]+)"[^<>]*>[\s\S]*?<h2>([\s\S]+?)<\/h2><\/a><div class="info"><div class="dt">(20\d{2}-[01]\d-[0-3]\d [012]\d:[0-6]\d)<\/div>/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
 			url : 'https://udn.com' + matched[1].replace(/\?from=[^&]*$/g, ''),
@@ -880,9 +889,9 @@ function parser_聯合報(html) {
 			date : new Date(matched[3])
 		};
 
-		if (is_yesterday(headline)) {
+		if (is_today(headline)) {
 			headline_list.push(headline);
-			if (headline_list.length >= 2)
+			if (headline_list.length >= 9)
 				break;
 		}
 	}
@@ -1086,9 +1095,16 @@ function parser_大公報(html) {
 }
 
 function parser_星島日報(html) {
-	var list = html.between('<div class="top-news">', '</div>'), headline_list = [],
+	// 本新聞網站資料來源僅能取得當日之資料。
+	if (CeL.env.arg_hash.days_ago) {
+		return;
+	}
+
+	var list = html.between('<div class="top-news">', '<div class="des">'), headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)" title="([^"<>]+)">/g, matched;
+	PATTERN_headline_201805 = /<a href="([^"<>]+)" title="([^"<>]+)">/g,
+	// 201811之前改版
+	PATTERN_headline = /<a href="([^"<>]+)"[^<>]*>[\s\S]*?<h1>(.+?)<\/h1>/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
 			url : 'http://std.stheadline.com/daily/' + matched[1],
@@ -1141,16 +1157,21 @@ function parser_蘋果日報_香港(html) {
 }
 
 function parser_香港經濟日報(html) {
-	var list = html.between('>要聞</div>', '<script '), headline_list = [],
+	var list = html.between('<p class="listing-news-date"', '<footer>'), headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)"[\s\S]*? title="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
+	PATTERN_headline = /<div class="listing-title">\s*<a href="([^"<>]+)"[\s\S]*? title="([^"<>]+)"[\s\S]*?>([\s\S]+?)<\/a>/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
+		var url = matched[1];
+		if (url.startsWith('/')) {
+			// https://china.hket.com
+			url = 'https://paper.hket.com' + url;
+		}
 		var headline = {
-			url : encodeURI(matched[1]),
+			url : encodeURI(url),
 			headline : get_label(matched[2])
 		};
 		headline_list.push(headline);
-		if (headline_list.length >= 4)
+		if (headline_list.length >= 5)
 			break;
 	}
 	return headline_list;
@@ -1183,18 +1204,21 @@ function parser_成報(html) {
 function parser_香港商報(html) {
 	var list = html.between('<td class="wenzi">', ' class="wenzi"></td>'), headline_list = [],
 	//
-	PATTERN_headline = /<a href="([^"<>]+)"[^<>]*>([\s\S]+?)<\/a>\s*(?:\((\d{2}-\d{2} \d{2}:\d{2})\))?/g, matched;
+	PATTERN_headline_201805 = /<a href="([^"<>]+)"[^<>]*>([\s\S]+?)<\/a>\s*(?:\((\d{2}-\d{2} \d{2}:\d{2})\))?/g,
+	// 201811之前改版
+	PATTERN_headline = /<a href='([^"'<>]+)'[^<>]*>([\s\S]+?)<\/a>\s*(?:\((\d{4}-\d{2}-\d{2})\))?/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
-			url : 'http://www.hkcd.com.hk/' + matched[1],
+			url : 'http://today.hkcd.com/' + matched[1],
 			headline : get_label(matched[2])
 		};
 
 		if (matched[3]) {
-			headline.date = new Date(use_date.format('%Y-') + matched[3]);
+			headline.date = new Date(matched[3]);
 			if (!is_today(headline))
 				continue;
-		}
+		} else if (headline.headline.length < 8)
+			continue;
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
