@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20180511.headline.js locale=國際 wikimedia=incubator
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20180511.headline.js locale=國際 days_ago=1 wikimedia=incubator
 
 /*
 
@@ -8,6 +8,8 @@
  立即停止作業: see [[n:User:Cewbot/Stop]]
 
  Wikimedia Toolforge 採用UTC，對 UTC+8 的新聞資料來源只能在 0時到 16時之間截取。
+
+ TODO: news summary / detail
 
  */
 
@@ -22,6 +24,7 @@ CeL.run(
 'data.character');
 
 CeL.character.load('big5');
+CeL.character.load('gb2312');
 
 var working_queue = CeL.null_Object(),
 //
@@ -64,6 +67,7 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 	// e.g., days_ago=1 : 回溯取得前一天的報紙頭條新聞標題
 	use_date = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE
 			* CeL.env.arg_hash.days_ago);
+	// CeL.info('Using date: ' + use_date.format());
 }
 
 // 手動設定前一天。
@@ -457,7 +461,7 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 
 function fix_publisher(publisher) {
 	publisher = publisher.replace(/&nbsp;/g, ' ').trim()
-	//
+	// .replace(/中文網/g, '')
 	.replace(/\s+([^\s])/g, function($0, $1) {
 		// e.g., "蘋果日報 (香港)"
 		if ($1 === '(') {
@@ -663,34 +667,108 @@ var source_configurations = {
 
 	// http://hi2100.com/LIFE/NEWS.htm
 	國際 : {
-		// 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
-		自由時報 : {
-			url : 'http://news.ltn.com.tw/list/newspaper/world/'
-					+ use_date.format('%Y%2m%2d'),
-			parser : parser_自由時報
-		},
-		朝日新聞中文網 : {
-			url : 'http://www.asahichinese-f.com/',
-			parser : parser_朝日新聞中文網
-		},
-		// 日经中文网, 日本經濟新聞中文版
-		日經中文網 : {
-			url : 'http://zh.cn.nikkei.com/',
-			parser : parser_日经中文网
-		},
 		華爾街日報中文網 : {
+			flag : 'US',
 			url : 'https://cn.wsj.com/zh-hant',
 			parser : parser_華爾街日報中文網
 		},
 		紐約時報中文網 : {
+			flag : 'US',
 			// https://cn.nytimes.com/tools/r.html?url=/zh-hant/&langkey=zh-hant
 			url : 'https://cn.nytimes.com/zh-hant/',
 			parser : parser_紐約時報中文網
+		},
+
+		// 英國廣播公司BBC News 中文 國際新聞
+		英國廣播公司中文網 : {
+			flag : 'UK',
+			url : 'https://www.bbc.com/zhongwen/trad/world',
+			parser : parser_英國廣播公司BBC中文網
+		},
+		金融時報中文網 : {
+			flag : 'UK',
+			// The Financial Times Ltd
+			url : 'http://www.ftchinese.com/channel/world.html',
+			parser : parser_金融時報FT中文網
+		},
+
+		// 澳大利亞廣播公司（ABC）中文網
+		澳大利亞廣播公司中文網 : {
+			flag : 'Australia',
+			url : 'https://www.abc.net.au/news/chinese/',
+			parser : parser_澳大利亞廣播公司ABC中文網
+		},
+
+		// 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
+		自由時報 : {
+			flag : 'Taiwan',
+			url : 'http://news.ltn.com.tw/list/newspaper/world/'
+					+ use_date.format('%Y%2m%2d'),
+			parser : parser_自由時報
+		},
+
+		朝日新聞中文網 : {
+			flag : 'Japan',
+			url : 'http://www.asahichinese-f.com/',
+			parser : parser_朝日新聞中文網
+		},
+		'朝日新聞中文網 國際・東亞' : {
+			flag : 'Japan',
+			publisher : '朝日新聞中文網',
+			url : 'https://asahichinese-f.com/world/',
+			parser : parser_朝日新聞中文網_國際
+		},
+		// 日经中文网, 日本經濟新聞中文版
+		日經中文網 : {
+			flag : 'Japan',
+			url : 'http://zh.cn.nikkei.com/',
+			parser : parser_日经中文网
+		},
+
+		// 韩联社（韩国联合通讯社）| Yonhap News Agency
+		韓聯社中文網 : {
+			flag : 'South Korea',
+			charset : 'gb2312',
+			url : 'http://chinese.yonhapnews.co.kr/international/0306000001.html',
+			parser : parser_韩联社
+		},
+		// 韩国之眼 朝鲜日报网 新闻｜国际经济
+		朝鮮日報中文網 : {
+			flag : 'South Korea',
+			// http://cnnews.chosun.com/client/news/lst.asp?cate=C01&mcate=M1003
+			url : 'http://cnnews.chosun.com/client/news/lst.asp?cate=C01',
+			parser : parser_朝鲜日报网
+		},
+		東亞日報中文網 : {
+			flag : 'South Korea',
+			url : 'http://chinese.donga.com/List?c=03',
+			parser : parser_东亚日报
+		},
+		韓國中央日報中文網 : {
+			flag : 'South Korea',
+			// 韓國要聞
+			url : 'https://chinese.joins.com/big5/list.aspx?category=002002&list_type=sl',
+			parser : parser_韓國中央日報
+		},
+		// 韩民族传媒集团 韩民族日报中文网
+		韓民族日報中文網 : {
+			flag : 'South Korea',
+			// 中国·国际
+			url : 'http://china.hani.co.kr/arti/international/',
+			parser : parser_韩民族日报
+		},
+
+		// 朝鮮勞動黨 勞動新聞
+		勞動新聞中文網 : {
+			flag : 'North Korea',
+			url : 'http://www.rodong.rep.kp/cn/index.php?strPageID=SF01_01_02&iMenuID=7',
+			parser : parser_朝鲜劳动新闻
 		},
 	},
 
 	東南亞 : {
 		菲律宾商报 : {
+			flag : 'the Philippines',
 			url : 'http://www.shangbao.com.ph/',
 			parser : parser_菲律宾商报
 		},
@@ -701,20 +779,24 @@ var source_configurations = {
 		 * <code>
 		// use https://projectshield.withgoogle.com/public/
 		光华日报 : {
+			flag : 'Malaysia',
 			url : 'http://www.kwongwah.com.my/',
 			parser : parser_光华日报
 		},
 		</code>
 		 */
 		馬來西亞東方日報 : {
+			flag : 'Malaysia',
 			url : 'http://www.orientaldaily.com.my/',
 			parser : parser_馬來西亞東方日報
 		},
 		星洲网 : {
+			flag : 'Singapore',
 			url : 'http://www.sinchew.com.my/news/',
 			parser : parser_星洲网
 		},
 		联合早报 : {
+			flag : 'Singapore',
 			url : 'https://www.zaobao.com.sg/znews/singapore',
 			parser : parser_联合早报
 		},
@@ -743,8 +825,8 @@ function for_source(source_id) {
 			if (!parse_error_label_list) {
 				parse_error_label_list = CeL.null_Object();
 			}
-			CeL.debug('Parse [' + source_id + '] (' + source_data.url + '): '
-					+ error, 0, 'next_label');
+			CeL.error('next_label: Parse [' + source_id + '] ('
+					+ source_data.url + '): ' + error);
 			parse_error_label_list[source_id] = error;
 		}
 
@@ -758,15 +840,17 @@ function for_source(source_id) {
 
 		if (!(source_data.url in label_cache_hash)) {
 			CeL.debug('登記url，以避免重複加入url: ' + source_data.url, 1, 'for_source');
-			var title = source_id + '頭條要聞', publisher = source_id;
+			var title = source_id + '頭條要聞', publisher = source_data.publisher
+					|| source_id;
 			add_source_data.push('* {{Source|url='
 					//
 					+ (source_data.display_url ? source_data.display_url
 							+ '|source_url=' : '')
-					//
 					+ source_data.url
 					//
-					+ '|title=' + title.replace(/[\s\|]+/g, ' ')
+					+ '|title='
+					+ (source_data.flag ? '{{Flagicon|' + source_data.flag
+							+ '}}' : '') + title.replace(/[\s\|]+/g, ' ')
 					// 不填作者:這些來源有些根本也沒附摘錄者，因此想填作者也不成
 					// + '|author=' + publisher
 					//
@@ -782,7 +866,9 @@ function for_source(source_id) {
 		headline_list.forEach(function(headline_data) {
 			if (!headline_data.source_id)
 				headline_data.source_id = source_id;
-			add_headline(source_id, headline_data, source_id);
+			// publisher: label 將會連結到維基百科上面的介紹頁面
+			add_headline(source_data.publisher || source_id, headline_data,
+					source_id);
 		});
 		// console.log(headline_list);
 		check_queue(source_id);
@@ -814,17 +900,17 @@ function check_queue(finished_work) {
 
 // ----------------------------------------------------------------------------
 
+// @see function get_label(html) @CeL.application.net.work_crawler
 function get_label(html) {
-	if (html) {
-		return CeL.HTML_to_Unicode(
-				html.replace(/<!--[\s\S]*?-->/g, '').replace(
-						/\s*<br(?:\/| [^<>]*)?>/ig, '\n').replace(/<[^<>]+>/g,
-						'')
-				// incase 以"\r"為主。
-				.replace(/\r\n?/g, '\n')).trim()
-		// .replace(/\s{2,}/g, ' ').replace(/\s?\n+/g, '\n')
-		;
-	}
+	return html ? CeL.HTML_to_Unicode(
+			html.replace(/<!--[\s\S]*?-->/g, '').replace(
+					/\s*<br(?:\/| [^<>]*)?>/ig, '\n').replace(
+					/<\/?[a-z][^<>]*>/g, '')
+			// incase 以"\r"為主。 e.g., 起点中文网
+			.replace(/\r\n?/g, '\n')).trim().replace(
+			/[\s\u200B]+$|^[\s\u200B]+/g, '')
+	// .replace(/\s{2,}/g, ' ').replace(/\s?\n+/g, '\n')
+	: '';
 }
 
 function is_today(date) {
@@ -840,6 +926,10 @@ function is_yesterday(date) {
 	var timevalue_diff = today - (CeL.is_Date(date) ? date : date.date);
 	return 0 <= timevalue_diff && timevalue_diff < ONE_DAY_LENGTH_VALUE;
 }
+
+// ----------------------------------------------------------------------------
+
+var PATTERN_link_inner_title = /<a [^<>]*?href=["']([^"'<>]+)["'][^<>]*>([\s\S]+?)<\/a>/;
 
 // ----------------------------------------------------------------------------
 
@@ -1325,6 +1415,129 @@ function parser_环球时报(html) {
 
 // ------------------------------------
 
+function parser_華爾街日報中文網(html) {
+	var list = html.between('<span>今日要聞</span>', '<div class="WSJChinaTheme__'), headline_list = [],
+	//
+	PATTERN_headline = /<h3[^<>]*?><a [^<>]*?href="([^"<>]+)"[^<>]*?>([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2])
+		};
+		matched = headline.url
+		// 由網址判斷新聞日期。
+		.match(/-(20\d{2})([01]\d)([0-3]\d)([0-2]\d)([0-5]\d)([0-5]\d)/);
+		if (matched) {
+			headline.date = new Date(matched[1] + '-' + matched[2] + '-'
+					+ matched[3] + 'T' + matched[4] + ':' + matched[5] + ':'
+					+ matched[6]);
+			if (!is_today(headline))
+				continue;
+		}
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_紐約時報中文網(html) {
+	var list = html.between('<div class="leadNewsContainer"',
+			'<div class="headlineOnly'), headline_list = [],
+	// <h3 class="regularSummaryHeadline"><a target="_blank"
+	// href="/usa/20181108/.../" title="...">...</a></h3>
+	PATTERN_headline = /Headline"><a [^<>]*?href="([^"<>]+)" title="([^"<>]+)"[^<>]*?>([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'https://cn.nytimes.com/' + matched[1],
+			headline : get_label(matched[3])
+		}, date = matched[1].match(/\/(20\d{2})([01]\d)([0-3]\d)\//);
+		if (date) {
+			headline.date = new Date(date[1] + '-' + date[2] + '-' + date[3]);
+			if (!is_today(headline))
+				continue;
+		}
+		if (matched[2] !== headline.headline)
+			headline.headline += ' ' + matched[2];
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_英國廣播公司BBC中文網(html) {
+	var list = html, headline_list = [];
+	list.each_between('<div class="eagle-item__body">',
+	//
+	'<div class="eagle-item faux-block-link" >', function(token) {
+		var matched = token.match(/<a [^<>]*?href=["']([^"'<>]+)["'][^<>]*>/);
+		var headline = {
+			url : 'https://www.bbc.com' + matched[1],
+			headline : get_label(token.between(
+					'<span class="title-link__title-text">', '</span>')),
+			date : token.between('data-datetime="', '"').to_Date()
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_金融時報FT中文網(html) {
+	var list = html, headline_list = [];
+	list.each_between('<h2 class="item-headline">',
+	//
+	'<div class="item-bottom">', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
+		var headline = {
+			url : 'http://www.ftchinese.com' + matched[1],
+			headline : get_label(matched[2])
+		}, date = token.between('<div class="item-time">', '</div>');
+		if (date) {
+			// "<div class="item-time">1天前</div>"
+			if (matched = date.match(/(\d)天前/)) {
+				headline.date = new Date(Date.now() - ONE_DAY_LENGTH_VALUE
+						* matched[1]);
+			} else if (date = date.to_Date()) {
+				headline.date = date;
+			}
+		}
+		if (headline.date && !is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_澳大利亞廣播公司ABC中文網(html) {
+	var list = html.between('<ul class="article-index">',
+			'<div class="nav pagination">'), headline_list = [];
+	list.each_between('<li>', '</li>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
+		var headline = {
+			url : 'https://www.abc.net.au' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(matched[1].match(
+			//
+			/\/(20\d{2}-[01]\d-[0-3]\d)\//)[1])
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
 function parser_朝日新聞中文網(html) {
 	var list = html.between(' class="Section ZhTopNews"', ' class="Section"'), headline_list = [],
 	//
@@ -1342,6 +1555,27 @@ function parser_朝日新聞中文網(html) {
 				break;
 		}
 	}
+	return headline_list;
+}
+
+function parser_朝日新聞中文網_國際(html) {
+	var list = html.between('<div class="Section Headlines">',
+			'<div class="pagination">'), headline_list = [];
+	list.each_between('<li>', '</li>', function(token) {
+		var matched = token
+		// <a href="/world/000" rel="bookmark">... <span class="New">
+		.match(/<a [^<>]*?href=["']([^"'<>]+)["'][^<>]*>([^<>]+)/);
+		var headline = {
+			url : 'https://asahichinese-f.com' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(token.between('<span class="Date">', '</span>'))
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
 	return headline_list;
 }
 
@@ -1374,55 +1608,132 @@ function parser_日经中文网(html) {
 	return headline_list;
 }
 
-function parser_華爾街日報中文網(html) {
-	var list = html.between('<span>今日要聞</span>', '<div class="WSJChinaTheme__'), headline_list = [],
-	//
-	PATTERN_headline = /<h3[^<>]*?><a [^<>]*?href="([^"<>]+)"[^<>]*?>([\s\S]+?)<\/a>/g, matched;
-	while (matched = PATTERN_headline.exec(list)) {
+function parser_韩联社(html) {
+	var list = html.between('<div class="con_article_list">',
+			'<div id="footer">'), headline_list = [];
+	list.each_between('<li', '</li>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
 		var headline = {
 			url : matched[1],
-			headline : get_label(matched[2])
+			headline : get_label(matched[2]),
+			date : new Date(
+			// new Date(token.between(' class="date">', '</span>'))
+			// 由網址判斷新聞日期。
+			matched[1].match(/\/(20\d{2}\/[01]\d\/[0-3]\d)\//)[1])
 		};
-		matched = headline.url
-		// 由網址判斷新聞日期。
-		.match(/-(20\d{2})([01]\d)([0-3]\d)([0-2]\d)([0-5]\d)([0-5]\d)/);
-		if (matched) {
-			headline.date = new Date(matched[1] + '-' + matched[2] + '-'
-					+ matched[3] + 'T' + matched[4] + ':' + matched[5] + ':'
-					+ matched[6]);
-			if (!is_today(headline))
-				continue;
-		}
+		if (!is_today(headline))
+			return;
 
-		headline_list.push(headline);
-		if (headline_list.length >= 9)
-			break;
-	}
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
 	return headline_list;
 }
 
-function parser_紐約時報中文網(html) {
-	var list = html.between('<div class="leadNewsContainer"',
-			'<div class="headlineOnly'), headline_list = [],
-	//
-	PATTERN_headline = /Headline"><a [^<>]*?href="([^"<>]+)" title="([^"<>]+)"[^<>]*?>([\s\S]+?)<\/a>/g, matched;
-	while (matched = PATTERN_headline.exec(list)) {
+function parser_朝鲜日报网(html) {
+	var list = html.between('<div id="contents">', '<div id="right_wrap">'), headline_list = [];
+	list.each_between('<div class="tc text">', '</li>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
 		var headline = {
-			url : 'https://cn.nytimes.com/' + matched[1],
-			headline : get_label(matched[3])
-		}, date = matched[1].match(/\/(20\d{2})([01]\d)([0-3]\d)\//);
-		if (date) {
-			headline.date = new Date(date[1] + '-' + date[2] + '-' + date[3]);
-			if (!is_today(headline))
-				continue;
-		}
-		if (matched[2] !== headline.headline)
-			headline.headline += ' ' + matched[2];
+			url : 'http://cnnews.chosun.com/client/news/' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(token.between(' class="date">', '</dd>').match(
+					/[^\d](20\d{2}-[01]\d-[0-3]\d)/)[1])
+		};
+		if (!is_today(headline))
+			return;
 
-		headline_list.push(headline);
-		if (headline_list.length >= 9)
-			break;
-	}
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_东亚日报(html) {
+	var list = html.between('<ul id="newsList">', '</ul>'), headline_list = [];
+	list.each_between('<li', '</li>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
+		var headline = {
+			url : 'http://cnnews.chosun.com/client/news/' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(token.between(" class='date'>", '</span>'))
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+var PATTERN_韓國中央日報_headline = /<a [^<>]*?href=["'](?:\.\/)?([^"'<>]+)["'] class="a04"[^<>]*>([\s\S]+?)<\/a>\s*<p[^<>]*>([\s\S]+)<\/p>/;
+function parser_韓國中央日報(html) {
+	var list = html.between('<div class="a00">', '<div class="footer">'), headline_list = [];
+	list.each_between('<div class="a01">', '</div>', function(token) {
+		var matched = token.match(PATTERN_韓國中央日報_headline);
+		var headline = {
+			url : 'https://chinese.joins.com/big5/' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(matched[3])
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_韩民族日报(html) {
+	var list = html.between('<ul class="main-result-list">', '</ul>'), headline_list = [];
+	list.each_between('<li', '</li>', function(token) {
+		var matched = token
+				.match(/<dt><a [^<>]*?href="([^"<>]+)"[^<>]*>([\s\S]+?)<\/a>/);
+		var headline = {
+			url : 'http://china.hani.co.kr' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(token.between(' class="date">', '</dd>'))
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_朝鲜劳动新闻(html) {
+	var list = html.between('<div class="ListNewsContainer">',
+			'<div class="FooterContainer">'), headline_list = [];
+	list.each_between('<div class="ListNewsLineTitleW">',
+	//
+	'<div class="ListNewsLineContainer">', function(token) {
+		var matched = token
+		// href="javascript:article_open('index.php?strPageID=SF01_02_01&newsID=2018-11-09-0006')">
+		.match(/<a [^<>]*?href="([^"<>]+)"[^<>]*>([\s\S]+?)<\/a>/);
+		if (matched[1].startsWith('javascript:')) {
+			matched[1] = matched[1].match(/index\.php[^'"]+/)[0];
+		}
+		var headline = {
+			url : 'http://www.rodong.rep.kp/cn/' + matched[1],
+			headline : get_label(matched[2]),
+			// e.g., "2018.11.09"
+			date : new Date(token.between('ListNewsLineDate">', '</div>'))
+		};
+		if (false && headline.headline.includes('金正')) {
+			// 宣傳
+			return;
+		}
+
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
 	return headline_list;
 }
 
