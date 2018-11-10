@@ -461,7 +461,7 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 
 function fix_publisher(publisher) {
 	publisher = publisher.replace(/&nbsp;/g, ' ').trim()
-	// .replace(/中文網/g, '')
+	// .replace(/中文網|華文/g, '')
 	.replace(/\s+([^\s])/g, function($0, $1) {
 		// e.g., "蘋果日報 (香港)"
 		if ($1 === '(') {
@@ -513,7 +513,7 @@ function add_headline(publisher, headline_data, source) {
 // ----------------------------------------------------------------------------
 
 var source_configurations = {
-	// 臺灣主要報刊 頭條 要聞
+	// 臺灣主要報刊 頭條 要聞 焦點話題
 	// 自由時報: 6點的時候可能還是昨天的新聞
 	// 人間福報, 青年日報: 可能到下午才會出新訊息
 	臺灣 : {
@@ -642,6 +642,7 @@ var source_configurations = {
 	// [[中国大陆报纸列表]]
 	中國大陸 : {
 		人民日报 : {
+			flag : 'China',
 			// http://paper.people.com.cn/rmrb/
 			url : 'http://paper.people.com.cn/rmrb/html/'
 					+ use_date.format('%Y-%2m/%2d/')
@@ -649,24 +650,42 @@ var source_configurations = {
 			parser : parser_人民日报
 		},
 		广州日报 : {
+			flag : 'China',
 			url : 'http://gzdaily.dayoo.com/pc/html/'
 					+ use_date.format('%Y-%2m/%2d/') + 'node_1.htm',
 			parser : parser_广州日报
 		},
 		南方日报 : {
+			flag : 'China',
 			url : 'http://epaper.southcn.com/nfdaily/html/'
 					+ use_date.format('%Y-%2m/%2d/') + 'node_2.htm',
 			parser : parser_南方日报
 		},
 		// http://www.ckxxbao.com/
 		参考消息 : {
+			flag : 'China',
 			url : 'http://www.cankaoxiaoxi.com/china/szyw/',
 			parser : parser_参考消息
 		},
 		环球时报 : {
+			flag : 'China',
 			url : 'http://www.fx361.com/bk/hqsb/'
 					+ use_date.format('%Y-%2m-%2d') + '.html',
 			parser : parser_环球时报
+		},
+
+		明報 : {
+			flag : 'Hong Kong',
+			url : 'https://news.mingpao.com/pns/中國/section/'
+					+ use_date.format('%Y%2m%2d') + '/s00013',
+			parser : parser_明報
+		},
+
+		金融時報中文網 : {
+			flag : 'UK',
+			// 中国
+			url : 'http://www.ftchinese.com/channel/china.html',
+			parser : parser_金融時報FT中文網
 		},
 	},
 
@@ -697,9 +716,10 @@ var source_configurations = {
 			url : 'https://www.bbc.com/zhongwen/trad/world',
 			parser : parser_英國廣播公司BBC中文網
 		},
+		// The Financial Times Ltd
 		金融時報中文網 : {
 			flag : 'UK',
-			// The Financial Times Ltd
+			// 全球
 			url : 'http://www.ftchinese.com/channel/world.html',
 			parser : parser_金融時報FT中文網
 		},
@@ -720,7 +740,13 @@ var source_configurations = {
 		},
 
 		// 國際 - 20181110 - 每日明報 - 明報新聞網
-		// https://news.mingpao.com/pns/%E5%9C%8B%E9%9A%9B/section/20181110/s00014
+		明報 : {
+			flag : 'Hong Kong',
+			// https://news.mingpao.com/pns/國際/section/20181110/s00014
+			url : 'https://news.mingpao.com/pns/國際/section/'
+					+ use_date.format('%Y%2m%2d') + '/s00014',
+			parser : parser_明報
+		},
 
 		朝日新聞中文網 : {
 			flag : 'Japan',
@@ -798,6 +824,7 @@ var source_configurations = {
 			url : 'http://www.orientaldaily.com.my/',
 			parser : parser_馬來西亞東方日報
 		},
+
 		星洲网 : {
 			flag : 'Singapore',
 			url : 'http://www.sinchew.com.my/news/',
@@ -809,8 +836,28 @@ var source_configurations = {
 			parser : parser_联合早报
 		},
 
-	// http://www.udnbkk.com/
-	// 泰國現有6家中文報紙，即《世界日報》（銷量最大、廣告最多）、《星暹日報》（微信公賬號做得最成功）、《亞洲日報》（最本土化，每天都有泰國時評）、《中華日報》(唯一一家上市公司)、《京華中原聯合報》及《新中原報》。
+		// 泰國現有6家中文報紙，即《世界日報》（銷量最大、廣告最多）、《星暹日報》（微信公賬號做得最成功）、《亞洲日報》（最本土化，每天都有泰國時評）、《中華日報》(唯一一家上市公司)、《京華中原聯合報》及《新中原報》。
+		世界日報 : {
+			flag : 'Thailand',
+			url : 'http://www.udnbkk.com/portal.php?mod=list&catid=63',
+			parser : parser_世界日報
+		},
+
+		// 越南 - FT中文网
+		// http://www.ftchinese.com/tag/%E8%B6%8A%E5%8D%97
+		越南人民報網 : {
+			flag : 'Vietnam',
+			// 首頁無日期
+			// 最新資訊 http://cn.nhandan.com.vn/newest.html
+			url : 'http://cn.nhandan.com.vn/hotnews.html',
+			parser : parser_越南人民报网
+		},
+		// http://blog.sina.com.cn/s/blog_55a231f40100sdsd.html
+		華文西貢解放日報 : {
+			flag : 'Vietnam',
+			url : 'http://cn.sggp.org.vn/',
+			parser : parser_華文西貢解放日報
+		},
 	},
 
 }[locale];
@@ -1887,6 +1934,74 @@ function parser_联合早报(html) {
 				break;
 		}
 	}
+	return headline_list;
+}
+
+function parser_世界日報(html) {
+	var list = html.between('<div class="fornews_bb">', '<div class="pg">'), headline_list = [];
+	list.each_between('<div class="bb_div">', '</dl>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(token.match(
+			// <dd>...<p>2018-11-9 05:01</p></dd>
+			/<dd>[^<>]+<p>(20\d{2}-[01]?\d-[0-3]?\d [012]\d:[0-6]\d)<\/p><\/dd>/
+			//
+			)[1])
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_越南人民报网(html) {
+	var list = html.between('<ul class="breadcrumb">', '同类别新闻:</h3>'), headline_list = [];
+	// <h4 class="media-heading" style="..."><a class="pull-left"
+	// href="/hotnews/item/6570001-....html">...</a></h4>
+	// ...
+	// <small class="text-muted">(2018年11月10日 星期六)</small>
+
+	// or:
+	// <h4 class="media-heading" style="margin-top:10px;min-height: 60px;"><a
+	// class="pull-left" href="/international/item/6546701-....html">...<small
+	// class="text-muted">&nbsp;(2018年11月01日 星期四)</small></a></h4>
+	list.each_between('<h4 class="media-heading"', '</small>', function(token) {
+		var matched = token.match(/<a [^<>]*?href="([^"<>]+)">([^<>]+)/);
+		var headline = {
+			url : 'http://cn.nhandan.com.vn' + matched[1],
+			headline : get_label(matched[2]),
+			date : token.between('<small class="text-muted">').to_Date()
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_華文西貢解放日報(html) {
+	var list = html.between('<div id="site-content">',
+			'<div class="zone-top-story">'), headline_list = [];
+	list.each_between('<h2 class="title">', '</article>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
+		var headline = {
+			url : 'http://cn.sggp.org.vn' + matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(token.between('<time datetime="', '">'))
+		};
+		if (!is_today(headline))
+			return;
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
 	return headline_list;
 }
 
