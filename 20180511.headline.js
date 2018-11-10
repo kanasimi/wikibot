@@ -597,6 +597,7 @@ var source_configurations = {
 		},
 		星島日報 : {
 			url : 'http://std.stheadline.com/daily/daily.php',
+			today_only : true,
 			parser : parser_星島日報
 		},
 		東方日報 : {
@@ -801,9 +802,11 @@ var source_configurations = {
 	},
 
 	東南亞 : {
+		// 菲律賓商報
 		菲律宾商报 : {
 			flag : 'the Philippines',
 			url : 'http://www.shangbao.com.ph/',
+			today_only : true,
 			parser : parser_菲律宾商报
 		},
 
@@ -825,9 +828,11 @@ var source_configurations = {
 			parser : parser_馬來西亞東方日報
 		},
 
+		// 星洲網
 		星洲网 : {
 			flag : 'Singapore',
 			url : 'http://www.sinchew.com.my/news/',
+			today_only : true,
 			parser : parser_星洲网
 		},
 		联合早报 : {
@@ -866,6 +871,11 @@ function for_source(source_id) {
 	var source_data = source_configurations[source_id];
 	CeL.debug(source_id + ':	' + source_data.url, 1, for_source);
 	working_queue[source_id] = source_data.url;
+
+	if (source_data.today_only && CeL.env.arg_hash.days_ago) {
+		// 本新聞網站資料來源僅能取得當日之資料。
+		return;
+	}
 
 	CeL.get_URL(/[^\x20-\x7f]/.test(source_data.url)
 	//
@@ -1241,11 +1251,6 @@ function parser_大公報(html) {
 }
 
 function parser_星島日報(html) {
-	// 本新聞網站資料來源僅能取得當日之資料。
-	if (CeL.env.arg_hash.days_ago) {
-		return;
-	}
-
 	var list = html.between('<div class="top-news">', '<div class="des">'), headline_list = [],
 	//
 	PATTERN_headline_201805 = /<a href="([^"<>]+)" title="([^"<>]+)">/g,
