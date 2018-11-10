@@ -600,6 +600,7 @@ var source_configurations = {
 			parser : parser_星島日報
 		},
 		東方日報 : {
+			// http://orientaldaily.on.cc/cnt/news/index.html
 			url : 'http://orientaldaily.on.cc/cnt/news/'
 					+ use_date.format('%Y%2m%2d') + '/js/articleList-news.js',
 			display_url : 'http://orientaldaily.on.cc/cnt/main/'
@@ -627,9 +628,13 @@ var source_configurations = {
 			url : 'http://today.hkcd.com/node_2401.html',
 			parser : parser_香港商報
 		},
-
-	// 明報
-	// https://news.mingpao.com/pns/%E8%A6%81%E8%81%9E/web_tc/section/20180512/s00001
+		明報 : {
+			// https://news.mingpao.com/pns/要聞/section/20181110/s00001
+			// https://news.mingpao.com/pns/要聞/web_tc/section/20180512/s00001
+			url : 'https://news.mingpao.com/pns/要聞/section/'
+					+ use_date.format('%Y%2m%2d') + '/s00001',
+			parser : parser_明報
+		},
 	},
 
 	// [[澳門報紙列表]]
@@ -667,6 +672,13 @@ var source_configurations = {
 
 	// http://hi2100.com/LIFE/NEWS.htm
 	國際 : {
+		// 朝鮮勞動黨 勞動新聞
+		勞動新聞中文網 : {
+			flag : 'North Korea',
+			url : 'http://www.rodong.rep.kp/cn/index.php?strPageID=SF01_01_02&iMenuID=7',
+			parser : parser_朝鲜劳动新闻
+		},
+
 		華爾街日報中文網 : {
 			flag : 'US',
 			url : 'https://cn.wsj.com/zh-hant',
@@ -706,6 +718,9 @@ var source_configurations = {
 					+ use_date.format('%Y%2m%2d'),
 			parser : parser_自由時報
 		},
+
+		// 國際 - 20181110 - 每日明報 - 明報新聞網
+		// https://news.mingpao.com/pns/%E5%9C%8B%E9%9A%9B/section/20181110/s00014
 
 		朝日新聞中文網 : {
 			flag : 'Japan',
@@ -756,13 +771,6 @@ var source_configurations = {
 			// 中国·国际
 			url : 'http://china.hani.co.kr/arti/international/',
 			parser : parser_韩民族日报
-		},
-
-		// 朝鮮勞動黨 勞動新聞
-		勞動新聞中文網 : {
-			flag : 'North Korea',
-			url : 'http://www.rodong.rep.kp/cn/index.php?strPageID=SF01_01_02&iMenuID=7',
-			parser : parser_朝鲜劳动新闻
 		},
 	},
 
@@ -1027,7 +1035,8 @@ function parser_中國時報(html) {
 			type : get_label(matched[3])
 		};
 
-		matched = matched[1].match(/\/(20\d{2})([01]\d)([0-3]\d)/);
+		// 由網址判斷新聞日期。
+		matched = headline.url.match(/\/(20\d{2})([01]\d)([0-3]\d)/);
 		if (matched) {
 			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
 			headline.date = new Date(matched);
@@ -1309,6 +1318,45 @@ function parser_香港商報(html) {
 				continue;
 		} else if (headline.headline.length < 8)
 			continue;
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_明報(html) {
+	var list = html.between('<div class="title">', '<div class="refbox">'), headline_list = [],
+	/**
+	 * <code>
+	GOOD:
+	<div class="right">  \n  <a href="../pns/dailynews/web_tc/article/20181106/s00001/0000"><h1>...<img src="../image/video_icon.gif" class="video_icon"></h1></a>   \n   </div>
+	NG:
+	<a href="../pns/dailynews/web_tc/article/20181106/s00001/0000" title="...">
+	<div class="figure_wrapper"><figure><a href="../pns/dailynews/web_tc/article/20181106/s00001/0000" title="..."> <img class="lazy" src="../image/grey.gif" data-original="..." alt="..."> </a> </figure>
+
+	GOOD:
+	<li class="list_sub"> <a href="../pns/dailynews/web_tc/article/20181106/s00001/0000">...  </a></li>
+	<li class="list1"> <a href="../pns/dailynews/web_tc/article/20181106/s00001/0000">...  </a></li>
+
+	</code>
+	 */
+	PATTERN_headline = /<a href="\.\.([^"<>]+)"[^<>]*>([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'https://news.mingpao.com' + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		// 由網址判斷新聞日期。
+		matched = headline.url.match(/\/(20\d{2})([01]\d)([0-3]\d)\//);
+		if (matched) {
+			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
+			headline.date = new Date(matched);
+			if (!is_today(headline))
+				continue;
+		}
 
 		headline_list.push(headline);
 		if (headline_list.length >= 9)
@@ -1654,7 +1702,7 @@ function parser_东亚日报(html) {
 	list.each_between('<li', '</li>', function(token) {
 		var matched = token.match(PATTERN_link_inner_title);
 		var headline = {
-			url : 'http://cnnews.chosun.com/client/news/' + matched[1],
+			url : matched[1],
 			headline : get_label(matched[2]),
 			date : new Date(token.between(" class='date'>", '</span>'))
 		};
