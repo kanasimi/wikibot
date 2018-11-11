@@ -518,52 +518,62 @@ var source_configurations = {
 	// 人間福報, 青年日報: 可能到下午才會出新訊息
 	臺灣 : {
 		自由時報 : {
+			flag : 'Taiwan',
 			url : 'http://news.ltn.com.tw/list/newspaper/focus/'
 					+ use_date.format('%Y%2m%2d'),
 			parser : parser_自由時報_頭版新聞
 		},
 		蘋果日報 : {
+			flag : 'Taiwan',
 			url : 'https://tw.news.appledaily.com/headline/daily',
 			parser : parser_蘋果日報_臺灣
 		},
 		聯合報 : {
+			flag : 'Taiwan',
 			url : 'https://udn.com/news/cate/2/6638',
 			parser : parser_聯合報
 		},
 		聯合電子報 : {
+			flag : 'Taiwan',
 			url : 'http://paper.udn.com/papers.php?pname=PID0001',
 			parser : parser_聯合電子報
 		},
 		// 聯合財經網 來自最具權威的財經新聞報「經濟日報」
 		// TODO: https://money.udn.com/money/index
 		經濟日報 : {
+			flag : 'Taiwan',
 			url : 'http://paper.udn.com/papers.php?pname=PID0008',
 			parser : parser_聯合電子報
 		},
 		// udn午後快報
 		聯合晚報 : {
+			flag : 'Taiwan',
 			url : 'http://paper.udn.com/papers.php?pname=PID0003',
 			parser : parser_聯合電子報
 		},
 
 		// 中時電子報 焦點要聞 可以得到完整標題
 		中國時報 : {
+			flag : 'Taiwan',
 			// url : 'http://www.chinatimes.com/newspapers/',
 			url : 'http://www.chinatimes.com/newspapers/260102',
 			parser : parser_中國時報
 		},
 		// 財經要聞
 		工商時報 : {
+			flag : 'Taiwan',
 			url : 'http://www.chinatimes.com/newspapers/260202',
 			parser : parser_中國時報
 		},
 		// 焦點新聞
 		旺報 : {
+			flag : 'Taiwan',
 			url : 'http://www.chinatimes.com/newspapers/260301',
 			parser : parser_中國時報
 		},
 
 		國語日報 : {
+			flag : 'Taiwan',
 			// url : 'http://www.mdnkids.com/',
 			// parser : parser_國語日報_top
 
@@ -575,11 +585,13 @@ var source_configurations = {
 			parser : parser_國語日報
 		},
 		人間福報 : {
+			flag : 'Taiwan',
 			// 今日新聞/焦點/
 			url : 'http://merit-times.net/category/%E4%BB%8A%E6%97%A5%E6%96%B0%E8%81%9E/%E7%84%A6%E9%BB%9E/',
 			parser : parser_人間福報
 		},
 		青年日報 : {
+			flag : 'Taiwan',
 			url : 'https://www.ydn.com.tw/News/List/2',
 			parser : parser_青年日報
 		},
@@ -587,20 +599,24 @@ var source_configurations = {
 
 	香港 : {
 		文匯報 : {
+			flag : 'Hong Kong',
 			url : 'http://pdf.wenweipo.com/index.html',
 			charset : 'big5',
 			parser : parser_文匯報
 		},
 		大公報 : {
+			flag : 'Hong Kong',
 			url : 'http://news.takungpao.com/paper/',
 			parser : parser_大公報
 		},
 		星島日報 : {
+			flag : 'Hong Kong',
 			url : 'http://std.stheadline.com/daily/daily.php',
 			today_only : true,
 			parser : parser_星島日報
 		},
 		東方日報 : {
+			flag : 'Hong Kong',
 			// http://orientaldaily.on.cc/cnt/news/index.html
 			url : 'http://orientaldaily.on.cc/cnt/news/'
 					+ use_date.format('%Y%2m%2d') + '/js/articleList-news.js',
@@ -609,15 +625,18 @@ var source_configurations = {
 			parser : parser_東方日報
 		},
 		蘋果日報 : {
+			flag : 'Hong Kong',
 			url : 'https://hk.appledaily.com/catalog/index/',
 			parser : parser_蘋果日報_香港
 		},
 		香港經濟日報 : {
+			flag : 'Hong Kong',
 			url : 'https://paper.hket.com/srap001/要聞?dis='
 					+ use_date.format('%Y%2m%2d'),
 			parser : parser_香港經濟日報
 		},
 		成報 : {
+			flag : 'Hong Kong',
 			// http://www.singpao.com.hk/index.php?fi=newspdf
 			url : 'http://www.singpao.com.hk/index.php?fi=history',
 			post_data : {
@@ -626,10 +645,12 @@ var source_configurations = {
 			parser : parser_成報
 		},
 		香港商報 : {
+			flag : 'Hong Kong',
 			url : 'http://today.hkcd.com/node_2401.html',
 			parser : parser_香港商報
 		},
 		明報 : {
+			flag : 'Hong Kong',
 			// https://news.mingpao.com/pns/要聞/section/20181110/s00001
 			// https://news.mingpao.com/pns/要聞/web_tc/section/20180512/s00001
 			url : 'https://news.mingpao.com/pns/要聞/section/'
@@ -639,6 +660,23 @@ var source_configurations = {
 	},
 
 	// [[澳門報紙列表]]
+	澳門 : {
+		// 澳門日報電子版
+		澳門日報 : {
+			flag : 'Macau',
+			// 本期標題導航
+			url : 'http://www.macaodaily.com/html/'
+					+ use_date.format('%Y-%2m/%2d') + '/node_1.htm',
+			parser : parser_澳門日報
+		},
+		華僑報 : {
+			flag : 'Macau',
+			today_only : true,
+			url : 'http://www.vakiodaily.com/site/history/id/'
+					+ use_date.format('%Y%2m%2d'),
+			parser : parser_華僑報
+		},
+	},
 
 	// [[中国大陆报纸列表]]
 	中國大陸 : {
@@ -874,6 +912,7 @@ function for_source(source_id) {
 
 	if (source_data.today_only && CeL.env.arg_hash.days_ago) {
 		// 本新聞網站資料來源僅能取得當日之資料。
+		check_queue(source_id);
 		return;
 	}
 
@@ -1419,6 +1458,47 @@ function parser_明報(html) {
 
 // ------------------------------------
 
+function parser_澳門日報(html) {
+	// <div class="list" id="all_article_list">
+	var list = html.between(' id="all_article_list"', '</table>'), headline_list = [];
+	list.each_between('<li', '</li>', function(token) {
+		// <a href=content_1309125.htm>保利達四舖二百車位遭扣押</a>
+		var matched = token
+				.match(/<a [^<>]*?href=([^"'<>\s]+)[^<>]*>([\s\S]+?)<\/a>/);
+		if (!matched)
+			CeL.error('parser_澳門日報: ' + token);
+		var headline = {
+			url : 'http://www.macaodaily.com/html/'
+					+ use_date.format('%Y-%2m/%2d') + '/' + matched[1],
+			headline : get_label(matched[2]),
+		};
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_華僑報(html) {
+	var list = html.between("<div class='title'>",
+			'<div class="main_page_column2">'), headline_list = [],
+	//
+	PATTERN_headline = /<a [^<>]*?href="([^"'<>]+)"[^<>]*>([\s\S]+?)<\/a>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://www.vakiodaily.com' + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+// ------------------------------------
+
 function parser_人民日报(html) {
 	var list = html, headline_list = [],
 	//
@@ -1620,7 +1700,7 @@ function parser_金融時報FT中文網(html) {
 function parser_澳大利亞廣播公司ABC中文網(html) {
 	var list = html.between('<ul class="article-index">',
 			'<div class="nav pagination">'), headline_list = [];
-	list.each_between('<li>', '</li>', function(token) {
+	list.each_between('<li', '</li>', function(token) {
 		var matched = token.match(PATTERN_link_inner_title);
 		var headline = {
 			url : 'https://www.abc.net.au' + matched[1],
@@ -1661,7 +1741,7 @@ function parser_朝日新聞中文網(html) {
 function parser_朝日新聞中文網_國際(html) {
 	var list = html.between('<div class="Section Headlines">',
 			'<div class="pagination">'), headline_list = [];
-	list.each_between('<li>', '</li>', function(token) {
+	list.each_between('<li', '</li>', function(token) {
 		var matched = token
 		// <a href="/world/000" rel="bookmark">... <span class="New">
 		.match(/<a [^<>]*?href=["']([^"'<>]+)["'][^<>]*>([^<>]+)/);
