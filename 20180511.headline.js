@@ -676,6 +676,29 @@ var source_configurations = {
 					+ use_date.format('%Y%2m%2d'),
 			parser : parser_華僑報
 		},
+		// Today Macao 現代澳門日報
+		現代澳門日報 : {
+			flag : 'Macau',
+			url : 'http://www.todaymacao.com/' + use_date.format('%Y/%2m/%2d/'),
+			parser : parser_現代澳門日報
+		},
+		星報 : {
+			flag : 'Macau',
+			url : 'http://www.sengpou.com/index.php?'
+					+ use_date
+							.format('d=%d&m=' + use_date.getMonth() + '&y=%Y'),
+			parser : parser_星報
+		},
+		濠江日報 : {
+			flag : 'Macau',
+			url : 'http://www.houkongdaily.com/' + use_date.format('%Y%2m%2d')
+					+ '-A1.html',
+			data_url : 'http://app.houkongdaily.com/api/posts?date='
+					+ use_date.format('%Y%2m%2d')
+					+ '&category_code=A1&callback=jQuery000_' + Date.now()
+					+ '&_=' + Date.now(),
+			parser : parser_濠江日報
+		},
 	},
 
 	// [[中国大陆报纸列表]]
@@ -907,7 +930,7 @@ var source_configurations = {
 
 function for_source(source_id) {
 	var source_data = source_configurations[source_id];
-	CeL.debug(source_id + ':	' + source_data.url, 1, for_source);
+	CeL.debug(source_id + ':	' + source_data.url, 1, 'for_source');
 	working_queue[source_id] = source_data.url;
 
 	if (source_data.today_only && CeL.env.arg_hash.days_ago) {
@@ -916,9 +939,11 @@ function for_source(source_id) {
 		return;
 	}
 
-	CeL.get_URL(/[^\x20-\x7f]/.test(source_data.url)
+	var data_url = source_data.data_url || source_data.url;
+
+	CeL.get_URL(/[^\x21-\x7f]/.test(data_url)
 	//
-	? encodeURI(source_data.url) : source_data.url, function(XMLHttp, error) {
+	? encodeURI(data_url) : data_url, function(XMLHttp, error) {
 		var html = XMLHttp.responseText,
 		//
 		headline_list;
@@ -929,8 +954,8 @@ function for_source(source_id) {
 			if (!parse_error_label_list) {
 				parse_error_label_list = CeL.null_Object();
 			}
-			CeL.error('next_label: Parse [' + source_id + '] ('
-					+ source_data.url + '): ' + error);
+			CeL.error('next_label: Parse [' + source_id + '] (' + data_url
+					+ '): ' + error);
 			parse_error_label_list[source_id] = error;
 		}
 
@@ -1494,6 +1519,59 @@ function parser_華僑報(html) {
 		if (headline_list.length >= 9)
 			break;
 	}
+	return headline_list;
+}
+
+function parser_現代澳門日報(html) {
+	var list = html, headline_list = [];
+	list.each_between('<h2 class="entry-title">', '</h2>', function(token) {
+		var matched = token.match(PATTERN_link_inner_title);
+		if (!matched)
+			CeL.error('parser_澳門日報: ' + token);
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2]),
+		};
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
+function parser_星報(html) {
+	var list = html.between('<map name="simple">', '</map>'), headline_list = [],
+	//
+	PATTERN_headline = /<area [^<>]*?href="\.\/([^"'<>]+)"[^<>]*? atitle="([^"'<>]+)"[^<>]*>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : 'http://www.sengpou.com/' + matched[1],
+			headline : get_label(matched[2])
+		};
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
+	return headline_list;
+}
+
+function parser_濠江日報(html) {
+	var list = JSON.parse(html.between('(', {
+		tail : ')'
+	})), headline_list = [];
+	list.issues[0].posts.forEach(function(headline) {
+		if (!headline.content)
+			return;
+		headline = {
+			url : 'http://www.houkongdaily.com/' + use_date.format('%Y%2m%2d')
+					+ '-A1-' + headline.id + '.html',
+			headline : get_label(headline.title)
+		};
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
 	return headline_list;
 }
 
