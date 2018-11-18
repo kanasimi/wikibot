@@ -33,8 +33,14 @@ user_agent = 'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, CeL.env.arg_hash && CeL.env.arg_hash.wikimedia || 'wikinews'),
 
-page_prefix = CeL.env.arg_hash && CeL.env.arg_hash.wikimedia === 'incubator' ? 'Wn/cdo/'
-		: '',
+// 為閩東語維基新聞自動添加每日報章頭條
+is_cdo_news = CeL.env.arg_hash && CeL.env.arg_hash.wikimedia === 'incubator',
+//
+page_prefix = is_cdo_news ? 'Wn/cdo/' : '',
+// 閩東語:所有「日」改爲「號」
+DATE_NAME = is_cdo_news ? '號' : '日',
+// 書寫系統文字參數: 羅馬拼音(l)或漢字書寫(h)
+writing_parameter = is_cdo_news ? '|lohang=h' : '',
 
 // url_cache_hash[url] = {String}title;
 url_cache_hash = CeL.null_Object(),
@@ -74,7 +80,8 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 // use_date.setDate(-1);
 
 // 报纸头条
-var save_to_page = use_date.format('%Y年%m月%d日') + locale + '報紙頭條',
+var save_to_page = page_prefix + use_date.format('%Y年%m月%d' + DATE_NAME)
+		+ locale + '報紙頭條',
 // 前一天, the day before
 day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 // 後一天, 隔天 the day after
@@ -93,8 +100,8 @@ function create_category() {
 	.edit(function(page_data) {
 		var content = CeL.wiki.content_of(page_data) || '';
 		if (!content
-		// (?:[a-z\/]*?\/)?: page_prefix
-		|| !/\[\[Category:(?:[a-z\/]*?\/)?\d{4}年報紙頭條(?:\||\]\])/
+		// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+		|| !/\[\[Category:(?:[Ww][a-z]\/[a-z]{3}\/)?\d{4}年報紙頭條(?:\||\]\])/
 		//
 		.test(content)) {
 			content = content.trim() + '\n[[Category:'
@@ -115,19 +122,23 @@ function create_category() {
 	//
 	.edit(function(page_data) {
 		var content = CeL.wiki.content_of(page_data) || '';
-		if (!content
+		if (!content || !
+		// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+		/\[\[Category:(?:[Ww][a-z]\/[a-z]{3}\/)?\d{4}年[^\[\]\|]+?報紙頭條(?:\||\]\])/
 		//
-		|| !/\[\[Category:\d{4}年[^\[\]\|]+?報紙頭條(?:\||\]\])/.test(content)) {
-			content = content.trim() + '\n[[Category:'
+		.test(content)) {
+			content = content.trim() + '\n[[Category:' + page_prefix
 			//
 			+ use_date.format('%Y年') + _locale + '報紙頭條|'
 			//
 			+ use_date.format('%m') + ']]';
 		}
 
-		if (!content
+		if (!content || !
+		// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+		/\[\[Category:(?:[Ww][a-z]\/[a-z]{3}\/)?\d{4}年1?\d月(?:\||\]\])/
 		//
-		|| !/\[\[Category:\d{4}年1?\d月(?:\||\]\])/.test(content)) {
+		.test(content)) {
 			content = content.trim() + '\n[[Category:'
 			//
 			+ use_date.format('%Y年%m月') + '|' + _locale + ']]';
@@ -142,7 +153,9 @@ function create_category() {
 
 function finish_up() {
 	CeL.debug('更新維基新聞首頁。', 1, 'finish_up');
-	wiki.purge('Wikinews:首页');
+	wiki
+			.purge(is_cdo_news ? page_prefix + 'Wikinews:Main Page'
+					: 'Wikinews:首页');
 
 	if (!parse_error_label_list) {
 		CeL.debug('No parse error. End.', 1, 'finish_up');
@@ -179,9 +192,13 @@ function write_data() {
 	wiki.page(save_to_page).edit(function(page_data) {
 		// assert: 應已設定好 page
 		function headline_link(date, add_year) {
-			return '[[' + date.format('%Y年%m月%d日') + locale + '報紙頭條|'
+			return '[[' + page_prefix
 			//
-			+ date.format(add_year ? '%Y年%m月%d日' : '%m月%d日') + ']]';
+			+ date.format('%Y年%m月%d' + DATE_NAME) + locale + '報紙頭條|'
+			//
+			+ date.format((add_year ? '%Y年' : '')
+			//
+			+ '%m月%d' + DATE_NAME) + ']]';
 		}
 
 		var content = CeL.wiki.content_of(page_data) || '',
@@ -195,35 +212,51 @@ function write_data() {
 
 		// 初始模板。
 		if (!page_data.has_date) {
-			if (/{{ *[Dd]ate[\s\|]/.test(content)) {
+			if (
+			// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+			/{{ *(?:[Ww][a-z]\/[a-z]{3}\/)?[Dd]ate[\s\|]/.test(content)) {
 				throw '讀取頁面時未發現 {{Date}} 模板，'
 				//
-				+ '寫入頁面時卻檢測到 "{{Date"！請確認中途未被寫入，且程式無誤。';
+				+ '寫入頁面時卻檢測到 {{Date}} 模板！請確認中途未被寫入，且程式無誤。';
 			}
 
 			CeL.debug('add {{Date}}.', 1, 'write_data');
-			content = '{{Date|' + use_date.format('%Y年%m月%d日')
+			content = '{{' + page_prefix + 'Date|'
 			//
-			+ '}}\n\n' + content.trim();
+			+ use_date.format(is_cdo_news ? '%Y|%2m|%2d'
+			//
+			: '%Y年%m月%d' + DATE_NAME)
+			//
+			+ writing_parameter + '}}\n\n' + content.trim();
 		}
 
 		if (!page_data.has_header) {
 			CeL.debug('add header.', 1, 'write_data');
-			content = content.replace(/{{ *[Dd]ate.*?}}\n/, function(section) {
-				return section + '{{Headline item/header|'
+			content = content.replace(
+			// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+			/{{ *(?:[Ww][a-z]\/[a-z]{3}\/)?[Dd]ate.*?}}\n?/,
+			//
+			function(section) {
+				return section + '{{' + page_prefix + 'Headline item/header|'
 				//
 				+ use_date.format({
-					format : locale === '臺灣' ? '[[w:民國紀年|民國]]%R年%m月%d日'
+					format : locale === '臺灣'
 					//
-					: '%Y年%m月%d日',
+					? '[[w:民國紀年|民國]]%R年%m月%d' + DATE_NAME
+					//
+					: '%Y年%m月%d' + DATE_NAME,
 					locale : 'cmn-Hant-TW'
-				}) + '|' + locale + '}}\n{{Headline item/footer}}\n';
+				}) + '|' + locale + writing_parameter + '}}\n{{'
+				//
+				+ page_prefix + 'Headline item/footer}}\n';
 			});
 		}
 
 		if (headline_wikitext_list.length === 0
 		// 原先已經有資料，並且是Review狀態的時候，還是需要更改一下。
-		&& !(page_data.stage_node && page_data.stage_node.name === 'Review'
+		&& !(page_data.stage_node
+		//
+		&& page_data.stage_node.name.endsWith('Review')
 		// 已經有頭條新聞資料時，直接標示{{Publish}}。
 		&& all_headlines > 2)) {
 			// 沒有新頭條時不寫入資料。
@@ -238,7 +271,9 @@ function write_data() {
 			this.summary += ': add '
 			//
 			+ headline_wikitext_list.length + ' headlines'
-			content = content.replace(/{{Headline item\/header.*?}}\n/,
+			content = content.replace(
+			// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+			/{{(?:[Ww][a-z]\/[a-z]{3}\/)?Headline item\/header.*?}}\n/,
 			//
 			function(section) {
 				section += headline_wikitext_list.sort()
@@ -264,8 +299,8 @@ function write_data() {
 
 			if (add_source_data) {
 				content = content.replace(
-				//
-				/(?:\n|^){{ *[Hh]eadline[ _]item\/footer}}\n+/
+				// (?:[Ww][a-z]\/[a-z]{3}\/)?: page_prefix
+				/(?:\n|^){{ *(?:[Ww][a-z]\/[a-z]{3}\/)?[Hh]eadline[ _]item\/footer}}\n+/
 				//
 				, function(section) {
 					CeL.debug('add source after {{Headline item/footer}}.',
@@ -291,15 +326,19 @@ function write_data() {
 		if (!page_data.has_navbox) {
 			CeL.debug('add 頭條導覽 {{Headline navbox}}.', 1, 'write_data');
 			// @see [[w:模板:YearTOC]], [[en:Template:S-start]]
-			content = content.trim() + '\n\n{{Headline navbox|'
+			content = content.trim() + '\n\n{{'
+			//
+			+ page_prefix + 'Headline navbox|'
 			// workaround...
 			+ (locale === '臺灣' ? '台灣' : locale) + '|'
 			//
-			+ use_date.format('%Y年%m月') + '|' + use_date.format('%d日') + '|'
+			+ use_date.format('%Y年%m月')
+			//
+			+ '|' + use_date.format('%d' + DATE_NAME) + '|'
 			//
 			+ headline_link(day_before) + '|'
 			//
-			+ headline_link(day_after) + '}}\n';
+			+ headline_link(day_after) + writing_parameter + '}}\n';
 		}
 
 		if (CeL.is_debug()) {
@@ -314,16 +353,20 @@ function write_data() {
 		}
 
 		if (page_data.stage_node) {
-			if (page_data.stage_node.name === 'Review'
+			if (page_data.stage_node.name.endsWith('Review')
 			// 已經有頭條新聞資料時，直接標示{{Publish}}。
-			&& all_headlines > 2) {
+			&& all_headlines > 2
+			// 閩東語維基新聞需要經過人工檢測
+			&& !is_cdo_news) {
 				CeL.debug('已經有頭條新聞資料，直接改' + page_data.stage_node
 				//
 				+ '標示為{{Publish}}。', 1, 'write_data');
 				// page_data.stage_node.name = 'Publish';
 				content = content.replace(
 				//
-				page_data.stage_node.toString(), '{{Publish}}');
+				page_data.stage_node.toString(), '{{'
+				//
+				+ page_prefix + 'Publish}}');
 			}
 
 		} else if (has_new_data || parse_error_label_list) {
@@ -339,8 +382,14 @@ function write_data() {
 			// "發表後24小時不應進行大修改" 新聞於發布後七天進行存檔與保護
 			+ (has_new_data && !parse_error_label_list
 			//
-			&& headline_wikitext_list.length > 0 ? '{{Publish}}'
+			&& headline_wikitext_list.length > 0
+			// 閩東語維基新聞需要經過人工檢測
+			&& !is_cdo_news ? '{{Publish}}'
 			// 必須有新資料才{{Publish}}。
+			: is_cdo_news ? '{{' + page_prefix + 'Develop'
+			//
+			+ writing_parameter + '}}'
+			//
 			: '{{Review}}') + '\n';
 		}
 
@@ -363,7 +412,7 @@ function write_data() {
 
 	}, {
 		bot : 1,
-		tags : 'import headline',
+		tags : is_cdo_news ? '' : 'import headline',
 		// 匯入每日報紙頭條新聞標題
 		summary : '匯入' + locale + '報紙頭條新聞標題'
 	})
@@ -421,7 +470,7 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 
 	all_headlines++;
 
-	var wikitext = '{{HI|' + publisher + '|' + headline
+	var wikitext = '{{' + page_prefix + 'HI|' + publisher + '|' + headline
 	//
 	+ (headline_data.url ? '|url=' + headline_data.url : '')
 	//
@@ -971,21 +1020,32 @@ function for_source(source_id) {
 			CeL.debug('登記url，以避免重複加入url: ' + source_data.url, 1, 'for_source');
 			var title = source_id + '頭條要聞', publisher = source_data.publisher
 					|| source_id;
-			add_source_data.push('* {{Source|url='
+			add_source_data.push('* '
+					+ (source_data.flag ? '{{' + page_prefix + 'Flagicon|'
+							+ source_data.flag + '}}' : '')
+					+ '{{'
+					+ page_prefix
+					+ (is_cdo_news ? 'Cite news' : 'Source')
+					+ '|url='
 					//
 					+ (source_data.display_url ? source_data.display_url
 							+ '|source_url=' : '')
 					+ source_data.url
 					//
 					+ '|title='
-					+ (source_data.flag ? '{{Flagicon|' + source_data.flag
-							+ '}}' : '') + title.replace(/[\s\|]+/g, ' ')
+					+ title.replace(/[\s\|]+/g, ' ')
 					// 不填作者:這些來源有些根本也沒附摘錄者，因此想填作者也不成
 					// + '|author=' + publisher
 					//
-					+ '|pub=' + fix_publisher(publisher)
+					+ '|'
+					+ (is_cdo_news ? 'publisher' : 'pub')
+					+ '='
+					+ fix_publisher(publisher)
 					// '%Y-%2m-%2d'
-					+ '|date=' + use_date.format('%Y年%m月%d日')
+					+ '|'
+					+ (is_cdo_news ? 'accessdate='
+							+ use_date.format('%Y-%2m-%2d') : 'date='
+							+ use_date.format('%Y年%m月%d' + DATE_NAME))
 					//
 					+ (source_id === publisher ? '' : '|label=' + source_id)
 					+ '}}');
@@ -1002,6 +1062,7 @@ function for_source(source_id) {
 		// console.log(headline_list);
 		check_queue(source_id);
 	}, source_data.charset, source_data.post_data, {
+		// ms
 		timeout : 30 * 1000,
 		headers : Object.assign({
 			'User-Agent' : user_agent
@@ -2197,7 +2258,12 @@ wiki.page(save_to_page, function parse_headline_page(page_data) {
 		}
 		// console.log(token);
 
-		switch (token.name) {
+		var template_name = token.name;
+		if (template_name.startsWith(page_prefix)) {
+			template_name = template_name.slice(page_prefix.length);
+		}
+
+		switch (template_name) {
 		case 'Date':
 			page_data.has_date = token.parameters[1];
 			break;
@@ -2217,6 +2283,7 @@ wiki.page(save_to_page, function parse_headline_page(page_data) {
 			break;
 
 		case 'Source':
+		case 'Cite news':
 			if (token.parameters.url) {
 				var label = token.parameters.label || token.parameters.pub,
 				//
