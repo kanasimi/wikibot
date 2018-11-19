@@ -23,8 +23,12 @@ CeL.run(
 // CeL.character.load(), 僅在要設定 this.charset 時才需要載入。
 'data.character');
 
-CeL.character.load('big5');
-CeL.character.load('gb2312');
+// 視需要載入字元集。
+// @see source_configurations
+if (locale === '香港')
+	CeL.character.load('big5');
+else if (locale === '國際')
+	CeL.character.load('gb2312');
 
 var working_queue = CeL.null_Object(),
 //
@@ -104,9 +108,9 @@ function create_category() {
 		|| !/\[\[Category:(?:[Ww][a-z]\/[a-z]{3}\/)?\d{4}年報紙頭條(?:\||\]\])/
 		//
 		.test(content)) {
-			content = content.trim() + '\n[[Category:'
+			content = content.trim() + '\n[[Category:' + page_prefix
 			//
-			+ page_prefix + use_date.format('%Y年') + '報紙頭條]]';
+			+ use_date.format('%Y年') + '報紙頭條]]';
 		}
 
 		return content;
@@ -139,7 +143,7 @@ function create_category() {
 		/\[\[Category:(?:[Ww][a-z]\/[a-z]{3}\/)?\d{4}年1?\d月(?:\||\]\])/
 		//
 		.test(content)) {
-			content = content.trim() + '\n[[Category:'
+			content = content.trim() + '\n[[Category:' + page_prefix
 			//
 			+ use_date.format('%Y年%m月') + '|' + _locale + ']]';
 		}
