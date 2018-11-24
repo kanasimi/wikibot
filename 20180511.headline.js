@@ -23,12 +23,17 @@ CeL.run(
 // CeL.character.load(), 僅在要設定 this.charset 時才需要載入。
 'data.character');
 
+// locale=香港
+var locale = CeL.env.arg_hash && CeL.env.arg_hash.locale || '臺灣';
+
 // 視需要載入字元集。
 // @see source_configurations
 if (locale === '香港')
 	CeL.character.load('big5');
 else if (locale === '國際')
 	CeL.character.load('gb2312');
+
+// ------------------------------------
 
 var working_queue = CeL.null_Object(),
 //
@@ -56,8 +61,6 @@ headline_hash = CeL.null_Object(),
 headline_wikitext_list = [],
 // 包括已處理與未處理過的headline。
 all_headlines = 0,
-// locale=香港
-locale = CeL.env.arg_hash && CeL.env.arg_hash.locale || '臺灣',
 
 // 注意：頭條新聞標題應附上兩個以上之來源，不可全文引用。
 // 參考：[[w:Wikipedia:捐赠版权材料/发送授权信|發送授權信]]、[[w:Wikipedia:捐赠版权材料|捐贈版權材料]]、[[w:Wikipedia:请求版权许可|請求版權許可]]
