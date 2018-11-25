@@ -9,6 +9,7 @@
  TODO: Template:Location map
  TODO: Template:Globe location
  TODO: Template:Map
+ TODO: [[File:2018 Osaka earthquake Map4.png]]
 
  TODO: [[Category:USGS isoseismal maps]]
  */

@@ -54,6 +54,7 @@ cd ~
 # method 2:
 # /usr/bin/unzip -UU
 /usr/bin/wget -O wikibot.zip https://github.com/kanasimi/wikibot/archive/master.zip && [ -d wikibot ] && /usr/bin/diff wikibot.zip wikibot.zip.old && mv -f wikibot.zip wikibot.zip.old && echo "wikibot: No news." || ( echo "Extracting wikibot..." && time /usr/bin/unzip wikibot.zip > /dev/null && mv -f wikibot.zip wikibot.zip.old && rsync -a --remove-source-files wikibot-master/ wikibot && rm -rf wikibot-master || echo "Failed to get wikibot" )
+/bin/rm wikibot/*#U*
 
 # ---------------------------------------------------------
 
@@ -84,7 +85,7 @@ echo pass
 
 #ln -s ../node_modules/cejs/application/net/wiki.js js.js
 
-# rm "wiki loder.js" archive
+# /bin/rm "wiki loder.js" archive
 
 [ -f README.md ] && /bin/rm README.md
 
