@@ -38,12 +38,14 @@ summary = '規範多個問題模板',
 /**
  * 其他可包含在{{多個問題}}模板中之維基百科維護模板(Wikipedia maintenance templates)
  * 
+ * 2018/12/2 remove {{NotChineseTitle}}
+ * 
  * @type {Array}
  * 
  * @see [[維基百科:模板訊息/清理]], [[Category:維基百科維護模板]], [[Category:條目訊息模板]], {{Ambox}},
  *      [[WP:HAT#頂註模板]]
  */
-其他維護模板名 = ('Wikify|未完結|Lead section|专家|Veil|Non-free|plot|Almanac|Like-resume|Cleanup|cleanup-jargon|Untranslated-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|Globalize|Unreferenced|off-topic|Bare URLs|Cleanup-list|Refimprove|補充來源|Repetition|Proofreader needed|copyedit translation|Expert|Expert-subject|COI|coi|Primary sources|dead end|game guide|NotChineseTitle|title|autobiography|overlinked|Orphan|inappropriate tone|Original research|in-universe|advert|unencyclopedic|prose|blpunsourced|fansite|trivia|pov|newsrelease'
+其他維護模板名 = ('Wikify|未完結|Lead section|专家|Veil|Non-free|plot|Almanac|Like-resume|Cleanup|cleanup-jargon|Untranslated-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|Globalize|Unreferenced|off-topic|Bare URLs|Cleanup-list|Refimprove|補充來源|Repetition|Proofreader needed|copyedit translation|Expert|Expert-subject|COI|coi|Primary sources|dead end|game guide|title|autobiography|overlinked|Orphan|inappropriate tone|Original research|in-universe|advert|unencyclopedic|prose|blpunsourced|fansite|trivia|pov|newsrelease'
 		+ '|Expand|Expand language|Expand English|Expand Japanese|Expand Spanish')
 		.split('|'),
 /**
