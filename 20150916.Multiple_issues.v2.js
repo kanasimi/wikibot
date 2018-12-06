@@ -29,6 +29,8 @@ var
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 
+config_page_title = 'User:' + user_name + '/規範多個問題模板設定',
+
 /** {String}{{多個問題}}模板名 */
 多個問題_模板名 = '多個問題',
 /** {{多個問題}}模板初始別名 alias */
@@ -45,7 +47,7 @@ summary = '規範多個問題模板',
  * @see [[維基百科:模板訊息/清理]], [[Category:維基百科維護模板]], [[Category:條目訊息模板]], {{Ambox}},
  *      [[WP:HAT#頂註模板]]
  */
-其他維護模板名 = ('Wikify|未完結|Lead section|专家|Veil|Non-free|plot|Almanac|Like-resume|Cleanup|cleanup-jargon|Untranslated-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|Globalize|Unreferenced|off-topic|Bare URLs|Cleanup-list|Refimprove|補充來源|Repetition|Proofreader needed|copyedit translation|Expert|Expert-subject|COI|coi|Primary sources|dead end|game guide|title|autobiography|overlinked|Orphan|inappropriate tone|Original research|in-universe|advert|unencyclopedic|prose|blpunsourced|fansite|trivia|pov|newsrelease'
+其他維護模板名list = ('Wikify|未完結|Lead section|专家|Veil|Non-free|plot|Almanac|Like-resume|Cleanup|cleanup-jargon|Untranslated-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|Globalize|Unreferenced|off-topic|Bare URLs|Cleanup-list|Refimprove|補充來源|Repetition|Proofreader needed|copyedit translation|Expert|Expert-subject|COI|coi|Primary sources|dead end|game guide|title|autobiography|overlinked|Orphan|inappropriate tone|Original research|in-universe|advert|unencyclopedic|prose|blpunsourced|fansite|trivia|pov|newsrelease'
 		+ '|Expand|Expand language|Expand English|Expand Japanese|Expand Spanish')
 		.split('|'),
 /**
@@ -278,6 +280,26 @@ prepare_directory(base_directory, true);
 // CeL.set_debug(6);
 
 CeL.wiki.cache([ {
+	type : 'page',
+	// title=(operation.title_prefix||_this.title_prefix)+operation.list
+	title_prefix : '',
+	list : config_page_title,
+	redirects : 1,
+	operator : function(page_data) {
+		// 讀入手動設定
+		var configuration = CeL.wiki.parse_configuration(page_data);
+
+		多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
+
+		須拆分模板數 = +configuration.須拆分模板數 || 須拆分模板數;
+		須合併模板數 = +configuration.須合併模板數 || 須合併模板數;
+		if (!(須拆分模板數 < 須合併模板數))
+			throw 'assert: 須拆分模板數 < 須合併模板數';
+
+		其他維護模板名list = configuration.其他維護模板名 || 其他維護模板名list;
+		須排除之維護模板名list = configuration.須排除之維護模板名 || 須排除之維護模板名list;
+	}
+}, {
 	// part 1: 處理含有{{多個問題}}模板的條目
 	file_name : '多個問題_模板別名',
 	type : 'redirects',
@@ -304,6 +326,7 @@ CeL.wiki.cache([ {
 }, {
 	// part 2: 處理含有多個維護模板的條目
 	type : 'page',
+	// title: title_prefix + 多個問題_模板名
 	list : 多個問題_模板名,
 	redirects : 1,
 	operator : function(page_data) {
@@ -318,8 +341,8 @@ CeL.wiki.cache([ {
 			if (!/\d$/.test(matched = matched[1]))
 				template_hash[CeL.wiki.normalize_title(matched)] = null;
 		}
-		// 處理 ((其他維護模板名)) setup 其他維護模板名
-		其他維護模板名.forEach(function(name) {
+		// 處理 ((其他維護模板名list)) setup 其他維護模板名list
+		其他維護模板名list.forEach(function(name) {
 			template_hash[CeL.wiki.normalize_title(name)] = null;
 		});
 		// CeL.log(template_hash);
