@@ -30,13 +30,15 @@ var
 summary = '規範多個問題模板',
 
 config_page_title = 'User:' + user_name + '/規範多個問題模板設定',
+// 手動設定
+configuration,
 
 /** {String}{{多個問題}}模板名 */
 多個問題_模板名 = '多個問題',
 /** {{多個問題}}模板初始別名 alias */
 多個問題_模板別名_list = '问题条目'.split('|'),
 // assert: 須拆分模板數 < 須合併模板數
-須拆分模板數 = 1, 須合併模板數 = 3,
+須拆分模板數 = 1, 須合併模板數 = 3, 列入報表的最低模板數 = 須合併模板數 + 1,
 /**
  * 其他可包含在{{多個問題}}模板中之維基百科維護模板(Wikipedia maintenance templates)
  * 
@@ -287,17 +289,29 @@ CeL.wiki.cache([ {
 	redirects : 1,
 	operator : function(page_data) {
 		// 讀入手動設定
-		var configuration = CeL.wiki.parse_configuration(page_data);
+		configuration = CeL.wiki.parse_configuration(page_data);
 
 		多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
 
 		須拆分模板數 = +configuration.須拆分模板數 || 須拆分模板數;
 		須合併模板數 = +configuration.須合併模板數 || 須合併模板數;
+		列入報表的最低模板數 = +configuration.列入報表的最低模板數 || 列入報表的最低模板數;
 		if (!(1 <= 須拆分模板數) || !(須拆分模板數 < 須合併模板數))
 			throw 'assert: 模板數量不合理';
 
 		其他維護模板名list = configuration.其他維護模板名 || 其他維護模板名list;
 		須排除之維護模板名list = configuration.須排除之維護模板名 || 須排除之維護模板名list;
+
+		if (configuration.報表添加維護分類) {
+			if (!Array.isArray(configuration.報表添加維護分類))
+				configuration.報表添加維護分類 = [ configuration.報表添加維護分類 ];
+			configuration.報表添加維護分類
+			//
+			= configuration.報表添加維護分類.map(function(category_name) {
+				return '[[Category:' + category_name + ']]\n';
+			}).join('');
+		} else
+			configuration.報表添加維護分類 = '';
 	}
 }, {
 	// part 1: 處理含有{{多個問題}}模板的條目
@@ -471,23 +485,25 @@ CeL.wiki.cache([ {
 				if (!(page_data.title in 含有_多個問題_模板之頁面_title))
 					// this.須合併的條目=[page_data,page_data,...]
 					須合併的條目.push(page_data);
-				if (維護模板_count > 須合併模板數) {
-					// 含有太多維護模板之頁面[維護模板_count]=[page_data,page_data,...]
-					if (維護模板_count in 含有太多維護模板之頁面)
-						含有太多維護模板之頁面[維護模板_count].push(page_data.title);
-					else
-						含有太多維護模板之頁面[維護模板_count] = [ page_data.title ];
-				}
 			} else if (維護模板_count <= 須拆分模板數) {
 				// 處理須拆分的條目: 維護模板_count<=須拆分模板數&&含有{{多個問題}}模板
 				// 含有{{多個問題}}模板，卻不在可以忽略不處理的條目list或須合併維護模板的條目list中。
 				if (page_data.title in 含有_多個問題_模板之頁面_title)
 					// this.須拆分的條目=[page_data,page_data,...]
 					須拆分的條目.push(page_data);
+			} else {
+				// others: 可以忽略不處理的條目
+				// 含有((>須拆分模板數))–((<須合併模板數))個維護模板的條目_list
+				// 含有2個維護模板的條目。不動這些條目。
 			}
-			// others: 可以忽略不處理的條目
-			// 含有((>須拆分模板數))–((<須合併模板數))個維護模板的條目_list
-			// 含有2個維護模板的條目。不動這些條目。
+
+			if (維護模板_count >= 列入報表的最低模板數) {
+				// 含有太多維護模板之頁面[維護模板_count]=[page_data,page_data,...]
+				if (維護模板_count in 含有太多維護模板之頁面)
+					含有太多維護模板之頁面[維護模板_count].push(page_data.title);
+				else
+					含有太多維護模板之頁面[維護模板_count] = [ page_data.title ];
+			}
 		});
 
 		var count = 0,
@@ -509,16 +525,15 @@ CeL.wiki.cache([ {
 
 		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n'
 		//
-		+ '* 本條目會每周更新，毋須手動修正。 --~~~~\n{{see|' + log_to
+		+ '* 本條目會每周更新，毋須手動修正。您可以從'
+		//
+		+ CeL.wiki.title_link_of(config_page_title, '這個頁面')
+		//
+		+ '更改設定參數。 --~~~~\n{{see|' + log_to
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
 		//
-		+ content + '\n|}\n\n[[Category:按月分类的维基百科维护分类]]\n[[Category:维基百科维护]]'
-		//
-		+ '\n[[Category:需要维基化的页面]]\n[[Category:维基百科条目清理]]\n'
-		// Category:需要关注的页面
-		// + '[[Category:需要清理的条目]]\n'
-		;
+		+ content + '\n|}\n\n' + configuration.報表添加維護分類;
 
 		wiki.page(title + '/計數').edit(String(count), {
 			summary : _summary + '數: ' + count
@@ -580,13 +595,13 @@ CeL.wiki.cache([ {
 	// callback
 	wiki.work({
 		each : 處理須拆分的條目,
-		summary : summary + ':拆分維護模板',
+		summary : summary + ': 拆分維護模板',
 		log_to : log_to,
 		page_cache_prefix : base_directory + 'page/',
 		last : function() {
 			wiki.work({
 				each : 處理須合併的條目,
-				summary : summary + ':合併維護模板',
+				summary : summary + ': 合併維護模板',
 				page_cache_prefix : base_directory + 'page/',
 				log_to : log_to
 			}, 須合併的條目);
