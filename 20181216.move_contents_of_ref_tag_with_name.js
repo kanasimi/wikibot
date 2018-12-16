@@ -38,7 +38,7 @@ function move_ref_contents(value, template, page_data) {
 			return;
 
 		if (!token.attributes.name) {
-			pages_still_has_ref.push[page_data.title] = true;
+			pages_still_has_ref[page_data.title] = true;
 			return;
 		}
 
@@ -162,7 +162,7 @@ CeL.wiki.cache([ {
 } ], function(list) {
 	// list.truncate(2);
 	// list = [ 'Wikipedia:サンドボックス' ];
-	list = list.slice(0, 2);
+	list = list.slice(0, 20);
 
 	// callback
 	wiki.work({
