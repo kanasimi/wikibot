@@ -28,16 +28,28 @@ unnamed_ref_pages = [];
 
 // ---------------------------------------------------------------------//
 
-function move_ref_contents(value, template, parser) {
+function move_ref_contents(value, template, page_data) {
 	if (!Array.isArray(value))
 		return;
 
 	value.forEach(function(token) {
-		console.log(token);
-		if (token.type !== 'tag' || token.name !== 'ref')
+		// console.log(token);
+		if (token.type !== 'tag' || token.tag !== 'ref')
 			return;
 
-		;
+		if (!token.attributes.name) {
+			if (unnamed_ref_pages.length > 0
+			//
+			&& unnamed_ref_pages[unnamed_ref_pages.length - 1]
+			//
+			!== page_data.title) {
+				unnamed_ref_pages.push(page_data.title);
+			}
+			return;
+		}
+
+		console.log(token);
+		console.log(page_data.parsed.reference[token.attributes.name]);
 	});
 }
 
@@ -46,7 +58,7 @@ function move_contents_of_ref_tag_with_name(page_data) {
 		// error? 此頁面不存在/已刪除。
 		return [ CeL.wiki.edit.cancel, '條目不存在或已被刪除' ];
 	}
-	if (page_data.ns !== 0) {
+	if (page_data.ns !== 0 && page_data.title !== 'Wikipedia:サンドボックス') {
 		return [ CeL.wiki.edit.cancel,
 		// 本作業は記事だけを編集する
 		'本作業僅處理條目命名空間或模板或 Category' ];
@@ -110,9 +122,11 @@ CeL.wiki.cache([ {
 		each : move_contents_of_ref_tag_with_name,
 		summary : summary + ': [[Template:' + main_template_name
 				+ ']]の「字幕」と「データ放送」欄の参照内容を移動する',
+		// [[User:cewbot/log/20181216]]
 		log_to : log_to,
 		page_cache_prefix : base_directory + 'page/',
 		last : function() {
+			// unnamed_ref_pages = unnamed_ref_pages.unique();
 			CeL.info('Done: ' + (new Date).toISOString());
 		}
 	}, list);
