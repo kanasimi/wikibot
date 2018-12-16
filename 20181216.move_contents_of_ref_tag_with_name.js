@@ -24,7 +24,9 @@ summary = '[[Special:Diff/70970184|Bot依頼]]',
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'ja'),
 
-pages_still_has_ref = CeL.null_Object();
+param_has_unique_ref = CeL.null_Object(),
+// 手動で修正する必要のある記事
+need_fix = CeL.null_Object();
 
 // ---------------------------------------------------------------------//
 
@@ -38,7 +40,7 @@ function move_ref_contents(value, template, page_data) {
 			return;
 
 		if (!token.attributes.name) {
-			pages_still_has_ref[page_data.title] = true;
+			param_has_unique_ref[page_data.title] = true;
 			return;
 		}
 
@@ -53,7 +55,7 @@ function move_ref_contents(value, template, page_data) {
 		// console.log(reference_list[token.attributes.name]);
 
 		if (reference_list.length === 1) {
-			pages_still_has_ref[page_data.title] = true;
+			param_has_unique_ref[page_data.title] = true;
 			return;
 		}
 
@@ -127,8 +129,11 @@ function move_contents_of_ref_tag_with_name(page_data) {
 			}
 			CeL.debug('switch reference: ' + reference_list.switch_from + ', '
 					+ switch_to);
-			CeL.wiki.switch_token(reference_list[reference_list.switch_from],
-					reference_list[switch_to]);
+			if (reference_list[switch_to]) {
+				CeL.wiki.switch_token(
+						reference_list[reference_list.switch_from],
+						reference_list[switch_to]);
+			}
 			// done.
 			delete reference_list.switch_from;
 		});
@@ -162,7 +167,7 @@ CeL.wiki.cache([ {
 } ], function(list) {
 	// list.truncate(2);
 	// list = [ 'Wikipedia:サンドボックス' ];
-	list = list.slice(0, 20);
+	// list = list.slice(0, 20);
 
 	// callback
 	wiki.work({
@@ -174,11 +179,28 @@ CeL.wiki.cache([ {
 		page_cache_prefix : base_directory + 'page/',
 		last : function() {
 			CeL.info('Done: ' + (new Date).toISOString());
-			pages_still_has_ref = Object.keys(pages_still_has_ref);
-			if (pages_still_has_ref.length > 0) {
+			param_has_unique_ref = Object.keys(param_has_unique_ref);
+			if (param_has_unique_ref.length > 0) {
 				CeL.warn('pages still has <ref>:\n'
-						+ pages_still_has_ref.join('\n'));
+						+ param_has_unique_ref.join('\n'));
 			}
+			return;
+
+			wiki.page(log_to).edit(function(page_data) {
+				/** {String}page title = page_data.title */
+				var title = CeL.wiki.title_of(page_data),
+				/**
+				 * {String}page content, maybe undefined. 條目/頁面內容 =
+				 * revision['*']
+				 */
+				content = CeL.wiki.content_of(page_data);
+				if (!content)
+					return;
+
+				return content + '\n== refが記事 ==\n * '
+				//
+				+ param_has_unique_ref.join('\n * ');
+			});
 		}
 	}, list);
 }, {
