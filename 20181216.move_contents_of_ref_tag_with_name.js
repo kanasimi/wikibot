@@ -3,7 +3,7 @@
 
 /*
 
- 初版試營運
+ 2018/12/16 17:1:23	初版試營運
 
  @see [[ja:Special:Diff/70970184]]
 
@@ -19,12 +19,12 @@ require('./wiki loder.js');
 
 var main_template_name = '基礎情報 テレビ番組',
 /** {String}編輯摘要。總結報告。 */
-summary = '[[Template:' + main_template_name + ']]に関する依頼',
+summary = '[[Special:Diff/70970184|Bot依頼]]',
 
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'ja'),
 
-unnamed_ref_pages = [];
+pages_still_has_ref = CeL.null_Object();
 
 // ---------------------------------------------------------------------//
 
@@ -34,22 +34,47 @@ function move_ref_contents(value, template, page_data) {
 
 	value.forEach(function(token) {
 		// console.log(token);
-		if (token.type !== 'tag' || token.tag !== 'ref')
+		if (token.tag !== 'ref')
 			return;
 
 		if (!token.attributes.name) {
-			if (unnamed_ref_pages.length > 0
-			//
-			&& unnamed_ref_pages[unnamed_ref_pages.length - 1]
-			//
-			!== page_data.title) {
-				unnamed_ref_pages.push(page_data.title);
-			}
+			pages_still_has_ref.push[page_data.title] = true;
 			return;
 		}
 
-		console.log(token);
-		console.log(page_data.parsed.reference[token.attributes.name]);
+		var reference_list = page_data.parsed.parse_references(function(token,
+				index, parent) {
+			// @see options.add_index @ function for_each_token()
+			token.index = index;
+			token.parent = parent;
+		})[token.attributes.name];
+		// console.log(token);
+		// console.log(page_data.parsed);
+		// console.log(reference_list[token.attributes.name]);
+
+		if (reference_list.length === 1) {
+			pages_still_has_ref[page_data.title] = true;
+			return;
+		}
+
+		if (reference_list.bad_index)
+			reference_list.bad_index.push(token.reference_index);
+		else
+			reference_list.bad_index = [ token.reference_index ];
+
+		if (page_data.reference_list_to_move) {
+			if (!page_data.reference_list_to_move.includes(reference_list))
+				page_data.reference_list_to_move.push(reference_list);
+		} else {
+			page_data.reference_list_to_move = [ reference_list ];
+		}
+
+		if (token.type !== 'tag') {
+			return;
+		}
+
+		// assert: !('switch_from' in reference_list)
+		reference_list.switch_from = token.reference_index;
 	});
 }
 
@@ -84,11 +109,32 @@ function move_contents_of_ref_tag_with_name(page_data) {
 		if (token.name !== main_template_name)
 			return;
 		// console.log(token);
-		move_ref_contents(token.parameters.字幕, token, parser);
-		move_ref_contents(token.parameters.データ放送, token, parser);
+		move_ref_contents(token.parameters.字幕, token, page_data);
+		move_ref_contents(token.parameters.データ放送, token, page_data);
 	});
 
-	return parser.toString()
+	if (page_data.reference_list_to_move) {
+		page_data.reference_list_to_move.forEach(function(reference_list) {
+			if (isNaN(reference_list.switch_from))
+				return;
+			var switch_to = 0;
+			// find a good place to put <ref>...</ref>
+			while (switch_to < reference_list.length) {
+				if (reference_list.bad_index.includes(switch_to))
+					switch_to++;
+				else
+					break;
+			}
+			CeL.debug('switch reference: ' + reference_list.switch_from + ', '
+					+ switch_to);
+			CeL.wiki.switch_token(reference_list[reference_list.switch_from],
+					reference_list[switch_to]);
+			// done.
+			delete reference_list.switch_from;
+		});
+	}
+
+	return parser.toString();
 }
 
 // ---------------------------------------------------------------------//
@@ -115,7 +161,8 @@ CeL.wiki.cache([ {
 	}
 } ], function(list) {
 	// list.truncate(2);
-	list = [ 'Wikipedia:サンドボックス' ];
+	// list = [ 'Wikipedia:サンドボックス' ];
+	list = list.slice(0, 2);
 
 	// callback
 	wiki.work({
@@ -126,8 +173,12 @@ CeL.wiki.cache([ {
 		log_to : log_to,
 		page_cache_prefix : base_directory + 'page/',
 		last : function() {
-			// unnamed_ref_pages = unnamed_ref_pages.unique();
 			CeL.info('Done: ' + (new Date).toISOString());
+			pages_still_has_ref = Object.keys(pages_still_has_ref);
+			if (pages_still_has_ref.length > 0) {
+				CeL.warn('pages still has <ref>:\n'
+						+ pages_still_has_ref.join('\n'));
+			}
 		}
 	}, list);
 }, {
