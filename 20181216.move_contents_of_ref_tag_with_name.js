@@ -22,9 +22,24 @@ var main_template_name = '基礎情報 テレビ番組',
 summary = '[[Template:' + main_template_name + ']]に関する依頼',
 
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'ja');
+wiki = Wiki(true, 'ja'),
+
+unnamed_ref_pages = [];
 
 // ---------------------------------------------------------------------//
+
+function move_ref_contents(value, template, parser) {
+	if (!Array.isArray(value))
+		return;
+
+	value.forEach(function(token) {
+		console.log(token);
+		if (token.type !== 'tag' || token.name !== 'ref')
+			return;
+
+		;
+	});
+}
 
 function move_contents_of_ref_tag_with_name(page_data) {
 	if (!page_data || ('missing' in page_data)) {
@@ -56,9 +71,12 @@ function move_contents_of_ref_tag_with_name(page_data) {
 	parser.each('template', function(token, index) {
 		if (token.name !== main_template_name)
 			return;
-		console.log(token + '');
+		// console.log(token);
+		move_ref_contents(token.parameters.字幕, token, parser);
+		move_ref_contents(token.parameters.データ放送, token, parser);
 	});
 
+	return parser.toString()
 }
 
 // ---------------------------------------------------------------------//
@@ -78,12 +96,15 @@ CeL.wiki.cache([ {
 		return CeL.wiki.unique_list(list);
 	},
 	operator : function(list) {
-		CeL.log('All ' + list.length + ' transcluding {{' + main_template_name
-				+ '}}.');
+		if (false)
+			CeL.log('All ' + list.length + ' pages transcluding {{'
+					+ main_template_name + '}}.');
 		// this.transclude_基礎情報_テレビ番組 = list;
 	}
 } ], function(list) {
-	list.truncate(2);
+	// list.truncate(2);
+	list = [ 'Wikipedia:サンドボックス' ];
+
 	// callback
 	wiki.work({
 		each : move_contents_of_ref_tag_with_name,
@@ -92,7 +113,7 @@ CeL.wiki.cache([ {
 		log_to : log_to,
 		page_cache_prefix : base_directory + 'page/',
 		last : function() {
-			CeL.info('Done: ' + new Date);
+			CeL.info('Done: ' + (new Date).toISOString());
 		}
 	}, list);
 }, {
