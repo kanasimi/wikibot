@@ -193,15 +193,17 @@ if (false) {
 
 /** Wiki() return {Object}wiki operator 操作子. */
 _global.Wiki = function(login, API_URL) {
+	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
+			|| use_project;
 	if (!login) {
-		return new CeL.wiki(null, null, API_URL || use_project);
+		return new CeL.wiki(null, null, api);
 	}
 
 	var un = user_name, pw = _global.user_password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
 	var wiki = CeL.wiki.login(un, pw, {
-		API_URL : API_URL || use_project,
+		API_URL : api,
 		preserve_password : true
 	});
 	if (typeof check_section === 'string') {
