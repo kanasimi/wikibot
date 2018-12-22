@@ -78,7 +78,9 @@ project_page_prefix = {
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
 whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館',
-		'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员' ],
+		'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
+		// for 萌娘百科 zh.moegirl.org
+		'Talk:讨论版', 'Talk:提问求助区' ],
 // 黑名單直接封殺。黑名單的優先度高於白名單。
 // 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這個頁面補簽名。
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
@@ -873,6 +875,8 @@ function for_each_row(row) {
 				sectiontitle : row.title,
 				nocreate : 1,
 				bot : 1,
+				// for 萌娘百科 zh.moegirl.org
+				tags : 'Bot',
 				summary : 'bot: Signature check report of '
 				// 在編輯摘要中加上使用者連結，似乎還不至於驚擾到使用者。
 				+ '[[User:' + row.user + "]]'s edit in "
@@ -912,6 +916,8 @@ function for_each_row(row) {
 		+ pages_to_notify.join(', ') + '。謝謝您參與討論。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
+			// for 萌娘百科 zh.moegirl.org
+			tags : 'Bot',
 			summary : 'bot: [[' + log_to + '|提醒簽名記得加上連結]]，例如在文中所列的 '
 			//
 			+ pages_to_notify.length + ' 個頁面。若是您更新了過去的留言，也請您在最後加上個簽名的連結'
@@ -929,6 +935,8 @@ function for_each_row(row) {
 	wiki.page(row, {
 		redirects : 1
 	}).edit(row.diff.to.join(''), {
+		// for 萌娘百科 zh.moegirl.org
+		tags : 'Bot',
 		nocreate : 1,
 		// TODO: add section_title
 		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
@@ -949,6 +957,8 @@ function for_each_row(row) {
 		+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '請記得在留言時署名',
+			// for 萌娘百科 zh.moegirl.org
+			tags : 'Bot',
 			summary : 'bot: [[' + log_to + '|提醒記得簽名]]，例如在文中所列的 '
 			//
 			+ pages_to_notify.length + ' 個頁面'
