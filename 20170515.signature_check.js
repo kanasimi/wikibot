@@ -9,6 +9,7 @@
  {{Template:Unsigned}}
  {{Template:Uw-signlink}}
  {{Template:Uw-tilde}}
+ [[User:Cewbot/log/20170515]]
 
 
  工作原理:
@@ -48,7 +49,12 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true);
+wiki = Wiki(true),
+
+// for 萌娘百科 zh.moegirl.org
+edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
+// API_URL=https://zh.moegirl.org/api.php
+&& CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '';
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定
@@ -79,6 +85,7 @@ project_page_prefix = {
 // e.g., [[Wikipedia:頁面存廢討論/*]]
 whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館',
 		'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
+		'Wikiversity:互助客栈',
 		// for 萌娘百科 zh.moegirl.org
 		'Talk:讨论版', 'Talk:提问求助区' ],
 // 黑名單直接封殺。黑名單的優先度高於白名單。
@@ -875,8 +882,7 @@ function for_each_row(row) {
 				sectiontitle : row.title,
 				nocreate : 1,
 				bot : 1,
-				// for 萌娘百科 zh.moegirl.org
-				tags : 'Bot',
+				tags : edit_tags,
 				summary : 'bot: Signature check report of '
 				// 在編輯摘要中加上使用者連結，似乎還不至於驚擾到使用者。
 				+ '[[User:' + row.user + "]]'s edit in "
@@ -916,8 +922,7 @@ function for_each_row(row) {
 		+ pages_to_notify.join(', ') + '。謝謝您參與討論。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
-			// for 萌娘百科 zh.moegirl.org
-			tags : 'Bot',
+			tags : edit_tags,
 			summary : 'bot: [[' + log_to + '|提醒簽名記得加上連結]]，例如在文中所列的 '
 			//
 			+ pages_to_notify.length + ' 個頁面。若是您更新了過去的留言，也請您在最後加上個簽名的連結'
@@ -935,8 +940,7 @@ function for_each_row(row) {
 	wiki.page(row, {
 		redirects : 1
 	}).edit(row.diff.to.join(''), {
-		// for 萌娘百科 zh.moegirl.org
-		tags : 'Bot',
+		tags : edit_tags,
 		nocreate : 1,
 		// TODO: add section_title
 		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
@@ -957,8 +961,7 @@ function for_each_row(row) {
 		+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
 			section : 'new',
 			sectiontitle : '請記得在留言時署名',
-			// for 萌娘百科 zh.moegirl.org
-			tags : 'Bot',
+			tags : edit_tags,
 			summary : 'bot: [[' + log_to + '|提醒記得簽名]]，例如在文中所列的 '
 			//
 			+ pages_to_notify.length + ' 個頁面'

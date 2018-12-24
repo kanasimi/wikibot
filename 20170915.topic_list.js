@@ -5,12 +5,14 @@ Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄
 jstop cron-tools.cewbot-20170915.topic_list.zh;
 jstop cron-tools.cewbot-20170915.topic_list.zh-classical;
 jstop cron-tools.cewbot-20170915.topic_list.wikinews;
+jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 jstop cron-tools.cewbot-20170915.topic_list.ja;
 jstop cron-tools.cewbot-20170915.topic_list.wikisource;
 
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh-classical
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikinews
+/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=ja
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikisource
 
@@ -43,6 +45,7 @@ TODO:
 相關發言者訂閱功能 via ping
 get time via revisions information
 自動計算投票票數 [[模板:RFX count]]
+[[Template:topic_list]]
 
 archive
 可以依照指示存檔到不同的page
@@ -50,6 +53,10 @@ archive
 	可以自動把文字分到新的子頁面
 存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
 存檔完可以直接刪除，只留下oldid
+
+
+@see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]]
+[[wikiversity:zh:模块:Talkpage]]
 
  */
 
@@ -65,6 +72,10 @@ require('./wiki loder.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
+
+edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
+// API_URL=https://zh.moegirl.org/api.php
+&& CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
 
 // Will get page title from wikidata
 botop_sitelinks = {
@@ -366,6 +377,10 @@ page_configurations = {
 	'zhwiki:Wikipedia:互助客栈/其他' : general_page_configuration,
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
+		timezone : 8
+	}, general_page_configuration),
+
+	'zhwikiversity:Wikiversity:互助客栈' : Object.assign({
 		timezone : 8
 	}, general_page_configuration),
 
@@ -996,7 +1011,11 @@ var section_column_operators = {
 	title : function(section) {
 		var title = section.section_title.title,
 		// 當標題過長時，縮小標題字型。
-		title_too_long = title.display_width() > max_title_length;
+		title_too_long = title
+		// remove HTML tags
+		.replace(/<\/?[a-z][^<>]*>?/g, '')
+		// remove styles
+		.replace(/'''?/g, '').display_width() > max_title_length;
 		// 限制標題欄的寬度。 [[Template:Small]]
 		return (title_too_long ? 'style="max-width: ' + max_title_display_width
 				+ ';" | <small>' : '')
@@ -1361,6 +1380,7 @@ function generate_topic_list(page_data) {
 	.edit(section_table.join('\n'), {
 		bot : 1,
 		nocreate : 1,
+		tags : edit_tags,
 		summary : 'generate topic list: '
 		// -1: 跳過頁首設定與公告區。
 		+ topic_count + ' topics'
