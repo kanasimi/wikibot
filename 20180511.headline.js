@@ -477,7 +477,11 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 
 	all_headlines++;
 
-	var wikitext = '{{' + page_prefix + 'HI|' + publisher + '|' + headline
+	var wikitext = '{{' + page_prefix + 'HI|' + publisher + '|'
+	// escape wikitext control characters
+	+ headline.replace(/[\|{}\[\]]/g, function(character) {
+		return '&#' + character.charCodeAt(0) + ';';
+	})
 	//
 	+ (headline_data.url ? '|url=' + headline_data.url : '')
 	//
@@ -883,6 +887,8 @@ var source_configurations = {
 			url : 'http://zh.cn.nikkei.com/',
 			parser : parser_日经中文网
 		},
+		// NHK WORLD - Chinese
+		// https://www3.nhk.or.jp/nhkworld/zh/
 
 		// 韩联社（韩国联合通讯社）| Yonhap News Agency
 		韓聯社中文網 : {
