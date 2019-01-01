@@ -942,6 +942,9 @@ function for_each_row(row) {
 	}).edit(row.diff.to.join(''), {
 		tags : edit_tags,
 		nocreate : 1,
+		minor : 1,
+		// 補簽名的編輯加上bot flag，這樣可以不顯示討論頁面中次要編輯的新訊息提示 (nominornewtalk)。
+		bot : 1,
 		// TODO: add section_title
 		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
 		// Signing comment by
