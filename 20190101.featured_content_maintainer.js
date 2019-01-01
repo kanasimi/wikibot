@@ -42,17 +42,16 @@ FC_list_pages = 'WP:FA|WP:FL'.split('|'),
 
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/条目探讨', DISCUSSION_options = {
 	section : 'new',
-	sectiontitle : '明天的首頁特色內容頁面格式似乎有問題，請幫忙處理',
+	sectiontitle : '明天的首頁特色內容頁面似乎有問題，請幫忙處理',
 	nocreate : 1,
-	summary : '明天的首頁特色內容頁面格式似乎有問題，通知社群'
+	summary : '明天的首頁特色內容頁面似乎有問題，通知社群'
 },
 
 // Featured_content_hash[FC_title] = is_list
 Featured_content_hash = CeL.null_Object(),
 // JDN_hash[FC_title] = JDN
 JDN_hash = CeL.null_Object(),
-// page name to transclude
-// = 'Wikipedia:' + FC_page_prefix[FC_title] + '/' + FC_title
+// @see get_FC_title_to_transclude(FC_title)
 FC_page_prefix = CeL.null_Object(),
 /**
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
@@ -133,7 +132,15 @@ function parse_each_FC_page(page_data) {
 
 // ---------------------------------------------------------------------//
 
-function main_work() {
+// get page name to transclude
+function get_FC_title_to_transclude(FC_title) {
+	return 'Wikipedia:'
+			+ (FC_page_prefix[FC_title] || '典範'
+					+ (Featured_content_hash[FC_title] ? '條目' : '條目')) + '/'
+			+ FC_title;
+}
+
+function main_process() {
 	// console.log(Featured_content_hash);
 
 	var title_sorted = Object.keys(Featured_content_hash)
@@ -179,10 +186,7 @@ function main_work() {
 				// throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
 			}
 			// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
-			wiki.edit('{{Wikipedia:'
-					+ (FC_page_prefix[FC_title] || '典範'
-							+ (Featured_content_hash[FC_title] ? '條目' : '條目'))
-					+ '/' + FC_title + '}}', {
+			wiki.edit('{{' + get_FC_title_to_transclude(FC_title) + '}}', {
 				// bot : 1,
 				summary : '更新首頁特色內容: '
 						+ CeL.wiki.title_link_of(FC_title)
@@ -190,6 +194,8 @@ function main_work() {
 								+ CeL.Julian_day.to_YMD(JDN_hash[FC_title],
 										true).join('/') : '沒上過首頁')
 			});
+			if (!JDN_hash[FC_title])
+				check_if_FC_introduction_exists(FC_title);
 			return;
 		}
 
@@ -202,7 +208,7 @@ function main_work() {
 			//
 			+ CeL.wiki.title_link_of(page_title)
 			//
-			+ ')似乎並非標準的嵌入包含頁面，請幫忙處理，謝謝。 --~~~~', DISCUSSION_options);
+			+ ')似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。 --~~~~', DISCUSSION_options);
 			return;
 		}
 
@@ -213,9 +219,39 @@ function main_work() {
 			+ CeL.wiki.title_link_of(page_title)
 			//
 			+ ')所嵌入包含的標題似乎並非特色內容標題，請幫忙處理，謝謝。 --~~~~', DISCUSSION_options);
+			return;
 		}
+
+		check_if_FC_introduction_exists(FC_title);
 	});
 
+}
+
+// ---------------------------------------------------------------------//
+
+// 確認簡介頁面存在。
+function check_if_FC_introduction_exists(FC_title) {
+	var page_name = get_FC_title_to_transclude(FC_title);
+	wiki.page(page_name, function(page_data) {
+		/**
+		 * {String}page title = page_data.title
+		 */
+		var title = CeL.wiki.title_of(page_data),
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 */
+		content = CeL.wiki.content_of(page_data);
+
+		if (!content) {
+			wiki.page(DISCUSSION_PAGE).edit('明天的首頁特色內容頁面('
+			//
+			+ CeL.wiki.title_link_of(page_title)
+			//
+			+ ')所嵌入包含的標題還不存在簡介，請幫忙[[' + FC_title + '|撰寫簡介]]，謝謝。 --~~~~',
+					DISCUSSION_options);
+			return;
+		}
+	});
 }
 
 // ---------------------------------------------------------------------//
@@ -236,7 +272,7 @@ CeL.wiki.cache([ {
 	redirects : 1,
 	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。
 	each : parse_each_FC_page
-} ], main_work, {
+} ], main_process, {
 	// JDN index in parse_each_FC_page()
 	JDN : JDN_start,
 
