@@ -6,10 +6,6 @@
 
  // 輪流展示列表
 
- TODO: check Wikipedia:已撤銷的典範條目
-
- @see [[Wikipedia:典範條目/展示設定]]
-
  */
 
 'use strict';
@@ -44,16 +40,20 @@ JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
 月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
 
 FC_list_pages = 'WP:FA|WP:FL'.split('|'),
+// [[Wikipedia:已撤銷的典範條目]]
+Former_FC_list_pages = 'WP:FFA',
 // Wikipedia:互助客栈/条目探讨
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
 	sectiontitle : 月日_to_generate + '的首頁特色內容頁面似乎有問題，請幫忙處理',
 	nocreate : 1,
-	summary : 月日_to_generate + '的首頁特色內容頁面似乎有問題，無法排除，通知社群幫忙處理。'
+	summary : 'bot: ' + 月日_to_generate + '的首頁特色內容頁面似乎有問題，無法排除，通知社群幫忙處理。'
 },
 
 // Featured_content_hash[FC_title] = is_list
 Featured_content_hash = CeL.null_Object(),
+//
+Former_Featured_content_hash = CeL.null_Object(),
 // JDN_hash[FC_title] = JDN
 JDN_hash = CeL.null_Object(),
 // @see get_FC_title_to_transclude(FC_title)
@@ -77,7 +77,10 @@ function parse_each_FC_list(page_data) {
 	content = CeL.wiki.content_of(page_data),
 	//
 	matched, is_list = title.includes('列表')
-			|| page_data.original_title.includes('FL'),
+	// e.g., 'Wikipedia:FL'
+	|| (page_data.original_title || title).includes(':FL'),
+	//
+	is_FFC = (page_data.original_title || title).includes(':FFA'),
 	//
 	PATTERN_Featured_content = is_list ? /\[\[:([^\[\]]+)\]\]/g
 	// @see [[Template:FA number]]
@@ -85,11 +88,15 @@ function parse_each_FC_list(page_data) {
 
 	// console.log(content);
 	while (matched = PATTERN_Featured_content.exec(content)) {
-		var FC_title = CeL.wiki.normalize_title(matched[1]);
-		if (FC_title in Featured_content_hash) {
-			CeL.error('Duplicate FC title: ' + FC_title);
+		if (is_FFC) {
+			Former_Featured_content_hash[FC_title] = 0;
+		} else {
+			var FC_title = CeL.wiki.normalize_title(matched[1]);
+			if (FC_title in Featured_content_hash) {
+				CeL.error('Duplicate FC title: ' + FC_title);
+			}
+			Featured_content_hash[FC_title] = is_list;
 		}
-		Featured_content_hash[FC_title] = is_list;
 	}
 }
 
@@ -135,13 +142,15 @@ function parse_each_FC_page(page_data) {
 
 	if (matched) {
 		var FC_title = CeL.wiki.normalize_title(matched[2]);
-		if (!(FC_title in Featured_content_hash)) {
+		if (FC_title in Featured_content_hash) {
+			JDN_hash[FC_title] = this.JDN++;
+			FC_page_prefix[FC_title] = matched[1];
+		} else if (FC_title in Former_Featured_content_hash) {
+			Former_Featured_content_hash[FC_title]++;
+		} else {
 			// 可能經過重定向了
 			CeL.log('[[Wikipedia:已撤銷的典範條目|不再是特色/典範了]]? ' + matched[1] + ' '
 					+ CeL.wiki.title_link_of(FC_title));
-		} else {
-			JDN_hash[FC_title] = this.JDN++;
-			FC_page_prefix[FC_title] = matched[1];
 		}
 	} else {
 		CeL.error(title + ': ' + content);
@@ -194,11 +203,12 @@ function main_process() {
 			// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
 			wiki.edit('{{' + get_FC_title_to_transclude(FC_title) + '}}', {
 				// bot : 1,
-				summary : '更新首頁特色內容: '
+				summary : 'bot: 更新首頁特色內容: '
 						+ CeL.wiki.title_link_of(FC_title)
 						+ (JDN_hash[FC_title] ? '上次展示時間為'
 								+ CeL.Julian_day.to_YMD(JDN_hash[FC_title],
-										true).join('/') : '沒上過首頁')
+										true).join('/') : '沒上過首頁') + '。請參考'
+						+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
 			});
 			if (!JDN_hash[FC_title]) {
 				// 預防新當選條目沒有準備展示內容的情況。
@@ -257,6 +267,7 @@ function main_process() {
 		}
 
 		check_if_FC_introduction_exists(FC_title, date_page_title);
+
 	}, {
 		redirects : 1
 	});
@@ -310,12 +321,13 @@ function check_if_FC_introduction_exists(FC_title, date_page_title) {
 
 CeL.wiki.cache([ {
 	type : 'page',
-	// assert: 這些頁面包含的必定是所有檢核過的特色內容標題。
-	// TODO: 檢核這些頁面是否是所有檢核過的特色內容標題。
-	list : FC_list_pages,
+	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
+	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
+	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
+	// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
+	list : Former_FC_list_pages.concat(FC_list_pages),
 	redirects : 1,
 	reget : true,
-	// 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
 	each : parse_each_FC_list
 }, {
 	type : 'page',
