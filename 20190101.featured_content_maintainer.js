@@ -166,9 +166,9 @@ function main_process() {
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
 	/** {String}隔天首頁將展示的特色內容分頁title */
-	var page_title = CeL.Julian_day.to_Date(JDN_tomorrow).format(
+	var date_page_title = CeL.Julian_day.to_Date(JDN_tomorrow).format(
 			'Wikipedia:典範條目/%Y年%m月%d日');
-	wiki.page(page_title, function(page_data) {
+	wiki.page(date_page_title, function(page_data) {
 		/**
 		 * {String}page title = page_data.title
 		 */
@@ -206,7 +206,7 @@ function main_process() {
 		if (!matched) {
 			wiki.page(DISCUSSION_PAGE).edit('明天的首頁特色內容頁面('
 			//
-			+ CeL.wiki.title_link_of(page_title)
+			+ CeL.wiki.title_link_of(date_page_title, date_page_title)
 			//
 			+ ')似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。 --~~~~', DISCUSSION_options);
 			return;
@@ -216,13 +216,13 @@ function main_process() {
 		if (!(FC_title in Featured_content_hash)) {
 			wiki.page(DISCUSSION_PAGE).edit('明天的首頁特色內容頁面('
 			//
-			+ CeL.wiki.title_link_of(page_title)
+			+ CeL.wiki.title_link_of(date_page_title)
 			//
 			+ ')所嵌入包含的標題似乎並非特色內容標題，請幫忙處理，謝謝。 --~~~~', DISCUSSION_options);
 			return;
 		}
 
-		check_if_FC_introduction_exists(FC_title);
+		check_if_FC_introduction_exists(FC_title, date_page_title);
 	});
 
 }
@@ -230,7 +230,7 @@ function main_process() {
 // ---------------------------------------------------------------------//
 
 // 確認簡介頁面存在。
-function check_if_FC_introduction_exists(FC_title) {
+function check_if_FC_introduction_exists(FC_title, date_page_title) {
 	var page_name = get_FC_title_to_transclude(FC_title);
 	wiki.page(page_name, function(page_data) {
 		/**
@@ -245,7 +245,7 @@ function check_if_FC_introduction_exists(FC_title) {
 		if (!content) {
 			wiki.page(DISCUSSION_PAGE).edit('明天的首頁特色內容頁面('
 			//
-			+ CeL.wiki.title_link_of(page_title)
+			+ CeL.wiki.title_link_of(date_page_title)
 			//
 			+ ')所嵌入包含的標題還不存在簡介，請幫忙[[' + FC_title + '|撰寫簡介]]，謝謝。 --~~~~',
 					DISCUSSION_options);
