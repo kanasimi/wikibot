@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190101.featured_articles_maintainer.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190101.featured_content_maintainer.js
 
 /*
 
@@ -83,7 +83,7 @@ function generate_FC_page_list() {
 
 	for (var JDN = JDN_start; JDN <= JDN_today; JDN++) {
 		title_list.push(CeL.Julian_day.to_Date(JDN).format(
-				'Wikipedia:' + (JDN < 典範JDN ? '特色條目' : '典範条目') + '/%Y年%m月%d日'));
+				'Wikipedia:' + (JDN < 典範JDN ? '特色條目' : '典範條目') + '/%Y年%m月%d日'));
 	}
 
 	return title_list;
@@ -107,7 +107,7 @@ function parse_each_FC_page(page_data) {
 		var FC_title = CeL.wiki.normalize_title(matched[2]);
 		if (!(FC_title in Featured_content_hash)) {
 			// 可能經過重定向了
-			CeL.log('不再是FC(' + matched[1] + ')了? '
+			CeL.log('不再是特色/典範了? ' + matched[1] + ':'
 					+ CeL.wiki.title_link_of(FC_title));
 		} else {
 			JDN_hash[FC_title] = this.JDN++;
@@ -138,10 +138,12 @@ CeL.wiki.cache([ {
 } ], function() {
 	// console.log(Featured_content_hash);
 
-	var title_sorted = Object.keys(Featured_content_hash).sort(
-			function(title_1, title_2) {
-				return (JDN_hash[title_1] || 0) - (JDN_hash[title_2] || 0);
-			});
+	var title_sorted = Object.keys(Featured_content_hash)
+	// || Infinity: 沒上過首頁的頁面因為不存在簡介頁面，所以必須要排在最後，不能夠列入顯示。
+	// TODO: 檢查簡介頁面是否存在。
+	.sort(function(title_1, title_2) {
+		return (JDN_hash[title_1] || 0) - (JDN_hash[title_2] || 0);
+	});
 
 	if (false) {
 		title_sorted.join('|');
@@ -158,7 +160,7 @@ CeL.wiki.cache([ {
 	}
 
 	wiki.page(CeL.Julian_day.to_Date(JDN_tomorrow).format(
-			'Wikipedia:典範条目/%Y年%m月%d日'), function(page_data) {
+			'Wikipedia:典範條目/%Y年%m月%d日'), function(page_data) {
 		/**
 		 * {String}page title = page_data.title
 		 */
@@ -171,9 +173,14 @@ CeL.wiki.cache([ {
 		if (!content) {
 			// 沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示）
 			var FC_title = title_sorted[0];
+			if (!JDN_hash[FC_title]) {
+				throw '沒有可供選擇的特色內容頁面! 照理來說不就不應該發生!';
+			}
 			// 最後採用嵌入包含的方法寫入新的日期裡面，如Wikipedia:典範條目/2019年1月1日，展示為下一個首頁特色內容。
-			wiki.edit('{{Wikipedia:' + FC_page_prefix[FC_title] + '/'
-					+ FC_title + '}}', {
+			wiki.edit('{{Wikipedia:'
+					+ (FC_page_prefix[FC_title] || '典範'
+							+ (Featured_content_hash[FC_title] ? '條目' : '條目'))
+					+ '/' + FC_title + '}}', {
 				summary : '更新首頁特色內容: '
 						+ CeL.wiki.title_link_of(FC_title)
 						+ (JDN_hash[FC_title] ? '上次展示時間為'
