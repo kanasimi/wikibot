@@ -41,7 +41,7 @@ JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
 
 FC_list_pages = 'WP:FA|WP:FL'.split('|'),
 // [[Wikipedia:已撤銷的典範條目]]
-Former_FC_list_pages = [ 'WP:FFA' ],
+Former_FC_list_pages = 'WP:FFA'.split('|'),
 // Wikipedia:互助客栈/条目探讨
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
@@ -149,11 +149,11 @@ function parse_each_FC_page(page_data) {
 		} else if (FC_title in Former_Featured_content_hash) {
 			Former_Featured_content_hash[FC_title]++;
 		} else {
-			// 可能經過重定向了
-			CeL.log('[[Wikipedia:已撤銷的典範條目|不再是特色/典範了]]? ' + matched[1] + ' '
+			// 可能繁簡轉換不同/經過重定向了
+			CeL.debug('不再是特色/典範了? ' + matched[1] + ' '
 					+ CeL.wiki.title_link_of(FC_title));
 		}
-	} else {
+	} else if (CeL.is_debug()) {
 		CeL.error(title + ': ' + content);
 	}
 }
@@ -197,9 +197,11 @@ function main_process() {
 		if (!content || !(content = content.trim())) {
 			// 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 			var FC_title = title_sorted[0];
-			if (!JDN_hash[FC_title]) {
+			if (!FC_title
+			// || !JDN_hash[FC_title]
+			) {
 				// TODO: 檢查簡介/摘要頁面是否存在。
-				// throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
+				throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
 			}
 			// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
 			wiki.edit('{{' + get_FC_title_to_transclude(FC_title) + '}}', {
@@ -234,11 +236,11 @@ function main_process() {
 				if (!content.includes(
 				// 避免多次提醒。
 				CeL.wiki.title_link_of(date_page_title))) {
-					return '明天的首頁特色內容頁面('
+					return '明天的首頁特色內容頁面（'
 					//
 					+ CeL.wiki.title_link_of(date_page_title)
 					//
-					+ ')似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。 --~~~~';
+					+ '）似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。 --~~~~';
 				}
 			}, DISCUSSION_edit_options);
 			return;
@@ -257,11 +259,11 @@ function main_process() {
 				if (!content.includes(
 				// 避免多次提醒。
 				CeL.wiki.title_link_of(date_page_title))) {
-					return '明天的首頁特色內容頁面('
+					return '明天的首頁特色內容頁面（'
 					//
 					+ CeL.wiki.title_link_of(date_page_title)
 					//
-					+ ')所嵌入包含的標題似乎並非特色內容標題，請幫忙處理，謝謝。 --~~~~';
+					+ '）所嵌入包含的標題似乎並非特色內容標題，請幫忙處理，謝謝。 --~~~~';
 				}
 			}, DISCUSSION_edit_options);
 			return;
@@ -300,11 +302,11 @@ function check_if_FC_introduction_exists(FC_title, date_page_title) {
 
 				// 避免多次提醒。
 				if (!content.includes(write_link)) {
-					return '明天的首頁特色內容頁面('
+					return '明天的首頁特色內容頁面（'
 					//
 					+ CeL.wiki.title_link_of(date_page_title)
 					//
-					+ ')所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
+					+ '）所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
 					//
 					+ '還不存在簡介，請幫忙' + write_link
 					//
