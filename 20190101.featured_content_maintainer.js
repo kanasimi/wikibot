@@ -41,7 +41,7 @@ JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
 
 FC_list_pages = 'WP:FA|WP:FL'.split('|'),
 // [[Wikipedia:已撤銷的典範條目]]
-Former_FC_list_pages = 'WP:FFA',
+Former_FC_list_pages = [ 'WP:FFA' ],
 // Wikipedia:互助客栈/条目探讨
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
@@ -87,11 +87,12 @@ function parse_each_FC_list(page_data) {
 	: /'''\[\[([^\[\]]+)\]\]'''/g;
 
 	// console.log(content);
+	// console.log([ page_data.original_title || title, is_FFC, is_list ]);
 	while (matched = PATTERN_Featured_content.exec(content)) {
+		var FC_title = CeL.wiki.normalize_title(matched[1]);
 		if (is_FFC) {
 			Former_Featured_content_hash[FC_title] = 0;
 		} else {
-			var FC_title = CeL.wiki.normalize_title(matched[1]);
 			if (FC_title in Featured_content_hash) {
 				CeL.error('Duplicate FC title: ' + FC_title);
 			}
@@ -170,7 +171,7 @@ function main_process() {
 	});
 
 	if (false) {
-		title_sorted.join('|');
+		console.log(title_sorted.join('|'));
 		title_sorted.map(function(FC_title) {
 			return JDN_hash[FC_title];
 		});
@@ -193,7 +194,7 @@ function main_process() {
 		 */
 		content = CeL.wiki.content_of(page_data);
 
-		if (!content) {
+		if (!content || !(content = content.trim())) {
 			// 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 			var FC_title = title_sorted[0];
 			if (!JDN_hash[FC_title]) {
