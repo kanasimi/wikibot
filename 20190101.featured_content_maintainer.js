@@ -90,6 +90,7 @@ CeL.wiki.cache([ {
 	// TODO: 一次取得大量頁面。
 	list : redirects_list,
 	reget : true,
+	// 檢查出問題的頁面 (redirects_list) 是不是重定向所以才找不到。
 	each : check_redirects
 } ], main_process, {
 	// JDN index in parse_each_FC_page()
@@ -205,21 +206,24 @@ function parse_each_FC_page(page_data) {
 
 function check_redirects(page_list) {
 	// console.log(page_list);
-	var FC_title = redirects_list[this.redirects_index++];
-	if (!FC_title) {
+	var original_FC_title = redirects_list[this.redirects_index++];
+	if (!original_FC_title) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
 	}
 
 	if (!page_list.some(function(page_data) {
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (FC_title in Former_Featured_content_hash) {
+			delete redirects_hash[original_FC_title];
 			Former_Featured_content_hash[FC_title]++;
 			return true;
 		}
 	})) {
-		CeL.warn('發現過去曾經在 ' + CeL.wiki.title_link_of(redirects_hash[FC_title])
+		CeL.warn('發現過去曾經在 '
+				+ CeL.wiki.title_link_of(redirects_hash[original_FC_title])
 				+ ' 包含過的典範條目，並未登記在現存或已被撤銷的登記列表頁面中: '
-				+ CeL.wiki.title_link_of(FC_title));
+				+ CeL.wiki.title_link_of(original_FC_title)
+				+ '。或許是因為繁簡轉換標題因此不匹配?');
 	}
 }
 
