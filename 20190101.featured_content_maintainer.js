@@ -19,14 +19,6 @@ var
 wiki = Wiki(true);
 
 // ---------------------------------------------------------------------//
-// main
-
-// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
-prepare_directory(base_directory);
-
-// CeL.set_debug(6);
-
-// ---------------------------------------------------------------------//
 
 var JDN_today = CeL.Julian_day(new Date),
 // + 1: 明天 JDN_tomorrow
@@ -50,10 +42,14 @@ DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	summary : 'bot: ' + 月日_to_generate + '的首頁特色內容頁面似乎有問題，無法排除，通知社群幫忙處理。'
 },
 
-// Featured_content_hash[FC_title] = is_list
+// Featured_content_hash[FC_title] = {Boolean}is_list
 Featured_content_hash = CeL.null_Object(),
-//
+// Former_Featured_content_hash[FC_title] = {Number}count
 Former_Featured_content_hash = CeL.null_Object(),
+//
+error_title_list = [],
+// redirects_hash[FC_title] = {String}transcluding page title
+redirects_hash = CeL.null_Object(), redirects_list = [],
 // JDN_hash[FC_title] = JDN
 JDN_hash = CeL.null_Object(),
 // @see get_FC_title_to_transclude(FC_title)
@@ -63,6 +59,50 @@ FC_page_prefix = CeL.null_Object(),
  * matched: [ all, FC_page_prefix, FC_title ]
  */
 PATTERN_FC_transcluded = /^\s*\{\{\s*(?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|优良)(?:條目|条目|列表))\/(?:s\|)?([^\/{}]+)\}\}\s*$/;
+
+// ---------------------------------------------------------------------//
+// main
+
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
+prepare_directory(base_directory);
+
+// CeL.set_debug(6);
+
+CeL.wiki.cache([ {
+	type : 'page',
+	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
+	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
+	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
+	// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
+	list : Former_FC_list_pages.concat(FC_list_pages),
+	redirects : 1,
+	reget : true,
+	each : parse_each_FC_list
+}, {
+	type : 'page',
+	// TODO: 一次取得大量頁面。
+	list : generate_FC_page_list,
+	redirects : 1,
+	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，基本上只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
+	each : parse_each_FC_page
+}, {
+	type : 'redirects',
+	// TODO: 一次取得大量頁面。
+	list : redirects_list,
+	reget : true,
+	each : check_redirects
+} ], main_process, {
+	// JDN index in parse_each_FC_page()
+	JDN : JDN_start,
+	// index in check_redirects()
+	redirects_index : 0,
+
+	// default options === this
+	// [SESSION_KEY]
+	// session : wiki,
+	// cache path prefix
+	prefix : base_directory
+});
 
 // ---------------------------------------------------------------------//
 
@@ -149,12 +189,37 @@ function parse_each_FC_page(page_data) {
 		} else if (FC_title in Former_Featured_content_hash) {
 			Former_Featured_content_hash[FC_title]++;
 		} else {
-			// 可能繁簡轉換不同/經過重定向了
+			// 可能繁簡轉換不同/經過重定向了?
 			CeL.debug('不再是特色/典範了? ' + matched[1] + ' '
 					+ CeL.wiki.title_link_of(FC_title));
+			redirects_list.push(FC_title);
+			redirects_hash[FC_title] = title;
 		}
 	} else if (CeL.is_debug()) {
+		error_title_list.push(title);
 		CeL.error(title + ': ' + content);
+	}
+}
+
+// ---------------------------------------------------------------------//
+
+function check_redirects(page_list) {
+	// console.log(page_list);
+	var FC_title = redirects_list[this.redirects_index++];
+	if (!FC_title) {
+		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
+	}
+
+	if (!page_list.some(function(page_data) {
+		var FC_title = CeL.wiki.title_of(page_data);
+		if (FC_title in Former_Featured_content_hash) {
+			Former_Featured_content_hash[FC_title]++;
+			return true;
+		}
+	})) {
+		CeL.warn('發現過去曾經在 ' + CeL.wiki.title_link_of(redirects_hash[FC_title])
+				+ ' 包含過的典範條目，並未登記在現存或已被撤銷的登記列表頁面中: '
+				+ CeL.wiki.title_link_of(FC_title));
 	}
 }
 
@@ -214,6 +279,8 @@ function main_process() {
 						+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
 			});
 			if (!JDN_hash[FC_title]) {
+				finish_up();
+			} else {
 				// 預防新當選條目沒有準備展示內容的情況。
 				check_if_FC_introduction_exists(FC_title, date_page_title);
 			}
@@ -242,7 +309,7 @@ function main_process() {
 					//
 					+ '）似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。 --~~~~';
 				}
-			}, DISCUSSION_edit_options);
+			}, DISCUSSION_edit_options).run(finish_up);
 			return;
 		}
 
@@ -265,7 +332,7 @@ function main_process() {
 					//
 					+ '）所嵌入包含的標題似乎並非特色內容標題，請幫忙處理，謝謝。 --~~~~';
 				}
-			}, DISCUSSION_edit_options);
+			}, DISCUSSION_edit_options).run(finish_up);
 			return;
 		}
 
@@ -289,32 +356,36 @@ function check_if_FC_introduction_exists(FC_title, date_page_title) {
 		 */
 		content = CeL.wiki.content_of(page_data);
 
-		if (!content) {
-			wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
-				var
-				/**
-				 * {String}page content, maybe undefined. 條目/頁面內容 =
-				 * revision['*']
-				 */
-				content = CeL.wiki.content_of(page_data),
-				//
-				write_link = CeL.wiki.title_link_of(page_name, '撰寫簡介');
-
-				// 避免多次提醒。
-				if (!content.includes(write_link)) {
-					return '明天的首頁特色內容頁面（'
-					//
-					+ CeL.wiki.title_link_of(date_page_title)
-					//
-					+ '）所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
-					//
-					+ '還不存在簡介，請幫忙' + write_link
-					//
-					+ '，謝謝。 --~~~~';
-				}
-			}, DISCUSSION_edit_options);
+		if (content && content.trim()
+		// TODO: 進一步檢查簡介頁面
+		) {
+			finish_up();
 			return;
 		}
+
+		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
+			var
+			/**
+			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 */
+			content = CeL.wiki.content_of(page_data),
+			//
+			write_link = CeL.wiki.title_link_of(page_name, '撰寫簡介');
+
+			// 避免多次提醒。
+			if (!content.includes(write_link)) {
+				return '明天的首頁特色內容頁面（'
+				//
+				+ CeL.wiki.title_link_of(date_page_title)
+				//
+				+ '）所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
+				//
+				+ '還不存在簡介，請幫忙' + write_link
+				//
+				+ '，謝謝。 --~~~~';
+			}
+		}, DISCUSSION_edit_options).run(finish_up);
+		return;
 	}, {
 		redirects : 1
 	});
@@ -322,30 +393,6 @@ function check_if_FC_introduction_exists(FC_title, date_page_title) {
 
 // ---------------------------------------------------------------------//
 
-CeL.wiki.cache([ {
-	type : 'page',
-	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
-	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
-	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
-	// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
-	list : Former_FC_list_pages.concat(FC_list_pages),
-	redirects : 1,
-	reget : true,
-	each : parse_each_FC_list
-}, {
-	type : 'page',
-	// TODO: 一次取得大量頁面。
-	list : generate_FC_page_list,
-	redirects : 1,
-	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，基本上只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
-	each : parse_each_FC_page
-} ], main_process, {
-	// JDN index in parse_each_FC_page()
-	JDN : JDN_start,
-
-	// default options === this
-	// [SESSION_KEY]
-	// session : wiki,
-	// cache path prefix
-	prefix : base_directory
-});
+function finish_up() {
+	CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# ' + error_title_list.join('\n# '));
+}
