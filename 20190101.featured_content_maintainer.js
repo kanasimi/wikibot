@@ -48,8 +48,13 @@ Featured_content_hash = CeL.null_Object(),
 Former_Featured_content_hash = CeL.null_Object(),
 //
 error_title_list = [],
-// redirects_hash[FC_title] = {String}transcluding page title
+// redirects_hash[FC_title]
+// = [ {String}transcluding page title, JDN, FC page prefix ]
 redirects_hash = CeL.null_Object(), redirects_list = [],
+// cache file of redirects
+redirects_to_file = base_directory + 'redirects_to.json', redirects_to_hash = CeL
+		.get_JSON(redirects_to_file)
+		|| CeL.null_Object(),
 // JDN_hash[FC_title] = JDN
 JDN_hash = CeL.null_Object(),
 // @see get_FC_title_to_transclude(FC_title)
@@ -58,7 +63,7 @@ FC_page_prefix = CeL.null_Object(),
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
  * matched: [ all, FC_page_prefix, FC_title ]
  */
-PATTERN_FC_transcluded = /^\s*\{\{\s*(?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|优良)(?:條目|条目|列表))\/(?:s\|)?([^\/{}]+)\}\}\s*$/;
+PATTERN_FC_transcluded = /^\s*\{\{\s*(?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^\/{}]+)\}\}\s*$/;
 
 // ---------------------------------------------------------------------//
 // main
@@ -182,24 +187,34 @@ function parse_each_FC_page(page_data) {
 			&& content.replace(/<!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
-	if (matched) {
-		var FC_title = CeL.wiki.normalize_title(matched[2]);
+	function check_FC_title(FC_title) {
 		if (FC_title in Featured_content_hash) {
-			JDN_hash[FC_title] = this.JDN++;
+			JDN_hash[FC_title] = this.JDN;
 			FC_page_prefix[FC_title] = matched[1];
 		} else if (FC_title in Former_Featured_content_hash) {
 			Former_Featured_content_hash[FC_title]++;
 		} else {
+			return true;
+		}
+	}
+
+	if (matched) {
+		var FC_title = CeL.wiki.normalize_title(matched[2]);
+		if (check_FC_title(FC_title)
+				&& (!redirects_hash[FC_title] || check_FC_title(redirects_hash[FC_title]))) {
 			// 可能繁簡轉換不同/經過重定向了?
 			CeL.debug('不再是特色/典範了? ' + matched[1] + ' '
 					+ CeL.wiki.title_link_of(FC_title));
 			redirects_list.push(FC_title);
-			redirects_hash[FC_title] = title;
+			redirects_hash[FC_title] = [ title, this.JDN, matched[1] ];
 		}
-	} else if (CeL.is_debug()) {
+	} else {
 		error_title_list.push(title);
-		CeL.error(title + ': ' + content);
+		if (CeL.is_debug())
+			CeL.error(title + ': ' + content);
 	}
+
+	this.JDN++;
 }
 
 // ---------------------------------------------------------------------//
@@ -211,16 +226,26 @@ function check_redirects(page_list) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
 	}
 
+	var FC_data = redirects_hash[original_FC_title];
 	if (!page_list.some(function(page_data) {
 		var FC_title = CeL.wiki.title_of(page_data);
-		if (FC_title in Former_Featured_content_hash) {
+		if (FC_title in Featured_content_hash) {
+			if (!(FC_data[1] <= JDN_hash[FC_title])) {
+				JDN_hash[FC_title] = FC_data[1];
+				FC_page_prefix[FC_title] = FC_data[2];
+			}
+			redirects_to_hash[original_FC_title] = FC_title;
 			delete redirects_hash[original_FC_title];
+			return true;
+		}
+		if (FC_title in Former_Featured_content_hash) {
 			Former_Featured_content_hash[FC_title]++;
+			redirects_to_hash[original_FC_title] = FC_title;
+			delete redirects_hash[original_FC_title];
 			return true;
 		}
 	})) {
-		CeL.warn('發現過去曾經在 '
-				+ CeL.wiki.title_link_of(redirects_hash[original_FC_title])
+		CeL.warn('發現過去曾經在 ' + CeL.wiki.title_link_of(FC_data[0])
 				+ ' 包含過的典範條目，並未登記在現存或已被撤銷的登記列表頁面中: '
 				+ CeL.wiki.title_link_of(original_FC_title)
 				+ '。或許是因為繁簡轉換標題因此不匹配?');
@@ -231,6 +256,9 @@ function check_redirects(page_list) {
 
 function main_process() {
 	// console.log(Featured_content_hash);
+
+	// write cache
+	CeL.write_file(redirects_to_file, redirects_to_hash);
 
 	var title_sorted = Object.keys(Featured_content_hash)
 	// || Infinity: 沒上過首頁的頁面因為不存在簡介/摘要頁面，所以必須要排在最後，不能夠列入顯示。
@@ -266,6 +294,14 @@ function main_process() {
 		if (!content || !(content = content.trim())) {
 			// 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 			var FC_title = title_sorted[0];
+			if (CeL.env.arg_hash
+					&& CeL.env.arg_hash.environment === 'production') {
+				for (var index = 1; !JDN_hash[FC_title]
+				//
+				&& index < title_sorted.length; index++) {
+					FC_title = title_sorted[index];
+				}
+			}
 			if (!FC_title
 			// || !JDN_hash[FC_title]
 			) {
@@ -279,7 +315,7 @@ function main_process() {
 						+ CeL.wiki.title_link_of(FC_title)
 						+ (JDN_hash[FC_title] ? '上次展示時間為'
 								+ CeL.Julian_day.to_YMD(JDN_hash[FC_title],
-										true).join('/') : '沒上過首頁') + '。請參考'
+										true).join('/') : '沒上過首頁') + '。作業機制請參考'
 						+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
 			});
 			if (!JDN_hash[FC_title]) {
@@ -367,6 +403,15 @@ function check_if_FC_introduction_exists(FC_title, date_page_title) {
 			return;
 		}
 
+		// environment=production
+		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+			wiki.page(date_page_title).edit('', {
+				nocreate : 1,
+				summary : 'production environment 如果沒有人處理的話應該有補救措施（即便最後留空）。'
+			});
+			return;
+		}
+
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
@@ -398,5 +443,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title) {
 // ---------------------------------------------------------------------//
 
 function finish_up() {
-	CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# ' + error_title_list.join('\n# '));
+	if (error_title_list.length > 0) {
+		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
+				+ error_title_list.join('\n# '));
+	}
 }
