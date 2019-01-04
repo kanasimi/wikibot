@@ -44,6 +44,9 @@ DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	summary : 'bot: ' + 月日_to_generate + '的首頁特色內容頁面似乎有問題，無法排除，通知社群幫忙處理。'
 },
 
+// FC_list_hash[FC_title] = {Boolean} is former FC
+FC_list_hash = CeL.null_Object(),
+
 // Featured_content_hash[FC_title] = {Boolean}is_list
 Featured_content_hash = CeL.null_Object(),
 // Former_Featured_content_hash[FC_title] = [ {Boolean}is_list, {Number}count ]
@@ -54,9 +57,9 @@ error_title_list = [],
 // = [ {String}transcluding page title, JDN, FC page prefix ]
 redirects_hash = CeL.null_Object(), redirects_list = [],
 // cache file of redirects
-redirects_to_file = base_directory + 'redirects_to.json', redirects_to_hash = CeL
-		.get_JSON(redirects_to_file)
-		|| CeL.null_Object(),
+redirects_to_file = base_directory + 'redirects_to.json',
+// redirects_to_hash[original_FC_title] = FC_title
+redirects_to_hash = CeL.get_JSON(redirects_to_file) || CeL.null_Object(),
 // JDN_hash[FC_title] = JDN
 JDN_hash = CeL.null_Object(),
 // @see get_FC_title_to_transclude(FC_title)
@@ -84,7 +87,14 @@ CeL.wiki.cache([ {
 	list : Former_FC_list_pages.concat(FC_list_pages),
 	redirects : 1,
 	reget : true,
-	each : parse_each_FC_list
+	each : parse_each_FC_item_list_page
+}, {
+	type : 'redirects',
+	// TODO: 一次取得大量頁面。
+	list : Object.keys(FC_list_hash),
+	reget : true,
+	// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
+	each : check_FC_redirects
 }, {
 	type : 'page',
 	// TODO: 一次取得大量頁面。
@@ -114,7 +124,7 @@ CeL.wiki.cache([ {
 
 // ---------------------------------------------------------------------//
 
-function parse_each_FC_list(page_data) {
+function parse_each_FC_item_list_page(page_data) {
 	/**
 	 * {String}page title = page_data.title
 	 */
@@ -147,6 +157,25 @@ function parse_each_FC_list(page_data) {
 			}
 			Featured_content_hash[FC_title] = is_list;
 		}
+
+		if (!FC_list_hash[FC_title]) {
+			FC_list_hash[FC_title] = is_FFC;
+		} else if (FC_list_hash[FC_title] !== Former_Featured_content_hash) {
+			CeL.error(FC_title + ' 被同時列在了現存及被撤銷的特色內容清單中!');
+		}
+	}
+}
+
+// ---------------------------------------------------------------------//
+
+function check_FC_redirects(page_list) {
+	// console.log(page_list);
+	var original_FC_title = page_list.query_title;
+
+	var isFFC = FC_list_hash[original_FC_title], FC_title = page_list[0].title;
+
+	if (original_FC_title !== FC_title) {
+		redirects_to_hash[original_FC_title] = FC_title;
 	}
 }
 
@@ -190,7 +219,10 @@ function parse_each_FC_page(page_data) {
 			&& content.replace(/<!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
+	// return error
 	function check_FC_title(FC_title) {
+		if (!FC_title)
+			return true;
 		if (FC_title in Featured_content_hash) {
 			JDN_hash[FC_title] = JDN;
 			FC_page_prefix[FC_title] = matched[1];
@@ -204,7 +236,9 @@ function parse_each_FC_page(page_data) {
 	if (matched) {
 		var FC_title = CeL.wiki.normalize_title(matched[2]);
 		if (check_FC_title(FC_title)
-				&& (!redirects_hash[FC_title] || check_FC_title(redirects_hash[FC_title]))) {
+				&& check_FC_title(redirects_hash[FC_title]
+						&& redirects_hash[FC_title][0])
+				&& check_FC_title(redirects_to_hash[FC_title])) {
 			if (FC_title in redirects_hash) {
 				// 可能是有不同的日子使用了同一個經過繁簡轉換的標題。
 				CeL.debug('重複的問題標題: ' + matched[1] + ' '
@@ -228,6 +262,7 @@ function parse_each_FC_page(page_data) {
 
 function check_redirects(page_list) {
 	// console.log(page_list);
+	// var original_FC_title = page_list.query_title;
 	var original_FC_title = redirects_list[this.redirects_index++];
 	if (!original_FC_title) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
@@ -263,7 +298,7 @@ function check_redirects(page_list) {
 		CeL.warn('發現過去曾經在 ' + CeL.wiki.title_link_of(FC_data[0])
 				+ ' 包含過的典範條目，並未登記在現存或已被撤銷的登記列表頁面中: '
 				+ CeL.wiki.title_link_of(original_FC_title)
-				+ '。或許是因為繁簡轉換標題因此不匹配?');
+				+ '。或許是因為繁簡轉換標題（請修改特色內容列表頁面上的標題，使之連結至實際標題）或原先內容轉成重定向頁，因此不匹配?');
 	}
 }
 
