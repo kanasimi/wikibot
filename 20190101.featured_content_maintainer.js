@@ -131,11 +131,11 @@ function parse_each_FC_list(page_data) {
 	is_FFC = /:FF[AC]|已撤销的/.test([ page_data.original_title, page_data.title,
 			title ].join('|')),
 	//
-	PATTERN_Featured_content = is_list && !is_FFC ? /\[\[:([^\[\]]+)\]\]/g
-	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
-	: /'''\[\[([^\[\]]+)\]\]'''/g;
+	PATTERN_Featured_content = is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
+			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
+			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
 
-	// console.log(content);
+	// CeL.log(content);
 	// console.log([ page_data.original_title || title, is_FFC, is_list ]);
 	while (matched = PATTERN_Featured_content.exec(content)) {
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
@@ -235,9 +235,9 @@ function check_redirects(page_list) {
 
 	var FC_data = redirects_hash[original_FC_title];
 	if (!FC_data) {
-		console.log('redirects_list=' + JSON.stringify(redirects_list));
-		console.log('redirects_hash=' + JSON.stringify(redirects_hash));
-		console.log('redirects_index=' + (this.redirects_index - 1));
+		CeL.log('redirects_list = ' + JSON.stringify(redirects_list));
+		CeL.log('redirects_hash = ' + JSON.stringify(redirects_hash));
+		CeL.log('redirects_index = ' + (this.redirects_index - 1));
 		throw '未發現' + CeL.wiki.title_link_of(original_FC_title)
 				+ '的資料! 照理來說這不應該發生!';
 	}
@@ -270,8 +270,6 @@ function check_redirects(page_list) {
 // ---------------------------------------------------------------------//
 
 function main_process() {
-	// console.log(Featured_content_hash);
-
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
@@ -283,11 +281,16 @@ function main_process() {
 	});
 
 	if (false) {
-		console.log(title_sorted.join('|'));
+		CeL.log('Featured_content_hash = '
+				+ JSON.stringify(Featured_content_hash));
+		CeL.log('Former_Featured_content_hash = '
+				+ JSON.stringify(Former_Featured_content_hash));
+
+		CeL.log('title_sorted = ' + title_sorted.join('|'));
 		title_sorted.map(function(FC_title) {
 			return JDN_hash[FC_title];
 		});
-		console.log(title_sorted.map(function(FC_title) {
+		CeL.log(title_sorted.map(function(FC_title) {
 			return FC_title + ' - '
 			//
 			+ (JDN_hash[FC_title] ? CeL.Julian_day.to_YMD(
