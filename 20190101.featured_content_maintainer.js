@@ -34,8 +34,8 @@ JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
 月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
 
 FC_list_pages = 'WP:FA|WP:FL'.split('|'),
-// [[Wikipedia:已撤銷的典範條目]]
-Former_FC_list_pages = 'WP:FFA'.split('|'),
+// [[Wikipedia:已撤銷的典範條目]] 條目連結
+Former_FC_list_pages = 'WP:FFA|WP:FFL'.split('|'),
 // Wikipedia:互助客栈/条目探讨
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
@@ -127,11 +127,12 @@ function parse_each_FC_list(page_data) {
 	matched, is_list = title.includes('列表')
 	// e.g., 'Wikipedia:FL'
 	|| (page_data.original_title || title).includes(':FL'),
+	// 注意: 這包含了被撤銷後再次被評為典範的條目
+	is_FFC = /:FF[AC]|已撤销的/.test([ page_data.original_title, page_data.title,
+			title ].join('|')),
 	//
-	is_FFC = (page_data.original_title || title).includes(':FFA'),
-	//
-	PATTERN_Featured_content = is_list ? /\[\[:([^\[\]]+)\]\]/g
-	// @see [[Template:FA number]]
+	PATTERN_Featured_content = is_list && !is_FFC ? /\[\[:([^\[\]]+)\]\]/g
+	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 	: /'''\[\[([^\[\]]+)\]\]'''/g;
 
 	// console.log(content);
