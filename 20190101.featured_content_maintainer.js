@@ -145,6 +145,11 @@ function parse_each_FC_item_list_page(page_data) {
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
 
+	if (is_FFC) {
+		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表
+		content = content.replace(/\n== *被撤銷後[\s\S]+$/, '');
+	}
+
 	// CeL.log(content);
 	// console.log([ page_data.original_title || title, is_FFC, is_list ]);
 	while (matched = PATTERN_Featured_content.exec(content)) {
@@ -161,7 +166,8 @@ function parse_each_FC_item_list_page(page_data) {
 		if (!FC_list_hash[FC_title]) {
 			FC_list_hash[FC_title] = is_FFC;
 		} else if (FC_list_hash[FC_title] !== Former_Featured_content_hash) {
-			CeL.error(FC_title + ' 被同時列在了現存及被撤銷的特色內容清單中!');
+			CeL.error(CeL.wiki.title_link_of(FC_title)
+					+ '被同時列在了現存及被撤銷的特色內容清單中!');
 		}
 	}
 }
