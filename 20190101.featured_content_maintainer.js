@@ -183,13 +183,13 @@ function parse_each_FC_page(page_data) {
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
-	matched = content
+	JDN = this.JDN++, matched = content
 			&& content.replace(/<!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
 	function check_FC_title(FC_title) {
 		if (FC_title in Featured_content_hash) {
-			JDN_hash[FC_title] = this.JDN;
+			JDN_hash[FC_title] = JDN;
 			FC_page_prefix[FC_title] = matched[1];
 		} else if (FC_title in Former_Featured_content_hash) {
 			Former_Featured_content_hash[FC_title]++;
@@ -206,15 +206,13 @@ function parse_each_FC_page(page_data) {
 			CeL.debug('不再是特色/典範了? ' + matched[1] + ' '
 					+ CeL.wiki.title_link_of(FC_title));
 			redirects_list.push(FC_title);
-			redirects_hash[FC_title] = [ title, this.JDN, matched[1] ];
+			redirects_hash[FC_title] = [ title, JDN, matched[1] ];
 		}
 	} else {
 		error_title_list.push(title);
 		if (CeL.is_debug())
 			CeL.error(title + ': ' + content);
 	}
-
-	this.JDN++;
 }
 
 // ---------------------------------------------------------------------//
