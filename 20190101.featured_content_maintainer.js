@@ -46,7 +46,7 @@ DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 
 // Featured_content_hash[FC_title] = {Boolean}is_list
 Featured_content_hash = CeL.null_Object(),
-// Former_Featured_content_hash[FC_title] = {Number}count
+// Former_Featured_content_hash[FC_title] = [ {Boolean}is_list, {Number}count ]
 Former_Featured_content_hash = CeL.null_Object(),
 //
 error_title_list = [],
@@ -126,7 +126,7 @@ function parse_each_FC_list(page_data) {
 	//
 	matched, is_list = title.includes('列表')
 	// e.g., 'Wikipedia:FL'
-	|| (page_data.original_title || title).includes(':FL'),
+	|| (page_data.original_title || title).includes(':F?FL'),
 	// 注意: 這包含了被撤銷後再次被評為典範的條目
 	is_FFC = /:FF[AC]|已撤销的/.test([ page_data.original_title, page_data.title,
 			title ].join('|')),
@@ -140,7 +140,7 @@ function parse_each_FC_list(page_data) {
 	while (matched = PATTERN_Featured_content.exec(content)) {
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
 		if (is_FFC) {
-			Former_Featured_content_hash[FC_title] = 0;
+			Former_Featured_content_hash[FC_title] = [ is_list, 0 ];
 		} else {
 			if (FC_title in Featured_content_hash) {
 				CeL.error('Duplicate FC title: ' + FC_title);
@@ -195,7 +195,7 @@ function parse_each_FC_page(page_data) {
 			JDN_hash[FC_title] = JDN;
 			FC_page_prefix[FC_title] = matched[1];
 		} else if (FC_title in Former_Featured_content_hash) {
-			Former_Featured_content_hash[FC_title]++;
+			Former_Featured_content_hash[FC_title][1]++;
 		} else {
 			return true;
 		}
@@ -254,7 +254,7 @@ function check_redirects(page_list) {
 			return true;
 		}
 		if (FC_title in Former_Featured_content_hash) {
-			Former_Featured_content_hash[FC_title]++;
+			Former_Featured_content_hash[FC_title][1]++;
 			redirects_to_hash[original_FC_title] = FC_title;
 			delete redirects_hash[original_FC_title];
 			return true;
@@ -332,6 +332,7 @@ function main_process() {
 								+ CeL.Julian_day.to_YMD(JDN_hash[FC_title],
 										true).join('/') : '沒上過首頁') + '。作業機制請參考'
 						+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
+						+ ' 編輯摘要的red link經繁簡轉換後存在'
 			});
 			if (!JDN_hash[FC_title]) {
 				finish_up();
