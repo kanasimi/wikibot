@@ -202,11 +202,16 @@ function parse_each_FC_page(page_data) {
 		var FC_title = CeL.wiki.normalize_title(matched[2]);
 		if (check_FC_title(FC_title)
 				&& (!redirects_hash[FC_title] || check_FC_title(redirects_hash[FC_title]))) {
-			// 可能繁簡轉換不同/經過重定向了?
-			CeL.debug('不再是特色/典範了? ' + matched[1] + ' '
-					+ CeL.wiki.title_link_of(FC_title));
-			redirects_list.push(FC_title);
-			redirects_hash[FC_title] = [ title, JDN, matched[1] ];
+			if (FC_title in redirects_hash) {
+				CeL.debug('重複的問題標題: ' + matched[1] + ' '
+						+ CeL.wiki.title_link_of(FC_title));
+			} else {
+				// 可能繁簡轉換不同/經過重定向了?
+				CeL.debug('不再是特色/典範了? ' + matched[1] + ' '
+						+ CeL.wiki.title_link_of(FC_title));
+				redirects_list.push(FC_title);
+				redirects_hash[FC_title] = [ title, JDN, matched[1] ];
+			}
 		}
 	} else {
 		error_title_list.push(title);
@@ -218,6 +223,7 @@ function parse_each_FC_page(page_data) {
 // ---------------------------------------------------------------------//
 
 function check_redirects(page_list) {
+
 	// console.log(page_list);
 	var original_FC_title = redirects_list[this.redirects_index++];
 	if (!original_FC_title) {
@@ -225,6 +231,14 @@ function check_redirects(page_list) {
 	}
 
 	var FC_data = redirects_hash[original_FC_title];
+	if (!FC_data) {
+		console.log('redirects_index=' + (this.redirects_index - 1));
+		console.log('redirects_list=' + JSON.stringify(redirects_list));
+		console.log('redirects_hash=' + JSON.stringify(redirects_hash));
+		throw '未發現' + CeL.wiki.title_link_of(original_FC_title)
+				+ '的資料! 照理來說這不應該發生!';
+	}
+
 	if (!page_list.some(function(page_data) {
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (FC_title in Featured_content_hash) {
