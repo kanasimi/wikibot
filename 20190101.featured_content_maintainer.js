@@ -92,7 +92,8 @@ CeL.wiki.cache([ {
 	type : 'redirects',
 	// TODO: 一次取得大量頁面。
 	list : function() {
-		CeL.log('FC_list_hash = ' + JSON.stringify(FC_list_hash));
+		CeL.debug('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
+		CeL.debug('FC_list_hash = ' + JSON.stringify(FC_list_hash));
 		return Object.keys(FC_list_hash);
 	},
 	reget : true,
@@ -183,14 +184,19 @@ function check_FC_redirects(page_list) {
 	// console.log(page_list);
 	var original_FC_title = page_list.query_title;
 
-	var isFFC = FC_list_hash[original_FC_title], FC_title = page_list[0].title;
+	var isFFC = FC_list_hash[original_FC_title];
+	var FC_title = page_list[0].title;
 
 	if (original_FC_title !== FC_title) {
 		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
 				+ CeL.wiki.title_link_of(FC_title));
 	}
-	// cache 所有標題，以避免下次還要 reget。
-	redirects_to_hash[original_FC_title] = FC_title;
+	// redirects_to_hash[original_FC_title] = FC_title;
+
+	page_list.forEach(function(page_data) {
+		// cache 所有標題，以避免下次還要 reget。
+		redirects_to_hash[page_data.title] = FC_title;
+	});
 }
 
 // ---------------------------------------------------------------------//
