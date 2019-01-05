@@ -58,7 +58,7 @@ error_title_list = [],
 redirects_hash = CeL.null_Object(), redirects_list = [],
 // cache file of redirects
 redirects_to_file = base_directory + 'redirects_to.json',
-// redirects_to_hash[original_FC_title] = FC_title
+// redirects_to_hash[original_FC_title] = {String}FC_title 經過繁簡轉換過的最終標題
 redirects_to_hash = CeL.get_JSON(redirects_to_file) || CeL.null_Object(),
 // JDN_hash[FC_title] = JDN
 JDN_hash = CeL.null_Object(),
@@ -159,6 +159,11 @@ function parse_each_FC_item_list_page(page_data) {
 	while (matched = PATTERN_Featured_content.exec(content)) {
 		// 還沒繁簡轉換過的標題。
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
+		if (redirects_to_hash[FC_title]) {
+			// 轉換成經過繁簡轉換過的最終標題。
+			FC_title = redirects_to_hash[FC_title];
+		}
+
 		if (is_FFC) {
 			Former_Featured_content_hash[FC_title] = [ is_list, 0 ];
 		} else {
@@ -328,10 +333,15 @@ function check_redirects(page_list) {
 			return true;
 		}
 	})) {
-		CeL.warn('過去曾經在 ' + CeL.wiki.title_link_of(FC_data[0])
-				+ ' 包含過的典範條目，並未登記在現存或已被撤銷的登記列表頁面中: '
-				+ CeL.wiki.title_link_of(original_FC_title)
-				+ '。或許是因為繁簡轉換標題（請修改特色內容列表頁面上的標題，使之連結至實際標題）或原先內容轉成重定向頁，因此不匹配?');
+		CeL
+				.warn('過去曾經在 '
+						+ CeL.wiki.title_link_of(FC_data[0])
+						+ ' 包含過的特色內容，並未登記在現存或已被撤銷的登記列表頁面中: '
+						+ CeL.wiki.title_link_of(original_FC_title)
+						+ '。'
+						+ '若原先內容轉成重定向頁，使此遭提指向了重定向頁，請修改特色內容列表頁面上的標題，使之連結至實際標題；並且將 Wikipedia:典範條目/下的簡介頁面移到最終指向的標題。'
+						+ '若這是已經撤銷的特色內容，請加入相應的已撤銷列表頁面。'
+						+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 	}
 }
 
