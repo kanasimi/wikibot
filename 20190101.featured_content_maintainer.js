@@ -163,11 +163,13 @@ function parse_each_FC_item_list_page(page_data) {
 			Featured_content_hash[FC_title] = is_list;
 		}
 
-		if (!FC_list_hash[FC_title]) {
-			FC_list_hash[FC_title] = is_FFC;
-		} else if (FC_list_hash[FC_title] !== Former_Featured_content_hash) {
-			CeL.error(CeL.wiki.title_link_of(FC_title)
-					+ '被同時列在了現存及被撤銷的特色內容清單中!');
+		if (!(FC_title in redirects_to_hash)) {
+			if (!(FC_title in FC_list_hash)) {
+				FC_list_hash[FC_title] = is_FFC;
+			} else if (FC_list_hash[FC_title] !== is_FFC) {
+				CeL.error(CeL.wiki.title_link_of(FC_title)
+						+ '被同時列在了現存及被撤銷的特色內容清單中!');
+			}
 		}
 	}
 }
@@ -180,7 +182,8 @@ function check_FC_redirects(page_list) {
 
 	var isFFC = FC_list_hash[original_FC_title], FC_title = page_list[0].title;
 
-	if (original_FC_title !== FC_title) {
+	// cache 所有標題，以避免下次還要 reget。
+	if (true || original_FC_title !== FC_title) {
 		redirects_to_hash[original_FC_title] = FC_title;
 	}
 }
@@ -285,7 +288,9 @@ function check_redirects(page_list) {
 
 	if (!page_list.some(function(page_data) {
 		var FC_title = CeL.wiki.title_of(page_data);
-		if (FC_title in Featured_content_hash) {
+		if (FC_title in Featured_content_hash
+				|| redirects_to_hash[FC_title] in Featured_content_hash
+				&& (FC_title = redirects_to_hash[FC_title])) {
 			if (!(FC_data[1] <= JDN_hash[FC_title])) {
 				JDN_hash[FC_title] = FC_data[1];
 				FC_page_prefix[FC_title] = FC_data[2];
@@ -294,14 +299,16 @@ function check_redirects(page_list) {
 			delete redirects_hash[original_FC_title];
 			return true;
 		}
-		if (FC_title in Former_Featured_content_hash) {
+		if (FC_title in Former_Featured_content_hash
+				|| redirects_to_hash[FC_title] in Former_Featured_content_hash
+				&& (FC_title = redirects_to_hash[FC_title])) {
 			Former_Featured_content_hash[FC_title][1]++;
 			redirects_to_hash[original_FC_title] = FC_title;
 			delete redirects_hash[original_FC_title];
 			return true;
 		}
 	})) {
-		CeL.warn('發現過去曾經在 ' + CeL.wiki.title_link_of(FC_data[0])
+		CeL.warn('過去曾經在 ' + CeL.wiki.title_link_of(FC_data[0])
 				+ ' 包含過的典範條目，並未登記在現存或已被撤銷的登記列表頁面中: '
 				+ CeL.wiki.title_link_of(original_FC_title)
 				+ '。或許是因為繁簡轉換標題（請修改特色內容列表頁面上的標題，使之連結至實際標題）或原先內容轉成重定向頁，因此不匹配?');
@@ -367,8 +374,13 @@ function main_process() {
 				// TODO: 檢查簡介/摘要頁面是否存在。
 				throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
 			}
+
+			var write_content = '{{' + get_FC_title_to_transclude(FC_title)
+					+ '}}';
+			// console.log(write_content);
+
 			// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
-			wiki.edit('{{' + get_FC_title_to_transclude(FC_title) + '}}', {
+			wiki.edit(write_content, {
 				// bot : 1,
 				summary : 'bot: 更新首頁特色內容：'
 						+ CeL.wiki.title_link_of(FC_title)
