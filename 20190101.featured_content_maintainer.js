@@ -157,6 +157,7 @@ function parse_each_FC_item_list_page(page_data) {
 	// CeL.log(content);
 	// console.log([ page_data.original_title || title, is_FFC, is_list ]);
 	while (matched = PATTERN_Featured_content.exec(content)) {
+		// 還沒繁簡轉換過的標題。
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
 		if (is_FFC) {
 			Former_Featured_content_hash[FC_title] = [ is_list, 0 ];
@@ -183,15 +184,23 @@ function parse_each_FC_item_list_page(page_data) {
 function check_FC_redirects(page_list) {
 	// console.log(page_list);
 	var original_FC_title = page_list.query_title;
-
 	var isFFC = FC_list_hash[original_FC_title];
+	// 經過繁簡轉換過的最終標題。
 	var FC_title = page_list[0].title;
 
 	if (original_FC_title !== FC_title) {
 		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
 				+ CeL.wiki.title_link_of(FC_title));
+		redirects_to_hash[original_FC_title] = FC_title;
+		// 搬移到經過繁簡轉換過的最終標題。
+		if (isFFC) {
+			Former_Featured_content_hash[FC_title] = Former_Featured_content_hash[original_FC_title];
+			delete Former_Featured_content_hash[original_FC_title];
+		} else {
+			Featured_content_hash[FC_title] = Featured_content_hash[original_FC_title];
+			delete Featured_content_hash[original_FC_title];
+		}
 	}
-	// redirects_to_hash[original_FC_title] = FC_title;
 
 	page_list.forEach(function(page_data) {
 		// cache 所有標題，以避免下次還要 reget。
@@ -282,11 +291,11 @@ function parse_each_FC_page(page_data) {
 
 function check_redirects(page_list) {
 	// console.log(page_list);
-	// var original_FC_title = page_list.query_title;
 	var original_FC_title = redirects_list[this.redirects_index++];
 	if (!original_FC_title) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
 	}
+	// assert: original_FC_title === page_list.query_title
 
 	var FC_data = redirects_hash[original_FC_title];
 	if (!FC_data) {
