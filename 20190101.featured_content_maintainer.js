@@ -91,7 +91,10 @@ CeL.wiki.cache([ {
 }, {
 	type : 'redirects',
 	// TODO: 一次取得大量頁面。
-	list : Object.keys(FC_list_hash),
+	list : function() {
+		CeL.log('FC_list_hash = ' + JSON.stringify(FC_list_hash));
+		return Object.keys(FC_list_hash);
+	},
 	reget : true,
 	// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
 	each : check_FC_redirects
@@ -182,10 +185,12 @@ function check_FC_redirects(page_list) {
 
 	var isFFC = FC_list_hash[original_FC_title], FC_title = page_list[0].title;
 
-	// cache 所有標題，以避免下次還要 reget。
-	if (true || original_FC_title !== FC_title) {
-		redirects_to_hash[original_FC_title] = FC_title;
+	if (original_FC_title !== FC_title) {
+		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
+				+ CeL.wiki.title_link_of(FC_title));
 	}
+	// cache 所有標題，以避免下次還要 reget。
+	redirects_to_hash[original_FC_title] = FC_title;
 }
 
 // ---------------------------------------------------------------------//
@@ -328,7 +333,9 @@ function main_process() {
 		return (JDN_hash[title_1] || 0) - (JDN_hash[title_2] || 0);
 	});
 
-	if (false) {
+	if (CeL.is_debug()) {
+		CeL.log('FC_list_hash = ' + JSON.stringify(FC_list_hash));
+		CeL.log('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
 		CeL.log('Featured_content_hash = '
 				+ JSON.stringify(Featured_content_hash));
 		CeL.log('Former_Featured_content_hash = '
