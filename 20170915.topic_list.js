@@ -5,16 +5,16 @@ Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄
 jstop cron-tools.cewbot-20170915.topic_list.zh;
 jstop cron-tools.cewbot-20170915.topic_list.zh-classical;
 jstop cron-tools.cewbot-20170915.topic_list.wikinews;
-jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 jstop cron-tools.cewbot-20170915.topic_list.ja;
 jstop cron-tools.cewbot-20170915.topic_list.wikisource;
+jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=zh-classical
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikinews
-/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_language=ja
 /usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikisource
+/usr/bin/jstart -N cron-tools.cewbot-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/cewbot/wikibot/20170915.topic_list.js use_project=wikiversity
 
 
 2017/9/10 22:31:46	開始計畫。
@@ -99,7 +99,22 @@ general_topic_page = '/topic list', general_page_configuration = {
 		timezone : 8,
 		// 序號 Topics主題
 		headers : '! # !! 話題 !! <small title="發言數/發言人次(實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
-	// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
+		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
+		,
+		row_style : function(section, section_index) {
+			var status, to_exit = this.each.exit;
+			this.each.call(section, 'template', function(token) {
+				if (token.name in {
+					// 下列討論已經關閉，請勿修改。
+					'Archive top' : true
+				}) {
+					status = 'style="background-color:#ccc"';
+					// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
+					return to_exit;
+				}
+			});
+			return status || '';
+		}
 	},
 	'zh-classical' : {
 		timezone : 8,
@@ -1336,7 +1351,13 @@ function generate_topic_list(page_data) {
 			}
 		});
 
-		section_table.push('|-\n| ' + row.join(' || '));
+		section_table.push('|-' + ((
+		//
+		typeof page_configuration.row_style === 'function'
+		//
+		? page_configuration.row_style.call(parser, section, section_index)
+		//
+		: page_configuration.row_style) || '') + '\n| ' + row.join(' || '));
 	}, {
 		get_users : true,
 		level_filter : page_configuration.level_filter,
