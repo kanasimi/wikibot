@@ -350,7 +350,7 @@ function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
-	var title_sorted = Object.keys(Featured_content_hash)
+	title_sorted = Object.keys(Featured_content_hash)
 	// || Infinity: 沒上過首頁的頁面因為不存在簡介/摘要頁面，所以必須要排在最後，不能夠列入顯示。
 	// TODO: 檢查簡介/摘要頁面是否存在。
 	.sort(function(title_1, title_2) {
