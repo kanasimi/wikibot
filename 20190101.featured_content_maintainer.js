@@ -53,7 +53,7 @@ Featured_content_hash = CeL.null_Object(),
 // Former_Featured_content_hash[FC_title] = [ {Boolean}is_list, {Number}count ]
 Former_Featured_content_hash = CeL.null_Object(),
 //
-error_title_list = [],
+error_title_list = [], title_sorted,
 // redirects_hash[FC_title]
 // = [ {String}transcluding page title, JDN, FC page prefix ]
 redirects_hash = CeL.null_Object(), redirects_list = [],
@@ -114,7 +114,7 @@ CeL.wiki.cache([ {
 	reget : true,
 	// 檢查出問題的頁面 (redirects_list) 是不是重定向所以才找不到。
 	each : check_redirects
-} ], main_process, {
+} ], check_date_page, {
 	// JDN index in parse_each_FC_page()
 	JDN : JDN_start,
 	// index in check_redirects()
@@ -334,21 +334,19 @@ function check_redirects(page_list) {
 			return true;
 		}
 	})) {
-		CeL
-				.warn('過去曾經在 '
-						+ CeL.wiki.title_link_of(FC_data[0])
-						+ ' 包含過的特色內容，並未登記在現存或已被撤銷的登記列表頁面中: '
-						+ CeL.wiki.title_link_of(original_FC_title)
-						+ '。'
-						+ '若原先內容轉成重定向頁，使此遭提指向了重定向頁，請修改特色內容列表頁面上的標題，使之連結至實際標題；並且將 Wikipedia:典範條目/下的簡介頁面移到最終指向的標題。'
-						+ '若這是已經撤銷的特色內容，請加入相應的已撤銷列表頁面。'
-						+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+		CeL.warn('過去曾經在 ' + CeL.wiki.title_link_of(FC_data[0])
+				+ ' 包含過的特色內容，並未登記在現存或已被撤銷的登記列表頁面中: '
+				+ CeL.wiki.title_link_of(original_FC_title) + '。'
+				+ '若原先內容轉成重定向頁，使此遭提指向了重定向頁，請修改特色內容列表頁面上的標題，使之連結至實際標題；'
+				+ '並且將 Wikipedia:典範條目/下的簡介頁面移到最終指向的標題。'
+				+ '若這是已經撤銷的特色內容，請加入相應的已撤銷列表頁面。'
+				+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 	}
 }
 
 // ---------------------------------------------------------------------//
 
-function main_process() {
+function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
@@ -411,7 +409,7 @@ function main_process() {
 				if (!content.includes(
 				// 避免多次提醒。
 				CeL.wiki.title_link_of(date_page_title))) {
-					return '明天的首頁特色內容頁面（'
+					return '[[Wikipedia:首頁/明天|明天的首頁]]特色內容頁面（'
 					//
 					+ CeL.wiki.title_link_of(date_page_title)
 					//
@@ -431,17 +429,21 @@ function main_process() {
 				 */
 				content = CeL.wiki.content_of(page_data);
 
-				if (!content.includes(
+				if (content
 				// 避免多次提醒。
-				CeL.wiki.title_link_of(date_page_title))) {
-					return '明天的首頁特色內容頁面（'
-					//
-					+ CeL.wiki.title_link_of(date_page_title)
-					//
-					+ '）所嵌入包含的標題似乎並非特色內容標題？'
-					//
-					+ '若包含的頁面確實並非特色內容，請幫忙處理，謝謝。 --~~~~';
+				&& content.includes(CeL.wiki.title_link_of(date_page_title))) {
+					CeL.log('已經做過提醒。');
+					return;
 				}
+
+				return '[[Wikipedia:首頁/明天|明天的首頁]]特色內容頁面（'
+				//
+				+ CeL.wiki.title_link_of(date_page_title)
+				//
+				+ '）所嵌入包含的標題似乎並非特色內容標題？'
+				//
+				+ '若包含的頁面確實並非特色內容，請幫忙處理，謝謝。 --~~~~';
+
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;
 		}
@@ -559,10 +561,11 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 			// 避免多次提醒。
 			if (content.includes(write_link)) {
+				CeL.log('已經做過提醒。');
 				return;
 			}
 
-			return '明天的首頁特色內容頁面（'
+			return '[[Wikipedia:首頁/明天|明天的首頁]]特色內容頁面（'
 			//
 			+ CeL.wiki.title_link_of(date_page_title)
 			//
