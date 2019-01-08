@@ -380,7 +380,7 @@ page_configurations = {
 				console.log(section.toString());
 			}
 
-			console.log(section.bot_name && applicants.length);
+			// console.log(section.bot_name && applicants.length);
 			return section.bot_name && applicants.length > 0;
 		}
 	})),

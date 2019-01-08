@@ -391,44 +391,7 @@ function main_process() {
 		content = CeL.wiki.content_of(page_data);
 
 		if (!content || !(content = content.trim())) {
-			// 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
-			var FC_title = title_sorted[0];
-			if (CeL.env.arg_hash
-					&& CeL.env.arg_hash.environment === 'production') {
-				for (var index = 1; !JDN_hash[FC_title]
-				//
-				&& index < title_sorted.length; index++) {
-					FC_title = title_sorted[index];
-				}
-			}
-			if (!FC_title
-			// || !JDN_hash[FC_title]
-			) {
-				// TODO: 檢查簡介/摘要頁面是否存在。
-				throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
-			}
-
-			var write_content = '{{' + get_FC_title_to_transclude(FC_title)
-					+ '}}';
-			// console.log(write_content);
-
-			// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
-			wiki.edit(write_content, {
-				// bot : 1,
-				summary : 'bot: 自動更新首頁特色內容：'
-						+ CeL.wiki.title_link_of(FC_title)
-						+ (JDN_hash[FC_title] ? '上次展示時間為'
-								+ CeL.Julian_day.to_YMD(JDN_hash[FC_title],
-										true).join('/') : '沒上過首頁') + '。作業機制請參考'
-						+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
-						+ ' 編輯摘要的red link經繁簡轉換後存在'
-			});
-			if (!JDN_hash[FC_title]) {
-				check_month_list();
-			} else {
-				// 預防新當選條目沒有準備展示內容的情況。
-				check_if_FC_introduction_exists(FC_title, date_page_title);
-			}
+			write_date_page(date_page_title);
 			return;
 		}
 
@@ -493,12 +456,79 @@ function main_process() {
 
 // ---------------------------------------------------------------------//
 
+// 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
+function write_date_page(date_page_title, transcluded_title_now) {
+	var FC_title = title_sorted[0];
+	if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+		for (var index = 1; !JDN_hash[FC_title]
+		// 找到之前曾經上過首頁的最古老 FC_title。 assert: 上過首頁的都必定有介紹頁面。
+		&& index < title_sorted.length; index++) {
+			FC_title = title_sorted[index];
+		}
+	}
+	if (!FC_title
+	// || !JDN_hash[FC_title]
+	) {
+		// TODO: 檢查簡介/摘要頁面是否存在。
+		throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
+	}
+
+	var transcluded_title = get_FC_title_to_transclude(FC_title),
+	//
+	write_content = '{{' + transcluded_title + '}}';
+	// console.log(write_content);
+
+	wiki.page(date_page_title);
+	if (transcluded_title_now) {
+		// assert: (transcluded_title_now) 為現在 (date_page_title) 頁面中嵌入但*有問題*的頁面。
+		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+			if (transcluded_title === transcluded_title_now) {
+				wiki.edit('', {
+					nocreate : 1,
+					summary : 'production environment 下，'
+							+ '如果沒有人處理的話應該有補救措施（即便最後留空）。'
+				});
+				check_month_list();
+				return;
+			}
+			// else: write (write_content)
+		} else {
+			// assert: 已經提醒過 (DISCUSSION_PAGE)。
+			check_month_list();
+			return;
+		}
+	}
+
+	// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
+	wiki.edit(write_content, {
+		// bot : 1,
+		summary : 'bot: 自動更新首頁特色內容：'
+				+ CeL.wiki.title_link_of(FC_title)
+				+ (JDN_hash[FC_title] ? '上次展示時間為'
+						+ CeL.Julian_day.to_YMD(JDN_hash[FC_title], true).join(
+								'/') : '沒上過首頁') + '。作業機制請參考'
+				+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
+				+ ' 編輯摘要的red link經繁簡轉換後存在'
+	});
+
+	if (JDN_hash[FC_title]) {
+		check_month_list();
+	} else {
+		// 預防新當選條目沒有準備展示內容的情況。
+		check_if_FC_introduction_exists(FC_title, date_page_title,
+				transcluded_title);
+	}
+}
+
+// ---------------------------------------------------------------------//
+
 // 確認簡介頁面存在。
 function check_if_FC_introduction_exists(FC_title, date_page_title,
 		transcluded_title) {
-	wiki.page(transcluded_title || get_FC_title_to_transclude(FC_title),
-	//
-	function(page_data) {
+	if (!transcluded_title)
+		transcluded_title = get_FC_title_to_transclude(FC_title);
+
+	wiki.page(transcluded_title, function(page_data) {
 		var
 		/**
 		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
@@ -514,10 +544,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 		// environment=production
 		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
-			wiki.page(date_page_title).edit('', {
-				nocreate : 1,
-				summary : 'production environment 如果沒有人處理的話應該有補救措施（即便最後留空）。'
-			});
+			write_date_page(date_page_title, transcluded_title);
 			return;
 		}
 
@@ -528,20 +555,23 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			 */
 			content = CeL.wiki.content_of(page_data),
 			//
-			write_link = CeL.wiki.title_link_of(page_data.title, '撰寫簡介');
+			write_link = CeL.wiki.title_link_of(transcluded_title, '撰寫簡介');
 
 			// 避免多次提醒。
-			if (!content.includes(write_link)) {
-				return '明天的首頁特色內容頁面（'
-				//
-				+ CeL.wiki.title_link_of(date_page_title)
-				//
-				+ '）所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
-				//
-				+ '似乎還不存在簡介？' + '或許簡介頁面存放在"Wikipedia:優良條目/"下？'
-				//
-				+ '若簡介頁面確實不存在，請幫忙' + write_link + '，謝謝。 --~~~~';
+			if (content.includes(write_link)) {
+				return;
 			}
+
+			return '明天的首頁特色內容頁面（'
+			//
+			+ CeL.wiki.title_link_of(date_page_title)
+			//
+			+ '）所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
+			//
+			+ '似乎還不存在簡介？' + '或許簡介頁面存放在"Wikipedia:優良條目/"下？'
+			//
+			+ '若簡介頁面確實不存在，請幫忙' + write_link + '，謝謝。 --~~~~';
+
 		}, DISCUSSION_edit_options).run(check_month_list);
 		return;
 	}, {
