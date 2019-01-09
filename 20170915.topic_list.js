@@ -104,22 +104,33 @@ general_topic_page = '/topic list', general_page_configuration = {
 		row_style : function(section, section_index) {
 			var status, to_exit = this.each.exit, archived;
 			this.each.call(section, function(token) {
-				if (token.type === 'transclusion' && token.name in {
+				// console.log(token);
+				if (archived === 'end') {
+					// console.log(token);
+				}
+				if (token.type === 'transclusion' && (token.name in {
 					// 下列討論已經關閉，請勿修改。
 					'Archive top' : true
-				}) {
+				})) {
 					archived = 'start';
-				} else if (token.type === 'transclusion' && token.name in {
+
+				} else if (archived === 'start'
+				//
+				&& token.type === 'transclusion' && (token.name in {
 					// 下列討論已經關閉，請勿修改。
 					'Archive bottom' : true
-				} && archived === 'start') {
+				})) {
 					archived = 'end';
 					// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
-				} else if (token.toString().trim() && archived === 'end') {
+
+				} else if (archived === 'end' && token.toString().trim()) {
+					// console.log('在結案之後還有東西:');
+					// console.log(token);
 					// 在結案之後還有東西。重新設定。
 					archived = null;
 				}
 			}, 1);
+			// console.log('archived: ' + archived);
 			if (archived === 'end')
 				return 'style="background-color:#ccc"';
 
@@ -454,6 +465,10 @@ Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
 		page_configurations[wiki_and_page_title].project = project;
 	}
 });
+
+// for debug
+main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+
 if (main_talk_pages.length > 0) {
 	CeL.info(main_talk_pages.length + ' page(s) to listen for '
 			+ CeL.wiki.site_name(wiki) + ': '
