@@ -385,8 +385,10 @@ function check_date_page() {
 		//
 		JDN = FC_data[KEY_LATEST_JDN];
 		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title),
+		//
+		'data-sort-value="' + (FC_data[KEY_IS_LIST] ? JDN : 1e8 + JDN)
 		// 類型: 條目/列表
-		FC_data[KEY_IS_LIST] ? '✓' : '',
+		+ '"|' + (FC_data[KEY_IS_LIST] ? '✓' : ''),
 		//
 		'data-sort-value="' + JDN + '"|'
 		//
