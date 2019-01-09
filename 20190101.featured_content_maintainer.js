@@ -93,7 +93,9 @@ CeL.wiki.cache([ {
 	list : function() {
 		CeL.debug('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
 		CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
-		return Object.keys(FC_data_hash);
+		return Object.keys(FC_data_hash).filter(function(FC_title) {
+			return !(FC_title in redirects_to_hash);
+		});
 	},
 	reget : true,
 	// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
@@ -384,11 +386,15 @@ function check_date_page() {
 		JDN = FC_data[KEY_LATEST_JDN];
 		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title), JDN ?
 		//
-		CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日')
+		'[[' + get_FC_date_title_to_transclude(JDN) + '|'
+		//
+		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
 		: '沒上過首頁', FC_data[KEY_JDN].length,
 		//
-		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]) ].join('||');
+		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
+		//
+		|| get_FC_title_to_transclude(FC_title)) ].join('||');
 	}).join('\n') + '\n|}';
 	if (error_title_list.length > 0) {
 		report += '\n==本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)==\n# '
