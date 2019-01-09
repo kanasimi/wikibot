@@ -4,6 +4,7 @@
 
  2019/1/1 13:39:58	初版試營運: 每日更新 zhwiki 首頁特色內容
  2019/1/5 12:32:58	轉換成經過繁簡轉換過的最終標題。
+ 2019/1/9 21:22:42	重構程式碼: using FC_data_hash
 
  // 輪流展示列表
 
@@ -164,7 +165,7 @@ function parse_each_FC_item_list_page(page_data) {
 
 		if (FC_title in FC_data_hash) {
 			if (FC_data_hash[FC_title][KEY_ISFFC] === is_FFC) {
-				CeL.error('Duplicate FC title: ' + FC_title + '; '
+				CeL.warn('Duplicate FC title: ' + FC_title + '; '
 						+ FC_data_hash[FC_title]);
 			} else {
 				CeL.error(CeL.wiki.title_link_of(FC_title)
@@ -219,8 +220,8 @@ function check_FC_redirects(page_list) {
 // get page name of FC_title to transclude
 function get_FC_title_to_transclude(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
-	return FC_data[KEY_TRANSCLUDING_PAGE] || 'Wikipedia:'
-			+ (FC_data[KEY_IS_LIST] ? '特色列表' : '典範條目') + '/' + FC_title;
+	return FC_data[KEY_TRANSCLUDING_PAGE]
+			|| ('Wikipedia:' + (FC_data[KEY_IS_LIST] ? '特色列表' : '典範條目') + '/' + FC_title);
 }
 
 // get page name of JDN to transclude
@@ -260,6 +261,7 @@ function parse_each_FC_page(page_data) {
 		var FC_data = FC_data_hash[FC_title];
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
+			console.log(matched[1]);
 			FC_data[KEY_TRANSCLUDING_PAGE] = matched[1];
 		} else {
 			return true;
@@ -305,8 +307,11 @@ function check_redirects(page_list) {
 		if (FC_data_hash[original_FC_title]) {
 			if (FC_data_hash[FC_title]) {
 				// 標題已經登記過. merge.
-				if (!FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE])
+				if (!FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE]) {
+					console
+							.log(FC_data_hash[original_FC_title][KEY_TRANSCLUDING_PAGE]);
 					FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE] = FC_data_hash[original_FC_title][KEY_TRANSCLUDING_PAGE];
+				}
 				FC_data_hash[FC_title][KEY_JDN].append(
 						FC_data_hash[original_FC_title][KEY_JDN]).sort();
 				delete FC_data_hash[original_FC_title];
@@ -369,25 +374,28 @@ function check_date_page() {
 		- FC_data_hash[FC_title_2][KEY_LATEST_JDN];
 	});
 
-	var report = '{| class="wikitable"\n|-\n!標題!!上次展示時間!!上過首頁次數!!簡介頁面'
+	var report = '{| class="wikitable"\n|-\n!標題!!上次展示時間!!上過首頁次數!!簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN];
-		return '|-\n|' + [ FC_title, JDN ?
+		return '|-\n|' + [ CeL.wiki.title_link_of(FC_title), JDN ?
 		//
 		CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日')
 		//
 		: '沒上過首頁', FC_data[KEY_JDN].length,
 		//
-		FC_data[KEY_TRANSCLUDING_PAGE] ].join('||');
-	}).join('\n') + '|}';
+		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]) ].join('||');
+	}).join('\n') + '\n|}';
 	if (error_title_list.length > 0) {
 		report += '\n==本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)==\n# '
 				+ error_title_list.join('\n# ');
 	}
-	wiki.page('Wikipedia:首頁/特色內容展示報告').edit(report);
+	wiki.page('Wikipedia:首頁/特色內容展示報告').edit(report, {
+		nocreate : 1,
+		summary : 'bot: 首頁特色內容更新報告'
+	});
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
 	/** {String}隔天首頁將展示的特色內容分頁title */
