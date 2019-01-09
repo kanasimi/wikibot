@@ -53,7 +53,7 @@ KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = CeL.null_Object(),
 
-error_title_list = [], FC_title_sorted,
+error_title_list = [], FC_title_sorted, redirects_list_to_check = [],
 // cache file of redirects
 redirects_to_file = base_directory + 'redirects_to.json',
 // redirects_to_hash[original_FC_title] = {String}FC_title 經過繁簡轉換過的最終標題
@@ -107,9 +107,9 @@ CeL.wiki.cache([ {
 }, {
 	type : 'redirects',
 	// TODO: 一次取得大量頁面。
-	list : redirects_list,
+	list : redirects_list_to_check,
 	reget : true,
-	// 檢查出問題的頁面 (redirects_list) 是不是重定向所以才找不到。
+	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
 	each : check_redirects
 } ], check_date_page, {
 	// JDN index in parse_each_FC_page()
@@ -272,7 +272,7 @@ function parse_each_FC_page(page_data) {
 			// 可能繁簡轉換不同/經過重定向了?
 			CeL.debug('不再是特色/典範了? ' + matched[2] + ' '
 					+ CeL.wiki.title_link_of(FC_title));
-			redirects_list.push(FC_title);
+			redirects_list_to_check.push(FC_title);
 			(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
 			check_FC_title(FC_title);
 		}
