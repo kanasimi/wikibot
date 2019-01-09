@@ -377,22 +377,24 @@ function check_date_page() {
 	var index = 0,
 	//
 	report = '{| class="wikitable sortable"\n|-\n'
-	//
-	+ '!#!!標題!!上次展示時間!!上過首頁次數!!簡介頁面\n'
+	// 上過首頁次數
+	+ '!#!!標題!!列表!!上次展示時間!!次數!!簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN];
-		return '|-\n|' + [ ++index,
+		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title),
+		// 類型: 條目/列表
+		FC_data[KEY_IS_LIST] ? '✓' : '',
 		//
-		'data-sort-value="' + JDN + '"|' + CeL.wiki.title_link_of(FC_title),
+		'data-sort-value="' + JDN + '"|'
 		//
-		JDN ? '[[' + get_FC_date_title_to_transclude(JDN) + '|'
+		+ (JDN ? '[[' + get_FC_date_title_to_transclude(JDN) + '|'
 		//
 		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
-		: '沒上過首頁', FC_data[KEY_JDN].length,
+		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
 		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
 		//
