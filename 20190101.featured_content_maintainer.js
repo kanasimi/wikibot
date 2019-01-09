@@ -261,8 +261,8 @@ function parse_each_FC_page(page_data) {
 		var FC_data = FC_data_hash[FC_title];
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
-			console.log(matched[1]);
-			FC_data[KEY_TRANSCLUDING_PAGE] = matched[1];
+			FC_data[KEY_TRANSCLUDING_PAGE] = matched[1].replace(/\/(?:s|摘要)\|/,
+					'\/');
 		} else {
 			return true;
 		}
@@ -308,8 +308,6 @@ function check_redirects(page_list) {
 			if (FC_data_hash[FC_title]) {
 				// 標題已經登記過. merge.
 				if (!FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE]) {
-					console
-							.log(FC_data_hash[original_FC_title][KEY_TRANSCLUDING_PAGE]);
 					FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE] = FC_data_hash[original_FC_title][KEY_TRANSCLUDING_PAGE];
 				}
 				FC_data_hash[FC_title][KEY_JDN].append(
@@ -374,13 +372,17 @@ function check_date_page() {
 		- FC_data_hash[FC_title_2][KEY_LATEST_JDN];
 	});
 
-	var report = '{| class="wikitable"\n|-\n!標題!!上次展示時間!!上過首頁次數!!簡介頁面\n'
+	var index = 0,
+	//
+	report = '{| class="wikitable sortable"\n|-\n'
+	//
+	+ '!#!!標題!!上次展示時間!!上過首頁次數!!簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN];
-		return '|-\n|' + [ CeL.wiki.title_link_of(FC_title), JDN ?
+		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title), JDN ?
 		//
 		CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日')
 		//
