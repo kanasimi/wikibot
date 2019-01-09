@@ -384,9 +384,11 @@ function check_date_page() {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN];
-		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title), JDN ?
+		return '|-\n|' + [ ++index,
 		//
-		'[[' + get_FC_date_title_to_transclude(JDN) + '|'
+		'data-sort-value="' + JDN + '"|' + CeL.wiki.title_link_of(FC_title),
+		//
+		JDN ? '[[' + get_FC_date_title_to_transclude(JDN) + '|'
 		//
 		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
