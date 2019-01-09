@@ -103,22 +103,27 @@ general_topic_page = '/topic list', general_page_configuration = {
 		,
 		row_style : function(section, section_index) {
 			var status, to_exit = this.each.exit, archived;
-			this.each.call(section, 'template', function(token) {
-				if (token.name in {
+			this.each.call(section, function(token) {
+				if (token.type === 'transclusion' && token.name in {
 					// 下列討論已經關閉，請勿修改。
 					'Archive top' : true
 				}) {
 					archived = 'start';
-				} else if (token.name in {
+				} else if (token.type === 'transclusion' && token.name in {
 					// 下列討論已經關閉，請勿修改。
 					'Archive bottom' : true
 				} && archived === 'start') {
 					archived = 'end';
 					// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
+				} else if (token.toString().trim() && archived === 'end') {
+					// 在結案之後還有東西。重新設定。
+					archived = null;
 				}
-			});
-			return archived === 'end' ? 'style="background-color:#ccc"'
-					: status || '';
+			}, 1);
+			if (archived === 'end')
+				return 'style="background-color:#ccc"';
+
+			return status || '';
 		}
 	},
 	'zh-classical' : {
