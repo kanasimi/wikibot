@@ -351,7 +351,7 @@ function check_redirects(page_list) {
 // 不是日期頁面嵌入的、有問題的標題。
 function is_FC(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
-	return FC_data && typeof FC_data[KEY_ISFFC] === 'boolean';
+	return FC_data && FC_data[KEY_ISFFC] === false;
 }
 
 function check_date_page() {
@@ -393,6 +393,7 @@ function check_date_page() {
 				+ error_title_list.join('\n# ');
 	}
 	wiki.page('Wikipedia:首頁/特色內容展示報告').edit(report, {
+		bot : 1,
 		nocreate : 1,
 		summary : 'bot: 首頁特色內容更新報告'
 	});
