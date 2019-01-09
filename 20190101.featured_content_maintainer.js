@@ -188,7 +188,8 @@ function check_FC_redirects(page_list) {
 	}
 	// 經過繁簡轉換過的最終標題。
 	var FC_title = CeL.wiki.title_of(page_list[0]);
-	var isFFC = FC_data[original_FC_title][KEY_ISFFC];
+	var isFFC = FC_data_hash[original_FC_title]
+			&& FC_data_hash[original_FC_title][KEY_ISFFC];
 
 	if (original_FC_title !== FC_title) {
 		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
@@ -198,7 +199,7 @@ function check_FC_redirects(page_list) {
 		if (FC_data_hash[original_FC_title]) {
 			if (FC_data_hash[FC_title]) {
 				CeL.error('check_FC_redirects: 標題已經登記過: '
-						+ CeL.wiki.title_link_of(FC_title) + '←'
+						+ CeL.wiki.title_link_of(FC_title) + ' ← '
 						+ CeL.wiki.title_link_of(original_FC_title));
 			} else {
 				FC_data_hash[FC_title] = FC_data_hash[original_FC_title];
@@ -368,14 +369,12 @@ function check_date_page() {
 		- FC_data_hash[FC_title_2][KEY_LATEST_JDN];
 	});
 
-	wiki.page('Wikipedia:首頁/特色內容展示報告')
-	//
-	.edit('{| class="wikitable"\n|-\n!標題!!上次展示時間!!上過首頁次數!!簡介頁面'
+	var report = '{| class="wikitable"\n|-\n!標題!!上次展示時間!!上過首頁次數!!簡介頁面'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
-		JDN = FC_data[FC_title][KEY_LATEST_JDN];
+		JDN = FC_data[KEY_LATEST_JDN];
 		return '|-\n|' + [ FC_title, JDN ?
 		//
 		CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日')
@@ -383,7 +382,12 @@ function check_date_page() {
 		: '沒上過首頁', FC_data[KEY_JDN].length,
 		//
 		FC_data[KEY_TRANSCLUDING_PAGE] ].join('||');
-	}).join('\n') + '|}');
+	}).join('\n') + '|}';
+	if (error_title_list.length > 0) {
+		report += '\n==本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)==\n# '
+				+ error_title_list.join('\n# ');
+	}
+	wiki.page('Wikipedia:首頁/特色內容展示報告').edit(report);
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
 	/** {String}隔天首頁將展示的特色內容分頁title */
