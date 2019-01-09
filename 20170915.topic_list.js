@@ -131,8 +131,10 @@ general_topic_page = '/topic list', general_page_configuration = {
 				}
 			}, 1);
 			// console.log('archived: ' + archived);
-			if (archived === 'end')
+			if (archived === 'end') {
+				// 把"下列討論已經關閉"的議題用深灰色顯示。
 				return 'style="background-color:#ccc"';
+			}
 
 			return status || '';
 		}
@@ -467,7 +469,7 @@ Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
 });
 
 // for debug
-main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
 
 if (main_talk_pages.length > 0) {
 	CeL.info(main_talk_pages.length + ' page(s) to listen for '
