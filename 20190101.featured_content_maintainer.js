@@ -45,6 +45,9 @@ DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	summary : 'bot: ' + 月日_to_generate + '的首頁特色內容頁面似乎有問題，無法排除，通知社群幫忙處理。'
 },
 
+// FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
+// {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
+FC_data_hash = CeL.null_Object(),
 // FC_list_hash[FC_title] = {Boolean} is former FC
 FC_list_hash = CeL.null_Object(),
 
@@ -165,6 +168,12 @@ function parse_each_FC_item_list_page(page_data) {
 			FC_title = redirects_to_hash[FC_title];
 		}
 
+		if (FC_title in FC_data_hash) {
+			CeL.error('Duplicate FC title: ' + FC_title + '; '
+					+ FC_data_hash[FC_title]);
+		}
+		FC_data_hash[FC_title] = [ is_list, is_FFC, , [] ];
+
 		if (is_FFC) {
 			Former_Featured_content_hash[FC_title] = [ is_list, 0 ];
 		} else {
@@ -220,7 +229,7 @@ function check_FC_redirects(page_list) {
 function get_FC_title_to_transclude(FC_title) {
 	return 'Wikipedia:'
 			+ (FC_page_prefix[FC_title] || '典範'
-					+ (Featured_content_hash[FC_title] ? '條目' : '條目')) + '/'
+					+ (Featured_content_hash[FC_title] ? '列表' : '條目')) + '/'
 			+ FC_title;
 }
 
@@ -463,7 +472,8 @@ function write_date_page(date_page_title, transcluded_title_now) {
 	var FC_title = title_sorted[0];
 	if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
 		for (var index = 1; !JDN_hash[FC_title]
-		// 找到之前曾經上過首頁的最古老 FC_title。 assert: 上過首頁的都必定有介紹頁面。
+		// 每天凌晨零時之前，若是頁面還不存在，就會找一個之前曾經上過首頁的最古老 FC_title 頁面來展示。
+		// assert: 上過首頁的都必定有介紹頁面。
 		&& index < title_sorted.length; index++) {
 			FC_title = title_sorted[index];
 		}
@@ -509,7 +519,7 @@ function write_date_page(date_page_title, transcluded_title_now) {
 				+ (JDN_hash[FC_title] ? '上次展示時間為'
 						+ CeL.Julian_day.to_YMD(JDN_hash[FC_title], true).join(
 								'/') : '沒上過首頁') + '。作業機制請參考'
-				+ CeL.wiki.title_link_of('Wikipedia:典範條目/展示設定')
+				+ CeL.wiki.title_link_of('Wikipedia:首頁/特色內容展示設定')
 				+ ' 編輯摘要的red link經繁簡轉換後存在'
 	});
 
