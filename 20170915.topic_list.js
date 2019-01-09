@@ -102,18 +102,23 @@ general_topic_page = '/topic list', general_page_configuration = {
 		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
 		,
 		row_style : function(section, section_index) {
-			var status, to_exit = this.each.exit;
+			var status, to_exit = this.each.exit, archived;
 			this.each.call(section, 'template', function(token) {
 				if (token.name in {
 					// 下列討論已經關閉，請勿修改。
 					'Archive top' : true
 				}) {
-					status = 'style="background-color:#ccc"';
-					// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
-					return to_exit;
+					archived = 'start';
+				} else if (token.name in {
+					// 下列討論已經關閉，請勿修改。
+					'Archive bottom' : true
+				} && archived === 'start') {
+					archived = 'end';
+					// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
 				}
 			});
-			return status || '';
+			return archived === 'end' ? 'style="background-color:#ccc"'
+					: status || '';
 		}
 	},
 	'zh-classical' : {

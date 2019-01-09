@@ -376,7 +376,11 @@ function check_date_page() {
 
 	var index = 0,
 	//
-	report = '{| class="wikitable sortable"\n|-\n'
+	report = '本報告將由機器人每日自動更新，毋須手動修正。'
+	//
+	+ '您可以從[[Wikipedia:首頁/特色內容展示設定|這個頁面]]更改設定參數。 --~~~~\n'
+	//
+	+ '{| class="wikitable sortable"\n|-\n'
 	// 上過首頁次數
 	+ '!#!!標題!!列表!!上次展示時間!!次數!!簡介頁面\n'
 	//
@@ -386,7 +390,7 @@ function check_date_page() {
 		JDN = FC_data[KEY_LATEST_JDN];
 		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title),
 		//
-		'data-sort-value="' + (FC_data[KEY_IS_LIST] ? JDN : 1e8 + JDN)
+		'data-sort-value="' + (FC_data[KEY_IS_LIST] ? 1e8 + JDN : JDN)
 		// 類型: 條目/列表
 		+ '"|' + (FC_data[KEY_IS_LIST] ? '✓' : ' '),
 		//
@@ -403,7 +407,7 @@ function check_date_page() {
 		|| get_FC_title_to_transclude(FC_title)) ].join('||');
 	}).join('\n') + '\n|}';
 	if (error_title_list.length > 0) {
-		report += '\n==本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)==\n# '
+		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
 				+ error_title_list.join('\n# ');
 	}
 	wiki.page('Wikipedia:首頁/特色內容展示報告').edit(report, {
