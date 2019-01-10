@@ -5,6 +5,7 @@
  2019/1/1 13:39:58	初版試營運: 每日更新 zhwiki 首頁特色內容
  2019/1/5 12:32:58	轉換成經過繁簡轉換過的最終標題。
  2019/1/9 21:22:42	重構程式碼: using FC_data_hash
+ 2019/1/10 13:9:32	add 首頁優良條目展示
 
  // 輪流展示列表
 
@@ -152,7 +153,8 @@ function parse_each_FC_item_list_page(page_data) {
 	is_FFC = /:[DF][FG][AL]|已撤销的/.test([ page_data.original_title,
 			page_data.title, title ].join('|')),
 	//
-	PATTERN_Featured_content = is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
+	PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:]+)(?:\|([^\[\]]*))?\]\]/
+			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
 
