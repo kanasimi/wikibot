@@ -679,12 +679,15 @@ function general_row_style(section, section_index) {
 
 	// console.log('archived: ' + archived);
 	if (archived === 'end' || archived === 'moved') {
+		section.CSS = {
+			color : '#888'
+		};
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
 		&& 'style="text-decoration: line-through;"'
-		// 將完成話題全灰
-		&& 'style="color: #888 !important;"';
+		// 將完成話題全灰. "!important": useless
+		&& 'style="color: #888;"';
 	}
 
 	return status || '';
@@ -1022,7 +1025,9 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		if (true) {
 			// 採用短日期格式。
 			date = date.format({
-				format : '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
+				format : section.CSS.color ? '%Y-%2m-%2d %2H:%2M'
+				// ↑ 已經設定整行CSS的情況下，就不另外表現CSS。
+				: '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
 				// 採用當個項目最多人所處的時區。
 				zone : parser.page.page_configuration.timezone || 0
 			});
@@ -1044,6 +1049,11 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				additional_attributes = short_to_long[time_interval];
 				break;
 			}
+		}
+		if (section.CSS.color) {
+			// for <a>
+			additional_attributes += '; color: ' + section.CSS.color
+					+ ' !important;';
 		}
 		if (!additional_attributes) {
 			for ( var time_interval in long_to_short) {
@@ -1101,9 +1111,11 @@ var section_column_operators = {
 		if (adding_link) {
 			// console.log(adding_link);
 			if (adding_link.type === 'section_title') {
+				// 對於還沒完全結案的議題，箭頭指向還在討論的部分。
 				title_too_long = if_too_long('→' + adding_link.title);
 				adding_link = adding_link.link;
 			} else {
+				// 對於已經移動的議題，箭頭指向移動的目標頁面。
 				// assert: is page title
 				adding_link = adding_link.toString();
 				title_too_long = if_too_long(adding_link);
@@ -1116,10 +1128,17 @@ var section_column_operators = {
 					+ (title_too_long ? small_title(adding_link) : adding_link);
 		}
 
-		// 限制標題欄的寬度。
-		return (style ? 'style="max-width: ' + max_title_display_width
-				+ ';" | ' : '')
-				+ title;
+		if (style) {
+			// 限制標題欄的寬度。
+			style = 'max-width: ' + max_title_display_width;
+		} else
+			style = '';
+		if (section.CSS.color) {
+			// for <a>
+			style += '; color: ' + section.CSS.color + ' !important;';
+		}
+
+		return (style ? 'style="' + style + '" | ' : '') + title;
 	},
 	// discussions conversations, 發言次數, 発言数
 	discussions : function(section) {
