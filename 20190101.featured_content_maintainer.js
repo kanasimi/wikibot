@@ -153,7 +153,7 @@ function parse_each_FC_item_list_page(page_data) {
 	is_FFC = /:[DF][FG][AL]|已撤销的/.test([ page_data.original_title,
 			page_data.title, title ].join('|')),
 	//
-	PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:]+)(?:\|([^\[\]]*))?\]\]/
+	PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/
 			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
@@ -175,8 +175,8 @@ function parse_each_FC_item_list_page(page_data) {
 
 		if (FC_title in FC_data_hash) {
 			if (FC_data_hash[FC_title][KEY_ISFFC] === is_FFC) {
-				CeL.warn('Duplicate FC title: ' + FC_title + '; '
-						+ FC_data_hash[FC_title]);
+				CeL.warn('Duplicate ' + TYPE_NAME + ' title: ' + FC_title
+						+ '; ' + FC_data_hash[FC_title] + '; ' + matched[0]);
 			} else {
 				CeL.error(CeL.wiki.title_link_of(FC_title)
 						+ '被同時列在了現存及被撤銷的特色內容清單中!');
@@ -562,7 +562,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ TYPE_NAME + '：' + CeL.wiki.title_link_of(FC_title)
 		//
-		+ (is_FC(FC_title) ? '上次展示時間為'
+		+ (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]
+		//
+		? '上次展示時間為'
 		//
 		+ CeL.Julian_day.to_YMD(FC_data_hash[FC_title][KEY_LATEST_JDN], true)
 		//
@@ -571,7 +573,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 				+ ' 編輯摘要的red link經繁簡轉換後存在'
 	});
 
-	if (is_FC(FC_title)) {
+	if (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
 		check_month_list();
 	} else {
 		// 預防新當選條目沒有準備展示內容的情況。
