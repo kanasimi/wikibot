@@ -359,6 +359,21 @@ function check_redirects(page_list) {
 
 // ---------------------------------------------------------------------//
 
+function generate_help_message(date_page_title, message) {
+	var JDN_diff = JDN_to_generate - JDN_today | 0;
+	return (JDN_diff === 1 ? '[[Wikipedia:首頁/明天|明天的首頁]]'
+	//
+	: JDN_diff === 2 ? '後天首頁的' : JDN_diff + '天後首頁的')
+	//
+	+ TYPE_NAME + '頁面（' + CeL.wiki.title_link_of(date_page_title) + '）'
+	//
+	+ message + '，謝謝。若您想使用最古老的頁面，可參考'
+	//
+	+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
+	//
+	+ '。 --~~~~';
+}
+
 // 不是日期頁面嵌入的、有問題的標題。
 function is_FC(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
@@ -467,15 +482,9 @@ function check_date_page() {
 					return;
 				}
 
-				return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
-				//
-				+ CeL.wiki.title_link_of(date_page_title)
-				//
-				+ '）似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。若您想使用最古老的頁面，可參考'
-				//
-				+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
-				//
-				+ '。 --~~~~';
+				return generate_help_message(date_page_title,
+				//		
+				'似乎並非標準的嵌入包含頁面格式，請幫忙處理');
 
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;
@@ -498,21 +507,15 @@ function check_date_page() {
 					return;
 				}
 
-				return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
+				return generate_help_message(date_page_title,
 				//
-				+ CeL.wiki.title_link_of(date_page_title)
-				//
-				+ '）' + (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(FC_title)
+				/^\d{4}年\d{1,2}月\d{1,2}日$/.test(FC_title)
 				//
 				? '似乎嵌入包含了另一個日期的簡介。請幫忙改成直接嵌入頁面'
 				//
 				: '所嵌入包含的標題似乎並非' + TYPE_NAME + '標題？'
 				//
-				+ '若包含的頁面確實並非' + TYPE_NAME + '，請幫忙處理') + '，謝謝。若您想使用最古老的頁面，可參考'
-				//
-				+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
-				//
-				+ '。 --~~~~';
+				+ '若包含的頁面確實並非' + TYPE_NAME + '，請幫忙處理');
 
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;
@@ -641,19 +644,13 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 				return;
 			}
 
-			return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
+			return generate_help_message(date_page_title,
 			//
-			+ CeL.wiki.title_link_of(date_page_title) + '）所嵌入包含的' + TYPE_NAME
-			//
-			+ '-' + CeL.wiki.title_link_of(FC_title)
+			'所嵌入包含的' + TYPE_NAME + '-' + CeL.wiki.title_link_of(FC_title)
 			//
 			+ '似乎還不存在簡介？' + (using_GA ? '' : '或許簡介頁面存放在"Wikipedia:優良條目/"下？')
 			//
-			+ '若簡介頁面確實不存在，請幫忙' + write_link + '，謝謝。若您想使用最古老的頁面，可參考'
-			//
-			+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
-			//
-			+ '。 --~~~~';
+			+ '若簡介頁面確實不存在，請幫忙' + write_link);
 
 		}, DISCUSSION_edit_options).run(check_month_list);
 		return;
