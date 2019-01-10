@@ -24,7 +24,7 @@ wiki = Wiki(true);
 var JDN_today = CeL.Julian_day(new Date),
 // + 1: 明天 JDN_tomorrow
 JDN_to_generate = JDN_today
-		+ (CeL.env.arg_hash && CeL.env.arg_hash.days_later || 1),
+		+ (CeL.env.arg_hash && (CeL.env.arg_hash.days_later | 0) || 1),
 //
 JDN_search_to = Math.max(JDN_today, JDN_to_generate - 1),
 // 開始有特色內容頁面的日期。
@@ -35,9 +35,15 @@ JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
 // @see Template:Feature , Template:Wikidate/ymd
 月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
 
-FC_list_pages = 'WP:FA|WP:FL'.split('|'),
+using_GA = CeL.env.arg_hash && CeL.env.arg_hash.type === 'good',
+// 'Wikipedia:' + NS_PREFIX
+NS_PREFIX = using_GA ? '優良條目' : '典範條目',
+//
+TYPE_NAME = using_GA ? '優良條目' : '特色內容',
+
+FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
-Former_FC_list_pages = 'WP:FFA|WP:FFL'.split('|'),
+Former_FC_list_pages = (using_GA ? 'WP:DGA' : 'WP:FFA|WP:FFL').split('|'),
 // Wikipedia:互助客栈/条目探讨
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
@@ -67,7 +73,7 @@ FC_page_prefix = CeL.null_Object(),
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
  * matched: [ all, transcluding_title, FC_page_prefix, FC_title ]
  */
-PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^\/{}]+))\}\}\s*$/;
+PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^\/{}]+))\}\}\s*$/;
 
 // ---------------------------------------------------------------------//
 // main
@@ -141,18 +147,18 @@ function parse_each_FC_item_list_page(page_data) {
 	//
 	matched, is_list = title.includes('列表')
 	// e.g., 'Wikipedia:FL'
-	|| (page_data.original_title || title).includes(':F?FL'),
+	|| /:[DF]?[FG]L/.test(page_data.original_title || title),
 	// 注意: 這包含了被撤銷後再次被評為典範的條目
-	is_FFC = /:FF[AC]|已撤销的/.test([ page_data.original_title, page_data.title,
-			title ].join('|')),
+	is_FFC = /:[DF][FG][AL]|已撤销的/.test([ page_data.original_title,
+			page_data.title, title ].join('|')),
 	//
 	PATTERN_Featured_content = is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
 
 	if (is_FFC) {
-		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表
-		content = content.replace(/\n== *被撤銷後[\s\S]+$/, '');
+		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
+		content = content.replace(/\n== *(?:被撤銷後|被撤销后)[\s\S]+$/, '');
 	}
 
 	// CeL.log(content);
@@ -223,12 +229,14 @@ function check_FC_redirects(page_list) {
 function get_FC_title_to_transclude(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
 	return FC_data[KEY_TRANSCLUDING_PAGE]
-			|| ('Wikipedia:' + (FC_data[KEY_IS_LIST] ? '特色列表' : '典範條目') + '/' + FC_title);
+			|| ('Wikipedia:'
+					+ (using_GA ? '優良條目' : FC_data[KEY_IS_LIST] ? '特色列表'
+							: '典範條目') + '/' + FC_title);
 }
 
 // get page name of JDN to transclude
 function get_FC_date_title_to_transclude(JDN) {
-	return 'Wikipedia:' + (JDN < 典範JDN ? '特色條目' : '典範條目')
+	return 'Wikipedia:' + (using_GA ? '優良條目' : JDN < 典範JDN ? '特色條目' : '典範條目')
 			+ CeL.Julian_day.to_Date(JDN).format('/%Y年%m月%d日');
 }
 
@@ -275,8 +283,8 @@ function parse_each_FC_page(page_data) {
 		if (check_FC_title(FC_title)
 				&& check_FC_title(redirects_to_hash[FC_title])) {
 			// 可能繁簡轉換不同/經過重定向了?
-			CeL.debug('不再是特色/典範了? ' + matched[2] + ' '
-					+ CeL.wiki.title_link_of(FC_title));
+			CeL.debug('不再是' + (using_GA ? '優良' : '特色/典範') + '了? ' + matched[2]
+					+ ' ' + CeL.wiki.title_link_of(FC_title));
 			redirects_list_to_check.push(FC_title);
 			(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
 			check_FC_title(FC_title);
@@ -332,12 +340,13 @@ function check_redirects(page_list) {
 		CeL.warn('過去曾經在 '
 				+ CeL.Julian_day.to_Date(
 						FC_data_hash[original_FC_title][KEY_JDN][0]).format(
-						'%Y年%m月%d日') + ' 包含過的特色內容，並未登記在現存或已被撤銷的登記列表頁面中: '
+						'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
+				+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
 				+ CeL.wiki.title_link_of(original_FC_title) + '。'
-				+ '若原先內容轉成重定向頁，使此遭提指向了重定向頁，請修改特色內容列表頁面上的標題，使之連結至實際標題；'
-				+ '並且將 Wikipedia:典範條目/下的簡介頁面移到最終指向的標題。'
-				+ '若這是已經撤銷的特色內容，請加入相應的已撤銷列表頁面。'
-				+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+				+ '若原先內容轉成重定向頁，使此遭提指向了重定向頁，請修改' + TYPE_NAME
+				+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
+				+ '/下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
+				+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 	}
 
 	page_list.forEach(function(page_data) {
@@ -375,7 +384,8 @@ function check_date_page() {
 	});
 
 	var index = 0,
-	//
+	// @see
+	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
 	//
 	+ '您可以從[[Wikipedia:首頁/特色內容展示設定|這個頁面]]更改設定參數。 --~~~~\n'
@@ -388,36 +398,40 @@ function check_date_page() {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN];
-		return '|-\n|' + [ ++index, CeL.wiki.title_link_of(FC_title),
+		return '|-\n| ' + [ ++index, CeL.wiki.title_link_of(FC_title),
 		//
 		'data-sort-value="' + (FC_data[KEY_IS_LIST] ? 1e8 + JDN : JDN)
 		// 類型: 條目/列表
-		+ '"|' + (FC_data[KEY_IS_LIST] ? '✓' : ' '),
+		+ '" | ' + (FC_data[KEY_IS_LIST] ? '✓' : ' '),
 		//
-		'data-sort-value="' + JDN + '"|'
+		'data-sort-value="' + JDN + '" | '
 		//
 		+ (JDN ? '[[' + get_FC_date_title_to_transclude(JDN) + '|'
 		//
 		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
+		+ ' (' + (JDN_today - JDN) + ' days)'
+		//
 		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
 		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
 		//
-		|| get_FC_title_to_transclude(FC_title)) ].join('||');
+		|| get_FC_title_to_transclude(FC_title)) ].join(' || ');
 	}).join('\n') + '\n|}';
 	if (error_title_list.length > 0) {
 		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
 				+ error_title_list.join('\n# ');
 	}
-	wiki.page('Wikipedia:首頁/特色內容展示報告').edit(report, {
+	wiki.page('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
+	//
+	.edit(report, {
 		bot : 1,
 		nocreate : 1,
-		summary : 'bot: 首頁特色內容更新報告'
+		summary : 'bot: 首頁' + TYPE_NAME + '更新報告'
 	});
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
-	/** {String}隔天首頁將展示的特色內容分頁title */
+	/** {String}隔天首頁將展示的特色內容/優良條目分頁title */
 	var date_page_title = get_FC_date_title_to_transclude(JDN_to_generate);
 	wiki.page(date_page_title, function(page_data) {
 		var
@@ -447,7 +461,7 @@ function check_date_page() {
 				if (!content.includes(
 				// 避免多次提醒。
 				CeL.wiki.title_link_of(date_page_title))) {
-					return '[[Wikipedia:首頁/明天|明天的首頁]]特色內容頁面（'
+					return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
 					//
 					+ CeL.wiki.title_link_of(date_page_title)
 					//
@@ -474,13 +488,13 @@ function check_date_page() {
 					return;
 				}
 
-				return '[[Wikipedia:首頁/明天|明天的首頁]]特色內容頁面（'
+				return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
 				//
 				+ CeL.wiki.title_link_of(date_page_title)
 				//
-				+ '）所嵌入包含的標題似乎並非特色內容標題？'
+				+ '）所嵌入包含的標題似乎並非' + TYPE_NAME + '標題？'
 				//
-				+ '若包含的頁面確實並非特色內容，請幫忙處理，謝謝。 --~~~~';
+				+ '若包含的頁面確實並非' + TYPE_NAME + '，請幫忙處理，謝謝。 --~~~~';
 
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;
@@ -509,7 +523,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	}
 	if (!is_FC(FC_title)) {
 		// TODO: 檢查簡介/摘要頁面是否存在。
-		throw '沒有可供選擇的特色內容頁面! 照理來說這不應該發生!';
+		throw '沒有可供選擇的' + TYPE_NAME + '頁面! 照理來說這不應該發生!';
 	}
 
 	var transcluding_title = get_FC_title_to_transclude(FC_title),
@@ -542,7 +556,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
 	wiki.edit(write_content, {
 		// bot : 1,
-		summary : 'bot: 自動更新首頁特色內容：' + CeL.wiki.title_link_of(FC_title)
+		summary : 'bot: 自動更新首頁'
+		//
+		+ TYPE_NAME + '：' + CeL.wiki.title_link_of(FC_title)
 		//
 		+ (is_FC(FC_title) ? '上次展示時間為'
 		//
@@ -605,11 +621,11 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 				return;
 			}
 
-			return '[[Wikipedia:首頁/明天|明天的首頁]]特色內容頁面（'
+			return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
 			//
-			+ CeL.wiki.title_link_of(date_page_title)
+			+ CeL.wiki.title_link_of(date_page_title) + '）所嵌入包含的' + TYPE_NAME
 			//
-			+ '）所嵌入包含的特色內容' + CeL.wiki.title_link_of(FC_title)
+			+ '-' + CeL.wiki.title_link_of(FC_title)
 			//
 			+ '似乎還不存在簡介？' + '或許簡介頁面存放在"Wikipedia:優良條目/"下？'
 			//
@@ -627,7 +643,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 // 若不存在則自動創建每月特色內容存檔：如[[Wikipedia:典範條目/2019年1月]]，
 function check_month_list() {
 	var date = CeL.Julian_day.to_Date(JDN_to_generate);
-	wiki.page(date.format('Wikipedia:典範條目/%Y年%m月'), function(page_data) {
+	wiki.page(date.format('Wikipedia:' + NS_PREFIX + '/%Y年%m月'), function(
+			page_data) {
 		var
 		/**
 		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
@@ -640,8 +657,8 @@ function check_month_list() {
 		}
 
 		content = [
-				'__NOTOC__<!---->__NOEDITSECTION__<!---->'
-						+ '{{Wikipedia:典範條目/存檔表頭}}',
+				'__NOTOC__<!---->__NOEDITSECTION__<!---->' + '{{Wikipedia:'
+						+ NS_PREFIX + '/存檔表頭}}',
 				'{|width="100%" border="1" cellspacing="8" cellpadding="4"'
 						+ ' style="background:transparent;border:0;"' ];
 		var day = 1;
@@ -651,11 +668,12 @@ function check_month_list() {
 				break;
 			if (date.getDate() % 2 === 1)
 				content.push('|-');
-			content.push(date.format('{{Wikipedia:典範條目/日期|%Y年%m月%d日}}'));
+			content.push(date.format('{{Wikipedia:' + NS_PREFIX
+					+ '/日期|%Y年%m月%d日}}'));
 		}
 		content.push('|}');
 		wiki.edit(content.join('\n'), {
-			summary : 'bot: 自動創建每月特色內容存檔'
+			summary : 'bot: 自動創建每月' + TYPE_NAME + '存檔'
 		}).run(finish_up);
 	}, {
 		redirects : 1
