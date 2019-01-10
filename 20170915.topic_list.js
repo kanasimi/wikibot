@@ -679,15 +679,17 @@ function general_row_style(section, section_index) {
 
 	// console.log('archived: ' + archived);
 	if (archived === 'end' || archived === 'moved') {
-		section.CSS = {
-			color : '#888'
-		};
+		if (false) {
+			section.CSS = {
+				color : '#888'
+			};
+		}
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
 		&& 'style="text-decoration: line-through;"'
 		// 將完成話題全灰. "!important": useless
-		&& 'style="color: #888;"';
+		&& 'style="color: #888;"' && 'style="opacity: .5;"';
 	}
 
 	return status || '';
@@ -1025,8 +1027,10 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		if (true) {
 			// 採用短日期格式。
 			date = date.format({
-				format : section.CSS.color ? '%Y-%2m-%2d %2H:%2M'
-				// ↑ 已經設定整行CSS的情況下，就不另外表現CSS。
+				format : section.CSS && section.CSS.color
+				// 已經設定整行CSS的情況下，就不另外表現CSS。
+				? '%Y-%2m-%2d %2H:%2M'
+				//
 				: '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
 				// 採用當個項目最多人所處的時區。
 				zone : parser.page.page_configuration.timezone || 0
@@ -1050,8 +1054,8 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				break;
 			}
 		}
-		if (section.CSS.color) {
-			// for <a>
+		if (section.CSS && section.CSS.color) {
+			// for <a>... useless
 			additional_attributes += '; color: ' + section.CSS.color
 					+ ' !important;';
 		}
@@ -1133,8 +1137,8 @@ var section_column_operators = {
 			style = 'max-width: ' + max_title_display_width;
 		} else
 			style = '';
-		if (section.CSS.color) {
-			// for <a>
+		if (section.CSS && section.CSS.color) {
+			// for <a>... useless
 			style += '; color: ' + section.CSS.color + ' !important;';
 		}
 
