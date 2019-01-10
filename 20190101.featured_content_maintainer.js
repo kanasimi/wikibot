@@ -153,7 +153,7 @@ function parse_each_FC_item_list_page(page_data) {
 	is_FFC = /:[DF][FG][AL]|已撤销的/.test([ page_data.original_title,
 			page_data.title, title ].join('|')),
 	//
-	PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/
+	PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
 			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
@@ -324,12 +324,11 @@ function check_redirects(page_list) {
 				}
 				FC_data_hash[FC_title][KEY_JDN].append(
 						FC_data_hash[original_FC_title][KEY_JDN]).sort();
-				delete FC_data_hash[original_FC_title];
 			} else {
 				not_found = true;
 				FC_data_hash[FC_title] = FC_data_hash[original_FC_title];
-				delete FC_data_hash[original_FC_title];
 			}
+			delete FC_data_hash[original_FC_title];
 		} else {
 			throw '未發現' + CeL.wiki.title_link_of(original_FC_title)
 					+ '的資料! 照理來說這不應該發生!';
@@ -340,14 +339,14 @@ function check_redirects(page_list) {
 
 	if (not_found) {
 		CeL.warn('過去曾經在 '
-				+ CeL.Julian_day.to_Date(
-						FC_data_hash[original_FC_title][KEY_JDN][0]).format(
-						'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
-				+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
+				+ CeL.Julian_day.to_Date((FC_data_hash[original_FC_title]
+				//
+				|| FC_data_hash[FC_title])[KEY_JDN][0]).format('%Y年%m月%d日')
+				+ ' 包含過的' + TYPE_NAME + '，並未登記在現存或已被撤銷的登記列表頁面中: '
 				+ CeL.wiki.title_link_of(original_FC_title) + '。'
-				+ '若原先內容轉成重定向頁，使此遭提指向了重定向頁，請修改' + TYPE_NAME
+				+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
 				+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
-				+ '/下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
+				+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
 				+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 	}
 
