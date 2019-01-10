@@ -662,7 +662,7 @@ function general_row_style(section, section_index) {
 			archived = 'end';
 			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
 
-		} else if ((archived === 'end' || archived === 'moved')
+		} else if ((!archived || archived === 'end' || archived === 'moved')
 				&& token.toString().trim()) {
 			// console.log('在結案之後還有東西:');
 			// console.log(token);
@@ -670,7 +670,9 @@ function general_row_style(section, section_index) {
 			if (archived === 'end' && token.type === 'section_title') {
 				section.adding_link = token;
 			}
-			archived = null;
+			archived = 'extra';
+			// 除了{{save to}}之類外，有多餘的token就應該直接跳出。
+			// return to_exit;
 		}
 
 	}, 1);
@@ -680,7 +682,9 @@ function general_row_style(section, section_index) {
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
-		&& 'style="text-decoration: line-through;"' && 'style="color: #999;"';
+		&& 'style="text-decoration: line-through;"'
+		// 將完成話題全灰
+		&& 'style="color: #888 !important;"';
 	}
 
 	return status || '';
@@ -1145,7 +1149,7 @@ var section_column_operators = {
 	}
 };
 
-// [[en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
+// [[w:en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
 function data_sort_attributes(key) {
 	var type;
 	if (typeof key === 'number') {
