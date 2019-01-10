@@ -634,6 +634,7 @@ get_special_users.log_file_prefix = base_directory + 'special_users.';
 
 function general_row_style(section, section_index) {
 	var status, to_exit = this.each.exit, archived;
+	// console.log(section);
 	this.each.call(section, function(token) {
 		if (token.type === 'transclusion' && (token.name in {
 			// 本主題全部或部分段落文字，已移動至...
@@ -666,20 +667,20 @@ function general_row_style(section, section_index) {
 			// console.log('在結案之後還有東西:');
 			// console.log(token);
 			// 在結案之後還有東西。重新設定。
-			archived = null;
-			if (token.type === 'section_title') {
+			if (archived === 'end' && token.type === 'section_title') {
 				section.adding_link = token;
 			}
+			archived = null;
 		}
 
 	}, 1);
 
 	// console.log('archived: ' + archived);
-	if (archived === 'end') {
+	if (archived === 'end' || archived === 'moved') {
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
-		&& 'style="text-decoration: line-through;"';
+		&& 'style="text-decoration: line-through;"' && 'style="color: #999;"';
 	}
 
 	return status || '';
@@ -1092,8 +1093,10 @@ var section_column_operators = {
 			title = small_title(title);
 		}
 
+		// console.log(section);
 		if (adding_link) {
-			if (token.type === 'transclusion') {
+			// console.log(adding_link);
+			if (adding_link.type === 'section_title') {
 				title_too_long = if_too_long('→' + adding_link.title);
 				adding_link = adding_link.link;
 			} else {
@@ -1417,7 +1420,13 @@ function generate_topic_list(page_data) {
 
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
-		var row = [];
+		var row = [], row_style = (
+		//
+		typeof page_configuration.row_style === 'function'
+		//
+		? page_configuration.row_style.call(parser, section, section_index)
+		//
+		: page_configuration.row_style) || '';
 
 		column_operators.forEach(function(operator) {
 			var values = operator.call(parser, section, section_index);
@@ -1428,13 +1437,7 @@ function generate_topic_list(page_data) {
 			}
 		});
 
-		section_table.push('|-' + ((
-		//
-		typeof page_configuration.row_style === 'function'
-		//
-		? page_configuration.row_style.call(parser, section, section_index)
-		//
-		: page_configuration.row_style) || '') + '\n| ' + row.join(' || '));
+		section_table.push('|-' + row_style + '\n| ' + row.join(' || '));
 	}, {
 		get_users : true,
 		level_filter : page_configuration.level_filter,
