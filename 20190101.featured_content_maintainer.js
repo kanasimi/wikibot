@@ -36,6 +36,7 @@ JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
 // @see Template:Feature , Template:Wikidate/ymd
 月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
 
+// node 20190101.featured_content_maintainer.js type=good
 using_GA = CeL.env.arg_hash && CeL.env.arg_hash.type === 'good',
 // 'Wikipedia:' + NS_PREFIX
 NS_PREFIX = using_GA ? '優良條目' : '典範條目',
@@ -459,15 +460,23 @@ function check_date_page() {
 				 */
 				content = CeL.wiki.content_of(page_data);
 
-				if (!content.includes(
+				if (content
 				// 避免多次提醒。
-				CeL.wiki.title_link_of(date_page_title))) {
-					return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
-					//
-					+ CeL.wiki.title_link_of(date_page_title)
-					//
-					+ '）似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。 --~~~~';
+				&& content.includes(CeL.wiki.title_link_of(date_page_title))) {
+					CeL.log('已經做過提醒。');
+					return;
 				}
+
+				return '[[Wikipedia:首頁/明天|明天的首頁]]' + TYPE_NAME + '頁面（'
+				//
+				+ CeL.wiki.title_link_of(date_page_title)
+				//
+				+ '）似乎並非標準的嵌入包含頁面格式，請幫忙處理，謝謝。若您想使用最古老的頁面，可參考'
+				//
+				+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
+				//
+				+ '。 --~~~~';
+
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;
 		}
@@ -493,9 +502,17 @@ function check_date_page() {
 				//
 				+ CeL.wiki.title_link_of(date_page_title)
 				//
-				+ '）所嵌入包含的標題似乎並非' + TYPE_NAME + '標題？'
+				+ '）' + (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(FC_title)
 				//
-				+ '若包含的頁面確實並非' + TYPE_NAME + '，請幫忙處理，謝謝。 --~~~~';
+				? '似乎嵌入包含了另一個日期的簡介。請幫忙改成直接嵌入頁面'
+				//
+				: '所嵌入包含的標題似乎並非' + TYPE_NAME + '標題？'
+				//
+				+ '若包含的頁面確實並非' + TYPE_NAME + '，請幫忙處理') + '，謝謝。若您想使用最古老的頁面，可參考'
+				//
+				+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
+				//
+				+ '。 --~~~~';
 
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;
@@ -630,9 +647,13 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			//
 			+ '-' + CeL.wiki.title_link_of(FC_title)
 			//
-			+ '似乎還不存在簡介？' + '或許簡介頁面存放在"Wikipedia:優良條目/"下？'
+			+ '似乎還不存在簡介？' + (using_GA ? '' : '或許簡介頁面存放在"Wikipedia:優良條目/"下？')
 			//
-			+ '若簡介頁面確實不存在，請幫忙' + write_link + '，謝謝。 --~~~~';
+			+ '若簡介頁面確實不存在，請幫忙' + write_link + '，謝謝。若您想使用最古老的頁面，可參考'
+			//
+			+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
+			//
+			+ '。 --~~~~';
 
 		}, DISCUSSION_edit_options).run(check_month_list);
 		return;
@@ -686,6 +707,6 @@ function check_month_list() {
 function finish_up() {
 	if (error_title_list.length > 0) {
 		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
-				+ error_title_list.join('\n# '));
+				+ error_title_list.map(CeL.wiki.title_link_of).join('\n# '));
 	}
 }
