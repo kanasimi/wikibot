@@ -84,7 +84,9 @@ botop_sitelinks = {
 	}
 },
 // 當標題過長，>max_title_length 時，縮小標題字型。
-max_title_length = 40, max_title_display_width = '24em', max_date_length = 34,
+max_title_length = 40,
+// 要考慮比較窄的螢幕。
+max_title_display_width = '24em', max_date_length = 34,
 
 // 一般用討論頁面設定。
 // need to add {{/topic list}} to {{/header}}
@@ -101,43 +103,7 @@ general_topic_page = '/topic list', general_page_configuration = {
 		headers : '! # !! 話題 !! <small title="發言數/發言人次(實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
 		,
-		row_style : function(section, section_index) {
-			var status, to_exit = this.each.exit, archived;
-			this.each.call(section, function(token) {
-				// console.log(token);
-				if (archived === 'end') {
-					// console.log(token);
-				}
-				if (token.type === 'transclusion' && (token.name in {
-					// 下列討論已經關閉，請勿修改。
-					'Archive top' : true
-				})) {
-					archived = 'start';
-
-				} else if (archived === 'start'
-				//
-				&& token.type === 'transclusion' && (token.name in {
-					// 下列討論已經關閉，請勿修改。
-					'Archive bottom' : true
-				})) {
-					archived = 'end';
-					// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
-
-				} else if (archived === 'end' && token.toString().trim()) {
-					// console.log('在結案之後還有東西:');
-					// console.log(token);
-					// 在結案之後還有東西。重新設定。
-					archived = null;
-				}
-			}, 1);
-			// console.log('archived: ' + archived);
-			if (archived === 'end') {
-				// 把"下列討論已經關閉"的議題用深灰色顯示。
-				return 'style="background-color:#ccc"';
-			}
-
-			return status || '';
-		}
+		row_style : general_row_style
 	},
 	'zh-classical' : {
 		timezone : 8,
@@ -664,6 +630,62 @@ function get_special_users(callback, options) {
 get_special_users.log_file_prefix = base_directory + 'special_users.';
 
 // ----------------------------------------------
+// row_style functions
+
+function general_row_style(section, section_index) {
+	var status, to_exit = this.each.exit, archived;
+	this.each.call(section, function(token) {
+		if (token.type === 'transclusion' && (token.name in {
+			// 本主題全部或部分段落文字，已移動至...
+			Movedto : true,
+			Switchto : true,
+			'Moved to' : true,
+			移動至 : true,
+			'Moved discussion to' : true
+		})) {
+			archived = 'moved';
+			section.adding_link = token.parameters[1];
+
+		} else if (token.type === 'transclusion' && (token.name in {
+			// 下列討論已經關閉，請勿修改。
+			'Archive top' : true
+		})) {
+			archived = 'start';
+
+		} else if (archived === 'start'
+		//
+		&& token.type === 'transclusion' && (token.name in {
+			// 下列討論已經關閉，請勿修改。
+			'Archive bottom' : true
+		})) {
+			archived = 'end';
+			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
+
+		} else if ((archived === 'end' || archived === 'moved')
+				&& token.toString().trim()) {
+			// console.log('在結案之後還有東西:');
+			// console.log(token);
+			// 在結案之後還有東西。重新設定。
+			archived = null;
+			if (token.type === 'section_title') {
+				section.adding_link = token;
+			}
+		}
+
+	}, 1);
+
+	// console.log('archived: ' + archived);
+	if (archived === 'end') {
+		// 把"下列討論已經關閉"的議題用深灰色顯示。
+		return 'style="background-color: #ccc;"'
+		// 話題加灰底會與「更新圖例」裡面的說明混淆
+		&& 'style="text-decoration: line-through;"';
+	}
+
+	return status || '';
+}
+
+// ----------------------------------------------
 // status functions
 
 function check_BOTREQ_status(section, section_index) {
@@ -1051,18 +1073,46 @@ var section_column_operators = {
 	},
 	// 議題的標題
 	title : function(section) {
-		var title = section.section_title.title,
+		function if_too_long(title) {
+			return title
+			// remove HTML tags
+			.replace(/<\/?[a-z][^<>]*>?/g, '')
+			// remove styles
+			.replace(/'''?/g, '').display_width() > max_title_length;
+		}
+		// [[Template:Small]]
+		function small_title(title) {
+			return '<small>' + title + '</small>';
+		}
+
+		var title = section.section_title.link, adding_link = section.adding_link,
 		// 當標題過長時，縮小標題字型。
-		title_too_long = title
-		// remove HTML tags
-		.replace(/<\/?[a-z][^<>]*>?/g, '')
-		// remove styles
-		.replace(/'''?/g, '').display_width() > max_title_length;
-		// 限制標題欄的寬度。 [[Template:Small]]
-		return (title_too_long ? 'style="max-width: ' + max_title_display_width
-				+ ';" | <small>' : '')
-				+ section.section_title.link
-				+ (title_too_long ? '</small>' : '');
+		title_too_long = if_too_long(section.section_title.title), style = title_too_long;
+		if (title_too_long) {
+			title = small_title(title);
+		}
+
+		if (adding_link) {
+			if (token.type === 'transclusion') {
+				title_too_long = if_too_long('→' + adding_link.title);
+				adding_link = adding_link.link;
+			} else {
+				// assert: is page title
+				adding_link = adding_link.toString();
+				title_too_long = if_too_long(adding_link);
+				adding_link = CeL.wiki.title_link_of(adding_link);
+			}
+			if (title_too_long) {
+				style = true;
+			}
+			title += '<br />→'
+					+ (title_too_long ? small_title(adding_link) : adding_link);
+		}
+
+		// 限制標題欄的寬度。
+		return (style ? 'style="max-width: ' + max_title_display_width
+				+ ';" | ' : '')
+				+ title;
 	},
 	// discussions conversations, 發言次數, 発言数
 	discussions : function(section) {
