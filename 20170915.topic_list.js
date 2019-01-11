@@ -75,7 +75,7 @@ wiki = Wiki(true),
 
 /** {String}設定頁面標題。 e.g., "User:bot/設定" */
 configuration_page_title = 'User:' + user_name + '/討論頁面主題列表設定',
-/** {Object}設定頁面所獲得之手動設定。 */
+/** {Object}設定頁面所獲得之手動設定 manual settings。 */
 configuration,
 
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
@@ -543,6 +543,8 @@ var section_column_operators = {
 // main talk pages **of this wiki**
 var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
 
+var special_users;
+
 // ----------------------------------------------------------------------------
 // main
 
@@ -551,10 +553,10 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-CeL.page(configuration_page_title, start_main_work);
+wiki.page(configuration_page_title, start_main_work);
 
 function start_main_work(page_data) {
-	// 讀入手動設定。
+	// 讀入手動設定 manual settings。
 	configuration = CeL.wiki.parse_configuration(page_data);
 
 	if (configuration.max_title_length > 0
@@ -603,7 +605,6 @@ function start_main_work(page_data) {
 				+ '!');
 	}
 
-	var special_users;
 	function main_process(_special_users) {
 		special_users = _special_users;
 
@@ -1141,6 +1142,25 @@ function set_list_legend() {
 		list_legend_used.push('|-', '! 特殊狀態', '|-', '| 討論議題' + '<br />→'
 		// 已移動至目標頁面
 		+ '<small>已移至頁面/最新討論子項</small>');
+	}
+
+	if (configuration.configuration_page_title) {
+		// @see general_row_style()
+		list_legend_used.push('|-', '! '
+		//
+		+ (use_language === 'zh' ? '手動設定' : 'Manual settings'), '|-',
+		//
+		'| <small style="max-width: 12em;">'
+		//
+		+ (use_language === 'zh' ? '當列表出現異常時，<br />請先檢查[['
+		//
+		+ configuration.configuration_page_title + '|設定頁面]]是否有誤。'
+		//
+		: 'When exceptions occur,<br />please check [['
+		//
+		+ configuration.configuration_page_title
+		//
+		+ '|the setting page]] first.') + '</small>');
 	}
 
 	// {{clearright}}, {{-}}
