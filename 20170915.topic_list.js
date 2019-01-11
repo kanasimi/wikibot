@@ -680,7 +680,7 @@ function general_row_style(section, section_index) {
 	// console.log('archived: ' + archived);
 	if (archived === 'end' || archived === 'moved') {
 		section.CSS = {
-			color : '#888'
+			color : '#111'
 		};
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
@@ -1052,12 +1052,6 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				break;
 			}
 		}
-		if (section.CSS && section.CSS.color) {
-			// for <a>... useless
-			additional_attributes += '; color: ' + section.CSS.color
-			// + ' !important;'
-			;
-		}
 		if (!additional_attributes) {
 			for ( var time_interval in long_to_short) {
 				if (timevalue_diff > CeL.to_millisecond(time_interval)) {
@@ -1066,6 +1060,10 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 					break;
 				}
 			}
+		}
+		if (section.CSS && section.CSS.color) {
+			additional_attributes += ' style="color: ' + section.CSS.color
+					+ ';"';
 		}
 
 		user = section.users[user_and_date_index];
@@ -1105,8 +1103,9 @@ var section_column_operators = {
 	title : function(section) {
 		// [[Template:Small]]
 		function small_title(title, set_small) {
-			title = title.toString(section.CSS && section.CSS.color ? 'color: '
-					+ section.CSS.color : '');
+			title = title.toString(null,
+					section.CSS && section.CSS.color ? 'color: '
+							+ section.CSS.color : '');
 			return set_small ? '<small>' + title + '</small>' : title;
 		}
 
@@ -1127,7 +1126,10 @@ var section_column_operators = {
 				// assert: is page title
 				adding_link = adding_link.toString();
 				title_too_long = if_too_long(adding_link);
-				adding_link = CeL.wiki.title_link_of(adding_link);
+				adding_link = section.CSS && section.CSS.color ? '[['
+						+ adding_link + '|<span style="color: '
+						+ section.CSS.color + ';">' + adding_link + '</span>]]'
+						: CeL.wiki.title_link_of(adding_link);
 			}
 			if (title_too_long) {
 				style = true;
