@@ -679,17 +679,15 @@ function general_row_style(section, section_index) {
 
 	// console.log('archived: ' + archived);
 	if (archived === 'end' || archived === 'moved') {
-		if (false) {
-			section.CSS = {
-				color : '#888'
-			};
-		}
+		section.CSS = {
+			color : '#888'
+		};
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
 		&& 'style="text-decoration: line-through;"'
 		// 將完成話題全灰. "!important": useless
-		&& 'style="color: #888;"' && 'style="opacity: .5;"';
+		&& 'style="color: #888;"' && 'style="opacity: .8;"';
 	}
 
 	return status || '';
@@ -957,8 +955,8 @@ var short_to_long = {
 }, list_legend = {
 	zh : {
 		header : '更新圖例',
-		'1h' : '最近1小時內',
-		'1d' : '最近1日內',
+		'1h' : '最近一小時內',
+		'1d' : '最近一日內',
 
 		'' : '一週內',
 		'1w' : '一個月內',
@@ -1040,7 +1038,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 			// 採用簽名的日期格式。
 			date = CeL.wiki.parse.date.to_String(date, wiki);
 		}
-		var date_too_long = date.display_width() > max_date_length;
+		var date_too_long = if_too_long(date);
 		date = data_sort_attributes(section.dates[user_and_date_index]) + '| '
 		//
 		+ (date_too_long ? '<small>' + date + '</small>' : date);
@@ -1057,7 +1055,8 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		if (section.CSS && section.CSS.color) {
 			// for <a>... useless
 			additional_attributes += '; color: ' + section.CSS.color
-					+ ' !important;';
+			// + ' !important;'
+			;
 		}
 		if (!additional_attributes) {
 			for ( var time_interval in long_to_short) {
@@ -1073,15 +1072,27 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		// TODO: link to diff
 		user = (additional_attributes ? '| ' : '')
 		// 對於匿名IP用戶則顯示編輯紀錄。
-		+ (CeL.wiki.parse.user.is_IP(user) ? '[[Special:Contributions/'
+		+ (CeL.wiki.parse.user.is_IP(user)
 		//
-		+ user + '|' + user + ']]' : '[[User:' + user + '|]]');
+		? '[[Special:Contributions/' : '[[User:') + user + '|'
+		//
+		+ (section.CSS && section.CSS.color ? '<span style="color:'
+		//
+		+ section.CSS.color + ';">' + user + '</span>' : user) + ']]';
 	} else {
 		// 沒有發現此 user group 之發言。
 		additional_attributes = 'style="background-color:#ffd;" | ';
 	}
 
 	return [ additional_attributes + user, additional_attributes + date ];
+}
+
+function if_too_long(title) {
+	return title
+	// remove HTML tags
+	.replace(/<\/?[a-z][^<>]*>?/g, '')
+	// remove styles
+	.replace(/'''?/g, '').display_width() > max_title_length;
 }
 
 // 討論議題列表可以挑選的欄位。
@@ -1092,24 +1103,17 @@ var section_column_operators = {
 	},
 	// 議題的標題
 	title : function(section) {
-		function if_too_long(title) {
-			return title
-			// remove HTML tags
-			.replace(/<\/?[a-z][^<>]*>?/g, '')
-			// remove styles
-			.replace(/'''?/g, '').display_width() > max_title_length;
-		}
 		// [[Template:Small]]
-		function small_title(title) {
-			return '<small>' + title + '</small>';
+		function small_title(title, set_small) {
+			title = title.toString(section.CSS && section.CSS.color ? 'color: '
+					+ section.CSS.color : '');
+			return set_small ? '<small>' + title + '</small>' : title;
 		}
 
 		var title = section.section_title.link, adding_link = section.adding_link,
 		// 當標題過長時，縮小標題字型。
 		title_too_long = if_too_long(section.section_title.title), style = title_too_long;
-		if (title_too_long) {
-			title = small_title(title);
-		}
+		title = small_title(title, title_too_long);
 
 		// console.log(section);
 		if (adding_link) {
@@ -1128,8 +1132,7 @@ var section_column_operators = {
 			if (title_too_long) {
 				style = true;
 			}
-			title += '<br />→'
-					+ (title_too_long ? small_title(adding_link) : adding_link);
+			title += '<br />→' + small_title(adding_link, title_too_long);
 		}
 
 		if (style) {
@@ -1139,7 +1142,9 @@ var section_column_operators = {
 			style = '';
 		if (section.CSS && section.CSS.color) {
 			// for <a>... useless
-			style += '; color: ' + section.CSS.color + ' !important;';
+			style += '; color: ' + section.CSS.color
+			// + ' !important;'
+			;
 		}
 
 		return (style ? 'style="' + style + '" | ' : '') + title;
