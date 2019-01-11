@@ -43,11 +43,11 @@ TODO:
 討論議題列表可以放在另外一頁，也可以在當前頁面中。
 可以在 __TOC__ , __NEWSECTIONLINK__ 之後才開始檢查 main_talk_pages
 相關發言者訂閱功能 via ping
-get time via revisions information
+get 發言 time via revisions information
 自動計算投票票數 [[模板:RFX count]]
 [[Template:topic_list]]
 
-archive
+archive topics:
 可以依照指示存檔到不同的page
 	存檔可以用編號為主或者以日期,"丁酉年"為主
 	可以自動把文字分到新的子頁面
@@ -73,6 +73,11 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
+/** {String}設定頁面標題。 e.g., "User:bot/設定" */
+configuration_page_title = 'User:' + user_name + '/討論頁面主題列表設定',
+/** {Object}設定頁面所獲得之手動設定。 */
+configuration,
+
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 // API_URL=https://zh.moegirl.org/api.php
 && CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
@@ -83,9 +88,9 @@ botop_sitelinks = {
 		title : 'Category:Wikipedia bot operators'
 	}
 },
-// 當標題過長，>max_title_length 時，縮小標題字型。
+// 當標題過長，大於 max_title_length 時，縮小標題字型。
 max_title_length = 40,
-// 要考慮比較窄的螢幕。
+// 限制標題欄的寬度。要考慮比較窄的螢幕。
 max_title_display_width = '24em', max_date_length = 34,
 
 // 一般用討論頁面設定。
@@ -241,9 +246,12 @@ var default_BRFA_configurations = {
 		},
 		status : check_BRFA_status
 	}
-},
+};
+
+// ----------------------------------------------
+
 // page configurations for all supported talk pages
-page_configurations = {
+var page_configurations = {
 	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
 		timezone : 9,
@@ -407,11 +415,133 @@ page_configurations = {
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
 
-if (false) {
-	page_configurations = {
-		'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration
-	};
-}
+// ----------------------------------------------
+
+// 討論議題列表依狀態表現不同的顏色。
+// time → style
+var short_to_long = {
+	// 最近1小時內: 淺綠色。
+	'1h' : 'efe',
+	// 超過1小時到最近1日內: 淺藍色。
+	'1d' : 'eef'
+}, long_to_short = {
+	// 超過一個月: 深灰色。
+	'1 month' : 'bbb',
+	// 超過一禮拜到一個月: 淺灰色。
+	'1w' : 'ddd'
+}, list_legend = {
+	zh : {
+		header : '發言更新圖例',
+		'1h' : '最近一小時內',
+		'1d' : '最近一日內',
+
+		'' : '一週內',
+		'1w' : '一個月內',
+		'1 month' : '逾一個月'
+	},
+	ja : {
+		header : '発言更新の凡例',
+		'1h' : '一時間以内',
+		'1d' : '一日以内',
+
+		'' : '一週間以内',
+		'1w' : '一ヶ月以内',
+		'1 month' : '一ヶ月以上'
+	}
+}, list_legend_used;
+
+// ----------------------------------------------
+
+// 討論議題列表可以挑選的欄位。
+var section_column_operators = {
+	// function: .call(page_data, section, section_index)
+	NO : function(section, section_index) {
+		return local_number(section_index);
+	},
+	// 議題的標題
+	title : function(section) {
+		// [[Template:Small]]
+		function small_title(title, set_small) {
+			title = title.toString(null,
+					section.CSS && section.CSS.color ? 'color: '
+							+ section.CSS.color : '');
+			return set_small ? '<small>' + title + '</small>' : title;
+		}
+
+		var title = section.section_title.link, adding_link = section.adding_link,
+		// 當標題過長時，縮小標題字型。
+		title_too_long = if_too_long(section.section_title.title), style = title_too_long;
+		title = small_title(title, title_too_long);
+
+		// console.log(section);
+		if (adding_link) {
+			// console.log(adding_link);
+			if (adding_link.type === 'section_title') {
+				// 對於還沒完全結案的議題，箭頭指向還在討論的部分。
+				title_too_long = if_too_long('→' + adding_link.title);
+				adding_link = adding_link.link;
+			} else {
+				// 對於已經移動的議題，箭頭指向移動的目標頁面。
+				// assert: is page title
+				adding_link = adding_link.toString();
+				title_too_long = if_too_long(adding_link);
+				adding_link = section.CSS && section.CSS.color ? '[['
+						+ adding_link + '|<span style="color: '
+						+ section.CSS.color + ';">' + adding_link + '</span>]]'
+						: CeL.wiki.title_link_of(adding_link);
+			}
+			if (title_too_long) {
+				style = true;
+			}
+			title += '<br />→' + small_title(adding_link, title_too_long);
+		}
+
+		if (style) {
+			// 限制標題欄的寬度。
+			style = 'max-width: ' + max_title_display_width;
+		} else
+			style = '';
+		if (section.CSS && section.CSS.color) {
+			// for <a>... useless
+			style += '; color: ' + section.CSS.color
+			// + ' !important;'
+			;
+		}
+
+		return (style ? 'style="' + style + '" | ' : '') + title;
+	},
+	// discussions conversations, 發言次數, 発言数
+	discussions : function(section) {
+		// TODO: 其實是計算簽名與日期的數量。因此假如機器人等權限申請的部分多了一個簽名，就會造成多計算一次。
+		return local_number(section.users.length, section.users.length >= 2
+		// 火熱的討論採用不同顏色。
+		? section.users.length >= 10 ? 'style="background-color:#ffe;' : ''
+				: 'style="background-color:#fcc;"');
+	},
+	// 參與討論人數
+	participants : function(section) {
+		return local_number(section.users.unique().length, section.users
+				.unique().length >= 2 ? '' : 'style="background-color:#fcc;"');
+	},
+	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
+	replies : function(section) {
+		// 有不同的人回應才算上回應數。
+		return local_number(section.replies, section.replies >= 1 ? ''
+				: 'style="background-color:#fcc;"');
+	},
+	created : function(section) {
+		// TODO: the datetime the subpage created
+	},
+	// word count
+	words : function(section) {
+		return CeL.count_word(section.toString());
+	}
+};
+
+// ----------------------------------------------
+
+// main talk pages **of this wiki**
+var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
 
 // ----------------------------------------------------------------------------
 // main
@@ -421,70 +551,98 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-// main talk pages **of this wiki**
-var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
+CeL.page(configuration_page_title, start_main_work);
 
-Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
-	var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/),
-	//
-	project = CeL.wiki.site_name(wiki);
-	if (matched[1] === project) {
-		main_talk_pages.push(matched[2]);
-		page_configurations[wiki_and_page_title].project = project;
+function start_main_work(page_data) {
+	// 讀入手動設定。
+	configuration = CeL.wiki.parse_configuration(page_data);
+
+	if (configuration.max_title_length > 0
+			&& configuration.max_title_length < 900) {
+		max_title_length = configuration.max_title_length | 0;
 	}
-});
 
-// for debug
-// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	if (/^\d{1,2}(?:em|en|%)$/.test(configuration.max_title_display_width)) {
+		max_title_display_width = configuration.max_title_display_width;
+	}
 
-if (main_talk_pages.length > 0) {
-	CeL.info(main_talk_pages.length + ' page(s) to listen for '
-			+ CeL.wiki.site_name(wiki) + ': '
-			+ main_talk_pages.map(function(title) {
-				return CeL.wiki.title_link_of(title);
-			}).join(', '));
-} else {
-	CeL.error('No talk page to process for ' + CeL.wiki.site_name(wiki) + '!');
+	// ----------------------------------------------------
+
+	// for debug
+	if (false) {
+		page_configurations = {
+			'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration
+		};
+	}
+
+	Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
+		var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/),
+		//
+		project = CeL.wiki.site_name(wiki);
+		if (matched[1] === project) {
+			main_talk_pages.push(matched[2]);
+			page_configurations[wiki_and_page_title].project = project;
+		}
+	});
+
+	get_special_users.log_file_prefix = base_directory + 'special_users.';
+
+	set_list_legend();
+
+	// for debug
+	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+
+	if (main_talk_pages.length > 0) {
+		CeL.info(main_talk_pages.length + ' page(s) to listen for '
+				+ CeL.wiki.site_name(wiki) + ': '
+				+ main_talk_pages.map(function(title) {
+					return CeL.wiki.title_link_of(title);
+				}).join(', '));
+	} else {
+		CeL.error('No talk page to process for ' + CeL.wiki.site_name(wiki)
+				+ '!');
+	}
+
+	var special_users;
+	function main_process(_special_users) {
+		special_users = _special_users;
+
+		// 首先生成一輪討論頁面主題列表。
+		main_talk_pages.forEach(function(page_title) {
+			wiki.page(page_title, pre_fetch_sub_pages);
+		});
+		// return;
+
+		wiki.listen(pre_fetch_sub_pages, {
+			// start : new Date,
+
+			// 延遲時間
+			// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
+			// 検出後30秒ほどのタイムラグを設けて
+			delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
+			filter : main_talk_pages,
+			with_content : true,
+			parameters : {
+				// 跳過機器人所做的編輯。
+				// You need the "patrol" or "patrolmarks" right to request the
+				// patrolled flag.
+				rcshow : '!bot',
+				rcprop : 'title|ids|sizes|flags|user'
+			},
+			interval : '5s'
+		});
+	}
+
+	new CeL.wiki(null, null, 'en').page(botop_sitelinks.enwiki)
+	//
+	.data(function(entity) {
+		// console.log(entity);
+		get_special_users(main_process, {
+			botop_sitelinks : entity.sitelinks
+		});
+	});
+
 }
-
-var special_users;
-function main_process(_special_users) {
-	special_users = _special_users;
-
-	// 首先生成一輪討論頁面主題列表。
-	main_talk_pages.forEach(function(page_title) {
-		wiki.page(page_title, pre_fetch_sub_pages);
-	});
-	// return;
-
-	wiki.listen(pre_fetch_sub_pages, {
-		// start : new Date,
-
-		// 延遲時間
-		// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
-		// 検出後30秒ほどのタイムラグを設けて
-		delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
-		filter : main_talk_pages,
-		with_content : true,
-		parameters : {
-			// 跳過機器人所做的編輯。
-			// You need the "patrol" or "patrolmarks" right to request the
-			// patrolled flag.
-			rcshow : '!bot',
-			rcprop : 'title|ids|sizes|flags|user'
-		},
-		interval : '5s'
-	});
-}
-
-new CeL.wiki(null, null, 'en').page(botop_sitelinks.enwiki)
-//
-.data(function(entity) {
-	// console.log(entity);
-	get_special_users(main_process, {
-		botop_sitelinks : entity.sitelinks
-	});
-});
 
 // ----------------------------------------------------------------------------
 
@@ -626,8 +784,6 @@ function get_special_users(callback, options) {
 		callback(special_users);
 	});
 }
-
-get_special_users.log_file_prefix = base_directory + 'special_users.';
 
 // ----------------------------------------------
 // row_style functions
@@ -940,39 +1096,6 @@ function check_BRFA_status(section) {
 
 // ----------------------------------------------
 
-// 討論議題列表依狀態表現不同的顏色。
-// time → style
-var short_to_long = {
-	// 最近1小時內: 淺綠色。
-	'1h' : 'efe',
-	// 超過1小時到最近1日內: 淺藍色。
-	'1d' : 'eef'
-}, long_to_short = {
-	// 超過一個月: 深灰色。
-	'1 month' : 'bbb',
-	// 超過一禮拜到一個月: 淺灰色。
-	'1w' : 'ddd'
-}, list_legend = {
-	zh : {
-		header : '發言更新圖例',
-		'1h' : '最近一小時內',
-		'1d' : '最近一日內',
-
-		'' : '一週內',
-		'1w' : '一個月內',
-		'1 month' : '逾一個月'
-	},
-	ja : {
-		header : '発言更新の凡例',
-		'1h' : '一時間以内',
-		'1d' : '一日以内',
-
-		'' : '一週間以内',
-		'1w' : '一ヶ月以内',
-		'1 month' : '一ヶ月以上'
-	}
-}, list_legend_used;
-
 function normalize_time_style_hash(time_style_hash) {
 	for ( var time_interval in time_style_hash) {
 		var style = time_style_hash[time_interval];
@@ -989,9 +1112,10 @@ function normalize_time_style_hash(time_style_hash) {
 	}
 }
 
-normalize_time_style_hash(short_to_long);
-normalize_time_style_hash(long_to_short);
-(function() {
+function set_list_legend() {
+	normalize_time_style_hash(short_to_long);
+	normalize_time_style_hash(long_to_short);
+
 	var _list_legend = list_legend[use_language]
 	// e.g., 'zh-classical'
 	|| list_legend['zh'];
@@ -1023,7 +1147,7 @@ normalize_time_style_hash(long_to_short);
 	list_legend_used.push('|}', '{{Clear}}');
 	// Release memory. 釋放被占用的記憶體.
 	list_legend = null;
-})();
+}
 
 // for 討論議題列表可以挑選欄位: (特定)使用者(最後)留言時間
 function add_user_name_and_date_set(section, user_and_date_index) {
@@ -1102,92 +1226,6 @@ function if_too_long(title) {
 	.replace(/'''?/g, '').display_width() > max_title_length;
 }
 
-// 討論議題列表可以挑選的欄位。
-var section_column_operators = {
-	// function: .call(page_data, section, section_index)
-	NO : function(section, section_index) {
-		return local_number(section_index);
-	},
-	// 議題的標題
-	title : function(section) {
-		// [[Template:Small]]
-		function small_title(title, set_small) {
-			title = title.toString(null,
-					section.CSS && section.CSS.color ? 'color: '
-							+ section.CSS.color : '');
-			return set_small ? '<small>' + title + '</small>' : title;
-		}
-
-		var title = section.section_title.link, adding_link = section.adding_link,
-		// 當標題過長時，縮小標題字型。
-		title_too_long = if_too_long(section.section_title.title), style = title_too_long;
-		title = small_title(title, title_too_long);
-
-		// console.log(section);
-		if (adding_link) {
-			// console.log(adding_link);
-			if (adding_link.type === 'section_title') {
-				// 對於還沒完全結案的議題，箭頭指向還在討論的部分。
-				title_too_long = if_too_long('→' + adding_link.title);
-				adding_link = adding_link.link;
-			} else {
-				// 對於已經移動的議題，箭頭指向移動的目標頁面。
-				// assert: is page title
-				adding_link = adding_link.toString();
-				title_too_long = if_too_long(adding_link);
-				adding_link = section.CSS && section.CSS.color ? '[['
-						+ adding_link + '|<span style="color: '
-						+ section.CSS.color + ';">' + adding_link + '</span>]]'
-						: CeL.wiki.title_link_of(adding_link);
-			}
-			if (title_too_long) {
-				style = true;
-			}
-			title += '<br />→' + small_title(adding_link, title_too_long);
-		}
-
-		if (style) {
-			// 限制標題欄的寬度。
-			style = 'max-width: ' + max_title_display_width;
-		} else
-			style = '';
-		if (section.CSS && section.CSS.color) {
-			// for <a>... useless
-			style += '; color: ' + section.CSS.color
-			// + ' !important;'
-			;
-		}
-
-		return (style ? 'style="' + style + '" | ' : '') + title;
-	},
-	// discussions conversations, 發言次數, 発言数
-	discussions : function(section) {
-		// TODO: 其實是計算簽名與日期的數量。因此假如機器人等權限申請的部分多了一個簽名，就會造成多計算一次。
-		return local_number(section.users.length, section.users.length >= 2
-		// 火熱的討論採用不同顏色。
-		? section.users.length >= 10 ? 'style="background-color:#ffe;' : ''
-				: 'style="background-color:#fcc;"');
-	},
-	// 參與討論人數
-	participants : function(section) {
-		return local_number(section.users.unique().length, section.users
-				.unique().length >= 2 ? '' : 'style="background-color:#fcc;"');
-	},
-	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
-	replies : function(section) {
-		// 有不同的人回應才算上回應數。
-		return local_number(section.replies, section.replies >= 1 ? ''
-				: 'style="background-color:#fcc;"');
-	},
-	created : function(section) {
-		// TODO: the datetime the subpage created
-	},
-	// word count
-	words : function(section) {
-		return CeL.count_word(section.toString());
-	}
-};
-
 // [[w:en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
 function data_sort_attributes(key) {
 	var type;
@@ -1227,6 +1265,7 @@ function local_number(number, attributes) {
 	return attributes + ' | ' + number;
 }
 
+// cache
 var section_index_filter = CeL.wiki.parser.parser_prototype.each_section.index_filter;
 function get_column_operators(page_configuration) {
 	var column_operators = page_configuration.column_operators;
