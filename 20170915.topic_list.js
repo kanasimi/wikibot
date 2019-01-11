@@ -954,7 +954,7 @@ var short_to_long = {
 	'1w' : 'ddd'
 }, list_legend = {
 	zh : {
-		header : '更新圖例',
+		header : '發言更新圖例',
 		'1h' : '最近一小時內',
 		'1d' : '最近一日內',
 
@@ -963,7 +963,7 @@ var short_to_long = {
 		'1 month' : '逾一個月'
 	},
 	ja : {
-		header : '更新の凡例',
+		header : '発言更新の凡例',
 		'1h' : '一時間以内',
 		'1d' : '一日以内',
 
@@ -1010,6 +1010,12 @@ normalize_time_style_hash(long_to_short);
 		|| long_to_short[time_interval] || '') + ' | '
 				+ _list_legend[time_interval], '|-');
 	}
+
+	if (use_language === 'zh') {
+		list_legend_used.push('|-', '! 特殊狀態', '|-', '| 討論議題' + '<br />→'
+				+ '<small>已移動至目標頁面/最新討論子項</small>');
+	}
+
 	// {{clearright}}, {{-}}
 	list_legend_used.push('|}', '{{Clear}}');
 	// Release memory. 釋放被占用的記憶體.
