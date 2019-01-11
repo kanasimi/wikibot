@@ -20,6 +20,11 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
 
+/** {String}設定頁面標題。 e.g., "User:bot/設定" */
+configuration_page_title = 'Wikipedia:首頁/特色內容展示設定',
+/** {Object}設定頁面所獲得之手動設定。 */
+configuration;
+
 // ---------------------------------------------------------------------//
 
 var JDN_today = CeL.Julian_day(new Date),
@@ -405,11 +410,13 @@ function check_date_page() {
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
 	//
-	+ '您可以從[[Wikipedia:首頁/特色內容展示設定|這個頁面]]更改設定參數。 --~~~~\n'
+	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。 --~~~~\n'
 	//
 	+ '{| class="wikitable sortable"\n|-\n'
 	//
-	+ '! # !! 標題 !! 列表 !! 上次展示時間 !! title="上過首頁次數" | 次數 !! 簡介頁面\n'
+	+ '! # !! 標題 !! <small title="為列表">列表</small> !! 上次展示時間'
+	//
+	+ ' !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
@@ -587,9 +594,11 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ CeL.Julian_day.to_YMD(FC_data_hash[FC_title][KEY_LATEST_JDN], true)
 		//
-		.join('/') : '沒上過首頁') + '。作業機制請參考'
-				+ CeL.wiki.title_link_of('Wikipedia:首頁/特色內容展示設定')
-				+ ' 編輯摘要的red link經繁簡轉換後存在'
+		.join('/') : '沒上過首頁')
+		//
+		+ '。作業機制請參考' + CeL.wiki.title_link_of(configuration_page_title)
+		//
+		+ ' 編輯摘要的red link經繁簡轉換後存在'
 	});
 
 	if (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
