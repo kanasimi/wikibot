@@ -113,7 +113,7 @@ CeL.wiki.cache([ {
 	// TODO: 一次取得大量頁面。
 	list : generate_FC_page_list,
 	redirects : 1,
-	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，基本上只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
+	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
 	each : parse_each_FC_page
 }, {
 	type : 'redirects',
@@ -408,8 +408,8 @@ function check_date_page() {
 	+ '您可以從[[Wikipedia:首頁/特色內容展示設定|這個頁面]]更改設定參數。 --~~~~\n'
 	//
 	+ '{| class="wikitable sortable"\n|-\n'
-	// 上過首頁次數
-	+ '!#!!標題!!列表!!上次展示時間!!次數!!簡介頁面\n'
+	//
+	+ '! # !! 標題 !! 列表 !! 上次展示時間 !! title="上過首頁次數" | 次數 !! 簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
@@ -427,7 +427,7 @@ function check_date_page() {
 		//
 		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
-		+ ' (' + (JDN_today - JDN) + ' days)'
+		+ (JDN_today > JDN ? ' (' + (JDN_today - JDN) + ' days)' : '')
 		//
 		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
@@ -437,7 +437,7 @@ function check_date_page() {
 	}).join('\n') + '\n|}';
 	if (error_title_list.length > 0) {
 		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
-				+ error_title_list.join('\n# ');
+				+ error_title_list.map(CeL.wiki.title_link_of).join('\n# ');
 	}
 	wiki.page('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
 	//
@@ -462,7 +462,7 @@ function check_date_page() {
 			return;
 		}
 
-		// 最後檢查隔天首頁將展示的特色內容分頁，如Wikipedia:典範條目/2019年1月1日，如有破壞，通知社群：Wikipedia:互助客棧/條目探討。
+		// 最後檢查隔天首頁將展示的特色內容分頁，如Wikipedia:典範條目/2019年1月1日，如有破壞，通知社群：Wikipedia:互助客棧/其他。
 		var matched = content.replace(/<!--[\s\S]*?-->/g, '').match(
 				PATTERN_FC_transcluded);
 
@@ -704,6 +704,6 @@ function check_month_list() {
 function finish_up() {
 	if (error_title_list.length > 0) {
 		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
-				+ error_title_list.map(CeL.wiki.title_link_of).join('\n# '));
+				+ error_title_list.join('\n# '));
 	}
 }

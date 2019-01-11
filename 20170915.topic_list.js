@@ -1001,6 +1001,7 @@ normalize_time_style_hash(long_to_short);
 			// TODO: .header 應該用 caption
 			// title: 相對於機器人最後一次編輯
 			'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
+
 	for ( var time_interval in _list_legend) {
 		if (time_interval === 'header') {
 			continue;
@@ -1012,8 +1013,10 @@ normalize_time_style_hash(long_to_short);
 	}
 
 	if (use_language === 'zh') {
+		// @see general_row_style()
 		list_legend_used.push('|-', '! 特殊狀態', '|-', '| 討論議題' + '<br />→'
-				+ '<small>已移動至目標頁面/最新討論子項</small>');
+		// 已移動至目標頁面
+		+ '<small>已移至頁面/最新討論子項</small>');
 	}
 
 	// {{clearright}}, {{-}}
