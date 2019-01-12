@@ -66,7 +66,7 @@ DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 KEY_IS_LIST = 0, KEY_ISFFC = 1,
 // to {String}transcluding page title.
 // e.g., FC_data[KEY_TRANSCLUDING_PAGE]="Wikipedia:典範條目/條目"
-KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4,
+KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4, KEY_TITLES_TO_MOVE = 5,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = CeL.null_Object(),
@@ -304,7 +304,7 @@ function parse_each_FC_page(page_data) {
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
-	JDN = this.JDN++, matched = content
+	FC_title, JDN = this.JDN++, matched = content
 			&& content.replace(/<!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
@@ -315,15 +315,21 @@ function parse_each_FC_page(page_data) {
 		var FC_data = FC_data_hash[FC_title];
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
-			FC_data[KEY_TRANSCLUDING_PAGE] = matched[1].replace(/\/(?:s|摘要)\|/,
-					'\/');
+			if (matched) {
+				FC_data[KEY_TRANSCLUDING_PAGE] = matched[1].replace(
+						/\/(?:s|摘要)\|/, '\/');
+			} else if (FC_data[KEY_TITLES_TO_MOVE]) {
+				FC_data[KEY_TITLES_TO_MOVE].push(title);
+			} else {
+				FC_data[KEY_TITLES_TO_MOVE] = [ title ];
+			}
 		} else {
 			return true;
 		}
 	}
 
 	if (matched) {
-		var FC_title = CeL.wiki.normalize_title(matched[3]);
+		FC_title = CeL.wiki.normalize_title(matched[3]);
 		if (check_FC_title(FC_title)
 				&& check_FC_title(redirects_to_hash[FC_title])) {
 			// 可能繁簡轉換不同/經過重定向了?
@@ -337,6 +343,7 @@ function parse_each_FC_page(page_data) {
 	}
 
 	// try to parse page and fix the format
+
 	/** 頁面解析後的結構。 */
 	var parsed = CeL.wiki.parser(page_data).parse();
 	// debug 用.
@@ -347,83 +354,48 @@ function parse_each_FC_page(page_data) {
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
-	FC_title = null;
+	// assert: !!FC_title === false;
 	parsed.each('link', function(token) {
 		// 找到第一個連結。
 		FC_title = CeL.wiki.normalize_page_name(token[0].toString());
 		return parsed.each.exit;
 	});
 
-	FC_title = redirects_to_hash[FC_title] || FC_title;
-	var FC_data = FC_title && FC_data_hash[FC_title];
-
-	if (!FC_data) {
-		error_logs.push(CeL.wiki.title_link_of(title)
-				+ (FC_title ? ': ' + FC_title : ''));
-		if (CeL.is_debug())
-			CeL.error(title + ': ' + content);
+	if (!check_FC_title(FC_title)
+			|| !check_FC_title(redirects_to_hash[FC_title])) {
+		// 已經做過登記了。
+		// 但是沒有設定 FC_data[KEY_TRANSCLUDING_PAGE]
 		return;
 	}
 
-	// 補登記資訊。
-	FC_data[KEY_JDN].push(JDN);
-
-	if (FC_data[KEY_ISFFC]) {
-		// 跳過已經撤銷資格、並非當前優良條目的狀況。
-		// 這種頁面太多，要全部移動的話太浪費資源。
+	if (FC_title) {
+		redirects_list_to_check.push(FC_title);
+		(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
+		// 無法設定 FC_data[KEY_TRANSCLUDING_PAGE]
+		// 補登記資訊。
+		check_FC_title(FC_title);
 		return;
 	}
 
-	if (FC_data[KEY_TRANSCLUDING_PAGE]) {
-		// 已經有嵌入的記錄。不用再白做工。
-		return;
-	}
-
-	var move_to_title = get_FC_title_to_transclude(FC_title);
-	if (move_to_title === title) {
-		return;
-	}
-
-	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
-			+ CeL.wiki.title_link_of(move_to_title));
-	wiki.move_to(move_to_title, title, {
-		reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
-		//
-		+ '日期頁面包含的是簡介文字而非嵌入簡介頁面，將之移至簡介頁面以便再利用。',
-		movetalk : true,
-		// noredirect : true,
-		bot : 1
-	}, function(response, error) {
-		if (error) {
-			CeL.error('Failed to move ' + CeL.wiki.title_link_of(title)
-			//
-			+ ' → ' + CeL.wiki.title_link_of(move_to_title)
-			//
-			+ ': ' + JSON.stringify(error));
-			return;
-		}
-
-		FC_data[KEY_TRANSCLUDING_PAGE] = move_to_title;
-		var write_content = '{{' + move_to_title + '}}';
-		CeL.info('write to ' + CeL.wiki.title_link_of(title)
-		//
-		+ ': ' + write_content);
-		wiki.page(title).edit(write_content, {
-			bot : 1,
-			summary : 'bot: 修正頁面: 首頁' + TYPE_NAME + '移動完頁面後，寫回原先嵌入的簡介頁面。'
-		});
-	});
+	// 連標題連結都找不到的情況。
+	error_logs.push(CeL.wiki.title_link_of(title)
+	// + (FC_title ? ': ' + FC_title : '')
+	);
+	if (CeL.is_debug())
+		CeL.error(title + ': ' + content);
 }
 
 // ---------------------------------------------------------------------//
 
 function check_redirects(page_list) {
 	// console.log(page_list);
+
+	/** {String}原先嵌入的特色內容條目標題，並非日期標題。 */
 	var original_FC_title = page_list.query_title;
 	if (!original_FC_title) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
 	}
-	// 經過繁簡轉換過的最終標題。
+	// 經過繁簡轉換過的最終特色內容標題。
 	var FC_title = CeL.wiki.title_of(page_list[0]);
 
 	var not_found;
@@ -431,11 +403,12 @@ function check_redirects(page_list) {
 		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
 				+ CeL.wiki.title_link_of(FC_title));
 		redirects_to_hash[original_FC_title] = FC_title;
-		// 搬移到經過繁簡轉換過的最終標題。
+		// 搬移到經過繁簡轉換過的最終特色內容標題。
 		if (FC_data_hash[original_FC_title]) {
 			if (FC_data_hash[FC_title]) {
+				if (!FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE]
 				// 標題已經登記過. merge.
-				if (!FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE]) {
+				&& FC_data_hash[original_FC_title][KEY_TRANSCLUDING_PAGE]) {
 					FC_data_hash[FC_title][KEY_TRANSCLUDING_PAGE] = FC_data_hash[original_FC_title][KEY_TRANSCLUDING_PAGE];
 				}
 				FC_data_hash[FC_title][KEY_JDN].append(
@@ -453,52 +426,162 @@ function check_redirects(page_list) {
 		not_found = true;
 	}
 
-	if (not_found) {
-		var FC_data = FC_data_hash[original_FC_title] || FC_data_hash[FC_title];
-		if (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(original_FC_title)) {
-			CeL.info('check_redirects: copy '
-					+ CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE])
-					+ ' → date pages: ' + FC_data[KEY_JDN].map(function(title) {
-						return CeL.wiki.title_link_of(
-						//
-						get_FC_date_title_to_transclude(title));
-					}).join(', '));
-			var content;
-			wiki.page(FC_data[KEY_TRANSCLUDING_PAGE], function(page_data) {
-				content = CeL.wiki.content_of(page_data);
-				CeL.debug('content: ' + content);
-				if (!content || !PATTERN_FC_transcluded.test(content))
-					return;
-				FC_data[KEY_JDN].forEach(function(JDN) {
-					wiki.page(get_FC_date_title_to_transclude(JDN))
-					//
-					.edit(content, {
-						bot : 1,
-						nocreate : 1,
-						summary : 'bot: 修正頁面: 首頁' + TYPE_NAME
-						//
-						+ '日期頁面包含/指向了另一個日期頁面，直接改成所包含的內容以便查詢與統計。'
-					});
-				});
-			});
-
-		} else {
-			CeL.warn('過去曾經在 '
-					+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
-							'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
-					+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
-					+ CeL.wiki.title_link_of(original_FC_title) + '。'
-					+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
-					+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
-					+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
-					+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
-		}
-	}
-
 	page_list.forEach(function(page_data) {
 		// cache 所有標題，以避免下次還要 reget。
 		redirects_to_hash[page_data.title] = FC_title;
 	});
+
+	if (!not_found) {
+		return;
+	}
+
+	// --------------------------------
+	// 處理日期頁面包含/指向了另一個日期頁面的情況
+
+	var FC_data = FC_data_hash[original_FC_title] || FC_data_hash[FC_title];
+	if (FC_data[KEY_TRANSCLUDING_PAGE]
+			&& /^\d{4}年\d{1,2}月\d{1,2}日$/.test(original_FC_title)) {
+		CeL.info('check_redirects: copy '
+				+ CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE])
+				+ ' → date pages: ' + FC_data[KEY_JDN].map(function(title) {
+					return CeL.wiki.title_link_of(
+					//
+					get_FC_date_title_to_transclude(title));
+				}).join(', '));
+
+		wiki.page(FC_data[KEY_TRANSCLUDING_PAGE], function(page_data) {
+			var content = CeL.wiki.content_of(page_data);
+			CeL.debug('content: ' + content);
+			if (!content || !PATTERN_FC_transcluded.test(content))
+				return;
+			FC_data[KEY_JDN].forEach(function(JDN) {
+				wiki.page(get_FC_date_title_to_transclude(JDN), {
+					redirects : 1
+				}).edit(content, {
+					bot : 1,
+					nocreate : 1,
+					summary : 'bot: 修正頁面: 首頁' + TYPE_NAME
+					//
+					+ '日期頁面包含/指向了另一個日期頁面 ' + original_FC_title
+					//
+					+ '，直接改成所包含的內容以便查詢與統計。'
+				});
+			});
+		}, {
+			redirects : 1,
+			converttitles : 1
+		});
+		return;
+	}
+
+	// --------------------------------
+
+	var move_to_title =
+	// 已經有嵌入的記錄就不用再白做工。
+	!FC_data[KEY_TRANSCLUDING_PAGE]
+	// 跳過已經撤銷資格、並非當前優良條目的狀況。
+	// 這種頁面太多，要全部移動的話太浪費資源。
+	&& !FC_data[KEY_ISFFC]
+	//
+	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title);
+	if (move_to_title === title) {
+		// error: selfmove
+		move_to_title = null;
+	}
+
+	if (move_to_title) {
+		CeL.warn('過去曾經在 '
+				+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
+						'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
+				+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
+				+ CeL.wiki.title_link_of(original_FC_title) + '。'
+				+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
+				+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
+				+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
+				+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+		return;
+	}
+
+	// --------------------------------
+	// 處理日期頁面的內容直接就是簡介的情況: 將日期頁面搬移到簡介應該在的子頁面
+
+	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
+			+ CeL.wiki.title_link_of(move_to_title));
+
+	var description, write_content = '{{' + move_to_title + '}}';
+	// 先檢查目標頁面存不存在。
+	wiki.page(move_to_title, function(page_data) {
+		console.log(page_data);
+		if (!('missing' in page)) {
+			description = CeL.wiki.content_of(page_data).trim();
+			if (description)
+				write_date_pages();
+			return;
+		}
+
+		// FC_data[KEY_TITLES_TO_MOVE][0] = page_data.title;
+
+		// 目標頁面不存在就移動。
+		var title = FC_data[KEY_TITLES_TO_MOVE][0];
+		wiki.move_to(move_to_title, title, {
+			reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
+			//
+			+ '日期頁面包含的是簡介文字而非嵌入簡介頁面，將之移至簡介頁面以便再利用。',
+			movetalk : true,
+			// noredirect : true,
+			bot : 1
+		}, function(response, error) {
+			if (error) {
+				CeL.error('Failed to move ' + CeL.wiki.title_link_of(title)
+				//
+				+ ' → ' + CeL.wiki.title_link_of(move_to_title)
+				//
+				+ ': ' + JSON.stringify(error));
+				return;
+			}
+
+			// 成功移動完畢。
+			FC_data[KEY_TITLES_TO_MOVE].shift();
+			if (!FC_data[KEY_TRANSCLUDING_PAGE]) {
+				// 補登記資訊。
+				FC_data[KEY_TRANSCLUDING_PAGE] = move_to_title;
+			}
+
+			CeL.info('write to ' + CeL.wiki.title_link_of(title)
+			//
+			+ ': ' + write_content);
+			wiki.page(title).edit(write_content, {
+				bot : 1,
+				summary : 'bot: 修正頁面: 首頁' + TYPE_NAME + '移動完頁面後，寫回原先嵌入的簡介頁面。'
+			});
+
+			wiki.page(move_to_title, function(page_data) {
+				description = CeL.wiki.content_of(page_data).trim();
+				if (description)
+					write_date_pages();
+			});
+		});
+
+	}, {
+		redirects : 1,
+		converttitles : 1
+	});
+
+	function write_date_pages() {
+		FC_data[KEY_TITLES_TO_MOVE].forEach(function(title) {
+			wiki.page(title, function(page_data) {
+				var content = CeL.wiki.content_of(page_data).trim();
+				if (content === description)
+					wiki.page(title).edit(write_content, {
+						bot : 1,
+						summary : 'bot: 修正頁面: 日期頁面所包含的內容與簡介頁面的相同，'
+						//
+						+ '直接嵌入簡介頁面以便查詢與統計。'
+					});
+			});
+		});
+	}
+
 }
 
 // ---------------------------------------------------------------------//
@@ -589,7 +672,7 @@ function check_date_page() {
 		return '|-\n| ' + fields.join(' || ');
 	}).join('\n') + '\n|}';
 
-	if (false && error_logs.length > 0) {
+	if (error_logs.length > 0) {
 		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
 		//
 		+ error_logs.join('\n# ');
@@ -679,6 +762,7 @@ function check_date_page() {
 		check_if_FC_introduction_exists(FC_title, date_page_title, matched[1]);
 
 	}, {
+		converttitles : 1,
 		redirects : 1
 	});
 
@@ -870,7 +954,7 @@ function check_month_list() {
 }
 
 function finish_up() {
-	if (error_logs.length > 0) {
+	if (false && error_logs.length > 0) {
 		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# ' + error_logs.join('\n# '));
 	}
 	CeL.debug('Done.')
