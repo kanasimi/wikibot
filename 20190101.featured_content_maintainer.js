@@ -578,10 +578,11 @@ function write_date_page(date_page_title, transcluding_title_now) {
 							+ '如果沒有人處理的話應該有補救措施（即便最後留空）。'
 				}, function(page_data, error, result) {
 					if (error) {
+						CeL.error(error);
 						// error: 如 [cascadeprotected]
 						// 寫入失敗。提醒社群，預防新當選條目沒有準備展示內容的情況。
 						check_if_FC_introduction_exists(FC_title,
-								date_page_title, transcluding_title);
+								date_page_title, transcluding_title, true);
 					} else
 						check_month_list();
 				});
@@ -614,6 +615,8 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ ' 編輯摘要的red link經繁簡轉換後存在'
 	}, function(page_data, error, result) {
+		if (error)
+			CeL.error(error);
 		if (!error
 		// error: 如 [cascadeprotected]
 		&& is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
@@ -630,7 +633,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 
 // 確認簡介頁面存在。
 function check_if_FC_introduction_exists(FC_title, date_page_title,
-		transcluding_title) {
+		transcluding_title, write_failed) {
 	if (!transcluding_title)
 		transcluding_title = get_FC_title_to_transclude(FC_title);
 
@@ -648,8 +651,9 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			return;
 		}
 
+		if (!write_failed
 		// environment=production
-		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+		&& CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
 			write_date_page(date_page_title, transcluding_title);
 			return;
 		}
