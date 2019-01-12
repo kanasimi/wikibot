@@ -371,9 +371,9 @@ function parse_each_FC_page(page_data) {
 		reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
 		//
 		+ '日期頁面包含的是簡介文字而非嵌入簡介頁面，將之移至簡介頁面以便再利用。',
-		bot : 1,
 		movetalk : true,
-		noredirect : true
+		// noredirect : true,
+		bot : 1
 	}, function(response, error) {
 		if (error) {
 			CeL.error('Failed to move ' + CeL.wiki.title_link_of(title)
