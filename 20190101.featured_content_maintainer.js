@@ -355,16 +355,25 @@ function parse_each_FC_page(page_data) {
 		var FC_data = FC_data_hash[FC_title];
 		if (FC_data) {
 			var move_to_title = get_FC_title_to_transclude(FC_title);
-			// wiki.page(title).move_to(move_to_title);
-			// wiki.page(title).edit('{{' + move_to_title + '}}');
-			// to_fix = true;
+			CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
+					+ CeL.wiki.title_link_of(move_to_title));
+			if (0)
+				wiki.page(title).move_to(move_to_title, {
+					reason : 'test',
+					movetalk : true,
+					noredirect : true
+				});
+			CeL.info('write to ' + CeL.wiki.title_link_of(title) + ': ' + '{{'
+					+ move_to_title + '}}');
+			if (0)
+				wiki.page(title).edit('{{' + move_to_title + '}}');
+			to_fix = true;
 		}
 		return to_exit;
 	});
 
 	if (!to_fix) {
-		// 再找時間修復
-		// error_title_list.push(title);
+		error_title_list.push(title);
 		if (CeL.is_debug())
 			CeL.error(title + ': ' + content);
 	}

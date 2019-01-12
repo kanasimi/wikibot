@@ -869,7 +869,6 @@ function general_row_style(section, section_index) {
 		section.CSS = {
 			color : '#111'
 		};
-		return;
 
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
@@ -1209,7 +1208,7 @@ function set_list_legend() {
 function add_user_name_and_date_set(section, user_and_date_index) {
 	var user = '', date = '';
 	if (user_and_date_index >= 0) {
-		var parser = this;
+		var parsed = this;
 		date = section.dates[user_and_date_index];
 		if (true) {
 			// 採用短日期格式。
@@ -1220,7 +1219,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				//
 				: '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
 				// 採用當個項目最多人所處的時區。
-				zone : parser.page.page_configuration.timezone || 0
+				zone : parsed.page.page_configuration.timezone || 0
 			});
 			// 因為不確定閱覽者的時區，因此不能夠再做進一步的處理，例如 CeL.date.indicate_date_time() 。
 		} else {
@@ -1376,7 +1375,7 @@ function get_column_operators(page_configuration) {
 				index = section.last_update_index;
 			} else {
 				index = section_index_filter(section,
-				// this: parser
+				// this: parsed
 				twist_filter ? twist_filter.call(this, section,
 						user_group_filter) : user_group_filter, date_type);
 			}
@@ -1388,7 +1387,7 @@ function get_column_operators(page_configuration) {
 			}
 
 			return output_type === 'set'
-			// this: parser
+			// this: parsed
 			? add_user_name_and_date_set.call(this, section, index)
 			//
 			: output_type === 'date' ? section.dates[index]
@@ -1410,17 +1409,17 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
-	var parser = CeL.wiki.parser(page_data).parse();
-	if (!parser) {
+	var parsed = CeL.wiki.parser(page_data).parse();
+	if (!parsed) {
 		return [
 				CeL.wiki.edit.cancel,
 				'No contents: ' + CeL.wiki.title_link_of(page_data)
 						+ '! 沒有頁面內容！' ];
 	}
 
-	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parser.toString(),
+		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parsed.toString(),
 				'diff'));
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
@@ -1442,7 +1441,7 @@ function pre_fetch_sub_pages(page_data, error) {
 
 	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = CeL.null_Object();
 	// check transclusions
-	parser.each('transclusion', function(token, index, parent) {
+	parsed.each('transclusion', function(token, index, parent) {
 		// transclusion page title
 		var page_title = page_configuration.transclusion_target.call(page_data,
 				token);
@@ -1501,7 +1500,7 @@ function pre_fetch_sub_pages(page_data, error) {
 		if (transclusions > 0) {
 			// re-parse
 			CeL.wiki.parser(page_data, {
-				wikitext : page_data.use_wikitext = parser.toString()
+				wikitext : page_data.use_wikitext = parsed.toString()
 			}).parse();
 		}
 		generate_topic_list(page_data);
@@ -1515,7 +1514,7 @@ function pre_fetch_sub_pages(page_data, error) {
 // 生成菜單的主函數
 
 function generate_topic_list(page_data) {
-	var parser = CeL.wiki.parser(page_data),
+	var parsed = CeL.wiki.parser(page_data),
 	//
 	page_configuration = page_data.page_configuration,
 	//
@@ -1531,7 +1530,7 @@ function generate_topic_list(page_data) {
 	//
 	topic_count = 0, new_topics = [];
 
-	parser.each_section(function(section, section_index) {
+	parsed.each_section(function(section, section_index) {
 		if (false) {
 			console.log('' + section.section_title);
 			if (section_index >= 12)
@@ -1545,7 +1544,7 @@ function generate_topic_list(page_data) {
 
 		if (page_configuration.section_filter
 		// 篩選議題。
-		&& !page_configuration.section_filter.call(parser, section)) {
+		&& !page_configuration.section_filter.call(parsed, section)) {
 			return;
 		}
 
@@ -1562,12 +1561,12 @@ function generate_topic_list(page_data) {
 		//
 		typeof page_configuration.row_style === 'function'
 		//
-		? page_configuration.row_style.call(parser, section, section_index)
+		? page_configuration.row_style.call(parsed, section, section_index)
 		//
 		: page_configuration.row_style) || '';
 
 		column_operators.forEach(function(operator) {
-			var values = operator.call(parser, section, section_index);
+			var values = operator.call(parsed, section, section_index);
 			if (Array.isArray(values)) {
 				row.append(values);
 			} else {
@@ -1584,7 +1583,7 @@ function generate_topic_list(page_data) {
 	});
 
 	if (false) {
-		parser.each(function(token) {
+		parsed.each(function(token) {
 			console.log(token);
 		}, {
 			modify : false,
