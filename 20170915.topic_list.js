@@ -1162,7 +1162,7 @@ function set_list_legend() {
 		}
 		list_legend_used.push('| ' + (short_to_long[time_interval]
 		//
-		|| long_to_short[time_interval] || '') + ' | '
+		|| long_to_short[time_interval] || '') + ' |\n* '
 				+ _list_legend[time_interval], '|-');
 	}
 
