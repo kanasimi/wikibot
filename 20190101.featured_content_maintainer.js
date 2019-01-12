@@ -354,7 +354,7 @@ function parse_each_FC_page(page_data) {
 		return parsed.each.exit;
 	});
 
-	FC_title = redirects_to_hash[FC_title];
+	FC_title = redirects_to_hash[FC_title] || FC_title;
 	var FC_data = FC_title && FC_data_hash[FC_title];
 
 	if (!FC_data) {
@@ -373,7 +373,14 @@ function parse_each_FC_page(page_data) {
 		return;
 	}
 
+	if (FC_data[KEY_TRANSCLUDING_PAGE]) {
+		// 已經有嵌入的記錄。不用再白做工。
+		return;
+	}
+
 	var move_to_title = get_FC_title_to_transclude(FC_title);
+	FC_data[KEY_TRANSCLUDING_PAGE] = move_to_title;
+
 	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
 			+ CeL.wiki.title_link_of(move_to_title));
 	wiki.move_to(move_to_title, title, {
