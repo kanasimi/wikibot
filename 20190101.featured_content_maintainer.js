@@ -481,7 +481,7 @@ function check_redirects(page_list) {
 	!FC_data[KEY_TRANSCLUDING_PAGE]
 	// 跳過已經撤銷資格、並非當前優良條目的狀況。
 	// 這種頁面太多，要全部移動的話太浪費資源。
-	&& !FC_data[KEY_ISFFC]
+	&& FC_data[KEY_ISFFC] === false
 	//
 	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title), from_title;
 	if (move_to_title
@@ -513,7 +513,7 @@ function check_redirects(page_list) {
 	// 先檢查目標頁面存不存在。
 	wiki.page(move_to_title, function(page_data) {
 		console.log(page_data);
-		if (!('missing' in page)) {
+		if (!('missing' in page_data)) {
 			description = CeL.wiki.content_of(page_data).trim();
 			if (description)
 				write_date_pages();
