@@ -441,30 +441,35 @@ function check_date_page() {
 		- FC_data_hash[FC_title_2][KEY_LATEST_JDN];
 	});
 
-	var index = 0,
+	var index = 0, need_list_field = !using_GA,
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
 	//
 	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。 --~~~~\n'
 	//
-	+ '{| class="wikitable sortable"\n|-\n'
+	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 '
 	//
-	+ '! # !! 標題 !! <small title="為列表">列表</small> !! 上次展示時間'
+	+ (need_list_field ? '!! <small title="為列表">列表</small> ' : '')
 	//
-	+ ' !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
+	+ '!! 上次展示時間 !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
-		JDN = FC_data[KEY_LATEST_JDN];
-		return '|-\n| ' + [ ++index, CeL.wiki.title_link_of(FC_title),
+		JDN = FC_data[KEY_LATEST_JDN],
 		//
-		'data-sort-value="' + (FC_data[KEY_IS_LIST] ? 1e8 + JDN : JDN)
-		// 類型: 條目/列表
-		+ '" | ' + (FC_data[KEY_IS_LIST] ? '✓' : ' '),
-		//
-		'data-sort-value="' + JDN + '" | '
+		fields = [ ++index, CeL.wiki.title_link_of(FC_title) ];
+
+		if (need_list_field) {
+			fields.push(
+			// 類型: 條目/列表
+			'data-sort-value="' + (FC_data[KEY_IS_LIST] ? 1e8 + JDN : JDN)
+			//
+			+ '" | ' + (FC_data[KEY_IS_LIST] ? '✓' : ' '));
+		}
+
+		fields.push('data-sort-value="' + JDN + '" | '
 		//
 		+ (JDN ? '[[' + get_FC_date_title_to_transclude(JDN) + '|'
 		//
@@ -476,8 +481,11 @@ function check_date_page() {
 		//
 		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
 		//
-		|| get_FC_title_to_transclude(FC_title)) ].join(' || ');
+		|| get_FC_title_to_transclude(FC_title)));
+
+		return '|-\n| ' + fields.join(' || ');
 	}).join('\n') + '\n|}';
+
 	if (error_title_list.length > 0) {
 		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
 		//
