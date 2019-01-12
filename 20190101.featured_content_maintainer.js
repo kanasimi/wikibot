@@ -52,7 +52,7 @@ FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
 // 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
 Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA' : 'WP:FFA|WP:FFL').split('|'),
-// Wikipedia:互助客栈/条目探讨
+// [[Wikipedia_talk:首页]], [[Wikipedia:互助客栈/条目探讨]]
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
 	sectiontitle : 月日_to_generate + '的首頁特色內容頁面似乎有問題，請幫忙處理',
@@ -572,11 +572,19 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
 			if (transcluding_title === transcluding_title_now) {
 				wiki.edit('', {
+					allow_empty : true,
 					nocreate : 1,
 					summary : 'production environment 下，'
 							+ '如果沒有人處理的話應該有補救措施（即便最後留空）。'
+				}, function(page_data, error, result) {
+					if (error) {
+						// error: 如 [cascadeprotected]
+						// 寫入失敗。提醒社群，預防新當選條目沒有準備展示內容的情況。
+						check_if_FC_introduction_exists(FC_title,
+								date_page_title, transcluding_title);
+					} else
+						check_month_list();
 				});
-				check_month_list();
 				return;
 			}
 			// else: write (write_content)
@@ -605,15 +613,17 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		+ '。作業機制請參考' + CeL.wiki.title_link_of(configuration_page_title)
 		//
 		+ ' 編輯摘要的red link經繁簡轉換後存在'
+	}, function(page_data, error, result) {
+		if (!error
+		// error: 如 [cascadeprotected]
+		&& is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
+			check_month_list();
+		} else {
+			// 預防新當選條目沒有準備展示內容的情況。
+			check_if_FC_introduction_exists(FC_title, date_page_title,
+					transcluding_title);
+		}
 	});
-
-	if (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
-		check_month_list();
-	} else {
-		// 預防新當選條目沒有準備展示內容的情況。
-		check_if_FC_introduction_exists(FC_title, date_page_title,
-				transcluding_title);
-	}
 }
 
 // ---------------------------------------------------------------------//
