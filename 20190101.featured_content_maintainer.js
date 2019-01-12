@@ -55,9 +55,10 @@ Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA' : 'WP:FFA|WP:FFL').split('|'),
 // [[Wikipedia_talk:首页]], [[Wikipedia:互助客栈/条目探讨]]
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
-	sectiontitle : 月日_to_generate + '的首頁特色內容頁面似乎有問題，請幫忙處理',
+	sectiontitle : 月日_to_generate + '的首頁' + TYPE_NAME + '頁面似乎有問題，請幫忙處理',
 	nocreate : 1,
-	summary : 'bot: ' + 月日_to_generate + '的首頁特色內容頁面似乎有問題，無法排除，通知社群幫忙處理。'
+	summary : 'bot: ' + 月日_to_generate + '的首頁' + TYPE_NAME
+			+ '頁面似乎有問題，無法排除，通知社群幫忙處理。'
 },
 
 KEY_IS_LIST = 0, KEY_ISFFC = 1,
@@ -347,16 +348,45 @@ function check_redirects(page_list) {
 	}
 
 	if (not_found) {
-		CeL.warn('過去曾經在 '
-				+ CeL.Julian_day.to_Date((FC_data_hash[original_FC_title]
-				//
-				|| FC_data_hash[FC_title])[KEY_JDN][0]).format('%Y年%m月%d日')
-				+ ' 包含過的' + TYPE_NAME + '，並未登記在現存或已被撤銷的登記列表頁面中: '
-				+ CeL.wiki.title_link_of(original_FC_title) + '。'
-				+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
-				+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
-				+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
-				+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+		var FC_data = FC_data_hash[original_FC_title] || FC_data_hash[FC_title];
+		if (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(original_FC_title)) {
+			CeL.info('check_redirects: copy '
+					+ CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE])
+					+ ' → date pages: ' + FC_data[KEY_JDN].map(function(title) {
+						return CeL.wiki.title_link_of(
+						//
+						get_FC_date_title_to_transclude(title));
+					}).join(', '));
+			var content;
+			wiki.page(FC_data[KEY_TRANSCLUDING_PAGE], function(page_data) {
+				content = CeL.wiki.content_of(page_data);
+				CeL.debug('content: ' + content);
+				if (!content || !PATTERN_FC_transcluded.test(content))
+					return;
+				FC_data[KEY_JDN].forEach(function(JDN) {
+					wiki.page(get_FC_date_title_to_transclude(JDN))
+					//
+					.edit(content, {
+						bot : 1,
+						nocreate : 1,
+						summary : 'bot: 修正頁面: 首頁' + TYPE_NAME
+						//
+						+ '頁面包含了另一個日期頁面，直接改成所包含的內容以便查詢與統計。'
+					});
+				});
+			});
+
+		} else {
+			CeL.warn('過去曾經在 '
+					+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
+							'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
+					+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
+					+ CeL.wiki.title_link_of(original_FC_title) + '。'
+					+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
+					+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
+					+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
+					+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+		}
 	}
 
 	page_list.forEach(function(page_data) {
@@ -578,9 +608,8 @@ function write_date_page(date_page_title, transcluding_title_now) {
 							+ '如果沒有人處理的話應該有補救措施（即便最後留空）。'
 				}, function(page_data, error, result) {
 					if (error) {
-						CeL.error(error);
 						// error: 如 [cascadeprotected]
-						// 寫入失敗。提醒社群，預防新當選條目沒有準備展示內容的情況。
+						// 寫入失敗同樣提醒社群，預防新當選條目沒有準備展示內容的情況。
 						check_if_FC_introduction_exists(FC_title,
 								date_page_title, transcluding_title, true);
 					} else
@@ -615,8 +644,6 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ ' 編輯摘要的red link經繁簡轉換後存在'
 	}, function(page_data, error, result) {
-		if (error)
-			CeL.error(error);
 		if (!error
 		// error: 如 [cascadeprotected]
 		&& is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
