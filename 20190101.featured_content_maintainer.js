@@ -444,7 +444,10 @@ function check_date_page() {
 	}).join('\n') + '\n|}';
 	if (error_title_list.length > 0) {
 		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
-				+ error_title_list.map(CeL.wiki.title_link_of).join('\n# ');
+		//
+		+ error_title_list.map(function(title) {
+			return CeL.wiki.title_link_of(title);
+		}).join('\n# ');
 	}
 	wiki.page('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
 	//
