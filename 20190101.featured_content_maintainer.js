@@ -352,7 +352,7 @@ function parse_each_FC_page(page_data) {
 		// 找到第一個連結。
 		FC_title = redirects_to_hash[CeL.wiki.normalize_page_name(token[0]
 				.toString())];
-		return this.each.exit;
+		return parsed.each.exit;
 	});
 
 	var FC_data = FC_title && FC_data_hash[FC_title];
