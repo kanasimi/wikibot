@@ -18,7 +18,7 @@ require('./wiki loder.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true);
+wiki = Wiki(true),
 
 /** {String}設定頁面標題。 e.g., "User:bot/設定" */
 configuration_page_title = 'Wikipedia:首頁/特色內容展示設定',
