@@ -200,7 +200,7 @@ function parse_each_FC_item_list_page(page_data) {
 		content = content.replace(/\n== *(?:被撤銷後|被撤销后)[\s\S]+$/, '');
 	}
 
-	var PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
+	var PATTERN_Featured_content = using_GA && !is_FFC ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
 			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
@@ -333,11 +333,38 @@ function parse_each_FC_page(page_data) {
 			(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
 			check_FC_title(FC_title);
 		}
+		return;
+	}
 
-	} else {
-		// try to parse page
+	// try to parse page and fix the format
+	/** 頁面解析後的結構。 */
+	var parsed = CeL.wiki.parser(page_data).parse();
+	// debug 用.
+	// check parser, test if parser working properly.
+	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
+		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parsed.toString(),
+				'diff'));
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
+	}
 
-		error_title_list.push(title);
+	var to_exit = this.each.exit, to_fix;
+	parsed.each('link', function(token) {
+		// 找到第一個連結。
+		var FC_title = redirects_to_hash[CeL.wiki.normalize_page_name(token[0]
+				.toString())];
+		var FC_data = FC_data_hash[FC_title];
+		if (FC_data) {
+			var move_to_title = get_FC_title_to_transclude(FC_title);
+			// wiki.page(title).move_to(move_to_title);
+			// wiki.page(title).edit('{{' + move_to_title + '}}');
+			// to_fix = true;
+		}
+		return to_exit;
+	});
+
+	if (!to_fix) {
+		// 再找時間修復
+		// error_title_list.push(title);
 		if (CeL.is_debug())
 			CeL.error(title + ': ' + content);
 	}
