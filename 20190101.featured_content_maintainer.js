@@ -484,7 +484,7 @@ function check_redirects(page_list) {
 	&& !FC_data[KEY_ISFFC]
 	//
 	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title);
-	if (move_to_title === title) {
+	if (move_to_title === FC_data[KEY_TITLES_TO_MOVE][0]) {
 		// error: selfmove
 		move_to_title = null;
 	}
@@ -518,8 +518,6 @@ function check_redirects(page_list) {
 				write_date_pages();
 			return;
 		}
-
-		// FC_data[KEY_TITLES_TO_MOVE][0] = page_data.title;
 
 		// 目標頁面不存在就移動。
 		var title = FC_data[KEY_TITLES_TO_MOVE][0];
@@ -571,13 +569,15 @@ function check_redirects(page_list) {
 		FC_data[KEY_TITLES_TO_MOVE].forEach(function(title) {
 			wiki.page(title, function(page_data) {
 				var content = CeL.wiki.content_of(page_data).trim();
-				if (content === description)
-					wiki.page(title).edit(write_content, {
-						bot : 1,
-						summary : 'bot: 修正頁面: 日期頁面所包含的內容與簡介頁面的相同，'
-						//
-						+ '直接嵌入簡介頁面以便查詢與統計。'
-					});
+				if (content !== description) {
+					return;
+				}
+				wiki.page(title).edit(write_content, {
+					bot : 1,
+					summary : 'bot: 修正頁面: 日期頁面所包含的內容與簡介頁面的相同，'
+					//
+					+ '直接嵌入簡介頁面以便查詢與統計。'
+				});
 			});
 		});
 	}
