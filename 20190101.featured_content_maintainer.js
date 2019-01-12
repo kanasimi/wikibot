@@ -52,8 +52,8 @@ FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
 // 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
 Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA' : 'WP:FFA|WP:FFL').split('|'),
-// [[Wikipedia_talk:首页]], [[Wikipedia:互助客栈/条目探讨]]
-DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
+// [[Wikipedia:互助客栈/其他]], [[Wikipedia:互助客栈/条目探讨]]
+DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 	section : 'new',
 	sectiontitle : 月日_to_generate + '的首頁' + TYPE_NAME + '頁面似乎有問題，請幫忙處理',
 	nocreate : 1,
@@ -80,9 +80,10 @@ JDN_hash = CeL.null_Object(),
 FC_page_prefix = CeL.null_Object(),
 /**
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
+ * should allow "AdS/CFT對偶" as FC title<br />
  * matched: [ all, transcluding_title, FC_page_prefix, FC_title ]
  */
-PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^\/{}]+))\}\}\s*$/;
+PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^{}]+))\}\}\s*$/;
 
 // ---------------------------------------------------------------------//
 // main
@@ -303,6 +304,8 @@ function parse_each_FC_page(page_data) {
 		}
 
 	} else {
+		// try to parse page
+
 		error_title_list.push(title);
 		if (CeL.is_debug())
 			CeL.error(title + ': ' + content);
@@ -371,7 +374,7 @@ function check_redirects(page_list) {
 						nocreate : 1,
 						summary : 'bot: 修正頁面: 首頁' + TYPE_NAME
 						//
-						+ '頁面包含了另一個日期頁面，直接改成所包含的內容以便查詢與統計。'
+						+ '日期頁面包含/指向了另一個日期頁面，直接改成所包含的內容以便查詢與統計。'
 					});
 				});
 			});
