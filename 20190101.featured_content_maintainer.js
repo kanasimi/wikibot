@@ -27,26 +27,28 @@ configuration;
 
 // ---------------------------------------------------------------------//
 
-var JDN_today = CeL.Julian_day(new Date),
-// + 1: 明天 JDN_tomorrow
-JDN_to_generate = JDN_today
-		+ (CeL.env.arg_hash && (CeL.env.arg_hash.days_later | 0) || 1),
-//
-JDN_search_to = Math.max(JDN_today, JDN_to_generate - 1),
-// 開始有特色內容頁面的日期。
-JDN_start = CeL.Julian_day.from_YMD(2013, 8, 20, true),
-// 開始廢棄"特色條目"，採用"典範條目"的日期。
-典範JDN = CeL.Julian_day.from_YMD(2017, 10, 1, true),
-// {{#time:Y年n月|+1 day}}
-// @see Template:Feature , Template:Wikidate/ymd
-月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
-
+var
 // node 20190101.featured_content_maintainer.js type=good
 using_GA = CeL.env.arg_hash && CeL.env.arg_hash.type === 'good',
 // 'Wikipedia:' + NS_PREFIX
 NS_PREFIX = using_GA ? '優良條目' : '典範條目',
 //
 TYPE_NAME = using_GA ? '優良條目' : '特色內容',
+
+JDN_today = CeL.Julian_day(new Date),
+// + 1: 明天 JDN_tomorrow
+JDN_to_generate = JDN_today
+		+ (CeL.env.arg_hash && (CeL.env.arg_hash.days_later | 0) || 1),
+//
+JDN_search_to = Math.max(JDN_today, JDN_to_generate - 1),
+// 開始有特色內容頁面的日期。
+JDN_start = using_GA ? CeL.Julian_day.from_YMD(2006, 9, 3, true)
+		: CeL.Julian_day.from_YMD(2013, 8, 20, true),
+// 開始廢棄"特色條目"，採用"典範條目"的日期。
+典範JDN = CeL.Julian_day.from_YMD(2017, 10, 1, true),
+// {{#time:Y年n月|+1 day}}
+// @see Template:Feature , Template:Wikidate/ymd
+月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
 
 FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
@@ -95,6 +97,22 @@ prepare_directory(base_directory);
 
 CeL.wiki.cache([ {
 	type : 'page',
+	list : configuration_page_title,
+	redirects : 1,
+	reget : true,
+	operator : function(page_data) {
+		// 讀入手動設定 manual settings。
+		configuration = CeL.wiki.parse_configuration(page_data);
+		// console.log(configuration);
+
+		// 一般設定
+		var general = parse_configuration_table(configuration.general);
+
+		if (general.DISCUSSION_PAGE)
+			DISCUSSION_PAGE = general.DISCUSSION_PAGE;
+	}
+}, {
+	type : 'page',
 	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
 	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
 	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
@@ -142,6 +160,19 @@ CeL.wiki.cache([ {
 	// cache path prefix
 	prefix : base_directory
 });
+
+// ---------------------------------------------------------------------//
+
+function parse_configuration_table(table) {
+	var configuration = CeL.null_Object();
+	if (Array.isArray(table)) {
+		table.forEach(function(line) {
+			configuration[line[0]] = line[1];
+		});
+	}
+	// console.log(configuration);
+	return configuration;
+}
 
 // ---------------------------------------------------------------------//
 
