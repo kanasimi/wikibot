@@ -379,7 +379,9 @@ function parse_each_FC_page(page_data) {
 	}
 
 	var move_to_title = get_FC_title_to_transclude(FC_title);
-	FC_data[KEY_TRANSCLUDING_PAGE] = move_to_title;
+	if (move_to_title === title) {
+		return;
+	}
 
 	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
 			+ CeL.wiki.title_link_of(move_to_title));
@@ -400,6 +402,7 @@ function parse_each_FC_page(page_data) {
 			return;
 		}
 
+		FC_data[KEY_TRANSCLUDING_PAGE] = move_to_title;
 		var write_content = '{{' + move_to_title + '}}';
 		CeL.info('write to ' + CeL.wiki.title_link_of(title)
 		//
