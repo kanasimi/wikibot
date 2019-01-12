@@ -366,6 +366,7 @@ function parse_each_FC_page(page_data) {
 			|| !check_FC_title(redirects_to_hash[FC_title])) {
 		// 已經做過登記了。
 		// 但是沒有設定 FC_data[KEY_TRANSCLUDING_PAGE]
+		redirects_list_to_check.push(FC_title);
 		return;
 	}
 
@@ -432,6 +433,7 @@ function check_redirects(page_list) {
 		redirects_to_hash[page_data.title] = FC_title;
 	});
 
+	var FC_data = FC_data_hash[original_FC_title] || FC_data_hash[FC_title];
 	if (!not_found && FC_data[KEY_TRANSCLUDING_PAGE]) {
 		return;
 	}
@@ -439,7 +441,6 @@ function check_redirects(page_list) {
 	// --------------------------------
 	// 處理日期頁面包含/指向了另一個日期頁面的情況
 
-	var FC_data = FC_data_hash[original_FC_title] || FC_data_hash[FC_title];
 	if (FC_data[KEY_TRANSCLUDING_PAGE]
 			&& /^\d{4}年\d{1,2}月\d{1,2}日$/.test(original_FC_title)) {
 		CeL.info('check_redirects: copy '
