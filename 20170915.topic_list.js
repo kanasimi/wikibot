@@ -87,11 +87,7 @@ botop_sitelinks = {
 	enwiki : {
 		title : 'Category:Wikipedia bot operators'
 	}
-},
-// 當標題過長，大於 max_title_length 時，縮小標題字型。
-max_title_length = 40,
-// 限制標題欄的寬度。要考慮比較窄的螢幕。
-max_title_display_width = '24em', max_date_length = 34,
+}, max_date_length = 34,
 
 // 一般用討論頁面設定。
 // need to add {{/topic list}} to {{/header}}
@@ -502,8 +498,9 @@ var section_column_operators = {
 		}
 
 		if (style) {
-			// 限制標題欄的寬度。
-			style = 'max-width: ' + max_title_display_width;
+			style = 'max-width: '
+			// 限制標題欄的寬度。要考慮比較窄的螢幕。
+			+ (configuration.general.max_title_display_width || '24em');
 		} else
 			style = '';
 		if (section.CSS && section.CSS.color) {
@@ -573,24 +570,31 @@ function parse_configuration_table(table) {
 
 function start_main_work(page_data) {
 	// 讀入手動設定 manual settings。
-	configuration = CeL.wiki.parse_configuration(page_data);
+	configuration = Object.assign({
+		// 設定必要的屬性。
+		general : CeL.null_Object(),
+		list_style : CeL.null_Object()
+	}, CeL.wiki.parse_configuration(page_data));
 	// console.log(configuration);
+
+	// 檢查從網頁取得的設定。
 
 	// 一般設定
 	var general = parse_configuration_table(configuration.general);
 
-	if (general.max_title_length > 0 && general.max_title_length < 900) {
-		max_title_length = configuration.max_title_length | 0;
+	if (!(general.max_title_length > 0 && general.max_title_length < 900)) {
+		delete general.max_title_length;
 	}
 
-	if (/^\d{1,2}(?:em|en|%)$/.test(general.max_title_display_width)) {
-		max_title_display_width = general.max_title_display_width;
+	if (!/^\d{1,2}(?:em|en|%)$/.test(general.max_title_display_width)) {
+		delete general.max_title_display_width;
 	}
 
 	var configuration_now = parse_configuration_table(configuration.list_style);
 	for ( var name in configuration_now) {
 		var style = configuration_now[name];
 		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
+			delete configuration_now[name];
 			return;
 		}
 		if (name in short_to_long) {
@@ -867,7 +871,7 @@ function general_row_style(section, section_index) {
 	// console.log('archived: ' + archived);
 	if (archived === 'end' || archived === 'moved') {
 		section.CSS = {
-			color : '#111'
+			color : configuration.list_style.archived_text_color || '#111'
 		};
 
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
@@ -1278,7 +1282,9 @@ function if_too_long(title) {
 	// remove HTML tags
 	.replace(/<\/?[a-z][^<>]*>?/g, '')
 	// remove styles
-	.replace(/'''?/g, '').display_width() > max_title_length;
+	.replace(/'''?/g, '').display_width() >
+	// 當標題過長，大於 max_title_length 時，縮小標題字型。
+	(configuration.general.max_title_length || 40);
 }
 
 // [[w:en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
