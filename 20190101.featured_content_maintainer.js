@@ -364,6 +364,11 @@ function parse_each_FC_page(page_data) {
 		return;
 	}
 
+	if (FC_data[KEY_ISFFC]) {
+		// 跳過已經撤銷資格、並非當前優良條目的狀況。
+		return;
+	}
+
 	var move_to_title = get_FC_title_to_transclude(FC_title);
 	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
 			+ CeL.wiki.title_link_of(move_to_title));
@@ -378,7 +383,9 @@ function parse_each_FC_page(page_data) {
 		if (error) {
 			CeL.error('Failed to move ' + CeL.wiki.title_link_of(title)
 			//
-			+ ' → ' + CeL.wiki.title_link_of(move_to_title) + ': ' + error);
+			+ ' → ' + CeL.wiki.title_link_of(move_to_title)
+			//
+			+ ': ' + JSON.stringify(error));
 			return;
 		}
 
