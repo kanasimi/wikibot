@@ -483,13 +483,14 @@ function check_redirects(page_list) {
 	// 這種頁面太多，要全部移動的話太浪費資源。
 	&& !FC_data[KEY_ISFFC]
 	//
-	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title);
-	if (move_to_title === FC_data[KEY_TITLES_TO_MOVE][0]) {
+	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title), from_title;
+	if (move_to_title
+			&& move_to_title === (from_title = FC_data[KEY_TITLES_TO_MOVE][0])) {
 		// error: selfmove
 		move_to_title = null;
 	}
 
-	if (move_to_title) {
+	if (!move_to_title) {
 		CeL.warn('過去曾經在 '
 				+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
 						'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
@@ -505,7 +506,7 @@ function check_redirects(page_list) {
 	// --------------------------------
 	// 處理日期頁面的內容直接就是簡介的情況: 將日期頁面搬移到簡介應該在的子頁面
 
-	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
+	CeL.info('move page: ' + CeL.wiki.title_link_of(from_title) + ' → '
 			+ CeL.wiki.title_link_of(move_to_title));
 
 	var description, write_content = '{{' + move_to_title + '}}';
@@ -520,8 +521,7 @@ function check_redirects(page_list) {
 		}
 
 		// 目標頁面不存在就移動。
-		var title = FC_data[KEY_TITLES_TO_MOVE][0];
-		wiki.move_to(move_to_title, title, {
+		wiki.move_to(move_to_title, from_title, {
 			reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
 			//
 			+ '日期頁面包含的是簡介文字而非嵌入簡介頁面，將之移至簡介頁面以便再利用。',
@@ -530,7 +530,9 @@ function check_redirects(page_list) {
 			bot : 1
 		}, function(response, error) {
 			if (error) {
-				CeL.error('Failed to move ' + CeL.wiki.title_link_of(title)
+				CeL.error('Failed to move '
+				//
+				+ CeL.wiki.title_link_of(from_title)
 				//
 				+ ' → ' + CeL.wiki.title_link_of(move_to_title)
 				//
@@ -545,10 +547,10 @@ function check_redirects(page_list) {
 				FC_data[KEY_TRANSCLUDING_PAGE] = move_to_title;
 			}
 
-			CeL.info('write to ' + CeL.wiki.title_link_of(title)
+			CeL.info('write to ' + CeL.wiki.title_link_of(from_title)
 			//
 			+ ': ' + write_content);
-			wiki.page(title).edit(write_content, {
+			wiki.page(from_title).edit(write_content, {
 				bot : 1,
 				summary : 'bot: 修正頁面: 首頁' + TYPE_NAME + '移動完頁面後，寫回原先嵌入的簡介頁面。'
 			});
