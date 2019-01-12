@@ -347,7 +347,7 @@ function parse_each_FC_page(page_data) {
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
-	var to_exit = this.each.exit, to_fix;
+	var to_exit = parsed.each.exit, to_fix;
 	parsed.each('link', function(token) {
 		// 找到第一個連結。
 		var FC_title = redirects_to_hash[CeL.wiki.normalize_page_name(token[0]
