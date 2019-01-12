@@ -479,9 +479,7 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 
 	var wikitext = '{{' + page_prefix + 'HI|' + publisher + '|'
 	// escape wikitext control characters
-	+ headline.replace(/[\|{}\[\]]/g, function(character) {
-		return '&#' + character.charCodeAt(0) + ';';
-	})
+	+ CeL.wiki.escape_text(headline)
 	//
 	+ (headline_data.url ? '|url=' + headline_data.url : '')
 	//

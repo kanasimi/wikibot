@@ -5,10 +5,7 @@
 
  2018/12/16 17:1:23	初版試營運
 
- @see [[ja:Special:Diff/70970184]]
-
- TODO:
-
+ @see [[ja:Special:Diff/70970184]], [[ja:Category:参照エラーのあるページ]]
 
  */
 
@@ -25,7 +22,7 @@ summary = '[[Special:Diff/70970184|Bot依頼]]',
 wiki = Wiki(true, 'ja'),
 
 param_has_unique_ref = CeL.null_Object(),
-// 手動で修正する必要のある記事
+// 手動で修正する必要のある記事。
 need_fix = CeL.null_Object();
 
 // ---------------------------------------------------------------------//

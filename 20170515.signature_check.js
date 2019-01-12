@@ -474,6 +474,7 @@ function for_each_row(row) {
 			CeL.debug('測試是不是用戶在自己的討論頁添加上宣告或者維護模板。', 2);
 			// row.title.startsWith(row.user)
 			if (CeL.wiki.parse.user(CeL.wiki.title_link_of(row), row.user)) {
+				// 跳過自己編輯自己的對話頁。
 				CeL.debug('跳過使用者編輯屬於自己的頁面。', 2);
 				if (this_section_text_may_skip()) {
 					// Skip return;

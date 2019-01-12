@@ -29,14 +29,15 @@ var
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 
-config_page_title = 'User:' + user_name + '/規範多個問題模板設定',
-// 手動設定
+/** {String}設定頁面標題。 e.g., "User:bot/設定" */
+configuration_page_title = 'User:' + user_name + '/規範多個問題模板設定',
+/** {Object}設定頁面所獲得之手動設定 manual settings。 */
 configuration,
 
 /** {String}{{多個問題}}模板名 */
 多個問題_模板名 = '多個問題',
 /** {{多個問題}}模板初始別名 alias */
-多個問題_模板別名_list = '问题条目'.split('|'),
+多個問題_模板別名_list = 'Multiple issues'.split('|'),
 // assert: 須拆分模板數 < 須合併模板數
 須拆分模板數 = 1, 須合併模板數 = 3, 列入報表的最低模板數 = 須合併模板數 + 1,
 /**
@@ -285,10 +286,11 @@ CeL.wiki.cache([ {
 	type : 'page',
 	// title=(operation.title_prefix||_this.title_prefix)+operation.list
 	title_prefix : '',
-	list : config_page_title,
+	list : configuration_page_title,
 	redirects : 1,
+	reget : true,
 	operator : function(page_data) {
-		// 讀入手動設定
+		// 讀入手動設定 manual settings。
 		configuration = CeL.wiki.parse_configuration(page_data);
 
 		多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
@@ -317,6 +319,7 @@ CeL.wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目
 	file_name : '多個問題_模板別名',
 	type : 'redirects',
+	reget : true,
 	list : 多個問題_模板別名_list.concat(多個問題_模板名),
 	operator : function(list) {
 		// list=list.unique();
@@ -326,6 +329,7 @@ CeL.wiki.cache([ {
 	// @see [[Category:含有多个问题的条目]]
 	file_name : '含有_多個問題_模板之頁面',
 	type : 'embeddedin',
+	reget : true,
 	// list : previous one: 多個問題_模板別名_list
 	each_file_name : CeL.wiki.cache.title_only,
 	retrieve : function(list) {
@@ -527,7 +531,7 @@ CeL.wiki.cache([ {
 		//
 		+ '* 本條目會每周更新，毋須手動修正。您可以從'
 		//
-		+ CeL.wiki.title_link_of(config_page_title, '這個頁面')
+		+ CeL.wiki.title_link_of(configuration_page_title, '這個頁面')
 		//
 		+ '更改設定參數。 --~~~~\n{{see|' + log_to
 		//

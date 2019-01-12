@@ -112,9 +112,11 @@ function check_index(index) {
 	}, {
 		file_name : 'WPCHECK/list_' + index + '.json',
 		postprocessor : function(data) {
-			if (data.charAt(0) === '<')
+			data = data.toString();
+			if (data.startsWith('<')) {
 				// 僅取得 <pre> 間的 data。
 				data = data.between('<pre>', '</pre>');
+			}
 			data = data.trim().split(/\r?\n/);
 			return JSON.stringify(data);
 		}

@@ -180,9 +180,11 @@ function main_work() {
 			//
 			+ '.' + use_language + '.json',
 			postprocessor : function(data) {
-				if (data.charAt(0) === '<')
+				data = data.toString();
+				if (data.startsWith('<')) {
 					// 僅取得 <pre> 間的 data。
 					data = data.between('<pre>', '</pre>');
+				}
 				data = data.trim().split(/\r?\n/);
 				return JSON.stringify(data);
 			}
@@ -243,7 +245,7 @@ function fix_2_simple(content, page_data, messages, config) {
 // incorrect syntax. Also checks <span/> and <div/>, which are inccorect HTML5.
 // https://ja.wikipedia.org/wiki/Wikipedia:%E4%BA%95%E6%88%B8%E7%AB%AF/subj/%EF%BC%9Cbr%EF%BC%9E%E3%82%BF%E3%82%B0%E3%81%A8%EF%BC%9Cbr_%EF%BC%8F%EF%BC%9E%E3%81%AE%E9%81%95%E3%81%84%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%AE%E8%B3%AA%E5%95%8F
 // TODO: {{clear|left}}
-fix_2.title = '修正不正確的 HTML tag 如 <br/> → <br />';
+fix_2.title = '修正不正確的 HTML tag 如 </br> → <br />';
 function fix_2(content, page_data, messages, config) {
 	// fix error
 	content = content

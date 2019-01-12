@@ -71,7 +71,7 @@ KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = CeL.null_Object(),
 
-error_title_list = [], FC_title_sorted, redirects_list_to_check = [],
+error_logs = [], FC_title_sorted, redirects_list_to_check = [],
 // cache file of redirects
 redirects_to_file = base_directory + 'redirects_to.json',
 // redirects_to_hash[original_FC_title] = {String}FC_title 經過繁簡轉換過的最終標題
@@ -358,7 +358,8 @@ function parse_each_FC_page(page_data) {
 	var FC_data = FC_title && FC_data_hash[FC_title];
 
 	if (!FC_data) {
-		error_title_list.push(title);
+		error_logs.push(CeL.wiki.title_link_of(title)
+				+ (FC_title ? ': ' + FC_title : ''));
 		if (CeL.is_debug())
 			CeL.error(title + ': ' + content);
 		return;
@@ -588,12 +589,10 @@ function check_date_page() {
 		return '|-\n| ' + fields.join(' || ');
 	}).join('\n') + '\n|}';
 
-	if (error_title_list.length > 0) {
+	if (false && error_logs.length > 0) {
 		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
 		//
-		+ error_title_list.map(function(title) {
-			return CeL.wiki.title_link_of(title);
-		}).join('\n# ');
+		+ error_logs.join('\n# ');
 	}
 	wiki.page('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
 	//
@@ -871,8 +870,8 @@ function check_month_list() {
 }
 
 function finish_up() {
-	if (error_title_list.length > 0) {
-		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
-				+ error_title_list.join('\n# '));
+	if (error_logs.length > 0) {
+		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# ' + error_logs.join('\n# '));
 	}
+	CeL.debug('Done.')
 }
