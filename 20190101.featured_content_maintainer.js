@@ -347,36 +347,50 @@ function parse_each_FC_page(page_data) {
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
-	var to_exit = parsed.each.exit, to_fix;
+	FC_title = null;
 	parsed.each('link', function(token) {
 		// 找到第一個連結。
-		var FC_title = redirects_to_hash[CeL.wiki.normalize_page_name(token[0]
+		FC_title = redirects_to_hash[CeL.wiki.normalize_page_name(token[0]
 				.toString())];
-		var FC_data = FC_data_hash[FC_title];
-		if (FC_data) {
-			var move_to_title = get_FC_title_to_transclude(FC_title);
-			CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
-					+ CeL.wiki.title_link_of(move_to_title));
-			if (0)
-				wiki.page(title).move_to(move_to_title, {
-					reason : 'test',
-					movetalk : true,
-					noredirect : true
-				});
-			CeL.info('write to ' + CeL.wiki.title_link_of(title) + ': ' + '{{'
-					+ move_to_title + '}}');
-			if (0)
-				wiki.page(title).edit('{{' + move_to_title + '}}');
-			to_fix = true;
-		}
-		return to_exit;
+		return this.each.exit;
 	});
 
-	if (!to_fix) {
+	var FC_data = FC_title && FC_data_hash[FC_title];
+
+	if (!FC_data) {
 		error_title_list.push(title);
 		if (CeL.is_debug())
 			CeL.error(title + ': ' + content);
+		return;
 	}
+
+	var move_to_title = get_FC_title_to_transclude(FC_title);
+	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
+			+ CeL.wiki.title_link_of(move_to_title));
+	wiki.page(title).move_to(move_to_title, {
+		reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
+		//
+		+ '日期頁面包含的是簡介文字而非嵌入簡介頁面，將之移至簡介頁面以便再利用。',
+		bot : 1,
+		movetalk : true,
+		noredirect : true
+	}, function(response, error) {
+		if (error) {
+			CeL.error('Failed to move ' + CeL.wiki.title_link_of(title)
+			//
+			+ ' → ' + CeL.wiki.title_link_of(move_to_title) + ': ' + error);
+			return;
+		}
+
+		var write_content = '{{' + move_to_title + '}}';
+		CeL.info('write to ' + CeL.wiki.title_link_of(title)
+		//
+		+ ': ' + write_content);
+		wiki.page(title).edit(write_content, {
+			bot : 1,
+			summary : 'bot: 修正頁面: 首頁' + TYPE_NAME + '移動完頁面後寫回原先嵌入的簡介頁面。'
+		});
+	});
 }
 
 // ---------------------------------------------------------------------//
