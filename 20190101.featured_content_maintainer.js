@@ -350,11 +350,11 @@ function parse_each_FC_page(page_data) {
 	FC_title = null;
 	parsed.each('link', function(token) {
 		// 找到第一個連結。
-		FC_title = redirects_to_hash[CeL.wiki.normalize_page_name(token[0]
-				.toString())];
+		FC_title = CeL.wiki.normalize_page_name(token[0].toString());
 		return parsed.each.exit;
 	});
 
+	FC_title = redirects_to_hash[FC_title];
 	var FC_data = FC_title && FC_data_hash[FC_title];
 
 	if (!FC_data) {
@@ -364,15 +364,19 @@ function parse_each_FC_page(page_data) {
 		return;
 	}
 
+	// 補登記資訊。
+	FC_data[KEY_JDN].push(JDN);
+
 	if (FC_data[KEY_ISFFC]) {
 		// 跳過已經撤銷資格、並非當前優良條目的狀況。
+		// 這種頁面太多，要全部移動的話太浪費資源。
 		return;
 	}
 
 	var move_to_title = get_FC_title_to_transclude(FC_title);
 	CeL.info('move page: ' + CeL.wiki.title_link_of(title) + ' → '
 			+ CeL.wiki.title_link_of(move_to_title));
-	wiki.page(title).move_to(move_to_title, {
+	wiki.move_to(move_to_title, title, {
 		reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
 		//
 		+ '日期頁面包含的是簡介文字而非嵌入簡介頁面，將之移至簡介頁面以便再利用。',
@@ -395,7 +399,7 @@ function parse_each_FC_page(page_data) {
 		+ ': ' + write_content);
 		wiki.page(title).edit(write_content, {
 			bot : 1,
-			summary : 'bot: 修正頁面: 首頁' + TYPE_NAME + '移動完頁面後寫回原先嵌入的簡介頁面。'
+			summary : 'bot: 修正頁面: 首頁' + TYPE_NAME + '移動完頁面後，寫回原先嵌入的簡介頁面。'
 		});
 	});
 }
