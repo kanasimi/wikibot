@@ -50,7 +50,8 @@ TYPE_NAME = using_GA ? '優良條目' : '特色內容',
 
 FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
-Former_FC_list_pages = (using_GA ? 'WP:DGA' : 'WP:FFA|WP:FFL').split('|'),
+// 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
+Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA' : 'WP:FFA|WP:FFL').split('|'),
 // Wikipedia:互助客栈/条目探讨
 DISCUSSION_PAGE = 'Wikipedia:互助客栈/其他', DISCUSSION_edit_options = {
 	section : 'new',
@@ -156,18 +157,20 @@ function parse_each_FC_item_list_page(page_data) {
 	// e.g., 'Wikipedia:FL'
 	|| /:[DF]?[FG]L/.test(page_data.original_title || title),
 	// 注意: 這包含了被撤銷後再次被評為典範的條目
-	is_FFC = /:[DF][FG][AL]|已撤销的/.test([ page_data.original_title,
-			page_data.title, title ].join('|')),
-	//
-	PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
-			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
-			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
-			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
+	is_FFC = [ page_data.original_title, page_data.title, title ].join('|');
+
+	is_FFC = /:[DF][FG][AL]|已撤销的/.test(is_FFC) || using_GA
+			&& /:FA/.test(is_FFC);
 
 	if (is_FFC) {
 		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
 		content = content.replace(/\n== *(?:被撤銷後|被撤销后)[\s\S]+$/, '');
 	}
+
+	var PATTERN_Featured_content = using_GA ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
+			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
+			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
+			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
 
 	// CeL.log(content);
 	// console.log([ page_data.original_title || title, is_FFC, is_list ]);
