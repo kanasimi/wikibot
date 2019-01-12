@@ -484,22 +484,25 @@ function check_redirects(page_list) {
 	&& FC_data[KEY_ISFFC] === false
 	//
 	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title), from_title;
+	// console.log([ FC_title, FC_data ]);
+
 	if (move_to_title
-			&& move_to_title === (from_title = FC_data[KEY_TITLES_TO_MOVE][0])) {
-		// error: selfmove
+	// avoid error: selfmove
+	&& move_to_title === (from_title = FC_data[KEY_TITLES_TO_MOVE][0])) {
 		move_to_title = null;
 	}
 
 	if (!move_to_title) {
-		CeL.warn('過去曾經在 '
-				+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
-						'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
-				+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
-				+ CeL.wiki.title_link_of(original_FC_title) + '。'
-				+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
-				+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
-				+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
-				+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+		if (typeof FC_data[KEY_ISFFC] !== 'boolean')
+			CeL.warn('過去曾經在 '
+					+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
+							'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
+					+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
+					+ CeL.wiki.title_link_of(original_FC_title) + '。'
+					+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
+					+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
+					+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
+					+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 		return;
 	}
 
@@ -956,7 +959,10 @@ function check_month_list() {
 }
 
 function finish_up() {
-	if (false && error_logs.length > 0) {
+	// log
+	CeL.write_file(base_directory + 'FC_data_hash.' + (using_GA ? 'G' : 'F')
+			+ '.json', FC_data_hash);
+	if (error_logs.length > 0) {
 		CeL.warn('本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# ' + error_logs.join('\n# '));
 	}
 	CeL.debug('Done.')
