@@ -417,7 +417,7 @@ var page_configurations = {
 
 // ----------------------------------------------
 
-// 討論議題列表依狀態表現不同的顏色。
+// 討論議題列表依狀態表現不同的背景顏色。
 // time → style
 var short_to_long = {
 	// 最近1小時內: 淺綠色。
@@ -555,17 +555,44 @@ prepare_directory(base_directory);
 
 wiki.page(configuration_page_title, start_main_work);
 
+function parse_configuration_table(table) {
+	var configuration = CeL.null_Object();
+	if (Array.isArray(table)) {
+		table.forEach(function(line) {
+			configuration[line[0]] = line[1];
+		});
+	}
+	// console.log(configuration);
+	return configuration;
+}
+
 function start_main_work(page_data) {
 	// 讀入手動設定 manual settings。
 	configuration = CeL.wiki.parse_configuration(page_data);
+	// console.log(configuration);
 
-	if (configuration.max_title_length > 0
-			&& configuration.max_title_length < 900) {
+	// 一般設定
+	var general = parse_configuration_table(configuration.general);
+
+	if (general.max_title_length > 0 && general.max_title_length < 900) {
 		max_title_length = configuration.max_title_length | 0;
 	}
 
-	if (/^\d{1,2}(?:em|en|%)$/.test(configuration.max_title_display_width)) {
-		max_title_display_width = configuration.max_title_display_width;
+	if (/^\d{1,2}(?:em|en|%)$/.test(general.max_title_display_width)) {
+		max_title_display_width = general.max_title_display_width;
+	}
+
+	var configuration_now = parse_configuration_table(configuration.list_style);
+	for ( var name in configuration_now) {
+		var style = configuration_now[name];
+		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
+			return;
+		}
+		if (name in short_to_long) {
+			short_to_long[name] = style;
+		} else if (name in long_to_short) {
+			long_to_short[name] = style;
+		}
 	}
 
 	// ----------------------------------------------------
@@ -1104,9 +1131,11 @@ function normalize_time_style_hash(time_style_hash) {
 			continue;
 		}
 		if (/^[\da-f]{3,6}$/i.test(style)) {
+			// treat as RGB color code
 			style = '#' + style;
 		}
 		if (style.startsWith('#')) {
+			// treat as background-color
 			time_style_hash[time_interval] = 'style="background-color:' + style
 					+ ';" ';
 		}
@@ -1150,17 +1179,17 @@ function set_list_legend() {
 		//
 		+ (use_language === 'zh' ? '手動設定' : 'Manual settings'), '|-',
 		//
-		'| <small style="max-width: 12em;">'
+		'| style="max-width: 12em;" | <small>'
 		//
 		+ (use_language === 'zh' ? '當列表出現異常時，<br />請先檢查[['
-		//
-		+ configuration.configuration_page_title + '|設定頁面]]是否有誤。'
+		// 設定頁面
+		+ configuration.configuration_page_title + '|設定]]是否有誤'
 		//
 		: 'When exceptions occur,<br />please check [['
 		//
 		+ configuration.configuration_page_title
-		//
-		+ '|the setting page]] first.') + '</small>');
+		// the setting page
+		+ '|the setting]] first.') + '</small>');
 	}
 
 	// {{clearright}}, {{-}}
@@ -1196,7 +1225,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		//
 		+ (date_too_long ? '<small>' + date + '</small>' : date);
 
-		// 討論議題列表依狀態表現不同的顏色。
+		// 討論議題列表依狀態表現不同的背景顏色。
 		var additional_attributes = '', timevalue_diff = (new Date - section.dates[user_and_date_index]);
 		for ( var time_interval in short_to_long) {
 			if (timevalue_diff < CeL.to_millisecond(time_interval)) {
