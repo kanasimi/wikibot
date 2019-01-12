@@ -124,6 +124,12 @@ general_topic_page = '/topic list', general_page_configuration = {
 
 Object.assign(general_page_configuration, localized_page_configuration);
 
+function is_bot_user(user_name, section, using_special_users) {
+	// TODO: using section for [[w:ja:Wikipedia:Bot/使用申請]]
+	return (user_name in (using_special_users || special_users).bot)
+			|| CeL.wiki.PATTERN_BOT_NAME.test(user_name);
+}
+
 // default configurations for BRFA 機器人申請
 var default_BRFA_configurations = {
 	topic_page : general_topic_page,
@@ -154,10 +160,10 @@ var default_BRFA_configurations = {
 		// [[Wikipedia:机器人/申请/preload2]]
 		// get bot name from link in section title.
 		var bot_name = CeL.wiki.parse.user(section.section_title.toString());
-		if (CeL.wiki.PATTERN_BOT_NAME.test(bot_name)
-				|| (bot_name in special_users.bot)) {
+		if (is_bot_user(bot_name, section)) {
 			section.bot_name = bot_name;
 		}
+		// console.log(section);
 
 		// 申請人。
 		var applicants = section.applicants = [], to_exit = this.each.exit;
@@ -170,8 +176,7 @@ var default_BRFA_configurations = {
 				var user_name = CeL.wiki.parse.user(token.toString());
 				// console.log(user_name);
 				if (user_name) {
-					if (CeL.wiki.PATTERN_BOT_NAME.test(user_name)
-							|| (user_name in special_users.bot)) {
+					if (is_bot_user(user_name, section)) {
 						if (!section.bot_name) {
 							// 可能只是文章中的討論，因此不做設定。
 							// section.bot_name = user_name;
@@ -256,7 +261,7 @@ var page_configurations = {
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
 		timezone : 9,
 		// 僅會顯示包含"bot"的標題
-		// @see CeL.wiki.PATTERN_BOT_NAME
+		// @see is_bot_user(user_name, section)
 		headers : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
 				+ ' !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
@@ -620,6 +625,7 @@ function start_main_work(page_data) {
 
 	// for debug
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 
 	if (main_talk_pages.length > 0) {
 		CeL.info(main_talk_pages.length + ' page(s) to listen for '
@@ -753,8 +759,7 @@ function get_special_users(callback, options) {
 
 		var user_hash = CeL.wiki.parse.user.all(content);
 		for ( var user_name in user_hash) {
-			if (user_name && !(user_name in special_users.bot)
-					&& !CeL.wiki.PATTERN_BOT_NAME.test(user_name)) {
+			if (user_name && !is_bot_user(user_name, null, special_users)) {
 				special_users.BAG[user_name] = true;
 			}
 		}
@@ -765,8 +770,7 @@ function get_special_users(callback, options) {
 
 		while (matched = PATTERN_template_user.exec(content)) {
 			var user_name = CeL.wiki.normalize_title(matched[1]);
-			if (user_name && !(user_name in special_users.bot)
-					&& !CeL.wiki.PATTERN_BOT_NAME.test(user_name)) {
+			if (user_name && !is_bot_user(user_name, null, special_users)) {
 				special_users.BAG[user_name] = true;
 			}
 		}
@@ -793,8 +797,7 @@ function get_special_users(callback, options) {
 					return;
 				}
 				var user_name = user_data.title.replace(/^[^:]+:/, '');
-				if (user_name && !(user_name in special_users.bot)
-						&& !CeL.wiki.PATTERN_BOT_NAME.test(user_name)) {
+				if (user_name && !is_bot_user(user_name, null, special_users)) {
 					special_users.botop[user_name] = user_data;
 				}
 			});
@@ -866,12 +869,16 @@ function general_row_style(section, section_index) {
 		section.CSS = {
 			color : '#111'
 		};
+		return;
+
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		return 'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
 		&& 'style="text-decoration: line-through;"'
 		// 將完成話題全灰. "!important": useless
-		&& 'style="color: #888;"' && 'style="opacity: .8;"';
+		&& 'style="color: #888;"'
+		// 一般來說，色塊填滿應該不會超出框線，而且也不會影響框線本身的顏色
+		&& 'style="opacity: .8;"' && '';
 	}
 
 	return status || '';
@@ -1168,14 +1175,14 @@ function set_list_legend() {
 
 	if (use_language === 'zh') {
 		// @see general_row_style()
-		list_legend_used.push('|-', '! 特殊狀態', '|-', '| 討論議題' + '<br />→'
+		list_legend_used.push('! 特殊狀態', '|-', '| 討論議題' + '<br />→'
 		// 已移動至目標頁面
-		+ '<small>已移至頁面/最新討論子項</small>');
+		+ '<small>已移至頁面/最新討論子項</small>', '|-');
 	}
 
 	if (configuration.configuration_page_title) {
 		// @see general_row_style()
-		list_legend_used.push('|-', '! '
+		list_legend_used.push('! '
 		//
 		+ (use_language === 'zh' ? '手動設定' : 'Manual settings'), '|-',
 		//
@@ -1189,7 +1196,7 @@ function set_list_legend() {
 		//
 		+ configuration.configuration_page_title
 		// the setting page
-		+ '|the setting]] first.') + '</small>');
+		+ '|the setting]] first.') + '</small>', '|-');
 	}
 
 	// {{clearright}}, {{-}}
