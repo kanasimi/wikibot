@@ -316,8 +316,9 @@ function parse_each_FC_page(page_data) {
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
 			if (matched) {
-				FC_data[KEY_TRANSCLUDING_PAGE] = matched[1].replace(
-						/\/(?:s|摘要)\|/, '\/');
+				FC_data[KEY_TRANSCLUDING_PAGE] = CeL.wiki
+						.normalize_title(matched[1].replace(/\/(?:s|摘要)\|/,
+								'\/'));
 			} else if (FC_data[KEY_TITLES_TO_MOVE]) {
 				FC_data[KEY_TITLES_TO_MOVE].push(title);
 			} else {
@@ -431,7 +432,7 @@ function check_redirects(page_list) {
 		redirects_to_hash[page_data.title] = FC_title;
 	});
 
-	if (!not_found) {
+	if (!not_found && FC_data[KEY_TRANSCLUDING_PAGE]) {
 		return;
 	}
 
