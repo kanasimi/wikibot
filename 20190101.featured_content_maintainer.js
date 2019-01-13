@@ -700,16 +700,27 @@ function check_date_page() {
 		}
 	}).sort();
 
-	if (using_GA) {
-		wiki.page('Wikipedia:' + (using_GA ? NS_PREFIX : NS_PREFIX) + '/列表')
+	function write_FC_list(FC_list, prefix) {
+		wiki.page('Wikipedia:' + (prefix || NS_PREFIX) + '/列表')
 		// 自動更新 Wikipedia:典範條目/列表、Wikipedia:特色列表/列表、Wikipedia:優良條目/列表
-		.edit(FC_title_sorted.map(function(FC_title) {
+		.edit(FC_list.map(function(FC_title) {
 			return CeL.wiki.title_link_of(FC_title);
 		}).join('－'), {
 			bot : 1,
 			nocreate : 1,
-			summary : 'bot: 更新' + TYPE_NAME + '列表'
+			summary : 'bot: 更新' + (prefix || NS_PREFIX) + '列表'
 		});
+	}
+
+	if (using_GA) {
+		write_FC_list(FC_title_sorted);
+	} else {
+		write_FC_list(FC_title_sorted.filter(function(FC_title) {
+			return !FC_data_hash[FC_title][KEY_IS_LIST];
+		}), '典範條目');
+		write_FC_list(FC_title_sorted.filter(function(FC_title) {
+			return FC_data_hash[FC_title][KEY_IS_LIST];
+		}), '特色列表');
 	}
 
 	FC_title_sorted = FC_title_sorted.sort(function(FC_title_1, FC_title_2) {
