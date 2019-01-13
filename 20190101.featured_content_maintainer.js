@@ -6,6 +6,7 @@
  2019/1/5 12:32:58	轉換成經過繁簡轉換過的最終標題。
  2019/1/9 21:22:42	重構程式碼: using FC_data_hash
  2019/1/10 13:9:32	add 首頁優良條目展示
+ 2019/1/13 9:33:15	修正頁面
 
  // 輪流展示列表
 
@@ -389,9 +390,12 @@ function parse_each_FC_page(page_data) {
 			|| !check_FC_title(redirects_to_hash[FC_title])) {
 		// 已經做過登記了。
 		// 但是沒有設定 FC_data[KEY_TRANSCLUDING_PAGE]
-		FC_title = redirects_to_hash[FC_title] || FC_title;
-		if (!redirects_list_to_check.includes(FC_title))
+
+		// 假如之前沒有搜尋過，那麼就搜尋一次。
+		if (!redirects_to_hash[FC_title]
+				&& !redirects_list_to_check.includes(FC_title)) {
 			redirects_list_to_check.push(FC_title);
+		}
 		return;
 	}
 
@@ -543,13 +547,10 @@ function check_redirects(page_list) {
 	// --------------------------------
 	// 處理日期頁面的內容直接就是簡介的情況: 將日期頁面搬移到簡介應該在的子頁面
 
-	CeL.info('move page: ' + CeL.wiki.title_link_of(from_title) + ' → '
-			+ CeL.wiki.title_link_of(move_to_title));
-
 	var description, write_content = '{{' + move_to_title + '}}';
 	// 先檢查目標頁面存不存在。
 	wiki.page(move_to_title, function(page_data) {
-		console.log(page_data);
+		// console.log(page_data);
 		if (!('missing' in page_data)) {
 			description = CeL.wiki.content_of(page_data).trim();
 			if (description)
@@ -558,6 +559,9 @@ function check_redirects(page_list) {
 		}
 
 		// 目標頁面不存在就移動。
+		CeL.info('move page: ' + CeL.wiki.title_link_of(from_title) + ' → '
+				+ CeL.wiki.title_link_of(move_to_title));
+
 		wiki.move_to(move_to_title, from_title, {
 			reason : 'bot: 修正頁面: 首頁' + TYPE_NAME
 			//

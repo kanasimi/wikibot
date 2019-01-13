@@ -1,4 +1,6 @@
-﻿# CeJS MediaWiki bots demo
+﻿![GitHub commit activity the past week, 4 weeks, year](https://img.shields.io/github/commit-activity/y/kanasimi/wikibot.svg)
+
+# CeJS MediaWiki bots demo
 Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
 採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js)來製作 MediaWiki (維基百科/維基數據) 機器人的範例。
 
