@@ -68,7 +68,7 @@ DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 KEY_IS_LIST = 0, KEY_ISFFC = 1,
 // to {String}transcluding page title.
 // e.g., FC_data[KEY_TRANSCLUDING_PAGE]="Wikipedia:典範條目/條目"
-KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4, KEY_TITLES_TO_MOVE = 5,
+KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4, KEY_CATEGORY = 5, KEY_TITLES_TO_MOVE = 6,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = CeL.null_Object(),
@@ -215,11 +215,15 @@ function parse_each_FC_item_list_page(page_data) {
 		}
 	}
 
-	var PATTERN_Featured_content
+	// matched: [ all, link title, catalog ]
+	var PATTERN_Featured_content = test_pattern(
 	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
-	= test_pattern(/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''/g)
-			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g)
-			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g;
+	// 典範條目, 已撤銷的典範條目, 已撤销的特色列表
+	/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''|\n==(.+?)==/g)
+	// 特色列表
+	|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n==(.+?)==/g)
+	// 優良條目, 已撤消的優良條目
+	|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
@@ -232,6 +236,11 @@ function parse_each_FC_item_list_page(page_data) {
 				PATTERN_Featured_content ]);
 	}
 	while (matched = PATTERN_Featured_content.exec(content)) {
+		if (matched[2]) {
+			catalog = matched[2].replace(/<!--.*?-->/g, '').trim();
+			continue;
+		}
+
 		// 還沒繁簡轉換過的標題。
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
 		// 轉換成經過繁簡轉換過的最終標題。
@@ -256,6 +265,8 @@ function parse_each_FC_item_list_page(page_data) {
 		FC_data[KEY_IS_LIST] = is_list;
 		FC_data[KEY_ISFFC] = is_FFC;
 		FC_data[KEY_JDN] = [];
+		if (catalog)
+			FC_data[KEY_CATEGORY] = catalog;
 	}
 }
 
@@ -667,6 +678,7 @@ function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
+	// TODO: 從未展示的條目，應該按照當選日期排列。社群和讀者也曾抱怨連續數日同一個範疇上首頁的事情。
 	FC_title_sorted = Object.keys(FC_data_hash).filter(function(FC_title) {
 		if (is_FC(FC_title)) {
 			var FC_data = FC_data_hash[FC_title];
@@ -693,8 +705,8 @@ function check_date_page() {
 	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 '
 	//
 	+ (need_list_field ? '!! <small title="為列表">列表</small> ' : '')
-	//
-	+ '!! 上次展示時間 !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
+	// 範疇
+	+ '!! 類別 !! 上次展示時間 !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
 	//
 	+ FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
@@ -711,7 +723,9 @@ function check_date_page() {
 			+ '" | ' + (FC_data[KEY_IS_LIST] ? '✓' : ' '));
 		}
 
-		fields.push('data-sort-value="' + JDN + '" | '
+		fields.push(FC_data[KEY_CATEGORY] || '',
+		//
+		'data-sort-value="' + JDN + '" | '
 		//
 		+ (JDN ? '[[' + get_FC_date_title_to_transclude(JDN) + '|'
 		//
