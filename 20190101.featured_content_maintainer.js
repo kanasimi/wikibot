@@ -727,8 +727,8 @@ function check_date_page() {
 	}).join('\n') + '\n|}';
 
 	if (error_logs.length > 0) {
-		report += '\n== 過去問題頁面 ==\n本次檢查發現有比較特殊格式的頁面(包括非嵌入頁面)：\n# '
-		//
+		report += '\n== 問題頁面 ==\n本次檢查發現無法解析或有問題的頁面：\n# '
+		// 過去問題頁面
 		+ error_logs.join('\n# ');
 	}
 	wiki.page('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
