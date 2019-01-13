@@ -191,10 +191,11 @@ function parse_each_FC_item_list_page(page_data) {
 	// e.g., 'Wikipedia:FL'
 	|| /:[DF]?[FG]L/.test(page_data.original_title || title),
 	// 注意: 這包含了被撤銷後再次被評為典範的條目
-	is_FFC = [ page_data.original_title, page_data.title, title ].join('|');
+	is_FFC = [ page_data.original_title, title ].join('|');
 
-	is_FFC = /:[DF][FG][AL]|已撤销的/.test(is_FFC) || using_GA
-			&& /:FF?A/.test(is_FFC);
+	is_FFC = /:[DF][FG][AL]|已撤销的/.test(is_FFC)
+	// 對於進階的條目，採用不同的 is_FFC 表示法。
+	|| using_GA && /:FF?A/.test(is_FFC) && 'UP';
 
 	if (is_FFC) {
 		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
@@ -218,7 +219,9 @@ function parse_each_FC_item_list_page(page_data) {
 	= test_pattern(/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''/g)
 			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g)
 			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g;
-	CeL.log(CeL.wiki.title_link_of(original_FC_title) + ': using pattern '
+	CeL.log(CeL.wiki.title_link_of(title) + ': '
+			+ (is_FFC ? 'is former' : 'NOT former') + ', '
+			+ (is_list ? 'is list' : 'is article') + ', using pattern '
 			+ PATTERN_Featured_content);
 
 	if (false) {
@@ -238,7 +241,7 @@ function parse_each_FC_item_list_page(page_data) {
 			if (FC_data_hash[FC_title][KEY_ISFFC] === is_FFC) {
 				CeL.warn('Duplicate ' + TYPE_NAME + ' title: ' + FC_title
 						+ '; ' + FC_data_hash[FC_title] + '; ' + matched[0]);
-			} else {
+			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC) {
 				CeL.error(CeL.wiki.title_link_of(FC_title)
 						+ '被同時列在了現存及被撤銷的特色內容清單中!');
 			}
@@ -260,8 +263,6 @@ function check_FC_redirects(page_list) {
 	}
 	// 經過繁簡轉換過的最終標題。
 	var FC_title = CeL.wiki.title_of(page_list[0]);
-	var isFFC = FC_data_hash[original_FC_title]
-			&& FC_data_hash[original_FC_title][KEY_ISFFC];
 
 	if (original_FC_title !== FC_title) {
 		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
@@ -521,8 +522,8 @@ function check_redirects(page_list) {
 	}
 
 	if (!move_to_title) {
-		if (typeof FC_data[KEY_ISFFC] !== 'boolean') {
-			console.log([ FC_title, FC_data ]);
+		if (!(KEY_ISFFC in FC_data)) {
+			// console.log([ FC_title, FC_data ]);
 			CeL.warn('過去曾經在 '
 					+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
 							'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
