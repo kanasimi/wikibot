@@ -245,8 +245,10 @@ function parse_each_FC_item_list_page(page_data) {
 			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC
 			//
 			&& (FC_data_hash[FC_title][KEY_ISFFC] !== 'UP' || is_FFC !== false)) {
-				CeL.error(CeL.wiki.title_link_of(FC_title)
-						+ ' 被同時列在了現存及被撤銷的特色內容清單中: ' + is_FFC + '; '
+				error_logs.push(CeL.wiki.title_link_of(FC_title)
+						+ ' 被同時列在了現存及被撤銷的' + TYPE_NAME + '清單中');
+				CeL.error(CeL.wiki.title_link_of(FC_title) + ' 被同時列在了現存及被撤銷的'
+						+ TYPE_NAME + '清單中: ' + is_FFC + '; '
 						+ FC_data_hash[FC_title]);
 			}
 		}
@@ -727,7 +729,9 @@ function check_date_page() {
 	}).join('\n') + '\n|}';
 
 	if (error_logs.length > 0) {
-		report += '\n== 問題頁面 ==\n本次檢查發現無法解析或有問題的頁面：\n# '
+		report += '\n== 問題頁面 ==\n本次檢查發現無法解析或有問題的頁面：（"Wikipedia:' + NS_PREFIX
+		//
+		+ '/"之後的頁面名稱應準確符合所介紹的頁面名稱）\n# '
 		// 過去問題頁面
 		+ error_logs.join('\n# ');
 	}
