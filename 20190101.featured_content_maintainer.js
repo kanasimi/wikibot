@@ -222,11 +222,11 @@ function parse_each_FC_item_list_page(page_data) {
 	PATTERN_Featured_content = test_pattern(
 	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 	// 典範條目, 已撤銷的典範條目, 已撤销的特色列表
-	/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''|\n==(.+?)==\n/g)
-	// 特色列表
-	|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n==(.+?)==\n/g)
-	// 優良條目, 已撤消的優良條目
-	|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n===(.+?)===\n/g;
+	/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''|\n==([^=].*?)==\n/g)
+			// 特色列表
+			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n==([^=].*?)==\n/g)
+			// 優良條目, 已撤消的優良條目
+			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
@@ -682,6 +682,7 @@ function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
+	avoid_catalogs = [];
 	FC_title_sorted = Object.keys(FC_data_hash).filter(function(FC_title) {
 		if (is_FC(FC_title)) {
 			var FC_data = FC_data_hash[FC_title],
@@ -711,7 +712,6 @@ function check_date_page() {
 		});
 	}
 
-	avoid_catalogs = [];
 	FC_title_sorted = FC_title_sorted.sort(function(FC_title_1, FC_title_2) {
 		return FC_data_hash[FC_title_1][KEY_LATEST_JDN]
 		// TODO: 檢查簡介/摘要頁面是否存在。
