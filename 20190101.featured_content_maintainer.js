@@ -421,6 +421,7 @@ function check_redirects(page_list) {
 			}
 			delete FC_data_hash[original_FC_title];
 		} else {
+			console.log(page_list);
 			throw '未發現' + CeL.wiki.title_link_of(original_FC_title)
 					+ '的資料! 照理來說這不應該發生!';
 		}
@@ -495,7 +496,8 @@ function check_redirects(page_list) {
 	}
 
 	if (!move_to_title) {
-		if (typeof FC_data[KEY_ISFFC] !== 'boolean')
+		if (typeof FC_data[KEY_ISFFC] !== 'boolean') {
+			console.log([ FC_title, FC_data ]);
 			CeL.warn('過去曾經在 '
 					+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
 							'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
@@ -505,6 +507,7 @@ function check_redirects(page_list) {
 					+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
 					+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
 					+ '，請加入相應的已撤銷列表頁面。' + '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
+		}
 		return;
 	}
 
