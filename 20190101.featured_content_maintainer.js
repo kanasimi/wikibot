@@ -53,7 +53,8 @@ JDN_start = using_GA ? CeL.Julian_day.from_YMD(2006, 9, 3, true)
 FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
 // 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
-Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA' : 'WP:FFA|WP:FFL').split('|'),
+Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA|WP:FFA' : 'WP:FFA|WP:FFL')
+		.split('|'),
 // [[Wikipedia:互助客栈/其他]], [[Wikipedia:互助客栈/条目探讨]]
 DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 	section : 'new',
@@ -193,18 +194,32 @@ function parse_each_FC_item_list_page(page_data) {
 	is_FFC = [ page_data.original_title, page_data.title, title ].join('|');
 
 	is_FFC = /:[DF][FG][AL]|已撤销的/.test(is_FFC) || using_GA
-			&& /:FA/.test(is_FFC);
+			&& /:FF?A/.test(is_FFC);
 
 	if (is_FFC) {
 		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
 		content = content.replace(/\n== *(?:被撤銷後|被撤销后)[\s\S]+$/, '');
 	}
 
-	var PATTERN_Featured_content = using_GA
-			&& !/:FA/.test(page_data.original_title) ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
-			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
-			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
-			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
+	// 自動偵測要使用的模式。
+	function test_pattern(pattern) {
+		var count = 0;
+		while (pattern.exec(content)) {
+			if (count++ > 20) {
+				// reset pattern
+				pattern.lastIndex = 0;
+				return pattern;
+			}
+		}
+	}
+
+	var PATTERN_Featured_content
+	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
+	= test_pattern(/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''/g)
+			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g)
+			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g;
+	CeL.log(CeL.wiki.title_link_of(original_FC_title) + ': using pattern '
+			+ PATTERN_Featured_content);
 
 	if (false) {
 		CeL.log(content);
@@ -370,6 +385,7 @@ function parse_each_FC_page(page_data) {
 			|| !check_FC_title(redirects_to_hash[FC_title])) {
 		// 已經做過登記了。
 		// 但是沒有設定 FC_data[KEY_TRANSCLUDING_PAGE]
+		FC_title = redirects_to_hash[FC_title] || FC_title;
 		if (!redirects_list_to_check.includes(FC_title))
 			redirects_list_to_check.push(FC_title);
 		return;
