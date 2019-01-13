@@ -144,7 +144,12 @@ CeL.wiki.cache([ {
 }, {
 	type : 'redirects',
 	// TODO: 一次取得大量頁面。
-	list : redirects_list_to_check,
+	list : function() {
+		CeL.debug('redirects_list_to_check = '
+		//
+		+ JSON.stringify(redirects_list_to_check));
+		return redirects_list_to_check;
+	},
 	reget : true,
 	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
 	each : check_redirects
@@ -200,13 +205,17 @@ function parse_each_FC_item_list_page(page_data) {
 		content = content.replace(/\n== *(?:被撤銷後|被撤销后)[\s\S]+$/, '');
 	}
 
-	var PATTERN_Featured_content = using_GA && !is_FFC ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
+	var PATTERN_Featured_content = using_GA
+			&& !/:FA/.test(page_data.original_title) ? /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g
 			: is_list && !is_FFC ? /\[\[:([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]/g
 			// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 			: /'''\[\[([^\[\]\|]+)(?:\|([^\[\]]*))?\]\]'''/g;
 
-	// CeL.log(content);
-	// console.log([ page_data.original_title || title, is_FFC, is_list ]);
+	if (false) {
+		CeL.log(content);
+		console.log([ page_data.original_title || title, is_FFC, is_list,
+				PATTERN_Featured_content ]);
+	}
 	while (matched = PATTERN_Featured_content.exec(content)) {
 		// 還沒繁簡轉換過的標題。
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
@@ -285,6 +294,9 @@ function get_FC_date_title_to_transclude(JDN) {
 }
 
 function generate_FC_page_list() {
+	CeL.log('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
+	CeL.log('FC_data_hash = ' + JSON.stringify(FC_data_hash));
+
 	var title_list = [];
 
 	for (var JDN = JDN_start; JDN <= JDN_search_to; JDN++) {
