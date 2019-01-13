@@ -207,9 +207,9 @@ function parse_each_FC_item_list_page(page_data) {
 
 	// 自動偵測要使用的模式。
 	function test_pattern(pattern) {
-		var count = 0;
-		while (pattern.exec(content)) {
-			if (count++ > 20) {
+		var count = 0, matched;
+		while (matched = pattern.exec(content)) {
+			if (matched[1] && count++ > 20) {
 				// reset pattern
 				pattern.lastIndex = 0;
 				return pattern;
