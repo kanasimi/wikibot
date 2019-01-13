@@ -82,6 +82,8 @@ redirects_to_hash = CeL.get_JSON(redirects_to_file) || CeL.null_Object(),
 JDN_hash = CeL.null_Object(),
 // @see get_FC_title_to_transclude(FC_title)
 FC_page_prefix = CeL.null_Object(),
+// 避免採用類別
+avoid_catalogs,
 /**
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
  * should allow "AdS/CFT對偶" as FC title<br />
@@ -215,15 +217,16 @@ function parse_each_FC_item_list_page(page_data) {
 		}
 	}
 
-	// matched: [ all, link title, catalog ]
-	var PATTERN_Featured_content = test_pattern(
+	var catalog,
+	// matched: [ all, link title, display, catalog ]
+	PATTERN_Featured_content = test_pattern(
 	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 	// 典範條目, 已撤銷的典範條目, 已撤销的特色列表
 	/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''|\n==(.+?)==/g)
 	// 特色列表
 	|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n==(.+?)==/g)
 	// 優良條目, 已撤消的優良條目
-	|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g;
+	|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n===(.+?)===/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
@@ -236,8 +239,9 @@ function parse_each_FC_item_list_page(page_data) {
 				PATTERN_Featured_content ]);
 	}
 	while (matched = PATTERN_Featured_content.exec(content)) {
-		if (matched[2]) {
-			catalog = matched[2].replace(/<!--.*?-->/g, '').trim();
+		if (matched[3]) {
+			catalog = matched[3].replace(/<!--.*?-->/g, '').trim().replace(
+					/\s*（\d+）$/, '');
 			continue;
 		}
 
@@ -678,15 +682,20 @@ function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
-	// TODO: 從未展示的條目，應該按照當選日期排列。社群和讀者也曾抱怨連續數日同一個範疇上首頁的事情。
+	avoid_catalogs = [];
 	FC_title_sorted = Object.keys(FC_data_hash).filter(function(FC_title) {
 		if (is_FC(FC_title)) {
-			var FC_data = FC_data_hash[FC_title];
-			FC_data[KEY_LATEST_JDN] = FC_data[KEY_JDN].length > 0
+			var FC_data = FC_data_hash[FC_title],
+			//
+			JDN = FC_data[KEY_LATEST_JDN] = FC_data[KEY_JDN].length > 0
 			//
 			? FC_data[KEY_JDN][FC_data[KEY_JDN].length - 1]
 			// : Infinity: 沒上過首頁的頁面因為不存在簡介/摘要頁面，所以必須要排在最後，不能夠列入顯示。
 			: 0;
+			// 記錄之前幾天曾經使用過的類別。
+			if (JDN_to_generate - JDN <= 2) {
+				avoid_catalogs.push(FC_data[KEY_CATEGORY]);
+			}
 			return true;
 		}
 	}).sort(function(FC_title_1, FC_title_2) {
@@ -694,6 +703,8 @@ function check_date_page() {
 		// TODO: 檢查簡介/摘要頁面是否存在。
 		- FC_data_hash[FC_title_2][KEY_LATEST_JDN];
 	});
+	avoid_catalogs = avoid_catalogs.unique();
+	CeL.log('避免採用類別: ' + avoid_catalogs);
 
 	var index = 0, need_list_field = !using_GA,
 	// @see
@@ -844,16 +855,28 @@ function check_date_page() {
 
 // 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 function write_date_page(date_page_title, transcluding_title_now) {
-	var FC_title = FC_title_sorted[0];
-	if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
-		for (var index = 1; !is_FC(FC_title)
+	var FC_title, candidates = [];
+	for (var index = 0; index < FC_title_sorted.length; index++) {
+		FC_title = FC_title_sorted[index];
+		if (!is_FC(FC_title))
+			continue;
+		var FC_data = FC_data_hash[FC_title];
+		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production'
 		// 每天凌晨零時之前，若是頁面還不存在，就會找一個之前曾經上過首頁的最古老 FC_title 頁面來展示。
 		// assert: 上過首頁的都必定有介紹頁面。
-		&& index < FC_title_sorted.length; index++) {
-			FC_title = FC_title_sorted[index];
+		&& !FC_data[KEY_LATEST_JDN]) {
+			FC_title = null;
+			continue;
 		}
+		// 從未展示的條目，應該按照當選日期排列。社群和讀者也曾抱怨連續數日同一個範疇上首頁的事情。
+		if (avoid_catalogs.includes(FC_data[KEY_CATEGORY])) {
+			candidates.push(FC_title);
+			FC_title = null;
+			continue;
+		}
+		break;
 	}
-	if (!is_FC(FC_title)) {
+	if (!is_FC(FC_title) && !is_FC(FC_title = candidates.shift())) {
 		// TODO: 檢查簡介/摘要頁面是否存在。
 		throw '沒有可供選擇的' + TYPE_NAME + '頁面! 照理來說這不應該發生!';
 	}
