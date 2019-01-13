@@ -193,9 +193,9 @@ function parse_each_FC_item_list_page(page_data) {
 	// 注意: 這包含了被撤銷後再次被評為典範的條目
 	is_FFC = [ page_data.original_title, title ].join('|');
 
-	is_FFC = /:[DF][FG][AL]|已撤销的/.test(is_FFC)
 	// 對於進階的條目，採用不同的 is_FFC 表示法。
-	|| using_GA && /:FF?A/.test(is_FFC) && 'UP';
+	is_FFC = using_GA && /:FF?A/.test(is_FFC) && 'UP'
+			|| /:[DF][FG][AL]|已撤销的/.test(is_FFC);
 
 	if (is_FFC) {
 		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
@@ -219,8 +219,9 @@ function parse_each_FC_item_list_page(page_data) {
 	= test_pattern(/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''/g)
 			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g)
 			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]/g;
-	CeL.log(CeL.wiki.title_link_of(title) + ': '
-			+ (is_FFC ? 'is former' : 'NOT former') + ', '
+	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
+	//
+	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
 			+ (is_list ? 'is list' : 'is article') + ', using pattern '
 			+ PATTERN_Featured_content);
 
@@ -232,18 +233,20 @@ function parse_each_FC_item_list_page(page_data) {
 	while (matched = PATTERN_Featured_content.exec(content)) {
 		// 還沒繁簡轉換過的標題。
 		var FC_title = CeL.wiki.normalize_title(matched[1]);
-		if (redirects_to_hash[FC_title]) {
-			// 轉換成經過繁簡轉換過的最終標題。
-			FC_title = redirects_to_hash[FC_title];
-		}
+		// 轉換成經過繁簡轉換過的最終標題。
+		FC_title = redirects_to_hash[FC_title] || FC_title;
 
 		if (FC_title in FC_data_hash) {
+			// 基本檢測與提醒。
 			if (FC_data_hash[FC_title][KEY_ISFFC] === is_FFC) {
 				CeL.warn('Duplicate ' + TYPE_NAME + ' title: ' + FC_title
 						+ '; ' + FC_data_hash[FC_title] + '; ' + matched[0]);
-			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC) {
+			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC
+			//
+			&& (FC_data_hash[FC_title][KEY_ISFFC] !== 'UP' || is_FFC !== false)) {
 				CeL.error(CeL.wiki.title_link_of(FC_title)
-						+ '被同時列在了現存及被撤銷的特色內容清單中!');
+						+ ' 被同時列在了現存及被撤銷的特色內容清單中: ' + is_FFC + '; '
+						+ FC_data_hash[FC_title]);
 			}
 		}
 		var FC_data = FC_data_hash[FC_title] = [];
