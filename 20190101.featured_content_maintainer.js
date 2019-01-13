@@ -400,7 +400,9 @@ function parse_each_FC_page(page_data) {
 	}
 
 	if (FC_title) {
-		redirects_list_to_check.push(FC_title);
+		if (!redirects_to_hash[FC_title]) {
+			redirects_list_to_check.push(FC_title);
+		}
 		(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
 		// 無法設定 FC_data[KEY_TRANSCLUDING_PAGE]
 		// 補登記資訊。
