@@ -144,12 +144,7 @@ CeL.wiki.cache([ {
 }, {
 	type : 'redirects',
 	// TODO: 一次取得大量頁面。
-	list : function() {
-		CeL.debug('redirects_list_to_check = '
-		//
-		+ JSON.stringify(redirects_list_to_check));
-		return redirects_list_to_check;
-	},
+	list : redirects_list_to_check,
 	reget : true,
 	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
 	each : check_redirects
@@ -294,9 +289,6 @@ function get_FC_date_title_to_transclude(JDN) {
 }
 
 function generate_FC_page_list() {
-	CeL.log('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
-	CeL.log('FC_data_hash = ' + JSON.stringify(FC_data_hash));
-
 	var title_list = [];
 
 	for (var JDN = JDN_start; JDN <= JDN_search_to; JDN++) {
@@ -378,7 +370,8 @@ function parse_each_FC_page(page_data) {
 			|| !check_FC_title(redirects_to_hash[FC_title])) {
 		// 已經做過登記了。
 		// 但是沒有設定 FC_data[KEY_TRANSCLUDING_PAGE]
-		redirects_list_to_check.push(FC_title);
+		if (!redirects_list_to_check.includes(FC_title))
+			redirects_list_to_check.push(FC_title);
 		return;
 	}
 
@@ -433,6 +426,10 @@ function check_redirects(page_list) {
 			}
 			delete FC_data_hash[original_FC_title];
 		} else {
+			CeL.log('redirects_list_to_check = '
+					+ JSON.stringify(redirects_list_to_check));
+			CeL.log('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
+			CeL.log('FC_data_hash = ' + JSON.stringify(FC_data_hash));
 			console.log(page_list);
 			throw '未發現' + CeL.wiki.title_link_of(original_FC_title)
 					+ '的資料! 照理來說這不應該發生!';
