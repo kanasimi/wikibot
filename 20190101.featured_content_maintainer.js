@@ -83,7 +83,7 @@ JDN_hash = CeL.null_Object(),
 // @see get_FC_title_to_transclude(FC_title)
 FC_page_prefix = CeL.null_Object(),
 // 避免採用類別
-avoid_catalogs,
+avoid_catalogs, hit_count,
 /**
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
  * should allow "AdS/CFT對偶" as FC title<br />
@@ -550,12 +550,13 @@ function check_redirects(page_list) {
 	if (!move_to_title) {
 		if (!(KEY_ISFFC in FC_data)) {
 			// console.log([ FC_title, FC_data ]);
-			error_logs
-					.push(CeL.wiki
-							.title_link_of(get_FC_date_title_to_transclude(FC_data[KEY_JDN][0]))
-							+ '介紹的'
-							+ CeL.wiki.title_link_of(original_FC_title)
-							+ '似乎未登記在現存或已被撤銷的' + TYPE_NAME + '列表頁面中？');
+			FC_data[KEY_JDN].forEach(function(JDN) {
+				error_logs.push(CeL.wiki
+						.title_link_of(get_FC_date_title_to_transclude(JDN))
+						+ '介紹的'
+						+ CeL.wiki.title_link_of(original_FC_title)
+						+ '似乎未登記在現存或已被撤銷的' + TYPE_NAME + '列表頁面中？');
+			});
 			if (false) {
 				CeL.warn('過去曾經在 '
 						+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
@@ -682,9 +683,15 @@ function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
 
+	// 上過首頁次數
+	hit_count = 0;
+	// 條目數量
+	// entry_count = 0;
 	avoid_catalogs = [];
 	FC_title_sorted = Object.keys(FC_data_hash).filter(function(FC_title) {
 		if (is_FC(FC_title)) {
+			if (FC_data[KEY_JDN].length > 0)
+				hit_count += FC_data[KEY_JDN].length;
 			var FC_data = FC_data_hash[FC_title],
 			//
 			JDN = FC_data[KEY_LATEST_JDN] = FC_data[KEY_JDN].length > 0
@@ -735,8 +742,8 @@ function check_date_page() {
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
-	//
-	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。 --~~~~\n'
+	// " --~~~~"
+	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。\n'
 	//
 	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 '
 	//
@@ -880,7 +887,9 @@ function check_date_page() {
 
 // 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 function write_date_page(date_page_title, transcluding_title_now) {
-	var FC_title, candidates = [];
+	var FC_title, candidates = [],
+	// 跳過上過首頁太多次的條目。盡量使各條目展示的次數相近。
+	hit_upper_Bound = hit_count / FC_title_sorted.length + 2 | 0;
 	for (var index = 0; index < FC_title_sorted.length; index++) {
 		FC_title = FC_title_sorted[index];
 		if (!is_FC(FC_title))
@@ -895,7 +904,8 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		}
 		// 從未展示的條目，應該按照當選日期排列。社群和讀者也曾抱怨連續數日同一個範疇上首頁的事情。
 		// 增加了避免採用與前幾日相同類別的功能。
-		if (avoid_catalogs.includes(FC_data[KEY_CATEGORY])) {
+		if (avoid_catalogs.includes(FC_data[KEY_CATEGORY])
+				|| FC_data[KEY_JDN].length > hit_upper_Bound) {
 			candidates.push(FC_title);
 			FC_title = null;
 			continue;
