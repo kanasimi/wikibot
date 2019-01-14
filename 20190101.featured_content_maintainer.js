@@ -552,8 +552,8 @@ function check_redirects(page_list) {
 			// console.log([ FC_title, FC_data ]);
 			FC_data[KEY_JDN].forEach(function(JDN) {
 				error_logs.push(CeL.wiki
-						.title_link_of(get_FC_date_title_to_transclude(JDN))
-						+ '介紹的'
+				//
+				.title_link_of(get_FC_date_title_to_transclude(JDN)) + '介紹的'
 						+ CeL.wiki.title_link_of(original_FC_title)
 						+ '似乎未登記在現存或已被撤銷的' + TYPE_NAME + '列表頁面中？');
 			});
@@ -690,8 +690,6 @@ function check_date_page() {
 	avoid_catalogs = [];
 	FC_title_sorted = Object.keys(FC_data_hash).filter(function(FC_title) {
 		if (is_FC(FC_title)) {
-			if (FC_data[KEY_JDN].length > 0)
-				hit_count += FC_data[KEY_JDN].length;
 			var FC_data = FC_data_hash[FC_title],
 			//
 			JDN = FC_data[KEY_LATEST_JDN] = FC_data[KEY_JDN].length > 0
@@ -699,6 +697,8 @@ function check_date_page() {
 			? FC_data[KEY_JDN][FC_data[KEY_JDN].length - 1]
 			// : Infinity: 沒上過首頁的頁面因為不存在簡介/摘要頁面，所以必須要排在最後，不能夠列入顯示。
 			: 0;
+			if (FC_data[KEY_JDN].length > 0)
+				hit_count += FC_data[KEY_JDN].length;
 			// 記錄之前幾天曾經使用過的類別。
 			if (JDN_to_generate - JDN <= 2) {
 				avoid_catalogs.push(FC_data[KEY_CATEGORY]);
