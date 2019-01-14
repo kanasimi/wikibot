@@ -482,6 +482,11 @@ var section_column_operators = {
 				// 對於已經移動的議題，箭頭指向移動的目標頁面。
 				// assert: is page title
 				adding_link = adding_link.toString();
+				if (!adding_link.includes('#')) {
+					// 嘗試添加和章節標題相同的討論段落anchor。
+					// [1]: hack
+					adding_link += '#' + section.section_title.link[1];
+				}
 				title_too_long = if_too_long(adding_link);
 				adding_link = section.CSS && section.CSS.color ? '[['
 						+ adding_link + '|<span style="color: '
@@ -626,7 +631,7 @@ function start_main_work(page_data) {
 	set_list_legend();
 
 	// for debug
-	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 
 	if (main_talk_pages.length > 0) {
