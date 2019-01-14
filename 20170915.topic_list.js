@@ -23,7 +23,8 @@ jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 2017/10/10 16:17:28	完成。正式運用。
 
 
-@see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[w:zh:User:WhitePhosphorus-bot/RFBA_Status]], [[w:ja:Wikipedia:議論が盛んなノート]],
+@see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[wikiversity:zh:模块:Talkpage]], [[w:zh:User:WhitePhosphorus-bot/RFBA_Status]],
+ [[w:ja:Wikipedia:議論が盛んなノート]],
  https://zh.moegirl.org/Widget:TalkToc ($('#toc'))
  https://meta.wikimedia.org/wiki/Tech/News/2018/13/zh	已被棄用的#toc和#toctitle CSS ID將會被移除。如果您的wiki仍在使用它們作為假目錄，那麼它們將失去應有樣式。如有需要可以替換為.toc和.toctitle CSS類。
 
@@ -53,10 +54,6 @@ archive topics:
 	可以自動把文字分到新的子頁面
 存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
 存檔完可以直接刪除，只留下oldid
-
-
-@see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]]
-[[wikiversity:zh:模块:Talkpage]]
 
  */
 
@@ -570,18 +567,17 @@ function parse_configuration_table(table) {
 
 function start_main_work(page_data) {
 	// 讀入手動設定 manual settings。
-	configuration = Object.assign({
-		// 設定必要的屬性。
-		general : CeL.null_Object(),
-		list_style : CeL.null_Object()
-	}, CeL.wiki.parse_configuration(page_data));
+	configuration = CeL.wiki.parse_configuration(page_data);
 	// console.log(configuration);
 
 	// 檢查從網頁取得的設定。
 
 	// 一般設定
-	var general = parse_configuration_table(configuration.general);
+	var general
+	// 設定必要的屬性。
+	= configuration.general = parse_configuration_table(configuration.general);
 
+	general.max_title_length |= 0;
 	if (!(general.max_title_length > 0 && general.max_title_length < 900)) {
 		delete general.max_title_length;
 	}
@@ -590,7 +586,7 @@ function start_main_work(page_data) {
 		delete general.max_title_display_width;
 	}
 
-	var configuration_now = parse_configuration_table(configuration.list_style);
+	var configuration_now = configuration.list_style = parse_configuration_table(configuration.list_style);
 	for ( var name in configuration_now) {
 		var style = configuration_now[name];
 		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
@@ -603,6 +599,8 @@ function start_main_work(page_data) {
 			long_to_short[name] = style;
 		}
 	}
+
+	console.log(configuration);
 
 	// ----------------------------------------------------
 
@@ -829,11 +827,12 @@ function general_row_style(section, section_index) {
 	this.each.call(section, function(token) {
 		if (token.type === 'transclusion' && (token.name in {
 			// 本主題全部或部分段落文字，已移動至...
+			Moveto : true,
 			Movedto : true,
-			Switchto : true,
 			'Moved to' : true,
-			移動至 : true,
-			'Moved discussion to' : true
+			'Moved discussion to' : true,
+			Switchto : true,
+			移動至 : true
 		})) {
 			archived = 'moved';
 			section.adding_link = token.parameters[1];
@@ -871,6 +870,7 @@ function general_row_style(section, section_index) {
 	// console.log('archived: ' + archived);
 	if (archived === 'end' || archived === 'moved') {
 		section.CSS = {
+			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
 			color : configuration.list_style.archived_text_color || '#111'
 		};
 
