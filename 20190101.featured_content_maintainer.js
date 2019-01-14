@@ -68,7 +68,11 @@ DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 KEY_IS_LIST = 0, KEY_ISFFC = 1,
 // to {String}transcluding page title.
 // e.g., FC_data[KEY_TRANSCLUDING_PAGE]="Wikipedia:典範條目/條目"
-KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3, KEY_LATEST_JDN = 4, KEY_CATEGORY = 5, KEY_TITLES_TO_MOVE = 6,
+KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3,
+// 指示用。會在 parse_each_FC_item_list_page() 之後就刪除。
+KEY_LIST_PAGE = 4,
+//
+KEY_LATEST_JDN = 4, KEY_CATEGORY = 5, KEY_TITLES_TO_MOVE = 6,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = CeL.null_Object(),
@@ -132,6 +136,7 @@ CeL.wiki.cache([ {
 		CeL.debug('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
 		CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
 		return Object.keys(FC_data_hash).filter(function(FC_title) {
+			delete FC_data_hash[FC_title][KEY_LIST_PAGE];
 			return !(FC_title in redirects_to_hash);
 		});
 	},
@@ -246,9 +251,9 @@ function parse_each_FC_item_list_page(page_data) {
 		}
 
 		// 還沒繁簡轉換過的標題。
-		var FC_title = CeL.wiki.normalize_title(matched[1]);
+		var original_FC_title = CeL.wiki.normalize_title(matched[1]),
 		// 轉換成經過繁簡轉換過的最終標題。
-		FC_title = redirects_to_hash[FC_title] || FC_title;
+		FC_title = redirects_to_hash[original_FC_title] || original_FC_title;
 
 		if (FC_title in FC_data_hash) {
 			// 基本檢測與提醒。
@@ -258,8 +263,20 @@ function parse_each_FC_item_list_page(page_data) {
 			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC
 			//
 			&& (FC_data_hash[FC_title][KEY_ISFFC] !== 'UP' || is_FFC !== false)) {
-				error_logs.push(CeL.wiki.title_link_of(FC_title)
-						+ ' 被同時列在了現存及被撤銷的' + TYPE_NAME + '清單中');
+				error_logs
+						.push(CeL.wiki.title_link_of(FC_title)
+								+ ' 被同時列在了現存及被撤銷的'
+								+ TYPE_NAME
+								+ '清單中: '
+								+ CeL.wiki.title_link_of(original_FC_title)
+								+ '@'
+								+ CeL.wiki.title_link_of(title)
+								+ ', '
+								+ CeL.wiki
+										.title_link_of(FC_data_hash[FC_title][KEY_LIST_PAGE][1])
+								+ '@'
+								+ CeL.wiki
+										.title_link_of(FC_data_hash[FC_title][KEY_LIST_PAGE][0]));
 				CeL.error(CeL.wiki.title_link_of(FC_title) + ' 被同時列在了現存及被撤銷的'
 						+ TYPE_NAME + '清單中: ' + is_FFC + '; '
 						+ FC_data_hash[FC_title]);
@@ -271,6 +288,7 @@ function parse_each_FC_item_list_page(page_data) {
 		FC_data[KEY_JDN] = [];
 		if (catalog)
 			FC_data[KEY_CATEGORY] = catalog;
+		FC_data[KEY_LIST_PAGE] = [ title, original_FC_title ];
 	}
 }
 
