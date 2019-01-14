@@ -483,14 +483,15 @@ var section_column_operators = {
 				// assert: is page title
 				adding_link = adding_link.toString();
 				if (!adding_link.includes('#')) {
-					// 嘗試添加和章節標題相同的討論段落anchor。
+					// 嘗試自動添加和章節標題相同的討論段落anchor。
 					// [1]: hack
 					adding_link += '#' + section.section_title.link[1];
 				}
-				title_too_long = if_too_long(adding_link);
+				title_too_long = if_too_long(adding_link.replace(/#.*$/, ''));
 				adding_link = section.CSS && section.CSS.color ? '[['
 						+ adding_link + '|<span style="color: '
-						+ section.CSS.color + ';">' + adding_link + '</span>]]'
+						+ section.CSS.color + ';">'
+						+ adding_link.replace(/#.*$/, '') + '</span>]]'
 						: CeL.wiki.title_link_of(adding_link);
 			}
 			if (title_too_long) {
@@ -631,7 +632,7 @@ function start_main_work(page_data) {
 	set_list_legend();
 
 	// for debug
-	main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 
 	if (main_talk_pages.length > 0) {
