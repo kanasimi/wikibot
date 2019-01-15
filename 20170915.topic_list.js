@@ -620,7 +620,7 @@ function start_main_work(page_data) {
 		}
 	}
 
-	configuration_now = configuration.archived_style = parse_configuration_table(configuration.archived_style);
+	configuration_now = configuration.closed_style = parse_configuration_table(configuration.closed_style);
 
 	console.log(configuration);
 
@@ -893,14 +893,14 @@ function general_row_style(section, section_index) {
 	if (archived === 'end' || archived === 'moved') {
 		section.CSS = {
 			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
-			style : configuration.archived_style.text_CSS,
-			color : configuration.archived_style.text_color,
-			'background-color' : configuration.archived_style.text_backgroundColor
+			style : configuration.closed_style.text_CSS,
+			color : configuration.closed_style.text_color,
+			'background-color' : configuration.closed_style.text_backgroundColor
 		};
 
 		// 已移動或結案的議題之顯示格式
-		return configuration.archived_style.line_CSS ? 'style="'
-				+ configuration.archived_style.line_CSS + '"' : '';
+		return configuration.closed_style.line_CSS ? 'style="'
+				+ configuration.closed_style.line_CSS + '"' : '';
 
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
 		'style="background-color: #ccc;"'
