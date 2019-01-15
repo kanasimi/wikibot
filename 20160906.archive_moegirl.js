@@ -150,34 +150,42 @@ function for_board(page_data) {
 			parser[i] = '';
 		}
 
-		var archive_header = '{{'
-		// 向存檔頁添加檔案館模板
-		+ page_data.title.replace(/^[^:]+:/, '') + '页顶/档案馆}}';
-
 		// TODO: 錯誤處理
 		wiki.page(archive_title).edit(function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
+			// CeL.log(content);
 			content = content && content.trim() || '';
+
+			var archive_header = '{{'
+			// 向存檔頁添加檔案館模板
+			+ page_data.title.replace(/^[^:]+:/, '') + '页顶/档案馆}}';
 
 			if (!content.includes(archive_header)) {
 				content = (archive_header + '\n' + content).trim();
 			}
+			return content;
 
-			CeL.log('archive to ' + CeL.wiki.title_link_of(archive_title)
-			//
-			+ ': "' + section_title + '"');
-			if (false) {
-				CeL.log(content);
-				CeL.log('~'.repeat(80));
-				CeL.log(parser[parser_index].toString() + section_text.trim());
-			}
-			// return;
-			return section_text.trim();
 			if (false) {
 				return content + '\n\n== ' + section_title
 				// append 存檔段落(討論串)內容
 				+ ' ==\n' + section_text.trim();
 			}
+
+		}, {
+			bot : 1,
+			tags : tags,
+			summary : '向存檔頁添加檔案館模板'
+
+		}).edit(function(page_data) {
+			CeL.log('archive to ' + CeL.wiki.title_link_of(archive_title)
+			//
+			+ ': "' + section_title + '"');
+			if (false) {
+				CeL.log('~'.repeat(80));
+				CeL.log(parser[parser_index].toString() + section_text.trim());
+			}
+			// return;
+			return section_text.trim();
 
 		}, {
 			bot : 1,
