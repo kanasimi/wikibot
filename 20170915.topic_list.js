@@ -618,6 +618,10 @@ function adapt_configuration(page_configuration) {
 		}
 	}
 
+	// 這是轉換過的標題。
+	configuration_page_title = configuration.configuration_page_title;
+
+	CeL.log('Configuration:');
 	console.log(configuration);
 }
 
