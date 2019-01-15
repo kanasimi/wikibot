@@ -526,7 +526,7 @@ var section_column_operators = {
 			+ (configuration.general.max_title_display_width || '24em');
 		} else
 			style = '';
-		style += CSS_toString(section.CSS);
+		// style += CSS_toString(section.CSS);
 
 		return (style ? 'style="' + style + '" | ' : '') + title;
 	},
@@ -925,9 +925,9 @@ function general_row_style(section, section_index) {
 	if (archived === 'end' || archived === 'moved') {
 		section.CSS = {
 			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
-			style : configuration.closed_style.text_CSS,
-			color : configuration.closed_style.text_color,
-			'background-color' : configuration.closed_style.text_backgroundColor
+			style : configuration.closed_style.link_CSS,
+			color : configuration.closed_style.link_color,
+			'background-color' : configuration.closed_style.link_backgroundColor
 		};
 
 		// 已移動或結案的議題之顯示格式
