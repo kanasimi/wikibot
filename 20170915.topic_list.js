@@ -71,7 +71,8 @@ var
 wiki = Wiki(true),
 
 /** {String}設定頁面標題。 e.g., "User:bot/設定" */
-configuration_page_title = 'User:' + user_name + '/討論頁面主題列表設定',
+configuration_page_title = 'User:' + user_name + '/'
+		+ (use_language === 'zh' ? '討論頁面主題列表設定' : 'topic list configuration'),
 /** {Object}設定頁面所獲得之手動設定 manual settings。 */
 configuration,
 
@@ -460,12 +461,12 @@ function CSS_toString(CSS) {
 		style.push(CSS.style);
 	}
 
-	for ( var attribute in {
+	for ( var attribute_name in {
 		color : true,
 		'background-color' : true
 	}) {
-		if (CSS[attribute])
-			style.push(attribute + ': ' + CSS[attribute]);
+		if (CSS[attribute_name])
+			style.push(attribute_name + ': ' + CSS[attribute_name]);
 	}
 
 	return style.join('; ');
@@ -592,20 +593,30 @@ function adapt_configuration(page_configuration) {
 	}
 
 	var configuration_now = configuration.list_style = parse_configuration_table(configuration.list_style);
-	for ( var name in configuration_now) {
-		var style = configuration_now[name];
+	for ( var attribute_name in configuration_now) {
+		var style = configuration_now[attribute_name];
 		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
-			delete configuration_now[name];
-			return;
+			delete configuration_now[attribute_name];
+			continue;
 		}
-		if (name in short_to_long) {
-			short_to_long[name] = style;
-		} else if (name in long_to_short) {
-			long_to_short[name] = style;
+		if (attribute_name in short_to_long) {
+			short_to_long[attribute_name] = style;
+		} else if (attribute_name in long_to_short) {
+			long_to_short[attribute_name] = style;
 		}
 	}
 
-	configuration.closed_style = parse_configuration_table(configuration.closed_style);
+	configuration_now = configuration.closed_style = parse_configuration_table(configuration.closed_style);
+	for ( var attribute_name in {
+		color : true,
+		'background-color' : true
+	}) {
+		var style = configuration_now[attribute_name];
+		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
+			delete configuration_now[attribute_name];
+			continue;
+		}
+	}
 
 	console.log(configuration);
 }
