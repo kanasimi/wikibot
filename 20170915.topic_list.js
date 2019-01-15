@@ -450,6 +450,27 @@ var short_to_long = {
 
 // ----------------------------------------------
 
+function CSS_toString(CSS) {
+	if (!CSS)
+		return '';
+
+	var style = [];
+	if (CSS.style) {
+		// e.g., "text-decoration: line-through"
+		style.push(CSS.style);
+	}
+
+	for (attribute in {
+		color : true,
+		'background-color' : true
+	}) {
+		if (CSS[attribute])
+			style.push(attribute + ': ' + CSS[attribute]);
+	}
+
+	return style.join('; ');
+}
+
 // 討論議題列表可以挑選的欄位。
 var section_column_operators = {
 	// function: .call(page_data, section, section_index)
@@ -460,9 +481,7 @@ var section_column_operators = {
 	title : function(section) {
 		// [[Template:Small]]
 		function small_title(title, set_small) {
-			title = title.toString(null,
-					section.CSS && section.CSS.color ? 'color: '
-							+ section.CSS.color : '');
+			title = title.toString(null, CSS_toString(section.CSS));
 			return set_small ? '<small>' + title + '</small>' : title;
 		}
 
@@ -487,12 +506,12 @@ var section_column_operators = {
 					// [1]: hack
 					adding_link += '#' + section.section_title.link[1];
 				}
-				title_too_long = if_too_long(adding_link.replace(/#.*$/, ''));
-				adding_link = section.CSS && section.CSS.color ? '[['
-						+ adding_link + '|<span style="color: '
-						+ section.CSS.color + ';">'
-						+ adding_link.replace(/#.*$/, '') + '</span>]]'
-						: CeL.wiki.title_link_of(adding_link);
+				var display_text = adding_link.replace(/#.*$/, '');
+				title_too_long = if_too_long(display_text);
+				adding_link = CSS_toString(section.CSS) ? '[[' + adding_link
+						+ '|<span style="' + CSS_toString(section.CSS) + '">'
+						+ display_text + '</span>]]' : CeL.wiki.title_link_of(
+						adding_link, display_text);
 			}
 			if (title_too_long) {
 				style = true;
@@ -506,12 +525,7 @@ var section_column_operators = {
 			+ (configuration.general.max_title_display_width || '24em');
 		} else
 			style = '';
-		if (section.CSS && section.CSS.color) {
-			// for <a>... useless
-			style += '; color: ' + section.CSS.color
-			// + ' !important;'
-			;
-		}
+		style += CSS_toString(section.CSS);
 
 		return (style ? 'style="' + style + '" | ' : '') + title;
 	},
@@ -605,6 +619,8 @@ function start_main_work(page_data) {
 			long_to_short[name] = style;
 		}
 	}
+
+	configuration_now = configuration.archived_style = parse_configuration_table(configuration.archived_style);
 
 	console.log(configuration);
 
@@ -877,17 +893,23 @@ function general_row_style(section, section_index) {
 	if (archived === 'end' || archived === 'moved') {
 		section.CSS = {
 			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
-			color : configuration.list_style.archived_text_color || '#111'
+			style : configuration.archived_style.text_CSS,
+			color : configuration.archived_style.text_color,
+			'background-color' : configuration.archived_style.text_backgroundColor
 		};
 
+		// 已移動或結案的議題之顯示格式
+		return configuration.archived_style.line_CSS ? 'style="'
+				+ configuration.archived_style.line_CSS + '"' : '';
+
 		// 把"下列討論已經關閉"的議題用深灰色顯示。
-		return 'style="background-color: #ccc;"'
+		'style="background-color: #ccc;"'
 		// 話題加灰底會與「更新圖例」裡面的說明混淆
 		&& 'style="text-decoration: line-through;"'
 		// 將完成話題全灰. "!important": useless
 		&& 'style="color: #888;"'
 		// 一般來說，色塊填滿應該不會超出框線，而且也不會影響框線本身的顏色
-		&& 'style="opacity: .8;"' && '';
+		&& 'style="opacity: .8;"';
 	}
 
 	return status || '';
@@ -1223,8 +1245,8 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		if (true) {
 			// 採用短日期格式。
 			date = date.format({
-				format : section.CSS && section.CSS.color
-				// 已經設定整行CSS的情況下，就不另外表現CSS。
+				format : CSS_toString(section.CSS)
+				// 已經設定整行 CSS 的情況下，就不另外表現 CSS。
 				? '%Y-%2m-%2d %2H:%2M'
 				//
 				: '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
@@ -1259,10 +1281,6 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				}
 			}
 		}
-		if (section.CSS && section.CSS.color) {
-			additional_attributes += ' style="color: ' + section.CSS.color
-					+ ';"';
-		}
 
 		user = section.users[user_and_date_index];
 		// TODO: link to diff
@@ -1272,9 +1290,9 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		//
 		? '[[Special:Contributions/' : '[[User:') + user + '|'
 		//
-		+ (section.CSS && section.CSS.color ? '<span style="color:'
+		+ (CSS_toString(section.CSS) ? '<span style="'
 		//
-		+ section.CSS.color + ';">' + user + '</span>' : user) + ']]';
+		+ CSS_toString(section.CSS) + '">' + user + '</span>' : user) + ']]';
 	} else {
 		// 沒有發現此 user group 之發言。
 		additional_attributes = 'style="background-color:#ffd;" | ';
