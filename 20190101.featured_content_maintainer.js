@@ -56,6 +56,7 @@ FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
 Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA|WP:FFA' : 'WP:FFA|WP:FFL')
 		.split('|'),
+// 出問題時，至此頁面提醒社群。須保證本頁面存在，並且機器人可以寫入。
 // [[Wikipedia:互助客栈/其他]], [[Wikipedia:互助客栈/条目探讨]]
 DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 	section : 'new',
@@ -760,7 +761,7 @@ function check_date_page() {
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
-	// " --~~~~"
+	// 不簽名，避免一日之中頻繁變更。 " --~~~~"
 	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。\n'
 	//
 	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 '
@@ -903,6 +904,12 @@ function check_date_page() {
 
 // ---------------------------------------------------------------------//
 
+// fix for [[MediaWiki:Titleblacklist]]
+function fix_for_titleblacklist(page_title) {
+	return page_title.replace(/Wikipedia:典範條目\//, 'Wikipedia:典范条目/').replace(
+			/Wikipedia:優良條目\//, 'Wikipedia:优良条目/');
+}
+
 // 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 function write_date_page(date_page_title, transcluding_title_now) {
 	var FC_title, candidates = [],
@@ -940,12 +947,12 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	write_content = '{{' + transcluding_title + '}}';
 	// console.log(write_content);
 
-	wiki.page(date_page_title);
 	if (transcluding_title_now) {
 		// assert: (transcluding_title_now) 為
 		// 現在 (date_page_title) 頁面中嵌入但*有問題*的頁面。
 		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
 			if (transcluding_title === transcluding_title_now) {
+				wiki.page(date_page_title);
 				wiki.edit('', {
 					allow_empty : true,
 					nocreate : 1,
@@ -970,6 +977,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		}
 	}
 
+	wiki.page(fix_for_titleblacklist(date_page_title));
 	// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
 	wiki.edit(write_content, {
 		// bot : 1,
@@ -1064,9 +1072,11 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 // 若不存在則自動創建每月特色內容存檔：如[[Wikipedia:典範條目/2019年1月]]，
 function check_month_list() {
-	var date = CeL.Julian_day.to_Date(JDN_to_generate);
-	wiki.page(date.format('Wikipedia:' + NS_PREFIX + '/%Y年%m月'), function(
-			page_data) {
+	var date = CeL.Julian_day.to_Date(JDN_to_generate),
+	//
+	page_title = fix_for_titleblacklist(date.format('Wikipedia:' + NS_PREFIX
+			+ '/%Y年%m月'));
+	wiki.page(page_title, function(page_data) {
 		var
 		/**
 		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
