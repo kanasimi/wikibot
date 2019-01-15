@@ -558,6 +558,12 @@ var section_column_operators = {
 	}
 };
 
+function traversal_all_pages() {
+	main_talk_pages.forEach(function(page_title) {
+		wiki.page(page_title, pre_fetch_sub_pages);
+	});
+}
+
 // ----------------------------------------------
 
 function parse_configuration_table(table) {
@@ -572,7 +578,7 @@ function parse_configuration_table(table) {
 }
 
 // 讀入手動設定 manual settings。
-function adapt_configuration(page_configuration) {
+function adapt_configuration(page_configuration, traversal) {
 	configuration = page_configuration;
 	// console.log(configuration);
 
@@ -623,6 +629,10 @@ function adapt_configuration(page_configuration) {
 
 	CeL.log('Configuration:');
 	console.log(configuration);
+
+	// 每次更改過設定之後重新生成一輪討論頁面主題列表。
+	if (traversal !== 'no_traversal')
+		traversal_all_pages();
 }
 
 // ----------------------------------------------
@@ -644,7 +654,7 @@ wiki.page(configuration_page_title, start_main_work);
 
 function start_main_work(page_data) {
 
-	adapt_configuration(CeL.wiki.parse_configuration(page_data));
+	adapt_configuration(CeL.wiki.parse_configuration(page_data), 'no_traversal');
 
 	// ----------------------------------------------------
 
@@ -688,9 +698,7 @@ function start_main_work(page_data) {
 		special_users = _special_users;
 
 		// 首先生成一輪討論頁面主題列表。
-		main_talk_pages.forEach(function(page_title) {
-			wiki.page(page_title, pre_fetch_sub_pages);
-		});
+		traversal_all_pages();
 		// return;
 
 		wiki.listen(pre_fetch_sub_pages, {
