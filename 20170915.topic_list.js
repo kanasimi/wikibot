@@ -460,7 +460,7 @@ function CSS_toString(CSS) {
 		style.push(CSS.style);
 	}
 
-	for (attribute in {
+	for ( var attribute in {
 		color : true,
 		'background-color' : true
 	}) {
@@ -559,21 +559,6 @@ var section_column_operators = {
 
 // ----------------------------------------------
 
-// main talk pages **of this wiki**
-var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
-
-var special_users;
-
-// ----------------------------------------------------------------------------
-// main
-
-// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
-prepare_directory(base_directory);
-
-// CeL.set_debug(6);
-
-wiki.page(configuration_page_title, start_main_work);
-
 function parse_configuration_table(table) {
 	var configuration = CeL.null_Object();
 	if (Array.isArray(table)) {
@@ -585,9 +570,9 @@ function parse_configuration_table(table) {
 	return configuration;
 }
 
-function start_main_work(page_data) {
-	// 讀入手動設定 manual settings。
-	configuration = CeL.wiki.parse_configuration(page_data);
+// 讀入手動設定 manual settings。
+function adapt_configuration(page_configuration) {
+	configuration = page_configuration;
 	// console.log(configuration);
 
 	// 檢查從網頁取得的設定。
@@ -620,9 +605,31 @@ function start_main_work(page_data) {
 		}
 	}
 
-	configuration_now = configuration.closed_style = parse_configuration_table(configuration.closed_style);
+	configuration.closed_style = parse_configuration_table(configuration.closed_style);
 
 	console.log(configuration);
+}
+
+// ----------------------------------------------
+
+// main talk pages **of this wiki**
+var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
+
+var special_users;
+
+// ----------------------------------------------------------------------------
+// main
+
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
+prepare_directory(base_directory);
+
+// CeL.set_debug(6);
+
+wiki.page(configuration_page_title, start_main_work);
+
+function start_main_work(page_data) {
+
+	adapt_configuration(CeL.wiki.parse_configuration(page_data));
 
 	// ----------------------------------------------------
 
@@ -680,6 +687,8 @@ function start_main_work(page_data) {
 			delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
 			filter : main_talk_pages,
 			with_content : true,
+			configuration_page : configuration_page_title,
+			adapt_configuration : adapt_configuration,
 			parameters : {
 				// 跳過機器人所做的編輯。
 				// You need the "patrol" or "patrolmarks" right to request the
