@@ -115,10 +115,24 @@ CeL.wiki.cache([ {
 		// console.log(configuration);
 
 		// 一般設定
-		var general = parse_configuration_table(configuration.general);
+		var general = configuration.general
+		// 設定必要的屬性。
+		= parse_configuration_table(configuration.general);
 
-		if (general.DISCUSSION_PAGE)
+		// 檢測數值是否合適。
+		general.avoid_same_catalog_past_days |= 0;
+		if (!(general.avoid_same_catalog_past_days > 0
+		//
+		&& general.avoid_same_catalog_past_days < 5)) {
+			delete general.avoid_same_catalog_past_days;
+		}
+
+		if (general.DISCUSSION_PAGE) {
 			DISCUSSION_PAGE = general.DISCUSSION_PAGE;
+		}
+
+		CeL.log('Configuration:');
+		console.log(configuration);
 	}
 }, {
 	type : 'page',
@@ -418,7 +432,7 @@ function parse_each_FC_page(page_data) {
 	// assert: !!FC_title === false;
 	parsed.each('link', function(token) {
 		// 找到第一個連結。
-		FC_title = CeL.wiki.normalize_page_name(token[0].toString());
+		FC_title = CeL.wiki.normalize_title(token[0].toString());
 		return parsed.each.exit;
 	});
 
@@ -718,8 +732,9 @@ function check_date_page() {
 			: 0;
 			if (FC_data[KEY_JDN].length > 0)
 				hit_count += FC_data[KEY_JDN].length;
+			if (JDN_to_generate - JDN
 			// 記錄之前幾天曾經使用過的類別。
-			if (JDN_to_generate - JDN <= 2) {
+			<= (configuration.general.avoid_same_catalog_past_days || 2)) {
 				avoid_catalogs.push(FC_data[KEY_CATEGORY]);
 			}
 			return true;

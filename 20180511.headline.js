@@ -2273,7 +2273,7 @@ wiki.page(save_to_page, function parse_headline_page(page_data) {
 		if (template_name.startsWith(page_prefix)) {
 			template_name = template_name.slice(page_prefix.length);
 		}
-		template_name = CeL.wiki.normalize_page_name(template_name);
+		template_name = CeL.wiki.normalize_title(template_name);
 
 		switch (template_name) {
 		case 'Date':

@@ -589,6 +589,7 @@ function adapt_configuration(page_configuration, traversal) {
 	// 設定必要的屬性。
 	= configuration.general = parse_configuration_table(configuration.general);
 
+	// 檢測數值是否合適。
 	general.max_title_length |= 0;
 	if (!(general.max_title_length > 0 && general.max_title_length < 900)) {
 		delete general.max_title_length;
