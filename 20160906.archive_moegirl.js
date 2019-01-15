@@ -162,8 +162,8 @@ function for_board(page_data) {
 
 			if (!content.includes(archive_header)) {
 				content = (archive_header + '\n' + content).trim();
+				return content;
 			}
-			return content;
 
 			if (false) {
 				return content + '\n\n== ' + section_title
