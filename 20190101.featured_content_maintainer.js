@@ -703,9 +703,9 @@ function check_redirects(page_list) {
 function check_FC_template(page_data_list, operation) {
 	// console.log(page_data_list);
 
-	var is_list = /list/.test(operation.list), FC_title_hash = operation.FC_title_hash;
+	var is_list = /list/.test(operation.list), FC_title_hash = this.FC_title_hash;
 	if (!FC_title_hash) {
-		FC_title_hash = operation.FC_title_hash = CeL.null_Object();
+		FC_title_hash = this.FC_title_hash = CeL.null_Object();
 
 		Object.keys(FC_data_hash).forEach(function(FC_title) {
 			if (is_FC(FC_title)) {
@@ -740,11 +740,14 @@ function check_FC_template(page_data_list, operation) {
 }
 
 function summary_FC_template(list, operation) {
-	var FC_title_list = Object.keys(operation.FC_title_hash);
+	var FC_title_list = Object.keys(this.FC_title_hash);
 
 	FC_title_list.forEach(function(FC_title) {
 		error_logs.push(CeL.wiki.title_link_of(FC_title) + '在' + TYPE_NAME
-				+ '列表中，卻沒嵌入{{tl|' + operation.list + '}}？');
+		//
+		+ '列表中，卻沒嵌入 ' + operation.list.map(function(name) {
+			return '{{tl|' + name + '}}';
+		}).join(', ') + ' 其中之一？');
 	});
 }
 
