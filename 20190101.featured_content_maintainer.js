@@ -176,10 +176,11 @@ CeL.wiki.cache([ {
 	// 含有 特色內容 模板之頁面
 	type : 'embeddedin',
 	reget : true,
-	list : using_GA ? 'Good article'
+	list : using_GA ? 'Template:Good article'
 	//
-	: 'Featured article|Featured list'.split('|'),
-	each : check_FC_template
+	: 'Template:Featured article|Template:Featured list'.split('|'),
+	each : check_FC_template,
+	operator : summary_FC_template
 } ], check_date_page, {
 	// JDN index in parse_each_FC_page()
 	JDN : JDN_start,
@@ -699,8 +700,52 @@ function check_redirects(page_list) {
 
 // ---------------------------------------------------------------------//
 
-function check_FC_template(list) {
-	console.log(list);
+function check_FC_template(page_data_list, operation) {
+	// console.log(page_data_list);
+
+	var is_list = /list/.test(operation.list), FC_title_hash = operation.FC_title_hash;
+	if (!FC_title_hash) {
+		FC_title_hash = operation.FC_title_hash = CeL.null_Object();
+
+		Object.keys(FC_data_hash).forEach(function(FC_title) {
+			if (is_FC(FC_title)) {
+				FC_title_hash[FC_title] = true;
+			}
+		});
+	}
+
+	page_data_list.forEach(function(page_data) {
+		// { pageid: 111, ns: 0, title: '列表' }
+		if (page_data.ns !== 0)
+			return;
+
+		var FC_title = CeL.wiki.title_of(page_data);
+		if (!is_FC(FC_title)) {
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + '嵌入了{{tl|'
+					+ operation.list + '}}，卻不在' + TYPE_NAME + '列表中？');
+			return;
+		}
+
+		var FC_data = FC_data_hash[FC_title];
+		if (FC_data[KEY_IS_LIST] !== is_list) {
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + '嵌入了{{tl|'
+					+ operation.list + '}}，中卻登記為'
+					+ (FC_data[KEY_IS_LIST] ? '' : '非') + TYPE_NAME + '列表？');
+			return;
+		}
+
+		// 登記
+		delete FC_title_hash[FC_title];
+	});
+}
+
+function summary_FC_template(list, operation) {
+	var FC_title_list = Object.keys(operation.FC_title_hash);
+
+	FC_title_list.forEach(function(FC_title) {
+		error_logs.push(CeL.wiki.title_link_of(FC_title) + '在' + TYPE_NAME
+				+ '列表中，卻沒嵌入{{tl|' + operation.list + '}}？');
+	});
 }
 
 // ---------------------------------------------------------------------//
