@@ -172,6 +172,14 @@ CeL.wiki.cache([ {
 	reget : true,
 	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
 	each : check_redirects
+}, {
+	// 含有 特色內容 模板之頁面
+	type : 'embeddedin',
+	reget : true,
+	list : using_GA ? 'Good article'
+	//
+	: 'Featured article|Featured list'.split('|'),
+	each : check_FC_template
 } ], check_date_page, {
 	// JDN index in parse_each_FC_page()
 	JDN : JDN_start,
@@ -687,6 +695,12 @@ function check_redirects(page_list) {
 		});
 	}
 
+}
+
+// ---------------------------------------------------------------------//
+
+function check_FC_template(list) {
+	console.log(list);
 }
 
 // ---------------------------------------------------------------------//
