@@ -721,14 +721,14 @@ function check_FC_template(page_data_list, operation) {
 
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (!is_FC(FC_title)) {
-			error_logs.push(CeL.wiki.title_link_of(FC_title) + '嵌入了{{tl|'
-					+ operation.list + '}}，卻不在' + TYPE_NAME + '列表中？');
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了{{tl|'
+					+ operation.list + '}}，卻沒登記在' + TYPE_NAME + '列表中？');
 			return;
 		}
 
 		var FC_data = FC_data_hash[FC_title];
 		if (FC_data[KEY_IS_LIST] !== is_list) {
-			error_logs.push(CeL.wiki.title_link_of(FC_title) + '嵌入了{{tl|'
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了{{tl|'
 					+ operation.list + '}}，中卻登記為'
 					+ (FC_data[KEY_IS_LIST] ? '' : '非') + TYPE_NAME + '列表？');
 			return;
@@ -740,16 +740,16 @@ function check_FC_template(page_data_list, operation) {
 }
 
 function summary_FC_template(list, operation) {
-	var FC_title_list = Object.keys(this.FC_title_hash);
+	var FC_title_list = Object.keys(this.FC_title_hash),
+	//
+	list = operation.list;
 
 	FC_title_list.forEach(function(FC_title) {
-		error_logs.push(CeL.wiki.title_link_of(FC_title) + '在' + TYPE_NAME
+		error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 登記在' + TYPE_NAME
 		//
-		+ '列表中，卻沒嵌入 ' + (Array.isArray(operation) ? operation : [ operation ])
-		//
-		.list.map(function(name) {
+		+ '列表中，卻沒嵌入' + list.map(function(name) {
 			return '{{tl|' + name + '}}';
-		}).join(', ') + ' 其中之一？');
+		}).join(', ') + (list.length > 1 ? '其中之一' : '') + '？');
 	});
 }
 
@@ -888,7 +888,7 @@ function check_date_page() {
 		//
 		+ '/"之後的頁面名稱應準確符合所介紹的頁面名稱）\n# '
 		// 過去問題頁面
-		+ error_logs.join('\n# ');
+		+ error_logs.join('\n# ') + '\n[[Category:维基百科积压工作]]';
 	}
 	wiki.page('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
 	//
