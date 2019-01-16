@@ -176,9 +176,9 @@ CeL.wiki.cache([ {
 	// 含有 特色內容 模板之頁面
 	type : 'embeddedin',
 	reget : true,
-	list : using_GA ? 'Template:Good article'
+	list : (using_GA ? 'Template:Good article'
 	//
-	: 'Template:Featured article|Template:Featured list'.split('|'),
+	: 'Template:Featured article|Template:Featured list').split('|'),
 	each : check_FC_template,
 	operator : summary_FC_template
 } ], check_date_page, {
@@ -745,7 +745,9 @@ function summary_FC_template(list, operation) {
 	FC_title_list.forEach(function(FC_title) {
 		error_logs.push(CeL.wiki.title_link_of(FC_title) + '在' + TYPE_NAME
 		//
-		+ '列表中，卻沒嵌入 ' + operation.list.map(function(name) {
+		+ '列表中，卻沒嵌入 ' + (Array.isArray(operation) ? operation : [ operation ])
+		//
+		.list.map(function(name) {
 			return '{{tl|' + name + '}}';
 		}).join(', ') + ' 其中之一？');
 	});
