@@ -748,7 +748,7 @@ function summary_FC_template(list, operation) {
 		error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 登記在' + TYPE_NAME
 		//
 		+ '列表中，卻沒嵌入' + list.map(function(name) {
-			return '{{tl|' + name + '}}';
+			return '{{Tl|' + name.replace(/^Template:/i,') + '}}';
 		}).join(', ') + (list.length > 1 ? '其中之一' : '') + '？');
 	});
 }
