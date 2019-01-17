@@ -157,8 +157,10 @@ function for_board(page_data) {
 			content = content && content.trim() || '';
 
 			var archive_header = '{{'
-			// 向存檔頁添加檔案館模板
-			+ page_data.title.replace(/^[^:]+:/, '') + '页顶/档案馆}}';
+			// 去掉前綴
+			+ page_data.title.replace(/^[^:]+:/, '')
+			// 向存檔頁頂端添加檔案館模板。
+			.replace(/\/.+/, '页顶/档案馆') + '}}';
 
 			if (!content.includes(archive_header)) {
 				content = (archive_header + '\n' + content).trim();
