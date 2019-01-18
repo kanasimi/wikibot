@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190101.featured_content_maintainer.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190101.featured_content_maintainer.js type=good environment=production days_later=2
 
 /*
 
@@ -1062,7 +1062,8 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		}
 	}
 
-	wiki.page(fix_for_titleblacklist(date_page_title));
+	date_page_title = fix_for_titleblacklist(date_page_title);
+	wiki.page(date_page_title);
 	// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
 	wiki.edit(write_content, {
 		// bot : 1,
@@ -1086,11 +1087,43 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		// error: 如 [cascadeprotected]
 		&& is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
 			check_month_list();
-		} else {
+			return;
+		}
+
+		if (transcluding_title_now) {
 			// 預防新當選條目沒有準備展示內容的情況。
 			check_if_FC_introduction_exists(FC_title, date_page_title,
 					transcluding_title, true);
+			return;
 		}
+
+		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
+			var
+			/**
+			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 */
+			content = CeL.wiki.content_of(page_data);
+
+			// 避免多次提醒。
+			if (content.includes(CeL.wiki.title_link_of(date_page_title))) {
+				CeL.log('已經做過提醒。');
+				return;
+			}
+
+			if (result.error.code === 'cascadeprotected') {
+				return generate_help_message(date_page_title, '已被保護，無法寫入'
+				//
+				+ CeL.wiki.title_link_of(FC_title) + '若簡介頁面確實不存在，請幫忙處理');
+			}
+
+			return generate_help_message(date_page_title,
+			//
+			'寫入' + CeL.wiki.title_link_of(FC_title)
+			//
+			+ '時發生錯誤: ' + result.error.code + '，請幫忙處理');
+
+		}, DISCUSSION_edit_options).run(check_month_list);
+
 	});
 }
 
