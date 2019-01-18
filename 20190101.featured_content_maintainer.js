@@ -745,11 +745,17 @@ function summary_FC_template(list, operation) {
 	list = operation.list;
 
 	FC_title_list.forEach(function(FC_title) {
+		var _list = list;
+		if (FC_title.includes('列表')) {
+			_list = list.filter(function(name) {
+				return /list/i.test(name);
+			});
+		}
 		error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 登記在' + TYPE_NAME
 		//
-		+ '列表中，卻沒嵌入' + list.map(function(name) {
+		+ '之列表中，卻沒嵌入' + _list.map(function(name) {
 			return '{{Tl|' + name.replace(/^Template:/i, '') + '}}';
-		}).join(', ') + (list.length > 1 ? '其中之一' : '') + '？');
+		}).join(', ') + (_list.length > 1 ? '其中之一' : '') + '？');
 	});
 }
 
