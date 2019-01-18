@@ -625,8 +625,9 @@ function adapt_configuration(page_configuration, traversal) {
 				.parse(configuration_now.show_subtopic);
 	}
 
+	// 顯示主題列表之頁面。
 	if (configuration.listen_to_pages) {
-		configuration_now = parse_configuration_table(configuration.closed_style);
+		configuration_now = parse_configuration_table(configuration.listen_to_pages);
 
 		Object.keys(configuration_now).forEach(function(page_name) {
 			var page_config = configuration_now[page_name];
