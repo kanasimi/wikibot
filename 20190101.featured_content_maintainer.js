@@ -470,9 +470,9 @@ function parse_each_FC_page(page_data) {
 	}
 
 	// 連標題連結都找不到的情況。
-	error_logs.push('無法解析 ' + CeL.wiki.title_link_of(title)
+	error_logs.push(content ? '無法解析 ' + CeL.wiki.title_link_of(title)
 	// + (FC_title ? ': ' + FC_title : '')
-	);
+	: CeL.wiki.title_link_of(title) + ' 不存在。');
 	if (CeL.is_debug())
 		CeL.error(title + ': ' + content);
 }
@@ -700,6 +700,15 @@ function check_redirects(page_list) {
 
 // ---------------------------------------------------------------------//
 
+function template_links(template_list) {
+	if (!Array.isArray(template_list)) {
+		template_list = [ template_list ];
+	}
+	return template_list.map(function(name) {
+		return '{{Tl|' + name.replace(/^Template:/i, '') + '}}';
+	}).join(', ') + (template_list.length > 1 ? '其中之一' : '');
+}
+
 function check_FC_template(page_data_list, operation) {
 	// console.log(page_data_list);
 
@@ -721,16 +730,18 @@ function check_FC_template(page_data_list, operation) {
 
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (!is_FC(FC_title)) {
-			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了{{tl|'
-					+ operation.list + '}}，卻沒登記在' + TYPE_NAME + '項目中？');
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了'
+					+ template_links(operation.list) + '，卻沒登記在' + TYPE_NAME
+					+ '項目中？');
 			return;
 		}
 
 		var FC_data = FC_data_hash[FC_title];
 		if (FC_data[KEY_IS_LIST] !== is_list) {
-			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了{{tl|'
-					+ operation.list + '}}，中卻登記為'
-					+ (FC_data[KEY_IS_LIST] ? '' : '非') + TYPE_NAME + '列表？');
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了'
+					+ template_links(operation.list) + '，在' + TYPE_NAME
+					+ '項目中卻登記為' + (FC_data[KEY_IS_LIST] ? '' : '非') + TYPE_NAME
+					+ '列表？');
 			return;
 		}
 
@@ -752,10 +763,7 @@ function summary_FC_template(list, operation) {
 			});
 		}
 		error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 登記在' + TYPE_NAME
-		//
-		+ '項目中，卻沒嵌入' + _list.map(function(name) {
-			return '{{Tl|' + name.replace(/^Template:/i, '') + '}}';
-		}).join(', ') + (_list.length > 1 ? '其中之一' : '') + '？');
+				+ '項目中，卻沒嵌入' + template_links(_list) + '？');
 	});
 }
 
@@ -1080,8 +1088,8 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		.join('/') : '沒上過首頁')
 		//
 		+ '。作業機制請參考' + CeL.wiki.title_link_of(configuration_page_title)
-		//
-		+ ' 編輯摘要的red link經繁簡轉換後存在'
+	// 已轉換過
+	// + ' 編輯摘要的red link經繁簡轉換後存在'
 	}, function(page_data, error, result) {
 		if (!error
 		// error: 如 [cascadeprotected]
@@ -1111,9 +1119,10 @@ function write_date_page(date_page_title, transcluding_title_now) {
 			}
 
 			if (result.error.code === 'cascadeprotected') {
+				// '{{Edit fully-protected}}\n' +
 				return generate_help_message(date_page_title, '已被保護，無法寫入'
 				//
-				+ CeL.wiki.title_link_of(FC_title) + '若簡介頁面確實不存在，請幫忙處理');
+				+ CeL.wiki.title_link_of(FC_title) + '。請幫忙處理');
 			}
 
 			return generate_help_message(date_page_title,
