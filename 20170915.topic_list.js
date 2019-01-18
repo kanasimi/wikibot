@@ -99,7 +99,7 @@ general_topic_page = '/topic list', general_page_configuration = {
 	zh : {
 		timezone : 8,
 		// 序號 Topics主題
-		headers : '! # !! 話題 !! <small title="發言數/發言人次(實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
+		headers : '! # !! 話題 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
 		,
 		row_style : general_row_style
@@ -302,7 +302,7 @@ var page_configurations = {
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
 		timezone : 8,
-		headers : '! # !! 需求 !! 進度 !! <small title="發言數/發言人次(實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
+		headers : '! # !! 需求 !! 進度 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
 		// first_user_set: 發起人與發起時間(Created)
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
@@ -317,7 +317,7 @@ var page_configurations = {
 	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
 		timezone : 8,
 		headers : '! # !! 機器人申請 !! 進度'
-				+ ' !! <small title="發言數/發言人次(實際上為簽名數)">發言</small>'
+				+ ' !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small>'
 				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
 				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
@@ -329,7 +329,7 @@ var page_configurations = {
 	'zhwiki:Wikipedia:机器用户/申请' : Object.assign({
 		timezone : 8,
 		headers : '! # !! 機器用戶申請 !! 進度'
-				+ ' !! <small title="發言數/發言人次(實際上為簽名數)">發言</small>'
+				+ ' !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small>'
 				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
 				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
@@ -486,13 +486,15 @@ var section_column_operators = {
 			return set_small ? '<small>' + title + '</small>' : title;
 		}
 
-		var title = section.section_title.link, adding_link = section.adding_link,
+		var title = section.section_title.link, adding_link,
 		// 當標題過長時，縮小標題字型。
 		title_too_long = if_too_long(section.section_title.title), style = title_too_long;
 		title = small_title(title, title_too_long);
 
 		// console.log(section);
-		if (adding_link) {
+		if (configuration_now.show_subtopic
+		// 顯示次級連結。
+		&& (adding_link = section.adding_link)) {
 			// console.log(adding_link);
 			if (adding_link.type === 'section_title') {
 				// 對於還沒完全結案的議題，箭頭指向還在討論的部分。
@@ -615,14 +617,18 @@ function adapt_configuration(page_configuration, traversal) {
 
 	configuration_now = configuration.closed_style = parse_configuration_table(configuration.closed_style);
 	for ( var attribute_name in {
-		color : true,
-		'background-color' : true
+		link_color : true,
+		link_backgroundColor : true
 	}) {
 		var style = configuration_now[attribute_name];
 		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
 			delete configuration_now[attribute_name];
 			continue;
 		}
+	}
+	if (configuration_now.show_subtopic === 'false') {
+		configuration_now.show_subtopic = JSON
+				.parse(configuration_now.show_subtopic);
 	}
 
 	// 這是轉換過的標題。
@@ -713,6 +719,7 @@ function start_main_work(page_data) {
 			with_content : true,
 			configuration_page : configuration_page_title,
 			adapt_configuration : adapt_configuration,
+			// language : use_language,
 			parameters : {
 				// 跳過機器人所做的編輯。
 				// You need the "patrol" or "patrolmarks" right to request the
@@ -1335,7 +1342,19 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 }
 
 function if_too_long(title) {
-	return title
+	title = CeL.wiki.parser(title);
+	title.each('convert', function(token, index, parent) {
+		var keys;
+		if (token.no_convert
+				|| (keys = Object.keys(token.conversion)).length === 0)
+			return;
+		return keys.reduce(function(accumulator, currentValue) {
+			// 選出長度最長的轉換文字。
+			return accumulator.length < currentValue.length ? currentValue
+					: accumulator;
+		}, '');
+	}, true);
+	return title.toString()
 	// remove HTML tags
 	.replace(/<\/?[a-z][^<>]*>?/g, '')
 	// remove styles
@@ -1472,7 +1491,9 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
-	var parsed = CeL.wiki.parser(page_data).parse();
+	var parsed = CeL.wiki.parser(page_data, {
+		language : use_language
+	}).parse();
 	if (!parsed) {
 		return [
 				CeL.wiki.edit.cancel,
