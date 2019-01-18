@@ -380,12 +380,6 @@ var page_configurations = {
 			return section.bot_name && applicants.length > 0;
 		}
 	})),
-	'zhwiki:Wikipedia:互助客栈/消息' : general_page_configuration,
-	'zhwiki:Wikipedia:互助客栈/方针' : general_page_configuration,
-	'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration,
-	'zhwiki:Wikipedia:互助客栈/求助' : general_page_configuration,
-	'zhwiki:Wikipedia:互助客栈/条目探讨' : general_page_configuration,
-	'zhwiki:Wikipedia:互助客栈/其他' : general_page_configuration,
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
@@ -629,6 +623,17 @@ function adapt_configuration(page_configuration, traversal) {
 	if (configuration_now.show_subtopic === 'false') {
 		configuration_now.show_subtopic = JSON
 				.parse(configuration_now.show_subtopic);
+	}
+
+	if (configuration.listen_to_pages) {
+		configuration_now = parse_configuration_table(configuration.closed_style);
+
+		Object.keys(configuration_now).forEach(function(page_name) {
+			var page_config = configuration_now[page_name];
+			if (!page_name.startsWith(CeL.wiki.site_name(wiki)))
+				page_name = CeL.wiki.site_name(wiki) + page_name;
+			page_configurations[page_name] = general_page_configuration;
+		});
 	}
 
 	// 這是轉換過的標題。
