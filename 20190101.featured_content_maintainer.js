@@ -597,18 +597,18 @@ function check_redirects(page_list) {
 				//
 				.title_link_of(get_FC_date_title_to_transclude(JDN)) + '介紹的'
 						+ CeL.wiki.title_link_of(original_FC_title)
-						+ '似乎未登記在現存或已被撤銷的' + TYPE_NAME + '列表頁面中？');
+						+ '似乎未登記在現存或已被撤銷的' + TYPE_NAME + '項目頁面中？');
 			});
 			if (false) {
 				CeL.warn('過去曾經在 '
 						+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
 								'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
-						+ '，並未登記在現存或已被撤銷的登記列表頁面中: '
+						+ '，並未登記在現存或已被撤銷的登記項目頁面中: '
 						+ CeL.wiki.title_link_of(original_FC_title) + '。'
 						+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
-						+ '列表頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
+						+ '項目頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
 						+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
-						+ '，請加入相應的已撤銷列表頁面。'
+						+ '，請加入相應的已撤銷項目頁面。'
 						+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 			}
 		}
@@ -722,7 +722,7 @@ function check_FC_template(page_data_list, operation) {
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (!is_FC(FC_title)) {
 			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了{{tl|'
-					+ operation.list + '}}，卻沒登記在' + TYPE_NAME + '列表中？');
+					+ operation.list + '}}，卻沒登記在' + TYPE_NAME + '項目中？');
 			return;
 		}
 
@@ -753,7 +753,7 @@ function summary_FC_template(list, operation) {
 		}
 		error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 登記在' + TYPE_NAME
 		//
-		+ '之列表中，卻沒嵌入' + _list.map(function(name) {
+		+ '項目中，卻沒嵌入' + _list.map(function(name) {
 			return '{{Tl|' + name.replace(/^Template:/i, '') + '}}';
 		}).join(', ') + (_list.length > 1 ? '其中之一' : '') + '？');
 	});
@@ -849,9 +849,9 @@ function check_date_page() {
 	// 不簽名，避免一日之中頻繁變更。 " --~~~~"
 	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。\n'
 	//
-	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 '
+	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
 	//
-	+ (need_list_field ? '!! <small title="為列表">列表</small> ' : '')
+	? '!! <small title="為' + TYPE_NAME + '列表">列表</small> ' : '')
 	// 範疇
 	+ '!! 類別 !! 上次展示時間 !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
 	//
