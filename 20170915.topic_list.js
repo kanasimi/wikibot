@@ -492,7 +492,7 @@ var section_column_operators = {
 		title = small_title(title, title_too_long);
 
 		// console.log(section);
-		if (configuration_now.show_subtopic
+		if (configuration.closed_style.show_subtopic
 		// 顯示次級連結。
 		&& (adding_link = section.adding_link)) {
 			// console.log(adding_link);
