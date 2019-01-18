@@ -1089,7 +1089,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		} else {
 			// 預防新當選條目沒有準備展示內容的情況。
 			check_if_FC_introduction_exists(FC_title, date_page_title,
-					transcluding_title);
+					transcluding_title, true);
 		}
 	});
 }
