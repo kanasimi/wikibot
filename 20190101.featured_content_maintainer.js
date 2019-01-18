@@ -1081,7 +1081,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]
 		//
-		? '上次展示時間為'
+		? '上次展示時間為 '
 		//
 		+ CeL.Julian_day.to_YMD(FC_data_hash[FC_title][KEY_LATEST_JDN], true)
 		//
