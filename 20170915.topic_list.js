@@ -578,16 +578,23 @@ function adapt_configuration(page_configuration, traversal) {
 	configuration = page_configuration;
 	// console.log(configuration);
 
-	// 檢查從網頁取得的設定。
-
 	// 一般設定
-	var general
+	var general = configuration.general
 	// 設定必要的屬性。
-	= configuration.general = parse_configuration_table(configuration.general);
+	= parse_configuration_table(configuration.general);
 
-	// 檢測數值是否合適。
+	if (general.stop_working && general.stop_working !== 'false') {
+		CeL.info('stop_working setted. exiting...');
+		// 加入排程，避免運作到一半出問題的情況。
+		wiki.run(function() {
+			process.exit(2);
+		});
+		return;
+	}
+
+	// 檢查從網頁取得的設定，檢測數值是否合適。
 	general.max_title_length |= 0;
-	if (!(general.max_title_length > 0 && general.max_title_length < 900)) {
+	if (!(general.max_title_length > 4 && general.max_title_length < 80)) {
 		delete general.max_title_length;
 	}
 
@@ -625,15 +632,18 @@ function adapt_configuration(page_configuration, traversal) {
 				.parse(configuration_now.show_subtopic);
 	}
 
+	setup_list_legend();
+
 	// 顯示主題列表之頁面。
 	if (configuration.listen_to_pages) {
 		configuration_now = configuration.listen_to_pages = parse_configuration_table(configuration.listen_to_pages);
 
-		Object.keys(configuration_now).forEach(function(page_name) {
-			var page_config = configuration_now[page_name];
-			if (!page_name.startsWith(CeL.wiki.site_name(wiki)))
-				page_name = CeL.wiki.site_name(wiki) + ':' + page_name;
-			page_configurations[page_name] = general_page_configuration;
+		Object.keys(configuration_now).forEach(function(page_title) {
+			var page_config = configuration_now[page_title];
+			if (!page_title.startsWith(CeL.wiki.site_name(wiki)))
+				page_title = CeL.wiki.site_name(wiki) + ':' + page_title;
+			if (!page_configurations[page_title])
+				page_configurations[page_title] = general_page_configuration;
 		});
 	}
 
@@ -689,8 +699,6 @@ function start_main_work(page_data) {
 	});
 
 	get_special_users.log_file_prefix = base_directory + 'special_users.';
-
-	set_list_legend();
 
 	// for debug
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
@@ -1209,6 +1217,7 @@ function check_BRFA_status(section) {
 // ----------------------------------------------
 
 function normalize_time_style_hash(time_style_hash) {
+	// console.log(time_style_hash);
 	for ( var time_interval in time_style_hash) {
 		var style = time_style_hash[time_interval];
 		if (style.includes('style=')) {
@@ -1220,13 +1229,14 @@ function normalize_time_style_hash(time_style_hash) {
 		}
 		if (style.startsWith('#')) {
 			// treat as background-color
-			time_style_hash[time_interval] = 'style="background-color:' + style
-					+ ';" ';
+			time_style_hash[time_interval] = 'style="background-color: '
+					+ style + ';" ';
 		}
 	}
+	// console.log(time_style_hash);
 }
 
-function set_list_legend() {
+function setup_list_legend() {
 	normalize_time_style_hash(short_to_long);
 	normalize_time_style_hash(long_to_short);
 
@@ -1295,7 +1305,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 				// 已經設定整行 CSS 的情況下，就不另外表現 CSS。
 				? '%Y-%2m-%2d %2H:%2M'
 				//
-				: '%Y-%2m-%2d <span style="color:blue;">%2H:%2M</span>',
+				: '%Y-%2m-%2d <span style="color: blue;">%2H:%2M</span>',
 				// 採用當個項目最多人所處的時區。
 				zone : parsed.page.page_configuration.timezone || 0
 			});
