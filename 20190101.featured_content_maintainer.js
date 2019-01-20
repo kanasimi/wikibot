@@ -119,7 +119,13 @@ CeL.wiki.cache([ {
 		// 設定必要的屬性。
 		= parse_configuration_table(configuration.general);
 
-		// 檢測數值是否合適。
+		if (general.stop_working && general.stop_working !== 'false') {
+			CeL.info('stop_working setted. exiting...');
+			process.exit(2);
+			return;
+		}
+
+		// 檢查從網頁取得的設定，檢測數值是否合適。
 		general.avoid_same_catalog_past_days |= 0;
 		if (!(general.avoid_same_catalog_past_days > 0
 		//
@@ -173,7 +179,7 @@ CeL.wiki.cache([ {
 	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
 	each : check_redirects
 }, {
-	// 含有 特色內容 模板之頁面
+	// 檢查含有特色內容、優良條目模板之頁面是否與登記項目頁面相符合。
 	type : 'embeddedin',
 	reget : true,
 	list : (using_GA ? 'Template:Good article'
@@ -773,7 +779,9 @@ function generate_help_message(date_page_title, message) {
 	var JDN_diff = JDN_to_generate - JDN_today | 0;
 	return (JDN_diff === 1 ? '[[Wikipedia:首頁/明天|明天的首頁]]'
 	//
-	: JDN_diff === 2 ? '後天首頁的' : JDN_diff + '天後首頁的')
+	: JDN_diff === 2 ? '後天首頁的'
+	//
+	: JDN_diff === 3 ? '大後天首頁的' : JDN_diff + '天後首頁的')
 	//
 	+ TYPE_NAME + '頁面（' + CeL.wiki.title_link_of(date_page_title) + '）'
 	//
@@ -956,6 +964,7 @@ function check_date_page() {
 		}
 
 		var FC_title = CeL.wiki.normalize_title(matched[3]);
+		FC_title = redirects_to_hash[FC_title] || FC_title;
 		if (!is_FC(FC_title)) {
 			wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 				var
