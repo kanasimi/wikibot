@@ -136,7 +136,7 @@ function process_VOA_page(XMLHttp) {
 
 	var link_data = this.link_data,
 	// assert: 沒有經過301轉換網址
-	this_link_data = link_data[XMLHttp.URL],
+	this_link_data = link_data[XMLHttp.responseURL],
 	//
 	title = response.between('<meta name="title" content="', '"').trim(),
 	// 報導的時間。
@@ -171,7 +171,7 @@ function process_VOA_page(XMLHttp) {
 	
 	if (!title || !report) {
 		this_link_data.note = response ? '無法解析頁面，需要更新解析頁面這部分的程式碼。' : '無法取得頁面內容。';
-		CeL.error(this_link_data.note + ': ' + XMLHttp.URL);
+		CeL.error(this_link_data.note + ': ' + XMLHttp.responseURL);
 		this.check_links();
 		return;
 	}
@@ -207,7 +207,7 @@ function process_VOA_page(XMLHttp) {
 		}
 
 		if (this_link_data.OK) {
-			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.URL);
+			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.responseURL);
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 		this_link_data.OK = true;
@@ -255,7 +255,7 @@ function process_VOA_page(XMLHttp) {
 			format : '%Y年%m月%d日',
 			// CST
 			zone : 8
-		}) + '}}\n\n' + report + '\n\n== 資料來源 ==\n{{VOA|url=' + XMLHttp.URL
+		}) + '}}\n\n' + report + '\n\n== 資料來源 ==\n{{VOA|url=' + XMLHttp.responseURL
 				+ '|title=' + title + '}}\n{{'
 				// 有問題的文章都設定為 Review。
 				+ (this_link_data.note ? 'Review' : 'Publish') + '}}'
