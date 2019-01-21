@@ -100,7 +100,7 @@ function process_main_page(row, error) {
 	while (matched = PATTERN_link.exec(content)) {
 		var link = matched[1];
 		if (link in link_data) {
-			CeL.error('連結重複了: ' + link);
+			CeL.error('連結重複了: ' + link + ' Skip the link');
 			continue;
 		}
 		link_data[link] = {
@@ -136,9 +136,15 @@ function process_VOA_page(XMLHttp) {
 
 	var link_data = this.link_data,
 	// assert: 沒有經過301轉換網址
-	this_link_data = link_data[XMLHttp.responseURL],
-	//
-	title = response.between('<meta name="title" content="', '"').trim(),
+	this_link_data = link_data[XMLHttp.responseURL];
+	if (!this_link_data) {
+		CeL.error('Can not found link data of ' + XMLHttp.responseURL);
+		console.log('link data: ' + JSON.stringify(link_data));
+		this.check_links();
+		return;
+	}
+
+	var title = response.between('<meta name="title" content="', '"').trim(),
 	// 報導的時間。
 	report_date = new Date(response.between('<time datetime="', '"')
 	// VOA 這個時間竟然是錯的，必須將之視作中原標準時間。
