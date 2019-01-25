@@ -233,13 +233,14 @@ function process_VOA_page(XMLHttp, error) {
 		}
 
 		if (this_link_data.OK) {
-			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.original_URL);
+			CeL.error('已經處理過，可能是標題重複了: ' + CeL.wiki.title_link_of(title) + ', '
+					+ XMLHttp.original_URL);
 			// 目標網頁已存在，跳過。
 			// this_link_data.note = '已處理過，跳過。';
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 		this_link_data.OK = true;
-
+		CeL.info('Write page ' + CeL.wiki.title_link_of(title));
 		this_link_data.title = title;
 		if (this_link_data.user) {
 			this.summary += ' requested by [[User:' + this_link_data.user
@@ -296,15 +297,21 @@ function process_VOA_page(XMLHttp, error) {
 		// for 機器人轉載新聞稿。
 		tags : 'import news',
 		summary : '[[' + main_operation_title + '|Import VOA news]]'
-	}, check_links.bind(this));
+	}, function(page_data, error, result) {
+		if (this_link_data.OK && error && error !== 'skip') {
+			delete this_link_data.OK;
+			if (!this_link_data.note)
+				this_link_data.note = error;
+		}
+	}).run(check_links.bind(this));
 }
 
 // ----------------------------------------------------------------------------
 
-function check_links(title, error) {
+function check_links() {
 	var link_data = this.link_data;
 	++this.processed_count;
-	CeL.log('check_links: get ' + this.processed_count + '/' + this.count);
+	CeL.log('check_links: got ' + this.processed_count + '/' + this.count);
 	if (this.processed_count < this.count) {
 		return;
 	}
@@ -316,11 +323,6 @@ function check_links(title, error) {
 
 		return content.replace(PATTERN_link, function(all, link, sign) {
 			var this_link_data = link_data[link];
-			if (this_link_data.OK && error) {
-				delete this_link_data.OK;
-				if (!this_link_data.note)
-					this_link_data.note = error;
-			}
 			// console.log(this_link_data);
 
 			return '\n* '
@@ -335,8 +337,8 @@ function check_links(title, error) {
 					+ '\n: {{'
 					+ (this_link_data.OK ? 'Done' : 'Cancelled')
 					+ '}}'
-					+ (this_link_data.user ? '{{Ping|' + this_link_data.user
-							+ '}}' : '')
+					+ (this_link_data.user ? '[[User:' + this_link_data.user
+							+ ']]: ' : '')
 					+ CeL.wiki.title_link_of(this_link_data.title)
 					// add categories (keywords) to report
 					+ (this_link_data.categories ? ' ('
