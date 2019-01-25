@@ -24,7 +24,7 @@ wiki = Wiki(true, 'wikinews');
 
 // ----------------------------------------------------------------------------
 
-var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*:]?\s*(https?:\/\/[^\s]+)(\s[^\n]*)?/g;
+var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*#:]?\s*(https?:\/\/[^\s]+)(\s[^\n]*)?/g;
 
 // @see [[Category:频道]]
 var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
@@ -64,7 +64,7 @@ function setup_listener() {
 		process_main_page(row);
 	}, {
 		// start : '1h',
-		interval : CeL.to_millisecond('5s'),
+		interval : '5s',
 		with_content : true,
 		filter : main_operation_title
 	});
@@ -119,9 +119,9 @@ function process_main_page(row, error) {
 			// row.revisions[0].user
 			|| CeL.wiki.content_of.revision(row).user
 		};
-		CeL.get_URL(link, function(XMLHttp) {
+		CeL.get_URL(link, function(XMLHttp, error) {
 			XMLHttp.original_URL = link;
-			to_pass.process(XMLHttp);
+			to_pass.process(XMLHttp, error);
 		}, null, null, {
 			// 美國之音網站似乎時不時會 Error: connect ETIMEDOUT
 			error_retry : 3,
@@ -139,7 +139,7 @@ function process_main_page(row, error) {
 
 // ----------------------------------------------------------------------------
 
-function process_VOA_page(XMLHttp) {
+function process_VOA_page(XMLHttp, error) {
 	// console.log(XMLHttp);
 	var status_code = XMLHttp.status,
 	//
@@ -151,6 +151,13 @@ function process_VOA_page(XMLHttp) {
 	if (!this_link_data) {
 		CeL.error('Can not found link data of ' + XMLHttp.original_URL);
 		console.log('link data: ' + JSON.stringify(link_data));
+		this.check_links();
+		return;
+	}
+
+	if (error) {
+		this_link_data.note = error;
+		CeL.error(this_link_data.note + ': ' + XMLHttp.original_URL);
 		this.check_links();
 		return;
 	}
@@ -227,6 +234,8 @@ function process_VOA_page(XMLHttp) {
 
 		if (this_link_data.OK) {
 			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.original_URL);
+			// 目標網頁已存在，跳過。
+			// this_link_data.note = '已處理過，跳過。';
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 		this_link_data.OK = true;
@@ -309,7 +318,8 @@ function check_links(title, error) {
 			var this_link_data = link_data[link];
 			if (this_link_data.OK && error) {
 				delete this_link_data.OK;
-				this_link_data.note = error;
+				if (!this_link_data.note)
+					this_link_data.note = error;
 			}
 			// console.log(this_link_data);
 
