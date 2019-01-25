@@ -58,7 +58,7 @@ function setup_listener() {
 
 	wiki.listen(function(row) {
 		CeL.info(script_name + ': ' + CeL.wiki.title_link_of(row));
-		if (false || 1)
+		if (false)
 			console.log([ row.title, row.revid, row.timestamp,
 					CeL.wiki.content_of(row).slice(0, 200) ]);
 		process_main_page(row);
@@ -120,6 +120,7 @@ function process_main_page(row, error) {
 			|| CeL.wiki.content_of.revision(row).user
 		};
 		CeL.get_URL(link, function(XMLHttp) {
+			XMLHttp.original_URL = link;
 			to_pass.process(XMLHttp);
 		}, null, null, {
 			// 美國之音網站似乎時不時會 Error: connect ETIMEDOUT
@@ -138,15 +139,16 @@ function process_main_page(row, error) {
 // ----------------------------------------------------------------------------
 
 function process_VOA_page(XMLHttp) {
+	// console.log(XMLHttp);
 	var status_code = XMLHttp.status,
 	//
 	response = XMLHttp.responseText;
 
 	var link_data = this.link_data,
 	// assert: 沒有經過301轉換網址
-	this_link_data = link_data[XMLHttp.responseURL];
+	this_link_data = link_data[XMLHttp.original_URL];
 	if (!this_link_data) {
-		CeL.error('Can not found link data of ' + XMLHttp.responseURL);
+		CeL.error('Can not found link data of ' + XMLHttp.original_URL);
 		console.log('link data: ' + JSON.stringify(link_data));
 		this.check_links();
 		return;
@@ -185,7 +187,7 @@ function process_VOA_page(XMLHttp) {
 	if (!title || !report) {
 		this_link_data.note = response ? '無法解析頁面，需要更新解析頁面這部分的程式碼。'
 				: '無法取得頁面內容。';
-		CeL.error(this_link_data.note + ': ' + XMLHttp.responseURL);
+		CeL.error(this_link_data.note + ': ' + XMLHttp.original_URL);
 		this.check_links();
 		return;
 	}
@@ -223,7 +225,7 @@ function process_VOA_page(XMLHttp) {
 		}
 
 		if (this_link_data.OK) {
-			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.responseURL);
+			CeL.error('已經處理過，可能是標題重複了: ' + title + ', ' + XMLHttp.original_URL);
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 		this_link_data.OK = true;
