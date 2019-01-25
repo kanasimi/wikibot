@@ -24,7 +24,7 @@ wiki = Wiki(true, 'wikinews');
 
 // ----------------------------------------------------------------------------
 
-var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*:]?\s*(https?:[^\s]+)(\s[^\n]*)?/g;
+var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*:]?\s*(https?:\/\/[^\s]+)(\s[^\n]*)?/g;
 
 // @see [[Category:频道]]
 var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'
@@ -64,7 +64,7 @@ function setup_listener() {
 		process_main_page(row);
 	}, {
 		// start : '1h',
-		interval : 5000,
+		interval : CeL.to_millisecond('5s'),
 		with_content : true,
 		filter : main_operation_title
 	});
@@ -124,7 +124,8 @@ function process_main_page(row, error) {
 			to_pass.process(XMLHttp);
 		}, null, null, {
 			// 美國之音網站似乎時不時會 Error: connect ETIMEDOUT
-			error_retry : 3
+			error_retry : 3,
+			timeout : CeL.to_millisecond('30s')
 		});
 	}
 
