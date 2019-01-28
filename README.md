@@ -1,4 +1,5 @@
-﻿![GitHub commit activity the past week, 4 weeks, year](https://img.shields.io/github/commit-activity/y/kanasimi/wikibot.svg)
+![GitHub commit activity the past week, 4 weeks, year](https://img.shields.io/github/commit-activity/y/kanasimi/wikibot.svg)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkanasimi%2Fwikibot.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkanasimi%2Fwikibot?ref=badge_shield)
+
 
 # CeJS MediaWiki bots demo
 Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
@@ -187,3 +188,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
 * Import Wikimedia database backup dumps data to user-created database on [Tool Labs](http://tools.wmflabs.org/). (See [process_dump.js](https://github.com/kanasimi/wikibot/blob/master/process_dump.js))
 * Traversal all 1.5M pages of zhwiki in 12 minutes on Tool Labs. (See [traversal_pages.clear.js](https://github.com/kanasimi/wikibot/blob/master/archive/traversal_pages.clear.js). It will automatically download xml dump file first.) 12分鐘遍歷所有 zhwiki 頁面。（於 Tool Labs，將自動先下載 xml dump file。）
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkanasimi%2Fwikibot.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkanasimi%2Fwikibot?ref=badge_large)
