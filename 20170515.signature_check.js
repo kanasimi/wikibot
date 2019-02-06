@@ -81,13 +81,17 @@ project_page_prefix = {
 	zhwikinews : 'Wikinews:',
 	zhwikisource : 'Wikisource:'
 }[project_name],
+
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
-whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', '維基大典:會館',
-		'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
-		'Wikiversity:互助客栈',
-		// for 萌娘百科 zh.moegirl.org
-		'Talk:讨论版', 'Talk:提问求助区' ],
+whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikipedia talk:首页',
+//
+'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
+//
+'維基大典:會館', 'Wikiversity:互助客栈',
+// for 萌娘百科 zh.moegirl.org
+'Talk:讨论版', 'Talk:提问求助区' ],
+
 // 黑名單直接封殺。黑名單的優先度高於白名單。
 // 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這個頁面補簽名。
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
