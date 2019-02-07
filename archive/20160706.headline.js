@@ -1109,7 +1109,7 @@ function search_中國評論通訊社(labels_to_check, check_left) {
 							// 自行手動登記已處理過之 URL。
 							remove_completed(labels_to_check, label, matched[2]
 									.replace(/<[^<>]+>/g, '').trim(),
-									XMLHttp.URL, true);
+									XMLHttp.responseURL, true);
 
 							check_left();
 						}, undefined, undefined, {
