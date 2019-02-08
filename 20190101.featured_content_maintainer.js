@@ -63,7 +63,7 @@ DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 	sectiontitle : 月日_to_generate + '的首頁' + TYPE_NAME + '頁面似乎有問題，請幫忙處理',
 	nocreate : 1,
 	summary : 'bot: ' + 月日_to_generate + '的首頁' + TYPE_NAME
-			+ '頁面似乎有問題，無法排除，通知社群幫忙處理。'
+			+ '頁面似乎有問題，無法解決，通知社群幫忙處理。'
 },
 
 KEY_IS_LIST = 0, KEY_ISFFC = 1,
@@ -167,10 +167,10 @@ CeL.wiki.cache([ {
 }, {
 	type : 'page',
 	// TODO: 一次取得大量頁面。
-	list : generate_FC_page_list,
+	list : generate_FC_date_page_list,
 	redirects : 1,
 	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
-	each : parse_each_FC_page
+	each : parse_each_FC_date_page
 }, {
 	type : 'redirects',
 	// TODO: 一次取得大量頁面。
@@ -188,7 +188,7 @@ CeL.wiki.cache([ {
 	each : check_FC_template,
 	operator : summary_FC_template
 } ], check_date_page, {
-	// JDN index in parse_each_FC_page()
+	// JDN index in parse_each_FC_date_page()
 	JDN : JDN_start,
 	// index in check_redirects()
 	redirects_index : 0,
@@ -373,7 +373,7 @@ function get_FC_date_title_to_transclude(JDN) {
 			+ CeL.Julian_day.to_Date(JDN).format('/%Y年%m月%d日');
 }
 
-function generate_FC_page_list() {
+function generate_FC_date_page_list() {
 	var title_list = [];
 
 	for (var JDN = JDN_start; JDN <= JDN_search_to; JDN++) {
@@ -383,7 +383,7 @@ function generate_FC_page_list() {
 	return title_list;
 }
 
-function parse_each_FC_page(page_data) {
+function parse_each_FC_date_page(page_data) {
 	/**
 	 * {String}page title = page_data.title
 	 */
@@ -398,7 +398,7 @@ function parse_each_FC_page(page_data) {
 					PATTERN_FC_transcluded);
 
 	// return error
-	function check_FC_title(FC_title) {
+	function check_NOT_FC_title(FC_title) {
 		if (!FC_title)
 			return true;
 		var FC_data = FC_data_hash[FC_title];
@@ -420,14 +420,14 @@ function parse_each_FC_page(page_data) {
 
 	if (matched) {
 		FC_title = CeL.wiki.normalize_title(matched[3]);
-		if (check_FC_title(FC_title)
-				&& check_FC_title(redirects_to_hash[FC_title])) {
+		if (check_NOT_FC_title(FC_title)
+				&& check_NOT_FC_title(redirects_to_hash[FC_title])) {
 			// 可能繁簡轉換不同/經過重定向了?
 			CeL.debug('不再是' + (using_GA ? '優良' : '特色/典範') + '了? ' + matched[2]
 					+ ' ' + CeL.wiki.title_link_of(FC_title));
 			redirects_list_to_check.push(FC_title);
 			(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
-			check_FC_title(FC_title);
+			check_NOT_FC_title(FC_title);
 		}
 		return;
 	}
@@ -451,8 +451,8 @@ function parse_each_FC_page(page_data) {
 		return parsed.each.exit;
 	});
 
-	if (!check_FC_title(FC_title)
-			|| !check_FC_title(redirects_to_hash[FC_title])) {
+	if (!check_NOT_FC_title(FC_title)
+			|| !check_NOT_FC_title(redirects_to_hash[FC_title])) {
 		// 已經做過登記了。
 		// 但是沒有設定 FC_data[KEY_TRANSCLUDING_PAGE]
 
@@ -471,7 +471,7 @@ function parse_each_FC_page(page_data) {
 		(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
 		// 無法設定 FC_data[KEY_TRANSCLUDING_PAGE]
 		// 補登記資訊。
-		check_FC_title(FC_title);
+		check_NOT_FC_title(FC_title);
 		return;
 	}
 
@@ -987,7 +987,9 @@ function check_date_page() {
 				//
 				? '似乎嵌入包含了另一個日期的簡介。請幫忙改成直接嵌入頁面'
 				//
-				: '所嵌入包含的標題似乎並非' + TYPE_NAME + '標題？'
+				: '所嵌入包含的標題' + CeL.wiki.title_link_of(FC_title)
+				//
+				+ '似乎並非' + TYPE_NAME + '標題？'
 				//
 				+ '若包含的頁面確實並非' + TYPE_NAME + '，請幫忙處理');
 
@@ -1191,7 +1193,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 			return generate_help_message(date_page_title,
 			//
-			'所嵌入包含的' + TYPE_NAME + '-' + CeL.wiki.title_link_of(FC_title)
+			'所嵌入包含的' + TYPE_NAME + '──' + CeL.wiki.title_link_of(FC_title)
 			//
 			+ '似乎還不存在簡介？' + (using_GA ? '' : '或許簡介頁面存放在"Wikipedia:優良條目/"下？')
 			//
