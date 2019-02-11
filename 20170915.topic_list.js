@@ -1290,7 +1290,7 @@ function setup_list_legend() {
 				+ _list_legend[time_interval], '|-');
 	}
 
-	list_legend_used.special_status_index = list_legend_used.index;
+	list_legend_used.special_status_index = list_legend_used.length;
 	list_legend_used.push('');
 	if (use_language === 'zh') {
 		setup_list_legend_special_status();
