@@ -627,6 +627,17 @@ function adapt_configuration(page_configuration, traversal) {
 			continue;
 		}
 	}
+	for ( var attribute_name in {
+		line_CSS : true,
+		link_CSS : true
+	}) {
+		var style = configuration_now[attribute_name];
+		// 簡單的檢核，還不夠完善！
+		if (style.includes('"')) {
+			delete configuration_now[attribute_name];
+			continue;
+		}
+	}
 	if (configuration_now.show_subtopic === 'false') {
 		configuration_now.show_subtopic = JSON
 				.parse(configuration_now.show_subtopic);
@@ -1236,6 +1247,25 @@ function normalize_time_style_hash(time_style_hash) {
 	// console.log(time_style_hash);
 }
 
+function setup_list_legend_special_status() {
+	// @see general_row_style()
+	var guide = configuration.closed_style.line_CSS ? '| ' + 'style="'
+			+ configuration.closed_style.line_CSS + '" ' : '';
+
+	// TODO: CSS_toString(section.CSS)
+	if (configuration.closed_style.show_subtopic) {
+		guide += '| 討論議題' + '<br />→'
+		// 已移動至目標頁面
+		+ '<small>已移至頁面/最新討論子項</small>';
+	} else {
+		guide += '| 已移動至其他頁面<br />或完成討論之議題';
+	}
+
+	guide = [ '! 特殊狀態', '|-', guide, '|-' ].join('\n');
+
+	list_legend_used[list_legend_used.special_status_index] = guide;
+}
+
 function setup_list_legend() {
 	normalize_time_style_hash(short_to_long);
 	normalize_time_style_hash(long_to_short);
@@ -1260,11 +1290,10 @@ function setup_list_legend() {
 				+ _list_legend[time_interval], '|-');
 	}
 
+	list_legend_used.special_status_index = list_legend_used.index;
+	list_legend_used.push('');
 	if (use_language === 'zh') {
-		// @see general_row_style()
-		list_legend_used.push('! 特殊狀態', '|-', '| 討論議題' + '<br />→'
-		// 已移動至目標頁面
-		+ '<small>已移至頁面/最新討論子項</small>', '|-');
+		setup_list_legend_special_status();
 	}
 
 	if (configuration.configuration_page_title) {
@@ -1411,7 +1440,7 @@ function local_number(number, attributes) {
 		}
 		attributes = 'style="' + style + '"';
 	} else if (!attributes.includes('style="')) {
-		attributes += ' style="' + style + '"';
+		attributes += ' ' + 'style="' + style + '"';
 	} else {
 		attributes = attributes.replace('style="', 'style="' + style);
 	}
