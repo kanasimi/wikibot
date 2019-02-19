@@ -2,7 +2,7 @@
 
 /*
 
- 初版試營運
+ 2019/2/19	初版試營運
 
 
  */
@@ -53,9 +53,9 @@ CeL.wiki.cache([ {
 			type : 'categorymembers',
 			list : base_category,
 			namespace : 'Category|File'
-		}, function(list) {
-			// CeL.log('Get ' + list.length + ' item(s).');
-			for_each_base_category(list, base_category,
+		}, function(categorymember_list) {
+			// CeL.log('Get ' + categorymember_list.length + ' item(s).');
+			for_each_base_category(categorymember_list, base_category,
 			//
 			run_next_base_category);
 		}, {
@@ -78,22 +78,40 @@ CeL.wiki.cache([ {
 
 // ---------------------------------------------------------------------//
 
-function for_each_base_category(list, base_category, run_next_base_category) {
-	// console.log(list);
+// return NOT sub category
+function add_sub_category(page_data, sub_category_list, parent_category) {
+	if (page_data.ns !== CeL.wiki.namespace('Category')) {
+		// assert: [[File:...]]
+		return true;
+	}
+
+	var title = page_data.title;
+	// without known IDs, with known IDs
+	if (title.includes(' with known ') || title.includes(' without known ')
+			|| title.includes(' needing categories')) {
+		// Skip 跳過指示性 category
+		return;
+	}
+
+	if (!(title in sub_category_list.hash)) {
+		// add new sub category
+		sub_category_list.hash[title] = parent_category;
+		sub_category_list.push(title);
+	}
+}
+
+function for_each_base_category(categorymember_list, base_category,
+		run_next_base_category) {
+	// console.log(categorymember_list);
 	var pageid_hash = CeL.null_Object(), sub_category_list = [];
 	sub_category_list.hash = CeL.null_Object();
-	list.froEach(function(page_data) {
-		if (page_data.ns === CeL.wiki.namespace('Category')) {
-			if (!(page_data.pageid in sub_category_list.hash)) {
-				sub_category_list.hash[page_data.pageid] = null;
-				sub_category_list.push(page_data.pageid);
-			}
-		} else
+	categorymember_list.forEach(function(page_data) {
+		if (add_sub_category(page_data, sub_category_list, base_category))
 			pageid_hash[page_data.pageid] = null;
 	});
 
 	traversal_each_sub_categories(sub_category_list, pageid_hash,
-	// base_category === list.query_title
+	// base_category === categorymember_list.query_title
 	base_category, run_next_base_category);
 }
 
@@ -109,6 +127,7 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 
 	// get next sub category
 	var sub_category = sub_category_list.shift();
+	var parent_category = sub_category_list.hash[sub_category];
 
 	CeL.wiki.cache({
 		type : 'categorymembers',
@@ -116,18 +135,16 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 		namespace : 'Category|File'
 	}, function(list) {
 		// CeL.log('Get ' + list.length + ' item(s).');
-		list.froEach(function(page_data) {
-			if (page_data.ns === CeL.wiki.namespace('Category')) {
-				if (!(page_data.pageid in sub_category_list.hash)) {
-					sub_category_list.hash[page_data.pageid] = null;
-					sub_category_list.push(page_data.pageid);
-				}
-			} else if (page_data.pageid in pageid_hash) {
-				clean_overcategorization_pages(page_data, base_category);
+		list.forEach(function(page_data) {
+			if (add_sub_category(page_data, sub_category_list, sub_category)
+					&& (page_data.pageid in pageid_hash)) {
+				clean_overcategorization_pages(page_data, base_category,
+						sub_category, sub_category_list);
 			}
 		});
+		// check next sub_category
 		traversal_each_sub_categories(sub_category_list, pageid_hash,
-				base_category);
+				base_category, run_next_base_category);
 	}, {
 		// [KEY_SESSION]
 		session : wiki,
@@ -138,7 +155,19 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 
 // ---------------------------------------------------------------------//
 
-function clean_overcategorization_pages(page_data, base_category) {
+function clean_overcategorization_pages(page_data, base_category,
+		parent_category, sub_category_list) {
+	var category = parent_category, hierarchy = [], base_category_name = base_category
+			.replace(/^[^:]+:/, '');
+	while (category) {
+		hierarchy.unshift(CeL.wiki.title_link_of(category));
+		// assert: base_category in sub_category_list.hash === false
+		category = sub_category_list.hash[category];
+	}
+	hierarchy = hierarchy.join('←');
+	// console.log(CeL.wiki.PATTERN_category);
+	// console.log(hierarchy);
+
 	wiki.page(page_data).edit(function(page_data) {
 		/** {String}page title = page_data.title */
 		var title = CeL.wiki.title_of(page_data),
@@ -158,7 +187,14 @@ function clean_overcategorization_pages(page_data, base_category) {
 		content = content.replace(CeL.wiki.PATTERN_category,
 		//
 		function(all_category_text, category_name, sort_order, post_space) {
-			if (CeL.wiki.normalize_title(category_name) === base_category) {
+			if (false) {
+				console.log([ base_category, all_category_text,
+				//
+				category_name, sort_order, post_space ]);
+			}
+			if (CeL.wiki.normalize_title(category_name)
+			//
+			=== base_category_name) {
 				replaced = true;
 				return '';
 			}
@@ -174,5 +210,10 @@ function clean_overcategorization_pages(page_data, base_category) {
 		}
 
 		return content;
+	}, {
+		summary : 'Claen overcategorization: ' + hierarchy,
+		nocreate : 1,
+		bot : 1,
+		minor : 1
 	});
 }
