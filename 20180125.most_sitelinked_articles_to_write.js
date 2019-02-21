@@ -1,6 +1,6 @@
 ﻿/*
 
-	初版完成，試營運。
+2018/2/3	初版完成，試營運。
 
 
 @see
@@ -14,6 +14,10 @@ https://github.com/Pascalco/DeltaBot/blob/master/badges.py
 
 {{仮リンク|{{label|Q30}}|wikidata|Q30}}
 {{Illm|WD=Q30}}
+
+
+TODO:
+write [[Template:Recent_changes_article_requests/list]]
 
  */
 

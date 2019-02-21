@@ -7,7 +7,7 @@ Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki modul
 ## Node.js usage
 
 ### Installation
-1. Please see [Node.js usage section at CeJS](https://github.com/kanasimi/CeJS#nodejs-usage) for detail.
+1. Please see [Node.js usage section at CeJS](https://github.com/kanasimi/CeJS#nodejs-usage--nodejs-運行方式) for detail.
 2. Setup [_CeL.path.txt](https://github.com/kanasimi/CeJS/blob/master/_for%20include/_CeL.path.sample.txt) if necessary.
 3. Setup [wiki configuration.js](https://github.com/kanasimi/wikibot/blob/master/wiki%20configuration.sample.js).
 

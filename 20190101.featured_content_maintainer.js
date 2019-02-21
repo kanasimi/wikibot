@@ -1149,7 +1149,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 
 // ---------------------------------------------------------------------//
 
-// 確認簡介頁面存在。
+// 確認簡介頁面存在。新入選的文章會自動被列入排程。但是簡介頁面確實得由人工先編纂出來。
 function check_if_FC_introduction_exists(FC_title, date_page_title,
 		transcluding_title, write_failed) {
 	if (!transcluding_title)

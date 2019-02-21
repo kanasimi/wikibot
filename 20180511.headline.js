@@ -1001,7 +1001,7 @@ function for_source(source_id) {
 
 	var data_url = source_data.data_url || source_data.url;
 
-	CeL.get_URL(/[^\x21-\x7f]/.test(data_url)
+	CeL.get_URL(/[^\x21-\x7e]/.test(data_url)
 	//
 	? encodeURI(data_url) : data_url, function(XMLHttp, error) {
 		var html = XMLHttp.responseText,

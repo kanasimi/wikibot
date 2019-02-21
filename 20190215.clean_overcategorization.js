@@ -42,7 +42,8 @@ CeL.wiki.cache([ {
 }
 // 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
 && false ], function(base_category_list) {
-	base_category_list = [ 'Category:Cultural heritage monuments in Italy' ];
+	// 指定 category
+	// base_category_list = [ 'Category:Cultural heritage monuments in Italy' ];
 
 	base_category_list.run_async(
 	//
@@ -51,6 +52,7 @@ CeL.wiki.cache([ {
 				+ CeL.wiki.title_link_of(base_category));
 		CeL.wiki.cache({
 			type : 'categorymembers',
+			reget : true,
 			list : base_category,
 			namespace : 'Category|File'
 		}, function(categorymember_list) {
@@ -65,7 +67,7 @@ CeL.wiki.cache([ {
 			prefix : base_directory
 		});
 	}, function() {
-		CeL.info('All done.');
+		CeL.info('All ' + base_category_list.length + ' categories done.');
 	});
 
 }, {
@@ -131,6 +133,7 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 
 	CeL.wiki.cache({
 		type : 'categorymembers',
+		reget : true,
 		list : sub_category,
 		namespace : 'Category|File'
 	}, function(list) {
@@ -211,7 +214,9 @@ function clean_overcategorization_pages(page_data, base_category,
 
 		return content;
 	}, {
-		summary : 'Claen overcategorization: ' + hierarchy,
+		summary : '[[Commons:Bots/Requests/Cewbot 6'
+		//
+		+ '|Claen overcategorization]]: ' + hierarchy,
 		nocreate : 1,
 		bot : 1,
 		minor : 1

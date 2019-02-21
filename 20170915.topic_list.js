@@ -633,7 +633,7 @@ function adapt_configuration(page_configuration, traversal) {
 	}) {
 		var style = configuration_now[attribute_name];
 		// 簡單的檢核，還不夠完善！
-		if (style.includes('"')) {
+		if (style && style.includes('"')) {
 			delete configuration_now[attribute_name];
 			continue;
 		}
