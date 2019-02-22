@@ -917,7 +917,11 @@ function check_date_page() {
 	.edit(report, {
 		bot : 1,
 		nocreate : 1,
-		summary : 'bot: 首頁' + TYPE_NAME + '更新報告'
+		summary : 'bot: 首頁' + TYPE_NAME + '更新報告: '
+		//
+		+ FC_title_sorted.length + '篇' + TYPE_NAME
+		//
+		+ (error_logs.length > 0 ? '，' + error_logs.length + '筆錯誤' : '')
 	});
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
@@ -1017,7 +1021,7 @@ function fix_for_titleblacklist(page_title) {
 // 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 function write_date_page(date_page_title, transcluding_title_now) {
 	var FC_title, candidates = [],
-	// 跳過上過首頁太多次的條目。盡量使各條目展示的次數相近。
+	// 跳過上過首頁太多次、展示次數過多的條目。盡量使各條目展示的次數相近。
 	hit_upper_Bound = hit_count / FC_title_sorted.length + 2 | 0;
 	for (var index = 0; index < FC_title_sorted.length; index++) {
 		FC_title = FC_title_sorted[index];
