@@ -1258,9 +1258,8 @@ function check_month_list() {
 
 function update_portal() {
 	// 每個禮拜更新一次。
-	if (using_GA || (new Date).getDay() !== 5
-	// && false
-	) {
+	if (using_GA || (new Date).getDay() !== 5 || CeL.env.arg_hash
+			&& (CeL.env.arg_hash.days_later | 0)) {
 		finish_up();
 		return;
 	}
@@ -1277,8 +1276,8 @@ function update_portal() {
 		}
 	}
 
-	console.log(FC_articles);
-	console.log(FC_lists);
+	// console.log(FC_articles);
+	// console.log(FC_lists);
 
 	function edit_portal(page_data) {
 		var
