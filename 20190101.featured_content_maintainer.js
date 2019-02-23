@@ -1258,7 +1258,9 @@ function check_month_list() {
 
 function update_portal() {
 	// 每個禮拜更新一次。
-	if (using_GA || (new Date).getDay() !== 5 || true) {
+	if (using_GA || (new Date).getDay() !== 5
+	// && false
+	) {
 		finish_up();
 		return;
 	}
@@ -1287,7 +1289,7 @@ function update_portal() {
 		/** 頁面解析後的結構。 */
 		var parsed = CeL.wiki.parser(page_data).parse();
 
-		parser.each('template', function(token) {
+		parsed.each('template', function(token) {
 			if (token.name !== '#invoke:random')
 				return;
 			var last_option = 2;
@@ -1299,7 +1301,7 @@ function update_portal() {
 					: FC_articles);
 		});
 
-		return parser.toString();
+		return parsed.toString();
 	}
 
 	wiki.page('Portal:特色內容/條目', get_page_options).edit(edit_portal, {
