@@ -858,7 +858,7 @@ function check_date_page() {
 	avoid_catalogs = avoid_catalogs.unique();
 	CeL.log('避免採用類別: ' + avoid_catalogs);
 
-	var index = 0, need_list_field = !using_GA,
+	var index = 0, need_list_field = !using_GA, never_shown = 0,
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
@@ -878,6 +878,9 @@ function check_date_page() {
 		//
 		fields = [ ++index, CeL.wiki.title_link_of(FC_title) ];
 
+		if (!JDN)
+			never_shown++;
+
 		if (need_list_field) {
 			fields.push(
 			// 類型: 條目/列表
@@ -895,7 +898,7 @@ function check_date_page() {
 		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
 		+ (JDN_today > JDN ? ' (' + (JDN_today - JDN) + ' days)' : '')
-		//
+		// 沒有展示過
 		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
 		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
@@ -920,6 +923,8 @@ function check_date_page() {
 		summary : 'bot: 首頁' + TYPE_NAME + '更新報告: '
 		//
 		+ FC_title_sorted.length + '篇' + TYPE_NAME
+		//
+		+ (never_shown > 0 ? '，' + never_shown + '篇沒上過首頁' : '')
 		//
 		+ (error_logs.length > 0 ? '，' + error_logs.length + '筆錯誤' : '')
 	});
@@ -1226,7 +1231,7 @@ function check_month_list() {
 		content = CeL.wiki.content_of(page_data);
 
 		if (content && content.trim()) {
-			finish_up();
+			update_portal();
 			return;
 		}
 
@@ -1248,11 +1253,68 @@ function check_month_list() {
 		content.push('|}');
 		wiki.edit(content.join('\n'), {
 			summary : 'bot: 自動創建每月' + TYPE_NAME + '存檔'
-		}).run(finish_up);
+		}).run(update_portal);
 	}, {
 		redirects : 1
 	});
 }
+
+// ---------------------------------------------------------------------//
+
+function update_portal() {
+	// 每個禮拜更新一次。
+	if (using_GA || (new Date).getDay() !== 5) {
+		finish_up();
+		return;
+	}
+
+	var index = FC_title_sorted.length, FC_articles = [], FC_lists = [], max_count = 10;
+	while (index-- > 0) {
+		var FC_title = FC_title_sorted[index], FC_data = FC_data_hash[FC_title], is_list = FC_data[KEY_IS_LIST];
+		if (is_list) {
+			if (FC_lists.length < max_count)
+				FC_lists.push(FC_title);
+		} else {
+			if (FC_articles.length < max_count)
+				FC_articles.push(FC_title);
+		}
+	}
+
+	console.log(FC_articles);
+	console.log(FC_lists);
+
+	function edit_portal(page_data) {
+		var
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 */
+		content = CeL.wiki.content_of(page_data);
+		/** 頁面解析後的結構。 */
+		var parsed = CeL.wiki.parser(page_data).parse();
+
+		parser.each('template', function(token) {
+			if (token.name !== '#invoke:random')
+				return;
+			var last_option = 2;
+			while (token[last_option].includes('=')) {
+				last_option++;
+			}
+			token.splice(last_option, token.length - last_option);
+			token.append(page_data.title.includes('列表') ? FC_lists
+					: FC_articles);
+		});
+
+		return parser.toString();
+	}
+
+	wiki.page('Portal:特色內容/條目').edit(edit_portal);
+	wiki.page('Portal:特色內容/列表').edit(edit_portal);
+	// [[Template:New featured pages]] 沒有新增條目的資訊
+
+	finish_up();
+}
+
+// ---------------------------------------------------------------------//
 
 function finish_up() {
 	// log
