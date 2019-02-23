@@ -94,7 +94,12 @@ avoid_catalogs, hit_count,
  * should allow "AdS/CFT對偶" as FC title<br />
  * matched: [ all, transcluding_title, FC_page_prefix, FC_title ]
  */
-PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^{}]+))\}\}\s*$/;
+PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^{}]+))\}\}\s*$/,
+//
+get_page_options = {
+	converttitles : 1,
+	redirects : 1
+};
 
 // ---------------------------------------------------------------------//
 // main
@@ -558,9 +563,8 @@ function check_redirects(page_list) {
 			if (!content || !PATTERN_FC_transcluded.test(content))
 				return;
 			FC_data[KEY_JDN].forEach(function(JDN) {
-				wiki.page(get_FC_date_title_to_transclude(JDN), {
-					redirects : 1
-				}).edit(content, {
+				wiki.page(get_FC_date_title_to_transclude(JDN),
+						get_page_options).edit(content, {
 					bot : 1,
 					nocreate : 1,
 					summary : 'bot: 修正頁面: 首頁' + TYPE_NAME
@@ -570,10 +574,7 @@ function check_redirects(page_list) {
 					+ '，直接改成所包含的內容以便查詢與統計。'
 				});
 			});
-		}, {
-			redirects : 1,
-			converttitles : 1
-		});
+		}, get_page_options);
 		return;
 	}
 
@@ -680,10 +681,7 @@ function check_redirects(page_list) {
 			});
 		});
 
-	}, {
-		redirects : 1,
-		converttitles : 1
-	});
+	}, get_page_options);
 
 	function write_date_pages() {
 		FC_data[KEY_TITLES_TO_MOVE].forEach(function(title) {
@@ -798,6 +796,8 @@ function is_FC(FC_title) {
 	return FC_data && FC_data[KEY_ISFFC] === false;
 }
 
+var never_shown_pages = [];
+
 function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
@@ -858,7 +858,7 @@ function check_date_page() {
 	avoid_catalogs = avoid_catalogs.unique();
 	CeL.log('避免採用類別: ' + avoid_catalogs);
 
-	var index = 0, need_list_field = !using_GA, never_shown = 0,
+	var index = 0, need_list_field = !using_GA,
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
@@ -879,7 +879,7 @@ function check_date_page() {
 		fields = [ ++index, CeL.wiki.title_link_of(FC_title) ];
 
 		if (!JDN)
-			never_shown++;
+			never_shown_pages.push(FC_title);
 
 		if (need_list_field) {
 			fields.push(
@@ -924,7 +924,9 @@ function check_date_page() {
 		//
 		+ FC_title_sorted.length + '篇' + TYPE_NAME
 		//
-		+ (never_shown > 0 ? '，' + never_shown + '篇沒上過首頁' : '')
+		+ (never_shown_pages.length > 0
+		//
+		? '，' + never_shown_pages.length + '篇沒上過首頁' : '')
 		//
 		+ (error_logs.length > 0 ? '，' + error_logs.length + '筆錯誤' : '')
 	});
@@ -1008,10 +1010,7 @@ function check_date_page() {
 
 		check_if_FC_introduction_exists(FC_title, date_page_title, matched[1]);
 
-	}, {
-		converttitles : 1,
-		redirects : 1
-	});
+	}, get_page_options);
 
 }
 
@@ -1210,9 +1209,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 		}, DISCUSSION_edit_options).run(check_month_list);
 		return;
-	}, {
-		redirects : 1
-	});
+	}, get_page_options);
 }
 
 // ---------------------------------------------------------------------//
@@ -1254,16 +1251,14 @@ function check_month_list() {
 		wiki.edit(content.join('\n'), {
 			summary : 'bot: 自動創建每月' + TYPE_NAME + '存檔'
 		}).run(update_portal);
-	}, {
-		redirects : 1
-	});
+	}, get_page_options);
 }
 
 // ---------------------------------------------------------------------//
 
 function update_portal() {
 	// 每個禮拜更新一次。
-	if (using_GA || (new Date).getDay() !== 5) {
+	if (using_GA || (new Date).getDay() !== 5 || true) {
 		finish_up();
 		return;
 	}
@@ -1307,9 +1302,17 @@ function update_portal() {
 		return parser.toString();
 	}
 
-	wiki.page('Portal:特色內容/條目').edit(edit_portal);
-	wiki.page('Portal:特色內容/列表').edit(edit_portal);
-	// [[Template:New featured pages]] 沒有新增條目的資訊
+	wiki.page('Portal:特色內容/條目', get_page_options).edit(edit_portal, {
+		bot : 1,
+		nocreate : 1,
+		summary : 'bot: 更新[[Portal:特色內容]]'
+	});
+	wiki.page('Portal:特色內容/列表', get_page_options).edit(edit_portal, {
+		bot : 1,
+		nocreate : 1,
+		summary : 'bot: 更新[[Portal:特色內容]]'
+	});
+	// TODO: [[Template:New featured pages]] using never_shown_pages
 
 	finish_up();
 }
