@@ -129,7 +129,7 @@ CeL.wiki.cache([ {
 		general.avoid_same_catalog_past_days |= 0;
 		if (!(general.avoid_same_catalog_past_days > 0
 		//
-		&& general.avoid_same_catalog_past_days < 5)) {
+		&& general.avoid_same_catalog_past_days < 99)) {
 			delete general.avoid_same_catalog_past_days;
 		}
 

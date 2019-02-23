@@ -38,37 +38,14 @@ CeL.wiki.cache([ {
 		return list;
 	},
 	namespace : 'Category|File',
-	each : for_each_base_category
+	each : for_base_categorymember_list
 }
 // 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
 && false ], function(base_category_list) {
 	// 指定 category
 	// base_category_list = [ 'Category:Cultural heritage monuments in Italy' ];
 
-	base_category_list.run_async(
-	//
-	function(run_next_base_category, base_category) {
-		CeL.info('Process base category: '
-				+ CeL.wiki.title_link_of(base_category));
-		CeL.wiki.cache({
-			type : 'categorymembers',
-			reget : true,
-			list : base_category,
-			namespace : 'Category|File'
-		}, function(categorymember_list) {
-			// CeL.log('Get ' + categorymember_list.length + ' item(s).');
-			for_each_base_category(categorymember_list, base_category,
-			//
-			run_next_base_category);
-		}, {
-			// [KEY_SESSION]
-			session : wiki,
-			// cache path prefix
-			prefix : base_directory
-		});
-	}, function() {
-		CeL.info('All ' + base_category_list.length + ' categories done.');
-	});
+	base_category_list.run_async(for_each_base_category, finish);
 
 }, {
 	// default options === this
@@ -77,6 +54,28 @@ CeL.wiki.cache([ {
 	// cache path prefix
 	prefix : base_directory
 });
+
+// ---------------------------------------------------------------------//
+
+function for_each_base_category(run_next_base_category, base_category) {
+	CeL.info('Process base category: ' + CeL.wiki.title_link_of(base_category));
+	CeL.wiki.cache({
+		type : 'categorymembers',
+		reget : true,
+		list : base_category,
+		namespace : 'Category|File'
+	}, function(categorymember_list) {
+		// CeL.log('Get ' + categorymember_list.length + ' item(s).');
+		for_base_categorymember_list(categorymember_list, base_category,
+		//
+		run_next_base_category);
+	}, {
+		// [KEY_SESSION]
+		session : wiki,
+		// cache path prefix
+		prefix : base_directory
+	});
+}
 
 // ---------------------------------------------------------------------//
 
@@ -102,7 +101,7 @@ function add_sub_category(page_data, sub_category_list, parent_category) {
 	}
 }
 
-function for_each_base_category(categorymember_list, base_category,
+function for_base_categorymember_list(categorymember_list, base_category,
 		run_next_base_category) {
 	// console.log(categorymember_list);
 	var pageid_hash = CeL.null_Object(), sub_category_list = [];
@@ -160,8 +159,10 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 
 function clean_overcategorization_pages(page_data, base_category,
 		parent_category, sub_category_list) {
-	var category = parent_category, hierarchy = [], base_category_name = base_category
-			.replace(/^[^:]+:/, '');
+	console.log([ base_category, parent_category ]);
+	var category = parent_category, hierarchy = [],
+	// remove prefix "Category:"
+	base_category_name = base_category.replace(/^[^:]+:/, '');
 	while (category) {
 		hierarchy.unshift(CeL.wiki.title_link_of(category));
 		// assert: base_category in sub_category_list.hash === false
@@ -221,4 +222,10 @@ function clean_overcategorization_pages(page_data, base_category,
 		bot : 1,
 		minor : 1
 	});
+}
+
+// ---------------------------------------------------------------------//
+
+function finish() {
+	CeL.info('All ' + base_category_list.length + ' categories done.');
 }
