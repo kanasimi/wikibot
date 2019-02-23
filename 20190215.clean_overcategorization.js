@@ -86,7 +86,7 @@ function add_sub_category(page_data, sub_category_list, parent_category) {
 		return true;
 	}
 
-	var title = page_data.title;
+	var title = CeL.wiki.title_of(page_data);
 	// without known IDs, with known IDs
 	if (title.includes(' with known ') || title.includes(' without known ')
 			|| title.includes(' needing categories')) {
@@ -159,10 +159,11 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 
 function clean_overcategorization_pages(page_data, base_category,
 		parent_category, sub_category_list) {
-	console.log([ base_category, parent_category ]);
+	// console.log([ base_category, parent_category ]);
 	var category = parent_category, hierarchy = [],
 	// remove prefix "Category:"
-	base_category_name = base_category.replace(/^[^:]+:/, '');
+	base_category_name = CeL.wiki.title_of(base_category)
+			.replace(/^[^:]+:/, '');
 	while (category) {
 		hierarchy.unshift(CeL.wiki.title_link_of(category));
 		// assert: base_category in sub_category_list.hash === false
