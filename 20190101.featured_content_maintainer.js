@@ -1264,7 +1264,7 @@ function check_month_list() {
 					+ '/日期|%Y年%m月%d日}}'));
 		}
 		content.push('|}');
-		wiki.edit(content.join('\n'), {
+		wiki.page(page_data).edit(content.join('\n'), {
 			summary : 'bot: 自動創建每月' + TYPE_NAME + '存檔'
 		}).run(update_portal);
 	}, get_page_options);
