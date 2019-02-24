@@ -109,7 +109,7 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-CeL.wiki.cache([ {
+wiki.cache([ {
 	type : 'page',
 	list : configuration_page_title,
 	redirects : 1,
@@ -1160,11 +1160,19 @@ function write_date_page(date_page_title, transcluding_title_now) {
 // 確認簡介頁面存在。新入選的文章會自動被列入排程。但是簡介頁面確實得由人工先編纂出來。
 function check_if_FC_introduction_exists(FC_title, date_page_title,
 		transcluding_title, write_failed) {
+	var converted_title;
 	if (!transcluding_title)
 		transcluding_title = get_FC_title_to_transclude(FC_title);
+	else if (Array.isArray(transcluding_title)) {
+		converted_title = transcluding_title[1];
+		transcluding_title = transcluding_title[0];
+	}
 
-	wiki.page(transcluding_title, function(page_data) {
-		var
+	wiki.page(converted_title || transcluding_title, function(page_data) {
+		/**
+		 * {String}page title = page_data.title
+		 */
+		var title = CeL.wiki.title_of(page_data),
 		/**
 		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
 		 */
@@ -1174,6 +1182,14 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		// TODO: 進一步檢查簡介頁面
 		) {
 			check_month_list();
+			return;
+		}
+
+		if (!converted_title
+		// 因應繁簡體無法自動轉換問題。 e.g., [[Wikipedia:优良条目/病毒概論]]
+		&& (converted_title = fix_for_titleblacklist(title)) !== title) {
+			check_if_FC_introduction_exists(FC_title, date_page_title, [
+					transcluding_title, converted_title ], write_failed);
 			return;
 		}
 
