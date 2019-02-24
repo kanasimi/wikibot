@@ -4,6 +4,7 @@
 
  2019/2/19	初版試營運
 
+ TODO: {{CatCat}}, {{MetaCat}}, {{CatDiffuse}}
 
  */
 
@@ -20,58 +21,51 @@ wiki = Wiki(true, 'commons');
 // main
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
-prepare_directory(base_directory);
+// prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-CeL.wiki.cache([ {
+wiki.cache({
 	// 檢查含有{{Template:Categorise}}之 Category: 頁面。
 	type : 'embeddedin',
 	reget : true,
 	list : 'Template:Categorise',
-	namespace : 'Category'
-}, {
-	// get Subcategories
-	type : 'categorymembers',
-	reget : true,
-	list : function(list) {
-		return list;
-	},
-	namespace : 'Category|File',
-	each : for_base_categorymember_list
-}
-// 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
-&& false ], function(base_category_list) {
+	namespace : 'Category',
+	cache : false
+}, function(base_category_list) {
 	// 指定 category
 	// base_category_list = [ 'Category:Cultural heritage monuments in Italy' ];
 
+	// 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
 	base_category_list.run_async(for_each_base_category, finish);
 
 }, {
 	// default options === this
-	// [SESSION_KEY]
-	session : wiki,
 	// cache path prefix
 	prefix : base_directory
 });
 
 // ---------------------------------------------------------------------//
 
-function for_each_base_category(run_next_base_category, base_category) {
-	CeL.info('Process base category: ' + CeL.wiki.title_link_of(base_category));
-	CeL.wiki.cache({
+function for_each_base_category(run_next_base_category, base_category, index,
+		base_category_list) {
+	CeL.info('Process base category ' + (index + 1) + '/'
+			+ base_category_list.length + ': '
+			+ CeL.wiki.title_link_of(base_category));
+
+	wiki.cache({
+		// get Subcategories
 		type : 'categorymembers',
 		reget : true,
 		list : base_category,
-		namespace : 'Category|File'
+		namespace : 'Category|File',
+		cache : false
 	}, function(categorymember_list) {
 		// CeL.log('Get ' + categorymember_list.length + ' item(s).');
 		for_base_categorymember_list(categorymember_list, base_category,
 		//
 		run_next_base_category);
 	}, {
-		// [KEY_SESSION]
-		session : wiki,
 		// cache path prefix
 		prefix : base_directory
 	});
@@ -104,22 +98,22 @@ function add_sub_category(page_data, sub_category_list, parent_category) {
 function for_base_categorymember_list(categorymember_list, base_category,
 		run_next_base_category) {
 	// console.log(categorymember_list);
-	var pageid_hash = CeL.null_Object(), sub_category_list = [];
+	var base_category_pageid_hash = CeL.null_Object(), sub_category_list = [];
 	sub_category_list.hash = CeL.null_Object();
 	categorymember_list.forEach(function(page_data) {
 		if (add_sub_category(page_data, sub_category_list, base_category))
-			pageid_hash[page_data.pageid] = null;
+			base_category_pageid_hash[page_data.pageid] = null;
 	});
 
-	traversal_each_sub_categories(sub_category_list, pageid_hash,
+	traversal_each_sub_categories(sub_category_list, base_category_pageid_hash,
 	// base_category === categorymember_list.query_title
 	base_category, run_next_base_category);
 }
 
 // ---------------------------------------------------------------------//
 
-function traversal_each_sub_categories(sub_category_list, pageid_hash,
-		base_category, run_next_base_category) {
+function traversal_each_sub_categories(sub_category_list,
+		base_category_pageid_hash, base_category, run_next_base_category) {
 	if (sub_category_list.length === 0) {
 		// done.
 		run_next_base_category();
@@ -130,26 +124,28 @@ function traversal_each_sub_categories(sub_category_list, pageid_hash,
 	var sub_category = sub_category_list.shift();
 	var parent_category = sub_category_list.hash[sub_category];
 
-	CeL.wiki.cache({
+	wiki.cache({
 		type : 'categorymembers',
 		reget : true,
 		list : sub_category,
-		namespace : 'Category|File'
+		namespace : 'Category|File',
+		cache : false
 	}, function(list) {
 		// CeL.log('Get ' + list.length + ' item(s).');
 		list.forEach(function(page_data) {
 			if (add_sub_category(page_data, sub_category_list, sub_category)
-					&& (page_data.pageid in pageid_hash)) {
+					&& (page_data.pageid in base_category_pageid_hash)) {
 				clean_overcategorization_pages(page_data, base_category,
 						sub_category, sub_category_list);
+				// 注銷登記
+				delete base_category_pageid_hash[page_data.pageid];
 			}
 		});
 		// check next sub_category
-		traversal_each_sub_categories(sub_category_list, pageid_hash,
-				base_category, run_next_base_category);
+		traversal_each_sub_categories(sub_category_list,
+				base_category_pageid_hash, base_category,
+				run_next_base_category);
 	}, {
-		// [KEY_SESSION]
-		session : wiki,
 		// cache path prefix
 		prefix : base_directory
 	});
