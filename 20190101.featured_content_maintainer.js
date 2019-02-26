@@ -804,8 +804,6 @@ function is_FC(FC_title) {
 	return FC_data && FC_data[KEY_ISFFC] === false;
 }
 
-var never_shown_pages = [];
-
 function check_date_page() {
 	// write cache
 	CeL.write_file(redirects_to_file, redirects_to_hash);
@@ -866,7 +864,7 @@ function check_date_page() {
 	avoid_catalogs = avoid_catalogs.unique();
 	CeL.log('避免採用類別: ' + avoid_catalogs);
 
-	var index = 0, need_list_field = !using_GA,
+	var index = 0, need_list_field = !using_GA, never_shown_pages = [],
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。'
@@ -1348,7 +1346,7 @@ function update_portal() {
 		FL : [],
 		FL1 : []
 	};
-	// 挑出從來沒上過首頁(never_shown_pages)，或者最近才首次上首頁的條目。
+	// 挑出從來沒上過首頁，或者最近才首次上首頁的條目。
 	FC_title_sorted.forEach(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title], is_list = FC_data[KEY_IS_LIST];
 		var count = FC_data_hash[FC_title][KEY_JDN].length;
@@ -1357,8 +1355,13 @@ function update_portal() {
 		else if (count === 1)
 			title_lists[is_list ? 'FL1' : 'FA1'].unshift(FC_title);
 	});
+	// title_lists.FA + title_lists.FL === never_shown_pages
+
 	title_lists.FA = title_lists.FA.concat(title_lists.FA1).slice(10);
 	title_lists.FL = title_lists.FL.concat(title_lists.FL1).slice(10);
+
+	// console.log(title_lists);
+
 	wiki.page('Template:New featured pages', get_page_options)
 	//
 	.edit(function(page_data) {
