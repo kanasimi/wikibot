@@ -1374,7 +1374,7 @@ function update_portal() {
 		if (!content)
 			return;
 
-		content = content.replace(/(<!--(.+?)-->)[^{}]+?(\n\|)/g,
+		content = content.replace(/(\|[\s\n]*<!--(.+?)-->)[^{}]*?(\n\|)/g,
 		//
 		function(all, type_tag, type, items, tail) {
 			var list;
