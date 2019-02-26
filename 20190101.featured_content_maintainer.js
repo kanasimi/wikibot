@@ -549,19 +549,27 @@ function check_redirects(page_list) {
 
 	if (FC_data[KEY_TRANSCLUDING_PAGE]
 			&& /^\d{4}年\d{1,2}月\d{1,2}日$/.test(original_FC_title)) {
-		CeL.info('check_redirects: copy '
-				+ CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE])
-				+ ' → date pages: ' + FC_data[KEY_JDN].map(function(title) {
-					return CeL.wiki.title_link_of(
-					//
-					get_FC_date_title_to_transclude(title));
-				}).join(', '));
+		CeL.info('check_redirects: ' + FC_data[KEY_JDN].map(function(title) {
+			return CeL.wiki.title_link_of(
+			//
+			get_FC_date_title_to_transclude(title));
+		}).join(', ') + ' includes date page: '
+				+ CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]));
 
 		wiki.page(FC_data[KEY_TRANSCLUDING_PAGE], function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
 			CeL.debug('content: ' + content);
 			if (!content || !PATTERN_FC_transcluded.test(content))
 				return;
+
+			CeL.info('check_redirects: copy '
+					+ CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE])
+					+ ' → date pages: ' + FC_data[KEY_JDN].map(function(title) {
+						return CeL.wiki.title_link_of(
+						//
+						get_FC_date_title_to_transclude(title));
+					}).join(', '));
+
 			FC_data[KEY_JDN].forEach(function(JDN) {
 				wiki.page(get_FC_date_title_to_transclude(JDN),
 						get_page_options).edit(content, {
@@ -1280,6 +1288,14 @@ function update_portal() {
 		return;
 	}
 
+	// ----------------------------------------------------
+
+	var edit_options = {
+		bot : 1,
+		nocreate : 1,
+		summary : 'bot: 更新[[Portal:特色內容]]'
+	};
+
 	var index = FC_title_sorted.length, FC_articles = [], FC_lists = [], max_count = 10;
 	while (index-- > 0) {
 		var FC_title = FC_title_sorted[index], FC_data = FC_data_hash[FC_title], is_list = FC_data[KEY_IS_LIST];
@@ -1319,19 +1335,65 @@ function update_portal() {
 		return parsed.toString();
 	}
 
-	wiki.page('Portal:特色內容/條目', get_page_options).edit(edit_portal, {
-		bot : 1,
-		nocreate : 1,
-		summary : 'bot: 更新[[Portal:特色內容]]'
-	});
-	wiki.page('Portal:特色內容/列表', get_page_options).edit(edit_portal, {
-		bot : 1,
-		nocreate : 1,
-		summary : 'bot: 更新[[Portal:特色內容]]'
-	});
-	// TODO: [[Template:New featured pages]] using never_shown_pages
+	wiki.page('Portal:特色內容/條目', get_page_options).edit(edit_portal,
+			edit_options);
+	wiki.page('Portal:特色內容/列表', get_page_options).edit(edit_portal,
+			edit_options);
 
-	finish_up();
+	// ----------------------------------------------------
+
+	var title_lists = {
+		FA : [],
+		FA1 : [],
+		FL : [],
+		FL1 : []
+	};
+	// 挑出從來沒上過首頁(never_shown_pages)，或者最近才首次上首頁的條目。
+	FC_title_sorted.forEach(function(FC_title) {
+		var FC_data = FC_data_hash[FC_title], is_list = FC_data[KEY_IS_LIST];
+		var count = FC_data_hash[FC_title][KEY_JDN].length;
+		if (count === 0)
+			title_lists[is_list ? 'FL' : 'FA'].push(FC_title);
+		else if (count === 1)
+			title_lists[is_list ? 'FL1' : 'FA1'].unshift(FC_title);
+	});
+	title_lists.FA = title_lists.FA.concat(title_lists.FA1).slice(10);
+	title_lists.FL = title_lists.FL.concat(title_lists.FL1).slice(10);
+	wiki.page('Template:New featured pages', get_page_options)
+	//
+	.edit(function(page_data) {
+		var
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 */
+		content = CeL.wiki.content_of(page_data);
+
+		if (!content)
+			return;
+
+		content = content.replace(/(<!--(.+?)-->)[^{}]+?(\n\|)/g,
+		//
+		function(all, type_tag, type, items, tail) {
+			var list;
+			if (type.trim() === '典範條目') {
+				list = title_lists.FA;
+			} else if (type.trim() === '特色列表') {
+				list = title_lists.FL;
+			}
+
+			if (list) {
+				list = list.map(CeL.wiki.title_link_of);
+				list.unshift(type_tag);
+				return list.join('\n* ') + tail;
+			}
+		});
+
+		return content;
+	}, edit_options);
+
+	// ----------------------------------------------------
+
+	wiki.run(finish_up);
 }
 
 // ---------------------------------------------------------------------//

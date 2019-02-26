@@ -83,7 +83,9 @@ function add_sub_category(page_data, sub_category_list, parent_category) {
 	var title = CeL.wiki.title_of(page_data);
 	// without known IDs, with known IDs
 	if (title.includes(' with known ') || title.includes(' without known ')
-			|| title.includes(' needing categories')) {
+			|| title.includes(' needing categories')
+			|| title.includes(' uploaded from ')
+			|| title.includes(' uploaded by ')) {
 		// Skip 跳過指示性 category
 		return;
 	}
@@ -132,19 +134,21 @@ function traversal_each_sub_categories(sub_category_list,
 		cache : false
 	}, function(list) {
 		// CeL.log('Get ' + list.length + ' item(s).');
-		list.forEach(function(page_data) {
+		list.run_async(function(run_next, page_data, index) {
 			if (add_sub_category(page_data, sub_category_list, sub_category)
 					&& (page_data.pageid in base_category_pageid_hash)) {
-				clean_overcategorization_pages(page_data, base_category,
-						sub_category, sub_category_list);
 				// 注銷登記
 				delete base_category_pageid_hash[page_data.pageid];
-			}
+				clean_overcategorization_pages(run_next, page_data,
+						base_category, sub_category, sub_category_list);
+			} else
+				run_next();
+		}, function() {
+			// check next sub_category
+			traversal_each_sub_categories(sub_category_list,
+					base_category_pageid_hash, base_category,
+					run_next_base_category);
 		});
-		// check next sub_category
-		traversal_each_sub_categories(sub_category_list,
-				base_category_pageid_hash, base_category,
-				run_next_base_category);
 	}, {
 		// cache path prefix
 		prefix : base_directory
@@ -153,7 +157,7 @@ function traversal_each_sub_categories(sub_category_list,
 
 // ---------------------------------------------------------------------//
 
-function clean_overcategorization_pages(page_data, base_category,
+function clean_overcategorization_pages(run_next, page_data, base_category,
 		parent_category, sub_category_list) {
 	// console.log([ base_category, parent_category ]);
 	var category = parent_category, hierarchy = [],
@@ -218,7 +222,7 @@ function clean_overcategorization_pages(page_data, base_category,
 		nocreate : 1,
 		bot : 1,
 		minor : 1
-	});
+	}).run(run_next);
 }
 
 // ---------------------------------------------------------------------//
