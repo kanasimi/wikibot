@@ -1384,11 +1384,13 @@ function update_portal() {
 				list = title_lists.FL;
 			}
 
-			if (list) {
-				list = list.map(CeL.wiki.title_link_of);
-				list.unshift(type_tag);
-				return list.join('\n* ') + tail;
+			if (!list) {
+				return all;
 			}
+
+			list = list.map(CeL.wiki.title_link_of);
+			list.unshift(type_tag);
+			return list.join('\n* ') + tail;
 		});
 
 		return content;
