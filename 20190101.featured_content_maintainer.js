@@ -1357,8 +1357,8 @@ function update_portal() {
 	});
 	// title_lists.FA + title_lists.FL === never_shown_pages
 
-	title_lists.FA = title_lists.FA.concat(title_lists.FA1).slice(10);
-	title_lists.FL = title_lists.FL.concat(title_lists.FL1).slice(10);
+	title_lists.FA = title_lists.FA.concat(title_lists.FA1).slice(0, 10);
+	title_lists.FL = title_lists.FL.concat(title_lists.FL1).slice(0, 10);
 
 	// console.log(title_lists);
 
@@ -1374,9 +1374,9 @@ function update_portal() {
 		if (!content)
 			return;
 
-		content = content.replace(/(\|[\s\n]*<!--(.+?)-->)[^{}]*?(\n\|)/g,
+		content = content.replace(/(\|[\s\n]*<!--(.+?)-->)[\s\S]*?(\n\|)/g,
 		//
-		function(all, type_tag, type, items, tail) {
+		function(all, type_tag, type, tail) {
 			var list;
 			if (type.trim() === '典範條目') {
 				list = title_lists.FA;
@@ -1388,7 +1388,9 @@ function update_portal() {
 				return all;
 			}
 
-			list = list.map(CeL.wiki.title_link_of);
+			list = list.map(function(title) {
+				return CeL.wiki.title_link_of(title);
+			});
 			list.unshift(type_tag);
 			return list.join('\n* ') + tail;
 		});
