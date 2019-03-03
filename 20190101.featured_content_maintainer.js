@@ -417,12 +417,15 @@ function parse_each_FC_date_page(page_data) {
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
 			if (matched) {
+				// 直接覆蓋 [KEY_TRANSCLUDING_PAGE]: 以新出現者為準。
 				FC_data[KEY_TRANSCLUDING_PAGE] = CeL.wiki
 						.normalize_title(matched[1].replace(/\/(?:s|摘要)\|/,
 								'\/'));
 			} else if (FC_data[KEY_TITLES_TO_MOVE]) {
+				// 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
 				FC_data[KEY_TITLES_TO_MOVE].push(title);
 			} else {
+				// 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
 				FC_data[KEY_TITLES_TO_MOVE] = [ title ];
 			}
 		} else {
@@ -1243,7 +1246,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 // ---------------------------------------------------------------------//
 
-// 若不存在則自動創建每月特色內容存檔：如[[Wikipedia:典範條目/2019年1月]]，
+// 若不存在則自動創建每月特色內容存檔：如[[Wikipedia:典範條目/{{CURRENTYEAR}}年{{CURRENTMONTHNAME}}]]。
 function check_month_list() {
 	var date = CeL.Julian_day.to_Date(JDN_to_generate),
 	//
@@ -1294,7 +1297,8 @@ function update_portal() {
 	var portal_item_count = configuration.general.portal_item_count || 10, edit_options = {
 		bot : 1,
 		nocreate : 1,
-		summary : 'bot: 更新[[Portal:特色內容]]'
+		summary : 'bot: 更新[[Portal:特色內容]]。作業機制請參考'
+				+ CeL.wiki.title_link_of(configuration_page_title)
 	};
 
 	// ----------------------------------------------------
@@ -1305,14 +1309,20 @@ function update_portal() {
 		FL : [],
 		FL1 : []
 	};
-	// 挑出從來沒上過首頁，或者最近才首次上首頁的條目。
-	FC_title_sorted.forEach(function(FC_title) {
+	// 現在採用的方法是挑出從來沒上過首頁，或者最近才首次上首頁的條目。
+	FC_title_sorted.some(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title], is_list = FC_data[KEY_IS_LIST];
 		var count = FC_data_hash[FC_title][KEY_JDN].length;
-		if (count === 0)
-			title_lists[is_list ? 'FL' : 'FA'].push(FC_title);
-		else if (count === 1)
-			title_lists[is_list ? 'FL1' : 'FA1'].unshift(FC_title);
+		if (count === 0) {
+			var list = title_lists[is_list ? 'FL' : 'FA'];
+			list.push(FC_title);
+			if (list.length > portal_item_count)
+				return true;
+		} else if (count === 1) {
+			var list = title_lists[is_list ? 'FL1' : 'FA1'];
+			list.unshift(FC_title);
+			list.truncate(portal_item_count);
+		}
 	});
 	// title_lists.FA + title_lists.FL === never_shown_pages
 
@@ -1364,7 +1374,7 @@ function update_portal() {
 	// ----------------------------------------------------
 
 	// 每個禮拜更新一次。
-	if ((new Date).getDay() !== 5) {
+	if (false && (new Date).getDay() !== 5) {
 		finish_up();
 		return;
 	}
