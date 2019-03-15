@@ -98,6 +98,10 @@ whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikiped
 blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
 		'Wikisource:管理员' ],
 
+user_whitelist = [ '-Zest' ].map(function(title) {
+	return CeL.wiki.normalize_title(title);
+}),
+
 // ----------------------------------------------------------------------------
 
 // 為每個段落都補簽名。
@@ -315,6 +319,10 @@ function for_each_row(row) {
 		console.log(row);
 		return;
 		console.log(row.diff);
+	}
+
+	if (user_whitelist.includes(row.user)) {
+		return;
 	}
 
 	var
