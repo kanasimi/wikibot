@@ -829,6 +829,9 @@ var source_configurations = {
 			url : 'https://cn.nytimes.com/zh-hant/',
 			parser : parser_紐約時報中文網
 		},
+		// TODO: https://www.singtaousa.com/home/455-美國/
+		// https://www.singtaousa.com/home/11-國際/
+		// 美國星島日報
 
 		// 英國廣播公司BBC News 中文 國際新聞
 		英國廣播公司中文網 : {
@@ -842,6 +845,19 @@ var source_configurations = {
 			// 全球
 			url : 'http://www.ftchinese.com/channel/world.html',
 			parser : parser_金融時報FT中文網
+		},
+		路透中文网 : {
+			flag : 'UK',
+			// 时事要闻 | 路透中文网
+			url : 'https://cn.reuters.com/news/generalnews',
+			parser : parser_路透中文网
+		},
+		'路透中文网 国际财经' : {
+			flag : 'UK',
+			publisher : '路透中文网',
+			// 国际财经 | 路透中文网
+			url : 'https://cn.reuters.com/news/internationalbusiness',
+			parser : parser_路透中文网
 		},
 
 		// 澳大利亞廣播公司（ABC）中文網
@@ -1105,11 +1121,13 @@ function check_queue(finished_work) {
 function get_label(html) {
 	return html ? CeL.HTML_to_Unicode(
 			html.replace(/<!--[\s\S]*?-->/g, '').replace(
+					/<(script|style)[^<>]*>[\s\S]*?<\/\1>/g, '').replace(
 					/\s*<br(?:\/| [^<>]*)?>/ig, '\n').replace(
 					/<\/?[a-z][^<>]*>/g, '')
 			// incase 以"\r"為主。 e.g., 起点中文网
 			.replace(/\r\n?/g, '\n')).trim().replace(
-			/[\s\u200B]+$|^[\s\u200B]+/g, '')
+	// \u2060: word joiner (WJ). /^\s$/.test('\uFEFF')
+	/[\s\u200B\u200E\u200F\u2060]+$|^[\s\u200B\u200E\u200F\u2060]+/g, '')
 	// .replace(/\s{2,}/g, ' ').replace(/\s?\n+/g, '\n')
 	: '';
 }
@@ -1118,6 +1136,7 @@ function is_today(date) {
 	var today = new Date(use_date.getTime());
 	today.setHours(0, 0, 0, 0);
 	var timevalue_diff = (CeL.is_Date(date) ? date : date.date) - today;
+	// console.log([ timevalue_diff, ONE_DAY_LENGTH_VALUE, today ]);
 	return 0 <= timevalue_diff && timevalue_diff < ONE_DAY_LENGTH_VALUE;
 }
 
@@ -1819,6 +1838,47 @@ function parser_英國廣播公司BBC中文網(html) {
 	return headline_list;
 }
 
+function parser_路透中文网(html) {
+	var list = html, headline_list = [];
+	list.between('<div class="topStory">', '<div class="linebreak">').split(
+			' class="topStory').forEach(function(token) {
+		var matched = token.match(
+		//
+		/<a [^<>]*?href=["']([^"'<>]+)["'][^<>]*>([\s\S]+?)<\/a>/);
+		var headline = {
+			url : 'https://cn.reuters.com' + matched[1],
+			headline : get_label(matched[2]),
+			date : token.between('<span class="timestamp">', '</span>')
+		};
+		// console.log(headline);
+
+		if (!headline.date) {
+			headline.date = new Date();
+		} else if (/^\d{2}\/\d{2} \d{2}:\d{2}$/.test(headline.date)) {
+			headline.date = new Date((new Date).getFullYear() + '/'
+			//
+			+ headline.date);
+		} else if (/^\d{2}:\d{2} BJT$/.test(headline.date)) {
+			headline.date = new Date((new Date).format('%Y/%m/%d ')
+			//
+			+ headline.date.replace(/BJT/, 'CST' && ''));
+		} else {
+			CeL.error('parser_路透中文网: Unknown date: '
+			//
+			+ headline.date);
+		}
+		// console.log(headline.date);
+
+		if (!is_today(headline))
+			return;
+		// console.log(headline.headline);
+
+		if (headline_list.length < 9)
+			headline_list.push(headline);
+	});
+	return headline_list;
+}
+
 function parser_金融時報FT中文網(html) {
 	var list = html, headline_list = [];
 	list.each_between('<h2 class="item-headline">',
@@ -1900,6 +1960,7 @@ function parser_朝日新聞中文網_國際(html) {
 			headline : get_label(matched[2]),
 			date : new Date(token.between('<span class="Date">', '</span>'))
 		};
+		// console.log(headline);
 		if (!is_today(headline))
 			return;
 
