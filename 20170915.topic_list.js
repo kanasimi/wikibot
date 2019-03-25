@@ -769,6 +769,8 @@ function start_main_work(page_data) {
 
 // ----------------------------------------------------------------------------
 
+// TODO: 將此功能轉到 wiki.js 中。
+
 // 取得特定使用者名單(hash): 當使用者權限變更時必須重新執行程式！
 function get_special_users(callback, options) {
 	var botop_sitelinks = options && options.botop_sitelinks;
@@ -909,7 +911,9 @@ function get_special_users(callback, options) {
 // row_style functions
 
 function general_row_style(section, section_index) {
-	var status, to_exit = this.each.exit, archived;
+	var status, to_exit = this.each.exit,
+	// archived, move_to 兩者分開，避免{{Archive top}}中有{{Moveto}}
+	archived, move_to;
 	// console.log(section);
 	this.each.call(section, function(token) {
 		if (token.type === 'transclusion' && (token.name in {
@@ -921,7 +925,7 @@ function general_row_style(section, section_index) {
 			Switchto : true,
 			移動至 : true
 		})) {
-			archived = 'moved';
+			move_to = 'moved';
 			section.adding_link = token.parameters[1];
 
 		} else if (token.type === 'transclusion' && (token.name in {
@@ -939,15 +943,23 @@ function general_row_style(section, section_index) {
 			archived = 'end';
 			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
 
-		} else if ((!archived || archived === 'end' || archived === 'moved')
+		} else if ((archived === 'end' || move_to === 'moved')
 				&& token.toString().trim()) {
-			// console.log('在結案之後還有東西:');
 			// console.log(token);
-			// 在結案之後還有東西。重新設定。
-			if (archived === 'end' && token.type === 'section_title') {
-				section.adding_link = token;
+			if (move_to === 'moved') {
+				move_to = 'extra';
+				delete section.adding_link;
 			}
-			archived = 'extra';
+			if (archived === 'end') {
+				// 在結案之後還有東西。重新設定。
+				// console.log('在結案之後還有東西:');
+				archived = 'extra';
+				if (token.type === 'section_title') {
+					section.adding_link = token;
+				} else {
+					delete section.adding_link;
+				}
+			}
 			// 除了{{save to}}之類外，有多餘的token就應該直接跳出。
 			// return to_exit;
 		}
@@ -955,7 +967,8 @@ function general_row_style(section, section_index) {
 	}, 1);
 
 	// console.log('archived: ' + archived);
-	if (archived === 'end' || archived === 'moved') {
+	// console.log('move_to: ' + move_to);
+	if (archived === 'end' || move_to === 'moved') {
 		section.CSS = {
 			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
 			style : configuration.closed_style.link_CSS,
