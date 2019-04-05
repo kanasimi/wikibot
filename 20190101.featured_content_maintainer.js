@@ -10,6 +10,8 @@
 
  // 輪流展示列表
 
+ TODO: 自動創造簡介頁面
+
  */
 
 'use strict';
@@ -1042,7 +1044,7 @@ function fix_for_titleblacklist(page_title) {
 function write_date_page(date_page_title, transcluding_title_now) {
 	var FC_title, candidates = [],
 	// 跳過上過首頁太多次、展示次數過多的條目。盡量使各條目展示的次數相近。
-	hit_upper_Bound = hit_count / FC_title_sorted.length + 2 | 0;
+	hit_upper_Bound = hit_count / FC_title_sorted.length + 1 | 0;
 	for (var index = 0; index < FC_title_sorted.length; index++) {
 		FC_title = FC_title_sorted[index];
 		if (!is_FC(FC_title))
@@ -1116,11 +1118,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]
 		//
-		? '上次展示時間為 '
+		? '上次於' + CeL.wiki.title_link_of(get_FC_date_title_to_transclude(
 		//
-		+ CeL.Julian_day.to_YMD(FC_data_hash[FC_title][KEY_LATEST_JDN], true)
-		//
-		.join('/') : '沒上過首頁')
+		FC_data_hash[FC_title][KEY_LATEST_JDN])) + '展示' : '沒上過首頁')
 		//
 		+ '。作業機制請參考' + CeL.wiki.title_link_of(configuration_page_title)
 	// 已轉換過
@@ -1246,7 +1246,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 
 // ---------------------------------------------------------------------//
 
-// 若不存在則自動創建每月特色內容存檔：如[[Wikipedia:典範條目/{{CURRENTYEAR}}年{{CURRENTMONTHNAME}}]]。
+// 若不存在則自動創建每月特色內容存檔頁面：如[[Wikipedia:典範條目/{{CURRENTYEAR}}年{{CURRENTMONTHNAME}}]]。
 function check_month_list() {
 	var date = CeL.Julian_day.to_Date(JDN_to_generate),
 	//
