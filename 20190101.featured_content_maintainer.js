@@ -1289,8 +1289,11 @@ function check_month_list() {
 // ---------------------------------------------------------------------//
 
 function update_portal() {
+	// 清除首頁快取。
+	wiki.purge('Wikipedia:首页');
+
 	if (using_GA || CeL.env.arg_hash && (CeL.env.arg_hash.days_later | 0)) {
-		finish_up();
+		wiki.run(finish_up);
 		return;
 	}
 
@@ -1375,7 +1378,7 @@ function update_portal() {
 
 	// 每個禮拜更新一次。
 	if (false && (new Date).getDay() !== 5) {
-		finish_up();
+		wiki.run(finish_up);
 		return;
 	}
 
