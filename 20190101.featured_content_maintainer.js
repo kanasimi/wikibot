@@ -1153,7 +1153,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 				return;
 			}
 
-			if (result.error.code === 'cascadeprotected') {
+			if (result.error && result.error.code === 'cascadeprotected') {
 				// '{{Edit fully-protected}}\n' +
 				return generate_help_message(date_page_title, '已被保護，無法寫入'
 				//
@@ -1162,9 +1162,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 
 			return generate_help_message(date_page_title,
 			//
-			'寫入' + CeL.wiki.title_link_of(FC_title)
+			'寫入' + CeL.wiki.title_link_of(FC_title) + '時發生錯誤: '
 			//
-			+ '時發生錯誤: ' + result.error.code + '，請幫忙處理');
+			+ (result.error && result.error.code || result.error) + '，請幫忙處理');
 
 		}, DISCUSSION_edit_options).run(check_month_list);
 
@@ -1244,7 +1244,9 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 	}, get_page_options);
 }
 
-// ---------------------------------------------------------------------//
+// =====================================================================//
+
+// → check_month_list() → update_portal() → finish_up()
 
 // 若不存在則自動創建每月特色內容存檔頁面：如[[Wikipedia:典範條目/{{CURRENTYEAR}}年{{CURRENTMONTHNAME}}]]。
 function check_month_list() {
@@ -1289,7 +1291,7 @@ function check_month_list() {
 // ---------------------------------------------------------------------//
 
 function update_portal() {
-	// 清除首頁快取。
+	// 清除首頁快取。刷新首頁緩存。
 	wiki.purge('Wikipedia:首页');
 
 	if (using_GA || CeL.env.arg_hash && (CeL.env.arg_hash.days_later | 0)) {
