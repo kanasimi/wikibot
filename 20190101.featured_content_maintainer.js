@@ -10,8 +10,6 @@
 
  // 輪流展示列表
 
- TODO: 自動創造簡介頁面
-
  */
 
 'use strict';
@@ -270,11 +268,11 @@ function parse_each_FC_item_list_page(page_data) {
 	// matched: [ all, link title, display, catalog ]
 	PATTERN_Featured_content = test_pattern(
 	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
-	// 典範條目, 已撤銷的典範條目, 已撤销的特色列表
+	// 典範條目, 已撤銷的典範條目, 已撤销的特色列表: '''[[title]]'''
 	/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''|\n==([^=].*?)==\n/g)
-			// 特色列表
+			// 特色列表: [[:title]]
 			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n==([^=].*?)==\n/g)
-			// 優良條目, 已撤消的優良條目
+			// 優良條目, 已撤消的優良條目: all links
 			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
@@ -1216,6 +1214,29 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			return;
 		}
 
+		var introduction_section;
+		wiki.page(FC_title, function(page_data, error) {
+			introduction_section = CeL.wiki.extract_introduction(page_data);
+		}).page(fix_for_titleblacklist(converted_title || transcluding_title))
+		// 自動創建簡介頁面。
+		.edit(function(page_data) {
+			var title = introduction_section.title_token[0].toString();
+			if (title.includes('[[')) {
+				CeL.error('Can not adding link to introduction_section: '
+				//
+				+ title);
+			} else if (title.includes(FC_title)) {
+				introduction_section.title_token[0]
+				//
+				= title.replace(FC_title, CeL.wiki.title_link_of(FC_title));
+			} else {
+				introduction_section.title_token[0]
+				//
+				= CeL.wiki.title_link_of(FC_title, title);
+			}
+			return introduction_section.toString();
+		});
+
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
@@ -1223,9 +1244,9 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			 */
 			content = CeL.wiki.content_of(page_data),
 			//
-			write_link = CeL.wiki.title_link_of(transcluding_title, '撰寫簡介');
+			write_link = CeL.wiki.title_link_of(transcluding_title, '檢核與撰寫簡介');
 
-			// 避免多次提醒。
+			// 之前檢查過了。避免多次提醒。
 			if (content.includes(write_link)) {
 				CeL.log('已經做過提醒。');
 				return;
@@ -1236,8 +1257,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			'所嵌入包含的' + TYPE_NAME + '──' + CeL.wiki.title_link_of(FC_title)
 			//
 			+ '似乎還不存在簡介？' + (using_GA ? '' : '或許簡介頁面存放在"Wikipedia:優良條目/"下？')
-			//
-			+ '若簡介頁面確實不存在，請幫忙' + write_link);
+			// 若簡介頁面確實不存在
+			+ '機器人已嘗試自動創建簡介頁面，請幫忙' + write_link);
 
 		}, DISCUSSION_edit_options).run(check_month_list);
 		return;
