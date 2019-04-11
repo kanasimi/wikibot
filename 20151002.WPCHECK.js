@@ -687,9 +687,9 @@ PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]*\[[\p{Cf}]*/, 'gu'),
 //
 PATTERN_invisible_end = CeL.RegExp(/[\p{Cf}]*\][\p{Cf}]*\][\p{Cf}]*/, 'gu'),
 //
-PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*{[\p{Cf}]*{[\p{Cf}]*/, 'gu'),
+PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*\{[\p{Cf}]*\{[\p{Cf}]*/, 'gu'),
 // '}}' 穿插Unicode控制字符
-PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]*}[\p{Cf}]*}[\p{Cf}]*/, 'gu'),
+PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]*\}[\p{Cf}]*\}[\p{Cf}]*/, 'gu'),
 // [ all, inner ]
 PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\])/, 'gu'),
 //
