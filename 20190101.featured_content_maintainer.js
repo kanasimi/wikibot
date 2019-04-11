@@ -1138,6 +1138,12 @@ function write_date_page(date_page_title, transcluding_title_now) {
 			return;
 		}
 
+		if (!error && !result.error) {
+			// 寫入動作本身沒有問題。但是這個頁面沒有展示過，或者繁簡轉換有問題。
+			check_month_list();
+			return;
+		}
+
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
