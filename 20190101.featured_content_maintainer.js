@@ -1162,7 +1162,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 			//
 			'寫入' + CeL.wiki.title_link_of(FC_title) + '時發生錯誤: '
 			//
-			+ (result.error && result.error.code || result.error) + '，請幫忙處理');
+			+ (error || result.error && result.error.code || result.error)
+			//
+			+ '，請幫忙處理');
 
 		}, DISCUSSION_edit_options).run(check_month_list);
 
