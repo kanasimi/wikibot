@@ -137,7 +137,7 @@ PATTERN_COUNTRY_TEMPLATE = /{{ *[Ff]lag(?:icon)? *\| *([^{}\|]{2,9})}}/g,
  * 
  * @type {RegExp}
  */
-PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　]+$/);
+PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　]+$/, 'u');
 
 function for_each_page(page_data, messages) {
 	if (!page_data || ('missing' in page_data)) {

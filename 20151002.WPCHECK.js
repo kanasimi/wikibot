@@ -683,21 +683,21 @@ CeL.RegExp.category.RandAL = '\u05BE\u05C0\u05C3\u05D0-\u05EA\u05F0-\u05F4\u061B
 var PATTERN_Unicode_invalid_wikitext = new RegExp('['
 		+ CeL.RegExp.category.invalid + ']'),
 // @see CeL.data.native for Unicode category (e.g., \p{Cf})
-PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]*\[[\p{Cf}]*/g),
+PATTERN_invisible_start = CeL.RegExp(/[\p{Cf}]*\[[\p{Cf}]*\[[\p{Cf}]*/, 'gu'),
 //
-PATTERN_invisible_end = CeL.RegExp(/[\p{Cf}]*\][\p{Cf}]*\][\p{Cf}]*/g),
+PATTERN_invisible_end = CeL.RegExp(/[\p{Cf}]*\][\p{Cf}]*\][\p{Cf}]*/, 'gu'),
 //
-PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*{[\p{Cf}]*{[\p{Cf}]*/g),
+PATTERN_invisible_start2 = CeL.RegExp(/[\p{Cf}]*{[\p{Cf}]*{[\p{Cf}]*/, 'gu'),
 // '}}' 穿插Unicode控制字符
-PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]*}[\p{Cf}]*}[\p{Cf}]*/g),
+PATTERN_invisible_end2 = CeL.RegExp(/[\p{Cf}]*}[\p{Cf}]*}[\p{Cf}]*/, 'gu'),
 // [ all, inner ]
-PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\])/g),
+PATTERN_invisible_inner = CeL.RegExp(/[\p{Cf}]([^\[\]]*\]\])/, 'gu'),
 //
-PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/g),
+PATTERN_invisible_any = CeL.RegExp(/[\p{Cf}]+/, 'gu'),
 // https://en.wikipedia.org/wiki/Left-to-right_mark
-PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/g),
+PATTERN_RTL = CeL.RegExp(/([^\p{RandAL}])\u200E([^\p{RandAL}])/, 'gu'),
 //
-PATTERN_u200e = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200e($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])/ig,
+PATTERN_u200E = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200E($|[<\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])/ig,
 // 找出使用了由右至左文字的{{lang}}模板。
 // [[:en:right-to-left#RTL Wikipedia languages]]
 // 應該改用{{tl|rtl-lang}}處理右至左文字如阿拉伯語及希伯來語，請參見{{tl|lang}}的說明。
@@ -745,9 +745,9 @@ function fix_16(content, page_data, messages, config) {
 	.replace(PATTERN_invisible_end2, '}}')
 
 	// 處理特殊情況。
-	.replace(/([a-z]{2,})\u200e('|\s*\|)/ig, '$1$2').replace(
-			/('|\|\s*)\u200e([a-z]{2,})/ig, '$1$2').replace(
-			/((?:\]\]|}})\ )\u200e/g, '$1').replace(PATTERN_u200e, '$1$2')
+	.replace(/([a-z]{2,})\u200E('|\s*\|)/ig, '$1$2').replace(
+			/('|\|\s*)\u200E([a-z]{2,})/ig, '$1$2').replace(
+			/((?:\]\]|}})\ )\u200E/g, '$1').replace(PATTERN_u200E, '$1$2')
 
 	// LRM左右都不是RTL文本。
 	.replace_till_stable(PATTERN_RTL, '$1$2')

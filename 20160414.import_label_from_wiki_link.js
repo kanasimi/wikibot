@@ -1018,9 +1018,9 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
  * 
  * @type {RegExp}
  */
-PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　]+$/),
+PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　]+$/, 'u'),
 // e.g., [[d:Q6157375]] "こくどう374ごう"
-PATTERN_読み仮名_need_skip = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　\d\-]+$/);
+PATTERN_読み仮名_need_skip = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　\d\-]+$/, 'u');
 
 function 仮名_claim(仮名, imported_from) {
 	CeL.debug('add 仮名 claim: [' + 仮名 + ']', 3, '仮名_claim');
