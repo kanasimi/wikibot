@@ -54,7 +54,9 @@ wiki = Wiki(true),
 // for 萌娘百科 zh.moegirl.org
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 // API_URL=https://zh.moegirl.org/api.php
-&& CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '';
+&& CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
+
+using_subst = !CeL.env.arg_hash.API_URL.includes('moegirl');
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定
@@ -831,8 +833,9 @@ function for_each_row(row) {
 		// 但是因為 {{Unsigned}} 會從 HTML 標籤開始，因此就可以跳過這個步驟了。
 		row.diff.to[last_diff_index_before_next_section] = last_token
 		// {{subst:Unsigned|用戶名或IP|時間日期}}
-		.replace(/([\s\n]*)$/, '{{subst:Unsigned|' + row.user + '|'
-				+ get_parsed_time(row) + (is_IP_user ? '|IP=1' : '') + '}}'
+		.replace(/([\s\n]*)$/, '{{' + (using_subst ? 'subst:' : '')
+				+ 'Unsigned|' + row.user + '|' + get_parsed_time(row)
+				+ (is_IP_user ? '|IP=1' : '') + '}}'
 				// + '<!-- Autosigned by ' + user_name + ' -->'
 				+ '$1');
 
