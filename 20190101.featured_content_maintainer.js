@@ -76,7 +76,7 @@ KEY_LIST_PAGE = 4,
 KEY_LATEST_JDN = 4, KEY_CATEGORY = 5, KEY_TITLES_TO_MOVE = 6,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
-FC_data_hash = CeL.null_Object(),
+FC_data_hash = CeL.null_Object(), new_FC_pages,
 
 error_logs = [], FC_title_sorted, redirects_list_to_check = [],
 // cache file of redirects
@@ -114,44 +114,7 @@ wiki.cache([ {
 	list : configuration_page_title,
 	redirects : 1,
 	reget : true,
-	operator : function(page_data) {
-		// 讀入手動設定 manual settings。
-		configuration = CeL.wiki.parse_configuration(page_data);
-		// console.log(configuration);
-
-		// 一般設定
-		var general = configuration.general
-		// 設定必要的屬性。
-		= parse_configuration_table(configuration.general);
-
-		if (general.stop_working && general.stop_working !== 'false') {
-			CeL.info('stop_working setted. exiting...');
-			process.exit(2);
-			return;
-		}
-
-		// 檢查從網頁取得的設定，檢測數值是否合適。
-		if (general.DISCUSSION_PAGE) {
-			DISCUSSION_PAGE = general.DISCUSSION_PAGE;
-		}
-
-		general.avoid_same_catalog_past_days |= 0;
-		if (!(general.avoid_same_catalog_past_days > 0
-		//
-		&& general.avoid_same_catalog_past_days < 99)) {
-			delete general.avoid_same_catalog_past_days;
-		}
-
-		general.portal_item_count |= 0;
-		if (!(general.portal_item_count > 0
-		//
-		&& general.portal_item_count < 99)) {
-			delete general.portal_item_count;
-		}
-
-		CeL.log('Configuration:');
-		console.log(configuration);
-	}
+	operator : setup_configuration
 }, {
 	type : 'page',
 	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
@@ -168,10 +131,11 @@ wiki.cache([ {
 	list : function() {
 		CeL.debug('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
 		CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
-		return Object.keys(FC_data_hash).filter(function(FC_title) {
+		new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
 			delete FC_data_hash[FC_title][KEY_LIST_PAGE];
 			return !(FC_title in redirects_to_hash);
 		});
+		return new_FC_pages;
 	},
 	reget : true,
 	// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
@@ -223,6 +187,45 @@ function parse_configuration_table(table) {
 	}
 	// console.log(configuration);
 	return configuration;
+}
+
+function setup_configuration(page_data) {
+	// 讀入手動設定 manual settings。
+	configuration = CeL.wiki.parse_configuration(page_data);
+	// console.log(configuration);
+
+	// 一般設定
+	var general = configuration.general
+	// 設定必要的屬性。
+	= parse_configuration_table(configuration.general);
+
+	if (general.stop_working && general.stop_working !== 'false') {
+		CeL.info('stop_working setted. exiting...');
+		process.exit(2);
+		return;
+	}
+
+	// 檢查從網頁取得的設定，檢測數值是否合適。
+	if (general.DISCUSSION_PAGE) {
+		DISCUSSION_PAGE = general.DISCUSSION_PAGE;
+	}
+
+	general.avoid_same_catalog_past_days |= 0;
+	if (!(general.avoid_same_catalog_past_days > 0
+	//
+	&& general.avoid_same_catalog_past_days < 99)) {
+		delete general.avoid_same_catalog_past_days;
+	}
+
+	general.portal_item_count |= 0;
+	if (!(general.portal_item_count > 0
+	//
+	&& general.portal_item_count < 99)) {
+		delete general.portal_item_count;
+	}
+
+	CeL.log('Configuration:');
+	console.log(configuration);
 }
 
 // ---------------------------------------------------------------------//
@@ -945,6 +948,10 @@ function check_date_page() {
 		? '，' + never_shown_pages.length + '篇沒上過首頁' : '')
 		//
 		+ (error_logs.length > 0 ? '，' + error_logs.length + '筆錯誤' : '')
+		//
+		+ (0 < new_FC_pages.length && new_FC_pages.length < 4
+		//
+		? '，新出現條目：' + new_FC_pages : '')
 	});
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
@@ -1124,9 +1131,12 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	// 已轉換過
 	// + ' 編輯摘要的red link經繁簡轉換後存在'
 	}, function(page_data, error, result) {
-		if (!error
 		// error: 如 [cascadeprotected]
-		&& is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]) {
+		if (!error
+		// 繁簡轉換有問題？
+		&& is_FC(FC_title)
+		// 這個頁面沒有展示過？
+		&& FC_data_hash[FC_title][KEY_LATEST_JDN]) {
 			check_month_list();
 			return;
 		}
@@ -1139,7 +1149,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		}
 
 		if (!error && !result.error) {
-			// 寫入動作本身沒有問題。但是這個頁面沒有展示過，或者繁簡轉換有問題。
+			// 寫入動作本身沒有問題。但是這個頁面沒有展示過，或者繁簡轉換有問題？
 			check_month_list();
 			return;
 		}
