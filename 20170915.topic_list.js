@@ -592,13 +592,16 @@ var page_configurations = {
 	})),
 
 	'zhwiki:Wikipedia:典范条目评选/提名区' : Object.assign({
-		timezone : 8
+		timezone : 8,
+		need_time_legend : false
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:特色列表评选/提名区' : Object.assign({
-		timezone : 8
+		timezone : 8,
+		need_time_legend : false
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:優良條目評選/提名區' : Object.assign({
-		timezone : 8
+		timezone : 8,
+		need_time_legend : false
 	}, default_FC_vote_configurations, {
 		pass_vote : function(diff, section) {
 			// 有至少6個投票認為條目符合優良條目標準
@@ -606,7 +609,8 @@ var page_configurations = {
 		}
 	}),
 	'zhwiki:Wikipedia:新条目推荐/候选' : Object.assign({
-		timezone : 8
+		timezone : 8,
+		need_time_legend : false
 	}, default_DYK_vote_configurations),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
@@ -1921,16 +1925,13 @@ function generate_topic_list(page_data) {
 
 		if (page_configuration.section_filter
 		// 篩選議題。
+		// this: parsed;
+		// page_configuration = this.page.page_configuration;
 		&& !page_configuration.section_filter.call(parsed, section)) {
 			return;
 		}
 
 		topic_count++;
-
-		if (Date.now() - section.dates[section.last_update_index] < CeL
-				.to_millisecond('1m')) {
-			new_topics.push(section.section_title.title);
-		}
 
 		// console.log('#' + section.section_title);
 		// console.log([ section.users, section.dates ]);
@@ -1952,6 +1953,12 @@ function generate_topic_list(page_data) {
 		});
 
 		section_table.push('|-' + row_style + '\n| ' + row.join(' || '));
+
+		// new_topics的操作放在最後，讓column_operators可以更改section.section_title.title。
+		if (Date.now() - section.dates[section.last_update_index] < CeL
+				.to_millisecond('1m')) {
+			new_topics.push(section.section_title.title);
+		}
 	}, {
 		get_users : true,
 		level_filter : page_configuration.level_filter,
@@ -1991,11 +1998,11 @@ function generate_topic_list(page_data) {
 	}
 
 	if (new_topics.length < 3) {
-		new_topics = new_topics
-				.map(function(topic) {
-					return CeL.wiki.title_link_of(
-							page_data.title + '#' + topic, topic);
-				});
+		new_topics = new_topics.map(function(topic) {
+			return CeL.wiki.title_link_of(
+			//
+			page_data.title + '#' + topic, topic);
+		});
 	}
 
 	wiki.page(topic_page)
