@@ -254,7 +254,7 @@ var default_BRFA_configurations = {
 var default_FC_vote_configurations = {
 	topic_page : general_topic_page,
 	columns : 'NO;title;support;oppose;status;countdown;discussions;participants;last_user_set',
-	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! 狀態 !! data-sort-type="number" | <span title="從上次編輯時間起算。非從現在起的時間！">期限</span> !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! data-sort-type="number" | 狀態 !! data-sort-type="number" | <span title="從上次編輯時間起算。非從現在起的時間！">期限</span> !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
 	// 要篩選的章節標題層級。
 	level_filter : 3,
 
@@ -372,6 +372,13 @@ var default_FC_vote_configurations = {
 					}
 				}
 			}
+			if (!section.vote_time_limit) {
+				// 投票將於 ... 結束. e.g., [[Wikipedia:特色圖片評選]]
+				var matched = section.toString().match(/於([^<>{}\|\n]+)結束/);
+				if (matched) {
+					section.vote_time_limit = CeL.wiki.parse.date(matched[1]);
+				}
+			}
 
 			if (!(section.vote_time_limit > 0)) {
 				return '<b style="color: red;">N/A</b>';
@@ -399,7 +406,8 @@ var default_FC_vote_configurations = {
 			}
 
 			var diff = section.vote_count.support - section.vote_count.oppose;
-			return diff < 0 ? votes + '<span style="color: #800;">反對' + -diff
+			var data = 'data-sort-value="' + diff + '" | ';
+			data += diff < 0 ? votes + '<span style="color: #800;">反對' + -diff
 					+ '</span>'
 			//
 			: page_configuration.pass_vote(diff, section) ? votes
@@ -408,6 +416,7 @@ var default_FC_vote_configurations = {
 			: diff > 0 ? local_number(votes + diff + '票')
 			//
 			: votes + '<b style="color: gray;">-</b>';
+			return data;
 		}
 	}
 };
@@ -416,9 +425,7 @@ var default_FC_vote_configurations = {
 var default_DYK_vote_configurations = {
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
 	// ;support;oppose
-	_columns : 'NO;title;status;discussions;participants;last_user_set',
 	// !! <small>支持</small> !! <small>反對</small>
-	_headers : '! style="font-size: .5em;" | # !! 條目標題 !! 狀態 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
 	// 要篩選的章節標題層級。
 	level_filter : 4,
 
