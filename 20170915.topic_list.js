@@ -253,8 +253,8 @@ var default_BRFA_configurations = {
 
 var default_FC_vote_configurations = {
 	topic_page : general_topic_page,
-	columns : 'NO;title;support;oppose;status;discussions;participants;last_user_set',
-	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! 狀態 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+	columns : 'NO;title;support;oppose;status;countdown;discussions;participants;last_user_set',
+	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! 狀態 !! data-sort-type="number" | <span title="從上次編輯時間起算。非從現在起的時間！">期限</span> !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
 	// 要篩選的章節標題層級。
 	level_filter : 3,
 
@@ -283,11 +283,13 @@ var default_FC_vote_configurations = {
 		var page_configuration = this.page.page_configuration;
 		var latest_vote, _this = this;
 		this.each.call(section, 'template', function(token, index, parent) {
-			var exit;
+			var result_to_exit;
 			if (page_configuration.section_filter_in_template
-					&& (exit = page_configuration.section_filter_in_template
-							.call(_this, token, section)) !== undefined) {
-				return exit;
+			//
+			&& (result_to_exit = page_configuration.section_filter_in_template
+			//
+			.call(_this, token, section)) !== undefined) {
+				return result_to_exit;
 			}
 
 			// TODO: 使用刪除線「<s>...</s>」劃掉。
@@ -353,7 +355,35 @@ var default_FC_vote_configurations = {
 		},
 		// countdown days / time
 		countdown : function(section) {
-			return;
+			if (!section.vote_time_limit) {
+				// search 投票期
+				var PATTERN = /期：([^<>{}\|\n]+)至([^<>{}\|\n]+)(.)/g, matched;
+				while (matched = PATTERN.exec(section.toString())) {
+					// e.g., 史克威爾艾尼克斯電子遊戲列表
+					// :<small>基礎評選期：2019年1月19日 (六) 07:57 (UTC) 至 2019年2月18日 (一)
+					// 07:57 (UTC){{處理中}}</small>
+					// :<small>初次延長期：2019年2月18日 (一) 07:57 (UTC) 至 2019年3月20日 (三)
+					// 07:57 (UTC){{doing}}</small>
+					if (matched[3] !== '{') {
+						section.vote_time_limit = CeL.wiki.parse
+								.date(matched[2]);
+						// console.log([ matched[2], section.vote_time_limit ]);
+						break;
+					}
+				}
+			}
+
+			if (!(section.vote_time_limit > 0)) {
+				return '<b style="color: red;">N/A</b>';
+			}
+
+			var data = 'data-sort-value="'
+					+ (section.vote_time_limit - Date.now()) + '" | ';
+			return data
+					+ (Date.now() < section.vote_time_limit ? '<small>'
+					// 還有...天 ; ...日後
+					+ CeL.age_of(Date.now(), section.vote_time_limit)
+							+ '後</small>' : '<b style="color: red;">截止</b>');
 		},
 		status : function(section) {
 			var page_configuration = this.page.page_configuration;
@@ -369,12 +399,15 @@ var default_FC_vote_configurations = {
 			}
 
 			var diff = section.vote_count.support - section.vote_count.oppose;
-			return diff < 0 ? votes + '反對' + -diff
+			return diff < 0 ? votes + '<span style="color: #800;">反對' + -diff
+					+ '</span>'
 			//
 			: page_configuration.pass_vote(diff, section) ? votes
 					+ "<span style=\"color: blue;\">'''已達標'''</span>"
 			// TODO: 未達標準
-			: diff > 0 ? local_number(votes + diff + '票') : votes + '-';
+			: diff > 0 ? local_number(votes + diff + '票')
+			//
+			: votes + '<b style="color: gray;">-</b>';
 		}
 	}
 };
@@ -382,8 +415,6 @@ var default_FC_vote_configurations = {
 // default configurations for DYK vote 投票
 var default_DYK_vote_configurations = {
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
-	columns : 'NO;title;support;oppose;status;discussions;participants;last_user_set',
-	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! 狀態 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
 	// ;support;oppose
 	_columns : 'NO;title;status;discussions;participants;last_user_set',
 	// !! <small>支持</small> !! <small>反對</small>
@@ -412,6 +443,12 @@ var default_DYK_vote_configurations = {
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
 			section.DYKEntry = token;
+			if (+section.DYKEntry.parameters.timestamp) {
+				section.vote_time_limit = 1000
+						* section.DYKEntry.parameters.timestamp
+						// 基本投票期為4天。
+						+ 4 * 24 * 60 * 60 * 1000;
+			}
 		} else if (token.name === 'DYKCsplit') {
 			section.may_skip_section = true;
 		}
@@ -591,6 +628,7 @@ var page_configurations = {
 		}
 	})),
 
+	// TODO: 維基百科:同行評審
 	'zhwiki:Wikipedia:典范条目评选/提名区' : Object.assign({
 		timezone : 8,
 		need_time_legend : false
@@ -950,6 +988,7 @@ function start_main_work(page_data) {
 		main_talk_pages = [ 'Wikipedia:新条目推荐/候选', 'Wikipedia:典范条目评选/提名区',
 				'Wikipedia:特色列表评选/提名区', 'Wikipedia:優良條目評選/提名區' ];
 	}
+	// main_talk_pages = [ 'Wikipedia:新条目推荐/候选' ];
 
 	if (main_talk_pages.length > 0) {
 		CeL.info(main_talk_pages.length + ' page(s) to listen for '
