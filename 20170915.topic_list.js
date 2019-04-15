@@ -609,8 +609,7 @@ var page_configurations = {
 		}
 	}),
 	'zhwiki:Wikipedia:新条目推荐/候选' : Object.assign({
-		timezone : 8,
-		need_time_legend : false
+		timezone : 8
 	}, default_DYK_vote_configurations),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
