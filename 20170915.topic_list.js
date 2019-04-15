@@ -19,7 +19,7 @@ jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
-2017/9/24 13:56:48	use page_configurations
+2017/9/24 13:56:48	using page_configurations
 2017/10/10 16:17:28	完成。正式運用。
 
 
@@ -54,6 +54,8 @@ archive topics:
 	可以自動把文字分到新的子頁面
 存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
 存檔完可以直接刪除，只留下oldid
+
+已知無法解決問題：目前維基百科 link anchor, display_text 尚無法接受"�"這個字元。
 
  */
 
@@ -249,6 +251,214 @@ var default_BRFA_configurations = {
 
 // ----------------------------------------------
 
+var default_FC_vote_configurations = {
+	topic_page : general_topic_page,
+	columns : 'NO;title;support;oppose;status;discussions;participants;last_user_set',
+	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! 狀態 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+	// 要篩選的章節標題層級。
+	level_filter : 3,
+
+	support_templates : {
+		YesFA : true,
+		YesFL : true,
+		YesGA : true
+	},
+	oppose_templates : {
+		NoFA : true,
+		NoFL : true,
+		NoGA : true
+	},
+	// 篩選章節標題。
+	section_filter : function(section) {
+		// 正在投票評選的新條目
+		section.vote_count = {
+			// 有效票中支持的數量。
+			support : 0,
+			// 有效票中反對的數量。
+			oppose : 0,
+			// 無效票的數量。
+			invalid : 0
+		};
+
+		var page_configuration = this.page.page_configuration;
+		var latest_vote, _this = this;
+		this.each.call(section, 'template', function(token, index, parent) {
+			var exit;
+			if (page_configuration.section_filter_in_template
+					&& (exit = page_configuration.section_filter_in_template
+							.call(_this, token, section)) !== undefined) {
+				return exit;
+			}
+
+			// TODO: 使用刪除線「<s>...</s>」劃掉。
+
+			if (token.name in page_configuration.support_templates) {
+				latest_vote = token;
+				section.vote_count.support++;
+				latest_vote.vote_support = true;
+
+			} else if (token.name in page_configuration.oppose_templates) {
+				latest_vote = token;
+				section.vote_count.oppose++;
+
+			} else if (token.name in {
+				Votevoidf : true,
+				投票無效f : true
+			}) {
+				if (latest_vote) {
+					// 劃票。
+					if (latest_vote.vote_support)
+						section.vote_count.support--;
+					else
+						section.vote_count.oppose--;
+					section.vote_count.invalid++;
+				}
+			}
+		});
+
+		var preserve;
+		if (page_configuration.section_filter_postfix
+				&& (preserve = page_configuration
+						.section_filter_postfix(section)) !== undefined) {
+			return preserve;
+		}
+
+		section.section_index = this.section_length = this.section_length ? ++this.section_length
+				: 1;
+
+		return true;
+	},
+	// for FA, FL
+	pass_vote : function(diff, section) {
+		return diff >= 8
+		// 有效淨支持票數滿8票方能中選。
+		&& section.vote_count.support >= 2 * section.vote_count.oppose;
+	},
+	// column operators
+	operators : {
+		title : function(section) {
+			var title = section.section_title.title,
+			// 當標題過長時，縮小標題字型。
+			title_too_long = if_too_long(title);
+			title = CeL.wiki.title_link_of(section.section_title.link[0]
+					.replace(/\/(?:提名区|提名區)$/, '')
+					+ '#' + title, title);
+			return title_too_long ? '<small>' + title + '</small>' : title;
+		},
+		support : function(section) {
+			return local_number(section.vote_count.support);
+		},
+		oppose : function(section) {
+			return local_number(section.vote_count.oppose);
+		},
+		// countdown days / time
+		countdown : function(section) {
+			return;
+		},
+		status : function(section) {
+			var page_configuration = this.page.page_configuration;
+			var votes = page_configuration.columns.includes('support')
+					&& page_configuration.columns.includes('oppose') ? ''
+					: '<b style="display: none;">' + section.vote_count.support
+							+ '-' + section.vote_count.oppose + '</b>';
+
+			var pass_vote_prefix = page_configuration.pass_vote_prefix
+					&& page_configuration.pass_vote_prefix(section);
+			if (pass_vote_prefix) {
+				return votes + pass_vote_prefix;
+			}
+
+			var diff = section.vote_count.support - section.vote_count.oppose;
+			return diff < 0 ? votes + '反對' + -diff
+			//
+			: page_configuration.pass_vote(diff, section) ? votes
+					+ "<span style=\"color: blue;\">'''已達標'''</span>"
+			// TODO: 未達標準
+			: diff > 0 ? local_number(votes + diff + '票') : votes + '-';
+		}
+	}
+};
+
+// default configurations for DYK vote 投票
+var default_DYK_vote_configurations = {
+	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
+	columns : 'NO;title;support;oppose;status;discussions;participants;last_user_set',
+	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! 狀態 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+	// ;support;oppose
+	_columns : 'NO;title;status;discussions;participants;last_user_set',
+	// !! <small>支持</small> !! <small>反對</small>
+	_headers : '! style="font-size: .5em;" | # !! 條目標題 !! 狀態 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+	// 要篩選的章節標題層級。
+	level_filter : 4,
+
+	support_templates : {
+		Support : true,
+		SUPPORT : true,
+		Pro : true,
+		SP : true,
+		ZC : true,
+		支持 : true
+	},
+	oppose_templates : {
+		Oppose : true,
+		OPPOSE : true,
+		Contra : true,
+		不同意 : true,
+		O : true,
+		反对 : true,
+		反對 : true
+	},
+	// 篩選章節標題。
+	section_filter_in_template : function(token, section) {
+		if (token.name === 'DYKEntry') {
+			section.DYKEntry = token;
+		} else if (token.name === 'DYKCsplit') {
+			section.may_skip_section = true;
+		}
+	},
+	section_filter_postfix : function(section) {
+		if (!section.DYKEntry)
+			return !section.may_skip_section;
+	},
+	pass_vote_prefix : function(section) {
+		if (section.DYKEntry) {
+			if (/^\+/.test(section.DYKEntry.parameters.result)) {
+				return "<span style=\"color: green;\">'''當選'''</span>";
+			}
+			if (/^\-/.test(section.DYKEntry.parameters.result)) {
+				return "<span style=\"color: red;\">'''未當選'''</span>";
+			}
+		}
+	},
+	pass_vote : function(diff, section) {
+		// 有效淨支持票數滿4票方能中選。
+		return diff >= 4;
+	},
+	// column operators
+	operators : {
+		title : function(section) {
+			if (!section.DYKEntry)
+				return 'N/A';
+
+			var title = section.DYKEntry.parameters.article,
+			// 當標題過長時，縮小標題字型。
+			title_too_long = if_too_long(title);
+			// overwrite section.section_title.title for `new_topics`
+			section.section_title.title = title;
+			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+					+ title, title);
+			return title_too_long ? '<small>' + title + '</small>' : title;
+		}
+	}
+};
+default_DYK_vote_configurations.operators = Object.assign(CeL.null_Object(),
+		default_FC_vote_configurations.operators,
+		default_DYK_vote_configurations.operators);
+default_DYK_vote_configurations = Object.assign(CeL.null_Object(),
+		default_FC_vote_configurations, default_DYK_vote_configurations);
+
+// ================================================================================================
+
 // page configurations for all supported talk pages
 var page_configurations = {
 	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
@@ -381,6 +591,24 @@ var page_configurations = {
 		}
 	})),
 
+	'zhwiki:Wikipedia:典范条目评选/提名区' : Object.assign({
+		timezone : 8
+	}, default_FC_vote_configurations),
+	'zhwiki:Wikipedia:特色列表评选/提名区' : Object.assign({
+		timezone : 8
+	}, default_FC_vote_configurations),
+	'zhwiki:Wikipedia:優良條目評選/提名區' : Object.assign({
+		timezone : 8
+	}, default_FC_vote_configurations, {
+		pass_vote : function(diff, section) {
+			// 有至少6個投票認為條目符合優良條目標準
+			return diff >= 6;
+		}
+	}),
+	'zhwiki:Wikipedia:新条目推荐/候选' : Object.assign({
+		timezone : 8
+	}, default_DYK_vote_configurations),
+
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
 	}, general_page_configuration),
@@ -470,7 +698,8 @@ function CSS_toString(CSS) {
 var section_column_operators = {
 	// function: .call(page_data, section, section_index)
 	NO : function(section, section_index) {
-		return local_number(section_index);
+		return local_number('section_index' in section ? section.section_index
+				: section_index);
 	},
 	// 議題的標題
 	title : function(section) {
@@ -692,7 +921,7 @@ function start_main_work(page_data) {
 
 	// ----------------------------------------------------
 
-	// for debug
+	// for debug: 僅處理此頁面
 	if (false) {
 		page_configurations = {
 			'zhwiki:Wikipedia:互助客栈/技术' : general_page_configuration
@@ -711,9 +940,13 @@ function start_main_work(page_data) {
 
 	get_special_users.log_file_prefix = base_directory + 'special_users.';
 
-	// for debug
+	// for debug: 僅處理此頁面
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
+	if (false) {
+		main_talk_pages = [ 'Wikipedia:新条目推荐/候选', 'Wikipedia:典范条目评选/提名区',
+				'Wikipedia:特色列表评选/提名区', 'Wikipedia:優良條目評選/提名區' ];
+	}
 
 	if (main_talk_pages.length > 0) {
 		CeL.info(main_talk_pages.length + ' page(s) to listen for '
@@ -914,6 +1147,7 @@ function general_row_style(section, section_index) {
 	var status, to_exit = this.each.exit,
 	// archived, move_to 兩者分開，避免{{Archive top}}中有{{Moveto}}
 	archived, move_to;
+
 	// console.log(section);
 	this.each.call(section, function(token) {
 		if (token.type === 'transclusion' && (token.name in {
@@ -933,6 +1167,7 @@ function general_row_style(section, section_index) {
 			'Archive top' : true
 		})) {
 			archived = 'start';
+			delete section.adding_link;
 
 		} else if (archived === 'start'
 		//
@@ -956,8 +1191,6 @@ function general_row_style(section, section_index) {
 				archived = 'extra';
 				if (token.type === 'section_title') {
 					section.adding_link = token;
-				} else {
-					delete section.adding_link;
 				}
 			}
 			// 除了{{save to}}之類外，有多餘的token就應該直接跳出。
@@ -1412,6 +1645,7 @@ function if_too_long(title) {
 					: accumulator;
 		}, '');
 	}, true);
+
 	return title.toString()
 	// remove HTML tags
 	.replace(/<\/?[a-z][^<>]*>?/g, '')
@@ -1446,7 +1680,7 @@ function local_number(number, attributes) {
 				+ (number === 0 ? '無' : CeL.to_Chinese_numeral(number));
 	}
 
-	var style = 'text-align:right;';
+	var style = 'text-align: right;';
 	if (!attributes) {
 		if (!style) {
 			return number;
@@ -1515,7 +1749,8 @@ function get_column_operators(page_configuration) {
 				index = section.last_update_index;
 			} else {
 				index = section_index_filter(section,
-				// this: parsed
+				// this: parsed;
+				// page_configuration = this.page.page_configuration;
 				twist_filter ? twist_filter.call(this, section,
 						user_group_filter) : user_group_filter, date_type);
 			}
@@ -1755,6 +1990,14 @@ function generate_topic_list(page_data) {
 		throw 'generate_topic_list: No edit';
 	}
 
+	if (new_topics.length < 3) {
+		new_topics = new_topics
+				.map(function(topic) {
+					return CeL.wiki.title_link_of(
+							page_data.title + '#' + topic, topic);
+				});
+	}
+
 	wiki.page(topic_page)
 	// TODO: CeL.wiki.array_to_table(section_table)
 	.edit(section_table.join('\n'), {
@@ -1767,7 +2010,7 @@ function generate_topic_list(page_data) {
 		//
 		+ (new_topics.length > 0
 		//
-		? ', new reply: ' + new_topics.join('; ') : '')
+		? '; new reply: ' + new_topics.join(', ') : '')
 	})
 	// 更新所嵌入的頁面。通常是主頁面。
 	.purge(page_configuration.purge_page || page_data.title);
