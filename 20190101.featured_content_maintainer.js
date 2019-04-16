@@ -949,9 +949,13 @@ function check_date_page() {
 		//
 		+ (error_logs.length > 0 ? '，' + error_logs.length + '筆錯誤' : '')
 		//
-		+ (0 < new_FC_pages.length && new_FC_pages.length < 4
+		+ (0 < new_FC_pages.length ? new_FC_pages.length < 4
 		//
-		? '，新出現條目：' + new_FC_pages : '')
+		? '，新出現條目：' + new_FC_pages
+		//
+		: new_FC_pages.length < FC_title_sorted.length
+		//
+		? '，新出現' + new_FC_pages.length + '個條目' : '' : '')
 	});
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
@@ -1262,6 +1266,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 				+ (using_GA ? '140x140' : '190x190') + 'px]]\n');
 			}
 			return introduction_section.toString();
+		}, {
+			summary : '自動創建' + TYPE_NAME + '簡介頁面'
 		});
 
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
@@ -1270,8 +1276,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
 			 */
 			content = CeL.wiki.content_of(page_data),
-			//
-			write_link = CeL.wiki.title_link_of(transcluding_title, '檢核與撰寫簡介');
+			// 撰寫簡介
+			write_link = CeL.wiki.title_link_of(transcluding_title, '檢核與編篡簡介');
 
 			// 之前檢查過了。避免多次提醒。
 			if (content.includes(write_link)) {
