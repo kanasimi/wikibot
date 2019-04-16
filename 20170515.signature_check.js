@@ -56,7 +56,8 @@ edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 // API_URL=https://zh.moegirl.org/api.php
 && CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
 
-using_subst = !CeL.env.arg_hash.API_URL.includes('moegirl');
+using_subst = !CeL.env.arg_hash.API_URL
+		|| !CeL.env.arg_hash.API_URL.includes('moegirl');
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定
