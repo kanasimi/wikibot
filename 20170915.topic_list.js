@@ -87,9 +87,70 @@ botop_sitelinks = {
 	enwiki : {
 		title : 'Category:Wikipedia bot operators'
 	}
-}, max_date_length = 34,
+}, max_date_length = 34;
+
+// ================================================================================================
 
 // 一般用討論頁面設定。
+
+// column_to_header[column] = header used
+var localized_column_to_header = {
+	zh : {
+		// 序號 Topics主題
+		title : '話題',
+		discussions : '<small title="發言數/發言人次 (實際上為簽名數)">發言</small>',
+		participants : '<small title="參與討論人數/發言人數">參與</small>',
+		last_user_set : '最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
+		last_BAG_set : '<small>最新[[WP:BAG|BAG]]發言</small> !! data-sort-type="isoDate" | <small>BAG最後更新(UTC+8)</small>',
+		last_botop_set : '<small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>'
+	},
+	'zh-classical' : {
+		NO : 'data-sort-type="number" | <small>序</small>',
+		title : '議題',
+		discussions : 'data-sort-type="number" | <small title="議論數">論</small>',
+		participants : 'data-sort-type="number" | <small title="參議者數">參議</small>',
+		last_user_set : '末議者 !! data-sort-type="isoDate" | 新易(UTC+8)'
+	// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易(UTC+8)
+	},
+	ja : {
+		// 質問や提案、議論
+		title : '話題',
+		discussions : '<small title="発言数">発言</small>',
+		participants : '<small title="議論に参加する人数">人数</small>',
+		last_user_set : '最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>',
+		// 審議者・決裁者
+		last_BAG_set : '<small>[[WP:BUR|決裁者]]更新</small> !! data-sort-type="isoDate" | <small>決裁者最後更新(UTC+9)</small>',
+		last_botop_set : '<small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時(UTC+9)</small>'
+	},
+}[use_language], column_to_header = Object.assign({
+	NO : '#'
+}, localized_column_to_header);
+// free
+localized_column_to_header = null;
+
+function generate_headers(page_configuration) {
+	var columns = page_configuration.columns;
+	columns = columns.split(';');
+
+	var headers;
+	// do not overwrite
+	if (page_configuration.headers) {
+		headers = page_configuration.headers;
+	} else {
+		/* let */var header_converter = page_configuration.column_to_header;
+		headers = '! ' + columns.map(function(column) {
+			return header_converter && header_converter[column]
+			//
+			|| column_to_header[column];
+		}).join(' !! ');
+		page_configuration.headers = headers;
+	}
+
+	return headers;
+}
+
+var
 // need to add {{/topic list}} to {{/header}}
 general_topic_page = '/topic list', general_page_configuration = {
 	topic_page : general_topic_page,
@@ -100,25 +161,22 @@ general_topic_page = '/topic list', general_page_configuration = {
 }, localized_page_configuration = {
 	zh : {
 		timezone : 8,
-		// 序號 Topics主題
-		headers : '! # !! 話題 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
-		// !! [[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)
-		,
 		row_style : general_row_style
 	},
 	'zh-classical' : {
-		timezone : 8,
-		headers : '! data-sort-type="number" | <small>序</small> !! 議題 !! data-sort-type="number" | <small title="議論數">論</small> !! data-sort-type="number" | <small title="參議者數">參議</small> !! 末議者 !! data-sort-type="isoDate" | 新易(UTC+8)'
-	// !! [[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易(UTC+8)
+		timezone : 8
 	},
 	ja : {
-		timezone : 9,
-		// 質問や提案、議論
-		headers : '! # !! 話題 !! <small title="発言数">発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
+		timezone : 9
 	}
 }[use_language];
 
 Object.assign(general_page_configuration, localized_page_configuration);
+// free
+localized_page_configuration = null;
+// generate_headers(general_page_configuration);
+
+// ----------------------------------------------
 
 function is_bot_user(user_name, section, using_special_users) {
 	// TODO: using section for [[w:ja:Wikipedia:Bot/使用申請]]
@@ -130,6 +188,16 @@ function is_bot_user(user_name, section, using_special_users) {
 var default_BRFA_configurations = {
 	topic_page : general_topic_page,
 	columns : 'NO;title;status;discussions;participants;last_user_set;last_BAG_set',
+	column_to_header : {
+		zh : {
+			title : '機器人申請',
+			status : '進度'
+		},
+		ja : {
+			title : 'Bot使用申請',
+			status : '進捗'
+		}
+	}[use_language],
 	// 要含入並且監視的頁面。
 	// e.g., {{Wikipedia:Bot/使用申請/InternetArchiveBot}}
 	transclusion_target : function(token) {
@@ -254,35 +322,79 @@ var default_BRFA_configurations = {
 var default_FC_vote_configurations = {
 	topic_page : general_topic_page,
 	columns : 'NO;title;support;oppose;status;countdown;discussions;participants;last_user_set',
-	headers : '! style="font-size: .5em;" | # !! 條目標題 !! <small>支持</small> !! <small>反對</small> !! data-sort-type="number" | 狀態 !! data-sort-type="number" | <span title="從上次編輯時間起算。非從現在起的時間！">期限</span> !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+	column_to_header : {
+		zh : {
+			NO : 'style="font-size: .5em;" | #',
+			title : '條目標題',
+			support : 'data-sort-type="number" | <small>支持</small>',
+			oppose : 'data-sort-type="number" | <small>反對</small>',
+			status : 'data-sort-type="number" | <span title="已去掉逾期選票">狀態</span>',
+			countdown : 'data-sort-type="number" | <span title="從上次編輯時間起算。非從現在起的時間！">期限</span>'
+		}
+	}[use_language],
 	// 要篩選的章節標題層級。
 	level_filter : 3,
 
-	support_templates : {
-		YesFA : true,
-		YesFL : true,
-		YesGA : true
+	// will be used in .section_filter()
+	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
+	oppose_templates : 'NoFA|NoFL|NoGA'.split('|').to_hash(),
+	set_vote_closed : function(section) {
+		if (section.vote_time_limit > 0) {
+			section.vote_closed = Date.now() >= section.vote_time_limit;
+		}
+		// return section.vote_closed;
 	},
-	oppose_templates : {
-		NoFA : true,
-		NoFL : true,
-		NoGA : true
+	// 以截止時間來檢核所有逾期的選票。 應對中文維基之延期制度。
+	// MUST setup section.vote_time_limit, section.vote_list first!
+	get_supports_on_date : function(section, date) {
+		function filter_via_date(previous, vote_template) {
+			return previous + (date - vote_template.vote_date >= 0 ? 1 : 0);
+		}
+
+		if (!date)
+			date = section.vote_time_limit;
+
+		var diff = date - 0 > 0 ? section.vote_list.support.reduce(
+				filter_via_date, 0)
+				- section.vote_list.oppose.reduce(filter_via_date, 0)
+		//
+		: section.vote_list.support.length - section.vote_list.oppose.length;
+		return diff;
 	},
 	// 篩選章節標題。
 	section_filter : function(section) {
 		// 正在投票評選的新條目
-		section.vote_count = {
-			// 有效票中支持的數量。
-			support : 0,
-			// 有效票中反對的數量。
-			oppose : 0,
-			// 無效票的數量。
-			invalid : 0
+		section.vote_list = {
+			// 有效票中支持的選票template。
+			support : [],
+			// 有效票中反對的選票template。
+			oppose : [],
+			// 無效票的選票template。
+			invalid : []
 		};
 
 		var page_configuration = this.page.page_configuration;
 		var latest_vote, _this = this;
-		this.each.call(section, 'template', function(token, index, parent) {
+		this.each.call(section, function(token, index, parent) {
+			// TODO: 投票人資格審查。
+			if (token.type === 'plain') {
+				if (latest_vote
+				// TODO: parsing user 取得每一票的投票人與投票時間點。
+				&& !latest_vote.vote_date) {
+					/* let */var date = CeL.wiki.parse.date(token.toString());
+					if (date) {
+						latest_vote.vote_date = date;
+						// assert: {Date}latest_vote.vote_date
+						// console.log(latest_vote);
+					}
+				}
+				return;
+			}
+
+			if (token.type !== 'transclusion') {
+				return;
+			}
+
 			var result_to_exit;
 			if (page_configuration.section_filter_in_template
 			//
@@ -295,13 +407,13 @@ var default_FC_vote_configurations = {
 			// TODO: 使用刪除線「<s>...</s>」劃掉。
 
 			if (token.name in page_configuration.support_templates) {
+				section.vote_list.support.push(token);
 				latest_vote = token;
-				section.vote_count.support++;
 				latest_vote.vote_support = true;
 
 			} else if (token.name in page_configuration.oppose_templates) {
+				section.vote_list.oppose.push(token);
 				latest_vote = token;
-				section.vote_count.oppose++;
 
 			} else if (token.name in {
 				Votevoidf : true,
@@ -310,18 +422,62 @@ var default_FC_vote_configurations = {
 				if (latest_vote) {
 					// 劃票。
 					if (latest_vote.vote_support)
-						section.vote_count.support--;
+						section.vote_list.support.pop();
 					else
-						section.vote_count.oppose--;
-					section.vote_count.invalid++;
+						section.vote_list.oppose.pop();
+					section.vote_list.invalid.push(latest_vote);
 				}
 			}
 		});
 
+		// --------------------------------------
+
+		// search 投票期限
+		if (!section.vote_time_limit) {
+			var PATTERN = /期：([^<>{}\|\n]+)至([^<>{}\|\n]+)(.)/g, matched;
+			while (matched = PATTERN.exec(section.toString())) {
+				// e.g., 史克威爾艾尼克斯電子遊戲列表
+				// :<small>基礎評選期：2019年1月19日 (六) 07:57 (UTC) 至 2019年2月18日 (一)
+				// 07:57 (UTC){{處理中}}</small>
+				// :<small>初次延長期：2019年2月18日 (一) 07:57 (UTC) 至 2019年3月20日 (三)
+				// 07:57 (UTC){{doing}}</small>
+				if (matched[3] !== '{') {
+					section.vote_time_limit = CeL.wiki.parse.date(matched[2]);
+					// console.log([ matched[2], section.vote_time_limit ]);
+					break;
+				}
+			}
+		}
+		if (!section.vote_time_limit) {
+			// 投票將於 ... 結束. e.g., [[Wikipedia:特色圖片評選]]
+			var matched = section.toString().match(/於([^<>{}\|\n]+)結束/);
+			if (matched) {
+				section.vote_time_limit = CeL.wiki.parse.date(matched[1]);
+			}
+		}
+
+		page_configuration.set_vote_closed.call(this, section);
+		if (section.vote_closed) {
+			// 以截止時間來檢核所有逾期的選票。
+			// @see .get_supports_on_date()
+			function filter_via_date(vote_template) {
+				if (section.vote_time_limit - vote_template.vote_date > 0) {
+					return true;
+				}
+				section.vote_list.invalid.push(vote_template);
+			}
+			section.vote_list.support = section.vote_list.support
+					.filter(filter_via_date);
+			section.vote_list.oppose = section.vote_list.oppose
+					.filter(filter_via_date);
+		}
+
+		// --------------------------------------
+
 		var preserve;
 		if (page_configuration.section_filter_postfix
-				&& (preserve = page_configuration
-						.section_filter_postfix(section)) !== undefined) {
+				&& (preserve = page_configuration.section_filter_postfix.call(
+						this, section)) !== undefined) {
 			return preserve;
 		}
 
@@ -333,8 +489,8 @@ var default_FC_vote_configurations = {
 	// for FA, FL
 	pass_vote : function(diff, section) {
 		return diff >= 8
-		// 有效淨支持票數滿8票方能中選。
-		&& section.vote_count.support >= 2 * section.vote_count.oppose;
+				// 有效淨支持票數滿8票方能中選。
+				&& section.vote_list.support.length >= 2 * section.vote_list.oppose.length;
 	},
 	// column operators
 	operators : {
@@ -348,104 +504,101 @@ var default_FC_vote_configurations = {
 			return title_too_long ? '<small>' + title + '</small>' : title;
 		},
 		support : function(section) {
-			return local_number(section.vote_count.support);
+			return local_number(section.vote_list.support.length);
 		},
 		oppose : function(section) {
-			return local_number(section.vote_count.oppose);
+			return local_number(section.vote_list.oppose.length);
 		},
 		// countdown days / time
 		countdown : function(section) {
-			if (!section.vote_time_limit) {
-				// search 投票期
-				var PATTERN = /期：([^<>{}\|\n]+)至([^<>{}\|\n]+)(.)/g, matched;
-				while (matched = PATTERN.exec(section.toString())) {
-					// e.g., 史克威爾艾尼克斯電子遊戲列表
-					// :<small>基礎評選期：2019年1月19日 (六) 07:57 (UTC) 至 2019年2月18日 (一)
-					// 07:57 (UTC){{處理中}}</small>
-					// :<small>初次延長期：2019年2月18日 (一) 07:57 (UTC) 至 2019年3月20日 (三)
-					// 07:57 (UTC){{doing}}</small>
-					if (matched[3] !== '{') {
-						section.vote_time_limit = CeL.wiki.parse
-								.date(matched[2]);
-						// console.log([ matched[2], section.vote_time_limit ]);
-						break;
-					}
-				}
-			}
-			if (!section.vote_time_limit) {
-				// 投票將於 ... 結束. e.g., [[Wikipedia:特色圖片評選]]
-				var matched = section.toString().match(/於([^<>{}\|\n]+)結束/);
-				if (matched) {
-					section.vote_time_limit = CeL.wiki.parse.date(matched[1]);
-				}
+			var data = 'data-sort-value="'
+					+ (section.vote_time_limit - Date.now()) + '" | ';
+			if (section.vote_closed) {
+				// 時間截止 vote_closed
+				return (section.vote_time_limit > 0 ? data : '')
+						+ '<b style="color: red;">截止</b>';
 			}
 
 			if (!(section.vote_time_limit > 0)) {
 				return '<b style="color: red;">N/A</b>';
 			}
 
-			var data = 'data-sort-value="'
-					+ (section.vote_time_limit - Date.now()) + '" | ';
-			return data
-					+ (Date.now() < section.vote_time_limit ? '<small>'
-					// 還有...天 ; ...日後
-					+ CeL.age_of(Date.now(), section.vote_time_limit)
-							+ '後</small>' : '<b style="color: red;">截止</b>');
+			// assert: section.vote_time_limit > 0
+			// && Date.now() < section.vote_time_limit
+			return data + '<small>'
+			// 還有...天 ; ...日後
+			+ CeL.age_of(Date.now(), section.vote_time_limit) + '後</small>';
 		},
 		status : function(section) {
 			var page_configuration = this.page.page_configuration;
+			// console.log(page_configuration.columns);
+			// 暗中顯示支持與反對的票數以供檢查調試。
 			var votes = page_configuration.columns.includes('support')
 					&& page_configuration.columns.includes('oppose') ? ''
-					: '<b style="display: none;">' + section.vote_count.support
-							+ '-' + section.vote_count.oppose + '</b>';
+					: '<b style="display: none;">'
+							+ section.vote_list.support.length + '-'
+							+ section.vote_list.oppose.length + '</b>';
+			if (false)
+				console.log('votes of ' + section.section_title.title + ': '
+						+ votes);
 
-			var pass_vote_prefix = page_configuration.pass_vote_prefix
+			var pass_vote_prefix = typeof page_configuration.pass_vote_prefix === 'function'
 					&& page_configuration.pass_vote_prefix(section);
 			if (pass_vote_prefix) {
+				// 已經可以早期判別選舉的結果。
 				return votes + pass_vote_prefix;
 			}
 
-			var diff = section.vote_count.support - section.vote_count.oppose;
-			var data = 'data-sort-value="' + diff + '" | ';
-			data += diff < 0 ? votes + '<span style="color: #800;">反對' + -diff
-					+ '</span>'
-			//
-			: page_configuration.pass_vote(diff, section) ? votes
-					+ "<span style=\"color: blue;\">'''已達標'''</span>"
-			// TODO: 未達標準
-			: diff > 0 ? local_number(votes + diff + '票')
-			//
-			: votes + '<b style="color: gray;">-</b>';
-			return data;
+			var diff = page_configuration.get_supports_on_date(section);
+			var status_wikitext = 'data-sort-value="' + diff + '"';
+			if (page_configuration.pass_vote(diff, section)) {
+				status_wikitext += ' | ' + votes
+						+ "<span style=\"color: blue;\">'''已達標'''</span>";
+			} else if (section.vote_closed) {
+				status_wikitext += ' | ' + votes
+						+ "<span style=\"color: red;\">'''未當選'''</span>";
+
+			} else if (diff > 0) {
+				status_wikitext += local_number(votes
+				// .no_vote_message: 不要顯示得票數。
+				+ (page_configuration.no_vote_message ? '' : diff + '票'));
+			} else if (diff < 0) {
+				status_wikitext += ' | ' + votes
+				// 得票數小於零
+				+ (page_configuration.no_vote_message ? ''
+				//
+				: '<span style="color: #800;">反對' + -diff + '</span>');
+			} else {
+				status_wikitext += ' | ' + votes
+				// e.g., diff === 0, isNaN(diff)
+				+ (page_configuration.no_vote_message ? ''
+				//
+				: '<b style="color: gray;">-</b>');
+			}
+
+			return status_wikitext;
 		}
 	}
 };
 
 // default configurations for DYK vote 投票
 var default_DYK_vote_configurations = {
+	page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
+
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
 	// ;support;oppose
-	// !! <small>支持</small> !! <small>反對</small>
+	_columns : 'NO;title;status;countdown;discussions;participants;last_user_set',
+	// .no_vote_message: 不要顯示得票數。
+	no_vote_message : true,
+
 	// 要篩選的章節標題層級。
 	level_filter : 4,
 
-	support_templates : {
-		Support : true,
-		SUPPORT : true,
-		Pro : true,
-		SP : true,
-		ZC : true,
-		支持 : true
-	},
-	oppose_templates : {
-		Oppose : true,
-		OPPOSE : true,
-		Contra : true,
-		不同意 : true,
-		O : true,
-		反对 : true,
-		反對 : true
-	},
+	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持|Strong support|强烈支持|滋磁|Zici|Zupport|滋瓷|资磁|资瓷|资辞'
+			.split('|').to_hash(),
+	// {{Seriously}}
+	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對|Strong oppose|Strongly oppose|強烈反對'
+			.split('|').to_hash(),
 	// 篩選章節標題。
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
@@ -457,13 +610,31 @@ var default_DYK_vote_configurations = {
 						+ 4 * 24 * 60 * 60 * 1000;
 			}
 		} else if (token.name === 'DYKCsplit') {
+			// 記錄這一段可直接跳過。
 			section.may_skip_section = true;
+		}
+	},
+	set_vote_closed : function(section) {
+		// assert: section.vote_time_limit > 0
+		if (Date.now() >= section.vote_time_limit) {
+			// 已過初期期限。
+			var page_configuration = this.page.page_configuration;
+			var diff = page_configuration.get_supports_on_date(section);
+			if (page_configuration.pass_vote(diff, section)) {
+				// 至基本投票期屆滿時，如獲得中選所需的最低票數或以上，投票即會結束並獲通過
+				section.vote_closed = true;
+				return;
+			}
+			// 否則，投票期將自動延長3天
+			section.vote_time_limit += 3 * 24 * 60 * 60 * 1000;
+			section.vote_closed = Date.now() >= section.vote_time_limit;
 		}
 	},
 	section_filter_postfix : function(section) {
 		if (!section.DYKEntry)
 			return !section.may_skip_section;
 	},
+	// 已經可以早期判別選舉的結果。
 	pass_vote_prefix : function(section) {
 		if (section.DYKEntry) {
 			if (/^\+/.test(section.DYKEntry.parameters.result)) {
@@ -510,7 +681,7 @@ var page_configurations = {
 		timezone : 9,
 		// 僅會顯示包含"bot"的標題
 		// @see is_bot_user(user_name, section)
-		headers : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
+		_headers : '! # !! Bot使用申請 !! 進捗 !! <small>発言</small>'
 				+ ' !! <small title="議論に参加する人数">人数</small>' + ' !! 最終更新者'
 				+ ' !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>'
 				// 審議者・決裁者
@@ -521,8 +692,12 @@ var page_configurations = {
 	'jawiki:Wikipedia:Bot作業依頼' : {
 		topic_page : general_topic_page,
 		timezone : 9,
-		headers : '! # !! 依頼 !! 進捗 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small> !! <small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時(UTC+9)</small>',
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
+		_headers : '! # !! 依頼 !! 進捗 !! <small>発言</small> !! <small title="議論に参加する人数">人数</small> !! 最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small> !! <small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時(UTC+9)</small>',
+		column_to_header : {
+			title : '依頼',
+			status : '進捗'
+		},
 		// column operators
 		operators : {
 			status : check_BOTREQ_status
@@ -536,7 +711,7 @@ var page_configurations = {
 		// [[Wikipedia:議論が盛んなノート]]の更新Botをフッタに対応させ、
 		// [[Wikipedia:井戸端/topic list]]を取り込んでみました。こちらでは表示の折り畳みは不要かと思われます
 		header_class : 'wikitable sortable collapsible',
-		additional_header : 'style="float:left"',
+		additional_header : 'style="float: left;"',
 		timezone : 9,
 		transclusion_target : function(token) {
 			if (token.name === '井戸端サブページ' && token.parameters.title) {
@@ -556,13 +731,18 @@ var page_configurations = {
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
 		timezone : 8,
-		headers : '! # !! 需求 !! 進度 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
 		// first_user_set: 發起人與發起時間(Created)
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
 		// last_BAG_set: 特定使用者 special_users.BAG 最後留言者與最後時間(Last BAG editor)
 		// last_BAG_set: 最後BAG編輯者+BAG最後編輯於
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
+		_headers : '! # !! 需求 !! 進度 !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small> !! <small title="參與討論人數/發言人數">參與</small> !! 最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small> !! <small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>',
+		column_to_header : {
+			title : '需求',
+			// 處理情況
+			status : '進度',
+		},
 		operators : {
 			// 議體進度狀態。
 			status : check_BOTREQ_status
@@ -570,7 +750,7 @@ var page_configurations = {
 	},
 	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
 		timezone : 8,
-		headers : '! # !! 機器人申請 !! 進度'
+		_headers : '! # !! 機器人申請 !! 進度'
 				+ ' !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small>'
 				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
 				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
@@ -582,13 +762,16 @@ var page_configurations = {
 	}, default_BRFA_configurations),
 	'zhwiki:Wikipedia:机器用户/申请' : Object.assign({
 		timezone : 8,
-		headers : '! # !! 機器用戶申請 !! 進度'
+		_headers : '! # !! 機器用戶申請 !! 進度'
 				+ ' !! <small title="發言數/發言人次 (實際上為簽名數)">發言</small>'
 				+ ' !! <small title="參與討論人數">參與</small>' + ' !! 最新發言'
 				+ ' !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>'
 				+ ' !! <small>最新[[WP:BAG|BAG]]發言</small>'
 				+ ' !! data-sort-type="isoDate"'
 				+ ' | <small>BAG最後更新(UTC+8)</small>',
+		column_to_header : {
+			title : '機器用戶申請'
+		},
 		// 要篩選的章節標題層級。
 		level_filter : 3
 	}, Object.assign(CeL.null_Object(), default_BRFA_configurations, {
@@ -1945,12 +2128,13 @@ function generate_topic_list(page_data) {
 	page_configuration = page_data.page_configuration,
 	//
 	section_table = [
+			page_configuration.page_header,
 			'<!-- This page will be auto-generated by bot. Please contact me to improve the tool. 本頁面由機器人自動更新。若要改進，請聯繫機器人操作者。 -->',
 			'{| class="' + (page_configuration.header_class
 			// plainlinks
 			|| 'wikitable sortable collapsible') + '"  style="float:left;"'
 					+ (page_configuration.additional_header || ''), '|-',
-			page_configuration.headers ],
+			generate_headers(page_configuration) ],
 	//
 	column_operators = get_column_operators(page_configuration),
 	//
