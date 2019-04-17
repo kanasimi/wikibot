@@ -555,8 +555,8 @@ var default_FC_vote_configurations = {
 		var page_configuration = this.page.page_configuration;
 		return diff >= 8
 				// 有效淨支持票數滿8票方能中選。
-				&& page_configuration(section, null, true) >= 2 * page_configuration(
-						section, null, false);
+				&& page_configuration.get_votes_on_date(section, null, true) >= 2 * page_configuration
+						.get_votes_on_date(section, null, false);
 	},
 	// column operators
 	operators : {
@@ -674,28 +674,30 @@ var default_DYK_vote_configurations = {
 	page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
 
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
+	// columns : '',
 	// .no_vote_message: 不要顯示得票數。
 	no_vote_message : true,
 
 	// 要篩選的章節標題層級。
 	level_filter : 4,
 
+	// 規則講明計算「支持票」和「反對票」，如果接受帶有「激情」的票，怕會做壞榜樣
+	// |Strong support|强烈支持 |Strong oppose|Strongly oppose|強烈反對
 	// {{滋瓷}}本來就是娛樂用途 |滋磁|Zici|Zupport|滋瓷|资磁|资瓷|资辞
-	// {{tl|傾向支持}}的立場比較薄弱，當成1票支持計算似乎也不合理。
-	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持|Strong support|强烈支持'
-			.split('|').to_hash(),
+	// {{傾向支持}}的立場比較薄弱，當成1票支持計算似乎也不合理。
+	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持'.split('|').to_hash(),
 	// {{Seriously}}
-	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對|Strong oppose|Strongly oppose|強烈反對'
-			.split('|').to_hash(),
+	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對'.split('|').to_hash(),
 	// 篩選章節標題。
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
 			section.DYKEntry = token;
 			if (+section.DYKEntry.parameters.timestamp) {
 				section.vote_time_limit = 1000
-						* section.DYKEntry.parameters.timestamp
-						// 基本投票期為4天。
-						+ 4 * 24 * 60 * 60 * 1000;
+				// .timestamp: in seconds
+				* section.DYKEntry.parameters.timestamp
+				// 基本投票期為4天。
+				+ CeL.date.to_millisecond('4D');
 			}
 		} else if (token.name === 'DYKCsplit') {
 			// 記錄這一段可直接跳過。
@@ -714,7 +716,7 @@ var default_DYK_vote_configurations = {
 				return;
 			}
 			// 否則，投票期將自動延長3天
-			section.vote_time_limit += 3 * 24 * 60 * 60 * 1000;
+			section.vote_time_limit += CeL.date.to_millisecond('3D');
 			section.vote_closed = Date.now() >= section.vote_time_limit;
 		}
 	},
@@ -801,6 +803,7 @@ var page_configurations = {
 		postfix : function(section_table) {
 			// 早見表
 			if (false)
+				// using .page_header
 				section_table.push("↑'''この議題一覧表に関する議論は現在[[Wikipedia‐ノート:井戸端"
 						+ "#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について"
 						+ "|ノートページ]]で行われています。皆様のご意見をお願いいたします。'''");
