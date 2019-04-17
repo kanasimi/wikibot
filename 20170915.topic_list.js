@@ -569,6 +569,7 @@ var default_FC_vote_configurations = {
 					+ '#' + title, title);
 			return title_too_long ? '<small>' + title + '</small>' : title;
 		},
+
 		support : function(section) {
 			var page_configuration = this.page.page_configuration;
 			return local_number(page_configuration.get_votes_on_date(section,
@@ -582,6 +583,7 @@ var default_FC_vote_configurations = {
 		invalid : function(section) {
 			return local_number(section.vote_list.invalid.length);
 		},
+
 		// countdown days / time
 		countdown : function(section) {
 			var data = 'data-sort-value="'
@@ -622,7 +624,8 @@ var default_FC_vote_configurations = {
 									null, true)
 							+ '-'
 							+ page_configuration.get_votes_on_date(section,
-									null, false) + '</b>';
+									null, false) + ' ('
+							+ section.vote_list.invalid.length + ')' + '</b>';
 			if (false)
 				console.log('votes of ' + section.section_title.title + ': '
 						+ votes);
@@ -679,7 +682,9 @@ var default_DYK_vote_configurations = {
 	// 要篩選的章節標題層級。
 	level_filter : 4,
 
-	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持|Strong support|强烈支持|滋磁|Zici|Zupport|滋瓷|资磁|资瓷|资辞'
+	// {{滋瓷}}本來就是娛樂用途 |滋磁|Zici|Zupport|滋瓷|资磁|资瓷|资辞
+	// {{tl|傾向支持}}的立場比較薄弱，當成1票支持計算似乎也不合理。
+	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持|Strong support|强烈支持'
 			.split('|').to_hash(),
 	// {{Seriously}}
 	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對|Strong oppose|Strongly oppose|強烈反對'
