@@ -631,7 +631,7 @@ var default_FC_vote_configurations = {
 						+ votes);
 
 			var pass_vote_prefix = typeof page_configuration.pass_vote_prefix === 'function'
-					&& page_configuration.pass_vote_prefix(section);
+					&& page_configuration.pass_vote_prefix.call(this, section);
 			if (pass_vote_prefix) {
 				// 已經可以早期判別選舉的結果。
 				return votes + pass_vote_prefix;
@@ -639,7 +639,7 @@ var default_FC_vote_configurations = {
 
 			var diff = page_configuration.get_votes_on_date(section);
 			var status_wikitext = 'data-sort-value="' + diff + '"';
-			if (page_configuration.pass_vote(diff, section)) {
+			if (page_configuration.pass_vote.call(this, diff, section)) {
 				status_wikitext += ' | ' + votes
 						+ "<span style=\"color: blue;\">'''已達標'''</span>";
 			} else if (section.vote_closed) {
@@ -674,8 +674,6 @@ var default_DYK_vote_configurations = {
 	page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
 
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
-	// ;support;oppose
-	_columns : 'NO;title;status;countdown;discussions;participants;last_user_set',
 	// .no_vote_message: 不要顯示得票數。
 	no_vote_message : true,
 
