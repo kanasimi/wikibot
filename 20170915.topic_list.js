@@ -341,7 +341,7 @@ var default_FC_vote_configurations = {
 	columns : 'NO;title;support;oppose;invalid;status;countdown;discussions;participants;last_user_set',
 	column_to_header : {
 		zh : {
-			NO : 'style="font-size: .5em;" | #',
+			NO : 'style="font-size: .3em;" |',
 			title : '條目標題',
 			support : 'data-sort-type="number" | <small>支持</small>',
 			oppose : 'data-sort-type="number" | <small>反對</small>',
