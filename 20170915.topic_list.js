@@ -30,6 +30,14 @@ jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 
 
 
+
+計票機器人:
+時間截止時先插入截止標示，預告何時結束選舉、開始計票(過1小時)。讓選民不再投票，開始檢查作業。等到人工檢查沒問題時，確認此段最後的編輯時間超過1小時，再close掉。
+
+
+
+
+
 TODO:
 Flow 的問題是不支援繁簡轉換，沒有在大流量頁面嘗試過。長篇內容是否合適Flow還真不清楚。排版還是不夠靈活。難以處理需要修訂版本刪除的編輯。
 https://commons.wikimedia.org/wiki/Commons:Bots/Work_requests
@@ -572,16 +580,19 @@ var default_FC_vote_configurations = {
 
 		support : function(section) {
 			var page_configuration = this.page.page_configuration;
-			return local_number(page_configuration.get_votes_on_date(section,
-					null, true));
+			var votes = page_configuration.get_votes_on_date(section, null,
+					true);
+			return votes > 0 ? local_number(votes) : '';
 		},
 		oppose : function(section) {
 			var page_configuration = this.page.page_configuration;
-			return local_number(page_configuration.get_votes_on_date(section,
-					null, false));
+			var votes = page_configuration.get_votes_on_date(section, null,
+					false);
+			return votes > 0 ? local_number(votes) : '';
 		},
 		invalid : function(section) {
-			return local_number(section.vote_list.invalid.length);
+			var votes = section.vote_list.invalid.length;
+			return votes > 0 ? local_number(votes, null, 'color: red;') : '';
 		},
 
 		// countdown days / time
@@ -674,7 +685,7 @@ var default_DYK_vote_configurations = {
 	page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
 
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
-	// columns : '',
+	columns : 'NO;title;status;countdown;discussions;participants;last_user_set',
 	// .no_vote_message: 不要顯示得票數。
 	no_vote_message : true,
 
@@ -683,6 +694,10 @@ var default_DYK_vote_configurations = {
 
 	// 規則講明計算「支持票」和「反對票」，如果接受帶有「激情」的票，怕會做壞榜樣
 	// |Strong support|强烈支持 |Strong oppose|Strongly oppose|強烈反對
+	// 未來若要採用機器計票，遇到類似情況，直接讓計票機器人提醒。溫馨提示
+	// {{提醒}}：{{ping|user}}{{tl|強烈支持}}並不是有效票。按本區規則，計算有效票衹接受{{tl|支持}}和{{tl|反對}}。
+	// --~~~~
+	//
 	// {{滋瓷}}本來就是娛樂用途 |滋磁|Zici|Zupport|滋瓷|资磁|资瓷|资辞
 	// {{傾向支持}}的立場比較薄弱，當成1票支持計算似乎也不合理。
 	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持'.split('|').to_hash(),
@@ -1054,19 +1069,19 @@ var section_column_operators = {
 		// TODO: 其實是計算簽名與日期的數量。因此假如機器人等權限申請的部分多了一個簽名，就會造成多計算一次。
 		return local_number(section.users.length, section.users.length >= 2
 		// 火熱的討論採用不同顏色。
-		? section.users.length >= 10 ? 'style="background-color:#ffe;' : ''
-				: 'style="background-color:#fcc;"');
+		? section.users.length >= 10 ? 'style="background-color: #ffe;' : ''
+				: 'style="background-color: #fcc;"');
 	},
 	// 參與討論人數
 	participants : function(section) {
 		return local_number(section.users.unique().length, section.users
-				.unique().length >= 2 ? '' : 'style="background-color:#fcc;"');
+				.unique().length >= 2 ? '' : 'style="background-color: #fcc;"');
 	},
 	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
 	replies : function(section) {
 		// 有不同的人回應才算上回應數。
 		return local_number(section.replies, section.replies >= 1 ? ''
-				: 'style="background-color:#fcc;"');
+				: 'style="background-color: #fcc;"');
 	},
 	created : function(section) {
 		// TODO: the datetime the subpage created
@@ -1243,6 +1258,8 @@ function start_main_work(page_data) {
 	}
 	// main_talk_pages = [ 'Wikipedia:優良條目評選/提名區' ];
 	// main_talk_pages = [ 'Wikipedia:新条目推荐/候选' ];
+
+	// ----------------------------------------------------
 
 	if (main_talk_pages.length > 0) {
 		CeL.info(main_talk_pages.length + ' page(s) to listen for '
@@ -1536,7 +1553,7 @@ function check_BOTREQ_status(section, section_index) {
 			解決済み : true
 		}) {
 			// 這個做法可以去掉模板中的簽名。
-			status = 'style="background-color:#efe;" | '
+			status = 'style="background-color: #efe;" | '
 			// [[ja:Template:解決済み]]
 			+ '{{ ' + token.name + '}}';
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
@@ -1548,7 +1565,7 @@ function check_BOTREQ_status(section, section_index) {
 			失効 : true
 		}) {
 			// 這個做法可以去掉模板中的簽名。
-			status = 'style="background-color:#fdd;" | ' + '{{ ' + token.name
+			status = 'style="background-color: #fdd;" | ' + '{{ ' + token.name
 					+ '}}';
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
@@ -1558,7 +1575,7 @@ function check_BOTREQ_status(section, section_index) {
 			スタック : true
 		}) {
 			// 這個做法可以去掉模板中的簽名。
-			status = 'style="background-color:#ffc;" | ' + '{{ ' + token.name
+			status = 'style="background-color: #ffc;" | ' + '{{ ' + token.name
 					+ '}}';
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
@@ -1568,7 +1585,7 @@ function check_BOTREQ_status(section, section_index) {
 			// [[Template:BOTREQ]]
 			status = (token[1] || '').toString().toLowerCase().trim();
 			if (status === 'done' || status === '完了') {
-				status = 'style="background-color:#dfd;" | ' + token;
+				status = 'style="background-color: #dfd;" | ' + token;
 				if (project === 'jawiki') {
 					// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
 					status += '、確認待ち';
@@ -1606,7 +1623,7 @@ function check_BOTREQ_status(section, section_index) {
 			確認 : true,
 			已確認 : true
 		}) {
-			status = 'style="background-color:#dfd;" | ' + token;
+			status = 'style="background-color: #dfd;" | ' + token;
 			if (project === 'jawiki'
 			// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
 			&& token.name === '完了') {
@@ -1648,7 +1665,7 @@ function check_BOTREQ_status(section, section_index) {
 			Invalid : true,
 			無效 : true
 		}) {
-			status = 'style="background-color:#fbb;" | ' + token;
+			status = 'style="background-color: #fbb;" | ' + token;
 		}
 
 		// TODO: [[Template:Moved discussion to]], [[模板:移動至]]
@@ -1668,23 +1685,23 @@ function check_BRFA_status(section) {
 			status = token.toString().replace(/(}})$/, '|prefix=$1');
 			var BRFA_status = token.parameters[1] || 'new';
 			if (/^(?:tri|tiral|測試|测试)$/.test(BRFA_status)) {
-				status = 'style="background-color:#cfc;" | ' + status;
+				status = 'style="background-color: #cfc;" | ' + status;
 			} else if (/^(?:new|tric|trial complete|測試完成|测试完成)$/
 			//
 			.test(BRFA_status)) {
-				status = 'style="background-color:#ffc;" | ' + status;
+				status = 'style="background-color: #ffc;" | ' + status;
 			} else if (/^(?:\+|app|approved|批准)$/.test(BRFA_status)) {
-				status = 'style="background-color:#ccf;" | ' + status;
+				status = 'style="background-color: #ccf;" | ' + status;
 			} else if (
 			//
 			/^(?:\-|den|deny|denied|拒絕|拒绝|wit|withdraw|撤回|rev|revoke|revoked|撤銷|撤销)$/
 			//
 			.test(BRFA_status)) {
-				status = 'style="background-color:#fcc;" | ' + status;
+				status = 'style="background-color: #fcc;" | ' + status;
 			} else if (/^(?:exp|expire|expired|過期|过期|\?|dis|discuss|討論|讨论)$/
 			//
 			.test(BRFA_status)) {
-				status = 'style="background-color:#ddd;" | ' + status;
+				status = 'style="background-color: #ddd;" | ' + status;
 			}
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
@@ -1699,17 +1716,17 @@ function check_BRFA_status(section) {
 			status = token.toString().replace(/(}})$/, '|prefix=$1');
 			var BRFA_status = token.parameters[1] || 'new';
 			if (/^(?:\+|Done|done|完成)$/.test(BRFA_status)) {
-				status = 'style="background-color:#ccf;" | ' + status;
+				status = 'style="background-color: #ccf;" | ' + status;
 			} else if (
 			//
 			/^(?:\-|Not done|not done|拒絕|拒绝|驳回|駁回|未完成)$/
 			//
 			.test(BRFA_status)) {
-				status = 'style="background-color:#fcc;" | ' + status;
+				status = 'style="background-color: #fcc;" | ' + status;
 			} else if (/^(?:on hold|擱置|搁置|等待|等待中|OH|oh|hold|Hold|\*|\?)$/
 			//
 			.test(BRFA_status)) {
-				status = 'style="background-color:#ddd;" | ' + status;
+				status = 'style="background-color: #ddd;" | ' + status;
 			}
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
@@ -1720,20 +1737,20 @@ function check_BRFA_status(section) {
 			BotTrial : true,
 			BotExtendedTrial : true
 		}) {
-			status = 'style="background-color:#cfc;" | ' + token;
+			status = 'style="background-color: #cfc;" | ' + token;
 		} else if (token.name in {
 			BotTrialComplete : true,
 			OperatorAssistanceNeeded : true,
 			BAGAssistanceNeeded : true
 		}) {
-			status = 'style="background-color:#ffc;" | ' + token;
+			status = 'style="background-color: #ffc;" | ' + token;
 		} else if (token.name in {
 			対処 : true,
 
 			BotSpeedy : true,
 			BotApproved : true
 		}) {
-			status = 'style="background-color:#ccf;" | ' + token;
+			status = 'style="background-color: #ccf;" | ' + token;
 		} else if (token.name in {
 			BotWithdrawn : true,
 			Withdrawn : true,
@@ -1745,7 +1762,7 @@ function check_BRFA_status(section) {
 			BotRevoked : true,
 			BotDenied : true
 		}) {
-			status = 'style="background-color:#fcc;" | ' + token;
+			status = 'style="background-color: #fcc;" | ' + token;
 		} else if (token.name in {
 			BotOnHold : true,
 
@@ -1754,7 +1771,7 @@ function check_BRFA_status(section) {
 			擱置 : true,
 			搁置 : true
 		}) {
-			status = 'style="background-color:#ccc;" | ' + token;
+			status = 'style="background-color: #ccc;" | ' + token;
 		} else if (token.name in {
 			BotStatus : true,
 			BotComment : true,
@@ -1865,7 +1882,7 @@ function setup_list_legend() {
 
 // for 討論議題列表可以挑選欄位: (特定)使用者(最後)留言時間
 function add_user_name_and_date_set(section, user_and_date_index) {
-	var user = '', date = '';
+	var user_shown = '', date = '';
 	if (user_and_date_index >= 0) {
 		var parsed = this;
 		date = section.dates[user_and_date_index];
@@ -1909,23 +1926,36 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 			}
 		}
 
-		user = section.users[user_and_date_index];
+		var user_name = section.users[user_and_date_index];
+		// 16: IPv4 user
+		user_shown = user_name.length < 16 ? user_name
+		// 縮小太長的使用者名稱。
+		: '<small style="word-wrap: break-word; word-break: break-all;">'
+				+ user_name + '</small>';
+
 		// TODO: link to diff
-		user = (additional_attributes ? '| ' : '')
+		user_shown = (additional_attributes ? '| ' : '')
 		// 對於匿名IP用戶則顯示編輯紀錄。
-		+ (CeL.wiki.parse.user.is_IP(user)
+		+ (CeL.wiki.parse.user.is_IP(user_name)
 		//
-		? '[[Special:Contributions/' : '[[User:') + user + '|'
+		? '[[Special:Contributions/' : '[[User:') + user_name + '|'
 		//
-		+ (CSS_toString(section.CSS) ? '<span style="'
+		+ (CSS_toString(section.CSS) || CeL.wiki.parse.user.is_IP(user_name)
 		//
-		+ CSS_toString(section.CSS) + '">' + user + '</span>' : user) + ']]';
+		? '<span style="'
+		//
+		+ (CeL.wiki.parse.user.is_IP(user_name) ? 'color: #fb2;' : '')
+		//
+		+ CSS_toString(section.CSS) + '">' + user_shown + '</span>'
+		//
+		: user_shown) + ']]';
+
 	} else {
 		// 沒有發現此 user group 之發言。
-		additional_attributes = 'style="background-color:#ffd;" | ';
+		additional_attributes = 'style="background-color: #ffd;" | ';
 	}
 
-	return [ additional_attributes + user, additional_attributes + date ];
+	return [ additional_attributes + user_shown, additional_attributes + date ];
 }
 
 function if_too_long(title) {
@@ -1968,7 +1998,7 @@ function data_sort_attributes(key) {
 	return key;
 }
 
-function local_number(number, attributes) {
+function local_number(number, attributes, style) {
 	if (use_language === 'zh-classical') {
 		return (attributes ? attributes + ' ' : '')
 				+ data_sort_attributes(number) + ' | '
@@ -1976,7 +2006,7 @@ function local_number(number, attributes) {
 				+ (number === 0 ? '無' : CeL.to_Chinese_numeral(number));
 	}
 
-	var style = 'text-align: right;';
+	style = (style || '') + 'text-align: right;';
 	if (!attributes) {
 		if (!style) {
 			return number;
