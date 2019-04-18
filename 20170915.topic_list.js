@@ -1931,7 +1931,10 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		user_shown = user_name.length < 16 ? user_name
 		// 縮小太長的使用者名稱。
 		: '<small style="word-wrap: break-word; word-break: break-all;">'
-				+ user_name + '</small>';
+				+ (CeL.wiki.parse.user.is_IP(user_name, true) ? user_name
+				// shorten IPv6 addresses.
+				.replace(/^([\da-f]{4}):[\da-f:]+:([\da-f]{4}:[\da-f]{4})$/i,
+						'$1...$2') : user_name) + '</small>';
 
 		// TODO: link to diff
 		user_shown = (additional_attributes ? '| ' : '')
