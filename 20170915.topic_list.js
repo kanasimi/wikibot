@@ -353,6 +353,8 @@ var default_FC_vote_configurations = {
 	// 要篩選的章節標題層級。
 	level_filter : 3,
 
+	timeout_id_hash : CeL.null_Object(),
+
 	// will be used in .section_filter()
 	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
 	oppose_templates : 'NoFA|NoFL|NoGA'.split('|').to_hash(),
@@ -508,6 +510,21 @@ var default_FC_vote_configurations = {
 
 		page_configuration.set_vote_closed.call(this, section);
 		if (section.vote_closed) {
+			if (section.vote_time_limit > 0
+					&& !(section.section_title.title in page_configuration.timeout_id_hash)) {
+				page_configuration.timeout_id_hash[section.section_title.title] = setTimeout(
+				// 在時間截止之後隨即執行一次檢查。
+				function() {
+					delete page_configuration
+					//
+					.timeout_id_hash[this.section_title];
+					wiki.page(this.title, pre_fetch_sub_pages);
+				}.bind({
+					title : this.page.title,
+					section_title : section.section_title.title
+				}), section.vote_time_limit);
+			}
+
 			// 以截止時間來檢核所有逾期的選票。
 			// @see .get_votes_on_date()
 			function filter_via_date(vote_template) {
@@ -721,19 +738,20 @@ var default_DYK_vote_configurations = {
 	},
 	set_vote_closed : function(section) {
 		// assert: +section.vote_time_limit > 0
-		if (Date.now() >= section.vote_time_limit) {
-			// 已過初期期限。
-			var page_configuration = this.page.page_configuration;
-			var diff = page_configuration.get_votes_on_date(section);
-			if (page_configuration.pass_vote.call(this, diff, section)) {
-				// 至基本投票期屆滿時，如獲得中選所需的最低票數或以上，投票即會結束並獲通過
-				section.vote_closed = true;
-				return;
-			}
-			// 否則，投票期將自動延長3天
-			section.vote_time_limit += CeL.date.to_millisecond('3D');
-			section.vote_closed = Date.now() >= section.vote_time_limit;
+		if (!(Date.now() >= section.vote_time_limit))
+			return;
+
+		// 已過初期期限。
+		var page_configuration = this.page.page_configuration;
+		var diff = page_configuration.get_votes_on_date(section);
+		if (page_configuration.pass_vote.call(this, diff, section)) {
+			// 至基本投票期屆滿時，如獲得中選所需的最低票數或以上，投票即會結束並獲通過
+			section.vote_closed = true;
+			return;
 		}
+		// 否則，投票期將自動延長3天
+		section.vote_time_limit += CeL.date.to_millisecond('3D');
+		section.vote_closed = Date.now() >= section.vote_time_limit;
 	},
 	section_filter_postfix : function(section) {
 		if (!section.DYKEntry)
@@ -1947,7 +1965,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		//
 		? '<span style="'
 		//
-		+ (CeL.wiki.parse.user.is_IP(user_name) ? 'color: #fb2;' : '')
+		+ (CeL.wiki.parse.user.is_IP(user_name) ? 'color: #f82;' : '')
 		//
 		+ CSS_toString(section.CSS) + '">' + user_shown + '</span>'
 		//
