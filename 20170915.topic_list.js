@@ -337,9 +337,6 @@ var default_BRFA_configurations = {
 
 // ----------------------------------------------
 
-// 另外設定 global timeout_id_hash。
-// var timeout_id_hash = CeL.null_Object();
-
 // asset: (MAX_32bit_INTEGER + 1) | 0 < 0
 var MAX_32bit_INTEGER = (1 << 30) * 2 - 1;
 
@@ -538,15 +535,10 @@ var default_FC_vote_configurations = {
 		&& time_duration < MAX_32bit_INTEGER) {
 			// 在時間截止之後隨即執行一次檢查。
 			var timeout_id_hash = page_configuration.timeout_id_hash, section_title =
-			// @see section_link_toString() @ CeL.wiki
-			// section.section_title.link[0] + '#' +
 			// assert: 已經設定好最終章節標題 {String}section.section_title.title
 			section.section_title.title;
 
-			if (false && !timeout_id_hash)
-				timeout_id_hash = CeL.null_Object();
-
-			if (/* !timeout_id_hash || */!(section_title in timeout_id_hash)) {
+			if (!(section_title in timeout_id_hash)) {
 				// @see section_link_toString() @ CeL.wiki
 				CeL.log('Set timer of '
 						+ CeL.wiki.title_link_of(section.section_title.link[0]
@@ -555,9 +547,13 @@ var default_FC_vote_configurations = {
 						+ CeL.age_of(Date.now() - time_duration) + ' ('
 						+ new Date(section.vote_time_limit).format() + ')');
 				timeout_id_hash[section_title] = setTimeout(function() {
-					delete timeout_id_hash[this.section_title];
+					delete this.page_configuration
+					//
+					.timeout_id_hash[this.section_title];
 					wiki.page(this.title, pre_fetch_sub_pages);
 				}.bind({
+					page_configuration : page_configuration,
+					// assert: {String}this.page.title
 					title : this.page.title,
 					section_title : section_title
 				}), time_duration);
