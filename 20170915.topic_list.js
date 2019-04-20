@@ -310,6 +310,7 @@ var default_BRFA_configurations = {
 		title : function(section) {
 			var attributes = '';
 
+			// @see section_link_toString() @ CeL.wiki
 			section.section_title.link[2]
 			// [2]: display_text
 			= section.section_title.link[2]
@@ -335,6 +336,12 @@ var default_BRFA_configurations = {
 };
 
 // ----------------------------------------------
+
+// 另外設定 global timeout_id_hash。
+// var timeout_id_hash = CeL.null_Object();
+
+// asset: (MAX_32bit_INTEGER + 1) | 0 < 0
+var MAX_32bit_INTEGER = (1 << 30) * 2 - 1;
 
 var default_FC_vote_configurations = {
 	topic_page : general_topic_page,
@@ -509,22 +516,9 @@ var default_FC_vote_configurations = {
 		}
 
 		page_configuration.set_vote_closed.call(this, section);
+		var time_duration = section.vote_time_limit > 0
+				&& section.vote_time_limit - Date.now();
 		if (section.vote_closed) {
-			if (section.vote_time_limit > 0
-					&& !(section.section_title.title in page_configuration.timeout_id_hash)) {
-				page_configuration.timeout_id_hash[section.section_title.title] = setTimeout(
-				// 在時間截止之後隨即執行一次檢查。
-				function() {
-					delete page_configuration
-					//
-					.timeout_id_hash[this.section_title];
-					wiki.page(this.title, pre_fetch_sub_pages);
-				}.bind({
-					title : this.page.title,
-					section_title : section.section_title.title
-				}), section.vote_time_limit - Date.now());
-			}
-
 			// 以截止時間來檢核所有逾期的選票。
 			// @see .get_votes_on_date()
 			function filter_via_date(vote_template) {
@@ -537,11 +531,42 @@ var default_FC_vote_configurations = {
 					.filter(filter_via_date);
 			section.vote_list.oppose = section.vote_list.oppose
 					.filter(filter_via_date);
+
+		} else if (0 < time_duration
+		// TimeoutOverflowWarning: \d does not fit into a 32-bit signed integer.
+		// 24.9天
+		&& time_duration < MAX_32bit_INTEGER) {
+			// 在時間截止之後隨即執行一次檢查。
+			var timeout_id_hash = page_configuration.timeout_id_hash, section_title =
+			// @see section_link_toString() @ CeL.wiki
+			// section.section_title.link[0] + '#' +
+			// assert: 已經設定好最終章節標題 {String}section.section_title.title
+			section.section_title.title;
+
+			if (false && !timeout_id_hash)
+				timeout_id_hash = CeL.null_Object();
+
+			if (/* !timeout_id_hash || */!(section_title in timeout_id_hash)) {
+				// @see section_link_toString() @ CeL.wiki
+				CeL.log('Set timer of '
+						+ CeL.wiki.title_link_of(section.section_title.link[0]
+								+ '#' + section_title) + ': '
+						// + time_duration + 'ms, '
+						+ CeL.age_of(Date.now() - time_duration) + ' ('
+						+ new Date(section.vote_time_limit).format() + ')');
+				timeout_id_hash[section_title] = setTimeout(function() {
+					delete timeout_id_hash[this.section_title];
+					wiki.page(this.title, pre_fetch_sub_pages);
+				}.bind({
+					title : this.page.title,
+					section_title : section_title
+				}), time_duration);
+				// console.log(timeout_id_hash);
+			}
 		}
 
 		if (false) {
-			console.log(CeL.wiki.title_link_of(section.section_title.title
-					|| section.DYKEntry && section.DYKEntry.parameters.article)
+			console.log(CeL.wiki.title_link_of(section.section_title.title)
 					+ ':');
 			// console.log(section.vote_list);
 			// console.log(Object.keys(section.vote_list));
@@ -589,6 +614,7 @@ var default_FC_vote_configurations = {
 			var title = section.section_title.title,
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
+			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0]
 					.replace(/\/(?:提名区|提名區)$/, '')
 					+ '#' + title, title);
@@ -724,10 +750,12 @@ var default_DYK_vote_configurations = {
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
 			section.DYKEntry = token;
-			if (+section.DYKEntry.parameters.timestamp) {
+			// overwrite section.section_title.title for `new_topics`
+			section.section_title.title = token.parameters.article;
+			if (+token.parameters.timestamp) {
 				section.vote_time_limit = 1000
 				// .timestamp: in seconds
-				* section.DYKEntry.parameters.timestamp
+				* token.parameters.timestamp
 				// 基本投票期為4天。
 				+ CeL.date.to_millisecond('4D');
 			}
@@ -781,8 +809,7 @@ var default_DYK_vote_configurations = {
 			var title = section.DYKEntry.parameters.article,
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
-			// overwrite section.section_title.title for `new_topics`
-			section.section_title.title = title;
+			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
 					+ title, title);
 			return title_too_long ? '<small>' + title + '</small>' : title;
@@ -1057,6 +1084,7 @@ var section_column_operators = {
 				if (!adding_link.includes('#')) {
 					// 嘗試自動添加和章節標題相同的討論段落anchor。
 					// [1]: hack
+					// @see section_link_toString() @ CeL.wiki
 					adding_link += '#' + section.section_title.link[1];
 				}
 				var display_text = adding_link.replace(/#.*$/, '');
