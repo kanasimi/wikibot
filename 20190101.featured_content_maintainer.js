@@ -1256,14 +1256,25 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 				//
 				= CeL.wiki.title_link_of(FC_title, title);
 			}
-			if (introduction_section.representative_image) {
-				introduction_section.unshift('[[File:'
+			var representative_image
+			//
+			= introduction_section.representative_image;
+			if (representative_image) {
+				introduction_section.unshift('[['
 				//
-				+ introduction_section.representative_image
+				+ representative_image[0]
 				//
 				+ '|left|border|'
 				// 一些想法是FA和GA要有所區分，所以FA文字要比GA多，圖片也要比GA大，而且保持一個相對固定的文字數量和圖片大小也會比較美觀。
-				+ (using_GA ? '140x140' : '190x190') + 'px]]\n');
+				+ (using_GA ? '140x140' : '190x190') + 'px'
+				//
+				+ (representative_image.alt
+				//
+				? '|alt=' + representative_image.alt : '')
+				//
+				+ (representative_image.caption
+				//
+				? '|' + representative_image.caption : '') + ']]\n');
 			}
 			return introduction_section.toString();
 		}, {
