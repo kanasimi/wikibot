@@ -358,6 +358,10 @@ var default_FC_vote_configurations = {
 	level_filter : 3,
 
 	timeout_id_hash : CeL.null_Object(),
+	// 註冊 listener。 this: see .section_filter()
+	vote_closed_listener : function() {
+		wiki.page(this.title, pre_fetch_sub_pages);
+	},
 
 	// will be used in .section_filter()
 	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
@@ -531,7 +535,7 @@ var default_FC_vote_configurations = {
 
 		} else if (0 < time_duration
 		// TimeoutOverflowWarning: \d does not fit into a 32-bit signed integer.
-		// 24.9天
+		// 忽略投票截止時間過長，超過24.9天的投票。
 		&& time_duration < MAX_32bit_INTEGER) {
 			// 在時間截止之後隨即執行一次檢查。
 			var timeout_id_hash = page_configuration.timeout_id_hash, section_title =
@@ -545,12 +549,14 @@ var default_FC_vote_configurations = {
 								+ '#' + section_title) + ': '
 						// + time_duration + 'ms, '
 						+ CeL.age_of(Date.now() - time_duration) + ' ('
-						+ new Date(section.vote_time_limit).format() + ')');
+						+ new Date(section.vote_time_limit).toISOString()
+						//
+						+ ')');
 				timeout_id_hash[section_title] = setTimeout(function() {
 					delete this.page_configuration
 					//
 					.timeout_id_hash[this.section_title];
-					wiki.page(this.title, pre_fetch_sub_pages);
+					this.page_configuration.vote_closed_listener.call(this);
 				}.bind({
 					page_configuration : page_configuration,
 					// assert: {String}this.page.title
@@ -643,7 +649,7 @@ var default_FC_vote_configurations = {
 			if (+limit_title > 0) {
 				if (!CeL.is_Date(section.vote_time_limit))
 					limit_title = new Date(limit_title);
-				limit_title = ' title="' + limit_title.format() + '"';
+				limit_title = ' title="' + limit_title.toISOString() + '"';
 			} else
 				limit_title = '';
 
@@ -721,7 +727,8 @@ var default_FC_vote_configurations = {
 
 // default configurations for DYK vote 投票
 var default_DYK_vote_configurations = {
-	page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
+	_page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
+	page_header : '<span style="color: red;">依據[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|討論]]，希望回復原先列表的人數較多。將會在4月24日恢復原先列表。</span>',
 
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
 	columns : 'NO;title;status;countdown;discussions;participants;last_user_set',
@@ -1293,6 +1300,7 @@ function start_main_work(page_data) {
 
 	// for debug: 僅處理此頁面
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	main_talk_pages = [ 'Wikipedia:互助客栈/其他' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 	if (false) {
 		main_talk_pages = [ 'Wikipedia:新条目推荐/候选', 'Wikipedia:典范条目评选/提名区',
