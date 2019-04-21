@@ -1300,7 +1300,7 @@ function start_main_work(page_data) {
 
 	// for debug: 僅處理此頁面
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
-	main_talk_pages = [ 'Wikipedia:互助客栈/其他' ];
+	// main_talk_pages = [ 'Wikipedia:互助客栈/其他' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 	if (false) {
 		main_talk_pages = [ 'Wikipedia:新条目推荐/候选', 'Wikipedia:典范条目评选/提名区',
