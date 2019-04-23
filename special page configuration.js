@@ -418,6 +418,8 @@ var default_FC_vote_configurations = {
 var default_DYK_vote_configurations = {
 	_page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
 	page_header : '<span style="color: red;">依據[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|討論]]，希望回復原先列表的人數較多。將會在4月24日恢復原先列表。</span>',
+	// 默認摺疊，需要的點擊展開
+	header_class : 'wikitable sortable collapsible autocollapse',
 
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
 	columns : 'NO;title;status;countdown;discussions;participants;last_user_set',
