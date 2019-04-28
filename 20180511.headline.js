@@ -807,6 +807,8 @@ var source_configurations = {
 			url : 'http://www.ftchinese.com/channel/china.html',
 			parser : parser_金融時報FT中文網
 		},
+
+	// 中国 - 澳洲都市报 https://www.aucitydaily.com/china
 	},
 
 	// http://hi2100.com/LIFE/NEWS.htm
@@ -865,6 +867,13 @@ var source_configurations = {
 			flag : 'Australia',
 			url : 'https://www.abc.net.au/news/chinese/',
 			parser : parser_澳大利亞廣播公司ABC中文網
+		},
+		澳洲都市报 : {
+			// [[File:Flag of Australia.svg]]
+			flag : 'Australia',
+			// 国际
+			url : 'https://www.aucitydaily.com/world',
+			parser : parser_澳洲都市报
 		},
 
 		// 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
@@ -1925,6 +1934,29 @@ function parser_澳大利亞廣播公司ABC中文網(html) {
 		if (headline_list.length < 9)
 			headline_list.push(headline);
 	});
+	return headline_list;
+}
+
+function parser_澳洲都市报(html) {
+	// <main id="main" class="site-main" role="main">
+	var list = html.between('<main id="main"', '</main>'), headline_list = [],
+	//
+	PATTERN_headline = /<a href="([^"<>]+)"[^<>]*? title="([^"<>]+)">[\s\S]+? class="date">([^<>]+)<\/span>/g, matched;
+	while (matched = PATTERN_headline.exec(list)) {
+		var headline = {
+			url : matched[1],
+			headline : get_label(matched[2]),
+			date : new Date(get_label(matched[3]))
+		};
+		// console.log(headline);
+
+		if (!is_today(headline))
+			return;
+
+		headline_list.push(headline);
+		if (headline_list.length >= 9)
+			break;
+	}
 	return headline_list;
 }
 
