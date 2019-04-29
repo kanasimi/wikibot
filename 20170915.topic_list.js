@@ -173,7 +173,7 @@ var section_column_operators = {
 		return local_number('section_index' in section ? section.section_index
 				: section_index);
 	},
-	// 議題的標題
+	// 議題的標題。
 	title : function(section) {
 		// [[Template:Small]]
 		function small_title(title, set_small) {
@@ -230,10 +230,18 @@ var section_column_operators = {
 	},
 	// discussions conversations, 發言次數, 発言数
 	discussions : function(section) {
-		// TODO: 其實是計算簽名與日期的數量。因此假如機器人等權限申請的部分多了一個簽名，就會造成多計算一次。
-		return local_number(section.users.length, section.users.length >= 2
+		var sign_count = section.users.length;
+		var page_configuration = this.page.page_configuration;
+		// 其實是計算簽名與日期的數量。因此假如機器人等權限申請的部分多了一個簽名，就會造成多計算一次。
+		// 發言數量固定減去此數。
+		var discussion_minus = page_configuration.discussion_minus;
+		if (sign_count > 0 && discussion_minus > 0) {
+			sign_count = Math.max(0, sign_count - discussion_minus);
+		}
+
+		return local_number(sign_count, sign_count >= 2
 		// 火熱的討論採用不同顏色。
-		? section.users.length >= 10 ? 'style="background-color: #ffe;' : ''
+		? sign_count >= 10 ? 'style="background-color: #ffe;' : ''
 				: 'style="background-color: #fcc;"');
 	},
 	// 參與討論人數
@@ -424,6 +432,7 @@ function start_main_work(page_data) {
 	}
 	// main_talk_pages = [ 'Wikipedia:優良條目評選/提名區' ];
 	// main_talk_pages = [ 'Wikipedia:新条目推荐/候选' ];
+	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 
 	// ----------------------------------------------------
 

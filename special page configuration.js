@@ -240,6 +240,7 @@ var default_BRFA_configurations = {
 		}
 	},
 	// column operators
+	// @see section_column_operators
 	operators : {
 		title : function(section) {
 			var attributes = '';
@@ -291,6 +292,10 @@ var default_FC_vote_configurations = {
 	// 要篩選的章節標題層級。
 	level_filter : 3,
 
+	// 發言數量固定減去此數。
+	// 減去提名時嵌入的簽名。
+	discussion_minus : 1,
+
 	timeout_id_hash : CeL.null_Object(),
 	// 註冊 listener。 this: see .section_filter()
 	vote_closed_listener : function() {
@@ -300,47 +305,10 @@ var default_FC_vote_configurations = {
 	// will be used in .section_filter()
 	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
 	oppose_templates : 'NoFA|NoFL|NoGA'.split('|').to_hash(),
-	set_vote_closed : function(section) {
-		if (+section.vote_time_limit > 0) {
-			section.vote_closed = Date.now() >= +section.vote_time_limit;
-		}
-		// return section.vote_closed;
-	},
+	set_vote_closed : set_FC_vote_closed,
 	// 以截止時間來檢核所有逾期的選票。 應對中文維基之延期制度。
 	// MUST setup section.vote_time_limit, section.vote_list first!
-	get_votes_on_date : function(section, date, support_only) {
-		function filter_via_date(previous, vote_template) {
-			return previous + (date - vote_template.vote_date >= 0 ? 1 : 0);
-		}
-
-		if (!date)
-			date = section.vote_time_limit;
-
-		var support, oppose;
-		if (typeof support_only === 'boolean') {
-			support = support_only;
-			oppose = !support_only;
-		} else {
-			support = oppose = true;
-		}
-
-		if (+date > 0) {
-			support = support ? section.vote_list.support.reduce(
-					filter_via_date, 0) : 0;
-			oppose = oppose ? section.vote_list.oppose.reduce(filter_via_date,
-					0) : 0;
-		} else {
-			support = support ? section.vote_list.support.length : 0;
-			oppose = oppose ? section.vote_list.oppose.length : 0;
-		}
-
-		if (typeof support_only === 'boolean' && !support_only) {
-			return oppose;
-		}
-
-		var diff = support - oppose;
-		return diff;
-	},
+	get_votes_on_date : get_FC_votes_on_date,
 	// 篩選章節標題。
 	section_filter : FC_section_filter,
 	// for FA, FL
@@ -352,6 +320,7 @@ var default_FC_vote_configurations = {
 						.get_votes_on_date(section, null, false);
 	},
 	// column operators
+	// @see section_column_operators
 	operators : {
 		title : function(section) {
 			var title = section.section_title.title,
@@ -381,43 +350,15 @@ var default_FC_vote_configurations = {
 			return votes > 0 ? local_number(votes, null, 'color: red;') : '';
 		},
 
-		// countdown days / time
-		countdown : function(section) {
-			var data = 'data-sort-value="'
-					+ (section.vote_time_limit - Date.now()) + '" | ',
-			//
-			limit_title = section.vote_time_limit;
-			if (+limit_title > 0) {
-				if (!CeL.is_Date(section.vote_time_limit))
-					limit_title = new Date(limit_title);
-				limit_title = ' title="' + limit_title.toISOString() + '"';
-			} else
-				limit_title = '';
-
-			if (section.vote_closed) {
-				// 時間截止 vote_closed
-				return (+section.vote_time_limit > 0 ? data : '')
-						+ '<b style="color: red;"' + limit_title + '>截止</b>';
-			}
-
-			if (!(+section.vote_time_limit > 0)) {
-				return '<b style="color: red;">N/A</b>';
-			}
-
-			// assert: +section.vote_time_limit > 0
-			// && Date.now() < section.vote_time_limit
-			return data + '<small' + limit_title + '>'
-			// 還有...天 ; ...日後
-			+ CeL.age_of(Date.now(), section.vote_time_limit) + '後</small>';
-		},
+		countdown : FC_vote_countdown,
 		status : check_FC_status
 	}
 };
 
 // default configurations for DYK vote 投票
 var default_DYK_vote_configurations = {
-	_page_header : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
-	page_header : '<span style="color: red;">依據[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|討論]]，希望回復原先列表的人數較多。將會在4月24日恢復原先列表。</span>',
+	page_header1 : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
+	page_header2 : '<span style="color: red;">依據[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|討論]]，希望回復原先列表的人數較多。將會在4月24日恢復原先列表。</span>',
 	// 默認摺疊，需要的點擊展開
 	header_class : 'wikitable sortable collapsible autocollapse',
 
@@ -458,23 +399,7 @@ var default_DYK_vote_configurations = {
 			section.may_skip_section = true;
 		}
 	},
-	set_vote_closed : function(section) {
-		// assert: +section.vote_time_limit > 0
-		if (!(Date.now() >= section.vote_time_limit))
-			return;
-
-		// 已過初期期限。
-		var page_configuration = this.page.page_configuration;
-		var diff = page_configuration.get_votes_on_date(section);
-		if (page_configuration.pass_vote.call(this, diff, section)) {
-			// 至基本投票期屆滿時，如獲得中選所需的最低票數或以上，投票即會結束並獲通過
-			section.vote_closed = true;
-			return;
-		}
-		// 否則，投票期將自動延長3天
-		section.vote_time_limit += CeL.date.to_millisecond('3D');
-		section.vote_closed = Date.now() >= section.vote_time_limit;
-	},
+	extend_intervals : [ '3D' ],
 	section_filter_postfix : function(section) {
 		if (!section.DYKEntry)
 			return !section.may_skip_section;
@@ -582,7 +507,10 @@ var page_configurations = {
 	'zhwiki:Wikipedia:机器人/申请' : Object.assign({
 		timezone : 8,
 		// 要篩選的章節標題層級。
-		level_filter : [ 2, 3 ]
+		level_filter : [ 2, 3 ],
+		// 發言數量固定減去此數。
+		// 減去機器人等權限申請時嵌入的簽名。
+		discussion_minus : 1
 	}, default_BRFA_configurations),
 	'zhwiki:Wikipedia:机器用户/申请' : Object.assign({
 		timezone : 8,
@@ -603,7 +531,9 @@ var page_configurations = {
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:特色列表评选/提名区' : Object.assign({
 		timezone : 8,
-		need_time_legend : false
+		need_time_legend : false,
+		// 初次延長期（基礎評選期＋30日）及最後延長期（初次延長期＋30日）
+		extend_intervals : [ '30D', '30D' ]
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:優良條目評選/提名區' : Object.assign({
 		timezone : 8,
@@ -944,6 +874,81 @@ function check_BRFA_status(section) {
 
 // --------------------------------------------------------------------------------------
 
+function set_FC_vote_closed(section) {
+	if (!(+section.vote_time_limit > 0)) {
+		// 警告: 沒設定 section.vote_time_limit，有問題！
+		return;
+		return section.vote_closed;
+	}
+
+	// assert: +section.vote_time_limit > 0
+
+	if (!(Date.now() >= +section.vote_time_limit)) {
+		// section.vote_closed = false;
+		return;
+	}
+
+	// 已過初期期限。
+	var page_configuration = this.page.page_configuration;
+
+	if (!page_configuration.extend_intervals) {
+		// 沒有設定任何延長期限。
+		section.vote_closed = true;
+		return;
+	}
+
+	// assert: {Array}.extend_intervals
+	if (page_configuration.extend_intervals.some(function(interval) {
+		var diff = page_configuration.get_votes_on_date(section);
+		if (page_configuration.pass_vote.call(this, diff, section)) {
+			// 至本段投票期屆滿時，如獲得中選所需的最低票數或以上，投票即會結束並獲通過。
+			section.vote_closed = true;
+			return true;
+		}
+
+		// 否則，投票期將自動延長 `interval`。
+		section.vote_time_limit += CeL.date.to_millisecond(interval);
+	})) {
+		return;
+	}
+
+	section.vote_closed = Date.now() >= section.vote_time_limit;
+}
+
+function get_FC_votes_on_date(section, date, support_only) {
+	function filter_via_date(previous, vote_template) {
+		return previous + (date - vote_template.vote_date >= 0 ? 1 : 0);
+	}
+
+	if (!date)
+		date = section.vote_time_limit;
+
+	var support, oppose;
+	if (typeof support_only === 'boolean') {
+		support = support_only;
+		oppose = !support_only;
+	} else {
+		support = oppose = true;
+	}
+
+	if (+date > 0) {
+		support = support ? section.vote_list.support
+				.reduce(filter_via_date, 0) : 0;
+		oppose = oppose ? section.vote_list.oppose.reduce(filter_via_date, 0)
+				: 0;
+	} else {
+		support = support ? section.vote_list.support.length : 0;
+		oppose = oppose ? section.vote_list.oppose.length : 0;
+	}
+
+	if (typeof support_only === 'boolean' && !support_only) {
+		return oppose;
+	}
+
+	var diff = support - oppose;
+	return diff;
+}
+
 function FC_section_filter(section) {
 	// 正在投票評選的新條目
 	section.vote_list = {
@@ -1012,8 +1017,37 @@ function FC_section_filter(section) {
 			latest_vote = token;
 
 		} else if (token.name in {
+			// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
 			Votevoidf : true,
-			投票無效f : true
+			投票無效f : true,
+
+			// 該用戶投票因與先前重複而無效，但意見可供參考。
+			Votedupf : true,
+
+			// 投票者沒有註明理由，所以本票無效，請投票者補充理由。
+			Noreasonf : true,
+			沒理由f : true,
+			沒有理由f : true,
+			無理由f : true,
+
+			// 該用戶不符合資格
+			Notqualifiedf : true,
+			Nqf : true,
+
+			Nosignf : true,
+			未簽名f : true,
+			Unsignf : true,
+
+			// 傀儡投票
+			Sockvotedupf : true,
+
+			// 投票者使用刪除線刪除本票，所以本票無效。
+			Votedeletef : true,
+
+			Timeoutf : true,
+			OvertimeF : true,
+			超過時限f : true,
+			Overtimef : true,
 		}) {
 			if (latest_vote) {
 				// 劃票。
@@ -1037,11 +1071,9 @@ function FC_section_filter(section) {
 			// 07:57 (UTC){{處理中}}</small>
 			// :<small>初次延長期：2019年2月18日 (一) 07:57 (UTC) 至 2019年3月20日 (三)
 			// 07:57 (UTC){{doing}}</small>
-			if (matched[3] !== '{') {
-				section.vote_time_limit = CeL.wiki.parse.date(matched[2]);
-				// console.log([ matched[2], section.vote_time_limit ]);
-				break;
-			}
+			section.vote_time_limit = CeL.wiki.parse.date(matched[2]);
+			// console.log([ matched[2], section.vote_time_limit ]);
+			break;
 		}
 	}
 	if (!section.vote_time_limit) {
@@ -1136,6 +1168,36 @@ function FC_section_filter(section) {
 			: 1;
 
 	return true;
+}
+
+// countdown days / time
+function FC_vote_countdown(section) {
+	var data = 'data-sort-value="' + (section.vote_time_limit - Date.now())
+			+ '" | ',
+	//
+	limit_title = section.vote_time_limit;
+	if (+limit_title > 0) {
+		if (!CeL.is_Date(section.vote_time_limit))
+			limit_title = new Date(limit_title);
+		limit_title = ' title="' + limit_title.toISOString() + '"';
+	} else
+		limit_title = '';
+
+	if (section.vote_closed) {
+		// 時間截止 vote_closed
+		return (+section.vote_time_limit > 0 ? data : '')
+				+ '<b style="color: red;"' + limit_title + '>截止</b>';
+	}
+
+	if (!(+section.vote_time_limit > 0)) {
+		return '<b style="color: red;">N/A</b>';
+	}
+
+	// assert: +section.vote_time_limit > 0
+	// && Date.now() < section.vote_time_limit
+	return data + '<small' + limit_title + '>'
+	// 還有...天 ; ...日後
+	+ CeL.age_of(Date.now(), section.vote_time_limit) + '後</small>';
 }
 
 function check_FC_status(section) {
