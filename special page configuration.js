@@ -24,7 +24,7 @@ var localized_column_to_header = {
 	zh : {
 		// 序號 Topics主題
 		title : '話題',
-		discussions : '<small title="發言數/發言人次 (實際上為簽名數)">發言</small>',
+		discussions : '<small title="發言數/發言人次 (實際上為計算簽名數)">發言</small>',
 		participants : '<small title="參與討論人數/發言人數">參與</small>',
 		// first_user_set: 發起人與發起時間(Created)
 
@@ -370,6 +370,8 @@ var default_DYK_vote_configurations = {
 	// 要篩選的章節標題層級。
 	level_filter : 4,
 
+	discussion_minus : 0,
+
 	// 規則講明計算「支持票」和「反對票」，如果接受帶有「激情」的票，怕會做壞榜樣
 	// |Strong support|强烈支持 |Strong oppose|Strongly oppose|強烈反對
 	// 未來若要採用機器計票，遇到類似情況，直接讓計票機器人提醒。溫馨提示
@@ -435,6 +437,7 @@ var default_DYK_vote_configurations = {
 		}
 	}
 };
+
 default_DYK_vote_configurations.operators = Object.assign(CeL.null_Object(),
 		default_FC_vote_configurations.operators,
 		default_DYK_vote_configurations.operators);
@@ -1179,7 +1182,11 @@ function FC_vote_countdown(section) {
 	if (+limit_title > 0) {
 		if (!CeL.is_Date(section.vote_time_limit))
 			limit_title = new Date(limit_title);
-		limit_title = ' title="' + limit_title.toISOString() + '"';
+		limit_title = ' title="' + limit_title.format({
+			format : '%Y-%2m-%2d %2H:%2M',
+			// 採用當個項目最多人所處的時區。
+			zone : this.page.page_configuration.timezone || 0
+		}) + '"';
 	} else
 		limit_title = '';
 
