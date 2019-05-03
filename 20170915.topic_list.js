@@ -433,6 +433,7 @@ function start_main_work(page_data) {
 	// main_talk_pages = [ 'Wikipedia:優良條目評選/提名區' ];
 	// main_talk_pages = [ 'Wikipedia:新条目推荐/候选' ];
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
+	// main_talk_pages = [ 'Wikipedia:典范条目评选/提名区' ];
 
 	// ----------------------------------------------------
 
