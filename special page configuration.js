@@ -309,6 +309,40 @@ var default_FC_vote_configurations = {
 	// will be used in .section_filter()
 	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
 	oppose_templates : 'NoFA|NoFL|NoGA'.split('|').to_hash(),
+	cross_out_templates : {
+		// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
+		Votevoidf : true,
+		投票無效f : true,
+
+		// 該用戶投票因與先前重複而無效，但意見可供參考。
+		Votedupf : true,
+
+		// 投票者沒有註明理由，所以本票無效，請投票者補充理由。
+		Noreasonf : true,
+		沒理由f : true,
+		沒有理由f : true,
+		無理由f : true,
+
+		// 該用戶不符合資格
+		Notqualifiedf : true,
+		Nqf : true,
+
+		Nosignf : true,
+		未簽名f : true,
+		Unsignf : true,
+
+		// 傀儡投票
+		Sockvotedupf : true,
+
+		// 投票者使用刪除線刪除本票，所以本票無效。
+		Votedeletef : true,
+
+		Timeoutf : true,
+		OvertimeF : true,
+		超過時限f : true,
+		Overtimef : true,
+	},
+
 	set_vote_closed : set_FC_vote_closed,
 	get_votes_on_date : get_FC_votes_on_date,
 	// 篩選章節標題。
@@ -385,40 +419,6 @@ var default_DYK_vote_configurations = {
 	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持'.split('|').to_hash(),
 	// {{Seriously}}
 	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對'.split('|').to_hash(),
-	cross_out_templates : {
-		// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
-		Votevoidf : true,
-		投票無效f : true,
-
-		// 該用戶投票因與先前重複而無效，但意見可供參考。
-		Votedupf : true,
-
-		// 投票者沒有註明理由，所以本票無效，請投票者補充理由。
-		Noreasonf : true,
-		沒理由f : true,
-		沒有理由f : true,
-		無理由f : true,
-
-		// 該用戶不符合資格
-		Notqualifiedf : true,
-		Nqf : true,
-
-		Nosignf : true,
-		未簽名f : true,
-		Unsignf : true,
-
-		// 傀儡投票
-		Sockvotedupf : true,
-
-		// 投票者使用刪除線刪除本票，所以本票無效。
-		Votedeletef : true,
-
-		Timeoutf : true,
-		OvertimeF : true,
-		超過時限f : true,
-		Overtimef : true,
-	},
-
 	// 篩選章節標題。
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
