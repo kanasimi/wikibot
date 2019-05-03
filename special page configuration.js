@@ -993,6 +993,56 @@ function get_FC_votes_on_date(section, date, support_only) {
 var VOTE_SUPPORT = 1, VOTE_OPPOSE = -1, INVALID_VOTE = 0;
 
 function FC_section_filter(section) {
+	// 讓機器人判定重複投票的用戶、IP投票（包括同時投下支持和反對票）無效。
+	function check_mutiplte_vote() {
+		if (!latest_vote.vote_user || !latest_vote.vote_date) {
+			return;
+		}
+
+		// 已經判別出本投票模板的選舉人以及投票時間，可以檢查是否重複投票。
+		// console.log(latest_vote);
+
+		var latest_vote_of_user
+		// assert: {String}latest_vote.vote_user !== ''
+		= section.vote_of_user[latest_vote.vote_user];
+		if (!latest_vote_of_user) {
+			// 登記選舉人所投的選票。
+			section.vote_of_user[latest_vote.vote_user] = latest_vote;
+			return;
+		}
+
+		if (latest_vote_of_user.vote_type === VOTE_SUPPORT
+		//
+		|| latest_vote_of_user.vote_type === VOTE_OPPOSE) {
+			if (latest_vote_of_user.vote_type === latest_vote.vote_type) {
+				// 投了多次同意或者多次反對，只算一次：前面第一次當作有效票，把後面的這一次當作廢票。
+
+			} else {
+				// 兩次投票不同調。把兩次都當作廢票。
+				var list = latest_vote_of_user.vote_type === VOTE_SUPPORT
+				//
+				? section.vote_list.support : section.vote_list.oppose;
+				var index = list.indexOf(latest_vote_of_user);
+				// assert: index !== NOT_FOUND
+				list.splice(index, 1);
+				section.vote_list.invalid.push(latest_vote_of_user);
+				latest_vote_of_user.vote_type = INVALID_VOTE;
+			}
+
+		} else {
+			// assert: latest_vote_of_user.vote_type === INVALID_VOTE
+			// 這個使用者前一次就已經是無效票/廢票。
+		}
+
+		// 無論哪一種情況，本次投票都是廢票。
+		latest_vote.vote_type = INVALID_VOTE;
+		section.vote_list.invalid.push(latest_vote);
+
+		return true;
+	}
+
+	// --------------------------------
+
 	// section.vote_of_user[user_name] = {Array} the first vote token of user;
 	section.vote_of_user = CeL.null_Object();
 
@@ -1005,6 +1055,8 @@ function FC_section_filter(section) {
 		// 無效票的選票template。
 		invalid : []
 	};
+
+	// --------------------------------
 
 	var page_configuration = this.page.page_configuration;
 	var latest_vote, _this = this, skip_inner = this.each.exit;
@@ -1033,8 +1085,8 @@ function FC_section_filter(section) {
 					// console.log(latest_vote);
 				}
 			}
-			if (false && latest_vote.vote_user && latest_vote.vote_date)
-				console.log(latest_vote);
+
+			check_mutiplte_vote();
 			return;
 		}
 
@@ -1053,59 +1105,18 @@ function FC_section_filter(section) {
 
 		// TODO: 使用刪除線「<s>...</s>」劃掉。
 
-		// assert: {String}token.vote_user !== ''
-
-		// 讓機器人判定重複投票的用戶、IP投票（包括同時投下支持和反對票）無效。
-		function check_mutiplte_vote(vote_type) {
-			var latest_vote_of_user = section.vote_of_user[token.vote_user];
-			if (!latest_vote_of_user)
-				return;
-
-			if (latest_vote_of_user.vote_type === VOTE_SUPPORT
-			//
-			|| latest_vote_of_user.vote_type === VOTE_OPPOSE) {
-				if (latest_vote_of_user.vote_type === vote_type) {
-					// 投了多次同意或者多次反對，只算一次：前面第一次當作有效票，把後面的這一次當作廢票。
-
-				} else {
-					// 兩次投票不同調。把兩次都當作廢票。
-					var list = latest_vote_of_user.vote_type === VOTE_SUPPORT
-					//
-					? section.vote_list.support : section.vote_list.oppose;
-					var index = list.indexOf(latest_vote_of_user);
-					// assert: index !== NOT_FOUND
-					list.splice(index, 1);
-					section.vote_list.invalid.push(latest_vote_of_user);
-					latest_vote_of_user.vote_type = INVALID_VOTE;
-				}
-
-			} else {
-				// assert: latest_vote_of_user.vote_type === INVALID_VOTE
-				// 這個使用者前一次就已經是無效票/廢票。
-			}
-
-			// 無論哪一種情況，本次投票都是廢票。
-			token.vote_type = INVALID_VOTE;
-			section.vote_list.invalid.push(token);
-
-			return true;
-		}
-
-		if ((token.name in page_configuration.support_templates)
-				&& !check_mutiplte_vote(VOTE_SUPPORT)) {
-			section.vote_of_user[token.vote_user] = token;
+		if (token.name in page_configuration.support_templates) {
 			token.vote_type = VOTE_SUPPORT;
 			section.vote_list.support.push(token);
 			latest_vote = token;
 
-		} else if ((token.name in page_configuration.oppose_templates)
-				&& !check_mutiplte_vote(VOTE_OPPOSE)) {
-			section.vote_of_user[token.vote_user] = token;
+		} else if (token.name in page_configuration.oppose_templates) {
 			token.vote_type = VOTE_OPPOSE;
 			section.vote_list.oppose.push(token);
 			latest_vote = token;
 
 		} else if (token.name in page_configuration.cross_out_templates) {
+			// assert: {String}latest_vote.vote_user !== ''
 			if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
 			//
 			|| latest_vote.vote_type === VOTE_OPPOSE)) {
