@@ -8,6 +8,10 @@ require('./wiki loder.js');
 /* global Wiki */
 
 var
+/** {Number}未發現之index。 const: 基本上與程式碼設計合一，僅表示名義，不可更改。(=== -1) */
+NOT_FOUND = ''.indexOf('_');
+
+var
 /** {Object}設定頁面所獲得之手動設定 manual settings。 */
 configuration;
 
@@ -306,8 +310,6 @@ var default_FC_vote_configurations = {
 	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
 	oppose_templates : 'NoFA|NoFL|NoGA'.split('|').to_hash(),
 	set_vote_closed : set_FC_vote_closed,
-	// 以截止時間來檢核所有逾期的選票。 應對中文維基之延期制度。
-	// MUST setup section.vote_time_limit, section.vote_list first!
 	get_votes_on_date : get_FC_votes_on_date,
 	// 篩選章節標題。
 	section_filter : FC_section_filter,
@@ -383,6 +385,40 @@ var default_DYK_vote_configurations = {
 	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持'.split('|').to_hash(),
 	// {{Seriously}}
 	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對'.split('|').to_hash(),
+	cross_out_templates : {
+		// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
+		Votevoidf : true,
+		投票無效f : true,
+
+		// 該用戶投票因與先前重複而無效，但意見可供參考。
+		Votedupf : true,
+
+		// 投票者沒有註明理由，所以本票無效，請投票者補充理由。
+		Noreasonf : true,
+		沒理由f : true,
+		沒有理由f : true,
+		無理由f : true,
+
+		// 該用戶不符合資格
+		Notqualifiedf : true,
+		Nqf : true,
+
+		Nosignf : true,
+		未簽名f : true,
+		Unsignf : true,
+
+		// 傀儡投票
+		Sockvotedupf : true,
+
+		// 投票者使用刪除線刪除本票，所以本票無效。
+		Votedeletef : true,
+
+		Timeoutf : true,
+		OvertimeF : true,
+		超過時限f : true,
+		Overtimef : true,
+	},
+
 	// 篩選章節標題。
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
@@ -918,6 +954,8 @@ function set_FC_vote_closed(section) {
 	section.vote_closed = Date.now() >= section.vote_time_limit;
 }
 
+// 以截止時間來檢核所有逾期的選票。 應對中文維基之延期制度。
+// MUST setup section.vote_time_limit, section.vote_list first!
 function get_FC_votes_on_date(section, date, support_only) {
 	function filter_via_date(previous, vote_template) {
 		return previous + (date - vote_template.vote_date >= 0 ? 1 : 0);
@@ -952,8 +990,13 @@ function get_FC_votes_on_date(section, date, support_only) {
 	return diff;
 }
 
+var VOTE_SUPPORT = 1, VOTE_OPPOSE = -1, INVALID_VOTE = 0;
+
 function FC_section_filter(section) {
-	// 正在投票評選的新條目
+	// section.vote_of_user[user_name] = {Array} the first vote token of user;
+	section.vote_of_user = CeL.null_Object();
+
+	// 正在投票評選的條目。
 	section.vote_list = {
 		// 有效票中支持的選票template。
 		support : [],
@@ -1010,57 +1053,73 @@ function FC_section_filter(section) {
 
 		// TODO: 使用刪除線「<s>...</s>」劃掉。
 
-		if (token.name in page_configuration.support_templates) {
+		// assert: {String}token.vote_user !== ''
+
+		// 讓機器人判定重複投票的用戶、IP投票（包括同時投下支持和反對票）無效。
+		function check_mutiplte_vote(vote_type) {
+			var latest_vote_of_user = section.vote_of_user[token.vote_user];
+			if (!latest_vote_of_user)
+				return;
+
+			if (latest_vote_of_user.vote_type === VOTE_SUPPORT
+			//
+			|| latest_vote_of_user.vote_type === VOTE_OPPOSE) {
+				if (latest_vote_of_user.vote_type === vote_type) {
+					// 投了多次同意或者多次反對，只算一次：前面第一次當作有效票，把後面的這一次當作廢票。
+
+				} else {
+					// 兩次投票不同調。把兩次都當作廢票。
+					var list = latest_vote_of_user.vote_type === VOTE_SUPPORT
+					//
+					? section.vote_list.support : section.vote_list.oppose;
+					var index = list.indexOf(latest_vote_of_user);
+					// assert: index !== NOT_FOUND
+					list.splice(index, 1);
+					section.vote_list.invalid.push(latest_vote_of_user);
+					latest_vote_of_user.vote_type = INVALID_VOTE;
+				}
+
+			} else {
+				// assert: latest_vote_of_user.vote_type === INVALID_VOTE
+				// 這個使用者前一次就已經是無效票/廢票。
+			}
+
+			// 無論哪一種情況，本次投票都是廢票。
+			token.vote_type = INVALID_VOTE;
+			section.vote_list.invalid.push(token);
+
+			return true;
+		}
+
+		if ((token.name in page_configuration.support_templates)
+				&& !check_mutiplte_vote(VOTE_SUPPORT)) {
+			section.vote_of_user[token.vote_user] = token;
+			token.vote_type = VOTE_SUPPORT;
 			section.vote_list.support.push(token);
 			latest_vote = token;
-			latest_vote.vote_support = true;
 
-		} else if (token.name in page_configuration.oppose_templates) {
+		} else if ((token.name in page_configuration.oppose_templates)
+				&& !check_mutiplte_vote(VOTE_OPPOSE)) {
+			section.vote_of_user[token.vote_user] = token;
+			token.vote_type = VOTE_OPPOSE;
 			section.vote_list.oppose.push(token);
 			latest_vote = token;
 
-		} else if (token.name in {
-			// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
-			Votevoidf : true,
-			投票無效f : true,
-
-			// 該用戶投票因與先前重複而無效，但意見可供參考。
-			Votedupf : true,
-
-			// 投票者沒有註明理由，所以本票無效，請投票者補充理由。
-			Noreasonf : true,
-			沒理由f : true,
-			沒有理由f : true,
-			無理由f : true,
-
-			// 該用戶不符合資格
-			Notqualifiedf : true,
-			Nqf : true,
-
-			Nosignf : true,
-			未簽名f : true,
-			Unsignf : true,
-
-			// 傀儡投票
-			Sockvotedupf : true,
-
-			// 投票者使用刪除線刪除本票，所以本票無效。
-			Votedeletef : true,
-
-			Timeoutf : true,
-			OvertimeF : true,
-			超過時限f : true,
-			Overtimef : true,
-		}) {
-			if (latest_vote) {
+		} else if (token.name in page_configuration.cross_out_templates) {
+			if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
+			//
+			|| latest_vote.vote_type === VOTE_OPPOSE)) {
 				// 劃票。
-				if (latest_vote.vote_support)
+				if (latest_vote.vote_type === VOTE_SUPPORT)
 					section.vote_list.support.pop();
-				else
+				else if (latest_vote.vote_type === VOTE_OPPOSE)
 					section.vote_list.oppose.pop();
 				section.vote_list.invalid.push(latest_vote);
+				latest_vote.vote_type = INVALID_VOTE;
 			}
+
 		}
+
 	});
 
 	// --------------------------------------
