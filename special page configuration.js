@@ -990,11 +990,27 @@ function get_FC_votes_on_date(section, date, support_only) {
 	return diff;
 }
 
+/* const */
 var VOTE_SUPPORT = 1, VOTE_OPPOSE = -1, INVALID_VOTE = 0;
 
 function FC_section_filter(section) {
+	function move_to_invalid(vote_token) {
+		var list = vote_token.vote_type === VOTE_SUPPORT
+		// assert: vote_token.vote_type === VOTE_SUPPORT or VOTE_OPPOSE
+		? section.vote_list.support : section.vote_list.oppose;
+
+		var index = list.indexOf(vote_token);
+		// assert: index !== NOT_FOUND
+
+		list.splice(index, 1);
+
+		vote_token.vote_type = INVALID_VOTE;
+		section.vote_list.invalid.push(vote_token);
+	}
+
 	// 讓機器人判定重複投票的用戶、IP投票（包括同時投下支持和反對票）無效。
 	function check_mutiplte_vote() {
+		// console.log(latest_vote);
 		if (!latest_vote.vote_user || !latest_vote.vote_date) {
 			return;
 		}
@@ -1010,6 +1026,7 @@ function FC_section_filter(section) {
 			section.vote_of_user[latest_vote.vote_user] = latest_vote;
 			return;
 		}
+		// console.log(latest_vote_of_user);
 
 		if (latest_vote_of_user.vote_type === VOTE_SUPPORT
 		//
@@ -1019,14 +1036,7 @@ function FC_section_filter(section) {
 
 			} else {
 				// 兩次投票不同調。把兩次都當作廢票。
-				var list = latest_vote_of_user.vote_type === VOTE_SUPPORT
-				//
-				? section.vote_list.support : section.vote_list.oppose;
-				var index = list.indexOf(latest_vote_of_user);
-				// assert: index !== NOT_FOUND
-				list.splice(index, 1);
-				section.vote_list.invalid.push(latest_vote_of_user);
-				latest_vote_of_user.vote_type = INVALID_VOTE;
+				move_to_invalid(latest_vote_of_user);
 			}
 
 		} else {
@@ -1035,8 +1045,7 @@ function FC_section_filter(section) {
 		}
 
 		// 無論哪一種情況，本次投票都是廢票。
-		latest_vote.vote_type = INVALID_VOTE;
-		section.vote_list.invalid.push(latest_vote);
+		move_to_invalid(latest_vote);
 
 		// 已經處理完latest_vote。為了不讓check_mutiplte_vote()重複處理latest_vote，因此reset。
 		// latest_vote = null;
@@ -1069,12 +1078,11 @@ function FC_section_filter(section) {
 		if ((typeof token === 'string' || token.type === 'plain'
 		//
 		|| token.type === 'link') && latest_vote) {
-			token = token.toString();
 			// parsing user 取得每一票的投票人/選舉人/voter與投票時間點。
 			/* let */var user, date;
 			if (token.type === 'link' && !latest_vote.vote_user) {
 				// console.log('check date: ' + token);
-				user = CeL.wiki.parse.user(token);
+				user = CeL.wiki.parse.user(token.toString());
 				if (user) {
 					latest_vote.vote_user = user;
 					// assert: {Date}latest_vote.vote_date
@@ -1084,7 +1092,7 @@ function FC_section_filter(section) {
 			if ((typeof token === 'string' || token.type === 'plain')
 					&& !latest_vote.vote_date) {
 				// console.log('check date: ' + token);
-				date = CeL.wiki.parse.date(token);
+				date = CeL.wiki.parse.date(token.toString());
 				if (date) {
 					latest_vote.vote_date = date;
 					// assert: {Date}latest_vote.vote_date
