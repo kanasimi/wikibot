@@ -1038,6 +1038,9 @@ function FC_section_filter(section) {
 		latest_vote.vote_type = INVALID_VOTE;
 		section.vote_list.invalid.push(latest_vote);
 
+		// 已經處理完latest_vote。為了不讓check_mutiplte_vote()重複處理latest_vote，因此reset。
+		// latest_vote = null;
+
 		return true;
 	}
 
@@ -1066,10 +1069,11 @@ function FC_section_filter(section) {
 		if ((typeof token === 'string' || token.type === 'plain')
 				&& latest_vote) {
 			token = token.toString();
-			// parsing user 取得每一票的投票人voter與投票時間點。
+			// parsing user 取得每一票的投票人/選舉人/voter與投票時間點。
+			/* let */var user, date;
 			if (!latest_vote.vote_user) {
 				// console.log('check date: ' + token);
-				/* let */var user = CeL.wiki.parse.user(token);
+				user = CeL.wiki.parse.user(token);
 				if (user) {
 					latest_vote.vote_user = user;
 					// assert: {Date}latest_vote.vote_date
@@ -1078,15 +1082,17 @@ function FC_section_filter(section) {
 			}
 			if (!latest_vote.vote_date) {
 				// console.log('check date: ' + token);
-				/* let */var date = CeL.wiki.parse.date(token);
+				date = CeL.wiki.parse.date(token);
 				if (date) {
 					latest_vote.vote_date = date;
 					// assert: {Date}latest_vote.vote_date
 					// console.log(latest_vote);
 				}
 			}
-
-			check_mutiplte_vote();
+			if (user || date) {
+				// 剛剛設定好voter與投票時間點才需要執行檢查，確保check_mutiplte_vote()只執行一次。
+				check_mutiplte_vote();
+			}
 			return;
 		}
 
