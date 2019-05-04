@@ -383,6 +383,9 @@ var default_FC_vote_configurations = {
 		},
 		invalid : function(section) {
 			var votes = section.vote_list.invalid.length;
+			if (votes > 0) {
+				// console.log(section.vote_list.invalid);
+			}
 			return votes > 0 ? local_number(votes, null, 'color: red;') : '';
 		},
 
@@ -990,71 +993,72 @@ function get_FC_votes_on_date(section, date, support_only) {
 	return diff;
 }
 
+// --------------------------------------
+
 /* const */
 var VOTE_SUPPORT = 1, VOTE_OPPOSE = -1, INVALID_VOTE = 0;
 
-function FC_section_filter(section) {
-	function move_to_invalid(vote_token) {
-		var list = vote_token.vote_type === VOTE_SUPPORT
-		// assert: vote_token.vote_type === VOTE_SUPPORT or VOTE_OPPOSE
-		? section.vote_list.support : section.vote_list.oppose;
+function move_to_invalid(section, vote_token) {
+	var list = vote_token.vote_type === VOTE_SUPPORT
+	// assert: vote_token.vote_type === VOTE_SUPPORT or VOTE_OPPOSE
+	? section.vote_list.support : section.vote_list.oppose;
 
-		var index = list.indexOf(vote_token);
-		// assert: index !== NOT_FOUND
+	var index = list.indexOf(vote_token);
+	// assert: index !== NOT_FOUND
 
-		list.splice(index, 1);
+	list.splice(index, 1);
 
-		vote_token.vote_type = INVALID_VOTE;
-		section.vote_list.invalid.push(vote_token);
+	vote_token.vote_type = INVALID_VOTE;
+	vote_token.invalid_reason = '多次投票';
+	section.vote_list.invalid.push(vote_token);
+}
+
+// 讓機器人判定多次投票的用戶、IP投票（包括同時投下支持和反對票）無效。
+function check_mutiplte_vote(section, latest_vote) {
+	// console.log(latest_vote);
+	if (!latest_vote.vote_user || !latest_vote.vote_date) {
+		return;
 	}
 
-	// 讓機器人判定重複投票的用戶、IP投票（包括同時投下支持和反對票）無效。
-	function check_mutiplte_vote() {
-		// console.log(latest_vote);
-		if (!latest_vote.vote_user || !latest_vote.vote_date) {
-			return;
-		}
+	// 已經判別出本投票模板的選舉人以及投票時間，可以檢查是否重複投票。
+	// console.log(latest_vote);
 
-		// 已經判別出本投票模板的選舉人以及投票時間，可以檢查是否重複投票。
-		// console.log(latest_vote);
+	var latest_vote_of_user
+	// assert: {String}latest_vote.vote_user !== ''
+	= section.vote_of_user[latest_vote.vote_user];
+	if (!latest_vote_of_user) {
+		// 登記選舉人所投的選票。
+		section.vote_of_user[latest_vote.vote_user] = latest_vote;
+		return;
+	}
+	// console.log(latest_vote_of_user);
 
-		var latest_vote_of_user
-		// assert: {String}latest_vote.vote_user !== ''
-		= section.vote_of_user[latest_vote.vote_user];
-		if (!latest_vote_of_user) {
-			// 登記選舉人所投的選票。
-			section.vote_of_user[latest_vote.vote_user] = latest_vote;
-			return;
-		}
-		// console.log(latest_vote_of_user);
-
-		if (latest_vote_of_user.vote_type === VOTE_SUPPORT
-		//
-		|| latest_vote_of_user.vote_type === VOTE_OPPOSE) {
-			if (latest_vote_of_user.vote_type === latest_vote.vote_type) {
-				// 投了多次同意或者多次反對，只算一次：前面第一次當作有效票，把後面的這一次當作廢票。
-
-			} else {
-				// 兩次投票不同調。把兩次都當作廢票。
-				move_to_invalid(latest_vote_of_user);
-			}
+	if (latest_vote_of_user.vote_type === VOTE_SUPPORT
+	//
+	|| latest_vote_of_user.vote_type === VOTE_OPPOSE) {
+		if (latest_vote_of_user.vote_type === latest_vote.vote_type) {
+			// 投了多次同意或者多次反對，只算一次：前面第一次當作有效票，把後面的這一次當作廢票。
 
 		} else {
-			// assert: latest_vote_of_user.vote_type === INVALID_VOTE
-			// 這個使用者前一次就已經是無效票/廢票。
+			// 兩次投票不同調。把兩次都當作廢票。
+			move_to_invalid(section, latest_vote_of_user);
 		}
 
-		// 無論哪一種情況，本次投票都是廢票。
-		move_to_invalid(latest_vote);
-
-		// 已經處理完latest_vote。為了不讓check_mutiplte_vote()重複處理latest_vote，因此reset。
-		// latest_vote = null;
-
-		return true;
+	} else {
+		// assert: latest_vote_of_user.vote_type === INVALID_VOTE
+		// 這個使用者前一次就已經是無效票/廢票。
 	}
 
-	// --------------------------------
+	// 無論哪一種情況，本次投票都是廢票。
+	move_to_invalid(section, latest_vote);
 
+	// 已經處理完latest_vote。為了不讓check_mutiplte_vote()重複處理latest_vote，因此reset。
+	// latest_vote = null;
+
+	return true;
+}
+
+function FC_section_filter(section) {
 	// section.vote_of_user[user_name] = {Array} the first vote token of user;
 	section.vote_of_user = CeL.null_Object();
 
@@ -1079,8 +1083,13 @@ function FC_section_filter(section) {
 		//
 		|| token.type === 'link') && latest_vote) {
 			// parsing user 取得每一票的投票人/選舉人/voter與投票時間點。
-			/* let */var user, date;
-			if (token.type === 'link' && !latest_vote.vote_user) {
+			/* let */var user, date, need_check = !latest_vote.vote_user
+					|| !latest_vote.vote_date;
+			if (token.type === 'link'
+			// 就算已有`.vote_user`，還是繼續標註使用者；預防陳述中提到其他使用者的情況。
+			// 如此一來將會以日期之前最後一個使用者連結為主。
+			// && !latest_vote.vote_user
+			) {
 				// console.log('check date: ' + token);
 				user = CeL.wiki.parse.user(token.toString());
 				if (user) {
@@ -1088,8 +1097,7 @@ function FC_section_filter(section) {
 					// assert: {Date}latest_vote.vote_date
 					// console.log(latest_vote);
 				}
-			}
-			if ((typeof token === 'string' || token.type === 'plain')
+			} else if ((typeof token === 'string' || token.type === 'plain')
 					&& !latest_vote.vote_date) {
 				// console.log('check date: ' + token);
 				date = CeL.wiki.parse.date(token.toString());
@@ -1099,10 +1107,10 @@ function FC_section_filter(section) {
 					// console.log(latest_vote);
 				}
 			}
-			if (user || date) {
+			if (need_check && (user || date)) {
 				// 剛剛設定好voter與投票時間點才需要執行檢查，確保check_mutiplte_vote()只執行一次。
 				// console.log(latest_vote);
-				check_mutiplte_vote();
+				check_mutiplte_vote(section, latest_vote);
 			}
 			return;
 		}
@@ -1137,13 +1145,14 @@ function FC_section_filter(section) {
 			if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
 			//
 			|| latest_vote.vote_type === VOTE_OPPOSE)) {
-				// 劃票。
 				if (latest_vote.vote_type === VOTE_SUPPORT)
 					section.vote_list.support.pop();
 				else if (latest_vote.vote_type === VOTE_OPPOSE)
 					section.vote_list.oppose.pop();
-				section.vote_list.invalid.push(latest_vote);
+
 				latest_vote.vote_type = INVALID_VOTE;
+				latest_vote.invalid_reason = '被劃票';
+				section.vote_list.invalid.push(latest_vote);
 			}
 
 		}
