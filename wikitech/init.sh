@@ -26,6 +26,7 @@ cd node_modules
 
 # method 2:
 # /usr/bin/unzip -UU : 以 jsub @crontab 執行的時候會出現亂碼
+# sh has no `time` @ Debian Stretch 2019/3/15
 /usr/bin/wget -O CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d cejs ] && /usr/bin/diff CeJS.zip CeJS.zip.old && mv -f CeJS.zip CeJS.zip.old && echo "CeJS: No news." || ( echo "Extracting CeJS..." && time /usr/bin/unzip CeJS.zip > /dev/null && mv -f CeJS.zip CeJS.zip.old && rm -rf cejs && mv CeJS-master cejs && (cp -f "cejs/_for include/_CeL.loader.nodejs.js" ~/wikibot) && ( [ -d OpenCC ] && cp OpenCC/* cejs/extension/zh_conversion/OpenCC/ || echo "No OpenCC." ) || echo "Failed to get CeJS" )
 
 # ---------------------------------------------------------
