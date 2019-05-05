@@ -94,7 +94,7 @@ avoid_catalogs, hit_count,
  * should allow "AdS/CFT對偶" as FC title<br />
  * matched: [ all, transcluding_title, FC_page_prefix, FC_title ]
  */
-PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|wikipedia|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^{}]+))\}\}\s*$/,
+PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|WP|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^{}]+))\}\}\s*$/i,
 //
 get_page_options = {
 	converttitles : 1,
