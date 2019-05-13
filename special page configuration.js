@@ -286,6 +286,7 @@ var default_FC_vote_configurations = {
 		zh : {
 			NO : 'style="font-size: .3em;" |',
 			title : '條目標題',
+			// 贊成
 			support : 'data-sort-type="number" | <small>支持</small>',
 			oppose : 'data-sort-type="number" | <small>反對</small>',
 			invalid : 'data-sort-type="number" | <small title="包括截止後的投票">無效</small>',
@@ -1300,7 +1301,10 @@ function FC_vote_countdown(section) {
 	// && Date.now() < section.vote_time_limit
 	return data + '<small' + limit_title + '>'
 	// 還有...天 ; ...日後
-	+ CeL.age_of(Date.now(), section.vote_time_limit) + '後</small>';
+	// TODO: 把相關表格的剩餘時間表示方式改為60進位
+	+ CeL.age_of(Date.now(), section.vote_time_limit, {
+		digits : 0
+	}) + '後</small>';
 }
 
 function check_FC_status(section) {
