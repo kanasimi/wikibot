@@ -34,8 +34,17 @@ jstop cron-tools.cewbot-20170915.topic_list.wikiversity;
 
 計票機器人:
 時間截止時先插入截止標示，預告何時結束選舉、開始計票(過1小時)。讓選民不再投票，開始檢查作業。等到人工檢查沒問題時，確認此段最後的編輯時間超過1小時，再close掉。
-
-
+若是不想要由機器人處理，您可事先手動處理，或者回覆{{tl|Stop}}模板。
+孵化期:提名超過1小時候，等待孵化才開始各種審查作業。
+{{投票設定
+|支持模板=
+|反對模板=
+|投票資格=autoconfirmed + 50 edits + registered 7 days <!-- [[en:Wikipedia:Protection policy]], 巡查員, 回退員, [[Wikipedia:人事任免投票資格]], 原作者則不能支持自己的作品 -->
+|期限
+|延長期=30,30 <!-- 日 -->
+|通過處理=
+|未通過處理= <!-- 存檔至頁面 存檔至提案條目的討論頁底部。移除替換標籤模板  -->
+}}
 
 
 
@@ -653,7 +662,12 @@ function general_row_style(section, section_index) {
 
 		} else if (token.type === 'transclusion' && (token.name in {
 			// 下列討論已經關閉，請勿修改。
-			'Archive top' : true
+			'Archive top' : true,
+			// 本框內討論文字已關閉，相關文字不再存檔。
+			TalkH : true,
+			// 本討論已經結束。請不要對這個存檔做任何編輯。
+			TalkendH : true,
+			Talkendh : true
 		})) {
 			archived = 'start';
 			delete section.adding_link;
@@ -662,7 +676,12 @@ function general_row_style(section, section_index) {
 		//
 		&& token.type === 'transclusion' && (token.name in {
 			// 下列討論已經關閉，請勿修改。
-			'Archive bottom' : true
+			'Archive bottom' : true,
+			// 本框內討論文字已關閉，相關文字不再存檔。
+			TalkF : true,
+			// 本討論已經結束。請不要對這個存檔做任何編輯。
+			TalkendF : true,
+			Talkendf : true
 		})) {
 			archived = 'end';
 			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
