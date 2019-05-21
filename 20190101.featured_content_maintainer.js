@@ -922,7 +922,9 @@ function check_date_page() {
 		//
 		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
 		//
-		|| get_FC_title_to_transclude(FC_title)));
+		|| get_FC_title_to_transclude(FC_title)
+		// [[Special:Diff/54452371]]: 請將Wikipedia:典範條目的連結用字改為簡體，讓點擊紅連建立頁面時保持簡體
+		.replace(':典範條目', ':典范条目')));
 
 		return '|-\n| ' + fields.join(' || ');
 	}).join('\n') + '\n|}';
