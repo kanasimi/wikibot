@@ -1,0 +1,29 @@
+{
+	"name" : "wikibot",
+	"title" : "CeJS MediaWiki bots demo",
+	"version" : "v1.0.0",
+	"description" : "The Wikipedia bot examples using MediaWiki module of CeJS library.",
+	"keywords" : [ "mediawiki", "wikipedia", "wikipedia-bot", "wikidata", "wikitext", "cejs" ],
+	"author" : {
+		"name" : "Colorless echo",
+		"email" : "vimunci@gmail.com",
+		"url" : "https://github.com/kanasimi/wikibot"
+	},
+	"contributors" : "vimunci",
+	"license" : "BSD-3-Clause",
+	"homepage" : "https://github.com/kanasimi/wikibot",
+	"bugs" : {
+		"url" : "https://github.com/kanasimi/wikibot/issues"
+	},
+	"repository" : {
+		"type" : "git",
+		"url" : "https://github.com/kanasimi/wikibot.git"
+	},
+
+	"devDependencies" : {
+	},
+	"dependencies" : {
+		"gh-updater" : "latest",
+		"cejs" : "latest"
+	}
+}
