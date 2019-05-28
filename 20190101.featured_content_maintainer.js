@@ -31,9 +31,9 @@ configuration;
 var
 // node 20190101.featured_content_maintainer.js type=good
 using_GA = CeL.env.arg_hash && CeL.env.arg_hash.type === 'good',
-// 'Wikipedia:' + NS_PREFIX
+/** {String}特色內容將採用的前綴: 'Wikipedia:' + NS_PREFIX */
 NS_PREFIX = using_GA ? '優良條目' : '典範條目',
-//
+/** {String}將顯示的類型名稱。 */
 TYPE_NAME = using_GA ? '優良條目' : '特色內容',
 
 JDN_today = CeL.Julian_day(new Date),
@@ -115,7 +115,31 @@ wiki.cache([ {
 	redirects : 1,
 	reget : true,
 	operator : setup_configuration
-}, {
+}, using_GA && {
+	type : 'page',
+	list : [ 'Wikipedia:優良條目/分類/列表' ],
+	redirects : 1,
+	reget : true,
+	each : function(page_data) {
+		/**
+		 * {String}page title = page_data.title
+		 */
+		var title = CeL.wiki.title_of(page_data),
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 */
+		content = CeL.wiki.content_of(page_data);
+
+		/** 頁面解析後的結構。 */
+		var parsed = CeL.wiki.parser(page_data).parse();
+		// [[Wikipedia_talk:優良條目/存檔3#建議GA頁面可以清楚易懂的排版]]
+		parsed.each('link', function(token) {
+			var title = CeL.wiki.normalize_title(token[0].toString());
+			FC_list_pages.push(title);
+		});
+
+	}
+} && false, {
 	type : 'page',
 	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
 	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
@@ -222,6 +246,13 @@ function setup_configuration(page_data) {
 	//
 	&& general.portal_item_count < 99)) {
 		delete general.portal_item_count;
+	}
+
+	if (general['NS_PREFIX_' + (using_GA ? 'GA' : 'FA')]) {
+		NS_PREFIX = general['NS_PREFIX_' + (using_GA ? 'GA' : 'FA')];
+	}
+	if (general['TYPE_NAME_' + (using_GA ? 'GA' : 'FA')]) {
+		TYPE_NAME = general['TYPE_NAME_' + (using_GA ? 'GA' : 'FA')];
 	}
 
 	CeL.log('Configuration:');
@@ -378,8 +409,11 @@ function get_FC_title_to_transclude(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
 	return FC_data[KEY_TRANSCLUDING_PAGE]
 			|| ('Wikipedia:'
-					+ (using_GA ? '優良條目' : FC_data[KEY_IS_LIST] ? '特色列表'
-							: '典範條目') + '/' + FC_title);
+					+ (using_GA ? configuration.general.NS_PREFIX_GA || '優良條目'
+							: FC_data[KEY_IS_LIST] ? configuration.general.NS_PREFIX_FL
+									|| '特色列表'
+									: configuration.general.NS_PREFIX_FA
+											|| '典範條目') + '/' + FC_title);
 }
 
 // get page name of JDN to transclude
@@ -922,9 +956,7 @@ function check_date_page() {
 		//
 		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
 		//
-		|| get_FC_title_to_transclude(FC_title)
-		// [[Special:Diff/54452371]]: 請將Wikipedia:典範條目的連結用字改為簡體，讓點擊紅連建立頁面時保持簡體
-		.replace(':典範條目', ':典范条目')));
+		|| get_FC_title_to_transclude(FC_title)));
 
 		return '|-\n| ' + fields.join(' || ');
 	}).join('\n') + '\n|}';
@@ -1047,6 +1079,8 @@ function check_date_page() {
 
 // fix for [[MediaWiki:Titleblacklist]]
 function fix_for_titleblacklist(page_title) {
+	return page_title;
+
 	return page_title.replace(/Wikipedia:典範條目\//, 'Wikipedia:典范条目/').replace(
 			/Wikipedia:優良條目\//, 'Wikipedia:优良条目/');
 }
