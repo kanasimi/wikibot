@@ -248,11 +248,13 @@ function setup_configuration(page_data) {
 		delete general.portal_item_count;
 	}
 
-	if (general['NS_PREFIX_' + (using_GA ? 'GA' : 'FA')]) {
-		NS_PREFIX = general['NS_PREFIX_' + (using_GA ? 'GA' : 'FA')];
+	var _key = 'NS_PREFIX_' + (using_GA ? 'GA' : 'FA');
+	if (general[_key]) {
+		NS_PREFIX = general[_key];
 	}
-	if (general['TYPE_NAME_' + (using_GA ? 'GA' : 'FA')]) {
-		TYPE_NAME = general['TYPE_NAME_' + (using_GA ? 'GA' : 'FA')];
+	_key = 'TYPE_NAME_' + (using_GA ? 'GA' : 'FA');
+	if (general[_key]) {
+		TYPE_NAME = general[_key];
 	}
 
 	CeL.log('Configuration:');
@@ -418,7 +420,11 @@ function get_FC_title_to_transclude(FC_title) {
 
 // get page name of JDN to transclude
 function get_FC_date_title_to_transclude(JDN) {
-	return 'Wikipedia:' + (using_GA ? '優良條目' : JDN < 典範JDN ? '特色條目' : '典範條目')
+	return 'Wikipedia:'
+			+ (using_GA ? configuration.general.NS_PREFIX_GA || '優良條目'
+					: JDN < 典範JDN ? configuration.general.NS_PREFIX_FL
+							|| '特色條目' : configuration.general.NS_PREFIX_FA
+							|| '典範條目')
 			+ CeL.Julian_day.to_Date(JDN).format('/%Y年%m月%d日');
 }
 
