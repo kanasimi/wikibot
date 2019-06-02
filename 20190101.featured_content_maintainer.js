@@ -45,7 +45,7 @@ JDN_search_to = Math.max(JDN_today, JDN_to_generate - 1),
 // 開始有特色內容頁面的日期。
 JDN_start = using_GA ? CeL.Julian_day.from_YMD(2006, 9, 3, true)
 		: CeL.Julian_day.from_YMD(2013, 8, 20, true),
-// 開始廢棄"特色條目"，採用"典範條目"的日期。
+// 典範JDN: 開始廢棄"特色條目"，採用"典範條目"的日期。
 典範JDN = CeL.Julian_day.from_YMD(2017, 10, 1, true),
 // {{#time:Y年n月|+1 day}}
 // @see Template:Feature , Template:Wikidate/ymd
@@ -422,9 +422,9 @@ function get_FC_title_to_transclude(FC_title) {
 function get_FC_date_title_to_transclude(JDN) {
 	return 'Wikipedia:'
 			+ (using_GA ? configuration.general.NS_PREFIX_GA || '優良條目'
-					: JDN < 典範JDN ? configuration.general.NS_PREFIX_FL
-							|| '特色條目' : configuration.general.NS_PREFIX_FA
-							|| '典範條目')
+			// 典範JDN: 開始廢棄"特色條目"，採用"典範條目"的日期。
+			: JDN < 典範JDN ? '特色條目' : configuration.general.NS_PREFIX_FA
+					|| '典範條目')
 			+ CeL.Julian_day.to_Date(JDN).format('/%Y年%m月%d日');
 }
 
@@ -460,10 +460,15 @@ function parse_each_FC_date_page(page_data) {
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
 			if (matched) {
+				matched = CeL.wiki.normalize_title(matched[1].replace(
+						/\/(?:s|摘要)\|/, '\/'));
 				// 直接覆蓋 [KEY_TRANSCLUDING_PAGE]: 以新出現者為準。
-				FC_data[KEY_TRANSCLUDING_PAGE] = CeL.wiki
-						.normalize_title(matched[1].replace(/\/(?:s|摘要)\|/,
-								'\/'));
+				FC_data[KEY_TRANSCLUDING_PAGE] = matched;
+				if (false) {
+					console.log(CeL.Julian_day.to_Date(JDN)
+							.format('%Y-%2m-%2d')
+							+ ': ' + matched);
+				}
 			} else if (FC_data[KEY_TITLES_TO_MOVE]) {
 				// 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
 				FC_data[KEY_TITLES_TO_MOVE].push(title);
