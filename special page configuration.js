@@ -1,4 +1,8 @@
-﻿'use strict';
+﻿/**
+ * @fileoverview 本檔案包含了特殊頁面的設定。
+ */
+
+'use strict';
 
 // Load CeJS library and modules.
 require('./wiki loder.js');
@@ -291,7 +295,7 @@ var default_FC_vote_configurations = {
 			oppose : 'data-sort-type="number" | <small>反對</small>',
 			invalid : 'data-sort-type="number" | <small title="包括截止後的投票">無效</small>',
 			status : 'data-sort-type="number" | <span title="已去掉逾期選票">狀態</span>',
-			countdown : 'data-sort-type="number" | <span title="從上次編輯時間起算。非從現在起的時間！">期限</span>'
+			countdown : 'data-sort-type="number" | <span title="從上次編輯時間起算之截止期限。非從現在起的時間！">截止</span>'
 		}
 	}[use_language],
 	// 要篩選的章節標題層級。
@@ -412,6 +416,7 @@ var default_DYK_vote_configurations = {
 
 	discussion_minus : 0,
 
+	// 肯定
 	// 規則講明計算「支持票」和「反對票」，如果接受帶有「激情」的票，怕會做壞榜樣
 	// |Strong support|强烈支持 |Strong oppose|Strongly oppose|強烈反對
 	// 未來若要採用機器計票，遇到類似情況，直接讓計票機器人提醒。溫馨提示
@@ -1010,7 +1015,7 @@ function move_to_invalid(section, vote_token) {
 	list.splice(index, 1);
 
 	vote_token.vote_type = INVALID_VOTE;
-	vote_token.invalid_reason = '多次投票';
+	vote_token.invalid_reason = '多次投票: ' + vote_token.vote_user;
 	section.vote_list.invalid.push(vote_token);
 }
 
@@ -1041,17 +1046,17 @@ function check_mutiplte_vote(section, latest_vote) {
 			// 投了多次同意或者多次反對，只算一次：前面第一次當作有效票，把後面的這一次當作廢票。
 
 		} else {
-			// 兩次投票不同調。把兩次都當作廢票。
+			// 兩次投票不同調。把兩次都當作廢票。先處理前一次。
 			move_to_invalid(section, latest_vote_of_user);
 		}
+
+		// 無論哪一種情況，本次投票都是廢票。
+		move_to_invalid(section, latest_vote);
 
 	} else {
 		// assert: latest_vote_of_user.vote_type === INVALID_VOTE
 		// 這個使用者前一次就已經是無效票/廢票。
 	}
-
-	// 無論哪一種情況，本次投票都是廢票。
-	move_to_invalid(section, latest_vote);
 
 	// 已經處理完latest_vote。為了不讓check_mutiplte_vote()重複處理latest_vote，因此reset。
 	// latest_vote = null;
@@ -1152,7 +1157,7 @@ function FC_section_filter(section) {
 					section.vote_list.oppose.pop();
 
 				latest_vote.vote_type = INVALID_VOTE;
-				latest_vote.invalid_reason = '被劃票';
+				latest_vote.invalid_reason = '被劃票:' + token.name;
 				section.vote_list.invalid.push(latest_vote);
 			}
 
@@ -1245,7 +1250,10 @@ function FC_section_filter(section) {
 			console.log(type + ': '
 			//
 			+ section.vote_list[type].map(function(vote_template) {
-				return JSON.stringify(vote_template.vote_date);
+				var vote_status = JSON.stringify(vote_template.vote_date);
+				if (vote_template.invalid_reason)
+					vote_status += ' ' + vote_template.invalid_reason;
+				return vote_status;
 				return CeL.is_Date(vote_template.vote_date)
 				//
 				? vote_template.vote_date.toISOString()
@@ -1301,8 +1309,9 @@ function FC_vote_countdown(section) {
 	// && Date.now() < section.vote_time_limit
 	return data + '<small' + limit_title + '>'
 	// 還有...天 ; ...日後
-	// TODO: 把相關表格的剩餘時間表示方式改為60進位
+	// TODO: 把相關表格的剩餘時間表示方式改為60進位。
 	+ CeL.age_of(Date.now(), section.vote_time_limit, {
+		// 四捨五入方式。
 		digits : 0
 	}) + '後</small>';
 }
