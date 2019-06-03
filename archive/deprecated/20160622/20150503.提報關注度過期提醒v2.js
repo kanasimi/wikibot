@@ -70,9 +70,9 @@ CeL.log('開始處理 ' + summary + ' 作業', true);
 wiki
 // 取得提報關注度不足頁面內容。
 .page(notability_report, function(page_data) {
-	var id_pages = CeL.null_Object(), user_denied = CeL.null_Object(),
+	var id_pages = Object.create(null), user_denied = Object.create(null),
 	// page_status[title] = [ line index of content, status ]
-	page_status = CeL.null_Object(), notified_pages = CeL.null_Object(),
+	page_status = Object.create(null), notified_pages = Object.create(null),
 	// 關注度不足提報頁面內容 contents
 	關注度不足提報頁面內容 = CeL.wiki.content_of(page_data),
 	//
@@ -128,7 +128,7 @@ wiki
 
 		if (!(user in id_pages)) {
 			// 初始化 user。
-			id_pages[user] = CeL.null_Object();
+			id_pages[user] = Object.create(null);
 			// 在 wiki.work() 前檢測完所有 user talk。
 			wiki.page('User_talk:' + user, function(page_data) {
 				var content = CeL.wiki.content_of(page_data, 'header'), denied;

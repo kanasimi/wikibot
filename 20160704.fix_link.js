@@ -26,7 +26,7 @@ wiki = Wiki(true, 'wikinews'),
 // 7z a archive/fix_link.7z fix_link
 cache_directory = base_directory + 'web/',
 // did_not_processed[title] = [ URL, ... ];
-did_not_processed = CeL.null_Object(),
+did_not_processed = Object.create(null),
 
 date_NOW = (new Date).format('%Y年%m月%d日'),
 
@@ -148,7 +148,7 @@ function for_each_page(page_data) {
 
 	parse_page_left++;
 
-	var matched, link_hash = CeL.null_Object(),
+	var matched, link_hash = Object.create(null),
 	/**
 	 * 匹配URL網址。
 	 * 

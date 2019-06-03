@@ -181,6 +181,13 @@ set_language('ja');
 section_title = '「森村誠一の終着駅シリーズ」へのリンクの変更依頼', diff_id = '66411347/66561349';
 replace_pairs = [ /森村誠一・終着駅シリーズ/g, '森村誠一の終着駅シリーズ' ];
 
+// --------------------------
+// 2019/5/27 17:9:50
+set_language('zh');
+section_title = diff_id = null;
+// search and print. do not replace.
+replace_pairs = [ /\{\{[^}\u00A0]*\u00A0/ ];
+
 // ----------------------------------------------------------------------------
 
 var
@@ -216,7 +223,7 @@ CeL.run_serial(for_pair, replace_pairs, function() {
 function for_pair(run_next, pair) {
 	// console.log([ 'pair:', pair ]);
 	var search_key = pair[0], replace_from, replace_to;
-	if (pair.length === 2) {
+	if (pair.length < 3) {
 		replace_from = pair[0];
 		replace_to = pair[1];
 	} else {
@@ -239,14 +246,26 @@ function for_pair(run_next, pair) {
 			content = CeL.wiki.content_of(page_data);
 
 			if (!content) {
-				return [ CeL.wiki.edit.cancel,
-						'No contents: [[' + title + ']]! 沒有頁面內容！' ];
+				return [
+						CeL.wiki.edit.cancel,
+						'No contents: ' + CeL.wiki.title_link_of(title)
+								+ '! 沒有頁面內容！' ];
 			}
 
 			// 額外的替換作業。
 			if (false) {
 				content = content.replace(/-{zh-cn:信息; zh-tw:資訊;}-/g,
 						'-{zh-cn:信息;zh-tw:資訊;}-');
+			}
+
+			if (!replace_to) {
+				var matched = content.match(replace_from);
+				if (matched) {
+					delete matched.input;
+					CeL.log(CeL.wiki.title_link_of(title) + ': ' + matched);
+				}
+
+				return;
 			}
 
 			return content.replace(replace_from, replace_to);

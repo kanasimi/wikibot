@@ -32,7 +32,7 @@ var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印
 		.split('|');
 
 (function() {
-	var category_hash = CeL.null_Object();
+	var category_hash = Object.create(null);
 	preserve_categories.forEach(function(category) {
 		category_hash[category] = true;
 	});
@@ -94,7 +94,7 @@ function process_main_page(row, error) {
 	content = CeL.wiki.content_of(row);
 	// console.log(content);
 
-	var link_data = CeL.null_Object(), to_pass = {
+	var link_data = Object.create(null), to_pass = {
 		link_data : link_data,
 		processed_count : 0,
 		process : process_VOA_page,

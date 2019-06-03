@@ -74,7 +74,7 @@ configuration,
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 /** {Object} 維護模板本名[{String}維護模板別名/本名] = {String}root 維護模板本名 */
-維護模板本名 = CeL.null_Object(),
+維護模板本名 = Object.create(null),
 /** {Array} 維護模板_by_pageid[pageid] = {Array}維護模板 list */
 維護模板_by_pageid = [],
 //
@@ -349,7 +349,7 @@ CeL.wiki.cache([ {
 	redirects : 1,
 	operator : function(page_data) {
 		// 取得 {{多個問題}} 模板以 parse page
-		var template_hash = CeL.null_Object(),
+		var template_hash = Object.create(null),
 		//
 		TEMPLATE_PATTERN = /{{{([^{}\|]+)\|/g,
 		/** {String}page content, maybe undefined. */
@@ -372,7 +372,7 @@ CeL.wiki.cache([ {
 	type : 'redirects',
 	list : 須排除之維護模板名list,
 	retrieve : function(list) {
-		var 須排除之維護模板名_hash = CeL.null_Object();
+		var 須排除之維護模板名_hash = Object.create(null);
 		if (list)
 			list.forEach(function(page_data) {
 				須排除之維護模板名_hash[page_data.title] = true;
@@ -466,7 +466,7 @@ CeL.wiki.cache([ {
 		// ** 就算被包含在{{多個問題}}模板中，只要是用"{{維護模板名}}"而非"|維護模板名="的方式，依然會登記此維護模板。
 
 		// this.含有_多個問題_模板之頁面 = [ page_data, page_data, ... ]
-		var 含有_多個問題_模板之頁面_title = CeL.null_Object(),
+		var 含有_多個問題_模板之頁面_title = Object.create(null),
 		//
 		須拆分的條目 = this.須拆分的條目 = [],
 		//
@@ -618,5 +618,5 @@ CeL.wiki.cache([ {
 	title_prefix : 'Template:',
 	// cache path prefix
 	prefix : base_directory,
-	含有維護模板之頁面 : CeL.null_Object()
+	含有維護模板之頁面 : Object.create(null)
 });

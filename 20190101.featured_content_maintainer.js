@@ -76,17 +76,17 @@ KEY_LIST_PAGE = 4,
 KEY_LATEST_JDN = 4, KEY_CATEGORY = 5, KEY_TITLES_TO_MOVE = 6,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
-FC_data_hash = CeL.null_Object(), new_FC_pages,
+FC_data_hash = Object.create(null), new_FC_pages,
 
 error_logs = [], FC_title_sorted, redirects_list_to_check = [],
 // cache file of redirects
 redirects_to_file = base_directory + 'redirects_to.json',
 // redirects_to_hash[original_FC_title] = {String}FC_title 經過繁簡轉換過的最終標題
-redirects_to_hash = CeL.get_JSON(redirects_to_file) || CeL.null_Object(),
+redirects_to_hash = CeL.get_JSON(redirects_to_file) || Object.create(null),
 // JDN_hash[FC_title] = JDN
-JDN_hash = CeL.null_Object(),
+JDN_hash = Object.create(null),
 // @see get_FC_title_to_transclude(FC_title)
-FC_page_prefix = CeL.null_Object(),
+FC_page_prefix = Object.create(null),
 // 避免採用類別
 avoid_catalogs, hit_count,
 /**
@@ -203,7 +203,7 @@ wiki.cache([ {
 // ---------------------------------------------------------------------//
 
 function parse_configuration_table(table) {
-	var configuration = CeL.null_Object();
+	var configuration = Object.create(null);
 	if (Array.isArray(table)) {
 		table.forEach(function(line) {
 			configuration[line[0]] = line[1];
@@ -784,7 +784,7 @@ function check_FC_template(page_data_list, operation) {
 
 	var is_list = /list/.test(operation.list), FC_title_hash = this.FC_title_hash;
 	if (!FC_title_hash) {
-		FC_title_hash = this.FC_title_hash = CeL.null_Object();
+		FC_title_hash = this.FC_title_hash = Object.create(null);
 
 		Object.keys(FC_data_hash).forEach(function(FC_title) {
 			if (is_FC(FC_title)) {

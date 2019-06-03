@@ -232,7 +232,7 @@ var default_BRFA_configurations = {
 	twist_filter : {
 		// 帶有審核意味的討論，審查者欄位應該去掉申請人。
 		BAG : function(section, user_group_filter) {
-			var new_filter = CeL.null_Object();
+			var new_filter = Object.create(null);
 			for ( var user_name in user_group_filter) {
 				if (!section.applicants.includes(user_name)
 						&& section.bot_name !== user_name) {
@@ -305,7 +305,7 @@ var default_FC_vote_configurations = {
 	// 減去提名時嵌入的簽名。
 	discussion_minus : 1,
 
-	timeout_id_hash : CeL.null_Object(),
+	timeout_id_hash : Object.create(null),
 	// 註冊 listener。 this: see .section_filter()
 	vote_closed_listener : function() {
 		wiki.page(this.title, pre_fetch_sub_pages);
@@ -483,10 +483,10 @@ var default_DYK_vote_configurations = {
 	}
 };
 
-default_DYK_vote_configurations.operators = Object.assign(CeL.null_Object(),
+default_DYK_vote_configurations.operators = Object.assign(Object.create(null),
 		default_FC_vote_configurations.operators,
 		default_DYK_vote_configurations.operators);
-default_DYK_vote_configurations = Object.assign(CeL.null_Object(),
+default_DYK_vote_configurations = Object.assign(Object.create(null),
 		default_FC_vote_configurations, default_DYK_vote_configurations);
 
 // ================================================================================================
@@ -567,7 +567,7 @@ var page_configurations = {
 		},
 		// 要篩選的章節標題層級。
 		level_filter : 3
-	}, Object.assign(CeL.null_Object(), default_BRFA_configurations, {
+	}, Object.assign(Object.create(null), default_BRFA_configurations, {
 		transclusion_target : null,
 		section_filter : RFF_section_filter
 	})),
@@ -1056,6 +1056,11 @@ function check_mutiplte_vote(section, latest_vote) {
 	} else {
 		// assert: latest_vote_of_user.vote_type === INVALID_VOTE
 		// 這個使用者前一次就已經是無效票/廢票。
+
+		if (latest_vote.vote_type !== INVALID_VOTE) {
+			// assert: 之前投的全都是無效票。現在這一張票是第一張有效票。
+			section.vote_of_user[latest_vote.vote_user] = latest_vote;
+		}
 	}
 
 	// 已經處理完latest_vote。為了不讓check_mutiplte_vote()重複處理latest_vote，因此reset。
@@ -1065,8 +1070,9 @@ function check_mutiplte_vote(section, latest_vote) {
 }
 
 function FC_section_filter(section) {
-	// section.vote_of_user[user_name] = {Array} the first vote token of user;
-	section.vote_of_user = CeL.null_Object();
+	// section.vote_of_user[user_name]
+	// = {Array} the first valid vote token of user;
+	section.vote_of_user = Object.create(null);
 
 	// 正在投票評選的條目。
 	section.vote_list = {

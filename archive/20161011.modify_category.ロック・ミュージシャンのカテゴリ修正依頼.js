@@ -42,7 +42,7 @@ test_limit = 200,
 count = 0,
 
 // category_count[category] = count
-category_count = CeL.null_Object(),
+category_count = Object.create(null),
 
 // カテゴリから国を判別できない音楽家
 problem_list = [], no_country_found = [],

@@ -32,7 +32,7 @@ set_properties = ('著者,ジャンル,前作,次作'
 // 以下為配合各自版本的屬性
 + ',挿絵画家,分類,作品の使用言語,出版日,発行者,ページ数').split(','),
 //
-set_properties_hash = CeL.null_Object(),
+set_properties_hash = Object.create(null),
 
 all_properties = {
 	著者 : 'author',
@@ -187,7 +187,7 @@ function for_each_page(page_data, messages) {
 			//
 			data_title = entity.value('label'),
 			//
-			data = CeL.null_Object(),
+			data = Object.create(null),
 			//
 			value, matched;
 

@@ -51,11 +51,11 @@ wiki = Wiki(true, 'wikinews'),
 google, customsearch,
 
 // url_cache_hash[url] = {String}title;
-url_cache_hash = CeL.null_Object(),
+url_cache_hash = Object.create(null),
 // label_cache_hash[label] = [ {String}url ];
-label_cache_hash = CeL.null_Object(),
+label_cache_hash = Object.create(null),
 // headline_hash[publisher] = [ {String}headline ]
-headline_hash = CeL.null_Object(),
+headline_hash = Object.create(null),
 // 需要新加入的 headline_wikitext_list = [ '{{HI|...}}', ... ]
 headline_wikitext_list = [],
 // 包括已處理與未處理過的headline。
@@ -891,7 +891,7 @@ function check_headline_data(labels_to_check) {
 
 				} catch (e) {
 					if (!parse_error_label_list) {
-						parse_error_label_list = CeL.null_Object();
+						parse_error_label_list = Object.create(null);
 					}
 					CeL.debug('Parse [' + label + '] (' + url + '): ' + e, 0,
 							'next_label');

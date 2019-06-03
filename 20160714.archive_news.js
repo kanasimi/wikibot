@@ -487,7 +487,7 @@ function for_each_old_page(page_data) {
 			// skip error
 			;
 		} else {
-			problem_list.push('分類似乎沒依規範掛在文章最後，在其之後尚有其他元件？');
+			problem_list.push('分類似乎沒依規範掛在文章最後，在其之後尚有其他元件？也請注意其前後不可有空白。');
 		}
 	}
 

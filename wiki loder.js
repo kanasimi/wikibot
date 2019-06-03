@@ -213,7 +213,7 @@ _global.Wiki = function(login, API_URL) {
 	}
 
 	if (!wiki.get_URL_options.headers) {
-		wiki.get_URL_options.headers = CeL.null_Object();
+		wiki.get_URL_options.headers = Object.create(null);
 	}
 	if (CeL.get_script_name()) {
 		// set User-Agent to use:

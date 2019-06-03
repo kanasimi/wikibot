@@ -19,7 +19,7 @@ summary = from_language + ' wiki 之[[規範控制]] (Authority control) 模板�
 //
 log_to = 'User:cewbot/log/20150109',
 //
-template_text = CeL.null_Object(),
+template_text = Object.create(null),
 //
 config = {
 	summary : summary,
@@ -93,7 +93,7 @@ function for_source_pages(pages, titles, title) {
 		CeL.debug('讀取頁面內容。篩選出 {{Authority control}} 字節。');
 		// template_data[from_language title]
 		// = [ page_data, {{Authority control}} 字節 ]
-		var template_data = CeL.null_Object();
+		var template_data = Object.create(null);
 		if (CeL.is_debug(2))
 			CeL.show_value(page_data, 'page_data of [' + page_data + ']');
 		page_data.forEach(function(page_data) {

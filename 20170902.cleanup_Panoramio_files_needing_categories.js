@@ -23,7 +23,7 @@ wiki = Wiki(true, 'commons');
 
 // ----------------------------------------------------------------------------
 
-var meaningful_categories = CeL.null_Object(),
+var meaningful_categories = Object.create(null),
 // https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
 page_options = {
 	rvprop : 'timestamp|content|user|flags'

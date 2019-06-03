@@ -46,7 +46,7 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-var items_without = CeL.null_Object(),
+var items_without = Object.create(null),
 //
 SQL_session = new CeL.wiki.SQL(function(error) {
 	if (error) {
@@ -104,7 +104,7 @@ function get_most_sitelinked_items(callback, options) {
 
 		CeL.info('All ' + rows.length + ' items more than ' + MIN_COUNT
 				+ ' sitelinks.');
-		var items_of_count = CeL.null_Object(), item_count_pairs = [];
+		var items_of_count = Object.create(null), item_count_pairs = [];
 		rows.forEach(function(row) {
 			var item_id = row.ips_item_id, link_count = row.link_count;
 			// item_count_pairs = [ [item_id,link_count], ... ]
@@ -159,7 +159,7 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 		CeL.info(language + ': ' + rows.length + ' items more than '
 				+ MIN_COUNT + ' sitelinks. Filtering items...');
 		// item_list, items_of_count 僅包含排除了((language))這個語言連結的 item項目。
-		var items_of_count = CeL.null_Object(), item_list = [], index_of_rows = 0, id_of_current_row = rows[index_of_rows].ips_item_id;
+		var items_of_count = Object.create(null), item_list = [], index_of_rows = 0, id_of_current_row = rows[index_of_rows].ips_item_id;
 		// 示意範例: rows = [ 1,3,5 ]
 		// item_count_pairs = [ [1,1], [2,1], [3,1], [4,1], [5,1], ]
 		options.item_count_pairs.forEach(function(pair) {
@@ -343,7 +343,7 @@ function for_item_list_passed(item_list, options) {
 	//
 	index_of_pairs = 0, this_item_count_pair = item_count_pairs[0],
 	//
-	items_of_count = CeL.null_Object();
+	items_of_count = Object.create(null);
 	item_list.forEach(function(item_id) {
 		while (this_item_count_pair[0] < item_id) {
 			this_item_count_pair = item_count_pairs[++index_of_pairs];

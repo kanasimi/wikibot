@@ -1,5 +1,5 @@
 ﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20150503.提報關注度不足過期提醒.js
-// 提報關注度不足過期提醒
+// 提報關注度不足過期提醒 notability reminder
 
 /*
 
@@ -71,9 +71,9 @@ wiki.page(notability_report, report_notability, {
 });
 
 function report_notability(page_data) {
-	var id_pages = CeL.null_Object(), user_denied = CeL.null_Object(),
+	var id_pages = Object.create(null), user_denied = Object.create(null),
 	// page_status[title] = [ line index of content, status ]
-	page_status = CeL.null_Object(), notified_pages = CeL.null_Object(),
+	page_status = Object.create(null), notified_pages = Object.create(null),
 	// 關注度不足提報頁面內容 contents
 	關注度不足提報頁面內容 = CeL.wiki.content_of(page_data),
 	//
@@ -131,7 +131,7 @@ function report_notability(page_data) {
 
 		if (!(user in id_pages)) {
 			// 初始化 user。
-			id_pages[user] = CeL.null_Object();
+			id_pages[user] = Object.create(null);
 			// 在 wiki.work() 前檢測完所有 user talk。
 			wiki.page('User_talk:' + user, function(page_data) {
 				/** {String}page content, maybe undefined. */

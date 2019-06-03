@@ -19,7 +19,7 @@ CeL.run('interact.DOM');
 
 var configurations_path = base_directory + 'configurations.js',
 //
-configurations = CeL.fs_read(configurations_path) || CeL.null_Object(),
+configurations = CeL.fs_read(configurations_path) || Object.create(null),
 
 // last_media_index starts from 0
 last_media_index = configurations.last_media_index | 0,

@@ -100,8 +100,8 @@ function add_sub_category(page_data, sub_category_list, parent_category) {
 function for_base_categorymember_list(categorymember_list, base_category,
 		run_next_base_category) {
 	// console.log(categorymember_list);
-	var base_category_pageid_hash = CeL.null_Object(), sub_category_list = [];
-	sub_category_list.hash = CeL.null_Object();
+	var base_category_pageid_hash = Object.create(null), sub_category_list = [];
+	sub_category_list.hash = Object.create(null);
 	categorymember_list.forEach(function(page_data) {
 		if (add_sub_category(page_data, sub_category_list, base_category))
 			base_category_pageid_hash[page_data.pageid] = null;

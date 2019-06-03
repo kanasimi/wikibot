@@ -29,7 +29,7 @@ log_to = 'User:' + user_name + '/log/' + check_section;
 
 var template_name = '广州';
 // 回頭將導航模板中之連結改成重定向的目標。
-var redirect_hash = CeL.null_Object(),
+var redirect_hash = Object.create(null),
 //
 template_with_ns = 'Template:' + template_name,
 //

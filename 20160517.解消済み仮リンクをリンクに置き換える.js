@@ -25,6 +25,11 @@
 
  */
 
+/*
+ 解消済み仮リンクをリンクに置き換える Convert interlanguage link templates with local article to wikilinks 將跨語言連結模板轉為內部連結（一般 wikilink）
+
+ */
+
 'use strict';
 
 // Load CeJS library and modules.
@@ -316,7 +321,7 @@ function normalize_parameter(token) {
 	//
 	index_order = message_set.template_order_of_name[template_name],
 	// 實際使用的 index。
-	index_order_exactly = CeL.null_Object();
+	index_order_exactly = Object.create(null);
 
 	if (!index_order) {
 		return;
@@ -536,8 +541,7 @@ function for_each_page(page_data, messages) {
 				var error_list = data_to_cache[is_information ? 'info'
 						: 'error'];
 				if (!error_list) {
-					data_to_cache[is_information ? 'info' : 'error'] = error_list = CeL
-							.null_Object();
+					data_to_cache[is_information ? 'info' : 'error'] = error_list = Object.create(null);
 				}
 				if (!error_list[error_name]) {
 					error_list[error_name] = [];
@@ -1054,6 +1058,7 @@ CeL.wiki.cache([ {
 
 }, {
 	// default options === this
+	// TODO: add Wikipedia:優良條目/存檔
 	// namespace : '0|10|14',
 	// [SESSION_KEY]
 	session : wiki,

@@ -1,4 +1,5 @@
 ﻿![GitHub commit activity the past week, 4 weeks, year](https://img.shields.io/github/commit-activity/y/kanasimi/wikibot.svg)
+[![BCH compliance](https://bettercodehub.com/edge/badge/kanasimi/wikibot?branch=master)](https://bettercodehub.com/)
 
 # CeJS MediaWiki bots demo
 Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).

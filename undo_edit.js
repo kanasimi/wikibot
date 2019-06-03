@@ -36,7 +36,7 @@ function filter_summary(summary) {
 wiki.usercontribs(user_name, function(list) {
 	CeL.log('Get ' + list.length + ' pages');
 
-	var undo_page_hash = CeL.null_Object();
+	var undo_page_hash = Object.create(null);
 
 	list.reverse();
 	list.forEach(function filter_contribs(page_data) {

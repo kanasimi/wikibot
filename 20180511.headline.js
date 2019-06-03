@@ -35,7 +35,7 @@ else if (locale === '國際')
 
 // ------------------------------------
 
-var working_queue = CeL.null_Object(),
+var working_queue = Object.create(null),
 //
 user_agent = 'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36',
 
@@ -52,11 +52,11 @@ DATE_NAME = is_cdo_news ? '號' : '日',
 writing_parameter = is_cdo_news ? '|lohang=h' : '',
 
 // url_cache_hash[url] = {String}title;
-url_cache_hash = CeL.null_Object(),
+url_cache_hash = Object.create(null),
 // label_cache_hash[label] = [ {String}url ];
-label_cache_hash = CeL.null_Object(),
+label_cache_hash = Object.create(null),
 // headline_hash[publisher] = [ {String}headline ]
-headline_hash = CeL.null_Object(),
+headline_hash = Object.create(null),
 // 需要新加入的 headline_wikitext_list = [ '{{HI|...}}', ... ]
 headline_wikitext_list = [],
 // 包括已處理與未處理過的headline。
@@ -1037,7 +1037,7 @@ function for_source(source_id) {
 			headline_list = html && source_data.parser.call(source_data, html);
 		} catch (error) {
 			if (!parse_error_label_list) {
-				parse_error_label_list = CeL.null_Object();
+				parse_error_label_list = Object.create(null);
 			}
 			CeL.error('next_label: Parse [' + source_id + '] (' + data_url
 					+ '): ' + error);

@@ -282,7 +282,7 @@ function traversal_all_pages() {
 // ----------------------------------------------
 
 function parse_configuration_table(table) {
-	var configuration = CeL.null_Object();
+	var configuration = Object.create(null);
 	if (Array.isArray(table)) {
 		table.forEach(function(line) {
 			configuration[line[0]] = line[1];
@@ -392,7 +392,7 @@ function adapt_configuration(page_configuration, traversal) {
 // ----------------------------------------------
 
 // main talk pages **of this wiki**
-var main_talk_pages = [], sub_page_to_main = CeL.null_Object();
+var main_talk_pages = [], sub_page_to_main = Object.create(null);
 
 var special_users;
 
@@ -509,7 +509,7 @@ function get_special_users(callback, options) {
 		TODO;
 	}
 
-	var special_users = CeL.null_Object(), full_group_name = {
+	var special_users = Object.create(null), full_group_name = {
 		bureaucrat : 'bureaucrats',
 		botop : 'bot operators',
 		bot : 'bots',
@@ -525,7 +525,7 @@ function get_special_users(callback, options) {
 
 	function get_allusers(group_name, augroup, callback) {
 		// reset
-		special_users[group_name] = CeL.null_Object();
+		special_users[group_name] = Object.create(null);
 		wiki.allusers(function(list) {
 			if (list.next_index) {
 				throw 'Too many users so we do not get full list of '
@@ -605,7 +605,7 @@ function get_special_users(callback, options) {
 	var botop_page = botop_sitelinks[CeL.wiki.site_name(wiki)];
 	if (botop_page && (botop_page = botop_page.title)) {
 		// reset
-		special_users.botop = CeL.null_Object();
+		special_users.botop = Object.create(null);
 		// TODO: {{bot|bot operator}}, {{Infobox bot}}
 		wiki.categorymembers(botop_page, function(list) {
 			if (list.next_index) {
@@ -1036,7 +1036,7 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
-	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = CeL.null_Object();
+	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = Object.create(null);
 	// check transclusions
 	parsed.each('transclusion', function(token, index, parent) {
 		// transclusion page title

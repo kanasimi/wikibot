@@ -293,7 +293,7 @@ file_option_alias = {
 		// mini in de?
 		small : 'thumb'
 	}
-}, local_option_alias, foreign_option_alias = CeL.null_Object(),
+}, local_option_alias, foreign_option_alias = Object.create(null),
 // 登記 edit distance 過大者
 // wrong → right
 typo = {
@@ -335,7 +335,7 @@ typo = {
 				delete foreign_option_alias[alias];
 		}
 	} else {
-		local_option_alias = CeL.null_Object();
+		local_option_alias = Object.create(null);
 	}
 
 	if (false) {

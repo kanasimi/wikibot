@@ -21,9 +21,9 @@ summary = '[[Special:Diff/70970184|Bot依頼]]',
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'ja'),
 
-param_has_unique_ref = CeL.null_Object(),
+param_has_unique_ref = Object.create(null),
 // 手動で修正する必要のある記事。
-need_fix = CeL.null_Object();
+need_fix = Object.create(null);
 
 // ---------------------------------------------------------------------//
 

@@ -129,9 +129,9 @@ PATTERN_revert_or_bot_summary = /还原|還原|revert|回退|撤銷|撤销|取�
 // 請機器人注意: 本頁面不採用補簽名
 PATTERN_ignore = /本頁面不.{0,3}補簽名/,
 // unsigned_user_hash[user][page title] = unsigned count
-unsigned_user_hash = CeL.null_Object(),
+unsigned_user_hash = Object.create(null),
 // no_link_user_hash[user][page title] = unsigned count
-no_link_user_hash = CeL.null_Object(),
+no_link_user_hash = Object.create(null),
 // 不可為頁面名稱。
 KEY_COUNT = '#count',
 // 非內容的元素。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
@@ -212,7 +212,7 @@ function add_count(row, hash, get_count) {
 
 	if (!pages_to_notify) {
 		// initialization
-		pages_to_notify = hash[row.user] = CeL.null_Object();
+		pages_to_notify = hash[row.user] = Object.create(null);
 		pages_to_notify[KEY_COUNT] = 0;
 	}
 	pages_to_notify[row.title] = (pages_to_notify[row.title] | 0) + 1;

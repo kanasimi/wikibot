@@ -140,7 +140,7 @@ NOT_FOUND = ''.indexOf('_'),
 is_zh = use_language === 'zh', is_CJK = is_zh || use_language === 'ja',
 // label_data['foreign_language:foreign_title']
 // = [ { language: {Array}labels }, {Array}titles, {Array}revid ]
-label_data = CeL.null_Object(), NO_NEED_CHECK_INDEX = 3,
+label_data = Object.create(null), NO_NEED_CHECK_INDEX = 3,
 // label_data_keys = Object.keys(label_data);
 // = ['foreign_language:foreign_title' , '', ...]
 label_data_keys, label_data_index = 0, label_data_length = 0,
@@ -163,7 +163,7 @@ PATTERN_common_title,
 // 2E80-2EFF 中日韓漢字部首補充 CJK Radicals Supplement
 PATTERN_none_used_title = /^[\u0000-\u2E7F]+$/i,
 //
-PATTERN_language_label = CeL.null_Object(),
+PATTERN_language_label = Object.create(null),
 // e.g., '[\\s\\d_,.:;\'"!()\\-+\\&<>\\\\\\/\\?–`@#$%^&*=~×☆★♪♫♬♩○●©®℗™℠]*'
 common_characters = CeL.wiki.PATTERN_common_characters.source.replace(/\+$/,
 		'*'),
@@ -880,7 +880,7 @@ function merge_label_data(callback) {
 		}
 	}
 
-	label_data = CeL.null_Object();
+	label_data = Object.create(null);
 	// reset
 	label_data_length = 0;
 

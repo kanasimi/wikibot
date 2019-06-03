@@ -55,7 +55,7 @@ create_first = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 3)
 /** {Natural}記錄頁面的存檔起始編號。 */
 archive_index_starts = 1,
 // lastest_archive[title] = last index of archive
-lastest_archive = CeL.null_Object(),
+lastest_archive = Object.create(null),
 // 將第一個 archive_prefix 作為預設 archive_prefix。
 default_archive_prefix = {
 	zh : '存檔',
@@ -67,7 +67,7 @@ default_archive_prefix = {
 // archive prefix
 archive_prefix = Object.values(default_archive_prefix).join('|'),
 // archive_prefix_hash[title] = archive prefix of log page
-archive_prefix_hash = CeL.null_Object(),
+archive_prefix_hash = Object.create(null),
 // [ all, log root, archive prefix, archive index ]
 PATTERN_log_archive = new RegExp('^(.+?\/[^\/]+)\/(' + archive_prefix
 		+ ')(\\d+)$'),
@@ -202,7 +202,7 @@ function for_log_page(page_data) {
 		CeL.info('for_log_page: ' + summary);
 
 		var config = {
-			// append log.
+			// append log. 附加，增補。
 			summary : summary + ' #1/2 添附記錄',
 			bot : 1,
 			section : 'new',

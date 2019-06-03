@@ -33,11 +33,11 @@ wiki = Wiki(true);
 
 var
 
-BOTREQ_diff_id = process.argv[3],
+BOTREQ_diff_id = +process.argv[3],
 
 // process.argv:
 // ['node','20160628.insert_navigation.插入導航模板.js','template name']
-template_name = process.argv[2];
+template_name = CeL.wiki.normalize_title(process.argv[2]);
 if (!template_name) {
 	// throw new Error('No template name specified!');
 	CeL.error('No template name specified!');
@@ -45,7 +45,7 @@ if (!template_name) {
 }
 
 // 回頭將導航模板中之連結改成重定向的目標。
-var redirect_hash = CeL.null_Object(),
+var redirect_hash = Object.create(null),
 //
 template_with_ns = /^(Template|模板):/.test(template_name) ? template_name
 		: 'Template:' + template_name,
@@ -140,7 +140,7 @@ function arrange_page(messages, pages, titles) {
 	while (true) {
 		if (--index < 0) {
 			CeL.error('Not found: [[' + template_with_ns
-					+ ']]. 除非是比較巨型的模板，連結過多使模板本身並不在本批次中；否則這個錯誤不應該發生！');
+					+ ']]. 除非是處理巨型模板，連結過多使模板本身並不在本批次中；否則不應發生此錯誤！');
 			return;
 		}
 		page_data = pages[index];
@@ -182,7 +182,7 @@ wiki.links(template_with_ns, function(pages, titles, title) {
 		summary : summary + ': [[Template:' + template_name + ']]'
 				+ (BOTREQ_diff_id > 0 ? ' [[Special:Diff/' + BOTREQ_diff_id
 				//
-				+ '|Bot作業請求]]' : '') + ' - [[' + log_to + '|log]]',
+				+ '|bot作業請求]]' : '') + ' - [[' + log_to + '|log]]',
 		log_to : log_to,
 		before : arrange_page,
 		last : finish_work

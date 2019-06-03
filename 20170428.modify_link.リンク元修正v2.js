@@ -29,7 +29,7 @@ wiki = Wiki(true),
 // ((Infinity)) for do all
 test_limit = 2,
 
-page_hash = CeL.null_Object(), move_from_list;
+page_hash = Object.create(null), move_from_list;
 
 // ----------------------------------------------------------------------------
 
@@ -147,7 +147,7 @@ function for_each_page(page_data, messages, config) {
 	// var parser = CeL.wiki.parser(page_data);
 
 	// 已經添加過的page。
-	var pages = CeL.null_Object();
+	var pages = Object.create(null);
 
 	// 分類名稱重複時，排序索引以後出現者為主。
 

@@ -28,7 +28,7 @@ wiki = Wiki(true),
 // ((Infinity)) for do all
 test_limit = 2,
 
-category_hash = CeL.null_Object(), move_from_list;
+category_hash = Object.create(null), move_from_list;
 
 // ----------------------------------------------------------------------------
 
@@ -107,7 +107,7 @@ if (false) {
 		生活の党の国会議員 : ' 自由党の国会議員 (日本 2016-)'
 	};
 
-	// 2016/11/13 10:51:53
+	// 2016/11/13 10:51:53 Bot依頼
 	summary = '[[Special:Diff/61835577|Bot作業依頼]]：削除された韓国のアイドルのカテゴリ修正依頼 - [['
 			+ log_to + '|log]]';
 	category_hash = {
@@ -217,7 +217,7 @@ function for_each_page(page_data, messages, config) {
 	// var parser = CeL.wiki.parser(page_data);
 
 	// 已經添加過的category。
-	var categories = CeL.null_Object();
+	var categories = Object.create(null);
 
 	// 分類名稱重複時，排序索引以後出現者為主。
 

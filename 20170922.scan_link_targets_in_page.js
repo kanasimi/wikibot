@@ -71,8 +71,7 @@ function for_each_main_page(page_data, run_next) {
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
 
-	var main_page_links = CeL.null_Object(), main_page_files = CeL
-			.null_Object();
+	var main_page_links = Object.create(null), main_page_files = Object.create(null);
 	parser.each_section(function(section, section_index) {
 		// skip the lead section
 		if (section_index === 0) {
@@ -113,7 +112,7 @@ function for_each_main_page(page_data, run_next) {
 
 	// ------------------------------------------
 
-	var files_to_add = CeL.null_Object();
+	var files_to_add = Object.create(null);
 	function scan_link_target(linked_page_data) {
 		if (!linked_page_data) {
 			// e.g., has link "[[ ]]"
