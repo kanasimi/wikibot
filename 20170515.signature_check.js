@@ -87,7 +87,7 @@ project_page_prefix = {
 
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // e.g., [[Wikipedia:頁面存廢討論/*]]
-whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikipedia talk:首页',
+page_whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikipedia talk:首页',
 //
 'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
 //
@@ -96,10 +96,12 @@ whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikiped
 'Talk:讨论版', 'Talk:提问求助区' ],
 
 // 黑名單直接封殺。黑名單的優先度高於白名單。
-// 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這個頁面補簽名。
+// 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這種頁面補簽名。
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
-blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
-		'Wikisource:管理员' ],
+page_blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
+		'Wikisource:管理员',
+		// [[Special:Diff/54719338]] 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
+		/Module_talk:.+\/testcases/ ],
 
 user_whitelist = [ '-Zest' ].map(function(title) {
 	return CeL.wiki.normalize_title(title);
@@ -151,7 +153,7 @@ with_diff = {
 };
 
 if (test_mode) {
-	whitelist.push('Wikipedia:沙盒');
+	page_whitelist.push('Wikipedia:沙盒');
 }
 
 // CeL.set_debug(2);
@@ -188,7 +190,7 @@ function filter_row(row) {
 	// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
 
 	// 必須是白名單頁面，
-	&& (whitelist.includes(row.title)
+	&& (page_whitelist.includes(row.title)
 	// 或者討論頁面，
 	|| CeL.wiki.is_talk_namespace(row.ns)
 	// 或者只有維基百科的有額外的頁面、需要測試[[Wikipedia:]]。
@@ -340,9 +342,13 @@ function for_each_row(row) {
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 
 	// 黑名單直接封殺。黑名單的優先度高於白名單。
-	|| blacklist.includes(row.title)
+	|| page_blacklist.some(function(filter) {
+		return CeL.is_RegExp(filter)
+		//
+		? filter.test(row.title) : filter === row.title;
+	})
 	// 白名單頁面可以省去其他的檢查。
-	|| !whitelist.includes(row.title)
+	|| !page_whitelist.includes(row.title)
 	//
 	&& row.title.startsWith('Wikipedia:')
 	// e.g., [[Wikipedia:机器人/申请/...]]
