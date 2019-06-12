@@ -258,12 +258,12 @@ function parse_each_FC_item_list_page(page_data) {
 	matched, is_list = title.includes('列表')
 	// e.g., 'Wikipedia:FL'
 	|| /:[DF]?[FG]L/.test(page_data.original_title || title),
-	// 注意: 這包含了被撤銷後再次被評為典範的條目
+	// 本頁面為已撤消的條目列表。注意: 這包含了被撤銷後再次被評為典範的條目。
 	is_FFC = [ page_data.original_title, title ].join('|');
 
 	// 對於進階的條目，採用不同的 is_FFC 表示法。
 	is_FFC = using_GA && /:FF?A/.test(is_FFC) && 'UP'
-			|| /:[DF][FG][AL]|已撤销的/.test(is_FFC);
+			|| /:[DF][FG][AL]|已撤消的|已撤销的/.test(is_FFC);
 
 	if (is_FFC) {
 		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
@@ -292,13 +292,18 @@ function parse_each_FC_item_list_page(page_data) {
 			|| test_pattern(/{{(Wikipedia:[^{}]+)}}/g, 10)
 			// 優良條目子分類列表, 已撤消的優良條目: all links
 			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
-	// reset pattern
-	PATTERN_Featured_content.lastIndex = 0;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
 			+ (is_list ? 'is list' : 'is article') + ', using pattern '
 			+ PATTERN_Featured_content);
+
+	// reset pattern
+	PATTERN_Featured_content.lastIndex = 0;
+	// 分類/類別。
+	if (matched = title.match(/\/(?:分類|分类)\/([^\/]+)/)) {
+		catalog = matched[1];
+	}
 
 	if (false) {
 		CeL.log(content);
@@ -314,6 +319,7 @@ function parse_each_FC_item_list_page(page_data) {
 		// assert: matched.length === 4
 
 		if (matched[3]) {
+			// 分類/類別。
 			catalog = matched[3].replace(/<!--.*?-->/g, '').trim().replace(
 					/\s*（\d+）$/, '');
 			continue;
@@ -334,7 +340,7 @@ function parse_each_FC_item_list_page(page_data) {
 			&& (FC_data_hash[FC_title][KEY_ISFFC] !== 'UP' || is_FFC !== false)) {
 				error_logs
 						.push(CeL.wiki.title_link_of(FC_title)
-								+ ' 被同時列在了現存及被撤銷的'
+								+ ' 被同時列在了現存及已撤銷的'
 								+ TYPE_NAME
 								+ '清單中: '
 								+ CeL.wiki.title_link_of(original_FC_title)
@@ -346,7 +352,7 @@ function parse_each_FC_item_list_page(page_data) {
 								+ '@'
 								+ CeL.wiki
 										.title_link_of(FC_data_hash[FC_title][KEY_LIST_PAGE][0]));
-				CeL.error(CeL.wiki.title_link_of(FC_title) + ' 被同時列在了現存及被撤銷的'
+				CeL.error(CeL.wiki.title_link_of(FC_title) + ' 被同時列在了現存及已撤銷的'
 						+ TYPE_NAME + '清單中: ' + is_FFC + '; '
 						+ FC_data_hash[FC_title]);
 			}
@@ -661,17 +667,17 @@ function check_redirects(page_list) {
 				//
 				.title_link_of(get_FC_date_title_to_transclude(JDN)) + '介紹的'
 						+ CeL.wiki.title_link_of(original_FC_title)
-						+ '似乎未登記在現存或已被撤銷的' + TYPE_NAME + '項目頁面中？');
+						+ '似乎未登記在現存或已撤銷的' + TYPE_NAME + '項目頁面中？');
 			});
 			if (false) {
 				CeL.warn('過去曾經在 '
 						+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
 								'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
-						+ '，並未登記在現存或已被撤銷的登記項目頁面中: '
+						+ '，並未登記在現存或已撤銷的登記項目頁面中: '
 						+ CeL.wiki.title_link_of(original_FC_title) + '。'
 						+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
 						+ '項目頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
-						+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已經撤銷的' + TYPE_NAME
+						+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已撤銷的' + TYPE_NAME
 						+ '，請加入相應的已撤銷項目頁面。'
 						+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 			}
