@@ -55,7 +55,7 @@ FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 // [[Wikipedia:已撤銷的典範條目]] 條目連結
 // 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
 Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA|WP:FFA' : 'WP:FFA|WP:FFL')
-		.split('|'),
+		.split('|'), sub_FC_list_pages = [],
 // 出問題時，至此頁面提醒社群。須保證本頁面存在，並且機器人可以寫入。
 // [[Wikipedia:互助客栈/其他]], [[Wikipedia:互助客栈/条目探讨]]
 DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
@@ -115,37 +115,19 @@ wiki.cache([ {
 	redirects : 1,
 	reget : true,
 	operator : setup_configuration
-}, using_GA && {
-	type : 'page',
-	list : [ 'Wikipedia:優良條目/分類/列表' ],
-	redirects : 1,
-	reget : true,
-	each : function(page_data) {
-		/**
-		 * {String}page title = page_data.title
-		 */
-		var title = CeL.wiki.title_of(page_data),
-		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
-		 */
-		content = CeL.wiki.content_of(page_data);
-
-		/** 頁面解析後的結構。 */
-		var parsed = CeL.wiki.parser(page_data).parse();
-		// [[Wikipedia_talk:優良條目/存檔3#建議GA頁面可以清楚易懂的排版]]
-		parsed.each('link', function(token) {
-			var title = CeL.wiki.normalize_title(token[0].toString());
-			FC_list_pages.push(title);
-		});
-
-	}
-} && false, {
+}, {
 	type : 'page',
 	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
 	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
 	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
 	// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
 	list : Former_FC_list_pages.concat(FC_list_pages),
+	redirects : 1,
+	reget : true,
+	each : parse_each_FC_item_list_page
+}, {
+	type : 'page',
+	list : sub_FC_list_pages,
 	redirects : 1,
 	reget : true,
 	each : parse_each_FC_item_list_page
@@ -289,12 +271,10 @@ function parse_each_FC_item_list_page(page_data) {
 	}
 
 	// 自動偵測要使用的模式。
-	function test_pattern(pattern) {
+	function test_pattern(pattern, min) {
 		var count = 0, matched;
 		while (matched = pattern.exec(content)) {
-			if (matched[1] && count++ > 20) {
-				// reset pattern
-				pattern.lastIndex = 0;
+			if (matched[1] && count++ > (min || 20)) {
 				return pattern;
 			}
 		}
@@ -308,8 +288,12 @@ function parse_each_FC_item_list_page(page_data) {
 	/'''\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]'''|\n==([^=].*?)==\n/g)
 			// 特色列表: [[:title]]
 			|| test_pattern(/\[\[:([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n==([^=].*?)==\n/g)
-			// 優良條目, 已撤消的優良條目: all links
+			// 優良條目轉換到子頁面模式: 警告：本頁中的所有嵌入頁面都會被機器人當作優良條目的分類列表。請勿嵌入非優良條目的分類列表。
+			|| test_pattern(/{{(Wikipedia:[^{}]+)}}/g, 10)
+			// 優良條目子分類列表, 已撤消的優良條目: all links
 			|| /\[\[([^\[\]\|:#]+)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
+	// reset pattern
+	PATTERN_Featured_content.lastIndex = 0;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
@@ -322,6 +306,13 @@ function parse_each_FC_item_list_page(page_data) {
 				PATTERN_Featured_content ]);
 	}
 	while (matched = PATTERN_Featured_content.exec(content)) {
+		if (matched.length === 2) {
+			sub_FC_list_pages.push(matched[1]);
+			continue;
+		}
+
+		// assert: matched.length === 4
+
 		if (matched[3]) {
 			catalog = matched[3].replace(/<!--.*?-->/g, '').trim().replace(
 					/\s*（\d+）$/, '');
@@ -996,7 +987,7 @@ function check_date_page() {
 		//
 		+ (0 < new_FC_pages.length ? new_FC_pages.length < 4
 		//
-		? '，新出現條目：' + new_FC_pages
+		? '，新出現條目：' + CeL.wiki.title_link_of(new_FC_pages)
 		//
 		: new_FC_pages.length < FC_title_sorted.length
 		//
