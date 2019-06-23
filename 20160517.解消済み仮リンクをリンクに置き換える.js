@@ -171,19 +171,20 @@ message_set = {
 	en : {
 		Category_has_local_page : 'Category:Interlanguage link template existing link',
 		fix_category : 'Category:Wikipedia backlog',
+		// 2016‎/11 全部統合到 {{Interlanguage link}}
 		template_order_of_name : {
 			// When article names would be the same in English and foreign
 			// language Wikipedia
 			// @see [[:en:Template:Interlanguage link]]
-			'interlanguage link' : template_orders.cLFl_en,
+			'interlanguage link' : template_orders.LcF_en,
 			// ={{interlanguage link}}
-			ill : template_orders.cLFl_en,
+			ill : template_orders.LcF_en,
 			// ={{interlanguage link}}
-			iii : template_orders.cLFl_en,
+			iii : template_orders.LcF_en,
 			// ={{interlanguage link}}
-			link : template_orders.cLFl_en,
+			link : template_orders.LcF_en,
 			// ={{interlanguage link}}
-			'link-interwiki' : template_orders.cLFl_en,
+			'link-interwiki' : template_orders.LcF_en,
 
 			'interlanguage link forced' : Object.assign({
 				'|preserve' : 1
@@ -199,13 +200,13 @@ message_set = {
 			illm : template_orders.LcF_en,
 
 			// {{interlanguage link Wikidata}}
-			'interlanguage link wikidata' : template_orders.LW,
+			'interlanguage link wikidata' : template_orders.LcF_en,
 			// {{Ill-WD}} = {{interlanguage link Wikidata}}
-			'ill-wd' : template_orders.LW,
+			'ill-wd' : template_orders.LcF_en,
 
-			'red wikidata link' : template_orders.LW,
+			'red wikidata link' : template_orders.LcF_en,
 			// {{redwd|link target|Wikidata item ID|link title}}
-			redwd : template_orders.LW
+			redwd : template_orders.LcF_en
 		}
 	},
 
@@ -491,6 +492,10 @@ function for_each_page(page_data, messages) {
 	&& page_data.ns !== 6
 	// category: 可考慮去掉 message_set.Category_has_local_page
 	&& page_data.ns !== 14
+	// Wikipedia
+	&& (page_data.ns !== 4 ||
+	// e.g., [[Wikipedia:典范条目/存档]]
+	/^Wikipedia:(?:典范条目|典範條目|特色內容|特色圖片|特色列表|優良條目|优良条目)/.test(title))
 	// template
 	&& (page_data.ns !== 10
 	// 不處理跨語言連結模板系列。
@@ -498,7 +503,7 @@ function for_each_page(page_data, messages) {
 	// 去掉 namespace。
 	in message_set.template_order_of_name))) {
 		check_final_work();
-		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間、模板或 Category' ];
+		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間、模板、Category 或 Wikipedia' ];
 	}
 
 	// Check if page_data had processed useing revid.
@@ -541,7 +546,8 @@ function for_each_page(page_data, messages) {
 				var error_list = data_to_cache[is_information ? 'info'
 						: 'error'];
 				if (!error_list) {
-					data_to_cache[is_information ? 'info' : 'error'] = error_list = Object.create(null);
+					data_to_cache[is_information ? 'info' : 'error'] = error_list = Object
+							.create(null);
 				}
 				if (!error_list[error_name]) {
 					error_list[error_name] = [];
