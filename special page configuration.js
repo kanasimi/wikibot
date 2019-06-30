@@ -580,8 +580,8 @@ var page_configurations = {
 	'zhwiki:Wikipedia:特色列表评选/提名区' : Object.assign({
 		timezone : 8,
 		need_time_legend : false,
-		// 初次延長期（基礎評選期＋30日）及最後延長期（初次延長期＋30日）
-		extend_intervals : [ '30D', '30D' ]
+		// 初次延長期（基礎評選期+14日）及最後延長期（初次延長期+28日）
+		extend_intervals : [ '14D', '28D' ]
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:優良條目評選/提名區' : Object.assign({
 		timezone : 8,
