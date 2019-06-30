@@ -11,7 +11,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 function process_data(error) {
 	if (error)

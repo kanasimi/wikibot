@@ -10,7 +10,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 
@@ -22,7 +22,7 @@ base_directory = bot_directory + script_name + '/';
 
 // ---------------------------------------------------------------------//
 
-require('./wiki loder.js');
+require('./wiki loader.js');
 var dump_session = new CeL.wiki.SQL('zhwiki', function(error) {
 	if (error)
 		CeL.error(error);

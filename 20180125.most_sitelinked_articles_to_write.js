@@ -24,7 +24,7 @@ write [[Template:Recent_changes_article_requests/list]]
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 CeL.run('application.storage');
 

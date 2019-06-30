@@ -17,7 +17,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 // for CeL.get_set_complement()
 CeL.run('data.math');
 

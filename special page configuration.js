@@ -5,7 +5,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */
@@ -1148,6 +1148,7 @@ function FC_section_filter(section) {
 			latest_vote = token;
 
 		} else if (token.name in page_configuration.oppose_templates) {
+			// console.log(token);
 			token.vote_type = VOTE_OPPOSE;
 			section.vote_list.oppose.push(token);
 			latest_vote = token;

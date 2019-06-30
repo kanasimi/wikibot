@@ -14,7 +14,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
 var wiki = Wiki(true/* , 'ja' */);

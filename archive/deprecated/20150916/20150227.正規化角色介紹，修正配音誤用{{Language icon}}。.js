@@ -1,4 +1,4 @@
-﻿require('./wiki loder.js');
+﻿require('./wiki loader.js');
 
 /*
 

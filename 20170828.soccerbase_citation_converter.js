@@ -9,7 +9,7 @@ SoccerbaseBot: Converting all citations link to Soccerbase using {{soccerbase se
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */

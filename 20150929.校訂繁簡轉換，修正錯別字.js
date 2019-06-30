@@ -12,7 +12,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 // [[維基百科:Unihan繁簡體對照表]]
 // corresponding

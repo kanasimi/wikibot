@@ -22,7 +22,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');

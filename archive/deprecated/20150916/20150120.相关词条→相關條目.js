@@ -1,4 +1,4 @@
-﻿require('./wiki loder.js');
+﻿require('./wiki loader.js');
 
 if (false)
 Wiki().search('相关词条', function(pages, hits, key) {

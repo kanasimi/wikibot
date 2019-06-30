@@ -1,6 +1,6 @@
 ﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20150109.js
 
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 CeL.run([ 'interact.DOM', 'application.debug', 'application.net.wiki' ]);
 CeL.log('開始處理規範控制 (Authority control) 模板轉移作業', true);

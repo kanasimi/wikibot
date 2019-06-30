@@ -13,7 +13,7 @@ node 20160828.clear_category.清空分類.js category_name [diff_id]
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('ja');

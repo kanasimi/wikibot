@@ -19,7 +19,7 @@ https://tools.wmflabs.org/fireflytools/linter/zhwiki
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 // language support
 var i18n = {

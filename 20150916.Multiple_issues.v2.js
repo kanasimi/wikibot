@@ -23,7 +23,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 var
 /** {String}編輯摘要。總結報告。 */

@@ -20,7 +20,7 @@
 // for remove new in a range
 if (false) {
 	// node
-	require('./wiki loder.js');
+	require('./wiki loader.js');
 	/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 	var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 	var wiki = Wiki(true, 'wikinews'), locale = '香港';
@@ -40,7 +40,7 @@ if (false) {
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 CeL.run('application.net');
 

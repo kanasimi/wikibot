@@ -27,7 +27,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 // for CeL.test(), CeL.assert()
 CeL.run('application.debug.log');
@@ -789,7 +789,7 @@ var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?
 // 頁面分類名稱重複
 fix_17.title = '分類名稱重複，排序索引以後出現者為主。';
 function fix_17(content, page_data, messages, config) {
-	var category_index_hash = {}, category_hash = {}, matched;
+	var category_index_hash = Object.create(null), category_hash = Object.create(null), matched;
 	// search all category list
 	while (matched = PATTERN_category.exec(content)) {
 		// 經測試，排序索引會以後面出現者為主。

@@ -9,7 +9,7 @@
 'use strict';
 
 // var CeL_path = 'S:\\cgi-bin\\lib\\JS';
-require('./wiki loder.js');
+require('./wiki loader.js');
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 

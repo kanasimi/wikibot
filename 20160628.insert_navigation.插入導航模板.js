@@ -21,7 +21,7 @@
 
 'use strict';
 
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 var
 /** {Object}wiki operator 操作子. */

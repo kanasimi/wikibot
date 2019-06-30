@@ -10,7 +10,7 @@ scan link targets in page
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 set_language('en');
 

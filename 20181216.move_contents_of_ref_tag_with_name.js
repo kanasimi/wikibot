@@ -12,7 +12,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 var main_template_name = '基礎情報 テレビ番組',
 /** {String}編輯摘要。總結報告。 */

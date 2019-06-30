@@ -1,6 +1,10 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20170515.signature_check.js use_language=zh-classical; date) >> modify_link/log &
+﻿/*
+(cd ~/wikibot && date && hostname && nohup time node 20170515.signature_check.js use_language=zh-classical; date) >> modify_link/log &
 
-/*
+jstop cron-tools.cewbot-20170515.signature_check.zh
+
+/usr/bin/jstart -N cron-tools.cewbot-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/cewbot/wikibot/20170515.signature_check.js use_language=zh
+
 
  2017/5/15 21:30:19	初版試營運。
  2017/8/18 23:50:52 完成。正式運用。
@@ -45,7 +49,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 var
 /** {Object}wiki operator 操作子. */

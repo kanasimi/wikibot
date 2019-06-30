@@ -11,7 +11,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 // Load module.
 // for HTML_to_Unicode()

@@ -101,7 +101,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 // 在非 Windows 平台上避免 fatal 錯誤。
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
@@ -805,7 +805,7 @@ function get_enwiki_titles() {
 	latest_id = fso_name_list.sort().pop(),
 	// e.g., 'enwiki-20171001-all-titles-in-ns0'
 	titles_file = 'enwiki-' + latest_id + '-all-titles-in-ns0';
-	// dump_directory: see "wiki loder.js"
+	// dump_directory: see "wiki loader.js"
 	execSync('/bin/gzip -cd "' + dump_dir + latest_id + '/' + titles_file
 			+ '.gz" > "' + dump_directory + titles_file + '"');
 
@@ -855,7 +855,7 @@ function merge_label_data(callback) {
 			}
 			// 為防止有重複，在此不 push()。
 			// label_data_keys.push(full_title);
-			label_data[full_title] = data = [ {}, [ title ], [ revid ] ];
+			label_data[full_title] = data = [ Object.create(null), [ title ], [ revid ] ];
 
 		} else {
 			data = label_data[full_title];
@@ -940,7 +940,7 @@ function create_label_data(callback) {
 		// cache path prefix
 		directory : base_directory,
 		// 指定 dump file 放置的 directory。
-		// dump_directory: see "wiki loder.js"
+		// dump_directory: see "wiki loader.js"
 		dump_directory : dump_directory,
 		// 若 config.filter 非 function，表示要先比對 dump，若修訂版本號相同則使用之，否則自 API 擷取。
 		// 設定 config.filter 為 ((true)) 表示要使用預設為最新的 dump，否則將之當作 dump file path。

@@ -9,7 +9,7 @@
 'use strict';
 
 // var CeL_path = 'S:\\cgi-bin\\lib\\JS';
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 var list = JSON.parse(CeL.get_file('Multiple_issues/embeddedin/Or.json')),
 //

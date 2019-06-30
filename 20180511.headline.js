@@ -17,7 +17,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 CeL.run(
 // CeL.character.load(), 僅在要設定 this.charset 時才需要載入。

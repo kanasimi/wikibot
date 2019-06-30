@@ -21,7 +21,7 @@ console.log('process.env');
 console.log(process.env);
 
 // Load CeJS library and modules.
-require('../wiki loder.js');
+require('../wiki loader.js');
 
 console
 		.log('--------------------------------------------------------------------------------');

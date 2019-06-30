@@ -11,7 +11,7 @@ https://commons.wikimedia.org/wiki/Commons:Bots/Requests/Cewbot_4
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */

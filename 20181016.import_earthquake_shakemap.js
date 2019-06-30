@@ -18,7 +18,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 
 var fetch = CeL.fetch,
 // isTTY: 為 nodejs: interactive 互動形式。

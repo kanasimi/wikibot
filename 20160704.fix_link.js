@@ -12,7 +12,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loder.js');
+require('./wiki loader.js');
 // for CeL.application.net.archive.archive_org()
 CeL.run('application.net.archive');
 
