@@ -2,7 +2,7 @@
 
 /*
 
- 初版試營運
+ 2019/7/2 17:17:45	初版試營運
 
  */
 
@@ -18,51 +18,81 @@ wiki = Wiki(true, 'commons' /* && 'test' */);
 
 var media_directory = base_directory;
 
-var menu_URL = 'https://www.nhc.noaa.gov/refresh/graphics_at1+shtml/';
-var parsed_URL = CeL.parse_URI(menu_URL), source_URL;
+// TODO: [[File:01E 2019 5day.png]]
+// https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
+
+var menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
+var parsed_menu_URL = CeL.parse_URI(menu_URL);
 
 // ----------------------------------------------------------------------------
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 prepare_directory(base_directory);
 
-// Visit tropical cyclone index page and get the recent data.
+// Visit tropical cyclone index page and get the recent tropical cyclones data.
 fetch(menu_URL).then(function(response) {
 	// console.log(response);
 	return response.text();
-}).then(function(text) {
-	// Visit "Warnings/Cone Static Images" page.
-	var matched = text.between(null, 'Static Images');
-	var index = matched.lastIndexOf('<a ');
-	matched = matched.slice(index);
-	matched = matched.match(/<a href="([^<>"]+)"/);
 
-	source_URL = parsed_URL.origin + matched[1];
+}).then(function(html) {
+	// console.log(html);
 
-	return fetch(source_URL);
+	// 有警報才會顯示連結。
+	// <a href="/refresh/graphics_ep2+shtml/024116.shtml?cone#contents">
+	//
+	// <img src="/...png" ... alt="Warnings and 5-Day Cone"><br clear="left">
+	// Warnings/Cone<br>Static Images</a>
+	var matched, PATTERN_link = /<a href="([^<>"]+)"[^<>]*>([\s\S]+?)<\/a>/g;
 
-}).then(function(response) {
-	return response.text();
-}).then(function(text) {
-	var matched = text.match(/<img id="coneimage" src *= *"([^<>"]+)"/)[1];
-	var file_name = matched.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1];
-	file_name = (new Date).format('%4Y-%2m-%2d ') + file_name + '.png';
-	matched = parsed_URL.origin + matched;
-	// console.log(matched);
-	if (false) {
-		CeL.get_URL_cache(matched, upload_file, {
-			directory : base_directory,
-			file_name : file_name,
-			reget : true
-		});
-	}
-	// Fetch the hurricane track maps and upload it to commons.
-	upload_file({
-		media_url : matched,
-		file_name : file_name,
-		date : new Date
+	// <!--storm serial number: EP02-->
+	// <!--storm identification: EP022019 Hurricane Barbara-->
+	html.each_between('<!--storm serial number:',
+	//
+	'<!-- END graphcrosslink -->', function(token) {
+		var id = token.between('<!--storm identification:', '-->').trim();
+		// Get all Tropical Weather Outlook / Hurricane Static Images
+		while (matched = PATTERN_link.exec(token)) {
+			if (!matched[2].endsWith('Static Images'))
+				continue;
+
+			// delete matched.input;
+			// console.log(matched);
+			var map_page_URL = parsed_menu_URL.origin + matched[1];
+			get_Static_Images(map_page_URL, id);
+		}
 	});
 });
+
+// Visit all "Warnings/Cone Static Images" pages.
+function get_Static_Images(map_page_URL, id) {
+	return fetch(map_page_URL).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
+		var matched = html.match(/<img id="coneimage" src *= *"([^<>"]+)"/)[1];
+		var file_name = matched.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1];
+		if (id)
+			file_name += ' (' + id + ')';
+		file_name = (new Date).format('%4Y-%2m-%2d ') + file_name + '.png';
+		matched = parsed_menu_URL.origin + matched;
+		// console.log(matched);
+		if (false) {
+			CeL.get_URL_cache(matched, upload_media, {
+				directory : base_directory,
+				file_name : file_name,
+				reget : true
+			});
+		}
+		// Fetch the hurricane track maps and upload it to commons.
+		upload_media({
+			name : id,
+			map_page_URL : map_page_URL,
+			media_url : matched,
+			file_name : file_name,
+			date : new Date
+		});
+	});
+}
 
 function upload_media(media_data) {
 
@@ -72,7 +102,7 @@ function upload_media(media_data) {
 			'{{Information',
 			"|description={{en|1=The National Hurricane Center's 5-day track and intensity forecast cone.}}",
 			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
-			'|source=' + source_URL,
+			'|source=' + media_data.map_page_URL /* media_data.media_url */,
 			// National Hurricane Center
 			'|author={{label|Q1329523}}',
 			'|permission=',
@@ -90,14 +120,17 @@ function upload_media(media_data) {
 			// add categories
 
 			'[[Category:' + (new Date).getFullYear()
-					+ ' Atlantic hurricane season track maps]]' ];
+					+ ' Atlantic hurricane season track maps]]'
+	// [[Category:Tropical Depression One-E (2018)]]
+	];
 
 	upload_text = upload_text.join('\n');
 
 	wiki.upload(media_data.media_url, {
 		filename : media_data.file_name,
 		text : upload_text,
-		comment : 'Import NHC hurricane track map',
+		comment : 'Import NHC hurricane track map'
+				+ (upload_media.name ? ' (' + upload_media.name + ')' : ''),
 		// must be set to reupload
 		ignorewarnings : 1,
 		form_data : {
