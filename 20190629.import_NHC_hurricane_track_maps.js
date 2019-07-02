@@ -37,34 +37,73 @@ fetch(menu_URL).then(function(response) {
 }).then(function(html) {
 	// console.log(html);
 
-	// 有警報才會顯示連結。
-	// <a href="/refresh/graphics_ep2+shtml/024116.shtml?cone#contents">
+	html.each_between(
 	//
-	// <img src="/...png" ... alt="Warnings and 5-Day Cone"><br clear="left">
-	// Warnings/Cone<br>Static Images</a>
-	var matched, PATTERN_link = /<a href="([^<>"]+)"[^<>]*>([\s\S]+?)<\/a>/g;
-
-	// <!--storm serial number: EP02-->
-	// <!--storm identification: EP022019 Hurricane Barbara-->
-	html.each_between('<!--storm serial number:',
+	'<th align="left" nowrap><span style="font-size: 18px;">',
 	//
-	'<!-- END graphcrosslink -->', function(token) {
-		var id = token.between('<!--storm identification:', '-->').trim();
-		// Get all Tropical Weather Outlook / Hurricane Static Images
-		while (matched = PATTERN_link.exec(token)) {
-			if (!matched[2].endsWith('Static Images'))
-				continue;
-
-			// delete matched.input;
-			// console.log(matched);
-			var map_page_URL = parsed_menu_URL.origin + matched[1];
-			get_Static_Images(map_page_URL, id);
-		}
-	});
+	'</td></tr></table>', for_each_area);
 });
 
+function parse_time_string(string) {
+	var date = string
+			.match(/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
+	if (date) {
+		if (!/ 20\d{2}$/.test(date[4]))
+			date[4] += ' ' + (new Date).getFullYear();
+		date = Date.parse(date[4] + ' ' + date[1] + ':' + date[2] + ' ' + ({
+			EDT : 'UTC-4',
+			PDT : 'UTC-7',
+			HST : 'UTC-10'
+		}[date[3]] || date[3]));
+	}
+	return date;
+}
+
+function for_each_area(token) {
+	var area = token.match(/^[^<\-]*/)[0].trim();
+	var date = token
+			.match(/<span class="tiny">((\d{1,2}):?(\d{2}) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+))<\/span>/);
+	if (date) {
+		date = parse_time_string(date[1]);
+	}
+
+	html.each_between('<!--storm serial number:',
+	// <!--storm serial number: EP02-->
+	// <!--storm identification: EP022019 Hurricane Barbara-->
+	'<!-- END graphcrosslink -->', function(token) {
+		for_each_cyclones(token, area, date);
+	});
+}
+
+// 有警報才會顯示連結。
+// <a href="/refresh/graphics_ep2+shtml/024116.shtml?cone#contents">
+//
+// <img src="/...png" ... alt="Warnings and 5-Day Cone"><br clear="left">
+// Warnings/Cone<br>Static Images</a>
+function for_each_cyclones(token, area, date) {
+	var matched = token.between('<strong style="font-weight:bold;">',
+			'</strong>');
+	if (matched && (matched = parse_time_string(matched)))
+		date = matched;
+	var PATTERN_link = /<a href="([^<>"]+)"[^<>]*>([\s\S]+?)<\/a>/g,
+	// <!--storm identification: EP022019 Hurricane Barbara-->
+	id = token.between('<!--storm identification:', '-->').trim();
+	// Get all Tropical Weather Outlook / Hurricane Static Images
+	while (matched = PATTERN_link.exec(token)) {
+		if (!matched[2].endsWith('Static Images'))
+			continue;
+
+		// delete matched.input;
+		// console.log(matched);
+		var map_page_URL = parsed_menu_URL.origin + matched[1];
+		get_Static_Images(map_page_URL, id, area, date);
+	}
+}
+
+// ------------------------------------------------------------------
+
 // Visit all "Warnings/Cone Static Images" pages.
-function get_Static_Images(map_page_URL, id) {
+function get_Static_Images(map_page_URL, id, area, date) {
 	return fetch(map_page_URL).then(function(response) {
 		return response.text();
 
@@ -73,7 +112,9 @@ function get_Static_Images(map_page_URL, id) {
 		var file_name = matched.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1];
 		if (id)
 			file_name += ' (' + id + ')';
-		file_name = (new Date).format('%4Y-%2m-%2d ') + file_name + '.png';
+		if (!date)
+			date = new Date;
+		file_name = date.format('%4Y-%2m-%2d ') + file_name + '.png';
 		matched = parsed_menu_URL.origin + matched;
 		// console.log(matched);
 		if (false) {
@@ -86,13 +127,16 @@ function get_Static_Images(map_page_URL, id) {
 		// Fetch the hurricane track maps and upload it to commons.
 		upload_media({
 			name : id,
+			area : area,
 			map_page_URL : map_page_URL,
 			media_url : matched,
 			file_name : file_name,
-			date : new Date
+			date : date
 		});
 	});
 }
+
+// ------------------------------------------------------------------
 
 function upload_media(media_data) {
 
@@ -104,8 +148,7 @@ function upload_media(media_data) {
 			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
 			'|source=' + media_data.map_page_URL /* media_data.media_url */,
 			// National Hurricane Center
-			'|author={{label|Q1329523}}',
-			'|permission=',
+			'|author={{label|Q1329523}}', '|permission=',
 			// '|other_versions=',
 			// '|other_fields=',
 
@@ -113,14 +156,18 @@ function upload_media(media_data) {
 			// {{Object location|0|0}}
 			'',
 
-			'== {{int:license-header}} ==',
-			'{{PD-USGov-NOAA}}',
-			'',
+			'== {{int:license-header}} ==', '{{PD-USGov-NOAA}}', '',
 
 			// add categories
 
-			'[[Category:' + (new Date).getFullYear()
-					+ ' Atlantic hurricane season track maps]]'
+			'[[Category:' + media_data.date.getFullYear() + ' '
+			// Atlantic (- Caribbean Sea - Gulf of Mexico)
+			// Eastern North Pacific
+			// Central North Pacific
+			+ (media_data.area.includes('Pacific') ? 'Pacific' : 'Atlantic')
+			// Category:2019 Pacific hurricane season track maps
+			+ ' hurricane season track maps]]'
+
 	// [[Category:Tropical Depression One-E (2018)]]
 	];
 
