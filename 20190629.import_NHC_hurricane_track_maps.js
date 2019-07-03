@@ -45,27 +45,32 @@ fetch(menu_URL).then(function(response) {
 });
 
 function parse_time_string(string) {
-	var date = string
-			.match(/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
+	// CeL.info('parse_time_string: ' + string);
+	var date = CeL.DOM
+			.HTML_to_Unicode(string)
+			.match(
+					/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
 	if (date) {
 		if (!/ 20\d{2}$/.test(date[4]))
 			date[4] += ' ' + (new Date).getFullYear();
-		date = Date.parse(date[4] + ' ' + date[1] + ':' + date[2] + ' ' + ({
+		date = date[4] + ' ' + date[1] + ':' + date[2] + ' ' + ({
 			EDT : 'UTC-4',
 			PDT : 'UTC-7',
 			HST : 'UTC-10'
-		}[date[3]] || date[3]));
+		}[date[3]] || date[3]);
+		// CeL.info('parse_time_string: ' + date);
+		date = Date.parse(date);
 	}
 	return date;
 }
 
-function for_each_area(token) {
-	var area = token.match(/^[^<\-]*/)[0].trim();
-	var date = token
-			.match(/<span class="tiny">((\d{1,2}):?(\d{2}) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+))<\/span>/);
-	if (date) {
-		date = parse_time_string(date[1]);
-	}
+function for_each_area(html) {
+	var area = html.match(/^[^<\-]*/)[0].trim();
+	var date;
+	html.each_between('<span class="tiny">', '</span>', function(token) {
+		// CeL.info('for_each_area: ' + token);
+		date = date || parse_time_string(token);
+	});
 
 	html.each_between('<!--storm serial number:',
 	// <!--storm serial number: EP02-->
@@ -81,6 +86,9 @@ function for_each_area(token) {
 // <img src="/...png" ... alt="Warnings and 5-Day Cone"><br clear="left">
 // Warnings/Cone<br>Static Images</a>
 function for_each_cyclones(token, area, date) {
+	// console.log([ token, area, date ]);
+	// return;
+
 	var matched = token.between('<strong style="font-weight:bold;">',
 			'</strong>');
 	if (matched && (matched = parse_time_string(matched)))
@@ -108,28 +116,45 @@ function get_Static_Images(map_page_URL, id, area, date) {
 		return response.text();
 
 	}).then(function(html) {
-		var matched = html.match(/<img id="coneimage" src *= *"([^<>"]+)"/)[1];
-		var file_name = matched.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1];
-		if (id)
-			file_name += ' (' + id + ')';
-		if (!date)
-			date = new Date;
+		var link, media_url = html
+		//
+		.match(/<img id="coneimage" src *= *"([^<>"]+)"/)[1];
+		var file_name = media_url.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1];
+		date = date ? new Date(date) : new Date;
+
+		if (id) {
+			// e.g., id="EP022019 Hurricane Barbara"
+			// file_name="EP022019 5day cone no line and wind"
+			if (id.match(/^\w+/)[0] === file_name.match(/^\w+/)[0])
+				file_name = id + file_name.replace(/\w+/, '');
+			else
+				file_name += ' (' + id + ')';
+
+			link = id.match(/Hurricane \w+/i);
+			if (link) {
+				link = link[0] + ' (' + date.getFullYear() + ')';
+				// e.g., "Hurricane Barbara (2019)"
+			}
+		}
 		file_name = date.format('%4Y-%2m-%2d ') + file_name + '.png';
-		matched = parsed_menu_URL.origin + matched;
-		// console.log(matched);
+		media_url = parsed_menu_URL.origin + media_url;
+		// console.log(media_url);
+
 		if (false) {
-			CeL.get_URL_cache(matched, upload_media, {
+			CeL.get_URL_cache(media_url, upload_media, {
 				directory : base_directory,
 				file_name : file_name,
 				reget : true
 			});
 		}
+
 		// Fetch the hurricane track maps and upload it to commons.
 		upload_media({
 			name : id,
+			link : link,
 			area : area,
 			map_page_URL : map_page_URL,
-			media_url : matched,
+			media_url : media_url,
 			file_name : file_name,
 			date : date
 		});
@@ -139,12 +164,15 @@ function get_Static_Images(map_page_URL, id, area, date) {
 // ------------------------------------------------------------------
 
 function upload_media(media_data) {
+	var link = media_data.name ? media_data.link ? CeL.wiki.title_link_of(
+			media_data.link, media_data.name) : media_data.name : '';
 
 	// media description
 	var upload_text = [
 			'== {{int:filedesc}} ==',
 			'{{Information',
-			"|description={{en|1=The National Hurricane Center's 5-day track and intensity forecast cone.}}",
+			"|description={{en|1=The National Hurricane Center's 5-day track and intensity forecast cone"
+					+ (link ? ' of ' + link : '') + '.}}',
 			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
 			'|source=' + media_data.map_page_URL /* media_data.media_url */,
 			// National Hurricane Center
@@ -177,7 +205,7 @@ function upload_media(media_data) {
 		filename : media_data.file_name,
 		text : upload_text,
 		comment : 'Import NHC hurricane track map'
-				+ (upload_media.name ? ' (' + upload_media.name + ')' : ''),
+				+ (link ? ' (' + link + ')' : ''),
 		// must be set to reupload
 		ignorewarnings : 1,
 		form_data : {
