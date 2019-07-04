@@ -3,18 +3,11 @@
 /*
 
  2019/7/2 17:17:45	初版試營運 modify from 20181016.import_earthquake_shakemap.js
-
- https://www.metoc.navy.mil/jtwc/jtwc.html
- https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
+ 2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon track map 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
+ 2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
 
  TODO:
- [[File:01E 2019 5day.png]]
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
-
- 路徑潛勢預報
- https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
- 暴風圈侵襲機率
-
 
  */
 
@@ -50,12 +43,28 @@ if (data_directory || media_directory) {
 var category_to_parent_hash = Object.create(null);
 
 [ 'Pacific hurricane season', 'Pacific typhoon season',
-		'Atlantic hurricane season', 'Category:Central Weather Bureau ROC' ]
+// Category:Tropical cyclones by season
+'Atlantic hurricane season', 'North Indian Ocean cyclone season',
+// Category:2018-19 Southern Hemisphere tropical cyclone season
+'South Pacific cyclone season', 'South-West Indian Ocean cyclone season',
+//
+'Australian region cyclone season',
+// 'Southern Hemisphere tropical cyclone season',
+//
+'Category:Central Weather Bureau ROC' ]
 //
 .run_async(function(run_next, parent_category_name) {
-	if (!parent_category_name.startsWith('Category:'))
-		parent_category_name = (new Date).getFullYear() + ' '
-				+ parent_category_name;
+	if (!parent_category_name.startsWith('Category:')) {
+		var date = new Date;
+		var year = String(date.getUTCFullYear());
+		if (parent_category_name.includes('South')
+				|| parent_category_name.includes('Australian')) {
+			year += '-'
+			// 由公元7月1日至翌年6月31日，UTC
+			+ ((year / 100 | 0) + (date.getUTCMonth() < 7 - 1 ? 1 : -1));
+		}
+		parent_category_name = year + ' ' + parent_category_name;
+	}
 	wiki.categorymembers(parent_category_name, function(pages, titles, title) {
 		pages.forEach(function(page_data) {
 			if (page_data.ns === CeL.wiki.namespace('Category')) {
@@ -72,7 +81,7 @@ var category_to_parent_hash = Object.create(null);
 	// console.log(category_to_parent_hash);
 
 	start_NHC();
-	// start_JTWC();
+	start_JTWC();
 	start_CWB();
 });
 
@@ -80,6 +89,27 @@ function check_category_exists(category_name) {
 	if (!(category_name in category_to_parent_hash))
 		CeL.warn('Category does not exist: '
 				+ CeL.wiki.title_link_of(category_name));
+}
+
+function search_category_by_name(TD_name, media_data) {
+	var footer = ' '
+	//
+	+ CeL.wiki.upper_case_initial(TD_name.trim().toLowerCase())
+	// e.g., " Mun (2019)"
+	+ ' (' + (media_data.date || new Date).getUTCFullYear() + ')';
+	// console.log(footer);
+
+	if (Object.keys(category_to_parent_hash)
+	// e.g., [[Category:Tropical Storm Mun (2019)]]
+	.some(function(category_name) {
+		if (category_name.endsWith(footer)) {
+			// media_data.link will be auto-added to media_data.categories
+			media_data.link = category_name.replace('Category:', '');
+			return true;
+		}
+	})) {
+		return media_data.link;
+	}
 }
 
 // ============================================================================
@@ -108,7 +138,7 @@ function parse_NHC_time_string(string) {
 	.match(/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
 	if (date) {
 		if (!/ 20\d{2}$/.test(date[4]))
-			date[4] += ' ' + (new Date).getFullYear();
+			date[4] += ' ' + (new Date).getUTCFullYear();
 		date = date[4] + ' ' + date[1] + ':' + date[2] + ' ' + ({
 			EDT : 'UTC-4',
 			PDT : 'UTC-7',
@@ -132,6 +162,7 @@ function NHC_for_each_area(html) {
 	// <!--storm serial number: EP02-->
 	// <!--storm identification: EP022019 Hurricane Barbara-->
 	'<!-- END graphcrosslink -->', function(token) {
+		// EP022019: Eastern Pacific 02, 2019
 		NHC_for_each_cyclones(token, area, date);
 	});
 }
@@ -203,7 +234,7 @@ function parse_NHC_Static_Images(media_data, html) {
 
 		link = media_data.name.match(/Hurricane \w+/i);
 		if (link) {
-			link = link[0] + ' (' + media_data.date.getFullYear() + ')';
+			link = link[0] + ' (' + media_data.date.getUTCFullYear() + ')';
 			// e.g., "Hurricane Barbara (2019)"
 		}
 	}
@@ -212,7 +243,7 @@ function parse_NHC_Static_Images(media_data, html) {
 	// console.log(media_url);
 
 	if (false) {
-		CeL.get_URL_cache(media_url, upload_NHC_media, {
+		CeL.get_URL_cache(media_url, upload_media, {
 			directory : base_directory,
 			file_name : file_name,
 			reget : true
@@ -229,31 +260,43 @@ function parse_NHC_Static_Images(media_data, html) {
 		media_url : media_url,
 		file_name : file_name,
 		author : author,
+		type_name : 'hurricane',
 		license : '{{PD-USGov-NOAA}}',
-		description : "{{en|1=The National Hurricane Center's "
+		description : "{{en|" + media_data.author + "'s "
 		//
 		+ "5-day track and intensity forecast cone"
 		//
-		+ (wiki_link ? ' of ' + wiki_link : '') + '.}}',
+		+ (wiki_link ? ' for ' + wiki_link : '') + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
 		comment : 'Import NHC hurricane track map'
-				+ (wiki_link ? ' of ' + wiki_link : '')
+				+ (wiki_link ? ' for ' + wiki_link : '')
+	// of the 2019 Pacific hurricane season
 	});
 
 	// Fetch the hurricane track maps and upload it to commons.
-	upload_NHC_media(media_data);
+	upload_media(media_data);
 }
 
 // ------------------------------------------------------------------
 
-function upload_NHC_media(media_data) {
-	var track_maps_category = 'Category:' + media_data.date.getFullYear() + ' '
+function upload_media(media_data) {
 	// Atlantic (- Caribbean Sea - Gulf of Mexico)
 	// Eastern North Pacific
 	// Central North Pacific
-	+ (media_data.area.includes('Pacific') ? 'Pacific' : 'Atlantic')
+	var area = media_data.area;
+	var track_maps_category = area.includes('Pacific') ? 'Pacific' : area
+			.includes('Atlantic') ? 'Atlantic' : null;
+	if (!track_maps_category) {
+		CeL.error('Unknown area: ' + area);
+		console.log(media_data);
+		return;
+	}
+
+	track_maps_category = 'Category:' + media_data.date.getUTCFullYear() + ' '
+	//
+	+ track_maps_category
 	// Category:2019 Pacific hurricane season track maps
-	+ ' hurricane season track maps';
+	+ ' ' + media_data.type_name + ' season track maps';
 
 	var categories = media_data.categories ? media_data.categories.clone() : [];
 	categories.push(track_maps_category);
@@ -354,18 +397,19 @@ function start_CWB() {
 
 	var typhoon_data, base_URL = 'https://www.cwb.gov.tw/';
 
-	return fetch(
-			base_URL
-					+ 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
-					+ DataTime).then(function(response) {
+	return fetch(base_URL
+	//
+	+ 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
+	//
+	+ DataTime).then(function(response) {
 		return response.text();
 	}).then(function(data) {
 		typhoon_data = JSON.parse(data);
-	}).then(
-			function() {
-				return fetch(base_URL + 'Data/js/typhoon/TY_NEWS-Data.js?T='
-						+ DataTime + '&_=' + Date.now());
-			}).then(function(response) {
+	}).then(function() {
+		return fetch(base_URL + 'Data/js/typhoon/TY_NEWS-Data.js?T='
+		//
+		+ DataTime + '&_=' + Date.now());
+	}).then(function(response) {
 		return response.text();
 	}).then(function(data) {
 		return parse_CWB_data(data, typhoon_data, base_URL, DataTime);
@@ -412,8 +456,9 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 			name : name,
 			media_url : url,
 			file_name : date.format('%4Y-%2m-%2d ') + file_name + '.png',
+			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates
-			comment : 'Import CWB typhoon track map of ' + name
+			comment : 'Import CWB typhoon track map for ' + name
 		};
 	}
 
@@ -429,6 +474,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 			zh : generate_data(data, date, author, 'C'),
 			date : date,
 			author : author,
+			type_name : 'typhoon',
 			permission :
 			// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
 			'{{GWOIA|url=https://www.cwb.gov.tw/V8/C/information.html'
@@ -437,7 +483,6 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 			license : '{{Attribution CWB}}' && '',
 			area : 'Northwest Pacific',
 			// source_URL : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
-			description : [],
 			categories : [
 			//
 			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
@@ -445,20 +490,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 
 		var footer = media_data.en.name.match(/\((\w+)\)/);
 		if (footer) {
-			footer = ' ' + CeL.wiki.upper_case_initial(footer[1].toLowerCase())
-			// e.g., " Mun (2019)"
-			+ ' (' + (new Date).getFullYear() + ')';
-			// console.log(footer);
-			Object.keys(category_to_parent_hash)
-			// e.g., [[Category:Tropical Storm Mun (2019)]]
-			.some(function(category_name) {
-				if (category_name.endsWith(footer)) {
-					// Will be auto-added
-					// media_data.categories.push(category_name);
-					media_data.link = category_name.replace('Category:', '');
-					return true;
-				}
-			});
+			search_category_by_name(footer[1], media_data);
 		}
 
 		return media_data;
@@ -478,7 +510,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 	//
 	function(token) {
 		var name = typhoon_data.list[index].zh.name;
-		typhoon_data.list[index++].description.push('{{zh-tw|' + name
+		typhoon_data.list[index++].zh.description.push('{{zh-tw|' + name
 		//
 		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
 		//
@@ -489,7 +521,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 	//
 	function(token) {
 		var name = typhoon_data.list[index].en.name;
-		typhoon_data.list[index++].description.push('{{en|' + name + ': '
+		typhoon_data.list[index++].en.description.push('{{en|' + name + ': '
 		//
 		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
 		//
@@ -507,14 +539,83 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 			other_versions : '{{F|' + media_data.zh.file_name
 					+ '|Chinese version|80}}'
 		});
-		upload_NHC_media(media_data);
+		upload_media(media_data);
 		Object.assign(media_data, media_data.zh, {
 			other_versions : '{{F|' + media_data.en.file_name
 					+ '|English version|80}}'
 		});
-		upload_NHC_media(media_data);
+		upload_media(media_data);
+	});
+}
+
+// ============================================================================
+
+function start_JTWC() {
+	return fetch('https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?' + Date.now())
+	// https://www.metoc.navy.mil/jtwc/jtwc.html
+	.then(function(response) {
+		return response.text();
+	}).then(function(xml) {
+		xml.each_between('<item>', '</item>', for_each_JTWC_area);
 	});
 }
 
 // ------------------------------------------------------------------
 
+function for_each_JTWC_area(xml) {
+	// console.log(xml);
+	var date = new Date(xml.between('<pubDate>', '</pubDate>'));
+	var area = xml.between('<title>', '</title>');
+	area = area.between('Current ', ' Tropical Systems') || area;
+	var media_data = {
+		date : date,
+		area : area,
+		author : '{{label|Q1142111}}',
+		permission : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}'
+	};
+
+	xml = xml.between('<![CDATA[', ']]>');
+	xml.each_between('<b>', '</ul>', function(html) {
+		for_each_JTWC_cyclone(html, media_data);
+	});
+}
+
+function for_each_JTWC_cyclone(html, media_data) {
+	// console.log(html);
+	var media_url = html
+			.match(/<a href='([^<>']+)'[^<>]*>TC Warning Graphic<\/a>/);
+	if (!media_url)
+		return;
+
+	media_url = media_url[1];
+	// e.g., "Tropical Depression 05W (Mun) Warning #02 ",
+	// "Hurricane 02E (Barbara) Warning #15 ",
+	var name = html.between(null, '</b>').trim().replace(/\s{2,}/g, ' ');
+	name = name.replace(/\s+\#\d+$/, '');
+	var file_name = media_data.date.format('%4Y-%2m-%2d ') + 'JTWC ' + name
+			+ media_url.match(/\.\w+$/)[0];
+	name = name.replace(/\s+Warning.*$/, '');
+
+	// e.g., https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
+	media_data = Object.assign({
+		name : name,
+		type_name : name.includes('Hurricane') ? 'hurricane' : 'typhoon',
+		file_name : file_name,
+		media_url : media_url
+	}, media_data);
+
+	var link = name.match(/\(([^()]+)\)/);
+	if (link) {
+		link = search_category_by_name(link[1], media_data);
+	}
+	var wiki_link = media_data.name ? link ? CeL.wiki.title_link_of(':en:'
+			+ link, media_data.name) : media_data.name : '';
+	Object.assign(media_data, {
+		description : '{{en|' + media_data.author + "'s Tropical Warning for "
+				+ (wiki_link || name) + '.}}',
+		comment : 'Import JTWC ' + media_data.type_name + ' warning map for '
+				+ (wiki_link || name)
+	});
+
+	upload_media(media_data);
+}
