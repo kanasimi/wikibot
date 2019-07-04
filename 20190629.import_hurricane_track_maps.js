@@ -1,8 +1,20 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190629.import_NHC_hurricane_track_maps.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190629.import_hurricane_track_maps.js
 
 /*
 
  2019/7/2 17:17:45	初版試營運
+
+ https://www.metoc.navy.mil/jtwc/jtwc.html
+ https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
+
+ TODO:
+ [[File:01E 2019 5day.png]]
+ https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
+
+ 路徑潛勢預報
+ https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
+ 暴風圈侵襲機率
+
 
  */
 
@@ -18,11 +30,8 @@ wiki = Wiki(true, 'commons' /* && 'test' */);
 
 var media_directory = base_directory;
 
-// TODO: [[File:01E 2019 5day.png]]
-// https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
-
-var menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
-var parsed_menu_URL = CeL.parse_URI(menu_URL);
+var NHC_menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
+var parsed_NHC_menu_URL = CeL.parse_URI(NHC_menu_URL);
 
 // ----------------------------------------------------------------------------
 
@@ -30,7 +39,7 @@ var parsed_menu_URL = CeL.parse_URI(menu_URL);
 prepare_directory(base_directory);
 
 // Visit tropical cyclone index page and get the recent tropical cyclones data.
-fetch(menu_URL).then(function(response) {
+fetch(NHC_menu_URL).then(function(response) {
 	// console.log(response);
 	return response.text();
 
@@ -44,12 +53,11 @@ fetch(menu_URL).then(function(response) {
 	'</td></tr></table>', for_each_area);
 });
 
-function parse_time_string(string) {
-	// CeL.info('parse_time_string: ' + string);
-	var date = CeL.DOM
-			.HTML_to_Unicode(string)
-			.match(
-					/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
+function parse_NHC_time_string(string) {
+	// CeL.info('parse_NHC_time_string: ' + string);
+	var date = CeL.DOM.HTML_to_Unicode(string)
+	//
+	.match(/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
 	if (date) {
 		if (!/ 20\d{2}$/.test(date[4]))
 			date[4] += ' ' + (new Date).getFullYear();
@@ -58,7 +66,7 @@ function parse_time_string(string) {
 			PDT : 'UTC-7',
 			HST : 'UTC-10'
 		}[date[3]] || date[3]);
-		// CeL.info('parse_time_string: ' + date);
+		// CeL.info('parse_NHC_time_string: ' + date);
 		date = Date.parse(date);
 	}
 	return date;
@@ -69,7 +77,7 @@ function for_each_area(html) {
 	var date;
 	html.each_between('<span class="tiny">', '</span>', function(token) {
 		// CeL.info('for_each_area: ' + token);
-		date = date || parse_time_string(token);
+		date = date || parse_NHC_time_string(token);
 	});
 
 	html.each_between('<!--storm serial number:',
@@ -91,7 +99,7 @@ function for_each_cyclones(token, area, date) {
 
 	var matched = token.between('<strong style="font-weight:bold;">',
 			'</strong>');
-	if (matched && (matched = parse_time_string(matched)))
+	if (matched && (matched = parse_NHC_time_string(matched)))
 		date = matched;
 	var PATTERN_link = /<a href="([^<>"]+)"[^<>]*>([\s\S]+?)<\/a>/g,
 	// <!--storm identification: EP022019 Hurricane Barbara-->
@@ -103,15 +111,15 @@ function for_each_cyclones(token, area, date) {
 
 		// delete matched.input;
 		// console.log(matched);
-		var map_page_URL = parsed_menu_URL.origin + matched[1];
-		get_Static_Images(map_page_URL, id, area, date);
+		var map_page_URL = parsed_NHC_menu_URL.origin + matched[1];
+		get_NHC_Static_Images(map_page_URL, id, area, date);
 	}
 }
 
 // ------------------------------------------------------------------
 
 // Visit all "Warnings/Cone Static Images" pages.
-function get_Static_Images(map_page_URL, id, area, date) {
+function get_NHC_Static_Images(map_page_URL, id, area, date) {
 	return fetch(map_page_URL).then(function(response) {
 		return response.text();
 
@@ -125,10 +133,16 @@ function get_Static_Images(map_page_URL, id, area, date) {
 		if (id) {
 			// e.g., id="EP022019 Hurricane Barbara"
 			// file_name="EP022019 5day cone no line and wind"
-			if (id.match(/^\w+/)[0] === file_name.match(/^\w+/)[0])
-				file_name = id + file_name.replace(/\w+/, '');
-			else
+			var matched = id.match(/^\w*/)[0];
+			if (matched && matched === file_name.match(/^\w*/)[0]) {
+				file_name = file_name.replace(/^\w*/, id);
+				// e.g., "EP022019 Hurricane Barbara 5day cone no line and wind"
+			} else {
+				// relief measures 救濟措施 should not go to here
 				file_name += ' (' + id + ')';
+				// e.g., "EP022019 5day cone no line and wind (EP022019
+				// Hurricane Barbara)"
+			}
 
 			link = id.match(/Hurricane \w+/i);
 			if (link) {
@@ -137,11 +151,11 @@ function get_Static_Images(map_page_URL, id, area, date) {
 			}
 		}
 		file_name = date.format('%4Y-%2m-%2d ') + file_name + '.png';
-		media_url = parsed_menu_URL.origin + media_url;
+		media_url = parsed_NHC_menu_URL.origin + media_url;
 		// console.log(media_url);
 
 		if (false) {
-			CeL.get_URL_cache(media_url, upload_media, {
+			CeL.get_URL_cache(media_url, upload_NHC_media, {
 				directory : base_directory,
 				file_name : file_name,
 				reget : true
@@ -149,7 +163,7 @@ function get_Static_Images(map_page_URL, id, area, date) {
 		}
 
 		// Fetch the hurricane track maps and upload it to commons.
-		upload_media({
+		upload_NHC_media({
 			name : id,
 			link : link,
 			area : area,
@@ -163,9 +177,9 @@ function get_Static_Images(map_page_URL, id, area, date) {
 
 // ------------------------------------------------------------------
 
-function upload_media(media_data) {
+function upload_NHC_media(media_data) {
 	var link = media_data.name ? media_data.link ? CeL.wiki.title_link_of(
-			media_data.link, media_data.name) : media_data.name : '';
+			':en:' + media_data.link, media_data.name) : media_data.name : '';
 
 	// media description
 	var upload_text = [
@@ -194,7 +208,9 @@ function upload_media(media_data) {
 			// Central North Pacific
 			+ (media_data.area.includes('Pacific') ? 'Pacific' : 'Atlantic')
 			// Category:2019 Pacific hurricane season track maps
-			+ ' hurricane season track maps]]'
+			+ ' hurricane season track maps]]',
+
+			media_data.link ? '[[Category:' + media_data.link + ']]' : ''
 
 	// [[Category:Tropical Depression One-E (2018)]]
 	];
