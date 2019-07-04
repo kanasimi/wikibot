@@ -183,7 +183,8 @@ function parse_NHC_Static_Images(media_data, html) {
 	var link, media_url = html
 	//
 	.match(/<img id="coneimage" src *= *"([^<>"]+)"/)[1];
-	var file_name = media_url.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1];
+	var file_name = media_url.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1]
+			.replace(/_/g, ' ');
 	media_data.date = media_data.date ? new Date(media_data.date) : new Date;
 
 	if (media_data.name) {
@@ -235,7 +236,7 @@ function parse_NHC_Static_Images(media_data, html) {
 		//
 		+ (wiki_link ? ' of ' + wiki_link : '') + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
-		comment : 'Import ' + author + ' hurricane track map'
+		comment : 'Import NHC hurricane track map'
 				+ (wiki_link ? ' of ' + wiki_link : '')
 	});
 
@@ -260,7 +261,8 @@ function upload_NHC_media(media_data) {
 		categories.push('Category:' + media_data.link);
 	categories = categories.map(function(category_name) {
 		check_category_exists(category_name);
-		return CeL.wiki.title_link_of(category_name);
+		// NG: CeL.wiki.title_link_of()
+		return '[[' + category_name + ']]';
 	});
 
 	// media description
@@ -410,7 +412,8 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 			name : name,
 			media_url : url,
 			file_name : date.format('%4Y-%2m-%2d ') + file_name + '.png',
-			comment : 'Import ' + author + ' typhoon track map of ' + name
+			// comment won't accept templates
+			comment : 'Import CWB typhoon track map of ' + name
 		};
 	}
 
