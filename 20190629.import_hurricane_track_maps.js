@@ -25,9 +25,6 @@ skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'commons' /* && 'test' */);
 
-var NHC_menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
-var parsed_NHC_menu_URL = CeL.parse_URI(NHC_menu_URL);
-
 // ----------------------------------------------------------------------------
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
@@ -69,7 +66,7 @@ var category_to_parent_hash = Object.create(null);
 		pages.forEach(function(page_data) {
 			if (page_data.ns === CeL.wiki.namespace('Category')) {
 				category_to_parent_hash[page_data.title]
-				//
+				// register categories
 				= parent_category_name;
 			}
 		});
@@ -113,6 +110,9 @@ function search_category_by_name(TD_name, media_data) {
 }
 
 // ============================================================================
+
+var NHC_menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
+var parsed_NHC_menu_URL = CeL.parse_URI(NHC_menu_URL);
 
 // Visit tropical cyclone index page and get the recent tropical cyclones data.
 function start_NHC() {
@@ -280,6 +280,7 @@ function parse_NHC_Static_Images(media_data, html) {
 // ------------------------------------------------------------------
 
 function upload_media(media_data) {
+	// area / basins
 	// Atlantic (- Caribbean Sea - Gulf of Mexico)
 	// Eastern North Pacific
 	// Central North Pacific
@@ -591,10 +592,13 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// e.g., "Tropical Depression 05W (Mun) Warning #02 ",
 	// "Hurricane 02E (Barbara) Warning #15 ",
 	var name = html.between(null, '</b>').trim().replace(/\s{2,}/g, ' ');
-	name = name.replace(/\s+\#\d+$/, '');
+	var NO;
+	name = name.replace(/\s+\#(\d+)$/, function(all, _NO) {
+		NO = _NO;
+		return '';
+	}).replace(/\s+Warning.*$/, '');
 	var file_name = media_data.date.format('%4Y-%2m-%2d ') + 'JTWC ' + name
-			+ media_url.match(/\.\w+$/)[0];
-	name = name.replace(/\s+Warning.*$/, '');
+			+ ' warning map' + media_url.match(/\.\w+$/)[0];
 
 	// e.g., https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
 	media_data = Object.assign({
@@ -612,9 +616,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 			+ link, media_data.name) : media_data.name : '';
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s Tropical Warning for "
-				+ (wiki_link || name) + '.}}',
+				+ (wiki_link || name) + (NO ? ' #' + NO : '') + '.}}',
 		comment : 'Import JTWC ' + media_data.type_name + ' warning map for '
-				+ (wiki_link || name)
+				+ (wiki_link || name) + (NO ? ' #' + NO : '')
 	});
 
 	upload_media(media_data);
