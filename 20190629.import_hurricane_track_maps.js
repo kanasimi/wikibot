@@ -88,12 +88,15 @@ function check_category_exists(category_name) {
 				+ CeL.wiki.title_link_of(category_name));
 }
 
+function normalize_name(name) {
+	return CeL.wiki.upper_case_initial(name.trim().toLowerCase());
+}
+
 function search_category_by_name(TD_name, media_data) {
+	var date = ' (' + (media_data.date || new Date).getUTCFullYear() + ')';
 	var footer = ' '
-	//
-	+ CeL.wiki.upper_case_initial(TD_name.trim().toLowerCase())
 	// e.g., " Mun (2019)"
-	+ ' (' + (media_data.date || new Date).getUTCFullYear() + ')';
+	+ normalize_name(TD_name) + date;
 	// console.log(footer);
 
 	if (Object.keys(category_to_parent_hash)
@@ -107,6 +110,114 @@ function search_category_by_name(TD_name, media_data) {
 	})) {
 		return media_data.link;
 	}
+
+	var link = media_data.name
+	// relief measures 救濟措施 only for significance hurricane.
+	// maybe comming here
+	&& media_data.name.match(/(Hurricane|Typhoon) (\w+)/i);
+	if (link) {
+		link = normalize_name(link[1]) + ' ' + normalize_name(link[2]) + date;
+		// e.g., link === "Hurricane Barbara (2019)"
+		media_data.link = link;
+		return link;
+	}
+}
+
+// ------------------------------------------------------------------
+
+// General upload function
+function upload_media(media_data) {
+	// area / basins
+	// Atlantic (- Caribbean Sea - Gulf of Mexico)
+	// Eastern North Pacific
+	// Central North Pacific
+	var area = media_data.area;
+	var track_maps_category = area.includes('Pacific') ? 'Pacific' : area
+			.includes('Atlantic') ? 'Atlantic' : null;
+	if (!track_maps_category) {
+		CeL.error('Unknown area: ' + area);
+		console.log(media_data);
+		return;
+	}
+
+	track_maps_category = 'Category:' + media_data.date.getUTCFullYear() + ' '
+	//
+	+ track_maps_category
+	// Category:2019 Pacific hurricane season track maps
+	+ ' ' + media_data.type_name + ' season track maps';
+
+	var categories = media_data.categories ? media_data.categories.clone() : [];
+	categories.push(track_maps_category);
+	if (media_data.link)
+		categories.push('Category:' + media_data.link);
+	categories = categories.map(function(category_name) {
+		check_category_exists(category_name);
+		// NG: CeL.wiki.title_link_of()
+		return '[[' + category_name + ']]';
+	});
+
+	// media description
+	var upload_text = [
+			'== {{int:filedesc}} ==',
+			'{{Information',
+			'|description='
+					+ (Array.isArray(media_data.description) ? media_data.description
+							.join('\n')
+							: media_data.description),
+			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
+			'|source=' + (media_data.source_URL || media_data.media_url),
+			'|author=' + media_data.author,
+			'|permission=' + (media_data.permission || ''),
+			'|other_versions=' + (media_data.other_versions || ''),
+			// '|other_fields=',
+
+			'}}',
+			// {{Object location|0|0}}
+
+			media_data.license ? '\n== {{int:license-header}} ==\n'
+					+ media_data.license + '\n' : '',
+
+			// add categories
+			categories.join('\n')
+
+	];
+
+	upload_text = upload_text.join('\n');
+
+	// console.log(media_data);
+	// console.log(upload_text);
+	// return;
+
+	wiki.upload(media_data.media_url, {
+		filename : media_data.file_name,
+		text : upload_text,
+		comment : media_data.comment,
+		// must be set to reupload
+		ignorewarnings : 1,
+		form_data : {
+			url_post_processor : function(value, XMLHttp, error) {
+				if (media_directory)
+					CeL.write_file(media_directory + media_data.file_name,
+							XMLHttp.responseText);
+			}
+		}
+
+	}, function(data, error) {
+		console.log(data);
+		if (error) {
+			CeL.error(
+			//
+			typeof error === 'object' ? JSON.stringify(error) : error);
+			if (data) {
+				if (data.warnings) {
+					CeL.warn(JSON.stringify(data.warnings));
+				} else {
+					CeL.warn(JSON.stringify(data));
+				}
+			}
+		}
+		// callback();
+	});
 }
 
 // ============================================================================
@@ -232,10 +343,10 @@ function parse_NHC_Static_Images(media_data, html) {
 			// Hurricane Barbara)"
 		}
 
-		link = media_data.name.match(/Hurricane \w+/i);
+		link = media_data.name.match(/ (\w+)$/i);
 		if (link) {
-			link = link[0] + ' (' + media_data.date.getUTCFullYear() + ')';
-			// e.g., "Hurricane Barbara (2019)"
+			// e.g., link[1] === "Barbara"
+			link = search_category_by_name(link[1], media_data);
 		}
 	}
 	file_name = media_data.date.format('%4Y-%2m-%2d ') + file_name + '.png';
@@ -256,13 +367,12 @@ function parse_NHC_Static_Images(media_data, html) {
 	// National Hurricane Center
 	var author = '{{label|Q1329523}}';
 	Object.assign(media_data, {
-		link : link,
 		media_url : media_url,
 		file_name : file_name,
 		author : author,
 		type_name : 'hurricane',
 		license : '{{PD-USGov-NOAA}}',
-		description : "{{en|" + media_data.author + "'s "
+		description : "{{en|" + author + "'s "
 		//
 		+ "5-day track and intensity forecast cone"
 		//
@@ -275,102 +385,6 @@ function parse_NHC_Static_Images(media_data, html) {
 
 	// Fetch the hurricane track maps and upload it to commons.
 	upload_media(media_data);
-}
-
-// ------------------------------------------------------------------
-
-function upload_media(media_data) {
-	// area / basins
-	// Atlantic (- Caribbean Sea - Gulf of Mexico)
-	// Eastern North Pacific
-	// Central North Pacific
-	var area = media_data.area;
-	var track_maps_category = area.includes('Pacific') ? 'Pacific' : area
-			.includes('Atlantic') ? 'Atlantic' : null;
-	if (!track_maps_category) {
-		CeL.error('Unknown area: ' + area);
-		console.log(media_data);
-		return;
-	}
-
-	track_maps_category = 'Category:' + media_data.date.getUTCFullYear() + ' '
-	//
-	+ track_maps_category
-	// Category:2019 Pacific hurricane season track maps
-	+ ' ' + media_data.type_name + ' season track maps';
-
-	var categories = media_data.categories ? media_data.categories.clone() : [];
-	categories.push(track_maps_category);
-	if (media_data.link)
-		categories.push('Category:' + media_data.link);
-	categories = categories.map(function(category_name) {
-		check_category_exists(category_name);
-		// NG: CeL.wiki.title_link_of()
-		return '[[' + category_name + ']]';
-	});
-
-	// media description
-	var upload_text = [
-			'== {{int:filedesc}} ==',
-			'{{Information',
-			'|description='
-					+ (Array.isArray(media_data.description) ? media_data.description
-							.join('\n')
-							: media_data.description),
-			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
-			'|source=' + (media_data.source_URL || media_data.media_url),
-			'|author=' + media_data.author,
-			'|permission=' + (media_data.permission || ''),
-			'|other_versions=' + (media_data.other_versions || ''),
-			// '|other_fields=',
-
-			'}}',
-			// {{Object location|0|0}}
-
-			media_data.license ? '\n== {{int:license-header}} ==\n'
-					+ media_data.license + '\n' : '',
-
-			// add categories
-			categories.join('\n')
-
-	];
-
-	upload_text = upload_text.join('\n');
-
-	// console.log(media_data);
-	// console.log(upload_text);
-	// return;
-
-	wiki.upload(media_data.media_url, {
-		filename : media_data.file_name,
-		text : upload_text,
-		comment : media_data.comment,
-		// must be set to reupload
-		ignorewarnings : 1,
-		form_data : {
-			url_post_processor : function(value, XMLHttp, error) {
-				if (media_directory)
-					CeL.write_file(media_directory + media_data.file_name,
-							XMLHttp.responseText);
-			}
-		}
-
-	}, function(data, error) {
-		console.log(data);
-		if (error) {
-			CeL.error(
-			//
-			typeof error === 'object' ? JSON.stringify(error) : error);
-			if (data) {
-				if (data.warnings) {
-					CeL.warn(JSON.stringify(data.warnings));
-				} else {
-					CeL.warn(JSON.stringify(data));
-				}
-			}
-		}
-		// callback();
-	});
 }
 
 // ============================================================================
@@ -576,7 +590,8 @@ function for_each_JTWC_area(xml) {
 	};
 
 	xml = xml.between('<![CDATA[', ']]>');
-	xml.each_between('<b>', '</ul>', function(html) {
+	// console.log(xml);
+	xml.each_between(null, '</ul>', function(html) {
 		for_each_JTWC_cyclone(html, media_data);
 	});
 }
@@ -591,7 +606,8 @@ function for_each_JTWC_cyclone(html, media_data) {
 	media_url = media_url[1];
 	// e.g., "Tropical Depression 05W (Mun) Warning #02 ",
 	// "Hurricane 02E (Barbara) Warning #15 ",
-	var name = html.between(null, '</b>').trim().replace(/\s{2,}/g, ' ');
+	var name = html.between(null, '</b>').replace(/<\w[^<>]*>/g, '').trim()
+			.replace(/\s{2,}/g, ' ');
 	var NO;
 	name = name.replace(/\s+\#(\d+)$/, function(all, _NO) {
 		NO = _NO;
@@ -599,6 +615,13 @@ function for_each_JTWC_cyclone(html, media_data) {
 	}).replace(/\s+Warning.*$/, '');
 	var file_name = media_data.date.format('%4Y-%2m-%2d ') + 'JTWC ' + name
 			+ ' warning map' + media_url.match(/\.\w+$/)[0];
+
+	if (!name) {
+		CeL.error('for_each_JTWC_cyclone: No name got for area '
+				+ media_data.area + '!');
+		console.log(html);
+		return;
+	}
 
 	// e.g., https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
 	media_data = Object.assign({
