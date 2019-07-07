@@ -222,11 +222,14 @@ function upload_media(media_data) {
 
 // ============================================================================
 
-var NHC_menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
-var parsed_NHC_menu_URL = CeL.parse_URI(NHC_menu_URL);
+var NHC_base_URL;
 
 // Visit tropical cyclone index page and get the recent tropical cyclones data.
 function start_NHC() {
+	var NHC_menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
+	var parsed_NHC_menu_URL = CeL.parse_URI(NHC_menu_URL);
+	NHC_base_URL = parsed_NHC_menu_URL.origin;
+
 	fetch(NHC_menu_URL).then(function(response) {
 		// console.log(response);
 		return response.text();
@@ -238,7 +241,7 @@ function start_NHC() {
 		//
 		'<th align="left" nowrap><span style="font-size: 18px;">',
 		//
-		'</td></tr></table>', NHC_for_each_area);
+		null, NHC_for_each_area);
 	});
 }
 
@@ -262,6 +265,7 @@ function parse_NHC_time_string(string) {
 }
 
 function NHC_for_each_area(html) {
+	// console.log(html);
 	var area = html.match(/^[^<\-]*/)[0].trim();
 	var date;
 	html.each_between('<span class="tiny">', '</span>', function(token) {
@@ -272,6 +276,7 @@ function NHC_for_each_area(html) {
 	html.each_between('<!--storm serial number:',
 	// <!--storm serial number: EP02-->
 	// <!--storm identification: EP022019 Hurricane Barbara-->
+	// <!--storm identification: EP022019 Post-Tropical Cyclone Barbara-->
 	'<!-- END graphcrosslink -->', function(token) {
 		// EP022019: Eastern Pacific 02, 2019
 		NHC_for_each_cyclones(token, area, date);
@@ -301,7 +306,7 @@ function NHC_for_each_cyclones(token, area, date) {
 
 		// delete matched.input;
 		// console.log(matched);
-		var source_URL = parsed_NHC_menu_URL.origin + matched[1];
+		var source_URL = NHC_base_URL + matched[1];
 		var media_data = {
 			name : id,
 			area : area,
@@ -330,6 +335,7 @@ function parse_NHC_Static_Images(media_data, html) {
 	media_data.date = media_data.date ? new Date(media_data.date) : new Date;
 
 	if (media_data.name) {
+		// 5-day intensity track
 		// e.g., id="EP022019 Hurricane Barbara"
 		// file_name="EP022019 5day cone no line and wind"
 		var matched = media_data.name.match(/^\w*/)[0];
@@ -350,7 +356,7 @@ function parse_NHC_Static_Images(media_data, html) {
 		}
 	}
 	file_name = media_data.date.format('%4Y-%2m-%2d ') + file_name + '.png';
-	media_url = parsed_NHC_menu_URL.origin + media_url;
+	media_url = NHC_base_URL + media_url;
 	// console.log(media_url);
 
 	if (false) {
@@ -385,182 +391,6 @@ function parse_NHC_Static_Images(media_data, html) {
 
 	// Fetch the hurricane track maps and upload it to commons.
 	upload_media(media_data);
-}
-
-// ============================================================================
-
-function start_CWB() {
-	// @see https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
-	function GetTimeNumber(Number_int) {
-
-		var Number_str = (Number_int < 10) ? "0" + Number_int.toString()
-				: Number_int.toString();
-
-		return Number_str;
-	}
-
-	var DT = new Date(Date.now() + CeL.to_millisecond('8hr'));
-	var DT_Y = DT.getUTCFullYear().toString();
-	var DT_M = GetTimeNumber(DT.getUTCMonth() + 1);
-	var DT_D = GetTimeNumber(DT.getUTCDate());
-	var DT_H = GetTimeNumber(DT.getUTCHours());
-	// [RJ] 每10分鐘清除js快取
-	var DT_N = Math.floor(DT.getUTCMinutes() / 10).toString();
-
-	var DataTime = DT_Y + DT_M + DT_D + DT_H + "-" + DT_N;
-	// console.log(DataTime);
-
-	var typhoon_data, base_URL = 'https://www.cwb.gov.tw/';
-
-	return fetch(base_URL
-	//
-	+ 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
-	//
-	+ DataTime).then(function(response) {
-		return response.text();
-	}).then(function(data) {
-		typhoon_data = JSON.parse(data);
-	}).then(function() {
-		return fetch(base_URL + 'Data/js/typhoon/TY_NEWS-Data.js?T='
-		//
-		+ DataTime + '&_=' + Date.now());
-	}).then(function(response) {
-		return response.text();
-	}).then(function(data) {
-		return parse_CWB_data(data, typhoon_data, base_URL, DataTime);
-	});
-}
-
-// ----------------------------------------------------------------------------
-
-function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
-	// console.log(data);
-
-	data = data.replace(/(\nvar +([\w\d]+) ?=)/g, '$1 typhoon_data.$2=');
-	try {
-		eval(data);
-	} catch (e) {
-		console.error(e);
-		return;
-	}
-
-	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
-	// TY_COUNT = [ 熱帶性低氣壓, 颱風 ]
-
-	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
-	function generate_data(data, date, author, VER) {
-		var FileLang = {
-			'C' : 'zhtw',
-			'E' : 'enus'
-		};
-
-		// var TY_ID = PTA_JSON.EACH[i].id;
-		var TY_ID = data.id;
-
-		var url = base_URL + '/Data/' + typhoon_data.DataPath
-		//
-		+ 'Download_PTA_' + typhoon_data.TY_DataTime + '_'
-		//
-		+ TY_ID + '_' + FileLang[VER] + '.png';
-		// console.log(url);
-
-		var name = typhoon_data.TYPHOON[data.id].Name[VER];
-		var file_name = name + ' track map ('
-				+ (VER === 'E' ? 'en-US' : 'zh-TW') + ')';
-		return {
-			name : name,
-			media_url : url,
-			file_name : date.format('%4Y-%2m-%2d ') + file_name + '.png',
-			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
-			// comment won't accept templates
-			comment : 'Import CWB typhoon track map for ' + name
-		};
-	}
-
-	// console.log(typhoon_data);
-	typhoon_data.list = typhoon_data.EACH.map(function(data) {
-		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
-		var date = new Date(typhoon_data.TY_TIME.E);
-		// 交通部中央氣象局
-		var author = '{{label|Q257136}}';
-		var media_data = {
-			id : data.id,
-			en : generate_data(data, date, author, 'E'),
-			zh : generate_data(data, date, author, 'C'),
-			date : date,
-			author : author,
-			type_name : 'typhoon',
-			permission :
-			// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
-			'{{GWOIA|url=https://www.cwb.gov.tw/V8/C/information.html'
-			//
-			+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
-			license : '{{Attribution CWB}}' && '',
-			area : 'Northwest Pacific',
-			// source_URL : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
-			categories : [
-			//
-			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
-		};
-
-		var footer = media_data.en.name.match(/\((\w+)\)/);
-		if (footer) {
-			search_category_by_name(footer[1], media_data);
-		}
-
-		return media_data;
-	});
-
-	typhoon_data.note = [ {
-		C : typhoon_data.TY_LIST_1.C,
-		E : typhoon_data.TY_LIST_1.E
-	}, {
-		C : typhoon_data.TY_LIST_2.C,
-		E : typhoon_data.TY_LIST_2.E
-	} ];
-
-	var index;
-	index = 0;
-	typhoon_data.note[0].C.each_between('<div id="collapse-A', null,
-	//
-	function(token) {
-		var name = typhoon_data.list[index].zh.name;
-		typhoon_data.list[index++].zh.description.push('{{zh-tw|' + name
-		//
-		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
-		//
-		.replace(/\s{2,}/g, ' ') + '}}');
-	});
-	index = 0;
-	typhoon_data.note[0].E.each_between('<div id="collapse-A', null,
-	//
-	function(token) {
-		var name = typhoon_data.list[index].en.name;
-		typhoon_data.list[index++].en.description.push('{{en|' + name + ': '
-		//
-		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
-		//
-		.replace(/\s{2,}/g, ' ') + '}}');
-	});
-
-	// console.log(typhoon_data.TY_LIST_1);
-	// console.log(JSON.stringify(typhoon_data.TY_LIST_1));
-	CeL.write_file(data_directory + 'CWB_' + DataTime + '.json',
-	//
-	JSON.stringify(typhoon_data));
-
-	typhoon_data.list.forEach(function(media_data) {
-		Object.assign(media_data, media_data.en, {
-			other_versions : '{{F|' + media_data.zh.file_name
-					+ '|Chinese version|80}}'
-		});
-		upload_media(media_data);
-		Object.assign(media_data, media_data.zh, {
-			other_versions : '{{F|' + media_data.en.file_name
-					+ '|English version|80}}'
-		});
-		upload_media(media_data);
-	});
 }
 
 // ============================================================================
@@ -645,4 +475,179 @@ function for_each_JTWC_cyclone(html, media_data) {
 	});
 
 	upload_media(media_data);
+}
+
+// ============================================================================
+
+function start_CWB() {
+	// @see https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
+	function GetTimeNumber(Number_int) {
+
+		var Number_str = (Number_int < 10) ? "0" + Number_int.toString()
+				: Number_int.toString();
+
+		return Number_str;
+	}
+
+	var DT = new Date(Date.now() + CeL.to_millisecond('8hr'));
+	var DT_Y = DT.getUTCFullYear().toString();
+	var DT_M = GetTimeNumber(DT.getUTCMonth() + 1);
+	var DT_D = GetTimeNumber(DT.getUTCDate());
+	var DT_H = GetTimeNumber(DT.getUTCHours());
+	// [RJ] 每10分鐘清除js快取
+	var DT_N = Math.floor(DT.getUTCMinutes() / 10).toString();
+
+	var DataTime = DT_Y + DT_M + DT_D + DT_H + "-" + DT_N;
+	// console.log(DataTime);
+
+	var typhoon_data, base_URL = 'https://www.cwb.gov.tw/';
+
+	return fetch(base_URL
+	//
+	+ 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
+	//
+	+ DataTime).then(function(response) {
+		return response.text();
+	}).then(function(data) {
+		typhoon_data = JSON.parse(data);
+	}).then(function() {
+		return fetch(base_URL + 'Data/js/typhoon/TY_NEWS-Data.js?T='
+		//
+		+ DataTime + '&_=' + Date.now());
+	}).then(function(response) {
+		return response.text();
+	}).then(function(data) {
+		return parse_CWB_data(data, typhoon_data, base_URL, DataTime);
+	});
+}
+
+// ----------------------------------------------------------------------------
+
+function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
+	// console.log(data);
+
+	data = data.replace(/(\nvar +([\w\d]+) ?=)/g, '$1 typhoon_data.$2=');
+	try {
+		eval(data);
+	} catch (e) {
+		console.error(e);
+		return;
+	}
+
+	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
+	// TY_COUNT = [ 熱帶性低氣壓, 颱風 ]
+
+	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
+	function generate_data(data, date, author, VER) {
+		var FileLang = {
+			'C' : 'zhtw',
+			'E' : 'enus'
+		};
+
+		// var TY_ID = PTA_JSON.EACH[i].id;
+		var TY_ID = data.id;
+
+		var url = base_URL + '/Data/' + typhoon_data.DataPath
+		//
+		+ 'Download_PTA_' + typhoon_data.TY_DataTime + '_'
+		//
+		+ TY_ID + '_' + FileLang[VER] + '.png';
+		// console.log(url);
+
+		var name = typhoon_data.TYPHOON[data.id].Name[VER];
+		var file_name = 'CWB ' + name + ' track map ('
+				+ (VER === 'E' ? 'en-US' : 'zh-TW') + ')';
+		return {
+			name : name,
+			media_url : url,
+			file_name : date.format('%4Y-%2m-%2d ') + file_name + '.png',
+			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
+			// comment won't accept templates
+			comment : 'Import CWB typhoon track map for ' + name
+		};
+	}
+
+	// console.log(typhoon_data);
+	typhoon_data.list = typhoon_data.EACH.map(function(data) {
+		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
+		var date = new Date(typhoon_data.TY_TIME.E);
+		// 交通部中央氣象局
+		var author = '{{label|Q257136}}';
+		var media_data = {
+			id : data.id,
+			en : generate_data(data, date, author, 'E'),
+			zh : generate_data(data, date, author, 'C'),
+			date : date,
+			author : author,
+			type_name : 'typhoon',
+			permission :
+			// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
+			'{{GWOIA|url=' + base_URL + 'V8/C/information.html'
+					+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
+			license : '{{Attribution CWB}}' && '',
+			area : 'Northwest Pacific',
+			// source_URL : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
+			categories : [
+			//
+			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
+		};
+
+		var footer = media_data.en.name.match(/\((\w+)\)/);
+		if (footer) {
+			search_category_by_name(footer[1], media_data);
+		}
+
+		return media_data;
+	});
+
+	typhoon_data.note = [ {
+		C : typhoon_data.TY_LIST_1.C,
+		E : typhoon_data.TY_LIST_1.E
+	}, {
+		C : typhoon_data.TY_LIST_2.C,
+		E : typhoon_data.TY_LIST_2.E
+	} ];
+
+	var index;
+	index = 0;
+	typhoon_data.note[0].C.each_between('<div id="collapse-A', null,
+	//
+	function(token) {
+		var name = typhoon_data.list[index].zh.name;
+		typhoon_data.list[index++].zh.description.push('{{zh-tw|' + name
+		//
+		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
+		//
+		.replace(/\s{2,}/g, ' ') + '}}');
+	});
+	index = 0;
+	typhoon_data.note[0].E.each_between('<div id="collapse-A', null,
+	//
+	function(token) {
+		var name = typhoon_data.list[index].en.name;
+		typhoon_data.list[index++].en.description.push('{{en|' + name + ': '
+		//
+		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
+		//
+		.replace(/\s{2,}/g, ' ') + '}}');
+	});
+
+	// console.log(typhoon_data.TY_LIST_1);
+	// console.log(JSON.stringify(typhoon_data.TY_LIST_1));
+	CeL.write_file(data_directory + 'CWB_' + DataTime + '.json',
+	//
+	JSON.stringify(typhoon_data));
+
+	typhoon_data.list.forEach(function(media_data) {
+		Object.assign(media_data, media_data.en, {
+			other_versions : '{{F|' + media_data.zh.file_name
+					+ '|Chinese version|80}}'
+		});
+		upload_media(media_data);
+		Object.assign(media_data, media_data.zh, {
+			other_versions : '{{F|' + media_data.en.file_name
+					+ '|English version|80}}'
+		});
+		upload_media(media_data);
+	});
 }
