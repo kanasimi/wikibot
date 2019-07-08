@@ -37,7 +37,7 @@ wiki.cache({
 	// base_category_list = [ 'Category:Cultural heritage monuments in Italy' ];
 
 	// 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
-	base_category_list.run_async(for_each_base_category, finish);
+	base_category_list.run_serial(for_each_base_category, finish);
 
 }, {
 	// default options === this
@@ -134,7 +134,7 @@ function traversal_each_sub_categories(sub_category_list,
 		cache : false
 	}, function(list) {
 		// CeL.log('Get ' + list.length + ' item(s).');
-		list.run_async(function(run_next, page_data, index) {
+		list.run_serial(function(run_next, page_data, index) {
 			if (add_sub_category(page_data, sub_category_list, sub_category)
 					&& (page_data.pageid in base_category_pageid_hash)) {
 				// 注銷登記

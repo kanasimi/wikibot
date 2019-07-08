@@ -61,7 +61,7 @@ function modify_link(page_hash, move_from_list) {
 	if (!Array.isArray(move_from_list)) {
 		move_from_list = Object.keys(page_hash);
 	}
-	move_from_list.run_async(function(run_next, page_name, index) {
+	move_from_list.run_serial(function(run_next, page_name, index) {
 		CeL.log(index + '/' + move_from_list.length + ' [[' + page_name
 				+ ']] → [[' + page_hash[page_name] + ']]');
 		main_work(page_name, page_hash[page_name], run_next);

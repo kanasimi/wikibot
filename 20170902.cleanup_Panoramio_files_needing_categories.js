@@ -48,7 +48,7 @@ function get_files_of_category(category, callback) {
 		CeL.debug('All ' + list.length + ' pages get from '
 		//
 		+ CeL.wiki.title_link_of(category), 1, 'get_files_of_category');
-		list.run_async(function(run_next, page) {
+		list.run_serial(function(run_next, page) {
 			if (page.ns === CeL.wiki.namespace.hash.category) {
 				// Search all sub-categories.
 				get_files_of_category(page, run_next);

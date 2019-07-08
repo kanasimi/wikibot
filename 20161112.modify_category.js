@@ -127,7 +127,7 @@ function modify_category(category_hash, move_from_list) {
 	if (!Array.isArray(move_from_list)) {
 		move_from_list = Object.keys(category_hash);
 	}
-	move_from_list.run_async(function(run_next, category_name, index) {
+	move_from_list.run_serial(function(run_next, category_name, index) {
 		CeL.log(index + '/' + move_from_list.length + ' Category:'
 				+ category_name + ' → ' + category_hash[category_name]);
 		main_work(category_name, category_hash[category_name], run_next);

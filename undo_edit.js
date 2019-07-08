@@ -72,7 +72,7 @@ wiki.usercontribs(user_name, function(list) {
 
 	CeL.log('' + list.length + ' pages need to test.');
 
-	list.run_async(for_each_page);
+	list.run_serial(for_each_page);
 
 }, {
 	limit : 800

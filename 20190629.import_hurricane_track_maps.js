@@ -50,7 +50,7 @@ var category_to_parent_hash = Object.create(null);
 //
 'Category:Central Weather Bureau ROC' ]
 //
-.run_async(function(run_next, parent_category_name) {
+.run_serial(function(run_next, parent_category_name) {
 	if (!parent_category_name.startsWith('Category:')) {
 		var date = new Date;
 		var year = String(date.getUTCFullYear());
@@ -334,22 +334,23 @@ function parse_NHC_Static_Images(media_data, html) {
 			.replace(/_/g, ' ');
 	media_data.date = media_data.date ? new Date(media_data.date) : new Date;
 
-	if (media_data.name) {
+	var name = media_data.name;
+	if (name) {
 		// 5-day intensity track
 		// e.g., id="EP022019 Hurricane Barbara"
 		// file_name="EP022019 5day cone no line and wind"
-		var matched = media_data.name.match(/^\w*/)[0];
+		var matched = name.match(/^\w*/)[0];
 		if (matched && matched === file_name.match(/^\w*/)[0]) {
-			file_name = file_name.replace(/^\w*/, media_data.name);
+			file_name = file_name.replace(/^\w*/, name);
 			// e.g., "EP022019 Hurricane Barbara 5day cone no line and wind"
 		} else {
 			// relief measures 救濟措施 should not go to here
-			file_name += ' (' + media_data.name + ')';
+			file_name += ' (' + name + ')';
 			// e.g., "EP022019 5day cone no line and wind (EP022019
 			// Hurricane Barbara)"
 		}
 
-		link = media_data.name.match(/ (\w+)$/i);
+		link = name.match(/ (\w+)$/i);
 		if (link) {
 			// e.g., link[1] === "Barbara"
 			link = search_category_by_name(link[1], media_data);
@@ -367,8 +368,9 @@ function parse_NHC_Static_Images(media_data, html) {
 		});
 	}
 
-	var wiki_link = media_data.name ? link ? CeL.wiki.title_link_of(':en:'
-			+ link, media_data.name) : media_data.name : '';
+	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
+			: name : '';
+	wiki_link = wiki_link || name ? ' for ' + (wiki_link || name) : '';
 
 	// National Hurricane Center
 	var author = '{{label|Q1329523}}';
@@ -378,14 +380,11 @@ function parse_NHC_Static_Images(media_data, html) {
 		author : author,
 		type_name : 'hurricane',
 		license : '{{PD-USGov-NOAA}}',
-		description : "{{en|" + author + "'s "
+		description : '{{en|' + author
 		//
-		+ "5-day track and intensity forecast cone"
-		//
-		+ (wiki_link ? ' for ' + wiki_link : '') + '.}}',
+		+ "'s 5-day track and intensity forecast cone" + wiki_link + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
-		comment : 'Import NHC hurricane track map'
-				+ (wiki_link ? ' for ' + wiki_link : '')
+		comment : 'Import NHC hurricane track map' + wiki_link
 	// of the 2019 Pacific hurricane season
 	});
 
@@ -434,10 +433,16 @@ function for_each_JTWC_cyclone(html, media_data) {
 		return;
 
 	media_url = media_url[1];
-	// e.g., "Tropical Depression 05W (Mun) Warning #02 ",
-	// "Hurricane 02E (Barbara) Warning #15 ",
-	var name = html.between(null, '</b>').replace(/<\w[^<>]*>/g, '').trim()
-			.replace(/\s{2,}/g, ' ');
+	/**
+	 * <code>
+	"Tropical Depression 05W (Mun) Warning #02 "
+	"Hurricane 02E (Barbara) Warning #15 "
+	"Tropical Storm  02E (Barbara) Warning #25   <font color=red><b>Final Warning</b></font></b><br>"
+	</code>
+	 */
+	var name = html.between(null, '</b>').replace(/(#\d+).+$/, '$1').replace(
+			/<font .+$/, '').replace(/<\w[^<>]*>/g, '').trim().replace(
+			/\s{2,}/g, ' ');
 	var NO;
 	name = name.replace(/\s+\#(\d+)$/, function(all, _NO) {
 		NO = _NO;
@@ -461,17 +466,28 @@ function for_each_JTWC_cyclone(html, media_data) {
 		media_url : media_url
 	}, media_data);
 
+	// <b>Issued at 07/2200Z<b>
+	// <b>Issued at 06/1600Z<b>
+	var date = html.match(/Issued at (\d{2})\/(\d{2})(\d{2})Z/);
+	if (date) {
+		date = new Date(media_data.date.format('%4Y-%2m-' + date[1] + ' '
+				+ date[2] + ':' + date[3] + ' UTC'));
+		media_data.date = date;
+	}
+
 	var link = name.match(/\(([^()]+)\)/);
 	if (link) {
 		link = search_category_by_name(link[1], media_data);
 	}
-	var wiki_link = media_data.name ? link ? CeL.wiki.title_link_of(':en:'
-			+ link, media_data.name) : media_data.name : '';
+	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
+			: name : '';
+	wiki_link = (wiki_link || name ? ' for ' + (wiki_link || name) : '')
+			+ (NO ? ' #' + NO : '');
 	Object.assign(media_data, {
-		description : '{{en|' + media_data.author + "'s Tropical Warning for "
-				+ (wiki_link || name) + (NO ? ' #' + NO : '') + '.}}',
-		comment : 'Import JTWC ' + media_data.type_name + ' warning map for '
-				+ (wiki_link || name) + (NO ? ' #' + NO : '')
+		description : '{{en|' + media_data.author + "'s Tropical Warning"
+				+ wiki_link + '.}}',
+		comment : 'Import JTWC ' + media_data.type_name + ' warning map'
+				+ wiki_link
 	});
 
 	upload_media(media_data);
