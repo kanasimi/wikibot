@@ -20,7 +20,7 @@
 // Load CeJS library and modules.
 require('./wiki loader.js');
 
-var fetch = CeL.fetch,
+var
 // isTTY: 為 nodejs: interactive 互動形式。
 is_console = process.stdout.isTTY
 // Windows 7 to Windows 10
@@ -68,11 +68,6 @@ fetch(
 		// for_each_feature
 		iterator = iterator.then(function() {
 			// → detail
-			if (is_console) {
-				process.stdout.write('fetch '
-				//
-				+ feature.properties.detail + '\r');
-			}
 			return fetch(feature.properties.detail).then(function(response) {
 				return Promise.all(
 				//
@@ -116,7 +111,7 @@ fetch(
 				// Did You Feel It? https://earthquake.usgs.gov/data/dyfi/
 				dyfis = detail.properties.products.dyfi,
 				//
-				file_name_prefix = eventtime.format('%4Y-%2m-%2d ')
+				filename_prefix = eventtime.format('%4Y-%2m-%2d ')
 				// "year title earthquake shakemap %4Y-%2m-%2d.jpg"
 				+ detail.properties.place.replace(/^.+? of /, '')
 				//
@@ -130,7 +125,7 @@ fetch(
 						media_url : shakemap
 						// →"download/intensity.jpg":{"contentType":"image/jpeg","lastModified":1539216091000,"length":79442,"url":"https://earthquake.usgs.gov/archive/product/shakemap/us1000habl/us/1539216097797/download/intensity.jpg"}
 						.contents["download/intensity.jpg"].url,
-						file_name_prefix : file_name_prefix
+						filename_prefix : filename_prefix
 					};
 
 					check_media(media_data, shakemap, detail, index, length);
@@ -142,7 +137,7 @@ fetch(
 					var media_data = {
 						date : eventtime,
 						media_url : dyfi.contents[dyfi.code + '_ciim.jpg'].url,
-						file_name_prefix : file_name_prefix
+						filename_prefix : filename_prefix
 					};
 
 					check_media(media_data, dyfi, detail, index, length);
@@ -159,7 +154,7 @@ fetch(
 });
 
 function check_media(media_data, product_data, detail, index, length) {
-	media_data.file_name = media_data.file_name_prefix
+	media_data.filename = media_data.filename_prefix
 			+ ' '
 			+ (product_data.type === 'dyfi' ? 'intensity map'
 					: product_data.type) + ' ('
@@ -173,8 +168,8 @@ function check_media(media_data, product_data, detail, index, length) {
 			//
 			+ ')' + media_data.media_url.match(/\.[a-z]+$/)[0];
 
-	// CeL.log('check_media: [[File:' + media_data.file_name + ']]');
-	wiki.page('File:' + media_data.file_name, function(page_data) {
+	// CeL.log('check_media: [[File:' + media_data.filename + ']]');
+	wiki.page('File:' + media_data.filename, function(page_data) {
 		// Skip exists file on Wikimedia Commons
 		if (('missing' in page_data) || detail.was_updated) {
 			CeL.log((index + 1) + '/' + length + '	'
@@ -182,11 +177,11 @@ function check_media(media_data, product_data, detail, index, length) {
 			+ detail.id + ' ' + detail.properties.title
 			// + ' ' + media_data.media_url
 			);
-			// CeL.log(' ' + media_data.file_name);
+			// CeL.log(' ' + media_data.filename);
 
 			upload_media(media_data, product_data, detail);
 		} else
-			CeL.log('File exists: ' + media_data.file_name);
+			CeL.log('File exists: ' + media_data.filename);
 	}, {
 		prop : 'ids'
 	});
@@ -199,20 +194,24 @@ function linking_place(place) {
 					.match(/^(.+ of (?:the )?|Offshore )?(.+?)( Region)?(?:(, )([^,]+))?$/);
 
 	return matched ? (matched[1] || '')
-			+ '[[:en:'
-			+ matched[2]
-			+ '|'
-			+ matched[2]
-			+ ']]'
+			+ CeL.wiki.title_link_of(':en:' + matched[2], +matched[2])
 			// matched[3]: " Region" || undefined
 			+ (matched[3] || '')
 			// matched[4]: ", "
-			+ (matched[5] ? matched[4] + '[[:en:' + matched[5] + '|'
-					+ matched[5] + ']]' : '') : place || '';
+			+ (matched[5] ? matched[4]
+					+ CeL.wiki.title_link_of(':en:' + matched[5], matched[5])
+					: '') : place || '';
 }
 
 // @see 20170108.upload_TaiBNET_media.放棄.js
 function upload_media(media_data, product_data, detail) {
+	if (skip_cached && media_directory
+			&& CeL.fs_exists(media_directory + media_data.filename)) {
+		CeL.log('Cached: ' + media_data.filename);
+		// callback();
+		return;
+	}
+
 	var place = product_data.properties['event-description'];
 	// e.g., "Northwest of the Kuril Islands",
 	// "Vancouver Island, Canada Region", "Fiji Region"
@@ -220,80 +219,49 @@ function upload_media(media_data, product_data, detail) {
 	place = place && place.toTitleCase(true);
 	// detail.properties.place: e.g., "269km NW of Ozernovskiy, Russia"
 
-	// media description
-	var upload_text = [
-			'== {{int:filedesc}} ==',
-			'{{information',
-			// 美國地質調查局公布的2018年地震震度分布圖 地震矩規模 地震震度圖。
-			// 美國地質調查局提供的本次地震震度分布圖，震央以五角星標識。
-			'|description={{en|'
-					+ (product_data.type === 'dyfi' ? 'Intensity map'
-							: product_data.type.toTitleCase(true))
-					+ ' from USGS for the [[:en:Moment magnitude scale|magnitude]] '
-					// 6 → 6.0
-					+ detail.properties.mag.toFixed(1)
-					// max ground-shaking intensity
-					+ (product_data.properties.maxmmi ? ', maximum [[:en:Mercalli intensity scale|intensity]] '
-							+ product_data.properties.maxmmi
-							: '') + ' ' + detail.properties.type
-					+ (detail.properties.tsunami ? ' with tsunami' : '')
-					// https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us1000h3p4&format=geojson
-					+ (place ? ' near ' + linking_place(place) : '')
+	// 美國地質調查局公布的2018年地震震度分布圖 地震矩規模 地震震度圖。
+	// 美國地質調查局提供的本次地震震度分布圖，震央以五角星標識。
+	var description = '{{en|'
+			+ (product_data.type === 'dyfi' ? 'Intensity map'
+					: product_data.type.toTitleCase(true))
+			+ ' from USGS for the '
+			+ CeL.wiki.title_link_of(':en:Moment magnitude scale', 'magnitude')
+			+ ' '
+			// 6 → 6.0
+			+ detail.properties.mag.toFixed(1)
+			// max ground-shaking intensity
+			+ (product_data.properties.maxmmi ? ', maximum '
+					+ CeL.wiki.title_link_of(
 					//
-					+ ' (' + linking_place(detail.properties.place) + '), '
-					// 震源深度
-					+ product_data.properties.depth
-					+ ' km [[:en:depth of focus (tectonics)|depth]].' + '}}',
-			// {{Original upload date|}} (原始上傳日期)
-			// [[commons:Module:ISOdate]]僅接受"YYYY-MM-DD HH:MM:SS"格式。
-			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
-			'|source=' + detail.properties.url,
-			// United States Geological Survey
-			'|author={{label|Q193755}}',
-			'|permission=',
-			// '|other_versions=',
-			// '|other_fields=',
+					':en:Mercalli intensity scale', 'intensity') + ' '
+					+ product_data.properties.maxmmi : '') + ' '
+			+ detail.properties.type
+			+ (detail.properties.tsunami ? ' with tsunami' : '')
+			// https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=us1000h3p4&format=geojson
+			+ (place ? ' near ' + linking_place(place) : '')
+			//
+			+ ' (' + linking_place(detail.properties.place) + '), '
+			// 震源深度
+			+ product_data.properties.depth + ' km '
+			+ CeL.wiki.title_link_of(':en:depth of focus (tectonics)', 'depth')
+			+ '.' + '}}';
 
-			'}}',
-			// {{Object location|0|0}}
-			'',
+	var categories = [ (product_data.type === 'dyfi'
+	// also: [[Category:United States Geological Survey maps]]
+	? 'USGS community internet intensity maps'
+	// assert: product_data.type === 'shakemap'
+	: 'ShakeMaps'),
+	// Do not add the day category
+	// media_data.date.format('%4Y-%2m-%2d'),
 
-			'== {{int:license-header}} ==',
-			'{{PD-USGov-USGS}}',
-			'',
+	// [[Category:2018 earthquakes]]
+	'Earthquakes of ' + media_data.date.getUTCFullYear(),
 
-			// add categories
-
-			'[[Category:' + (product_data.type === 'dyfi'
-			// also: [[Category:United States Geological Survey maps]]
-			? 'USGS community internet intensity maps'
-			// assert: product_data.type === 'shakemap'
-			: 'ShakeMaps') + ']]',
-
-			// Do not add the day category
-			// '[[Category:' + media_data.date.format('%4Y-%2m-%2d') + ']]',
-
-			// [[Category:2018 earthquakes]]
-			'[[Category:Earthquakes of ' + media_data.date.getUTCFullYear()
-					+ ']]',
-
-			'[[Category:Maps of earthquakes in '
-			// Should be country name
-			+ detail.properties.place.replace(/^.+, +/, '') + ']]'
+	'Maps of earthquakes in '
+	// Should be country name
+	+ detail.properties.place.replace(/^.+, +/, '')
 	// [[Category:January 2018 in Peru]]
 	];
-
-	upload_text = upload_text.join('\n');
-	CeL.debug(upload_text, 2, 'upload_media');
-
-	CeL.log(media_data.media_url + '\n→ ' + media_data.file_name);
-
-	if (skip_cached && media_directory
-			&& CeL.fs_exists(media_directory + media_data.file_name)) {
-		CeL.log('Cached: ' + media_data.file_name);
-		// callback();
-		return;
-	}
 
 	var date = product_data.id.match(/\d+$/);
 	if (date && Date.now() > (date = +date)
@@ -302,37 +270,34 @@ function upload_media(media_data, product_data, detail) {
 	} else
 		date = null;
 
-	wiki.upload(media_data.media_url, {
-		filename : media_data.file_name,
-		text : upload_text,
+	Object.assign(media_data, {
+		description : description,
+
+		// {{Original upload date|}} (原始上傳日期)
+		// [[commons:Module:ISOdate]]僅接受"YYYY-MM-DD HH:MM:SS"格式。
+		source_url : detail.properties.url,
+		// United States Geological Survey
+		author : 'Q193755',
+		// {{Object location|0|0}}
+		license : '{{PD-USGov-USGS}}',
+		categories : categories,
+
 		comment : 'Import USGS ' + (detail.was_updated ? 'updated ' : '')
 				+ detail.properties.type + ' map, ' + product_data.type
 				+ ' id: ' + product_data.id
 				+ (date ? ' (' + date.toISOString() + ')' : ''),
+		// test_only : true,
+		show_message : true,
 		// must be set to reupload
 		ignorewarnings : 1,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
-					CeL.write_file(media_directory + media_data.file_name,
+					CeL.write_file(media_directory + media_data.filename,
 							XMLHttp.responseText);
 			}
 		}
-
-	}, function(data, error) {
-		console.log(data);
-		if (error) {
-			CeL
-					.error(typeof error === 'object' ? JSON.stringify(error)
-							: error);
-			if (data) {
-				if (data.warnings) {
-					CeL.warn(JSON.stringify(data.warnings));
-				} else {
-					CeL.warn(JSON.stringify(data));
-				}
-			}
-		}
-		// callback();
 	});
+
+	wiki.upload(media_data);
 }

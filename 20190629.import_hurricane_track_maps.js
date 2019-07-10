@@ -17,9 +17,7 @@
 // Load CeJS library and modules.
 require('./wiki loader.js');
 
-var fetch = CeL.fetch,
-//
-data_directory = base_directory + 'data/',
+var data_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
@@ -150,74 +148,24 @@ function upload_media(media_data) {
 	categories.push(track_maps_category);
 	if (media_data.link)
 		categories.push('Category:' + media_data.link);
-	categories = categories.map(function(category_name) {
-		check_category_exists(category_name);
-		// NG: CeL.wiki.title_link_of()
-		return '[[' + category_name + ']]';
-	});
+	categories.forEach(check_category_exists);
 
-	// media description
-	var upload_text = [
-			'== {{int:filedesc}} ==',
-			'{{Information',
-			'|description='
-					+ (Array.isArray(media_data.description) ? media_data.description
-							.join('\n')
-							: media_data.description),
-			'|date=' + media_data.date.toISOString().replace(/\.\d+Z$/, 'Z'),
-			'|source=' + (media_data.source_URL || media_data.media_url),
-			'|author=' + media_data.author,
-			'|permission=' + (media_data.permission || ''),
-			'|other_versions=' + (media_data.other_versions || ''),
-			// '|other_fields=',
-
-			'}}',
-			// {{Object location|0|0}}
-
-			media_data.license ? '\n== {{int:license-header}} ==\n'
-					+ media_data.license + '\n' : '',
-
-			// add categories
-			categories.join('\n')
-
-	];
-
-	upload_text = upload_text.join('\n');
-
-	// console.log(media_data);
-	// console.log(upload_text);
-	// return;
-
-	wiki.upload(media_data.media_url, {
-		filename : media_data.file_name,
-		text : upload_text,
-		comment : media_data.comment,
+	media_data = Object.assign(Object.create(null), media_data, {
+		categories : categories,
+		// test_only : true,
+		show_message : true,
 		// must be set to reupload
 		ignorewarnings : 1,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
-					CeL.write_file(media_directory + media_data.file_name,
+					CeL.write_file(media_directory + media_data.filename,
 							XMLHttp.responseText);
 			}
 		}
-
-	}, function(data, error) {
-		console.log(data);
-		if (error) {
-			CeL.error(
-			//
-			typeof error === 'object' ? JSON.stringify(error) : error);
-			if (data) {
-				if (data.warnings) {
-					CeL.warn(JSON.stringify(data.warnings));
-				} else {
-					CeL.warn(JSON.stringify(data));
-				}
-			}
-		}
-		// callback();
 	});
+
+	wiki.upload(media_data);
 }
 
 // ============================================================================
@@ -232,6 +180,9 @@ function start_NHC() {
 
 	fetch(NHC_menu_URL).then(function(response) {
 		// console.log(response);
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('NHC %Y-%2m-%2d menu.html'), response.body);
 		return response.text();
 
 	}).then(function(html) {
@@ -306,12 +257,12 @@ function NHC_for_each_cyclones(token, area, date) {
 
 		// delete matched.input;
 		// console.log(matched);
-		var source_URL = NHC_base_URL + matched[1];
+		var source_url = NHC_base_URL + matched[1];
 		var media_data = {
 			name : id,
 			area : area,
 			date : date,
-			source_URL : source_URL
+			source_url : source_url
 		};
 		get_NHC_Static_Images(media_data);
 	}
@@ -321,7 +272,10 @@ function NHC_for_each_cyclones(token, area, date) {
 
 // Visit all "Warnings/Cone Static Images" pages.
 function get_NHC_Static_Images(media_data) {
-	return fetch(media_data.source_URL).then(function(response) {
+	return fetch(media_data.source_url).then(function(response) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('NHC %Y-%2m-%2d cyclones.html'), response.body);
 		return response.text();
 	}).then(parse_NHC_Static_Images.bind(null, media_data));
 }
@@ -330,7 +284,7 @@ function parse_NHC_Static_Images(media_data, html) {
 	var link, media_url = html
 	//
 	.match(/<img id="coneimage" src *= *"([^<>"]+)"/)[1];
-	var file_name = media_url.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1]
+	var filename = media_url.match(/\/([^\/]+?)\+png\/[^\/]+?\.png$/)[1]
 			.replace(/_/g, ' ');
 	media_data.date = media_data.date ? new Date(media_data.date) : new Date;
 
@@ -338,14 +292,14 @@ function parse_NHC_Static_Images(media_data, html) {
 	if (name) {
 		// 5-day intensity track
 		// e.g., id="EP022019 Hurricane Barbara"
-		// file_name="EP022019 5day cone no line and wind"
+		// filename="EP022019 5day cone no line and wind"
 		var matched = name.match(/^\w*/)[0];
-		if (matched && matched === file_name.match(/^\w*/)[0]) {
-			file_name = file_name.replace(/^\w*/, name);
+		if (matched && matched === filename.match(/^\w*/)[0]) {
+			filename = filename.replace(/^\w*/, name);
 			// e.g., "EP022019 Hurricane Barbara 5day cone no line and wind"
 		} else {
 			// relief measures 救濟措施 should not go to here
-			file_name += ' (' + name + ')';
+			filename += ' (' + name + ')';
 			// e.g., "EP022019 5day cone no line and wind (EP022019
 			// Hurricane Barbara)"
 		}
@@ -356,14 +310,14 @@ function parse_NHC_Static_Images(media_data, html) {
 			link = search_category_by_name(link[1], media_data);
 		}
 	}
-	file_name = media_data.date.format('%4Y-%2m-%2d ') + file_name + '.png';
+	filename = media_data.date.format('%4Y-%2m-%2d ') + filename + '.png';
 	media_url = NHC_base_URL + media_url;
 	// console.log(media_url);
 
 	if (false) {
 		CeL.get_URL_cache(media_url, upload_media, {
 			directory : base_directory,
-			file_name : file_name,
+			filename : filename,
 			reget : true
 		});
 	}
@@ -373,10 +327,10 @@ function parse_NHC_Static_Images(media_data, html) {
 	wiki_link = wiki_link || name ? ' for ' + (wiki_link || name) : '';
 
 	// National Hurricane Center
-	var author = '{{label|Q1329523}}';
+	var author = 'Q1329523';
 	Object.assign(media_data, {
 		media_url : media_url,
-		file_name : file_name,
+		filename : filename,
 		author : author,
 		type_name : 'hurricane',
 		license : '{{PD-USGov-NOAA}}',
@@ -398,6 +352,9 @@ function start_JTWC() {
 	return fetch('https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?' + Date.now())
 	// https://www.metoc.navy.mil/jtwc/jtwc.html
 	.then(function(response) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('JTWC %Y-%2m-%2d.xml'), response.body);
 		return response.text();
 	}).then(function(xml) {
 		xml.each_between('<item>', '</item>', for_each_JTWC_area);
@@ -414,7 +371,7 @@ function for_each_JTWC_area(xml) {
 	var media_data = {
 		date : date,
 		area : area,
-		author : '{{label|Q1142111}}',
+		author : 'Q1142111',
 		permission : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}'
 	};
 
@@ -448,7 +405,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 		NO = _NO;
 		return '';
 	}).replace(/\s+Warning.*$/, '');
-	var file_name = media_data.date.format('%4Y-%2m-%2d ') + 'JTWC ' + name
+	var filename = media_data.date.format('%4Y-%2m-%2d ') + 'JTWC ' + name
 			+ ' warning map' + media_url.match(/\.\w+$/)[0];
 
 	if (!name) {
@@ -462,7 +419,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	media_data = Object.assign({
 		name : name,
 		type_name : name.includes('Hurricane') ? 'hurricane' : 'typhoon',
-		file_name : file_name,
+		filename : filename,
 		media_url : media_url
 	}, media_data);
 
@@ -518,22 +475,33 @@ function start_CWB() {
 
 	var typhoon_data, base_URL = 'https://www.cwb.gov.tw/';
 
-	return fetch(base_URL
+	return fetch(base_URL + 'Data/typhoon/TY_NEWS/PTA_IMGS_'
+	// 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
+	+ DT.format('%Y%2m%2d') + '0000_zhtw.json?T=' + DataTime)
 	//
-	+ 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
-	//
-	+ DataTime).then(function(response) {
-		return response.text();
-	}).then(function(data) {
-		typhoon_data = JSON.parse(data);
+	.then(function(response) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('CWB %Y-%2m-%2d menu.json'), response.body);
+		if (response.status / 100 | 0 === 4) {
+			throw 'start_CWB: No new data found!';
+		}
+		return response.json();
+	}).then(function(json) {
+		typhoon_data = json;
 	}).then(function() {
 		return fetch(base_URL + 'Data/js/typhoon/TY_NEWS-Data.js?T='
 		//
 		+ DataTime + '&_=' + Date.now());
 	}).then(function(response) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('CWB %Y-%2m-%2d typhoon.html'), response.body);
 		return response.text();
 	}).then(function(data) {
 		return parse_CWB_data(data, typhoon_data, base_URL, DataTime);
+	})['catch'](function(error) {
+		console.error(error);
 	});
 }
 
@@ -571,12 +539,12 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 		// console.log(url);
 
 		var name = typhoon_data.TYPHOON[data.id].Name[VER];
-		var file_name = 'CWB ' + name + ' track map ('
+		var filename = 'CWB ' + name + ' track map ('
 				+ (VER === 'E' ? 'en-US' : 'zh-TW') + ')';
 		return {
 			name : name,
 			media_url : url,
-			file_name : date.format('%4Y-%2m-%2d ') + file_name + '.png',
+			filename : date.format('%4Y-%2m-%2d ') + filename + '.png',
 			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates
 			comment : 'Import CWB typhoon track map for ' + name
@@ -588,7 +556,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
 		var date = new Date(typhoon_data.TY_TIME.E);
 		// 交通部中央氣象局
-		var author = '{{label|Q257136}}';
+		var author = 'Q257136';
 		var media_data = {
 			id : data.id,
 			en : generate_data(data, date, author, 'E'),
@@ -602,7 +570,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 					+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
 			license : '{{Attribution CWB}}' && '',
 			area : 'Northwest Pacific',
-			// source_URL : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
+			// source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 			categories : [
 			//
 			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
@@ -656,12 +624,12 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 
 	typhoon_data.list.forEach(function(media_data) {
 		Object.assign(media_data, media_data.en, {
-			other_versions : '{{F|' + media_data.zh.file_name
+			other_versions : '{{F|' + media_data.zh.filename
 					+ '|Chinese version|80}}'
 		});
 		upload_media(media_data);
 		Object.assign(media_data, media_data.zh, {
-			other_versions : '{{F|' + media_data.en.file_name
+			other_versions : '{{F|' + media_data.en.filename
 					+ '|English version|80}}'
 		});
 		upload_media(media_data);

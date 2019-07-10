@@ -128,8 +128,9 @@ if (script_name) {
 		console.time('task');
 		// ↑ use console.timeEnd('task')
 	}
-	CeL.log('\n' + '-'.repeat(80) + '\nwiki loader: ' + (new Date).toISOString()
-			+ ' Starting [' + CeL.get_script_name() + ']');
+	CeL.log('\n' + '-'.repeat(80) + '\nwiki loader: '
+			+ (new Date).toISOString() + ' Starting [' + CeL.get_script_name()
+			+ ']');
 
 	base_directory = bot_directory + script_name + '/';
 }
@@ -192,7 +193,7 @@ if (false) {
 }
 
 /** Wiki() return {Object}wiki operator 操作子. */
-_global.Wiki = function(login, API_URL) {
+_global.Wiki = function new_wiki(login, API_URL) {
 	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 			|| use_project;
 	if (!login) {
@@ -232,7 +233,7 @@ _global.Wiki = function(login, API_URL) {
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 // e.g., prepare_directory(base_directory);
 // TODO: use move
-_global.prepare_directory = function(directory, clean) {
+_global.prepare_directory = function prepare_directory(directory, clean) {
 	if (!directory && !(directory = base_directory)) {
 		CeL.error(
 		// No script_name, therefore no base_directory?
@@ -245,4 +246,11 @@ _global.prepare_directory = function(directory, clean) {
 	}
 	// CeL.nodejs.fs_mkdir(directory);
 	CeL.fs_mkdir(directory);
+};
+
+_global.fetch = _global.fetch || function fetch(url) {
+	if (CeL.platform.is_interactive) {
+		process.stdout.write('fetch ' + url + '\r');
+	}
+	return CeL.fetch(url);
 };
