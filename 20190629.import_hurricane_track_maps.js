@@ -327,7 +327,7 @@ function parse_NHC_Static_Images(media_data, html) {
 	wiki_link = wiki_link || name ? ' for ' + (wiki_link || name) : '';
 
 	// National Hurricane Center
-	var author = 'Q1329523';
+	var author = '{label|Q1329523}}';
 	Object.assign(media_data, {
 		media_url : media_url,
 		filename : filename,
@@ -371,7 +371,7 @@ function for_each_JTWC_area(xml) {
 	var media_data = {
 		date : date,
 		area : area,
-		author : 'Q1142111',
+		author : '{{label|Q1142111}}',
 		permission : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}'
 	};
 
@@ -556,7 +556,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
 		var date = new Date(typhoon_data.TY_TIME.E);
 		// 交通部中央氣象局
-		var author = 'Q257136';
+		var author = '{{label|Q257136}}';
 		var media_data = {
 			id : data.id,
 			en : generate_data(data, date, author, 'E'),
