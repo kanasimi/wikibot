@@ -327,7 +327,7 @@ function parse_NHC_Static_Images(media_data, html) {
 	wiki_link = wiki_link || name ? ' for ' + (wiki_link || name) : '';
 
 	// National Hurricane Center
-	var author = '{label|Q1329523}}';
+	var author = '{{label|Q1329523}}';
 	Object.assign(media_data, {
 		media_url : media_url,
 		filename : filename,
