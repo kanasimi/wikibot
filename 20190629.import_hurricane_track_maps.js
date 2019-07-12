@@ -21,7 +21,11 @@ var data_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'commons' /* && 'test' */);
+wiki = Wiki(true, 'commons' /* && 'test' */),
+//
+cache_filename_label = '%4Y-%2m-%2d',
+// 因為每個風暴會持續好幾天，甚至跨月，因此只標注年份。
+filename_prefix = '%4Y ';
 
 // ----------------------------------------------------------------------------
 
@@ -182,7 +186,9 @@ function start_NHC() {
 		// console.log(response);
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('NHC %Y-%2m-%2d menu.html'), response.body);
+		+ (new Date).format('NHC ' + cache_filename_label
+		//
+		+ ' menu.html'), response.body);
 		return response.text();
 
 	}).then(function(html) {
@@ -275,7 +281,9 @@ function get_NHC_Static_Images(media_data) {
 	return fetch(media_data.source_url).then(function(response) {
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('NHC %Y-%2m-%2d cyclones.html'), response.body);
+		+ (new Date).format('NHC ' + cache_filename_label
+		//
+		+ ' cyclones.html'), response.body);
 		return response.text();
 	}).then(parse_NHC_Static_Images.bind(null, media_data));
 }
@@ -310,7 +318,7 @@ function parse_NHC_Static_Images(media_data, html) {
 			link = search_category_by_name(link[1], media_data);
 		}
 	}
-	filename = media_data.date.format('%4Y-%2m-%2d ') + filename + '.png';
+	filename = media_data.date.format(filename_prefix) + filename + '.png';
 	media_url = NHC_base_URL + media_url;
 	// console.log(media_url);
 
@@ -354,7 +362,9 @@ function start_JTWC() {
 	.then(function(response) {
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('JTWC %Y-%2m-%2d.xml'), response.body);
+		+ (new Date).format('JTWC ' + cache_filename_label
+		//
+		+ '.xml'), response.body);
 		return response.text();
 	}).then(function(xml) {
 		xml.each_between('<item>', '</item>', for_each_JTWC_area);
@@ -405,7 +415,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 		NO = _NO;
 		return '';
 	}).replace(/\s+Warning.*$/, '');
-	var filename = media_data.date.format('%4Y-%2m-%2d ') + 'JTWC ' + name
+	var filename = media_data.date.format(filename_prefix) + 'JTWC ' + name
 			+ ' warning map' + media_url.match(/\.\w+$/)[0];
 
 	if (!name) {
@@ -477,12 +487,14 @@ function start_CWB() {
 
 	return fetch(base_URL + 'Data/typhoon/TY_NEWS/PTA_IMGS_'
 	// 'Data/typhoon/TY_NEWS/PTA_IMGS_201907040000_zhtw.json?T='
-	+ DT.format('%Y%2m%2d') + '0000_zhtw.json?T=' + DataTime)
+	+ DT.format('%4Y%2m%2d') + '0000_zhtw.json?T=' + DataTime)
 	//
 	.then(function(response) {
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('CWB %Y-%2m-%2d menu.json'), response.body);
+		+ (new Date).format('CWB ' + cache_filename_label
+		//
+		+ ' menu.json'), response.body);
 		if (response.status / 100 | 0 === 4) {
 			throw 'start_CWB: No new data found!';
 		}
@@ -496,7 +508,9 @@ function start_CWB() {
 	}).then(function(response) {
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('CWB %Y-%2m-%2d typhoon.html'), response.body);
+		+ (new Date).format('CWB ' + cache_filename_label
+		//
+		+ ' typhoon.html'), response.body);
 		return response.text();
 	}).then(function(data) {
 		return parse_CWB_data(data, typhoon_data, base_URL, DataTime);
@@ -544,7 +558,7 @@ function parse_CWB_data(data, typhoon_data, base_URL, DataTime) {
 		return {
 			name : name,
 			media_url : url,
-			filename : date.format('%4Y-%2m-%2d ') + filename + '.png',
+			filename : date.format(filename_prefix) + filename + '.png',
 			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates
 			comment : 'Import CWB typhoon track map for ' + name
