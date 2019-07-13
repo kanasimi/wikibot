@@ -318,7 +318,9 @@ function parse_NHC_Static_Images(media_data, html) {
 			link = search_category_by_name(link[1], media_data);
 		}
 	}
-	filename = media_data.date.format(filename_prefix) + filename + '.png';
+	// year is included in filename.
+	filename = /* media_data.date.format(filename_prefix) + */filename
+			+ '.png';
 	media_url = NHC_base_URL + media_url;
 	// console.log(media_url);
 
@@ -415,8 +417,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 		NO = _NO;
 		return '';
 	}).replace(/\s+Warning.*$/, '');
-	var filename = media_data.date.format(filename_prefix) + 'JTWC ' + name
-			+ ' warning map' + media_url.match(/\.\w+$/)[0];
+	// year is included in filename.
+	var filename = /* media_data.date.format(filename_prefix) + */'JTWC '
+			+ name + ' warning map' + media_url.match(/\.\w+$/)[0];
 
 	if (!name) {
 		CeL.error('for_each_JTWC_cyclone: No name got for area '
