@@ -653,16 +653,13 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		typhoon_data.note[0][type].each_between('<div id="collapse-A', null,
 		//
 		function(token) {
-			var name = typhoon_data.list[index][language_code].name;
-			var description = name
-			//
-			+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
+			var media_data = typhoon_data.list[index++][language_code];
+			var description = token.between('>').replace(/<\/?\w[^<>]*>/g, '')
 			//
 			.replace(/\s{2,}/g, ' ');
-			var media_data = typhoon_data.list[index++][language_code];
 			media_data.description.push('{{' + (language || language_code)
-					+ '|' + description + '}}');
-			media_data.comment += ': ' + description;
+					+ '|' + media_data.name + description + '}}');
+			media_data.comment += +': ' + description;
 		});
 	}
 
