@@ -659,7 +659,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			.replace(/\s{2,}/g, ' ');
 			media_data.description.push('{{' + (language || language_code)
 					+ '|' + media_data.name + description + '}}');
-			media_data.comment += +': ' + description;
+			media_data.comment += ': ' + description;
 		});
 	}
 
