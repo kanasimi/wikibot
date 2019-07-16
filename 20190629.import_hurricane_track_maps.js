@@ -404,6 +404,10 @@ function for_each_JTWC_cyclone(html, media_data) {
 	if (!media_url)
 		return;
 
+	// https://www.usno.navy.mil/NOOC/nmfc-ph/RSS/jtwc/pubref/3140.html
+	// USCINCPAC INSTRUCTION 3140.1X
+	// Subj: TROPICAL CYCLONE OPERATIONS MANUAL
+
 	// MANOP Heading Area Covered
 	//
 	// ABPW10 PGTW Western Pacific Significant Tropical
@@ -436,13 +440,17 @@ function for_each_JTWC_cyclone(html, media_data) {
 			/<font .+$/, '').replace(/<\w[^<>]*>/g, '').trim().replace(
 			/\s{2,}/g, ' ');
 	var NO;
+	// Warnings.
+	// Warning #05
 	name = name.replace(/\s+\#(\d+)$/, function(all, _NO) {
 		NO = _NO;
 		return '';
 	}).replace(/\s+Warning.*$/, '');
 	// year is included in filename.
 	var filename = /* media_data.date.format(filename_prefix) + */'JTWC '
-			+ name + ' warning map' + media_url.match(/\.\w+$/)[0];
+			+ name
+			// + ' warning map'
+			+ ' map' + media_url.match(/\.\w+$/)[0];
 
 	if (!name) {
 		CeL.error('for_each_JTWC_cyclone: No name got for area '
@@ -640,29 +648,26 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		E : typhoon_data.TY_LIST_2.E
 	} ];
 
-	var index;
-	index = 0;
-	typhoon_data.note[0].C.each_between('<div id="collapse-A', null,
-	//
-	function(token) {
-		var name = typhoon_data.list[index].zh.name;
-		typhoon_data.list[index++].zh.description.push('{{zh-tw|' + name
+	function add_description(type, language_code, language) {
+		var index = 0;
+		typhoon_data.note[0][type].each_between('<div id="collapse-A', null,
 		//
-		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
-		//
-		.replace(/\s{2,}/g, ' ') + '}}');
-	});
-	index = 0;
-	typhoon_data.note[0].E.each_between('<div id="collapse-A', null,
-	//
-	function(token) {
-		var name = typhoon_data.list[index].en.name;
-		typhoon_data.list[index++].en.description.push('{{en|' + name + ': '
-		//
-		+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
-		//
-		.replace(/\s{2,}/g, ' ') + '}}');
-	});
+		function(token) {
+			var name = typhoon_data.list[index][language_code].name;
+			var description = name
+			//
+			+ token.between('>').replace(/<\/?\w[^<>]*>/g, '')
+			//
+			.replace(/\s{2,}/g, ' ');
+			var media_data = typhoon_data.list[index++][language_code];
+			media_data.description.push('{{' + (language || language_code)
+					+ '|' + description + '}}');
+			media_data.comment += ': ' + description;
+		});
+	}
+
+	add_description('C', 'zh', 'zh-tw');
+	add_description('E', 'en');
 
 	// console.log(typhoon_data.TY_LIST_1);
 	// console.log(JSON.stringify(typhoon_data.TY_LIST_1));
@@ -676,6 +681,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 					+ '|Chinese version|80}}'
 		});
 		upload_media(media_data);
+
 		Object.assign(media_data, media_data.zh, {
 			other_versions : '{{F|' + media_data.en.filename
 					+ '|English version|80}}'
