@@ -81,7 +81,10 @@ var category_to_parent_hash = Object.create(null);
 
 	start_NHC();
 	start_JTWC();
+
 	start_CWB();
+
+	start_JMA();
 });
 
 function check_category_exists(category_name) {
@@ -384,7 +387,7 @@ function for_each_JTWC_area(xml) {
 		date : date,
 		area : area,
 		author : '{{label|Q1142111}}',
-		permission : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}'
+		license : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}'
 	};
 
 	xml = xml.between('<description>', '</description>');
@@ -399,7 +402,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// console.log(html);
 	var media_url = html
 	// "TC Warning Graphic", "TCFA Graphic"
-	// TCFA: Tropical Cyclone Formation Alert
+	// TCFA: Tropical Cyclone Formation Alert 熱帯低気圧形成警報
 	.match(/<a href='([^<>']+)'[^<>]*>TC[^<>]* Graphic<\/a>/);
 	if (!media_url)
 		return;
@@ -620,11 +623,11 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			date : date,
 			author : author,
 			type_name : 'typhoon',
-			permission :
+			license : // '{{Attribution CWB}}'
 			// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
 			'{{GWOIA|url=' + base_URL + 'V8/C/information.html'
 					+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
-			license : '{{Attribution CWB}}' && '',
+			// 西北太平洋
 			area : 'Northwest Pacific',
 			// source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 			categories : [
@@ -685,4 +688,63 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		});
 		upload_media(media_data);
 	});
+}
+
+// ============================================================================
+
+function start_JMA() {
+	return;
+	var base_URL = 'http://www.jma.go.jp/jp/typh/';
+	return fetch(base_URL + 'index.html')
+	//
+	.then(function(response) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('JMA ' + cache_filename_label
+		//
+		+ ' typhoon.html'), response.body);
+		return response.text();
+	}).then(function(html) {
+		var typhoonList = [];
+		// var typhoonList=new Array(); typhoonList[0]="1905";
+		// /*****************************************************************************/
+		// -->
+		// </script>
+		eval(html.between('var typhoonList=', '</script>').between(';', '/*'));
+		typhoonList.forEach(function(id) {
+			// http://www.jma.go.jp/jp/typh/1905.html
+			fetch(base_URL + id + '.html');
+		});
+		// http://www.jma.go.jp/jp/typh/images/zooml/1905-00.png
+	});
+}
+
+function process_JMA_data() {
+
+	var media_data = {
+		name : name,
+		media_url : media_url,
+		name : name,
+		filename : date.format(filename_prefix) + filename + '.png',
+		description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
+		// comment won't accept templates
+		comment : 'Import CWB typhoon track map for ' + name,
+		id : data.id,
+		date : date,
+		author : author,
+		type_name : 'typhoon',
+		license : // '{{Attribution CWB}}'
+		// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
+		'{{GWOIA|url=' + base_URL + 'V8/C/information.html'
+				+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
+		// 西北太平洋
+		area : 'Northwest Pacific',
+		// source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
+		categories : [
+		//
+		'Category:Typhoon track maps by Central Weather Bureau ROC' ]
+	};
+
+	upload_media(media_data);
+
 }
