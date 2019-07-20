@@ -418,6 +418,7 @@ Object.keys(default_FC_vote_configurations.cross_out_templates_footer)
 	});
 	default_FC_vote_configurations.cross_out_templates_header[title] = true;
 });
+// console.log(default_FC_vote_configurations);
 
 // default configurations for DYK vote 投票
 // TODO: check [[Category:拒絕當選首頁新條目推薦欄目的條目]]
@@ -1097,7 +1098,7 @@ function check_mutiplte_vote(section, latest_vote) {
 	return true;
 }
 
-function cross_out_vote(section, latest_vote) {
+function cross_out_vote(section, latest_vote, cross_out_token) {
 	if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
 	//
 	|| latest_vote.vote_type === VOTE_OPPOSE)) {
@@ -1107,7 +1108,7 @@ function cross_out_vote(section, latest_vote) {
 			section.vote_list.oppose.pop();
 
 		latest_vote.vote_type = INVALID_VOTE;
-		latest_vote.invalid_reason = '被劃票:' + token.name;
+		latest_vote.invalid_reason = '被劃票:' + cross_out_token.name;
 		section.vote_list.invalid.push(latest_vote);
 	}
 }
@@ -1209,8 +1210,11 @@ function FC_section_filter(section) {
 		page_configuration.cross_out_templates_footer) {
 			// assert: {String}latest_vote.vote_user !== ''
 			if (cross_out_vote_list) {
+				CeL.info('Cross out ' + cross_out_vote_list.length
+				//
+				+ ' vote(s)');
 				cross_out_vote_list.forEach(function(vote) {
-					cross_out_vote(section, vote);
+					cross_out_vote(section, vote, token);
 				});
 			}
 			cross_out_vote_list = null;
