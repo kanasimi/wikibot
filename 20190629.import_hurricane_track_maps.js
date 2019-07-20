@@ -8,6 +8,7 @@
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
+ http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 
  */
 
@@ -577,7 +578,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 	// TY_COUNT = [ 熱帶性低氣壓, 颱風 ]
 
 	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
-	function generate_data(data, date, author, VER) {
+	function generate_data(data, date, VER) {
 		var FileLang = {
 			'C' : 'zhtw',
 			'E' : 'enus'
@@ -615,18 +616,16 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
 		var date = new Date(typhoon_data.TY_TIME.E);
 		// 交通部中央氣象局
-		var author = '{{label|Q257136}}';
+		var author = 'Q257136';
 		var media_data = {
 			id : data.id,
-			en : generate_data(data, date, author, 'E'),
-			zh : generate_data(data, date, author, 'C'),
+			en : generate_data(data, date, 'E'),
+			zh : generate_data(data, date, 'C'),
 			date : date,
-			author : author,
+			author : '{{label|' + author + '}}',
 			type_name : 'typhoon',
-			license : // '{{Attribution CWB}}'
-			// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
-			'{{GWOIA|url=' + base_URL + 'V8/C/information.html'
-					+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
+			license : '{{Attribution CWB}}' // + '{{LicenseReview}}'
+			,
 			// 西北太平洋
 			area : 'Northwest Pacific',
 			// source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
