@@ -29,6 +29,9 @@ function adapt_configuration_to_page(_configuration) {
 
 // column_to_header[column] = header used
 var localized_column_to_header = {
+	// TODO: using https://translatewiki.net/wiki/Translating:MediaWiki
+	// @see https://zh.wikipedia.org/wiki/Wikipedia:用戶介面翻譯/MessagesZh_hant.php
+	// e.g., {{int:filehist-user}} {{int:filehist-datetime}}
 	zh : {
 		// 序號 Topics主題
 		title : '話題',
@@ -312,9 +315,15 @@ var default_FC_vote_configurations = {
 	},
 
 	// will be used in .section_filter()
-	support_templates : 'YesFA|YesFL|YesGA'.split('|').to_hash(),
-	oppose_templates : 'NoFA|NoFL|NoGA'.split('|').to_hash(),
-	cross_out_templates : {
+	support_templates : 'YesFA|YesFL|YesGA|YesFP'.split('|').map(
+			function(title) {
+				return CeL.wiki.normalize_title(title);
+			}).to_hash(),
+	oppose_templates : 'NoFA|NoFL|NoGA|NoFP'.split('|').map(function(title) {
+		return CeL.wiki.normalize_title(title);
+	}).to_hash(),
+	cross_out_templates_header : {},
+	cross_out_templates_footer : {
 		// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
 		Votevoidf : true,
 		投票無效f : true,
@@ -398,8 +407,20 @@ var default_FC_vote_configurations = {
 		status : check_FC_status
 	}
 };
+Object.keys(default_FC_vote_configurations.cross_out_templates_footer)
+//
+.forEach(function(title) {
+	if (!/f$/i.test(title))
+		return;
+
+	title = title.replace(/f$/i, function($0) {
+		return $0 === 'f' ? 'h' : 'H';
+	});
+	default_FC_vote_configurations.cross_out_templates_header[title] = true;
+});
 
 // default configurations for DYK vote 投票
+// TODO: check [[Category:拒絕當選首頁新條目推薦欄目的條目]]
 var default_DYK_vote_configurations = {
 	page_header1 : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
 	page_header2 : '<span style="color: red;">依據[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|討論]]，希望回復原先列表的人數較多。將會在4月24日恢復原先列表。</span>',
@@ -425,9 +446,15 @@ var default_DYK_vote_configurations = {
 	//
 	// {{滋瓷}}本來就是娛樂用途 |滋磁|Zici|Zupport|滋瓷|资磁|资瓷|资辞
 	// {{傾向支持}}的立場比較薄弱，當成1票支持計算似乎也不合理。
-	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持'.split('|').to_hash(),
+	support_templates : 'Support|SUPPORT|Pro|SP|ZC|支持'.split('|').map(
+			function(title) {
+				return CeL.wiki.normalize_title(title);
+			}).to_hash(),
 	// {{Seriously}}
-	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對'.split('|').to_hash(),
+	oppose_templates : 'Oppose|OPPOSE|Contra|不同意|O|反对|反對'.split('|').map(
+			function(title) {
+				return CeL.wiki.normalize_title(title);
+			}).to_hash(),
 	// 篩選章節標題。
 	section_filter_in_template : function(token, section) {
 		if (token.name === 'DYKEntry') {
@@ -446,6 +473,7 @@ var default_DYK_vote_configurations = {
 			section.may_skip_section = true;
 		}
 	},
+	// 否則，投票期將自動延長3天，並待至延長投票期屆滿時方為結束投票；
 	extend_intervals : [ '3D' ],
 	section_filter_postfix : function(section) {
 		if (!section.DYKEntry)
@@ -580,7 +608,7 @@ var page_configurations = {
 	'zhwiki:Wikipedia:特色列表评选/提名区' : Object.assign({
 		timezone : 8,
 		need_time_legend : false,
-		// 初次延長期（基礎評選期+14日）及最後延長期（初次延長期+28日）
+		// 初次延長期（基礎評選期＋14日）及最後延長期（初次延長期＋28日）
 		extend_intervals : [ '14D', '28D' ]
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:優良條目評選/提名區' : Object.assign({
@@ -1069,6 +1097,21 @@ function check_mutiplte_vote(section, latest_vote) {
 	return true;
 }
 
+function cross_out_vote(section, latest_vote) {
+	if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
+	//
+	|| latest_vote.vote_type === VOTE_OPPOSE)) {
+		if (latest_vote.vote_type === VOTE_SUPPORT)
+			section.vote_list.support.pop();
+		else if (latest_vote.vote_type === VOTE_OPPOSE)
+			section.vote_list.oppose.pop();
+
+		latest_vote.vote_type = INVALID_VOTE;
+		latest_vote.invalid_reason = '被劃票:' + token.name;
+		section.vote_list.invalid.push(latest_vote);
+	}
+}
+
 function FC_section_filter(section) {
 	// section.vote_of_user[user_name]
 	// = {Array} the first valid vote token of user;
@@ -1087,7 +1130,7 @@ function FC_section_filter(section) {
 	// --------------------------------
 
 	var page_configuration = this.page.page_configuration;
-	var latest_vote, _this = this, skip_inner = this.each.exit;
+	var latest_vote, cross_out_vote_list, _this = this, skip_inner = this.each.exit;
 	this.each.call(section, function(token, index, parent) {
 		// TODO: 投票人資格審查。
 		// assert: 先投票之後才記錄使用者以及時間。
@@ -1146,28 +1189,31 @@ function FC_section_filter(section) {
 			token.vote_type = VOTE_SUPPORT;
 			section.vote_list.support.push(token);
 			latest_vote = token;
+			cross_out_vote_list && cross_out_vote_list.push(token);
 
 		} else if (token.name in page_configuration.oppose_templates) {
 			// console.log(token);
 			token.vote_type = VOTE_OPPOSE;
 			section.vote_list.oppose.push(token);
 			latest_vote = token;
+			cross_out_vote_list && cross_out_vote_list.push(token);
 
-		} else if (token.name in page_configuration.cross_out_templates) {
+		} else if (token.name in
+		//
+		page_configuration.cross_out_templates_header) {
+			// 還未獲得投票模板的投票人及日期資訊，因此在這邊先不做劃票動作。
+			cross_out_vote_list = [];
+
+		} else if (token.name in
+		//
+		page_configuration.cross_out_templates_footer) {
 			// assert: {String}latest_vote.vote_user !== ''
-			if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
-			//
-			|| latest_vote.vote_type === VOTE_OPPOSE)) {
-				if (latest_vote.vote_type === VOTE_SUPPORT)
-					section.vote_list.support.pop();
-				else if (latest_vote.vote_type === VOTE_OPPOSE)
-					section.vote_list.oppose.pop();
-
-				latest_vote.vote_type = INVALID_VOTE;
-				latest_vote.invalid_reason = '被劃票:' + token.name;
-				section.vote_list.invalid.push(latest_vote);
+			if (cross_out_vote_list) {
+				cross_out_vote_list.forEach(function(vote) {
+					cross_out_vote(section, vote);
+				});
 			}
-
+			cross_out_vote_list = null;
 		}
 
 	});
@@ -1185,6 +1231,8 @@ function FC_section_filter(section) {
 			// 07:57 (UTC){{doing}}</small>
 			section.vote_time_limit = CeL.wiki.parse.date(matched[2]);
 			// console.log([ matched[2], section.vote_time_limit ]);
+
+			// TODO: add .extend_intervals, e.g., [[Wikipedia:特色列表评选]]
 			break;
 		}
 	}
