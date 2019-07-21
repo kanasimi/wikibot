@@ -311,8 +311,10 @@ function parse_each_FC_item_list_page(page_data) {
 				PATTERN_Featured_content ]);
 	}
 	while (matched = PATTERN_Featured_content.exec(content)) {
+		// 還沒繁簡轉換過的標題。
+		var original_FC_title = CeL.wiki.normalize_title(matched[1]);
 		if (matched.length === 2) {
-			sub_FC_list_pages.push(matched[1]);
+			sub_FC_list_pages.push(original_FC_title);
 			continue;
 		}
 
@@ -325,10 +327,9 @@ function parse_each_FC_item_list_page(page_data) {
 			continue;
 		}
 
-		// 還沒繁簡轉換過的標題。
-		var original_FC_title = CeL.wiki.normalize_title(matched[1]),
 		// 轉換成經過繁簡轉換過的最終標題。
-		FC_title = redirects_to_hash[original_FC_title] || original_FC_title;
+		var FC_title = redirects_to_hash[original_FC_title]
+				|| original_FC_title;
 
 		if (FC_title in FC_data_hash) {
 			// 基本檢測與提醒。
@@ -1110,7 +1111,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 			FC_title = null;
 			continue;
 		}
-		// 從未展示的條目，應該按照當選日期排列。社群和讀者也曾抱怨連續數日同一個範疇上首頁的事情。
+		// 從未展示的條目，應該按照當選日期排列，按照先進先出的原則。社群和讀者也曾抱怨連續數日同一個範疇上首頁的事情。
 		// 增加了避免採用與前幾日相同類別的功能。
 		if (avoid_catalogs.includes(FC_data[KEY_CATEGORY])
 				|| FC_data[KEY_JDN].length > hit_upper_Bound) {
@@ -1276,6 +1277,9 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		if (!write_failed
 		// environment=production
 		&& CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+			// remove cache 刪除cache。
+			CeL.move_fso(base_directory, base_directory + '.'
+					+ (new Date).format('%Y%2m%2d'));
 			write_date_page(date_page_title, transcluding_title);
 			return;
 		}
@@ -1344,7 +1348,9 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			//
 			'所嵌入包含的' + TYPE_NAME + '──' + CeL.wiki.title_link_of(FC_title)
 			//
-			+ '似乎還不存在簡介？' + (using_GA ? '' : '或許簡介頁面存放在"Wikipedia:優良條目/"下？')
+			+ '似乎還不存在簡介？或許員葉面被移動了？'
+			//
+			+ (using_GA ? '' : '或者簡介頁面存放在"Wikipedia:優良條目/"下？')
 			// 若簡介頁面確實不存在
 			+ '機器人已嘗試自動創建簡介頁面，請幫忙' + write_link);
 
