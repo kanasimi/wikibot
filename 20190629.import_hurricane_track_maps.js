@@ -7,7 +7,6 @@
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
 
  TODO:
- http://www.jma.go.jp/jp/typh/
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
  http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 
@@ -52,7 +51,9 @@ var category_to_parent_hash = Object.create(null);
 'Australian region cyclone season',
 // 'Southern Hemisphere tropical cyclone season',
 //
-'Category:Central Weather Bureau ROC' ]
+'Central Weather Bureau ROC',
+//
+'Japan Meteorological Agency', 'Images from the Japan Meteorological Agency' ]
 //
 .run_serial(function(run_next, parent_category_name) {
 	if (!parent_category_name.startsWith('Category:')) {
@@ -752,8 +753,9 @@ function for_each_JMA_typhoon(html) {
 	<div id="1905" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>LOW<br>Issued at 12:45 UTC, 21 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 12 UTC, 21 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>LOW</td></tr><tr><td>Center position</td><td lang='en' nowrap>N40&deg;00' (40.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E130&deg;00' (130.0&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 30 km/h (15 kt)</td></tr><tr><td> Central pressure</td><td>998 hPa</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
 	</code>
 	 */
-	var text = html.between('class="typhoonInfo">').between('<br>', '<br>'), date = new Date(
-			html.between('Issued at ', '<'));
+	var text = html.between('class="typhoonInfo">').between('<br>', '<br>'),
+	// There is no UTC date in the Japanese version.
+	date = new Date(html.between('Issued at ', '<'));
 
 	Object.assign(media_data, {
 		date : date,
@@ -765,6 +767,24 @@ function for_each_JMA_typhoon(html) {
 		comment : 'Import JMA typhoon track map of typhoon no. '
 				+ media_data.id
 	});
+
+	// for the English version.
+	upload_media(media_data);
+
+	// ----------------------------------------------------
+	// for the Japanese version.
+
+	var original_language = media_data.language;
+	// http://www.jma.go.jp/jp/typh/
+	media_data.language = 'jp';
+
+	'base_URL,media_url,source_url'.split(',').forEach(function(name) {
+		media_data[name] = media_data[name].replace('/'
+		//
+		+ original_language + '/', '/' + media_data.language + '/');
+	});
+	media_data.filename = media_data.filename.replace('(' + original_language
+			+ ')', '(' + media_data.language + ')');
 
 	upload_media(media_data);
 }
