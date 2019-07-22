@@ -5,6 +5,7 @@
  2019/7/2 17:17:45	初版試營運 modify from 20181016.import_earthquake_shakemap.js
  2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon track map 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
+ 2019/7/22 16:1:0	Import JMA typhoon track map
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
@@ -665,8 +666,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			.replace(/\s{2,}/g, ' ');
 			media_data.description.push('{{' + (language || language_code)
 					+ '|' + media_data.name + description + '}}');
-			media_data.comment += ': ' + description + ' (' + date.format()
-					+ ')';
+			media_data.comment += ': ' + description;
 		});
 	}
 
@@ -680,6 +680,12 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 	JSON.stringify(typhoon_data));
 
 	typhoon_data.list.forEach(function(media_data) {
+		if (!(Date.now() - media_data.date < 24 * 60 * 60 * 1000)) {
+			// 只上傳在24小時之內的颱風警報圖像。
+			// 不曉得是不是圖片幾乎都不能完全擷取成功，上傳中央氣象局的圖片時常常不會出現圖片重複的警告，並且圖片也幾乎都有最後一小段全黑的情況。因此必須限制上傳時間，以免圖片一直上傳。
+			return;
+		}
+
 		Object.assign(media_data, media_data.en, {
 			other_versions : '{{F|' + media_data.zh.filename
 					+ '|Chinese version|80}}'
