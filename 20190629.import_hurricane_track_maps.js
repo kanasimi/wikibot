@@ -7,6 +7,7 @@
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
 
  TODO:
+ http://www.jma.go.jp/jp/typh/
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
  http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 
@@ -173,6 +174,8 @@ function upload_media(media_data) {
 		}
 	});
 
+	// console.log(media_data);
+	// return;
 	wiki.upload(media_data);
 }
 
@@ -338,7 +341,7 @@ function parse_NHC_Static_Images(media_data, html) {
 
 	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
 			: name : '';
-	wiki_link = wiki_link || name ? ' for ' + (wiki_link || name) : '';
+	wiki_link = wiki_link || name ? ' of ' + (wiki_link || name) : '';
 
 	// National Hurricane Center
 	var author = '{{label|Q1329523}}';
@@ -486,7 +489,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	}
 	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
 			: name : '';
-	wiki_link = (wiki_link || name ? ' for ' + (wiki_link || name) : '')
+	wiki_link = (wiki_link || name ? ' of ' + (wiki_link || name) : '')
 			+ (NO ? ' #' + NO : '');
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s Tropical Warning"
@@ -603,7 +606,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			filename : date.format(filename_prefix) + filename + '.png',
 			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates
-			comment : 'Import CWB typhoon track map for ' + name
+			comment : 'Import CWB typhoon track map of ' + name
 		};
 	}
 
@@ -661,7 +664,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			.replace(/\s{2,}/g, ' ');
 			media_data.description.push('{{' + (language || language_code)
 					+ '|' + media_data.name + description + '}}');
-			media_data.comment += ': ' + description;
+			media_data.comment += ': ' + description + ' (' + date.format()
+					+ ')';
 		});
 	}
 
@@ -692,8 +696,10 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 // ============================================================================
 
 function start_JMA() {
-	return;
-	var base_URL = 'http://www.jma.go.jp/jp/typh/';
+	var language = 'en';
+	// http://www.jma.go.jp/jp/typh/
+	var base_URL = 'http://www.jma.go.jp/' + language + '/typh/';
+
 	return fetch(base_URL + 'index.html')
 	//
 	.then(function(response) {
@@ -701,8 +707,9 @@ function start_JMA() {
 		//
 		+ (new Date).format('JMA ' + cache_filename_label
 		//
-		+ ' typhoon.html'), response.body);
+		+ ' typhoon.' + language + '.html'), response.body);
 		return response.text();
+
 	}).then(function(html) {
 		var typhoonList = [];
 		// var typhoonList=new Array(); typhoonList[0]="1905";
@@ -711,39 +718,53 @@ function start_JMA() {
 		// </script>
 		eval(html.between('var typhoonList=', '</script>').between(';', '/*'));
 		typhoonList.forEach(function(id) {
-			// http://www.jma.go.jp/jp/typh/1905.html
-			fetch(base_URL + id + '.html');
+			var media_data = {
+				id : id,
+				base_URL : base_URL,
+				language : language,
+				author : '{{label|Q860935}}',
+				// 西北太平洋
+				area : 'Northwest Pacific',
+				type_name : 'typhoon',
+				license : '{{JMA}}',
+				categories : [ 'Category:Typhoon track maps by JMA' ]
+			};
+
+			// http://www.jma.go.jp/en/typh/1905.html
+			fetch(base_URL + id + '.html').then(function(response) {
+				media_data.source_url = response.useFinalURL || response.url;
+				return response.text();
+			}).then(for_each_JMA_typhoon.bind(media_data));
 		});
-		// http://www.jma.go.jp/jp/typh/images/zooml/1905-00.png
 	});
 }
 
-function process_JMA_data() {
+function for_each_JMA_typhoon(html) {
+	var media_data = this;
+	// function jumpL(typhoonNo, dataType) @
+	// http://www.jma.go.jp/en/typh/scripts/typhoon.js
+	// e.g., http://www.jma.go.jp/en/typh/images/zooml/1905-00.png
+	media_data.media_url = media_data.base_URL + 'images/zooml/'
+			+ media_data.id + '-00.png';
 
-	var media_data = {
-		name : name,
-		media_url : media_url,
-		name : name,
-		filename : date.format(filename_prefix) + filename + '.png',
-		description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
-		// comment won't accept templates
-		comment : 'Import CWB typhoon track map for ' + name,
-		id : data.id,
+	/**
+	 * <code>
+	<div id="1905" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>LOW<br>Issued at 12:45 UTC, 21 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 12 UTC, 21 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>LOW</td></tr><tr><td>Center position</td><td lang='en' nowrap>N40&deg;00' (40.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E130&deg;00' (130.0&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 30 km/h (15 kt)</td></tr><tr><td> Central pressure</td><td>998 hPa</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
+	</code>
+	 */
+	var text = html.between('class="typhoonInfo">').between('<br>', '<br>'), date = new Date(
+			html.between('Issued at ', '<'));
+
+	Object.assign(media_data, {
 		date : date,
-		author : author,
-		type_name : 'typhoon',
-		license : // '{{Attribution CWB}}'
-		// @see Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
-		'{{GWOIA|url=' + base_URL + 'V8/C/information.html'
-				+ '|govname=Central Weather Bureau|mingtzu=中央氣象局}}',
-		// 西北太平洋
-		area : 'Northwest Pacific',
-		// source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
-		categories : [
-		//
-		'Category:Typhoon track maps by Central Weather Bureau ROC' ]
-	};
+		filename : date.getUTCFullYear() + ' JMA ' + media_data.id + ' map ('
+				+ media_data.language + ').png',
+		description : '{{en|' + media_data.author
+				+ "'s track map of typhoon no. " + media_data.id + '.}}',
+		// comment won't accept templates
+		comment : 'Import JMA typhoon track map of typhoon no. '
+				+ media_data.id
+	});
 
 	upload_media(media_data);
-
 }
