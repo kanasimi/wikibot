@@ -89,6 +89,8 @@ var category_to_parent_hash = Object.create(null);
 	start_CWB();
 
 	start_JMA();
+
+	start_PAGASA();
 });
 
 function check_category_exists(category_name) {
@@ -175,6 +177,9 @@ function upload_media(media_data) {
 			}
 		}
 	});
+	// add datetime stamp
+	media_data.comment += ' (' + media_data.date.format('%4Y-%2m-%2d %2H:%2M')
+			+ ')';
 
 	// console.log(media_data);
 	// return;
@@ -681,7 +686,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 
 	typhoon_data.list.forEach(function(media_data) {
 		if (!(Date.now() - media_data.date < 24 * 60 * 60 * 1000)) {
-			// 只上傳在24小時之內的颱風警報圖像。
+			// 只上傳在24小時之內的颱風警報圖片。
 			// 不曉得是不是圖片幾乎都不能完全擷取成功，上傳中央氣象局的圖片時常常不會出現圖片重複的警告，並且圖片也幾乎都有最後一小段全黑的情況。因此必須限制上傳時間，以免圖片一直上傳。
 			return;
 		}
@@ -754,6 +759,8 @@ function for_each_JMA_typhoon(html) {
 	media_data.media_url = media_data.base_URL + 'images/zooml/'
 			+ media_data.id + '-00.png';
 
+	// 颱風減弱之後就會被除名，無法取得名稱資訊。
+
 	/**
 	 * <code>
 	<div id="1905" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>LOW<br>Issued at 12:45 UTC, 21 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 12 UTC, 21 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>LOW</td></tr><tr><td>Center position</td><td lang='en' nowrap>N40&deg;00' (40.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E130&deg;00' (130.0&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 30 km/h (15 kt)</td></tr><tr><td> Central pressure</td><td>998 hPa</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
@@ -793,4 +800,23 @@ function for_each_JMA_typhoon(html) {
 			+ ')', '(' + media_data.language + ')');
 
 	upload_media(media_data);
+}
+
+// ============================================================================
+
+function start_PAGASA() {
+	var base_URL = 'http://bagong.pagasa.dost.gov.ph/';
+
+	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
+	fetch(base_URL + 'tropical-cyclone/severe-weather-bulletin').then(
+			function(response) {
+				CeL.write_file(data_directory
+						+ (new Date).format('PAGASA ' + cache_filename_label
+								+ ' menu.html'), response.body);
+				return response.text();
+			}).then(for_each_PAGASA_typhoon.bind(media_data));
+}
+
+function for_each_PAGASA_typhoon() {
+	;
 }
