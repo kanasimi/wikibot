@@ -2,7 +2,7 @@
 
 /*
 
- 2019/7/2 17:17:45	初版試營運 modify from 20181016.import_earthquake_shakemap.js
+ 2019/7/2 17:17:45	初版試營運 熱帶氣旋/颱風路徑圖的分類 modify from 20181016.import_earthquake_shakemap.js
  2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon track map 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
  2019/7/22 16:1:0	Import JMA typhoon track map
@@ -177,9 +177,11 @@ function upload_media(media_data) {
 			}
 		}
 	});
+	media_data.comment += ' ('
 	// add datetime stamp
-	media_data.comment += ' (' + media_data.date.format('%4Y-%2m-%2d %2H:%2M')
-			+ ')';
+	+ media_data.date.format('%4Y-%2m-%2d %2H:%2M UTC', {
+		zone : 0
+	}) + ')';
 
 	// console.log(media_data);
 	// return;
@@ -499,7 +501,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	wiki_link = (wiki_link || name ? ' of ' + (wiki_link || name) : '')
 			+ (NO ? ' #' + NO : '');
 	Object.assign(media_data, {
-		description : '{{en|' + media_data.author + "'s Tropical Warning"
+		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
 		comment : 'Import JTWC ' + media_data.type_name + ' warning map'
 				+ wiki_link
@@ -767,18 +769,32 @@ function for_each_JMA_typhoon(html) {
 	<div id="1905" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>LOW<br>Issued at 12:45 UTC, 21 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 12 UTC, 21 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>LOW</td></tr><tr><td>Center position</td><td lang='en' nowrap>N40&deg;00' (40.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E130&deg;00' (130.0&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 30 km/h (15 kt)</td></tr><tr><td> Central pressure</td><td>998 hPa</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
 	</code>
 	 */
-	var text = html.between('class="typhoonInfo">').between('<br>', '<br>'),
+	var type = html.between('class="typhoonInfo">').between('<br>', '<br>')
+			.trim();
+	// https://www.jma.go.jp/en/typh/
+	type = {
+		TY : 'typhoon',
+		STS : 'severe tropical storm',
+		TS : 'tropical storm',
+		TD : 'tropical depression',
+		LOW : 'extra-tropical low'
+	}[type] || type || 'typhoon';
+
 	// There is no UTC date in the Japanese version.
-	date = new Date(html.between('Issued at ', '<'));
+	var date = new Date(html.between('Issued at ', '<'));
+	var filename = date.getUTCFullYear() + ' JMA tropical cyclone no. '
+			+ media_data.id + ' map (' + media_data.language + ').png';
+	var jp_filename = filename.replace('(' + original_language + ')', '('
+			+ media_data.language + ')');
 
 	Object.assign(media_data, {
 		date : date,
-		filename : date.getUTCFullYear() + ' JMA ' + media_data.id + ' map ('
-				+ media_data.language + ').png',
-		description : '{{en|' + media_data.author
-				+ "'s track map of typhoon no. " + media_data.id + '.}}',
+		filename : filename,
+		other_versions : '{{F|' + jp_filename + '|Japanese version|80}}',
+		description : '{{en|' + media_data.author + "'s track map of " + type
+				+ ' no. ' + media_data.id + '.}}',
 		// comment won't accept templates
-		comment : 'Import JMA typhoon track map of typhoon no. '
+		comment : 'Import JMA typhoon track map of ' + type + ' no. '
 				+ media_data.id
 	});
 
@@ -797,8 +813,10 @@ function for_each_JMA_typhoon(html) {
 		//
 		+ original_language + '/', '/' + media_data.language + '/');
 	});
-	media_data.filename = media_data.filename.replace('(' + original_language
-			+ ')', '(' + media_data.language + ')');
+	Object.assign(media_data, {
+		filename : jp_filename,
+		other_versions : '{{F|' + filename + '|English version|80}}'
+	});
 
 	upload_media(media_data);
 }
