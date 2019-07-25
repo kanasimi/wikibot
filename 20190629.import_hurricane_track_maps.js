@@ -737,6 +737,7 @@ function start_JMA() {
 				author : '{{label|Q860935}}',
 				// 西北太平洋
 				area : 'Northwest Pacific',
+				// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
 				type_name : 'typhoon',
 				license : '{{JMA}}',
 				categories : [ 'Category:Typhoon track maps by JMA' ]
@@ -807,6 +808,8 @@ function for_each_JMA_typhoon(html) {
 function start_PAGASA() {
 	var base_URL = 'http://bagong.pagasa.dost.gov.ph/';
 
+	var media_data;
+
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 	fetch(base_URL + 'tropical-cyclone/severe-weather-bulletin').then(
 			function(response) {
@@ -817,6 +820,6 @@ function start_PAGASA() {
 			}).then(for_each_PAGASA_typhoon.bind(media_data));
 }
 
-function for_each_PAGASA_typhoon() {
+function for_each_PAGASA_typhoon(media_data) {
 	;
 }
