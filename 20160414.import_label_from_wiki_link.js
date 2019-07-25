@@ -90,6 +90,7 @@
  Q3827723
  Q700499
  [[:en:Mercedes Simplex|メルセデス・シンプレックス〈英語版〉]]
+ Q3311832 はLabelが間違っています。
 
  不當使用:
  [[:en:Gambier Islands|甘比爾]]群島	[[甘比爾群島]]群島
@@ -309,14 +310,29 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 		}
-		foreign_title = CeL.wiki.normalize_title(foreign_title);
-		label = CeL.wiki.normalize_title(label)
+		foreign_title = CeL.wiki.normalize_title(foreign_title
+				.replace(/^:/, ''));
+		label = CeL.wiki.normalize_title(label
+		// e.g., {{仮リンク|:Category:1758年に記載された鳥類|en|Category:Birds described
+		// in 1758|ハシジロキツツキ}} (カテゴリ)
+		.replace(/^:/, ''))
 		// remove disambiguation information.
 		// e.g., [[Special:Diff/518108554]], [[目擊者 (1999年電影)]]
 		.replace(/\([^()]+\)$/, '');
 		if (false) {
 			// done by CeL.wiki.normalize_title().
 			label = label.replace(/_/g, ' ');
+		}
+
+		// 不應處理 {{仮リンク|タイタンの地質|en|Titan_(moon)#Surface_features}}
+		if (label.includes('#') || foreign_title.includes('#')) {
+			// [[ビッグ・リーグ・チュー]]:
+			// [[タバコ#噛みタバコ|噛みタバコ]] ([[:en:Chewing tobacco|chewing tobacco]])
+			// [[スクロドフスカ石]]:
+			// {{仮リンク|ネソ珪酸塩鉱物|en|Silicate_minerals#Nesosilicates_or_orthosilicates}}
+			CeL.debug('不處理名稱包含"#"者: [' + label + '], foreign_title: '
+					+ foreign_title, 2, 'add_label');
+			return;
 		}
 
 		if ((foreign_language !== 'ja' || local_language !== 'zh-hant')
@@ -489,6 +505,7 @@ function for_each_page(page_data, messages) {
 			break;
 		}
 
+		// TODO: 處理 {{=}} e.g., {{仮リンク|ド・モアブル{{=}} @ [[中心極限定理]]
 		CeL.debug('Get label: ' + label + ' → [' + CeL.wiki.plain_text(label)
 				+ '], foreign title: [' + foreign_language + ':'
 				+ foreign_title + ']', 2);
@@ -855,7 +872,8 @@ function merge_label_data(callback) {
 			}
 			// 為防止有重複，在此不 push()。
 			// label_data_keys.push(full_title);
-			label_data[full_title] = data = [ Object.create(null), [ title ], [ revid ] ];
+			label_data[full_title] = data = [ Object.create(null), [ title ],
+					[ revid ] ];
 
 		} else {
 			data = label_data[full_title];
@@ -1020,7 +1038,8 @@ PATTERN_lang_link = /{{[lL]ang\s*\|\s*([a-z]{2,3})\s*\|\s*(\[\[:\1:[^\[\]]+\]\])
  */
 PATTERN_読み仮名 = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　]+$/, 'u'),
 // e.g., [[d:Q6157375]] "こくどう374ごう"
-PATTERN_読み仮名_need_skip = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　\d\-]+$/, 'u');
+PATTERN_読み仮名_need_skip = CeL.RegExp(/^[\p{Hiragana}\p{Katakana}ー・･ 　\d\-]+$/,
+		'u');
 
 function 仮名_claim(仮名, imported_from) {
 	CeL.debug('add 仮名 claim: [' + 仮名 + ']', 3, '仮名_claim');
