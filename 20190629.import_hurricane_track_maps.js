@@ -2,7 +2,7 @@
 
 /*
 
- 2019/7/2 17:17:45	初版試營運 熱帶氣旋/颱風路徑圖的分類 modify from 20181016.import_earthquake_shakemap.js
+ 2019/7/2 17:17:45	初版試營運 熱帶氣旋/颱風預測路徑圖的分類 modify from 20181016.import_earthquake_shakemap.js
  2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon track map 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
  2019/7/22 16:1:0	Import JMA typhoon track map
@@ -177,11 +177,13 @@ function upload_media(media_data) {
 			}
 		}
 	});
-	media_data.comment += ' ('
 	// add datetime stamp
-	+ media_data.date.format('%4Y-%2m-%2d %2H:%2M UTC', {
+	var date = media_data.date.format('%4Y-%2m-%2d %2H:%2M UTC', {
 		zone : 0
-	}) + ')';
+	});
+	if (!media_data.comment.includes(date)) {
+		media_data.comment += ' (' + date + ')';
+	}
 
 	// console.log(media_data);
 	// return;
@@ -494,8 +496,15 @@ function for_each_JTWC_cyclone(html, media_data) {
 	}
 
 	var link = name.match(/\(([^()]+)\)/);
+	// name: e.g., "Tropical Storm 07W (Seven)"
 	if (link) {
+		// e.g., "Seven" in "Tropical Storm 07W (Seven)"
 		link = search_category_by_name(link[1], media_data);
+	}
+	if (!link && (link = name.replace(/\(([^()]+)\)/, '').trim().match(/\w+$/))) {
+		// e.g., "07W" in "Tropical Storm 07W (Seven)"
+		link = search_category_by_name(link[0], media_data);
+		// link: e.g., "Tropical Depression 07W (2019)"
 	}
 	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
 			: name : '';
@@ -674,7 +683,9 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			.replace(/\s{2,}/g, ' ');
 			media_data.description.push('{{' + (language || language_code)
 					+ '|' + media_data.name + description + '}}');
-			media_data.comment += ': ' + description;
+			media_data.comment += ': ' + description + ' '
+			// every image has each URL
+			+ media_data.media_url;
 		});
 	}
 
