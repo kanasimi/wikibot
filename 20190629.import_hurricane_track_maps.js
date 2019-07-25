@@ -696,13 +696,13 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 
 		Object.assign(media_data, media_data.en, {
 			other_versions : '{{F|' + media_data.zh.filename
-					+ '|Chinese version|80}}'
+					+ '|{{language|zh-Hant}}|80}}'
 		});
 		upload_media(media_data);
 
 		Object.assign(media_data, media_data.zh, {
 			other_versions : '{{F|' + media_data.en.filename
-					+ '|English version|80}}'
+					+ '|{{language|en}}|80}}'
 		});
 		upload_media(media_data);
 	});
@@ -789,7 +789,7 @@ function for_each_JMA_typhoon(html) {
 		// name: 颱風減弱之後就會被除名，無法取得名稱資訊。
 		date : date,
 		filename : filename,
-		other_versions : '{{F|' + jp_filename + '|Japanese version|80}}',
+		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
 		description : '{{en|' + media_data.author + "'s track map of " + type
 				+ ' ' + media_data.id + '.}}',
 		// comment won't accept templates
@@ -814,7 +814,7 @@ function for_each_JMA_typhoon(html) {
 	});
 	Object.assign(media_data, {
 		filename : jp_filename,
-		other_versions : '{{F|' + filename + '|English version|80}}'
+		other_versions : '{{F|' + filename + '|{{language|en}}|80}}'
 	});
 
 	upload_media(media_data);
