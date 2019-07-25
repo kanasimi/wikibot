@@ -478,6 +478,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// e.g., https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
 	media_data = Object.assign({
 		name : name,
+		// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
 		type_name : name.includes('Hurricane') ? 'hurricane' : 'typhoon',
 		filename : filename,
 		media_url : media_url
@@ -739,7 +740,6 @@ function start_JMA() {
 				author : '{{label|Q860935}}',
 				// 西北太平洋
 				area : 'Northwest Pacific',
-				// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
 				type_name : 'typhoon',
 				license : '{{JMA}}',
 				categories : [ 'Category:Typhoon track maps by JMA' ]
@@ -762,8 +762,6 @@ function for_each_JMA_typhoon(html) {
 	media_data.media_url = media_data.base_URL + 'images/zooml/'
 			+ media_data.id + '-00.png';
 
-	// 颱風減弱之後就會被除名，無法取得名稱資訊。
-
 	/**
 	 * <code>
 	<div id="1905" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>LOW<br>Issued at 12:45 UTC, 21 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 12 UTC, 21 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>LOW</td></tr><tr><td>Center position</td><td lang='en' nowrap>N40&deg;00' (40.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E130&deg;00' (130.0&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 30 km/h (15 kt)</td></tr><tr><td> Central pressure</td><td>998 hPa</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
@@ -778,23 +776,24 @@ function for_each_JMA_typhoon(html) {
 		TS : 'tropical storm',
 		TD : 'tropical depression',
 		LOW : 'extra-tropical low'
-	}[type] || type || 'typhoon';
+	}[type] || type || 'tropical cyclone';
 
 	// There is no UTC date in the Japanese version.
 	var date = new Date(html.between('Issued at ', '<'));
-	var filename = date.getUTCFullYear() + ' JMA tropical cyclone no. '
+	var filename = date.getUTCFullYear() + ' JMA tropical cyclone '
 			+ media_data.id + ' map (' + media_data.language + ').png';
 	var jp_filename = filename.replace('(' + original_language + ')', '('
 			+ media_data.language + ')');
 
 	Object.assign(media_data, {
+		// name: 颱風減弱之後就會被除名，無法取得名稱資訊。
 		date : date,
 		filename : filename,
 		other_versions : '{{F|' + jp_filename + '|Japanese version|80}}',
 		description : '{{en|' + media_data.author + "'s track map of " + type
-				+ ' no. ' + media_data.id + '.}}',
+				+ ' ' + media_data.id + '.}}',
 		// comment won't accept templates
-		comment : 'Import JMA typhoon track map of ' + type + ' no. '
+		comment : 'Import JMA typhoon track map of ' + type + ' '
 				+ media_data.id
 	});
 
