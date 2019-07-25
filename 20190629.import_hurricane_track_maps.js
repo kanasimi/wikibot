@@ -782,8 +782,8 @@ function for_each_JMA_typhoon(html) {
 	var date = new Date(html.between('Issued at ', '<'));
 	var filename = date.getUTCFullYear() + ' JMA tropical cyclone '
 			+ media_data.id + ' map (' + media_data.language + ').png';
-	var jp_filename = filename.replace('(' + original_language + ')', '('
-			+ media_data.language + ')');
+	var jp_language = 'jp', jp_filename = filename.replace('('
+			+ media_data.language + ')', '(' + jp_language + ')');
 
 	Object.assign(media_data, {
 		// name: 颱風減弱之後就會被除名，無法取得名稱資訊。
@@ -805,7 +805,7 @@ function for_each_JMA_typhoon(html) {
 
 	var original_language = media_data.language;
 	// http://www.jma.go.jp/jp/typh/
-	media_data.language = 'jp';
+	media_data.language = jp_language;
 
 	'base_URL,media_url,source_url'.split(',').forEach(function(name) {
 		media_data[name] = media_data[name].replace('/'
