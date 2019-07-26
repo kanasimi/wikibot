@@ -3,9 +3,9 @@
 /*
 
  2019/7/2 17:17:45	初版試營運 熱帶氣旋/颱風預測路徑圖的分類 modify from 20181016.import_earthquake_shakemap.js
- 2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon track map 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
+ 2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon forecast maps 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
- 2019/7/22 16:1:0	Import JMA typhoon track map
+ 2019/7/22 16:1:0	Import JMA typhoon forecast maps
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
@@ -86,6 +86,7 @@ var category_to_parent_hash = Object.create(null);
 	start_NHC();
 	start_JTWC();
 
+	// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
 	start_CWB();
 
 	start_JMA();
@@ -103,6 +104,7 @@ function normalize_name(name) {
 	return CeL.wiki.upper_case_initial(name.trim().toLowerCase());
 }
 
+// auto-search category ends with " name (year)"
 function search_category_by_name(TD_name, media_data) {
 	var date = ' (' + (media_data.date || new Date).getUTCFullYear() + ')';
 	var footer = ' '
@@ -136,12 +138,27 @@ function search_category_by_name(TD_name, media_data) {
 
 // ------------------------------------------------------------------
 
+function of_wiki_link(name, link, NO) {
+	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
+			: name : '';
+
+	wiki_link = wiki_link || name ? ' of ' + (wiki_link || name) : '';
+
+	if (NO)
+		wiki_link += ' #' + NO;
+
+	return wiki_link;
+}
+
+// ------------------------------------------------------------------
+
 // General upload function
 function upload_media(media_data) {
 	// area / basins
 	// Atlantic (- Caribbean Sea - Gulf of Mexico)
 	// Eastern North Pacific
 	// Central North Pacific
+	// 'Northwest Pacific/North Indian Ocean*'
 	var area = media_data.area;
 	var track_maps_category = area.includes('Pacific') ? 'Pacific' : area
 			.includes('Atlantic') ? 'Atlantic' : null;
@@ -185,8 +202,10 @@ function upload_media(media_data) {
 		media_data.comment += ' (' + date + ')';
 	}
 
-	// console.log(media_data);
-	// return;
+	// for debug:
+	console.log(media_data);
+	return;
+
 	wiki.upload(media_data);
 }
 
@@ -320,7 +339,10 @@ function parse_NHC_Static_Images(media_data, html) {
 		// e.g., id="EP022019 Hurricane Barbara"
 		// filename="EP022019 5day cone no line and wind"
 		var matched = name.match(/^\w*/)[0];
-		if (matched && matched === filename.match(/^\w*/)[0]) {
+		if (true) {
+			// 檔名不添加氣旋名稱，以統一氣旋存活各時期的檔案名稱。
+		} else if (matched && matched === filename.match(/^\w*/)[0]) {
+			// "EP022019" → "EP022019 Hurricane Barbara"
 			filename = filename.replace(/^\w*/, name);
 			// e.g., "EP022019 Hurricane Barbara 5day cone no line and wind"
 		} else {
@@ -336,7 +358,7 @@ function parse_NHC_Static_Images(media_data, html) {
 			link = search_category_by_name(link[1], media_data);
 		}
 	}
-	// year is included in filename.
+	// year is included in filename. e.g., "EP022019"
 	filename = /* media_data.date.format(filename_prefix) + */filename
 			+ '.png';
 	media_url = NHC_base_URL + media_url;
@@ -350,9 +372,7 @@ function parse_NHC_Static_Images(media_data, html) {
 		});
 	}
 
-	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
-			: name : '';
-	wiki_link = wiki_link || name ? ' of ' + (wiki_link || name) : '';
+	var wiki_link = of_wiki_link(name, link);
 
 	// National Hurricane Center
 	var author = '{{label|Q1329523}}';
@@ -366,11 +386,11 @@ function parse_NHC_Static_Images(media_data, html) {
 		//
 		+ "'s 5-day track and intensity forecast cone" + wiki_link + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
-		comment : 'Import NHC hurricane track map' + wiki_link
+		comment : 'Import NHC tropical cyclone forecast map' + wiki_link
 	// of the 2019 Pacific hurricane season
 	});
 
-	// Fetch the hurricane track maps and upload it to commons.
+	// Fetch the hurricane forecast map and upload it to commons.
 	upload_media(media_data);
 }
 
@@ -454,21 +474,31 @@ function for_each_JTWC_cyclone(html, media_data) {
 	"Tropical Storm  02E (Barbara) Warning #25   <font color=red><b>Final Warning</b></font></b><br>"
 	</code>
 	 */
-	var name = html.between(null, '</b>').replace(/(#\d+).+$/, '$1').replace(
-			/<font .+$/, '').replace(/<\w[^<>]*>/g, '').trim().replace(
-			/\s{2,}/g, ' ');
+	var full_name = html.between(null, '</b>').replace(/(#\d+).+$/, '$1')
+			.replace(/<font .+$/, '').replace(/<\w[^<>]*>/g, '').trim()
+			.replace(/\s{2,}/g, ' ');
 	var NO;
 	// Warnings.
 	// Warning #05
-	name = name.replace(/\s+\#(\d+)$/, function(all, _NO) {
+	full_name = full_name.replace(/\s+\#(\d+)$/, function(all, _NO) {
 		NO = _NO;
 		return '';
 	}).replace(/\s+Warning.*$/, '');
-	// year is included in filename.
-	var filename = /* media_data.date.format(filename_prefix) + */'JTWC '
-			+ name
-			// + ' warning map'
-			+ ' map' + media_url.match(/\.\w+$/)[0];
+
+	// full_name: e.g., "Tropical Depression 07W (Seven)",
+	// "Tropical Storm 07W (Seven)", "Tropical Storm 07W (Nari)" → "07W"
+	//
+	// matched: [ all, id, name ]
+	var id = full_name.match(/\s+(\w+)(?:\s+\((\w+)\))$/),
+	// e.g., 'tropical depression'
+	type = full_name.slice(0, id.index).toLowerCase();
+	var name = id[2] || id[1];
+	id = id[1];
+
+	// e.g., "2019 JTWC 07W forecast map.gif"
+	var filename = media_data.date.format(filename_prefix) + 'JTWC ' + id
+	// + ' warning map'
+	+ ' forecast map' + media_url.match(/\.\w+$/)[0];
 
 	if (!name) {
 		CeL.error('for_each_JTWC_cyclone: No name got for area '
@@ -479,9 +509,12 @@ function for_each_JTWC_cyclone(html, media_data) {
 
 	// e.g., https://commons.wikimedia.org/wiki/File:JTWC_wp0519.gif
 	media_data = Object.assign({
+		id : id,
 		name : name,
+		type : type,
+		full_name : full_name,
 		// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
-		type_name : name.includes('Hurricane') ? 'hurricane' : 'typhoon',
+		type_name : type.includes('hurricane') ? 'hurricane' : 'typhoon',
 		filename : filename,
 		media_url : media_url
 	}, media_data);
@@ -495,25 +528,22 @@ function for_each_JTWC_cyclone(html, media_data) {
 		media_data.date = date;
 	}
 
-	var link = name.match(/\(([^()]+)\)/);
-	// name: e.g., "Tropical Storm 07W (Seven)"
-	if (link) {
-		// e.g., "Seven" in "Tropical Storm 07W (Seven)"
-		link = search_category_by_name(link[1], media_data);
-	}
-	if (!link && (link = name.replace(/\(([^()]+)\)/, '').trim().match(/\w+$/))) {
-		// e.g., "07W" in "Tropical Storm 07W (Seven)"
-		link = search_category_by_name(link[0], media_data);
+	var link = search_category_by_name(name, media_data);
+	if (!link && name === id[2]) {
+		// e.g., "Seven" in "Tropical Storm 07W (Seven)":
+		// No [[Category:Tropical Storm Seven (2019)]],
+		// Only [[Category:Tropical Storm 07W (2019)]],
+
+		// Now test "07W" in "Tropical Storm 07W (Seven)"
+		link = search_category_by_name(id, media_data);
 		// link: e.g., "Tropical Depression 07W (2019)"
 	}
-	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
-			: name : '';
-	wiki_link = (wiki_link || name ? ' of ' + (wiki_link || name) : '')
-			+ (NO ? ' #' + NO : '');
+
+	var wiki_link = of_wiki_link(name, link, NO);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
-		comment : 'Import JTWC ' + media_data.type_name + ' warning map'
+		comment : 'Import JTWC ' + media_data.type_name + ' forecast map'
 				+ wiki_link
 	});
 
@@ -600,8 +630,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 	// TY_COUNT = [ 熱帶性低氣壓, 颱風 ]
 
 	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
-	function generate_data(data, date, VER) {
-		var FileLang = {
+	function generate_data(data, media_data, VER) {
+		var date = media_data.date, FileLang = {
 			'C' : 'zhtw',
 			'E' : 'enus'
 		};
@@ -616,18 +646,31 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		+ TY_ID + '_' + FileLang[VER] + '.png';
 		// console.log(url);
 
-		var name = typhoon_data.TYPHOON[data.id].Name[VER];
-		var filename = 'CWB ' + name + ' track map ('
+		var name = normalize_name(typhoon_data.TYPHOON[data.id].Name[VER]);
+		var filename = 'CWB ' + name + ' forecast map ('
 				+ (VER === 'E' ? 'en-US' : 'zh-TW') + ')';
-		return {
+		var language_media_data = Object.assign({
 			name : name,
 			media_url : url,
 			filename : date.format(filename_prefix) + filename + '.png',
 			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates
-			comment : 'Import CWB typhoon track map of ' + name
-		};
+			// each image has its URL
+			comment : 'Import [' + url + ' CWB typhoon forecast map]'
+		});
+
+		// media_data.id: English, name: paerhaps Chinese.
+		var link = media_data.link;
+		// console.log(media_data);
+		var wiki_link = of_wiki_link(name, link);
+		language_media_data.comment += wiki_link;
+		language_media_data.wiki_link = wiki_link;
+		// console.log(media_data);
+		return language_media_data;
 	}
+
+	// 交通部中央氣象局
+	var author = '{{label|Q257136}}';
 
 	// console.log(typhoon_data);
 	// console.log(JSON.stringify(typhoon_data));
@@ -637,14 +680,10 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		// console.log(data);
 		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
 		var date = new Date(typhoon_data.TY_TIME.E);
-		// 交通部中央氣象局
-		var author = 'Q257136';
 		var media_data = {
 			id : data.id,
-			en : generate_data(data, date, 'E'),
-			zh : generate_data(data, date, 'C'),
 			date : date,
-			author : '{{label|' + author + '}}',
+			author : author,
 			type_name : 'typhoon',
 			license : '{{Attribution CWB}}' // + '{{LicenseReview}}'
 			,
@@ -655,6 +694,11 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			//
 			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
 		};
+		search_category_by_name(media_data.id, media_data);
+		Object.assign(media_data, {
+			en : generate_data(data, media_data, 'E'),
+			zh : generate_data(data, media_data, 'C')
+		});
 
 		var footer = media_data.en.name.match(/\((\w+)\)/);
 		if (footer) {
@@ -681,11 +725,15 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			var description = token.between('>').replace(/<\/?\w[^<>]*>/g, '')
 			//
 			.replace(/\s{2,}/g, ' ');
-			media_data.description.push('{{' + (language || language_code)
-					+ '|' + media_data.name + description + '}}');
-			media_data.comment += ': ' + description + ' '
-			// every image has each URL
-			+ media_data.media_url;
+			media_data.description.push('{{en|' + author + "'s forecast map"
+					+ media_data.wiki_link + '.}}');
+			if (false) {
+				// described in comment
+				media_data.description.push('{{' + (language || language_code)
+						+ '|' + media_data.name.trim() + ' ' + description
+						+ '}}');
+			}
+			media_data.comment += ': ' + description;
 		});
 	}
 
@@ -776,11 +824,17 @@ function for_each_JMA_typhoon(html) {
 	/**
 	 * <code>
 	<div id="1905" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>LOW<br>Issued at 12:45 UTC, 21 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 12 UTC, 21 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>LOW</td></tr><tr><td>Center position</td><td lang='en' nowrap>N40&deg;00' (40.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E130&deg;00' (130.0&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 30 km/h (15 kt)</td></tr><tr><td> Central pressure</td><td>998 hPa</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
+
+	<div id="1906" class="typhoonInfo"><input type="button" class="operation" title="Hide Text Information" onclick="javascript:hiddenAll();" value="Close"><br>TS 1906 (Nari)<br>Issued at 06:45 UTC, 26 July 2019<div class="forecast"><table><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Analysis at 06 UTC, 26 July&gt;</td></tr><tr><td>Scale</td><td>-</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td>Center position</td><td lang='en' nowrap>N30&deg;55' (30.9&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E136&deg;10' (136.2&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNW 20 km/h (12 kt)</td></tr><tr><td> Central pressure</td><td>1000 hPa</td></tr><tr><td>Maximum wind speed near center</td><td>18 m/s (35 kt)</td></tr><tr><td>Maximum wind gust speed</td><td>25 m/s (50 kt)</td></tr><tr><td>&ge; 30 kt wind area</td><td>E 390 km (210 NM)</td></tr><tr><td></td><td>W 220 km (120 NM)</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Forecast for 18 UTC, 26 July&gt;</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td>Center position of probability circle</td><td lang='en' nowrap>N32&deg;50' (32.8&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E135&deg;30' (135.5&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNW 20 km/h (10 kt)</td></tr><tr><td> Central pressure</td><td>1000 hPa</td></tr><tr><td>Maximum wind speed near center</td><td>18 m/s (35 kt)</td></tr><tr><td>Maximum wind gust speed</td><td>25 m/s (50 kt)</td></tr><tr><td>Radius of probability circle</td><td>40 km (20 NM)</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Forecast for 06 UTC, 27 July&gt;</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td>Center position of probability circle</td><td lang='en' nowrap>N34&deg;40' (34.7&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E136&deg;30' (136.5&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>NNE 20 km/h (10 kt)</td></tr><tr><td> Central pressure</td><td>1004 hPa</td></tr><tr><td> Maximum sustained wind speed</td><td>18 m/s (35 kt)</td></tr><tr><td>Maximum wind gust speed</td><td>25 m/s (50 kt)</td></tr><tr><td>Radius of probability circle</td><td>90 km (50 NM)</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr><tr><td colspan="2">&lt;Forecast for 06 UTC, 28 July&gt;</td></tr><tr><td>Intensity</td><td>-</td></tr><tr><td></td><td>TD</td></tr><tr><td>Center position of probability circle</td><td lang='en' nowrap>N36&deg;00' (36.0&deg;)</td></tr><tr><td></td><td lang='en' nowrap>E141&deg;25' (141.4&deg;)</td></tr><tr><td>Direction and speed of movement</td><td>ENE 20 km/h (11 kt)</td></tr><tr><td> Central pressure</td><td>1010 hPa</td></tr><tr><td>Radius of probability circle</td><td>170 km (90 NM)</td></tr><tr><td colspan="2"><img align="left" width="100%" height="2px" src="../common/line_menu.gif"></td></tr></table></div></div>
 	</code>
 	 */
-	var type = html.between('class="typhoonInfo">').between('<br>', '<br>')
-			.trim();
+	// full_name: "type NO (name)". e.g., "TS 1906 (Nari)", "TD a", "LOW", "TD"
+	var full_name = html.between('class="typhoonInfo">')
+			.between('<br>', '<br>');
+	// matched: [ all, type, id/NO, name ]
+	var name = full_name.match(/^(\w+)(?:\s+(\w+)(?:\s+\((\w+)\))?)?/);
 	// https://www.jma.go.jp/en/typh/
+	var type = name[1];
 	type = {
 		TY : 'typhoon',
 		STS : 'severe tropical storm',
@@ -788,24 +842,39 @@ function for_each_JMA_typhoon(html) {
 		TD : 'tropical depression',
 		LOW : 'extra-tropical low'
 	}[type] || type || 'tropical cyclone';
+	name = name[3] || media_data.id;
+	if (!name) {
+		// 颱風減弱之後就會被除名，無法取得名稱資訊。
+		CeL.info('for_each_JMA_typhoon: No name got for ' + full_name + '!');
+		// console.log(html);
+		return;
+	}
 
 	// There is no UTC date in the Japanese version.
 	var date = new Date(html.between('Issued at ', '<'));
-	var filename = date.getUTCFullYear() + ' JMA tropical cyclone '
-			+ media_data.id + ' map (' + media_data.language + ').png';
+	// e.g., "2019 JMA 1906 forecast map (en).png"
+	var filename = date.getUTCFullYear() + ' JMA '
+	// 盡量統一檔案名稱。現在應該只會在颱風命名前後變更一次。
+	+ (/^\d{4}$/.test(media_data.id) ? '' : 'tropical cyclone ')
+			+ media_data.id + ' forecast map (' + media_data.language + ').png';
 	var jp_language = 'jp', jp_filename = filename.replace('('
 			+ media_data.language + ')', '(' + jp_language + ')');
 
 	Object.assign(media_data, {
-		// name: 颱風減弱之後就會被除名，無法取得名稱資訊。
+		name : name,
+		full_name : full_name,
+		type : type,
 		date : date,
 		filename : filename,
 		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
-		description : '{{en|' + media_data.author + "'s track map of " + type
-				+ ' ' + media_data.id + '.}}',
+	});
+	var link = search_category_by_name(name, media_data);
+	var wiki_link = of_wiki_link(name, link);
+	Object.assign(media_data, {
+		description : '{{en|' + media_data.author + "'s forecast map"
+				+ wiki_link + '.}}',
 		// comment won't accept templates
-		comment : 'Import JMA typhoon track map of ' + type + ' '
-				+ media_data.id
+		comment : 'Import JMA tropical cyclone forecast map' + wiki_link
 	});
 
 	// for the English version.
