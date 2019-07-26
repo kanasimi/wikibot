@@ -639,7 +639,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		// var TY_ID = PTA_JSON.EACH[i].id;
 		var TY_ID = data.id;
 
-		var url = base_URL + '/Data/' + typhoon_data.DataPath
+		var url = base_URL + 'Data/' + typhoon_data.DataPath
 		//
 		+ 'Download_PTA_' + typhoon_data.TY_DataTime + '_'
 		//
@@ -654,9 +654,9 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			media_url : url,
 			filename : date.format(filename_prefix) + filename + '.png',
 			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
-			// comment won't accept templates
+			// comment won't accept templates and external links
 			// each image has its URL
-			comment : 'Import [' + url + ' CWB typhoon forecast map]'
+			comment : 'Import CWB typhoon forecast map'
 		});
 
 		// media_data.id: English, name: paerhaps Chinese.
@@ -733,7 +733,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 						+ '|' + media_data.name.trim() + ' ' + description
 						+ '}}');
 			}
-			media_data.comment += ': ' + description;
+			media_data.comment += ': ' + description + ' ' + url;
 		});
 	}
 
@@ -873,7 +873,7 @@ function for_each_JMA_typhoon(html) {
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
-		// comment won't accept templates
+		// comment won't accept templates and external links
 		comment : 'Import JMA tropical cyclone forecast map' + wiki_link
 	});
 
