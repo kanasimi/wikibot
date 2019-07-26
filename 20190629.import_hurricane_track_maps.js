@@ -52,9 +52,8 @@ var category_to_parent_hash = Object.create(null);
 'Australian region cyclone season',
 // 'Southern Hemisphere tropical cyclone season',
 //
-'Central Weather Bureau ROC',
-//
-'Japan Meteorological Agency', 'Images from the Japan Meteorological Agency' ]
+'Category:Central Weather Bureau ROC', 'Category:Japan Meteorological Agency',
+		'Category:Images from the Japan Meteorological Agency' ]
 //
 .run_serial(function(run_next, parent_category_name) {
 	if (!parent_category_name.startsWith('Category:')) {
@@ -68,6 +67,7 @@ var category_to_parent_hash = Object.create(null);
 		}
 		parent_category_name = year + ' ' + parent_category_name;
 	}
+
 	wiki.categorymembers(parent_category_name, function(pages, titles, title) {
 		pages.forEach(function(page_data) {
 			if (page_data.ns === CeL.wiki.namespace('Category')) {
@@ -80,8 +80,11 @@ var category_to_parent_hash = Object.create(null);
 	}, {
 		limit : 'max'
 	});
+
 }, function() {
+	// for debug:
 	// console.log(category_to_parent_hash);
+	// return;
 
 	start_NHC();
 	start_JTWC();
@@ -178,9 +181,6 @@ function fill_type_name(media_data) {
 // General upload function
 function upload_media(media_data) {
 	// area / basins
-	// Atlantic (- Caribbean Sea - Gulf of Mexico)
-	// Eastern North Pacific
-	// Central North Pacific
 	var area = media_data.area.toLowerCase();
 	var track_maps_category = area.includes('pacific') ? 'Pacific' : area
 			.includes('atlantic') ? 'Atlantic' : null;
@@ -282,6 +282,10 @@ function parse_NHC_time_string(string) {
 
 function NHC_for_each_area(html) {
 	// console.log(html);
+
+	// Atlantic (- Caribbean Sea - Gulf of Mexico)
+	// Eastern North Pacific
+	// Central North Pacific
 	var area = html.match(/^[^<\-]*/)[0].trim();
 	var date;
 	html.each_between('<span class="tiny">', '</span>', function(token) {
@@ -756,7 +760,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 						+ '|' + media_data.name.trim() + ' ' + description
 						+ '}}');
 			}
-			media_data.comment += ': ' + description + ' ' + url;
+			media_data.comment += ': ' + description + ' '
+					+ media_data.media_url;
 		});
 	}
 
