@@ -203,8 +203,8 @@ function upload_media(media_data) {
 	}
 
 	// for debug:
-	console.log(media_data);
-	return;
+	// console.log(media_data);
+	// return;
 
 	wiki.upload(media_data);
 }
