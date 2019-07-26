@@ -330,8 +330,8 @@ function for_each_page(page_data, messages) {
 			// [[タバコ#噛みタバコ|噛みタバコ]] ([[:en:Chewing tobacco|chewing tobacco]])
 			// [[スクロドフスカ石]]:
 			// {{仮リンク|ネソ珪酸塩鉱物|en|Silicate_minerals#Nesosilicates_or_orthosilicates}}
-			CeL.debug('不處理名稱包含"#"者: [' + label + '], foreign_title: '
-					+ foreign_title, 2, 'add_label');
+			CeL.info('不處理名稱包含"#"者: [' + label + '], foreign_title: '
+					+ foreign_title);
 			return;
 		}
 
@@ -344,6 +344,13 @@ function for_each_page(page_data, messages) {
 		: foreign_title.length > label.length && foreign_title.includes(label))) {
 			CeL.debug('不處理各自包含者: [' + label + '], foreign_title: '
 					+ foreign_title, 2, 'add_label');
+			return;
+		}
+
+		if (foreign_language in CeL.wiki.namespace.hash) {
+			CeL.debug('Skip wiki namespace: [' + foreign_language
+			// e.g., [[:template:光緒六年庚辰科殿試金榜|光緒六年進士]]
+			+ '], foreign_title: ' + foreign_title, 2, 'add_label');
 			return;
 		}
 
@@ -1464,10 +1471,10 @@ function next_label_data_work() {
 			// Finally: Write to cache file.
 			processed_data.write();
 
-			var message = script_name + ': 已處理完畢 Wikidata 部分。'
-			//
-			+ (modify_Wikipedia ? '開始處理 ' : '已設定不') + '處理 ' + use_language
-					+ ' Wikipedia 上的頁面。';
+			var message = script_name + ': ' + (new Date).format()
+					+ ' 已處理完畢 Wikidata 部分。'
+					+ (modify_Wikipedia ? '開始處理 ' : '已設定不') + '處理 '
+					+ use_language + ' Wikipedia 上的頁面。';
 			CeL.log(message);
 		});
 
@@ -1556,12 +1563,13 @@ function next_label_data_work() {
 				CeL.warn('next_label_data_work.check_label: Error page_data:');
 				CeL.log(page_data);
 			}
-			if (label_data_length <= log_limit)
+			foreign_title = page_data.title;
+			if (label_data_length <= log_limit) {
 				CeL.info('next_label_data_work.check_label: '
 						+ CeL.wiki.title_link_of(full_title) + ' → '
-						+ CeL.wiki.title_link_of(page_data.title) + '.');
+						+ CeL.wiki.title_link_of(foreign_title));
+			}
 			// TODO: 處理作品被連結/導向到作者的情況。
-			foreign_title = page_data.title;
 			// full_title 當作 key，不能改變。
 		}
 
@@ -1569,6 +1577,7 @@ function next_label_data_work() {
 		// [[Wikipedia:格式手冊/獨立列表]], [[Wikipedia:Stand-alone lists]]
 		if (/List of|Timeline of|列表|年表|一覧/i.test(foreign_title)) {
 			CeL.info('next_label_data_work.check_label: Skip list: '
+					+ CeL.wiki.title_link_of(full_title) + ' → '
 					+ CeL.wiki.title_link_of(foreign_title));
 			// do next.
 			setImmediate(next_label_data_work);
