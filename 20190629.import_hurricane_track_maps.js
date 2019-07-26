@@ -150,6 +150,29 @@ function of_wiki_link(name, link, NO) {
 	return wiki_link;
 }
 
+function fill_type_name(media_data) {
+	if (media_data.type_name)
+		return media_data.type_name;
+
+	if (media_data.type) {
+		if (media_data.type.includes('hurricane'))
+			media_data.type_name = 'hurricane';
+		else if (media_data.type.includes('typhoon'))
+			media_data.type_name = 'typhoon';
+		if (media_data.type_name)
+			return media_data.type_name;
+	}
+
+	var area = media_data.area.toLowerCase();
+	media_data.type_name = area.includes('atlantic')
+	// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
+	|| area.includes('pacific')
+			&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
+			: 'typhoon';
+
+	return media_data.type_name;
+}
+
 // ------------------------------------------------------------------
 
 // General upload function
@@ -158,10 +181,9 @@ function upload_media(media_data) {
 	// Atlantic (- Caribbean Sea - Gulf of Mexico)
 	// Eastern North Pacific
 	// Central North Pacific
-	// 'Northwest Pacific/North Indian Ocean*'
-	var area = media_data.area;
-	var track_maps_category = area.includes('Pacific') ? 'Pacific' : area
-			.includes('Atlantic') ? 'Atlantic' : null;
+	var area = media_data.area.toLowerCase();
+	var track_maps_category = area.includes('pacific') ? 'Pacific' : area
+			.includes('atlantic') ? 'Atlantic' : null;
 	if (!track_maps_category) {
 		CeL.error('Unknown area: ' + area);
 		console.log(media_data);
@@ -172,7 +194,7 @@ function upload_media(media_data) {
 	//
 	+ track_maps_category
 	// Category:2019 Pacific hurricane season track maps
-	+ ' ' + media_data.type_name + ' season track maps';
+	+ ' ' + fill_type_name(media_data) + ' season track maps';
 
 	var categories = media_data.categories ? media_data.categories.clone() : [];
 	categories.push(track_maps_category);
@@ -380,7 +402,7 @@ function parse_NHC_Static_Images(media_data, html) {
 		media_url : media_url,
 		filename : filename,
 		author : author,
-		type_name : 'hurricane',
+		// type_name : 'hurricane',
 		license : '{{PD-USGov-NOAA}}',
 		description : '{{en|' + author
 		//
@@ -417,6 +439,9 @@ function for_each_JTWC_area(xml) {
 	// console.log(xml);
 	var date = new Date(xml.between('<pubDate>', '</pubDate>'));
 	var area = xml.between('<title>', '</title>');
+	// ABPW typhoon: Northwest Pacific/North Indian Ocean*
+	// CPHC hurricane: Central/Eastern Pacific
+	// ABIO typhoon: Southern Hemisphere
 	area = area.between('Current ', ' Tropical Systems') || area;
 	var media_data = {
 		date : date,
@@ -513,8 +538,6 @@ function for_each_JTWC_cyclone(html, media_data) {
 		name : name,
 		type : type,
 		full_name : full_name,
-		// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
-		type_name : type.includes('hurricane') ? 'hurricane' : 'typhoon',
 		filename : filename,
 		media_url : media_url
 	}, media_data);
@@ -543,7 +566,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
-		comment : 'Import JTWC ' + media_data.type_name + ' forecast map'
+		comment : 'Import JTWC ' + fill_type_name(media_data) + ' forecast map'
 				+ wiki_link
 	});
 
@@ -684,7 +707,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			id : data.id,
 			date : date,
 			author : author,
-			type_name : 'typhoon',
+			// type_name : 'typhoon',
 			license : '{{Attribution CWB}}' // + '{{LicenseReview}}'
 			,
 			// 西北太平洋
@@ -799,7 +822,7 @@ function start_JMA() {
 				author : '{{label|Q860935}}',
 				// 西北太平洋
 				area : 'Northwest Pacific',
-				type_name : 'typhoon',
+				// type_name : 'typhoon',
 				license : '{{JMA}}',
 				categories : [ 'Category:Typhoon track maps by JMA' ]
 			};
