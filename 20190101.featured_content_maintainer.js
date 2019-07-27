@@ -216,18 +216,19 @@ function setup_configuration(page_data) {
 		DISCUSSION_PAGE = general.DISCUSSION_PAGE;
 	}
 
-	general.avoid_same_catalog_past_days |= 0;
-	if (!(general.avoid_same_catalog_past_days > 0
-	//
-	&& general.avoid_same_catalog_past_days < 99)) {
-		delete general.avoid_same_catalog_past_days;
+	if (!isNaN(general.avoid_same_catalog_past_days)) {
+		if (1 <= general.avoid_same_catalog_past_days
+				&& general.avoid_same_catalog_past_days <= 10)
+			general.avoid_same_catalog_past_days |= 0;
+		else
+			delete general.avoid_same_catalog_past_days;
 	}
 
-	general.portal_item_count |= 0;
-	if (!(general.portal_item_count > 0
-	//
-	&& general.portal_item_count < 99)) {
-		delete general.portal_item_count;
+	if (!isNaN(general.portal_item_count)) {
+		if (1 <= general.portal_item_count && general.portal_item_count <= 100)
+			general.portal_item_count |= 0;
+		else
+			delete general.portal_item_count;
 	}
 
 	var _key = 'NS_PREFIX_' + (using_GA ? 'GA' : 'FA');
@@ -237,6 +238,28 @@ function setup_configuration(page_data) {
 	_key = 'TYPE_NAME_' + (using_GA ? 'GA' : 'FA');
 	if (general[_key]) {
 		TYPE_NAME = general[_key];
+	}
+
+	var flush_before = general.remove_cache
+			&& CeL.wiki.parse.date(general.remove_cache);
+	if (flush_before) {
+		// 加上刪除快取選項。
+		var latest_flush_file = base_directory + 'latest_flush.json';
+		var latest_flush = CeL.read_JSON(latest_flush_file)
+				|| Object.create(null);
+		var latest_flush_time = Date.parse(latest_flush.date);
+		if (!latest_flush_time || (flush_before - 0 > 0)
+				&& !(latest_flush_time - flush_before > 0)) {
+			CeL.info('維基百科設定頁面指定 '
+					+ flush_before.format()
+					+ ' 前要更新 cache。'
+					+ (latest_flush_time ? '上一次更新是在'
+							+ new Date(latest_flush_time).format() : '')
+					+ '，因此清空 cache 目錄。移除 cache 重新取得資料。');
+			prepare_directory(base_directory, true);
+		}
+		latest_flush.date = new Date;
+		CeL.write_file(latest_flush_file, latest_flush);
 	}
 
 	CeL.log('Configuration:');
@@ -882,7 +905,7 @@ function check_date_page() {
 				hit_count += FC_data[KEY_JDN].length;
 			if (JDN_to_generate - JDN
 			// 記錄之前幾天曾經使用過的類別。
-			<= (configuration.general.avoid_same_catalog_past_days || 2)) {
+			<= configuration.general.avoid_same_catalog_past_days) {
 				avoid_catalogs.push(FC_data[KEY_CATEGORY]);
 			}
 			return true;
@@ -1409,12 +1432,14 @@ function update_portal() {
 	// 清除首頁快取。刷新首頁緩存。
 	wiki.purge('Wikipedia:首页');
 
-	if (using_GA || CeL.env.arg_hash && (CeL.env.arg_hash.days_later | 0)) {
+	var portal_item_count = configuration.general.portal_item_count;
+	if (!(portal_item_count >= 1) || using_GA || CeL.env.arg_hash
+			&& (CeL.env.arg_hash.days_later | 0)) {
 		wiki.run(finish_up);
 		return;
 	}
 
-	var portal_item_count = configuration.general.portal_item_count || 10, edit_options = {
+	var edit_options = {
 		bot : 1,
 		nocreate : 1,
 		summary : 'bot: 更新[[Portal:特色內容]]。作業機制請參考'
