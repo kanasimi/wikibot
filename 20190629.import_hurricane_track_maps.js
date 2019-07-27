@@ -6,6 +6,7 @@
  2019/7/4 22:17:53	Import 交通部中央氣象局 typhoon forecast maps 路徑潛勢預報 https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
  2019/7/22 16:1:0	Import JMA typhoon forecast maps
+ 2019/7/26 20:49:2	盡量統一檔案名稱。檔名不添加氣旋名稱，以統一氣旋存活各時期的檔案名稱。CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。現在應該只會在颱風命名前後變更一次。
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
@@ -517,10 +518,16 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// full_name: e.g., "Tropical Depression 07W (Seven)",
 	// "Tropical Storm 07W (Seven)", "Tropical Storm 07W (Nari)" → "07W"
 	//
+	// 'Tropical Cyclone Formation Alert WTPN21' → "WTPN21"
+	//
 	// matched: [ all, id, name ]
-	var id = full_name.match(/\s+(\w+)(?:\s+\((\w+)\))$/),
+	var id = full_name.match(/\s+(\w+)(?:\s+\((\w+)\))$/)
+			|| full_name.match(/\s+([A-Z]+\d+)$/);
+	// console.log([ full_name, id ]);
+
 	// e.g., 'tropical depression'
-	type = full_name.slice(0, id.index).toLowerCase();
+	var type = full_name.slice(0, id.index).toLowerCase().replace(
+			'formation alert', '').trim();
 	var name = id[2] || id[1];
 	id = id[1];
 
@@ -673,10 +680,30 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		+ TY_ID + '_' + FileLang[VER] + '.png';
 		// console.log(url);
 
-		var name = normalize_name(typhoon_data.TYPHOON[data.id].Name[VER]);
-		var filename = 'CWB ' + name + ' forecast map ('
+		// "TD11"→{id:"TD11"}, "NARI"→{name:"Nari"},
+		// "TD11 (NARI)"→{name:"Nari",id:"TD11"}
+		// "TD11(原百合颱風)"→{name:"百合",id:"TD11"}
+		var name = typhoon_data.TYPHOON[data.id].Name[VER];
+		// matched: [ all, id, name ]
+		var id = name.match(/^(\w+)(?:\s*\(([^()]+)\))?$/);
+		if (!id) {
+			CeL.error('generate_data: Can not parse name: ' + name);
+		} else if (id[2]) {
+			name = id[2].match(/原(.+?)颱風/);
+			name = name ? name[1] : id[2];
+			id = id[1];
+		} else if (/\d$/.test(id[1])) {
+			id = id[1];
+			name = undefined;
+		} else {
+			name = id[1];
+			id = undefined;
+		}
+		name = normalize_name(name);
+		var filename = 'CWB ' + (name || id) + ' forecast map ('
 				+ (VER === 'E' ? 'en-US' : 'zh-TW') + ')';
 		var language_media_data = Object.assign({
+			id : id,
 			name : name,
 			media_url : url,
 			filename : date.format(filename_prefix) + filename + '.png',
@@ -687,9 +714,11 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		});
 
 		// media_data.id: English, name: paerhaps Chinese.
-		var link = media_data.link;
+		var link = media_data.link
+		// e.g., "NARI", "TD11 (NARI)"
+		|| search_category_by_name(name, media_data);
 		// console.log(media_data);
-		var wiki_link = of_wiki_link(name, link);
+		var wiki_link = of_wiki_link(name || id, link);
 		language_media_data.comment += wiki_link;
 		language_media_data.wiki_link = wiki_link;
 		// console.log(media_data);
@@ -705,7 +734,6 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		// console.log(typhoon_data);
 		// console.log(typhoon_data.TYPHOON);
 		// console.log(data);
-		var name_en = typhoon_data.TYPHOON[data.id].Name.E;
 		var date = new Date(typhoon_data.TY_TIME.E);
 		var media_data = {
 			id : data.id,
@@ -721,16 +749,12 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			//
 			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
 		};
+		// media_data.id: e.g., "TD11"
 		search_category_by_name(media_data.id, media_data);
 		Object.assign(media_data, {
 			en : generate_data(data, media_data, 'E'),
 			zh : generate_data(data, media_data, 'C')
 		});
-
-		var footer = media_data.en.name.match(/\((\w+)\)/);
-		if (footer) {
-			search_category_by_name(footer[1], media_data);
-		}
 
 		return media_data;
 	});
