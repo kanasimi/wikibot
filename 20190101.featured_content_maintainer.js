@@ -1496,9 +1496,11 @@ function update_portal() {
 		//
 		function(all, type_tag, type, tail) {
 			var list;
-			if (type.trim() === '典範條目') {
+			type = type.trim();
+			// 機器人會定期更新典範條目、特色列表。本註解必須以本欄項目開頭，方便機器人辨識。若您有想要固定顯示的項目，可以列在本註解前面。
+			if (type.startsWith('典範條目')) {
 				list = title_lists.FA;
-			} else if (type.trim() === '特色列表') {
+			} else if (type.startsWith('特色列表')) {
 				list = title_lists.FL;
 			}
 
