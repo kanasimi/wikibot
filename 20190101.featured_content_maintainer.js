@@ -245,7 +245,7 @@ function setup_configuration(page_data) {
 	if (flush_before) {
 		// 加上刪除快取選項。
 		var latest_flush_file = base_directory + 'latest_flush.json';
-		var latest_flush = CeL.read_JSON(latest_flush_file)
+		var latest_flush = CeL.get_JSON(latest_flush_file)
 				|| Object.create(null);
 		var latest_flush_time = Date.parse(latest_flush.date);
 		if (!latest_flush_time || (flush_before - 0 > 0)
@@ -946,9 +946,11 @@ function check_date_page() {
 	var index = 0, need_list_field = !using_GA, never_shown_pages = [],
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
-	report = '本報告將由機器人每日自動更新，毋須手動修正。'
+	report = '本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
+	//
+	+ CeL.wiki.title_link_of(configuration_page_title + '#一般設定', '更改設定參數')
 	// 不簽名，避免一日之中頻繁變更。 " --~~~~"
-	+ '您可以從[[' + configuration_page_title + '|這個頁面]]更改設定參數。\n'
+	+ '。\n'
 	//
 	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
 	//
@@ -1497,7 +1499,8 @@ function update_portal() {
 		function(all, type_tag, type, tail) {
 			var list;
 			type = type.trim();
-			// 機器人會定期更新典範條目、特色列表。本註解必須以本欄項目開頭，方便機器人辨識。若您有想要固定顯示的項目，可以列在本註解前面。
+			// 機器人會定期更新典範條目、特色列表。本註解必須以本欄項目開頭，方便機器人辨識。若您有想要固定顯示的項目，可以列在本註解前面。本註解前的內容不會列入計數。
+			// 用了個技巧處理這個問題，您參考看看。這樣的編輯彈性比較大。但仍必須手動撤下特別要顯示的條目。
 			if (type.startsWith('典範條目')) {
 				list = title_lists.FA;
 			} else if (type.startsWith('特色列表')) {
