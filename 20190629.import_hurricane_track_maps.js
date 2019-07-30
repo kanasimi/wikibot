@@ -82,21 +82,7 @@ var category_to_parent_hash = Object.create(null);
 		limit : 'max'
 	});
 
-}, function() {
-	// for debug:
-	// console.log(category_to_parent_hash);
-	// return;
-
-	start_NHC();
-	start_JTWC();
-
-	// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
-	start_CWB();
-
-	start_JMA();
-
-	start_PAGASA();
-});
+}, main_work);
 
 function check_category_exists(category_name) {
 	if (!(category_name in category_to_parent_hash))
@@ -140,6 +126,58 @@ function search_category_by_name(TD_name, media_data) {
 	}
 }
 
+function main_work() {
+	if (CeL.is_debug())
+		console.log(category_to_parent_hash);
+
+	var site_mapper = {
+		NHC : start_NHC,
+		JTWC : start_JTWC,
+		CWB : start_CWB,
+		JMA : start_JMA,
+		PAGASA : start_PAGASA
+	};
+
+	if (CeL.env.arg_hash) {
+		var site = CeL.env.arg_hash.site;
+		if (site) {
+			site = site_mapper[site.toUpperCase()];
+			if (site) {
+				site();
+			} else {
+				CeL.error('Invalid site: ' + site);
+			}
+			return;
+		}
+
+		Object.keys(CeL.env.arg_hash).forEach(function(arg_name) {
+			// console.log(arg_name);
+			if (CeL.env.arg_hash[arg_name] === true
+			// e.g., `node 20190629.import_hurricane_track_maps debug nhc`
+			&& (arg_name = site_mapper[arg_name.toUpperCase()])) {
+				arg_name();
+				site = true;
+			}
+		});
+
+		if (site)
+			return;
+	}
+
+	// for debug:
+	// return;
+
+	start_NHC();
+	start_JTWC();
+
+	// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
+	start_CWB();
+
+	start_JMA();
+
+	start_PAGASA();
+}
+
 // ------------------------------------------------------------------
 
 function of_wiki_link(name, link, NO) {
@@ -168,11 +206,17 @@ function fill_type_name(media_data) {
 	}
 
 	var area = media_data.area.toLowerCase();
+	// [[Category:2019 Atlantic hurricane season]]
 	media_data.type_name = area.includes('atlantic')
 	// 颱風（英語：typhoon）限於赤道以北及國際換日線以西的太平洋及南海水域。於赤道以北及國際換日線以東的太平洋水域產生的風暴則被稱為颶風（英語：hurricane）
 	|| area.includes('pacific')
-			&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
-			: 'typhoon';
+	// [[Category:2019 Pacific hurricane season]]
+	&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
+	// [[Category:2019 North Indian Ocean cyclone season]]
+	// But JTWC using "Northwest Pacific/North Indian Ocean*"
+	// : area.includes('north indian') ? 'cyclone'
+	// [[Category:2019 Pacific typhoon season]]
+	: 'typhoon';
 
 	return media_data.type_name;
 }
@@ -183,8 +227,12 @@ function fill_type_name(media_data) {
 function upload_media(media_data) {
 	// area / basins
 	var area = media_data.area.toLowerCase();
-	var track_maps_category = area.includes('pacific') ? 'Pacific' : area
-			.includes('atlantic') ? 'Atlantic' : null;
+	var track_maps_category =
+	// But JTWC using "Northwest Pacific/North Indian Ocean*"
+	// TODO: using `.id`. e.g., "WP0719": Northwest Pacific
+	// area.includes('north indian') ? 'North Indian Ocean' :
+	area.includes('pacific') ? 'Pacific'
+			: area.includes('atlantic') ? 'Atlantic' : null;
 	if (!track_maps_category) {
 		CeL.error('Unknown area: ' + area);
 		console.log(media_data);
@@ -226,8 +274,10 @@ function upload_media(media_data) {
 	}
 
 	// for debug:
-	// console.log(media_data);
-	// return;
+	if (CeL.is_debug()) {
+		console.log(media_data);
+		return;
+	}
 
 	wiki.upload(media_data);
 }
@@ -472,29 +522,25 @@ function for_each_JTWC_cyclone(html, media_data) {
 	if (!media_url)
 		return;
 
-	// https://www.usno.navy.mil/NOOC/nmfc-ph/RSS/jtwc/pubref/3140.html
-	// USCINCPAC INSTRUCTION 3140.1X
-	// Subj: TROPICAL CYCLONE OPERATIONS MANUAL
+	/**
+	 * <code>
+	
+	https://www.usno.navy.mil/NOOC/nmfc-ph/RSS/jtwc/pubref/3140.html
+	USCINCPAC INSTRUCTION 3140.1X
+	Subj: TROPICAL CYCLONE OPERATIONS MANUAL
 
-	// MANOP Heading Area Covered
-	//
-	// ABPW10 PGTW Western Pacific Significant Tropical
-	// Weather Advisory
-	//
-	// ABIO10 PGTW Indian Ocean Significant Tropical Weather
-	// Advisory
-	//
-	// WHPN(xx) PHNC Eastern North Pacific Area
-	//
-	// WTPN(xx) PGTW Western North Pacific Area
-	//
-	// WTIO(xx) PGTW North Indian Ocean
-	//
-	// WHPS(xx) PHNC Eastern South Pacific Area
-	//
-	// WTPS(xx) PGTW Western South Pacific Area
-	//
-	// WTXS(xx) PGTW South Indian Ocean
+	MANOP Heading Area Covered
+	ABPW10 PGTW Western Pacific Significant Tropical Weather Advisory
+	ABIO10 PGTW Indian Ocean Significant Tropical Weather Advisory
+	WHPN(xx) PHNC Eastern North Pacific Area
+	WTPN(xx) PGTW Western North Pacific Area
+	WTIO(xx) PGTW North Indian Ocean
+	WHPS(xx) PHNC Eastern South Pacific Area
+	WTPS(xx) PGTW Western South Pacific Area
+	WTXS(xx) PGTW South Indian Ocean
+
+	</code>
+	 */
 
 	media_url = media_url[1];
 	/**
@@ -920,7 +966,7 @@ function for_each_JMA_typhoon(html) {
 		filename : filename,
 		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
 	});
-	var link = search_category_by_name(name, media_data);
+	var link = search_category_by_name(type + ' ' + name, media_data);
 	var wiki_link = of_wiki_link(name, link);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
