@@ -173,7 +173,8 @@ function main_work() {
 	// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
 	start_CWB();
 
-	start_JMA();
+	// tagged with "All Rights Reserved"
+	// start_JMA();
 
 	start_PAGASA();
 }
