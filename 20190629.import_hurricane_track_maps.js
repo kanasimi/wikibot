@@ -620,7 +620,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 		// link: e.g., "Tropical Depression 07W (2019)"
 	}
 
-	var wiki_link = of_wiki_link(name, link, NO);
+	var wiki_link = of_wiki_link(type + ' ' + name, link, NO);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
