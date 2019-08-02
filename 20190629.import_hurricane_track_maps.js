@@ -621,6 +621,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 	}
 
 	var wiki_link = of_wiki_link(type + ' ' + name, link, NO);
+	if (media_data.area && wiki_link) {
+		wiki_link = media_data.area + ' ' + wiki_link;
+	}
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
