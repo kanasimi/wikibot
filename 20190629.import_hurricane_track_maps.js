@@ -967,7 +967,7 @@ function for_each_JMA_typhoon(html) {
 		filename : filename,
 		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
 	});
-	var link = search_category_by_name(type + ' ' + name, media_data);
+	var link = search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(type + ' ' + name, link);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
