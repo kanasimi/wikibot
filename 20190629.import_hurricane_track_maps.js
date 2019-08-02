@@ -665,7 +665,7 @@ function start_CWB() {
 		//
 		+ (new Date).format('CWB ' + cache_filename_label
 		//
-		+ ' typhoon.html'), response.body);
+		+ ' typhoon.js'), response.body);
 		return response.text();
 	}).then(function(PTA_IMGS_data) {
 		// console.log(PTA_IMGS_data);
@@ -732,7 +732,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		// "TD11(原百合颱風)"→{name:"百合",id:"TD11"}
 		var name = typhoon_data.TYPHOON[data.id].Name[VER];
 		// matched: [ all, id, name ]
-		var id = name.match(/^(\w+)(?:\s*\(([^()]+)\))?$/);
+		var id = name.match(/^([^\s]+)(?:\s*\(([^()]+)\))?$/);
 		if (!id) {
 			CeL.error('generate_data: Can not parse name: ' + name);
 		} else if (id[2]) {
@@ -764,10 +764,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		var link = media_data.link
 		// e.g., "NARI", "TD11 (NARI)"
 		|| search_category_by_name(name, media_data);
-		// console.log(media_data);
-		var wiki_link = of_wiki_link(name || id, link);
-		language_media_data.comment += wiki_link;
-		language_media_data.wiki_link = wiki_link;
+		// CeL.info('generate_data: media_data:');
 		// console.log(media_data);
 		return language_media_data;
 	}
@@ -775,9 +772,10 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 	// 交通部中央氣象局
 	var author = '{{label|Q257136}}';
 
+	typhoon_data.index_of_name = Object.create(null);
 	// console.log(typhoon_data);
 	// console.log(JSON.stringify(typhoon_data));
-	typhoon_data.list = typhoon_data.EACH.map(function(data) {
+	typhoon_data.list = typhoon_data.EACH.map(function(data, index) {
 		// console.log(typhoon_data);
 		// console.log(typhoon_data.TYPHOON);
 		// console.log(data);
@@ -798,10 +796,18 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		};
 		// media_data.id: e.g., "TD11"
 		search_category_by_name(media_data.id, media_data);
-		Object.assign(media_data, {
+		typhoon_data.index_of_name[media_data.id] = index;
+		var language_media_data_hash = {
 			en : generate_data(data, media_data, 'E'),
 			zh : generate_data(data, media_data, 'C')
-		});
+		};
+		Object.assign(media_data, language_media_data_hash);
+		for ( var language in language_media_data_hash) {
+			var name = media_data[language].name;
+			if (name) {
+				typhoon_data.index_of_name[name] = index;
+			}
+		}
 
 		return media_data;
 	});
@@ -814,25 +820,64 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		E : typhoon_data.TY_LIST_2.E
 	} ];
 
-	function add_description(type, language_code, language) {
-		var index = 0;
-		typhoon_data.note[0][type].each_between('<div id="collapse-A', null,
+	// console.log(typhoon_data.index_of_name);
+
+	function add_description(language_type, language_code, language) {
+		typhoon_data.note[0][language_type]
+		// ↑ 只用 TY_LIST_1，不會用到 TY_LIST_2。
+		.each_between('<h4 class="panel-title">', null,
 		//
 		function(token) {
-			var media_data = typhoon_data.list[index++][language_code];
-			var description = token.between('>').replace(/<\/?\w[^<>]*>/g, '')
+			var name = token.between('<span class="fa-blue">', '</span>');
+			// "WIPHA (201907)" → "WIPHA"
+			name = normalize_name(name.trim().replace(/\s*\([^()]+\)$/, ''));
+			var index = typhoon_data.index_of_name[name];
+			// CeL.info('add_description: ' + name + '→' + index);
+
+			// language_media_data
+			var media_data = typhoon_data.list[index];
+			var language_media_data = media_data[language_code];
+
+			if (language_media_data.name) {
+				if (language_media_data.name !== name) {
+					CeL.warn('process_CWB_data: Different name: '
+							+ language_media_data.name + ' !== ' + name);
+				}
+			} else if (name) {
+				language_media_data.name = name;
+			}
+
+			var type = token.between('<span class="fa-red">', '</span>');
+			if (type) {
+				language_media_data.type = type = type.trim().toLowerCase();
+			}
+			var wiki_link = of_wiki_link(
 			//
-			.replace(/\s{2,}/g, ' ');
-			media_data.description.push('{{en|' + author + "'s forecast map"
-					+ media_data.wiki_link + '.}}');
+			(type ? type + (language_code === 'zh' ? '' : ' ') : '')
+			//
+			+ (language_media_data.name || language_media_data.id
+			//
+			|| media_data.id), language_media_data.link || media_data.link);
+			language_media_data.comment += wiki_link;
+			language_media_data.wiki_link = wiki_link;
+			// CeL.info('add_description: language_media_data:');
+			// console.log(language_media_data);
+
+			var description = token.between('<div id="collapse-A').between('>')
+			//
+			.replace(/<\/?\w[^<>]*>/g, '').replace(/\s{2,}/g, ' ');
+			language_media_data.description
+					.push('{{en|' + author + "'s forecast map"
+							+ language_media_data.wiki_link + '.}}');
 			if (false) {
 				// described in comment
-				media_data.description.push('{{' + (language || language_code)
-						+ '|' + media_data.name.trim() + ' ' + description
+				language_media_data.description.push('{{'
+						+ (language || language_code) + '|'
+						+ language_media_data.name.trim() + ' ' + description
 						+ '}}');
 			}
-			media_data.comment += ': ' + description + ' '
-					+ media_data.media_url;
+			language_media_data.comment += ': ' + description + ' '
+					+ language_media_data.media_url;
 		});
 	}
 
