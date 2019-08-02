@@ -181,14 +181,20 @@ function main_work() {
 
 // ------------------------------------------------------------------
 
-function of_wiki_link(name, link, NO) {
-	var wiki_link = name ? link ? CeL.wiki.title_link_of(':en:' + link, name)
-			: name : '';
+function of_wiki_link(media_data) {
+	var name = media_data.name;
+	if (media_data.type) {
+		name = media_data.type + ' ' + name;
+	}
+	var wiki_link = name ? media_data.link ? CeL.wiki.title_link_of(':en:'
+			+ media_data.link, name) : name : '';
 
-	wiki_link = wiki_link || name ? ' of ' + (wiki_link || name) : '';
+	wiki_link = wiki_link || name ? ' of '
+			+ (media_data.area ? media_data.area + ' ' : '')
+			+ (wiki_link || name) : '';
 
-	if (NO)
-		wiki_link += ' #' + NO;
+	if (media_data.NO >= 1)
+		wiki_link += ' #' + media_data.NO;
 
 	return wiki_link;
 }
@@ -450,7 +456,7 @@ function parse_NHC_Static_Images(media_data, html) {
 		});
 	}
 
-	var wiki_link = of_wiki_link(name, link);
+	var wiki_link = of_wiki_link(media_data);
 
 	// National Hurricane Center
 	var author = '{{label|Q1329523}}';
@@ -620,15 +626,13 @@ function for_each_JTWC_cyclone(html, media_data) {
 		// link: e.g., "Tropical Depression 07W (2019)"
 	}
 
-	var wiki_link = of_wiki_link(type + ' ' + name, link, NO);
-	if (media_data.area && wiki_link) {
-		wiki_link = media_data.area + ' ' + wiki_link;
-	}
+	var wiki_link = of_wiki_link(media_data);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
-		comment : 'Import JTWC ' + fill_type_name(media_data) + ' forecast map'
-				+ wiki_link + ' ' + media_url
+		comment : 'Import JTWC '
+		// + fill_type_name(media_data) + ' '
+		+ 'forecast map' + wiki_link + ' ' + media_url
 	});
 
 	upload_media(media_data);
@@ -854,13 +858,14 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			if (type) {
 				language_media_data.type = type = type.trim().toLowerCase();
 			}
-			var wiki_link = of_wiki_link(
-			//
-			(type ? type + (language_code === 'zh' ? '' : ' ') : '')
-			//
-			+ (language_media_data.name || language_media_data.id
-			//
-			|| media_data.id), language_media_data.link || media_data.link);
+			var wiki_link = of_wiki_link({
+				name : (type ? type + (language_code === 'zh' ? '' : ' ') : '')
+				//
+				+ (language_media_data.name || language_media_data.id
+				//
+				|| media_data.id),
+				link : language_media_data.link || media_data.link
+			});
 			language_media_data.comment += wiki_link;
 			language_media_data.wiki_link = wiki_link;
 			// CeL.info('add_description: language_media_data:');
@@ -1015,8 +1020,8 @@ function for_each_JMA_typhoon(html) {
 		filename : filename,
 		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
 	});
-	var link = search_category_by_name(name, media_data);
-	var wiki_link = of_wiki_link(type + ' ' + name, link);
+	search_category_by_name(name, media_data);
+	var wiki_link = of_wiki_link(media_data);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
