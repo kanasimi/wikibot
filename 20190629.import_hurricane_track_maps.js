@@ -173,8 +173,8 @@ function main_work() {
 	// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
 	start_CWB();
 
-	// tagged with "All Rights Reserved"
-	// start_JMA();
+	// tagged with "All Rights Reserved"...
+	start_JMA();
 
 	start_PAGASA();
 }
@@ -968,7 +968,7 @@ function for_each_JMA_typhoon(html) {
 		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
 	});
 	var link = search_category_by_name(type + ' ' + name, media_data);
-	var wiki_link = of_wiki_link(name, link);
+	var wiki_link = of_wiki_link(type + ' ' + name, link);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
