@@ -144,7 +144,7 @@ is_zh = use_language === 'zh', is_CJK = is_zh || use_language === 'ja',
 label_data = Object.create(null), NO_NEED_CHECK_INDEX = 3,
 // label_data_keys = Object.keys(label_data);
 // = ['foreign_language:foreign_title' , '', ...]
-label_data_keys, label_data_index = 0, label_data_length = 0,
+label_data_keys, label_data_index = 0, label_data_length = 0, starting_label_time,
 
 /** {revision_cacher}記錄處理過的文章。 */
 processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
@@ -315,10 +315,10 @@ function for_each_page(page_data, messages) {
 		label = CeL.wiki.normalize_title(label
 		// e.g., {{仮リンク|:Category:1758年に記載された鳥類|en|Category:Birds described
 		// in 1758|ハシジロキツツキ}} (カテゴリ)
-		.replace(/^:/, ''))
+		.replace(/^:/, '')
 		// remove disambiguation information.
 		// e.g., [[Special:Diff/518108554]], [[目擊者 (1999年電影)]]
-		.replace(/\([^()]+\)$/, '');
+		.replace(/\([^()]+\)$/, ''));
 		if (false) {
 			// done by CeL.wiki.normalize_title().
 			label = label.replace(/_/g, ' ');
@@ -479,9 +479,10 @@ function for_each_page(page_data, messages) {
 
 		case 'link-interwiki':
 			// {{link-interwiki|zh=local_title|lang=en|lang_title=foreign_title}}
-			label = token[2][use_language];
-			foreign_language = token[2].lang;
-			foreign_title = token[2].lang_title;
+			// {{Link-interwiki|local_title|en|foreign_title}}
+			label = token[2][use_language] || token[2][1];
+			foreign_language = token[2].lang || token[2][2];
+			foreign_title = token[2].lang_title || token[2][3];
 			break;
 
 		case 'ilh':
@@ -1485,9 +1486,10 @@ function next_label_data_work() {
 	var full_title = label_data_keys[label_data_index++];
 
 	if (label_data_index % 1000 === 0) {
-		CeL.log('next_label_data_work: ' + label_data_index + '/'
-				+ label_data_length + ' ('
-				+ (100 * label_data_index / label_data_length | 0) + '%) '
+		CeL.log('next_label_data_work: '
+				+ CeL.wiki.estimated_message(label_data_index,
+						label_data_length, starting_label_time,
+						label_data_length, 'label') + ' '
 				+ CeL.wiki.title_link_of(full_title));
 	}
 	var foreign_title = full_title.match(/^([a-z]{2,}|WD):(.+)$/),
@@ -1628,6 +1630,7 @@ function finish_work() {
 	// wiki = Wiki(true);
 	// need fix .lag
 
+	starting_label_time = Date.now();
 	// do next.
 	setImmediate(next_label_data_work);
 }
