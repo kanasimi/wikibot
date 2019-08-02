@@ -625,7 +625,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
 		comment : 'Import JTWC ' + fill_type_name(media_data) + ' forecast map'
-				+ wiki_link
+				+ wiki_link + ' ' + media_url
 	});
 
 	upload_media(media_data);
