@@ -630,9 +630,8 @@ function for_each_JTWC_cyclone(html, media_data) {
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
-		comment : 'Import JTWC '
-		// + fill_type_name(media_data) + ' '
-		+ 'forecast map' + wiki_link + ' ' + media_url
+		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link + ' '
+				+ media_url
 	});
 
 	upload_media(media_data);
@@ -764,7 +763,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates and external links
 			// each image has its URL
-			comment : 'Import CWB typhoon forecast map'
+			comment : 'Import CWB tropical cyclone forecast map'
 		});
 
 		// media_data.id: English, name: paerhaps Chinese.
