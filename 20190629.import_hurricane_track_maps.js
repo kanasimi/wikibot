@@ -273,7 +273,8 @@ function upload_media(media_data) {
 		}
 	});
 	// add datetime stamp
-	var date = media_data.date.format('%4Y-%2m-%2d %2H:%2M UTC', {
+	var date = media_data.date.format({
+		format : '%4Y-%2m-%2d %2H:%2M UTC',
 		zone : 0
 	});
 	if (!media_data.comment.includes(date)) {
@@ -480,8 +481,12 @@ function parse_NHC_Static_Images(media_data, html) {
 
 // ============================================================================
 
+var JTWC_source_url;
+
 function start_JTWC() {
-	return fetch('https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?' + Date.now())
+	JTWC_source_url = 'https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?'
+			+ Date.now();
+	return fetch(JTWC_source_url)
 	// https://www.metoc.navy.mil/jtwc/jtwc.html
 	.then(function(response) {
 		CeL.write_file(data_directory
@@ -510,7 +515,8 @@ function for_each_JTWC_area(xml) {
 		date : date,
 		area : area,
 		author : '{{label|Q1142111}}',
-		license : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}'
+		license : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}',
+		source_url : JTWC_source_url
 	};
 
 	xml = xml.between('<description>', '</description>');
@@ -817,7 +823,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			,
 			// 西北太平洋
 			area : 'Northwest Pacific',
-			// source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
+			source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 			categories : [
 			//
 			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
@@ -1087,18 +1093,84 @@ function for_each_JMA_typhoon(html) {
 function start_PAGASA() {
 	var base_URL = 'http://bagong.pagasa.dost.gov.ph/';
 
-	var media_data;
+	var media_data = {
+		base_URL : base_URL,
+		// 西北太平洋
+		area : 'Northwest Pacific',
+		author : '{{label|Q747963}}',
+		license : '{{PD-PhilippinesGov}}',
+		categories : [ 'Category:Typhoon track maps by PAGASA' ],
+		source_url : base_URL + 'tropical-cyclone/severe-weather-bulletin'
+	};
 
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
-	fetch(base_URL + 'tropical-cyclone/severe-weather-bulletin').then(
-			function(response) {
-				CeL.write_file(data_directory
-						+ (new Date).format('PAGASA ' + cache_filename_label
-								+ ' menu.html'), response.body);
-				return response.text();
-			}).then(for_each_PAGASA_typhoon.bind(media_data));
+	fetch(media_data.source_url).then(function(response) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('PAGASA ' + cache_filename_label
+		//
+		+ ' menu.html'), response.body);
+		return response.text();
+
+	}).then(function(html) {
+		// <div class="col-md-12 article-header" id="swb">
+		var text = html.between('id="swb"');
+		if (!text) {
+			return;
+		}
+
+		text = text.between(null, '<style type="text/css">') || text;
+		text.each_between('role="tabpanel"', null,
+		//
+		for_each_PAGASA_typhoon.bind(media_data));
+	});
 }
 
-function for_each_PAGASA_typhoon(media_data) {
-	;
+function for_each_PAGASA_typhoon(token) {
+	var name = token.between('<h3>', '</h3>');
+	name = name.between(null, '<br>') || name;
+	name = name.split('&quot;');
+	var type = name[0];
+	name = normalize_name(name[1]);
+
+	// <li><a
+	// href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/SWB%231.pdf"
+	// target="_blank">SWB#1.pdf</a></li>
+	var NO = token.match(/SWB#(\d+)\.pdf</);
+	if (NO)
+		NO = NO[1];
+
+	// <h5 style="margin-bottom: 1px;">Issued at 11:00 pm, 03 August
+	// 2019</h5>
+	var date = token.between('<h5', '</h5>').between('>').replace(
+			/Issued at /i, '');
+	date = new Date(date + ' UTC+8');
+
+	var media_url = token.match(
+	// <img
+	// src="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/track.png"
+	// class="img-responsive image-preview">
+	/<img src="([^"]+)" class="img-responsive/)[1];
+
+	var media_data = Object.assign({
+		name : name,
+		type : type,
+		NO : NO,
+		date : date,
+		media_url : media_url,
+		filename : date.format(filename_prefix) + 'PAGASA ' + name
+				+ ' forecast map' + media_url.match(/\.\w+$/)[0]
+	}, this);
+
+	search_category_by_name(name, media_data);
+	var wiki_link = of_wiki_link(media_data);
+
+	Object.assign(media_data, {
+		description : '{{en|' + media_data.author + "'s forecast map"
+				+ wiki_link + '.}}',
+		// comment won't accept templates and external links
+		comment : 'Import PAGASA tropical cyclone forecast map' + wiki_link
+	}, media_data);
+
+	upload_media(media_data);
 }
