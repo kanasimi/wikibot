@@ -562,16 +562,21 @@ function for_each_JTWC_cyclone(html, media_data) {
 	<p><b>Tropical Depression  08W (Wipha) Warning #14A CORRECTED   <font color=red><b>Corrected</b></font>   <font color=red><b>Final Warning</b></font></b><br>
 	<b>Issued at 03/0300Z<b>
 
+	<p><b>Tropical Cyclone Formation Alert WTPN21 </b><br>
+	<b>Issued at 03/1200Z<b>
+
 	</code>
 	 */
 	var NO, full_name = html.between(null, '</b>')
 	// Warnings.
 	// Warning #05
-	.replace(/\s+\#(\d+)$/, function(all, _NO) {
+	.replace(/\s+\#(\d+).*/, function(all, _NO) {
 		NO = _NO;
 		return '';
-	}).replace(/<font .+$/, '').replace(/<\/?\w[^<>]*>/g, '').replace(
-			/\s+Warning.*$/, '').trim().replace(/\s{2,}/g, ' ');
+	}).replace(/<font .+$/, '')
+	// remove HTML tags
+	.replace(/<\/?\w[^<>]*>/g, '').replace(/\s+Warning.*$/, '').trim().replace(
+			/\s{2,}/g, ' ');
 
 	// e.g., 'Final Warning', 'Corrected Final Warning'
 	var note = html.between('<font color=red><b>', 'Issued at').replace(
@@ -596,7 +601,14 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// e.g., "2019 JTWC 07W forecast map.gif"
 	var filename = media_data.date.format(filename_prefix) + 'JTWC ' + id
 	// + ' warning map'
-	+ ' forecast map' + media_url.match(/\.\w+$/)[0];
+	+ ' forecast map.' + media_url.match(
+	// For "Tropical Cyclone Formation Alert WTPN21",
+	// different alerts using the same id (WTPN21),
+	// so we should add more note to distinguish one from the other.
+	// full_name.includes('Formation Alert') ? /[^\/]+\.\w+$/ : /\.\w+$/
+
+	// get full file name now
+	/[^\/]+$/)[0];
 
 	if (!name) {
 		CeL.error('for_each_JTWC_cyclone: No name got for area '
