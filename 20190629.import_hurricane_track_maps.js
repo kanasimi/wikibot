@@ -527,8 +527,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// "TC Warning Graphic", "TCFA Graphic"
 	// TCFA: Tropical Cyclone Formation Alert 熱帯低気圧形成警報
 	.match(/<a href='([^<>']+)'[^<>]*>TC[^<>]* Graphic<\/a>/);
-	if (!media_url)
+	if (!media_url) {
 		return;
+	}
 
 	/**
 	 * <code>
@@ -556,18 +557,25 @@ function for_each_JTWC_cyclone(html, media_data) {
 	"Tropical Depression 05W (Mun) Warning #02 "
 	"Hurricane 02E (Barbara) Warning #15 "
 	"Tropical Storm  02E (Barbara) Warning #25   <font color=red><b>Final Warning</b></font></b><br>"
+
+	<br>
+	<p><b>Tropical Depression  08W (Wipha) Warning #14A CORRECTED   <font color=red><b>Corrected</b></font>   <font color=red><b>Final Warning</b></font></b><br>
+	<b>Issued at 03/0300Z<b>
+
 	</code>
 	 */
-	var full_name = html.between(null, '</b>').replace(/(#\d+).+$/, '$1')
-			.replace(/<font .+$/, '').replace(/<\w[^<>]*>/g, '').trim()
-			.replace(/\s{2,}/g, ' ');
-	var NO;
+	var NO, full_name = html.between(null, '</b>')
 	// Warnings.
 	// Warning #05
-	full_name = full_name.replace(/\s+\#(\d+)$/, function(all, _NO) {
+	.replace(/\s+\#(\d+)$/, function(all, _NO) {
 		NO = _NO;
 		return '';
-	}).replace(/\s+Warning.*$/, '');
+	}).replace(/<font .+$/, '').replace(/<\/?\w[^<>]*>/g, '').replace(
+			/\s+Warning.*$/, '').trim().replace(/\s{2,}/g, ' ');
+
+	// e.g., 'Final Warning', 'Corrected Final Warning'
+	var note = html.between('<font color=red><b>', 'Issued at').replace(
+			/<\/?\w[^<>]*>/g, '').trim().replace(/\s{2,}/g, ' ');
 
 	// full_name: e.g., "Tropical Depression 07W (Seven)",
 	// "Tropical Storm 07W (Seven)", "Tropical Storm 07W (Nari)" → "07W"
@@ -633,7 +641,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
 		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link + ' '
-				+ media_url
+				+ (note ? note + ' ' : '') + media_url
 	});
 
 	upload_media(media_data);
@@ -940,8 +948,16 @@ function start_JMA() {
 
 	}).then(function(html) {
 		var typhoonList = [];
-		// var typhoonList=new Array(); typhoonList[0]="1905";
-		// /*****************************************************************************/
+		// <script language="javascript">
+		// <!--
+		/** ************************************************************************** */
+		/**
+		 * <code>
+		var currentType="wide";
+		var typhoonList=new Array(); typhoonList[0]="1907"; typhoonList[1]="1908"; typhoonList[2]="c"; 
+		</code>
+		 */
+		/** ************************************************************************** */
 		// -->
 		// </script>
 		eval(html.between('var typhoonList=', '</script>').between(';', '/*'));
