@@ -504,7 +504,8 @@ function for_each_JTWC_area(xml) {
 	// ABPW typhoon: Northwest Pacific/North Indian Ocean*
 	// CPHC hurricane: Central/Eastern Pacific
 	// ABIO typhoon: Southern Hemisphere
-	area = area.between('Current ', ' Tropical Systems') || area;
+	area = area.between('Current ', ' Tropical Systems').replace(/\*$/, '')
+			|| area;
 	var media_data = {
 		date : date,
 		area : area,
@@ -600,6 +601,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	media_data = Object.assign({
 		id : id,
 		name : name,
+		NO : NO,
 		type : type,
 		full_name : full_name,
 		filename : filename,
@@ -863,7 +865,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 				+ (language_media_data.name || language_media_data.id
 				//
 				|| media_data.id),
-				link : language_media_data.link || media_data.link
+				link : language_media_data.link || media_data.link,
+				area : media_data.area
 			});
 			language_media_data.comment += wiki_link;
 			language_media_data.wiki_link = wiki_link;
