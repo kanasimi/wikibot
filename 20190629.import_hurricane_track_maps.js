@@ -1119,26 +1119,44 @@ function start_PAGASA() {
 			return;
 		}
 
+		var NO_hash = Object.create(null);
+		text.between('role="tablist">', '</ul>')
+		//
+		.each_between('<li', '</li>', function(token) {
+			// console.log(token);
+			NO_hash[token.between('<a').between('>', '<')]
+			//
+			= token.between('data-header="', '"');
+		});
+
 		text = text.between(null, '<style type="text/css">') || text;
 		text.each_between('role="tabpanel"', null,
 		//
-		for_each_PAGASA_typhoon.bind(media_data));
+		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
 	});
 }
 
-function for_each_PAGASA_typhoon(token) {
+function for_each_PAGASA_typhoon(NO_hash, token) {
 	var name = token.between('<h3>', '</h3>');
 	name = name.between(null, '<br>') || name;
+	var NO = NO_hash[name];
 	name = name.split('&quot;');
 	var type = name[0];
 	name = normalize_name(name[1]);
 
-	// <li><a
-	// href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/SWB%231.pdf"
-	// target="_blank">SWB#1.pdf</a></li>
-	var NO = token.match(/SWB#(\d+)\.pdf</);
-	if (NO)
+	// console.log(NO_hash);
+	if (NO && (NO = NO.match(/#(\d+)/))) {
 		NO = NO[1];
+	}
+	// URL/tag of .pdf may NOT updated!
+	if (false) {
+		// <li><a
+		// href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/SWB%231.pdf"
+		// target="_blank">SWB#1.pdf</a></li>
+		NO = token.match(/SWB#(\d+)\.pdf</);
+		if (NO)
+			NO = NO[1];
+	}
 
 	// <h5 style="margin-bottom: 1px;">Issued at 11:00 pm, 03 August
 	// 2019</h5>
