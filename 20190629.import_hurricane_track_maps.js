@@ -377,10 +377,15 @@ function NHC_for_each_cyclones(token, area, date) {
 	// console.log([ token, area, date ]);
 	// return;
 
-	var matched = token.between('<strong style="font-weight:bold;">',
-			'</strong>');
+	var note = token.between('<strong style="font-weight:bold;">', '</td>');
+	var matched = note.between(null, '</strong>');
 	if (matched && (matched = parse_NHC_time_string(matched)))
 		date = matched;
+
+	note = note.between('</strong>').replace(/<br>/g, '. ')
+	// remove HTML tags
+	.replace(/<\/?\w[^<>]*>/g, '').trim().replace(/\s{2,}/g, ' ');
+
 	var PATTERN_link = /<a href="([^<>"]+)"[^<>]*>([\s\S]+?)<\/a>/g,
 	// <!--storm identification: EP022019 Hurricane Barbara-->
 	id = token.between('<!--storm identification:', '-->').trim();
@@ -396,7 +401,8 @@ function NHC_for_each_cyclones(token, area, date) {
 			name : id,
 			area : area,
 			date : date,
-			source_url : source_url
+			source_url : source_url,
+			note : note
 		};
 		get_NHC_Static_Images(media_data);
 	}
@@ -477,7 +483,8 @@ function parse_NHC_Static_Images(media_data, html) {
 		//
 		+ "'s 5-day track and intensity forecast cone" + wiki_link + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
-		comment : 'Import NHC tropical cyclone forecast map' + wiki_link
+		comment : 'Import NHC tropical cyclone forecast map' + wiki_link + ' '
+				+ (media_data.note ? media_data.note + ' ' : '') + media_url
 	// of the 2019 Pacific hurricane season
 	});
 
