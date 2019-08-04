@@ -186,6 +186,8 @@ function main_work() {
 function of_wiki_link(media_data) {
 	var name = media_data.name;
 	if (media_data.type) {
+		// normalize type
+		media_data.type = media_data.type.trim().toLowerCase();
 		name = media_data.type + ' ' + name;
 	}
 	var wiki_link = name ? media_data.link ? CeL.wiki.title_link_of(':en:'
