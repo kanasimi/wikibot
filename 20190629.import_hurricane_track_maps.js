@@ -266,6 +266,8 @@ function upload_media(media_data) {
 		show_message : true,
 		// must be set to reupload
 		ignorewarnings : 1,
+		// 標記此編輯為機器人編輯。
+		bot : 1,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
@@ -826,7 +828,6 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			,
 			// 西北太平洋
 			area : 'Northwest Pacific',
-			source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 			categories : [
 			//
 			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
@@ -898,6 +899,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			var wiki_link = of_wiki_link({
 				name : name,
 				link : language_media_data.link || media_data.link,
+				source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 				area : media_data.area
 			});
 			language_media_data.comment += wiki_link;

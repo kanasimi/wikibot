@@ -12,6 +12,7 @@
  TODO: [[File:2018 Osaka earthquake Map4.png]]
 
  TODO: [[Category:USGS isoseismal maps]]
+ TODO: https://commons.wikimedia.org/wiki/Category:Earthquake_maps_by_Central_Weather_Bureau_ROC
  */
 
 // ----------------------------------------------------------------------------
@@ -290,6 +291,8 @@ function upload_media(media_data, product_data, detail) {
 		show_message : true,
 		// must be set to reupload
 		ignorewarnings : 1,
+		// 標記此編輯為機器人編輯。
+		bot : 1,
 		form_data : {
 			url_post_processor : function(value, XMLHttp, error) {
 				if (media_directory)
