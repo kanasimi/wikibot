@@ -487,13 +487,9 @@ function parse_NHC_Static_Images(media_data, html) {
 
 // ============================================================================
 
-var JTWC_source_url;
-
 function start_JTWC() {
-	JTWC_source_url = 'https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?'
-			+ Date.now();
-	return fetch(JTWC_source_url)
-	// https://www.metoc.navy.mil/jtwc/jtwc.html
+	return fetch('https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?' + Date.now())
+	//
 	.then(function(response) {
 		CeL.write_file(data_directory
 		//
@@ -522,7 +518,7 @@ function for_each_JTWC_area(xml) {
 		area : area,
 		author : '{{label|Q1142111}}',
 		license : '{{PD-USGov-Air Force}}\n{{PD-USGov-Navy}}',
-		source_url : JTWC_source_url
+		source_url : 'https://www.metoc.navy.mil/jtwc/jtwc.html'
 	};
 
 	xml = xml.between('<description>', '</description>');
