@@ -382,7 +382,9 @@ function NHC_for_each_cyclones(token, area, date) {
 	if (matched && (matched = parse_NHC_time_string(matched)))
 		date = matched;
 
-	note = note.between('</strong>').replace(/<br>/g, '. ')
+	note = note.between('</strong>').replace(/^\s*<br>/g, '')
+	//
+	.replace(/<br><br>/g, '<br>').replace(/<br>/g, '. ')
 	// remove HTML tags
 	.replace(/<\/?\w[^<>]*>/g, '').trim().replace(/\s{2,}/g, ' ');
 
