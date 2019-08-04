@@ -7,10 +7,10 @@
  2019/7/5 6:23:58	Import Joint Typhoon Warning Center (JTWC)'s Tropical Warnings map https://www.metoc.navy.mil/jtwc/jtwc.html
  2019/7/22 16:1:0	Import JMA typhoon forecast maps
  2019/7/26 20:49:2	盡量統一檔案名稱。檔名不添加氣旋名稱，以統一氣旋存活各時期的檔案名稱。CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。現在應該只會在颱風命名前後變更一次。
+ 2019/8/4 19:7:13	Import PAGASA typhoon forecast maps	http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
- http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 
  */
 
@@ -660,8 +660,8 @@ function for_each_JTWC_cyclone(html, media_data) {
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
-		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link + ' '
-				+ (note ? note + ' ' : '') + media_url
+		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link
+				+ '. ' + (note ? note + ' ' : '') + media_url
 	});
 
 	upload_media(media_data);
@@ -1054,6 +1054,27 @@ function for_each_JMA_typhoon(html) {
 	var jp_language = 'jp', jp_filename = filename.replace('('
 			+ media_data.language + ')', '(' + jp_language + ')');
 
+	// <tr><td colspan="2">&lt;Analysis at 09 UTC, 4 August&gt;</td></tr>
+	// ...
+	// <tr><td colspan="2"><img align="left" width="100%" height="2px"
+	// src="../common/line_menu.gif"></td></tr>
+	var note = [], _note = html.between('Analysis at ', '<td colspan="2">');
+	if (_note) {
+		_note.each_between('<tr>', '</tr>', function(token) {
+			var value = token
+					.match(/<td>([^<>]+)<\/td>[\s\n]*<td>([^<>]+)<\/td>/);
+			if (!value)
+				return;
+			var name = value[2].trim();
+			value = value[1].trim();
+			if (!value || value === '-')
+				return;
+
+			note.puah(name + ': ' + value + '. ');
+		});
+	}
+	note = note.join('');
+
 	Object.assign(media_data, {
 		name : name,
 		full_name : full_name,
@@ -1068,7 +1089,8 @@ function for_each_JMA_typhoon(html) {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
 		// comment won't accept templates and external links
-		comment : 'Import JMA tropical cyclone forecast map' + wiki_link
+		comment : 'Import JMA tropical cyclone forecast map' + wiki_link + ' '
+				+ (note ? note + ' ' : '') + media_url
 	});
 
 	// for the English version.
@@ -1189,11 +1211,19 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
 
+	// <div class="panel-heading">Location of Eye/center</div>
+	var note = token.between('<div class="panel-heading">Location')
+	//
+	.between('<div class="panel-body">', '</div>')
+	// remove HTML tags
+	.replace(/<\/?\w[^<>]*>/g, '').trim();
+
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
 		// comment won't accept templates and external links
 		comment : 'Import PAGASA tropical cyclone forecast map' + wiki_link
+				+ '. ' + (note ? note + ' ' : '') + media_url
 	}, media_data);
 
 	upload_media(media_data);
