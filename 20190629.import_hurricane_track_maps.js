@@ -91,6 +91,8 @@ function check_category_exists(category_name) {
 }
 
 function normalize_name(name) {
+	if (!name)
+		return name;
 	return CeL.wiki.upper_case_initial(name.trim().toLowerCase());
 }
 
@@ -773,7 +775,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			name = id[2].match(/原(.+?)颱風/);
 			name = name ? name[1] : id[2];
 			id = id[1];
-		} else if (/\d$/.test(id[1])) {
+		} else if (/^\w+\d+$/.test(id[1])) {
+			// e.g., "TD14"
 			id = id[1];
 			name = undefined;
 		} else {
@@ -864,7 +867,9 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		function(token) {
 			var name = token.between('<span class="fa-blue">', '</span>');
 			// "WIPHA (201907)" → "WIPHA"
-			name = normalize_name(name.trim().replace(/\s*\([^()]+\)$/, ''));
+			name = name.trim().replace(/\s*\([^()]+\)$/, '');
+			if (!/^\w+\d+$/.test(name))
+				name = normalize_name(name);
 			var index = typhoon_data.index_of_name[name];
 			// CeL.info('add_description: ' + name + '→' + index);
 
@@ -881,16 +886,17 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 				language_media_data.name = name;
 			}
 
+			var name = language_media_data.name || language_media_data.id
+					|| media_data.id;
 			var type = token.between('<span class="fa-red">', '</span>');
 			if (type) {
 				language_media_data.type = type = type.trim().toLowerCase();
+				name = type
+						+ (/^[\w\d]/.test(name) || language_code !== 'zh' ? ' '
+								: '') + name;
 			}
 			var wiki_link = of_wiki_link({
-				name : (type ? type + (language_code === 'zh' ? '' : ' ') : '')
-				//
-				+ (language_media_data.name || language_media_data.id
-				//
-				|| media_data.id),
+				name : name,
 				link : language_media_data.link || media_data.link,
 				area : media_data.area
 			});
