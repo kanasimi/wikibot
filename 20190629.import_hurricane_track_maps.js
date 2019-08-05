@@ -1074,8 +1074,8 @@ function for_each_JMA_typhoon(html) {
 					.match(/<td>([^<>]+)<\/td>[\s\n]*<td>([^<>]+)<\/td>/);
 			if (!value)
 				return;
-			var name = value[2].trim();
-			value = value[1].trim();
+			var name = value[1].trim();
+			value = value[2].trim();
 			if (!value || value === '-')
 				return;
 
