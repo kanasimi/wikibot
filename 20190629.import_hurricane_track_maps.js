@@ -1094,12 +1094,13 @@ function for_each_JMA_typhoon(html) {
 	});
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
+	var comment = 'Import JMA tropical cyclone forecast map' + wiki_link + ' '
+			+ (note ? note + ' ' : '');
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
 		// comment won't accept templates and external links
-		comment : 'Import JMA tropical cyclone forecast map' + wiki_link + ' '
-				+ (note ? note + ' ' : '') + media_url
+		comment : comment + media_data.media_url
 	});
 
 	// for the English version.
@@ -1119,7 +1120,8 @@ function for_each_JMA_typhoon(html) {
 	});
 	Object.assign(media_data, {
 		filename : jp_filename,
-		other_versions : '{{F|' + filename + '|{{language|en}}|80}}'
+		other_versions : '{{F|' + filename + '|{{language|en}}|80}}',
+		comment : comment + media_data.media_url
 	});
 
 	upload_media(media_data);
