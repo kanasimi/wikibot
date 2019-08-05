@@ -1070,8 +1070,9 @@ function for_each_JMA_typhoon(html) {
 	var note = [], _note = html.between('Analysis at ', '<td colspan="2">');
 	if (_note) {
 		_note.each_between('<tr>', '</tr>', function(token) {
-			var value = token
-					.match(/<td>([^<>]+)<\/td>[\s\n]*<td>([^<>]+)<\/td>/);
+			var value = token.match(
+			//		
+			/<td>([^<>]*)<\/td>[\s\n]*<td[^<>]*>([^<>]+)<\/td>/);
 			if (!value)
 				return;
 			var name = value[1].trim();
@@ -1079,10 +1080,14 @@ function for_each_JMA_typhoon(html) {
 			if (!value || value === '-')
 				return;
 
-			note.push(name + ': ' + value + '. ');
+			if (name) {
+				note.push(name + ': ' + value);
+			} else if (note.length > 0) {
+				note[note.length - 1] += ', ' + value;
+			}
 		});
 	}
-	note = note.join('');
+	note = note.join('. ');
 
 	Object.assign(media_data, {
 		name : name,
@@ -1094,8 +1099,8 @@ function for_each_JMA_typhoon(html) {
 	});
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
-	var comment = 'Import JMA tropical cyclone forecast map' + wiki_link + ' '
-			+ (note ? note + ' ' : '');
+	var comment = 'Import JMA tropical cyclone forecast map' + wiki_link + '. '
+			+ (note ? note + '. ' : '');
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
