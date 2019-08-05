@@ -1079,7 +1079,7 @@ function for_each_JMA_typhoon(html) {
 			if (!value || value === '-')
 				return;
 
-			note.puah(name + ': ' + value + '. ');
+			note.push(name + ': ' + value + '. ');
 		});
 	}
 	note = note.join('');
