@@ -180,8 +180,9 @@ _global.set_language = function(language) {
 set_language(CeL.env.arg_hash && CeL.env.arg_hash.use_language || 'zh');
 
 // e.g., # node task.js debug=2
-if (CeL.env.arg_hash && CeL.env.arg_hash.debug > 0) {
-	CeL.set_debug(CeL.env.arg_hash.debug);
+if (CeL.env.arg_hash
+		&& (CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug) > 0) {
+	CeL.set_debug(CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug);
 }
 
 // ----------------------------------------------------------------------------
