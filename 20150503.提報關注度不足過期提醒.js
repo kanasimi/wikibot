@@ -62,7 +62,7 @@ wiki = Wiki(true),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
-CeL.log('開始處理 ' + summary + ' 作業', true);
+CeL.log('開始處理 ' + summary + ' 作業');
 
 // CeL.set_debug(4);
 // 取得提報關注度不足頁面內容並且處理。
@@ -201,7 +201,7 @@ function report_notability(page_data) {
 			// 僅作檢測，不改變任何條目。
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		},
-		after : function(messages, pages, titles) {
+		after : function(messages, pages) {
 			// reset messages.
 			messages.length = 0;
 			// 對每位用戶一頁頁處理。

@@ -69,7 +69,7 @@ var category_to_parent_hash = Object.create(null);
 		parent_category_name = year + ' ' + parent_category_name;
 	}
 
-	wiki.categorymembers(parent_category_name, function(pages, titles, title) {
+	wiki.categorymembers(parent_category_name, function(pages, error) {
 		pages.forEach(function(page_data) {
 			if (page_data.ns === CeL.wiki.namespace('Category')) {
 				category_to_parent_hash[page_data.title]

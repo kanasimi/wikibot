@@ -12,11 +12,11 @@ var from_language = 'en',
 //CeL.set_debug(4);
 from_wiki
 // 取得連結到 [[Template:Authority control]] 的頁面。
-.backlinks('Authority control', function(pages, titles, title) {
+.backlinks('Authority control', function(pages, error) {
 	if (CeL.is_debug(2))
 		CeL.show_value(pages, '[[Template:Authority control]] pages');
 	from_wiki.page(pages, function(page_data) {
-		titles = [];
+		var titles = [];
 		CeL.debug('讀取頁面內容。篩選出 {{Authority control}} 字節。');
 		// template_data[from_language title] = [ page_data, {{Authority control}} 字節 ]
 		var template_data = {};
@@ -34,7 +34,7 @@ from_wiki
 		});
 		CeL.debug('取得 titles 在目標語系 (' + to_language + ') 之標題。');
 		CeL.wiki.langlinks([ from_language, titles ], function(pages) {
-			titles = [];
+			var titles = [];
 			var template_text = {};
 			pages.forEach(function(page_data) {
 				var title = CeL.wiki.langlinks.parse(page_data, to_language);
@@ -56,15 +56,16 @@ from_wiki
 				CeL.debug('to_wiki.work()');
 				to_wiki.work({
 					summary: '轉移 ' + from_language + ' wiki 之[[權威控制]] (Authority control) 模板。',
-					each: function(content, title, messages, page) {
+					each: function(page_data, messages) {
+						var content = CeL.wiki.content_of(page_data);
 						var matched = content.match(/{{\s*Authority[ _]control\s*(\|.*?)?}}/);
 						if (matched) {
-							if (matched[0] !== template_text[title])
-								matched[0] += ' (與 ' + from_language + ' 不同: ' + template_text[title] + ')';
+							if (matched[0] !== template_text[page_data.title])
+								matched[0] += ' (與 ' + from_language + ' 不同: ' + template_text[page_data.title] + ')';
 							matched = '已存在模板 ' + matched[0].replace(/{{([^:])/g, function($0, $1) {
 								return '{{tlx|' + $1;
 							});
-							//CeL.log(跳過 [' + title + ']: ' + matched);
+							//CeL.log(跳過 [' + page_data.title + ']: ' + matched);
 							return [ CeL.wiki.edit.cancel, matched ];
 						}
 						// [[WP:ORDER]]:
@@ -74,10 +75,10 @@ from_wiki
 						return content.replace(/{{\s*Persondata(?:[\s\|]|<!--)|{{\s*DEFAULTSORT\s*:|\[\[\s*Category:|{{\s*(?:(?:Sub|Sect|[a-z\d\- _'ō]*-)?stub|[^{} _\d\|]*小作品|小小?條目|(?:Featured|Good)[ _](?:article|list))(?:[\s\|}]|<!--)|$/i,
 							//
 							function($0) {
-								return template_text[title] + '\n' + ($0 || '');
+								return template_text[page_data.title] + '\n' + ($0 || '');
 							});
 					},
-					after: function(messages, pages, titles) {
+					after: function(messages, pages) {
 						messages.add('後續檢索用索引值: ' + from_wiki.show_next());
 					},
 					write_to:'Wikipedia:沙盒',

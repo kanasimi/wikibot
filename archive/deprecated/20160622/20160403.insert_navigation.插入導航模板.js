@@ -111,7 +111,7 @@ function for_each_pages(page_data) {
 // 確保 [[template_with_ns]] 在最後一頁，以在最後處理 redirect_hash。
 // 注意: 一次取得大量頁面時，回傳內容不一定會按照原先輸入的次序排列！
 // 若有必要，此時得用 config.first 自行處理！
-function arrange_page(messages, pages, titles) {
+function arrange_page(messages, pages) {
 	// console.log(pages);
 	if (template_with_ns ===
 	//
@@ -132,10 +132,6 @@ function arrange_page(messages, pages, titles) {
 	}
 	pages.splice(index, 1);
 	pages.push(page_data);
-	if (titles) {
-		titles.splice(index, 1);
-		titles.push(template_with_ns);
-	}
 }
 
 /**
@@ -146,15 +142,15 @@ function finish_work() {
 
 // ----------------------------------------------------------------------------
 
-wiki.links(template_with_ns, function(pages, titles, title) {
+wiki.links(template_with_ns, function(pages, error) {
 	CeL.log('[[' + title + ']]: All ' + pages.length + ' links.');
 
 	/** 限制每一項最大處理頁面數。 */
 	if (false)
-		titles = titles.slice(0, 5);
+		pages = pages.slice(0, 5);
 
 	// for redirect_hash.
-	titles.push(template_with_ns = title);
+	pages.push(template_with_ns = title);
 
 	// callback
 	wiki.work({
@@ -164,7 +160,7 @@ wiki.links(template_with_ns, function(pages, titles, title) {
 		log_to : log_to,
 		before : arrange_page,
 		last : finish_work
-	}, titles);
+	}, pages);
 
 }, {
 	limit : 'max',

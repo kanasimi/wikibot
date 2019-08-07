@@ -90,10 +90,12 @@ function archive_title(log_title, archive_index) {
  *            回調函數。 callback(titles)
  */
 function get_log_pages(callback) {
-	wiki.prefixsearch(title_prefix, function(pages, titles, title) {
-		CeL.log('get_log_pages: ' + titles.length + ' subpages.');
-		// console.log(titles);
-		callback(titles.sort());
+	wiki.prefixsearch(title_prefix, function(pages, error) {
+		CeL.log('get_log_pages: ' + pages.length + ' subpages.');
+		// console.log(pages);
+		callback(pages.map(function(page_data) {
+			return page_data.title;
+		}).sort());
 	}, {
 		limit : 'max'
 	});

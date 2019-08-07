@@ -84,12 +84,11 @@ config = {
 
 to_wiki.preserve_password = true;
 
-function for_source_pages(pages, titles, title) {
+function for_source_pages(pages, error) {
 	if (CeL.is_debug(2))
 		CeL.show_value(pages, '[[Template:Authority control]] pages');
-	// console.log('titles: ' + titles);
 	from_wiki.page(pages, function(page_data) {
-		titles = [];
+		var titles = [];
 		CeL.debug('讀取頁面內容。篩選出 {{Authority control}} 字節。');
 		// template_data[from_language title]
 		// = [ page_data, {{Authority control}} 字節 ]

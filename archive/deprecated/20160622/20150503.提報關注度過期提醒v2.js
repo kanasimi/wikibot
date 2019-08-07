@@ -190,7 +190,7 @@ wiki
 			// 僅作檢測，不改變任何條目。
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		},
-		last : function(messages, pages, titles) {
+		last : function(messages, pages) {
 			// reset messages.
 			messages.length = 0;
 			// 對每位用戶一頁頁處理。

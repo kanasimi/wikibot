@@ -62,6 +62,13 @@ wiki
 }, {
 	summary : 'summary'
 });
+
+wiki.categorymembers(category_title, function(page_data_list, error) {
+	;
+}, {
+	limit : 'max'
+});
+
 ```
 
 * [A sample for wiki_session.query()](https://github.com/kanasimi/wikibot/blob/9727497238c81cfe8189bcafdb6bb17684720a9d/20171025.fix_LintErrors.js)
