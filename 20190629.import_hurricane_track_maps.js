@@ -284,7 +284,7 @@ function upload_media(media_data) {
 		zone : 0
 	});
 	if (!media_data.comment.includes(date)) {
-		media_data.comment += ' (' + date + ')';
+		media_data.comment = media_data.comment.trim() + ' (' + date + ')';
 	}
 
 	// for debug:
@@ -458,8 +458,8 @@ function parse_NHC_Static_Images(media_data, html) {
 		}
 	}
 	// year is included in filename. e.g., "EP022019"
-	filename = /* media_data.date.format(filename_prefix) + */filename
-			+ '.png';
+	filename = /* media_data.date.format(filename_prefix) + */'NHC '
+			+ filename + '.png';
 	media_url = NHC_base_URL + media_url;
 	// console.log(media_url);
 
@@ -568,7 +568,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	</code>
 	 */
 
-	media_url = media_url[1];
+	media_url = media_url[1].replace('http://', 'https://');
 	/**
 	 * <code>
 	"Tropical Depression 05W (Mun) Warning #02 "
@@ -642,8 +642,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 		type : type,
 		full_name : full_name,
 		filename : filename,
-		media_url : media_url
+		media_url : media_url,
 	}, media_data);
+	media_data.source_url += ' ' + media_url;
 
 	// <b>Issued at 07/2200Z<b>
 	// <b>Issued at 06/1600Z<b>
@@ -670,7 +671,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
 		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link
-				+ '. ' + (note ? note + ' ' : '') + media_url
+				+ '. ' + (note ? note + ' ' : '')
+	// JTWC using the same media_url for specific tropical cyclone
+	// + media_url
 	});
 
 	upload_media(media_data);
@@ -966,8 +969,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 
 function start_JMA() {
 	var language = 'en';
-	// http://www.jma.go.jp/jp/typh/
-	var base_URL = 'http://www.jma.go.jp/' + language + '/typh/';
+	// https://www.jma.go.jp/jp/typh/
+	var base_URL = 'https://www.jma.go.jp/' + language + '/typh/';
 
 	return fetch(base_URL + 'index.html')
 	//
@@ -1007,7 +1010,7 @@ function start_JMA() {
 				categories : [ 'Category:Typhoon track maps by JMA' ]
 			};
 
-			// http://www.jma.go.jp/en/typh/1905.html
+			// https://www.jma.go.jp/en/typh/1905.html
 			fetch(base_URL + id + '.html').then(function(response) {
 				media_data.source_url = response.useFinalURL || response.url;
 				return response.text();
@@ -1019,8 +1022,8 @@ function start_JMA() {
 function for_each_JMA_typhoon(html) {
 	var media_data = this;
 	// function jumpL(typhoonNo, dataType) @
-	// http://www.jma.go.jp/en/typh/scripts/typhoon.js
-	// e.g., http://www.jma.go.jp/en/typh/images/zooml/1905-00.png
+	// https://www.jma.go.jp/en/typh/scripts/typhoon.js
+	// e.g., https://www.jma.go.jp/en/typh/images/zooml/1905-00.png
 	media_data.media_url = media_data.base_URL + 'images/zooml/'
 			+ media_data.id + '-00.png';
 
@@ -1105,7 +1108,9 @@ function for_each_JMA_typhoon(html) {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ wiki_link + '.}}',
 		// comment won't accept templates and external links
-		comment : comment + media_data.media_url
+		comment : comment
+	// JMA 註解說明太長，加上 media_url 也無法完全顯現。
+	// + media_data.media_url
 	});
 
 	// for the English version.
@@ -1115,7 +1120,7 @@ function for_each_JMA_typhoon(html) {
 	// for the Japanese version.
 
 	var original_language = media_data.language;
-	// http://www.jma.go.jp/jp/typh/
+	// https://www.jma.go.jp/jp/typh/
 	media_data.language = jp_language;
 
 	'base_URL,media_url,source_url'.split(',').forEach(function(name) {
@@ -1223,6 +1228,7 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 		filename : date.format(filename_prefix) + 'PAGASA ' + name
 				+ ' forecast map' + media_url.match(/\.\w+$/)[0]
 	}, this);
+	media_data.source_url += ' ' + media_url;
 
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
@@ -1239,7 +1245,9 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 				+ wiki_link + '.}}',
 		// comment won't accept templates and external links
 		comment : 'Import PAGASA tropical cyclone forecast map' + wiki_link
-				+ '. ' + (note ? note + ' ' : '') + media_url
+				+ '. ' + (note ? note + ' ' : '')
+	// PAGASA using the same media_url for specific tropical cyclone
+	// + media_url
 	}, media_data);
 
 	upload_media(media_data);
