@@ -1021,6 +1021,7 @@ function start_JMA() {
 
 function for_each_JMA_typhoon(html) {
 	var media_data = this;
+	var source_url = media_data.source_url;
 	// function jumpL(typhoonNo, dataType) @
 	// https://www.jma.go.jp/en/typh/scripts/typhoon.js
 	// e.g., https://www.jma.go.jp/en/typh/images/zooml/1905-00.png
@@ -1100,6 +1101,7 @@ function for_each_JMA_typhoon(html) {
 		filename : filename,
 		other_versions : '{{F|' + jp_filename + '|{{language|ja}}|80}}',
 	});
+	media_data.source_url = source_url + ' ' + media_data.media_url;
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
 	var comment = 'Import JMA tropical cyclone forecast map' + wiki_link + '. '
@@ -1123,15 +1125,18 @@ function for_each_JMA_typhoon(html) {
 	// https://www.jma.go.jp/jp/typh/
 	media_data.language = jp_language;
 
-	'base_URL,media_url,source_url'.split(',').forEach(function(name) {
+	'base_URL,media_url'.split(',').forEach(function(name) {
 		media_data[name] = media_data[name].replace('/'
 		//
 		+ original_language + '/', '/' + media_data.language + '/');
 	});
+	media_data.source_url = source_url + ' ' + media_data.media_url;
 	Object.assign(media_data, {
 		filename : jp_filename,
 		other_versions : '{{F|' + filename + '|{{language|en}}|80}}',
-		comment : comment + media_data.media_url
+		comment : comment
+	// JMA 註解說明太長，加上 media_url 也無法完全顯現。
+	// + media_data.media_url
 	});
 
 	upload_media(media_data);
