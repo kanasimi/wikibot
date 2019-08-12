@@ -115,6 +115,11 @@ global.localized_page_configuration = {
 	}
 }[use_language];
 
+global.FC_vote_configurations = {
+	vote_closed_listener : function() {
+		wiki.page(this.title, pre_fetch_sub_pages);
+	},
+};
 Object.assign(global, require('./special page configuration.js'));
 
 // ----------------------------------------------

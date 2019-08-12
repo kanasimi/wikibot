@@ -311,7 +311,7 @@ var default_FC_vote_configurations = {
 	timeout_id_hash : Object.create(null),
 	// 註冊 listener。 this: see .section_filter()
 	vote_closed_listener : function() {
-		wiki.page(this.title, pre_fetch_sub_pages);
+		// wiki.page(this.title, pre_fetch_sub_pages);
 	},
 
 	// will be used in .section_filter()
@@ -407,6 +407,7 @@ var default_FC_vote_configurations = {
 		status : check_FC_status
 	}
 };
+Object.assign(default_FC_vote_configurations, global.FC_vote_configurations);
 Object.keys(default_FC_vote_configurations.cross_out_templates_footer)
 //
 .forEach(function(title) {
@@ -969,7 +970,7 @@ function set_FC_vote_closed(section) {
 	var page_configuration = this.page.page_configuration;
 
 	if (!page_configuration.extend_intervals) {
-		// 沒有設定任何延長期限。
+		// 沒有設定任何延長期限。 extensions
 		section.vote_closed = true;
 		return;
 	}
