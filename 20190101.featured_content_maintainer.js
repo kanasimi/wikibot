@@ -250,7 +250,7 @@ function setup_configuration(page_data) {
 		var latest_flush_time = Date.parse(latest_flush.date);
 		if (!latest_flush_time || (flush_before - 0 > 0)
 				&& !(latest_flush_time - flush_before > 0)) {
-			CeL.info('維基百科設定頁面指定 '
+			CeL.info('設定頁面指定 '
 					+ flush_before.format()
 					+ ' 前要更新 cache。'
 					+ (latest_flush_time ? '上一次更新是在'
@@ -1349,7 +1349,16 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 				//
 				? '|' + representative_image.caption : '') + ']]\n');
 			}
-			return introduction_section.toString();
+			introduction_section = introduction_section.filter(function(token) {
+				// 去掉單個換行。
+				return token && token !== '\n';
+			}).toString();
+			if (introduction_section.length < 3000) {
+				introduction_section
+				//
+				= introduction_section.replace(/\n\n/g, '');
+			}
+			return introduction_section;
 		}, {
 			summary : '自動創建' + TYPE_NAME + '簡介頁面'
 		});
@@ -1373,7 +1382,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			//
 			'所嵌入包含的' + TYPE_NAME + '──' + CeL.wiki.title_link_of(FC_title)
 			//
-			+ '似乎還不存在簡介？或許員葉面被移動了？'
+			+ '似乎還不存在簡介？或許原頁面被移動了？'
 			//
 			+ (using_GA ? '' : '或者簡介頁面存放在"Wikipedia:優良條目/"下？')
 			// 若簡介頁面確實不存在
