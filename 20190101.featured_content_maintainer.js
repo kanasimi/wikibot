@@ -260,6 +260,8 @@ function setup_configuration(page_data) {
 		}
 		latest_flush.date = new Date;
 		CeL.write_file(latest_flush_file, latest_flush);
+		// reset cache
+		redirects_to_hash = Object.create(null);
 	}
 
 	CeL.log('Configuration:');
