@@ -346,19 +346,15 @@ function parse_each_FC_item_list_page(page_data) {
 
 		// assert: matched.length === 4
 
-		if (false) {
-			console.log(original_FC_title + ': '
-					+ CeL.wiki.namespace(original_FC_title, 'is_page_title'));
-		}
-		if (CeL.wiki.namespace(original_FC_title, 'is_page_title') !== 0) {
-			// 去除並非文章，而是工作連結的情況。
-			continue;
-		}
-
 		if (matched[3]) {
 			// 分類/類別。
 			catalog = matched[3].replace(/<!--.*?-->/g, '').trim().replace(
 					/\s*（\d+）$/, '');
+			continue;
+		}
+
+		// 去除並非文章，而是工作連結的情況。 e.g., [[File:文件名]], [[Category:维基百科特色内容|*]]
+		if (CeL.wiki.namespace(original_FC_title, 'is_page_title') !== 0) {
 			continue;
 		}
 
