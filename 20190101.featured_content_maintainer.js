@@ -338,10 +338,6 @@ function parse_each_FC_item_list_page(page_data) {
 	while (matched = PATTERN_Featured_content.exec(content)) {
 		// 還沒繁簡轉換過的標題。
 		var original_FC_title = CeL.wiki.normalize_title(matched[1]);
-		if (CeL.wiki.namespace(original_FC_title) !== 0) {
-			// 去除並非文章，而是工作連結的情況。
-			continue;
-		}
 
 		if (matched.length === 2) {
 			sub_FC_list_pages.push(original_FC_title);
@@ -349,6 +345,15 @@ function parse_each_FC_item_list_page(page_data) {
 		}
 
 		// assert: matched.length === 4
+
+		if (false) {
+			console.log(original_FC_title + ': '
+					+ CeL.wiki.namespace(original_FC_title, 'is_page_title'));
+		}
+		if (CeL.wiki.namespace(original_FC_title, 'is_page_title') !== 0) {
+			// 去除並非文章，而是工作連結的情況。
+			continue;
+		}
 
 		if (matched[3]) {
 			// 分類/類別。
