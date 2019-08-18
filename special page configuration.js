@@ -625,6 +625,14 @@ var page_configurations = {
 	'zhwiki:Wikipedia:新条目推荐/候选' : Object.assign({
 		timezone : 8
 	}, default_DYK_vote_configurations),
+	'zhwiki:Wikipedia:特色圖片評選' : Object.assign({
+		timezone : 8
+	}, default_FC_vote_configurations, {
+		pass_vote : function(diff, section) {
+			// 候選圖片獲得'''8張'''或以上的「符合特色圖片標準」票；「不符合特色圖片標準」票與「符合特色圖片標準」票1:1抵消。
+			return diff >= 8;
+		}
+	}),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
@@ -986,7 +994,7 @@ function set_FC_vote_closed(section) {
 
 		// 否則，投票期將自動延長 `interval`。
 		section.vote_time_limit += CeL.date.to_millisecond(interval);
-	})) {
+	}, this)) {
 		return;
 	}
 
