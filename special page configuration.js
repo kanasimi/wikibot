@@ -993,12 +993,14 @@ function set_FC_vote_closed(section) {
 		}
 
 		// 否則，投票期將自動延長 `interval`。
-		section.vote_time_limit += CeL.date.to_millisecond(interval);
+		section.vote_time_limit = +section.vote_time_limit
+				+ CeL.date.to_millisecond(interval);
+		return Date.now() < section.vote_time_limit;
 	}, this)) {
 		return;
 	}
 
-	section.vote_closed = Date.now() >= section.vote_time_limit;
+	section.vote_closed = Date.now() >= +section.vote_time_limit;
 }
 
 // 以截止時間來檢核所有逾期的選票。 應對中文維基之延期制度。
@@ -1219,9 +1221,11 @@ function FC_section_filter(section) {
 		page_configuration.cross_out_templates_footer) {
 			// assert: {String}latest_vote.vote_user !== ''
 			if (cross_out_vote_list) {
-				CeL.info('Cross out ' + cross_out_vote_list.length
-				//
-				+ ' vote(s)');
+				CeL.info(CeL.wiki.title_link_of(section.section_title.link[0]
+						+ '#' + section.section_title[0])
+						+ ': Cross out '
+						+ cross_out_vote_list.length
+						+ ' vote(s)');
 				cross_out_vote_list.forEach(function(vote) {
 					cross_out_vote(section, vote, token);
 				});
@@ -1256,9 +1260,19 @@ function FC_section_filter(section) {
 			section.vote_time_limit = CeL.wiki.parse.date(matched[1]);
 		}
 	}
+	if (section.vote_time_limit) {
+		CeL.debug(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+				+ section.section_title[0])
+				+ ': 投票截止時間: ' + section.vote_time_limit.format(), 1);
+	} else {
+		CeL.warn('無法判別投票截止時間: '
+				+ CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+						+ section.section_title[0]));
+	}
 
 	page_configuration.set_vote_closed.call(this, section);
-	var time_duration = section.vote_time_limit > 0 && section.vote_time_limit
+	// console.log(section.vote_time_limit);
+	var time_duration = +section.vote_time_limit > 0 && section.vote_time_limit
 			- Date.now();
 	if (section.vote_closed) {
 		// 以截止時間來檢核所有逾期的選票。
@@ -1370,6 +1384,7 @@ function FC_vote_countdown(section) {
 	}
 
 	if (!(+section.vote_time_limit > 0)) {
+		// console.log(section);
 		return '<b style="color: red;">N/A</b>';
 	}
 
