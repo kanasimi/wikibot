@@ -1263,7 +1263,10 @@ function FC_section_filter(section) {
 	if (section.vote_time_limit) {
 		CeL.debug(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
 				+ section.section_title[0])
-				+ ': 投票截止時間: ' + section.vote_time_limit.format(), 1);
+				+ ': 投票截止時間: ' + (CeL.is_Date(section.vote_time_limit)
+				//
+				? section.vote_time_limit.format() : section.vote_time_limit),
+				1);
 	} else {
 		CeL.warn('無法判別投票截止時間: '
 				+ CeL.wiki.title_link_of(section.section_title.link[0] + '#'
