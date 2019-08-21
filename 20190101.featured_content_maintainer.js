@@ -240,18 +240,18 @@ function setup_configuration(page_data) {
 		TYPE_NAME = general[_key];
 	}
 
-	var flush_before = general.remove_cache
+	var flush_cache_before = general.remove_cache
 			&& CeL.wiki.parse.date(general.remove_cache);
-	if (flush_before) {
+	if (flush_cache_before) {
 		// 加上刪除快取選項。
 		var latest_flush_file = base_directory + 'latest_flush.json';
 		var latest_flush = CeL.get_JSON(latest_flush_file)
 				|| Object.create(null);
 		var latest_flush_time = Date.parse(latest_flush.date);
-		if (!latest_flush_time || (flush_before - 0 > 0)
-				&& !(latest_flush_time - flush_before > 0)) {
+		if (!latest_flush_time || (flush_cache_before - 0 > 0)
+				&& !(latest_flush_time - flush_cache_before > 0)) {
 			CeL.info('設定頁面指定 '
-					+ flush_before.format()
+					+ flush_cache_before.format()
 					+ ' 前要更新 cache。'
 					+ (latest_flush_time ? '上一次更新是在'
 							+ new Date(latest_flush_time).format() : '')
@@ -365,8 +365,14 @@ function parse_each_FC_item_list_page(page_data) {
 		if (FC_title in FC_data_hash) {
 			// 基本檢測與提醒。
 			if (FC_data_hash[FC_title][KEY_ISFFC] === is_FFC) {
-				CeL.warn('Duplicate ' + TYPE_NAME + ' title: ' + FC_title
-						+ '; ' + FC_data_hash[FC_title] + '; ' + matched[0]);
+				CeL.warn('parse_each_FC_item_list_page: Duplicate ' + TYPE_NAME
+						+ ' title: ' + FC_title + '; ' + FC_data_hash[FC_title]
+						+ '; ' + matched[0]);
+				error_logs.push(CeL.wiki.title_link_of(title)
+						+ '有重複條目: '
+						+ CeL.wiki.title_link_of(original_FC_title)
+						+ (original_FC_title === FC_title ? '' : ', '
+								+ CeL.wiki.title_link_of(FC_title)));
 			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC
 			//
 			&& (FC_data_hash[FC_title][KEY_ISFFC] !== 'UP' || is_FFC !== false)) {
