@@ -316,7 +316,7 @@ function parse_each_FC_item_list_page(page_data) {
 			// 優良條目轉換到子頁面模式: 警告：本頁中的所有嵌入頁面都會被機器人當作優良條目的分類列表。請勿嵌入非優良條目的分類列表。
 			|| test_pattern(/{{(Wikipedia:[^{}\|]+)}}/g, 10)
 			// 優良條目子分類列表, 已撤消的優良條目: all links
-			|| /\[\[([^\[\]\|#]+)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
+			|| /\[\[([^:\[\]\|#][^\[\]\|#]*)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
