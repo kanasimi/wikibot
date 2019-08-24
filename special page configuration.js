@@ -628,6 +628,17 @@ var page_configurations = {
 	'zhwiki:Wikipedia:特色圖片評選' : Object.assign({
 		timezone : 8
 	}, default_FC_vote_configurations, {
+		transclusion_target : function(token) {
+			if (token.name.startsWith(this.title + '/')) {
+				return token.name;
+			}
+		},
+		// 要篩選的章節標題層級。
+		level_filter : 3,
+		section_filter : function(section) {
+			// console.log(section);
+			return section.users.length > 0;
+		},
 		pass_vote : function(diff, section) {
 			// 候選圖片獲得'''8張'''或以上的「符合特色圖片標準」票；「不符合特色圖片標準」票與「符合特色圖片標準」票1:1抵消。
 			return diff >= 8;
