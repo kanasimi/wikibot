@@ -775,20 +775,20 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		+ TY_ID + '_' + FileLang[VER] + '.png';
 		// console.log(url);
 
-		// "TD11"→{id:"TD11"}, "NARI"→{name:"Nari"},
-		// "TD11 (NARI)"→{name:"Nari",id:"TD11"}
-		// "TD11(原百合颱風)"→{name:"百合",id:"TD11"}
 		var name = typhoon_data.TYPHOON[data.id].Name[VER];
 		// matched: [ all, id, name ]
-		var id = name.match(/^([^\s]+)(?:\s*\(([^()]+)\))?$/);
+		var id = name.match(/^([^\s()]+)(?:\s*\(([^()]+)\))?$/);
 		if (!id) {
 			CeL.error('generate_data: Can not parse name: ' + name);
 		} else if (id[2]) {
+			// "TD11(原百合颱風)"→{name:"百合",id:"TD11"}
 			name = id[2].match(/原(.+?)颱風/);
+			// "TD11 (NARI)"→{name:"Nari",id:"TD11"}
 			name = name ? name[1] : id[2];
 			id = id[1];
 		} else if (/^\w+\d+$/.test(id[1])) {
 			// e.g., "TD14"
+			// "TD11"→{id:"TD11"}, "NARI"→{name:"Nari"},
 			id = id[1];
 			name = undefined;
 		} else {
