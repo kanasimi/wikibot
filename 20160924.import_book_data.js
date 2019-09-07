@@ -38,7 +38,8 @@ all_properties = {
 	著者 : 'author',
 	// 作品的原始語言
 	// 電影或表演作品最初創作時的語言。對於書面作品則已棄用，請改用P407（作品或名字的語言）
-	// it is possible to access any edition using 版本屬於或翻譯自 (P629) and 版本 (P747) properties, not just translations.
+	// it is possible to access any edition using 版本屬於或翻譯自 (P629) and 版本 (P747)
+	// properties, not just translations.
 	// 原語 : 'P364',
 	//
 	// ジャンル or: 著作物の主題 (P921): e.g., "[[紀伝体]]の歴史書", "[[長編小説]]",
@@ -78,7 +79,8 @@ all_properties = {
 	 */
 
 	読み仮名 : '',
-	imported_from : ''
+	// P143
+	'imported from Wikimedia project' : ''
 },
 //
 all_properties_array = Object.keys(all_properties).sort(),
@@ -353,7 +355,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			data.references = {
-				imported_from : use_language + 'wiki'
+				'imported from Wikimedia project' : use_language + 'wiki'
 			};
 
 			CeL.debug(JSON.stringify(data), 3);
@@ -383,8 +385,9 @@ var old_properties = 'P957,P212,P1739,P243,P143,P136,P1104,P407,P856,P577,P31,P1
 CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 	// 與之前的資料做比對，預防萬一被改掉了。
 	if (id_list.join(',') !== old_properties) {
-		CeL.error('Different properties:\nold: ' + old_properties + '\nnew: '
-				+ id_list.join(',') + '\n' + all_properties_array.join(','));
+		CeL.error('Exit. Different properties:\nold: ' + old_properties
+				+ '\nnew: ' + id_list.join(',') + '\n'
+				+ all_properties_array.join(','));
 		return;
 	}
 
