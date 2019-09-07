@@ -260,12 +260,14 @@ function for_each_page(page_data, messages) {
 				data.題名 = book_title;
 			}
 
-			// id:
-			CeL.debug(JSON.stringify(entity), 3);
-			CeL.debug(JSON.stringify(
-			//
-			entity.value(Object.keys(all_properties))), 2);
-			// console.log(parameters);
+			if (false) {
+				// id: TypeError: Converting circular structure to JSON
+				// CeL.debug(JSON.stringify(entity), 3);
+				CeL.debug(JSON.stringify(
+				//
+				entity.value(Object.keys(all_properties))), 2);
+				console.log(parameters);
+			}
 
 			for ( var parameter in set_properties_hash) {
 				value = parameters[parameter];
