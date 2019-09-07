@@ -357,7 +357,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			data.references = {
-				'imported from Wikimedia project' : use_language + 'wiki'
+				'imported from Wikimedia project' : use_language + 'wikipedia'
 			};
 
 			CeL.debug(JSON.stringify(data), 3);
@@ -418,7 +418,7 @@ CeL.wiki.data.search.use_cache(all_properties_array, function(id_list) {
 		var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (0) {
+		if (false) {
 			// 設定此初始值，可跳過之前已經處理過的。
 			list = list.slice(0 * test_limit, 1 * test_limit);
 			CeL.log(list.slice(0, 8).map(function(page_data) {
