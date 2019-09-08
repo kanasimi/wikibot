@@ -281,7 +281,7 @@ function for_each_page(page_data, messages) {
 					data[set_properties_hash[parameter]]
 					// e.g., data.題名 = 'ABC'
 					= value;
-					// = [ use_language + 'wiki', value ];
+					// = [ use_language + 'wikipedia', value ];
 				}
 			}
 
@@ -315,7 +315,7 @@ function for_each_page(page_data, messages) {
 					}
 				});
 				if (value.length > 0) {
-					// data.本国 = [ use_language + 'wiki', value ];
+					// data.本国 = [ use_language + 'wikipedia', value ];
 					data.本国 = value;
 				}
 			}
