@@ -272,11 +272,20 @@ function for_each_page(page_data, messages) {
 			for ( var parameter in set_properties_hash) {
 				value = parameters[parameter];
 				if (value && (value = CeL.wiki.plain_text(value.toString()))) {
-					if (parameter === 'pages' && value.includes('\n')) {
-						// 預防多種頁數。 e.g., [[ja:戦藻録]]
-						value = value.split(/\s+/);
-						// console.log([ parameter, value ]);
+					if (parameter === 'pages') {
+						// e.g., "400（改訂版）" → "400" [[黄金の法]]
+						value = value.replace(/^(\d+)[^\d]+$/g, '$1');
+						if (value.includes('\n')) {
+							// 預防多種頁數。 e.g., [[ja:戦藻録]]
+							value = value.split(/\s+/);
+							// console.log([ parameter, value ]);
+						} else {
+							value = +value;
+							if (!value)
+								continue;
+						}
 					}
+
 					// console.log([ parameter, value.toString() ]);
 					data[set_properties_hash[parameter]]
 					// e.g., data.題名 = 'ABC'
