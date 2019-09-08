@@ -1,6 +1,8 @@
 ﻿/*
 
-	2016/11/14 20:32:33	初版試營運。
+2016/11/14 20:32:33	初版試營運。
+
+https://www.wikidata.org/wiki/Wikidata:WikiProject_Books
 
  */
 
@@ -273,24 +275,27 @@ function for_each_page(page_data, messages) {
 				value = parameters[parameter];
 				if (value && (value = CeL.wiki.plain_text(value.toString()))) {
 					if (parameter === 'pages') {
-						// e.g., "400（改訂版）" → "400" [[黄金の法]]
-						value = value.replace(/^(\d+)[^\d]+$/g, '$1');
-						if (value.includes('\n')) {
-							// 預防多種頁數。 e.g., [[ja:戦藻録]]
-							value = value.split(/\s+/);
-							// console.log([ parameter, value ]);
-						} else {
-							value = +value;
-							if (!value)
-								continue;
-						}
+						// 預防多種頁數。 e.g., [[ja:戦藻録]]
+						value = value.split(/[\s\n]+/).map(function(v) {
+							// e.g., "400（改訂版）" → "400" [[黄金の法]]
+							return v.replace(/^(\d{2,4})[^\d]+$/g, '$1')
+							// [[文明の衝突]]
+							.replace(/^[^\d]+(\d{2,4})頁?$/g, '$1') | 0;
+						}).filter(function(v) {
+							return v >= 1;
+						});
+						if (value.length === 0)
+							continue;
+						if (value.length === 1)
+							value = value[0];
+						// console.log([ parameter, value ]);
 					}
 
 					// console.log([ parameter, value.toString() ]);
 					data[set_properties_hash[parameter]]
 					// e.g., data.題名 = 'ABC'
 					= value;
-					// = [ use_language + 'wikipedia', value ];
+					// = [ use_language + 'wiki', value ];
 				}
 			}
 
@@ -324,7 +329,7 @@ function for_each_page(page_data, messages) {
 					}
 				});
 				if (value.length > 0) {
-					// data.本国 = [ use_language + 'wikipedia', value ];
+					// data.本国 = [ use_language + 'wiki', value ];
 					data.本国 = value;
 				}
 			}
