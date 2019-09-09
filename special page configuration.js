@@ -625,7 +625,7 @@ var page_configurations = {
 	'zhwiki:Wikipedia:新条目推荐/候选' : Object.assign({
 		timezone : 8
 	}, default_DYK_vote_configurations),
-	'zhwiki:Wikipedia:特色圖片評選' : Object.assign({
+	'_zhwiki:Wikipedia:特色圖片評選' : Object.assign({
 		timezone : 8
 	}, default_FC_vote_configurations, {
 		transclusion_target : function(token) {
@@ -1016,6 +1016,7 @@ function set_FC_vote_closed(section) {
 
 // 以截止時間來檢核所有逾期的選票。 應對中文維基之延期制度。
 // MUST setup section.vote_time_limit, section.vote_list first!
+// (@ function FC_section_filter(section))
 function get_FC_votes_on_date(section, date, support_only) {
 	function filter_via_date(previous, vote_template) {
 		return previous + (date - vote_template.vote_date >= 0 ? 1 : 0);
