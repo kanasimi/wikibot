@@ -625,7 +625,7 @@ var page_configurations = {
 	'zhwiki:Wikipedia:新条目推荐/候选' : Object.assign({
 		timezone : 8
 	}, default_DYK_vote_configurations),
-	'_zhwiki:Wikipedia:特色圖片評選' : Object.assign({
+	'zhwiki:Wikipedia:特色圖片評選' : Object.assign({
 		timezone : 8
 	}, default_FC_vote_configurations, {
 		transclusion_target : function(token) {
@@ -635,10 +635,6 @@ var page_configurations = {
 		},
 		// 要篩選的章節標題層級。
 		level_filter : 3,
-		section_filter : function(section) {
-			// console.log(section);
-			return section.users.length > 0;
-		},
 		pass_vote : function(diff, section) {
 			// 候選圖片獲得'''8張'''或以上的「符合特色圖片標準」票；「不符合特色圖片標準」票與「符合特色圖片標準」票1:1抵消。
 			return diff >= 8;
@@ -1280,6 +1276,11 @@ function FC_section_filter(section) {
 				? section.vote_time_limit.format() : section.vote_time_limit),
 				1);
 	} else {
+		if (section.users.length === 0) {
+			// console.log(section);
+			// 無法判別結束時間，又沒有任何使用者標籤的段落，就當作是工作段落，直接跳過。
+			return;
+		}
 		CeL.warn('無法判別投票截止時間: '
 				+ CeL.wiki.title_link_of(section.section_title.link[0] + '#'
 						+ section.section_title[0]));

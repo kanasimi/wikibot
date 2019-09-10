@@ -448,6 +448,7 @@ function start_main_work(page_data) {
 	// main_talk_pages = [ 'Wikipedia:新条目推荐/候选' ];
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:典范条目评选/提名区' ];
+	// main_talk_pages = [ 'Wikipedia:特色圖片評選' ];
 
 	// ----------------------------------------------------
 
@@ -1069,10 +1070,10 @@ function pre_fetch_sub_pages(page_data, error) {
 	CeL.debug(sub_pages_to_fetch.length + ' pages to load:\n'
 			+ sub_pages_to_fetch.join('\n'), 1, 'pre_fetch_sub_pages');
 
-	wiki.page(sub_pages_to_fetch, function(page_data_list) {
+	wiki.page(sub_pages_to_fetch, function(page_data_list, error) {
 		// @see main_work @ wiki_API.prototype.work
 		if (page_data_list.length !== sub_pages_to_fetch.length) {
-			throw 'Fetch pages error!';
+			throw new Error('Fetch pages error! ' + error);
 		}
 
 		var transclusions = 0;
@@ -1100,7 +1101,7 @@ function pre_fetch_sub_pages(page_data, error) {
 		});
 
 		if (transclusions > 0) {
-			// re-parse
+			// content changed. re-parse
 			CeL.wiki.parser(page_data, {
 				wikitext : page_data.use_wikitext = parsed.toString()
 			}).parse();
