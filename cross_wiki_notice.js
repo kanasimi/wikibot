@@ -52,7 +52,7 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 	function check_talk_page(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -76,7 +76,7 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 				var
 				/**
 				 * {String}page content, maybe undefined. 條目/頁面內容 =
-				 * revision['*']
+				 * CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data);
 				if (content) {

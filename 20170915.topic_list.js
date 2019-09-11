@@ -575,7 +575,7 @@ function get_special_users(callback, options) {
 	wiki.page('Project:BAG', function(page_data) {
 		var title = CeL.wiki.title_of(page_data),
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 

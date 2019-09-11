@@ -121,7 +121,7 @@ wiki.edit_data(function(entity) {
 		references : {
 			臺灣物種名錄物種編號 : 123456,
 			// [[d:Special:AbuseFilter/54]]
-			// 導入自 : 'zhwiki',
+			// 導入自 : 'zhwikipedia',
 			載於 : '臺灣物種名錄物種',
 			來源網址 : 'https://www.wikidata.org/',
 			檢索日期 : new Date
@@ -148,7 +148,7 @@ wiki.edit_data(function(entity) {
 			読み仮名 : 'かな',
 			language : 'ja',
 			references : {
-				imported_from : 'jawiki'
+				'imported from Wikimedia project' : 'jawikipedia'
 			}
 		} ]
 	};

@@ -9,7 +9,7 @@
 		"email" : "vimunci@gmail.com",
 		"url" : "https://github.com/kanasimi/wikibot"
 	},
-	"contributors" : "vimunci",
+	"contributors" : [ "vimunci" ],
 	"license" : "BSD-3-Clause",
 	"homepage" : "https://github.com/kanasimi/wikibot",
 	"bugs" : {

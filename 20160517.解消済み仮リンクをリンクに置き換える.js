@@ -22,6 +22,7 @@
 
  TODO:
  如果來自{{Translation/Ref}}所引起的話，則請檢查<article>參數。
+ {{main|{{跨語言連結}}}} → {{main|連結}}, NOT {{main|[[連結]]}} 要把連結也拿掉
 
  */
 

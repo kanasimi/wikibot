@@ -56,7 +56,7 @@ PATTERN_AFTER = /{{Authority[ _]control[}\s\|]|{{\s*Persondata(?:[}\s\|]|<!--)|{
 function for_each_pages(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
-	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
+	/** {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision) */
 	content = CeL.wiki.content_of(page_data);
 	/** {Object}revision data. 版本資料。 */
 	// var revision = page_data.revisions && page_data.revisions[0];

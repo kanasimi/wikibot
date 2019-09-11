@@ -391,7 +391,8 @@ function for_each_row(row) {
 	}
 	if (CeL.is_debug(4)) {
 		row.revisions.forEach(function(revision) {
-			delete revision['*'];
+			// @see CeL.wiki.revision_content(revision)
+			delete revision.slots ? revision.slots.main['*'] : revision['*'];
 		});
 		delete row.diff;
 		console.log(row);

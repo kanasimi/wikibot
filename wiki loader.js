@@ -243,10 +243,9 @@ _global.prepare_directory = function prepare_directory(directory, clean) {
 	}
 
 	if (clean) {
-		CeL.fs_remove(directory, true);
+		CeL.remove_directory(directory, true);
 	}
-	// CeL.nodejs.fs_mkdir(directory);
-	CeL.fs_mkdir(directory);
+	CeL.create_directory(directory);
 };
 
 _global.fetch = _global.fetch || function fetch(url) {

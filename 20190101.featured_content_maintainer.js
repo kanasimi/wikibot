@@ -132,7 +132,7 @@ wiki.cache([ {
 	reget : true,
 	each : parse_each_FC_item_list_page
 }, {
-	type : 'redirects',
+	type : 'redirects_here',
 	// TODO: 一次取得大量頁面。
 	list : function() {
 		CeL.debug('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
@@ -154,7 +154,7 @@ wiki.cache([ {
 	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
 	each : parse_each_FC_date_page
 }, {
-	type : 'redirects',
+	type : 'redirects_here',
 	// TODO: 一次取得大量頁面。
 	list : redirects_list_to_check,
 	reget : true,
@@ -276,7 +276,7 @@ function parse_each_FC_item_list_page(page_data) {
 	 */
 	var title = CeL.wiki.title_of(page_data),
 	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+	 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
@@ -315,7 +315,7 @@ function parse_each_FC_item_list_page(page_data) {
 			|| test_pattern(/\[\[:([^\[\]\|#]+)(?:\|([^\[\]]*))?\]\]|\n==([^=].*?)==\n/g)
 			// 優良條目轉換到子頁面模式: 警告：本頁中的所有嵌入頁面都會被機器人當作優良條目的分類列表。請勿嵌入非優良條目的分類列表。
 			|| test_pattern(/{{(Wikipedia:[^{}\|]+)}}/g, 10)
-			// 優良條目子分類列表, 已撤消的優良條目: all links
+			// 優良條目子分類列表, 已撤消的優良條目: all links NOT starting with ':'
 			|| /\[\[([^:\[\]\|#][^\[\]\|#]*)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
@@ -479,7 +479,7 @@ function parse_each_FC_date_page(page_data) {
 	 */
 	var title = CeL.wiki.title_of(page_data),
 	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+	 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
@@ -835,7 +835,7 @@ function check_FC_template(page_data_list, operation) {
 
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (!is_FC(FC_title)) {
-			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了'
+			error_logs.push(CeL.wiki.title_link_of(FC_title) + '一文嵌入了'
 					+ template_links(operation.list) + '，卻沒登記在' + TYPE_NAME
 					+ '項目中？');
 			return;
@@ -1046,7 +1046,7 @@ function check_date_page() {
 	wiki.page(date_page_title, function(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1064,7 +1064,7 @@ function check_date_page() {
 				var
 				/**
 				 * {String}page content, maybe undefined. 條目/頁面內容 =
-				 * revision['*']
+				 * CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data);
 
@@ -1090,7 +1090,7 @@ function check_date_page() {
 				var
 				/**
 				 * {String}page content, maybe undefined. 條目/頁面內容 =
-				 * revision['*']
+				 * CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data);
 
@@ -1245,7 +1245,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
-			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 			 */
 			content = CeL.wiki.content_of(page_data);
 
@@ -1294,7 +1294,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		 */
 		var title = CeL.wiki.title_of(page_data),
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1380,7 +1380,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
-			 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+			 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 			 */
 			content = CeL.wiki.content_of(page_data),
 			// 撰寫簡介
@@ -1420,7 +1420,7 @@ function check_month_list() {
 	wiki.page(page_title, function(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1510,7 +1510,7 @@ function update_portal() {
 	.edit(function(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1572,7 +1572,7 @@ function update_portal() {
 	function edit_portal(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = revision['*']
+		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 		/** 頁面解析後的結構。 */

@@ -39,19 +39,20 @@ function process_data(error) {
 		// Check data.
 
 		var revision = page_data.revisions[0];
-		// var title = page_data.title, content = revision['*'];
+		// var title = page_data.title;
+		var content = CeL.wiki.revision_content(revision);
 
 		// 似乎沒 !page_data.title 這種問題。
 		if (false && !page_data.title)
 			CeL.warn('* No title: [[' + page_data.pageid + ']]');
 		// [[Wikipedia:快速删除方针]]
-		if (revision['*']) {
-			// max_length = Math.max(max_length, revision['*'].length);
+		if (content) {
+			// max_length = Math.max(max_length, content.length);
 
 			// filter patterns
-			if (false && revision['*'].includes('\u200E'))
+			if (false && content.includes('\u200E'))
 				filtered.push(page_data.title);
-			if (false && /{{(?:[Nn]o)?[Bb]ots[} |]/.test(revision['*']))
+			if (false && /{{(?:[Nn]o)?[Bb]ots[} |]/.test(content))
 				filtered.push(page_data.title);
 
 		} else {
@@ -77,7 +78,7 @@ function process_data(error) {
 			// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
 			revision.timestamp.slice(0, -1).replace('T', ' '),
 			//
-			'"' + revision['*'].replace(/"/g, '""') + '"' ]
+			'"' + content.replace(/"/g, '""') + '"' ]
 			//
 			.join(',') + '\n');
 		}
@@ -94,7 +95,7 @@ function process_data(error) {
 				page_data.title, revision.revid,
 				// '2000-01-01T00:00:00Z' → '2000-01-01 00:00:00'
 				revision.timestamp.slice(0, -1).replace('T', ' '),
-						revision['*'] ]
+						content ]
 			}, function(error) {
 				if (error)
 					CeL.error(error);

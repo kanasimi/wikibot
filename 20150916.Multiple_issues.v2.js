@@ -78,7 +78,7 @@ wiki = Wiki(true),
 /** {Array} 維護模板_by_pageid[pageid] = {Array}維護模板 list */
 維護模板_by_pageid = [],
 //
-normalized_count = CeL.wiki.redirects.count.bind(null, 維護模板本名);
+normalized_count = CeL.wiki.redirects_here.count.bind(null, 維護模板本名);
 
 // ---------------------------------------------------------------------//
 
@@ -318,7 +318,7 @@ CeL.wiki.cache([ {
 }, {
 	// part 1: 處理含有{{多個問題}}模板的條目
 	file_name : '多個問題_模板別名',
-	type : 'redirects',
+	type : 'redirects_here',
 	reget : true,
 	list : 多個問題_模板別名_list.concat(多個問題_模板名),
 	operator : function(list) {
@@ -369,7 +369,7 @@ CeL.wiki.cache([ {
 	}
 }, {
 	file_name : '須排除之維護模板別名',
-	type : 'redirects',
+	type : 'redirects_here',
 	list : 須排除之維護模板名list,
 	retrieve : function(list) {
 		var 須排除之維護模板名_hash = Object.create(null);
@@ -385,7 +385,7 @@ CeL.wiki.cache([ {
 }, {
 	// 解析出所有維護模板別名
 	file_name : '維護模板名',
-	type : 'redirects',
+	type : 'redirects_here',
 	list : function() {
 		return this.維護模板名;
 	},

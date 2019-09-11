@@ -81,7 +81,7 @@ function page_data_to_String(page_data) {
 function main_work(template_name_redirect_to) {
 
 	CeL.wiki.cache([ {
-		type : 'redirects',
+		type : 'redirects_here',
 		list : template_name_redirect_to.template_publish,
 		reget : true,
 		operator : function(list) {
@@ -529,7 +529,7 @@ function for_each_old_page(page_data) {
 	.replace(/\n{3,}/g, '\n\n');
 
 	// 無更動 沒有變更 No modification made
-	if (current_content === page_data.revisions[0]['*']) {
+	if (current_content === CeL.wiki.revision_content(page_data.revisions[0])) {
 		do_protect();
 		return;
 	}

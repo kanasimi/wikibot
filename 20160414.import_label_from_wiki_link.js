@@ -255,7 +255,7 @@ function for_each_page(page_data, messages) {
 
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
-	/** {String}page content, maybe undefined. 頁面內容 = revision['*'] */
+	/** {String}page content, maybe undefined. 頁面內容 = CeL.wiki.revision_content(revision) */
 	content = CeL.wiki.content_of(page_data),
 	/** {Natural}所取得之版本編號。 */
 	revid = page_data.revisions[0].revid;
@@ -1056,8 +1056,8 @@ function 仮名_claim(仮名, imported_from) {
 		読み仮名 : 仮名,
 		language : 'ja',
 		references : {
-			// @see https://www.wikidata.org/wiki/Wikidata:List_of_wikis
-			imported_from : imported_from
+			// P143 @see https://www.wikidata.org/wiki/Wikidata:List_of_wikis
+			'imported from Wikimedia project' : imported_from
 					|| (use_language === 'zh' ? 'zh' : 'ja') + 'wiki'
 		}
 	};
@@ -1106,7 +1106,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			wiki.page(title).edit(function(page_data) {
 				var
 				/**
-				 * {String}page content, maybe undefined. 頁面內容 = revision['*']
+				 * {String}page content, maybe undefined. 頁面內容 = CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data),
 				// [ link, local title ]
@@ -1714,7 +1714,7 @@ CeL.wiki.cache([ {
 				+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
 				var matched, pattern = /, *rule *= *'([^']+)'/g,
 				/**
-				 * {String}page content, maybe undefined. 頁面內容 = revision['*']
+				 * {String}page content, maybe undefined. 頁面內容 = CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data);
 				while (matched = pattern.exec(content)) {
