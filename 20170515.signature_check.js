@@ -326,9 +326,10 @@ function get_parsed_time(row) {
 // for debug
 var latest_revid = 0;
 function for_each_row(row) {
-	CeL.debug('for_each_row: revid = ' + row.revid);
+	// console.trace(row.revid + ' ￩ ' + latest_revid);
+	CeL.debug('revid = ' + row.revid, 1, 'for_each_row');
 	if (!(row.revid > latest_revid)) {
-		throw new Error('for_each_row: revid error: ' + row.revid + '￩'
+		throw new Error('for_each_row: revid error: ' + row.revid + ' ￩ '
 				+ latest_revid);
 	}
 	latest_revid = row.revid;
