@@ -31,6 +31,11 @@ cd node_modules
 
 # ---------------------------------------------------------
 
+# 2019/9/12 18:25:17
+/usr/bin/wget -O wikiapi.zip https://github.com/kanasimi/wikiapi/archive/master.zip && [ -d wikiapi ] && /usr/bin/diff wikiapi.zip wikiapi.zip.old && mv -f wikiapi.zip wikiapi.zip.old && echo "wikiapi: No news." || ( echo "Extracting wikiapi..." && time /usr/bin/unzip wikiapi.zip > /dev/null && mv -f wikiapi.zip wikiapi.zip.old && rm -rf wikiapi && mv wikiapi-master wikiapi || echo "Failed to get CeJS" )
+
+# ---------------------------------------------------------
+
 echo "$SP\nCopy task programs..."
 
 cd ~
@@ -72,12 +77,12 @@ echo "$SP\nCopy config data..."
 cd ~/wikibot
 
 # upload data
-# cd /home/kanashimi/www/cgi-bin/program && cp "wiki/wiki loder.js" . && chmod o+r "wiki loder.js"
+# cd /home/kanashimi/www/cgi-bin/program && cp "wiki/wiki loader.js" . && chmod o+r "wiki loader.js"
 
 # 不再用此招
-#	mv -f "wiki loder.js" "wiki loder.js.old"
-#	#/usr/bin/curl -o "wiki loder.js" http://lyrics.meicho.com.tw/program/wiki%20loder.js
-#	/usr/bin/wget http://lyrics.meicho.com.tw/program/wiki%20loder.js || mv "wiki loder.js.old" "wiki loder.js" && echo "Please copy 'wiki loder.js' yourself."
+#	mv -f "wiki loader.js" "wiki loader.js.old"
+#	#/usr/bin/curl -o "wiki loader.js" http://lyrics.meicho.com.tw/program/wiki%20loader.js
+#	/usr/bin/wget http://lyrics.meicho.com.tw/program/wiki%20loader.js || mv "wiki loader.js.old" "wiki loader.js" && echo "Please copy 'wiki loader.js' yourself."
 echo pass
 
 # ---------------------------------------------------------
@@ -86,7 +91,7 @@ echo pass
 
 #ln -s ../node_modules/cejs/application/net/wiki.js js.js
 
-# /bin/rm "wiki loder.js" archive
+# /bin/rm "wiki loader.js" archive
 
 [ -f README.md ] && /bin/rm README.md
 
