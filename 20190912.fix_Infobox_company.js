@@ -22,7 +22,8 @@ CeL.run('application.debug.log');
 	const wiki = new Wikiapi;
 	await wiki.login(user_name, user_password, 'zh');
 
-	let company_template_hash = (await wiki.redirects('Template:Infobox company')).map((page) => page.title.replace(/^Template:/, ''));
+	let company_template_hash = (await wiki.redirects('Template:Infobox company'))
+		.map((page) => page.title.replace(/^Template:/, ''));
 	company_template_hash.unshift('Infobox company');
 	company_template_hash = company_template_hash.to_hash();
 	//console.log(company_template_hash);
@@ -37,31 +38,35 @@ CeL.run('application.debug.log');
 	};
 
 	const page_list = await wiki.categorymembers('公司信息框使用额外地区代码参数的页面');
-	await wiki.for_each_page(page_list.slice(0, 1), (page_data) => {
-		const parsed = page_data.parse();
-		//console.log(parsed);
-		CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()], 'parser check');
+	await wiki.for_each_page(
+		page_list
+			.slice(0, 1)
+		,
+		(page_data) => {
+			const parsed = page_data.parse();
+			//console.log(parsed);
+			CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()], 'parser check');
 
-		parsed.each('template', (token) => {
-			if (!(token.name in company_template_hash)) { return; }
+			parsed.each('template', (token) => {
+				if (!(token.name in company_template_hash)) { return; }
 
-			for (let parameter in parameter_to_country) {
-				const local_code = token.parameters[parameter];
-				//console.log(parameter + ': ' + local_code);
-				if (!local_code) {
-					continue;
+				for (let parameter in parameter_to_country) {
+					const local_code = token.parameters[parameter];
+					//console.log(parameter + ': ' + local_code);
+					if (!local_code) {
+						continue;
+					}
+
+					CeL.wiki.parser.replace_parameter(token, parameter, {
+						local_code_name: parameter_to_country[parameter],
+						local_code
+					});
+					return;
 				}
+			});
 
-				CeL.wiki.parser.replace_parameter(token, parameter, {
-					local_code_name: parameter_to_country[parameter],
-					local_code
-				});
-				return;
-			}
-		});
-
-		return parsed.toString();
-	}, {
+			return parsed.toString();
+		}, {
 			log_to,
 			summary: '[[Special:Diff/55581265/55581405|BOTREQ]]：清理[[Category:公司信息框使用额外地区代码参数的页面]]'
 		});
