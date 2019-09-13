@@ -25,17 +25,20 @@ CeL.run([
 	'application.debug.log']);
 
 /** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
-let summary;
+let summary = '';
 /** {String}section title of [[WP:BOTREQ]] */
-let section_title;
+let section_title = '';
 
-let move_pair;
+// 'old/new'
+let diff_id = 0;
+let move_pair = {};
 
 // ---------------------------------------------------------------------//
 
 set_language('ja');
 
 // 2019/9/13 9:14:49
+diff_id = 73931956;
 section_title = '「大阪駅周辺バスのりば」改名に伴うリンク修正';
 // 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
 move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バスのりば' };
