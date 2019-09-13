@@ -50,11 +50,15 @@ section_title = 'リクルートの改名に伴うリンク修正';
 move_pair = { 'リクルート': 'リクルートホールディングス' };
 // for 「株式会社リクルートホールディングス」の修正
 diff_id = 74221568;
-section_title = 'リクルートの改名に伴うリンク修正';
 summary = '「株式会社リクルートホールディングス」の修正';
 move_pair = { 'リクルートホールディングス': '' };
+//
+diff_id = 74225967;
+summary = 'リクルートをパイプリンクにする';
+move_pair = { 'リクルートホールディングス': '[[リクルートホールディングス|リクルート]]' };
 
 
+/*
 diff_id = 73834996;
 section_title = '「Category:時間別に分類したカテゴリ」のリンク元除去依頼';
 summary = section_title.replace(/依頼$/, '');
@@ -64,7 +68,7 @@ diff_id = 74082270;
 section_title = 'Category:指標別分類系カテゴリ群の改名および貼り替え';
 summary = '';
 move_pair = { 'Category:言語別分類': 'Category:言語別' };
-
+*/
 
 // ---------------------------------------------------------------------//
 
@@ -138,18 +142,10 @@ function for_each_template(token) {
 	if (token.name === 'Pathnav') {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
 		//console.log(token);
-
-		// separate namespace and page name
-		const matched = this.move_from_link.match(/^([^:]+):(.+)$/);
-		const namespace = matched && CeL.wiki.namespace(matched[1]) || 0;
-
-		if (namespace === this.page_data.ns) {
-			const page_name = namespace ? matched[2] : this.move_from_link;
-			const to_page_name = namespace ? this.move_to_link.replace(/^([^:]+):/, '') : this.move_to_link;
-
+		if (this.move_from_ns === this.page_data.ns) {
 			token.forEach(function (value, index) {
-				if (index > 0 && value.toString().trim() === page_name) {
-					token[index] = to_page_name;
+				if (index > 0 && value.toString().trim() === options.move_from_page__name) {
+					token[index] = options.move_to_page_name;
 				}
 			}, this);
 		}
@@ -168,6 +164,12 @@ function for_each_page(page_data) {
 		}
 	}
 
+	// for リクルートをパイプリンクにする
+	if (page_data.revisions[0].user !== CeL.wiki.normalize_title(user_name)) {
+		return page_data.wikitext.replace(CeL.wiki.title_link_of(options.move_from_link), options.move_to_link);
+	}
+	return;
+
 	/** {Array}頁面解析後的結構。 */
 	const parsed = page_data.parse();
 	//console.log(parsed);
@@ -183,10 +185,31 @@ function for_each_page(page_data) {
 }
 
 async function main_move_process(options) {
-	const page_list = (await wiki.backlinks(options.move_from_link, {
+	let page_list = await wiki.backlinks(options.move_from_link, {
 		namespace: 'main|module|template|category',
 		//namespace: 'talk|template_talk|category_talk',
-	})).filter(function (page_data) {
+	});
+
+	// separate namespace and page name
+	const matched = this.move_from_link.match(/^([^:]+):(.+)$/);
+	const namespace = matched && CeL.wiki.namespace(matched[1]) || 0;
+	options = {
+		...options,
+		move_from_ns: namespace,
+		// page_name only
+		move_from_page__name: namespace ? matched[2] : options.move_from_link,
+		// page_name only
+		move_to_page_name: namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link,
+	};
+
+	if (options.move_from_ns === CeL.wiki.namespace('Category')) {
+		page_list.append(await wiki.categorymembers(options.move_from_link, {
+			namespace: 'main|module|template|category',
+			//namespace: 'talk|template_talk|category_talk',
+		}));
+	}
+
+	page_list = page_list.filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
 			//過去ログ
@@ -201,7 +224,8 @@ async function main_move_process(options) {
 		for_each_page.bind(options),
 		{
 			// for 「株式会社リクルートホールディングス」の修正
-			//page_options: { rvprop: 'ids|content|timestamp|user' },
+			// for リクルートをパイプリンクにする
+			page_options: { rvprop: 'ids|content|timestamp|user' },
 			log_to,
 			summary
 		});
