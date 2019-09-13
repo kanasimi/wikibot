@@ -69,7 +69,12 @@ move_pair = { 'Category:時間別に分類したカテゴリ': 'Category:時間�
 const link_template_hash = 'Main|See|Seealso|See also'.split('|').to_hash();
 
 function for_each_link(token, index, parent) {
-	if (token[0].toString().trim() !== this.move_from_link) {
+	// token: [ page_name, section_title, displayed_text ]
+	let page_name = token[0].toString().trim();
+	if (Array.isArray(token[0]) && token[0][0].trString().trim() === '') {
+		page_name = page_name.replace(/^:\s*/, '');
+	}
+	if (page_name !== this.move_from_link) {
 		return;
 	}
 
