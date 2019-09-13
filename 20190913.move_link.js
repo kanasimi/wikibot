@@ -29,8 +29,9 @@ let summary = '';
 /** {String}section title of [[WP:BOTREQ]] */
 let section_title = '';
 
-// 'old/new'
+/** {String|Number}revision id.  {String}'old/new' or {Number}new */
 let diff_id = 0;
+/** {Object}pairs to replace. {move_from_link: move_to_link} */
 let move_pair = {};
 
 // ---------------------------------------------------------------------//
@@ -46,6 +47,9 @@ move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バ�
 
 // ---------------------------------------------------------------------//
 
+// templates that the paraments will display as link.
+const link_template_hash = 'Main|See|Seealso|See also'.split('|').to_hash();
+
 function for_each_link(token) {
 	if (token[0].toString().trim() === this.move_from_link) {
 		//e.g., [[move_from_link]]
@@ -55,7 +59,8 @@ function for_each_link(token) {
 }
 
 function for_each_template(token) {
-	if (token.name === 'Main' && token[1].toString().trim() === this.move_from_link) {
+	if (token.name in link_template_hash
+		&& token[1].toString().trim() === this.move_from_link) {
 		// e.g., {{Main|move_from_link}}
 		//console.log(token);
 		token[1] = this.move_to_link;
@@ -88,14 +93,16 @@ function for_each_page(page_data) {
 }
 
 async function main_move_process(options) {
-	const page_list = await wiki.backlinks(options.move_from_link, {
+	const page_list = (await wiki.backlinks(options.move_from_link, {
 		namespace: '0|1',
-	}).map(function (page_data) {
-		return page_data.ns !== CeL.wiki.namespace('Wikipedia');
+	})).filter(function (page_data) {
+		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
+			&& page_data.ns !== CeL.wiki.namespace('User');
 	});
 	//console.log(page_list);
+
 	await wiki.for_each_page(
-		page_list.slice(0, 1)
+		page_list//.slice(0, 1)
 		,
 		for_each_page.bind(options),
 		{
@@ -105,7 +112,7 @@ async function main_move_process(options) {
 }
 
 (async () => {
-	const _summary = summary || section_title;
+	const _summary = typeof summary === 'string' ? summary : section_title;
 	section_title = section_title ? '#' + section_title : '';
 
 	await wiki.login(user_name, user_password, use_language);
