@@ -47,7 +47,7 @@ move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バ�
 // ---------------------------------------------------------------------//
 
 function for_each_link(token) {
-	if (token[0].toString() === this.move_from_link) {
+	if (token[0].toString().trim() === this.move_from_link) {
 		//e.g., [[move_from_link]]
 		//console.log(token);
 		token[0] = this.move_to_link;
@@ -55,7 +55,7 @@ function for_each_link(token) {
 }
 
 function for_each_template(token) {
-	if (token.name === 'Main' && token[1] === this.move_from_link) {
+	if (token.name === 'Main' && token[1].toString().trim() === this.move_from_link) {
 		// e.g., {{Main|move_from_link}}
 		//console.log(token);
 		token[1] = this.move_to_link;
@@ -66,7 +66,7 @@ function for_each_template(token) {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
 		//console.log(token);
 		token.forEach(function (value, index) {
-			if (index > 0 && value === this.move_from_link) {
+			if (index > 0 && value.toString().trim() === this.move_from_link) {
 				token[index] = this.move_to_link;
 			}
 		});
@@ -88,7 +88,11 @@ function for_each_page(page_data) {
 }
 
 async function main_move_process(options) {
-	const page_list = await wiki.backlinks(options.move_from_link);
+	const page_list = await wiki.backlinks(options.move_from_link, {
+		namespace: '0|1',
+	}).map(function (page_data) {
+		return page_data.ns !== CeL.wiki.namespace('Wikipedia');
+	});
 	//console.log(page_list);
 	await wiki.for_each_page(
 		page_list.slice(0, 1)
