@@ -2,7 +2,7 @@
 
 /*
 
- 2019/9/13	初版試營運
+ 2019/9/13 8:59:40	初版試營運
 
  */
 
@@ -20,7 +20,7 @@ CeL.run([
 
 // ---------------------------------------------------------------------//
 
-const summary = '[[Special:Diff/73931956|BOTREQ]]：[[大阪駅周辺バスのりば]]改名に伴うリンク修正';
+const summary = '[[Special:Diff/73931956|Bot作業依頼]]：[[大阪駅周辺バスのりば]]改名に伴うリンク修正';
 
 // 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
 const move_from_link = '大阪駅・梅田駅周辺バスのりば';
@@ -55,7 +55,10 @@ function for_each_page(page_data) {
 }
 
 (async () => {
-	const wiki = new Wikiapi('ja');
+	/** {Object}wiki operator 操作子. */
+	const wiki = new Wikiapi;
+	await wiki.login(user_name, user_password, 'ja');
+
 	const page_list = await wiki.backlinks(move_from_link);
 	//console.log(page_list);
 	await wiki.for_each_page(
