@@ -181,7 +181,8 @@ function for_each_page(page_data) {
 
 async function main_move_process(options) {
 	const page_list = (await wiki.backlinks(options.move_from_link, {
-		//namespace: '0|1|Template|Category',
+		namespace: 'main|module|template|category',
+		//namespace: 'talk|template_talk|category_talk',
 	})).filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
