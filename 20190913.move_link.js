@@ -67,7 +67,7 @@ function for_each_link(token) {
 function for_each_template(token) {
 
 	if (token.name in link_template_hash) {
-		let value = token[1].toString().trim();
+		let value = token[1] && token[1].toString().trim();
 		if (value === this.move_from_link) {
 			// e.g., {{Main|move_from_link}}
 			//console.log(token);
@@ -83,7 +83,7 @@ function for_each_template(token) {
 	// https://ja.wikipedia.org/wiki/Template:Main2
 	if (token.name === 'Main2'
 		// [4], [6], ...
-		&& token[2].toString().trim() === this.move_from_link) {
+		&& token[2] && token[2].toString().trim() === this.move_from_link) {
 		// e.g., {{Main2|案内文|move_from_link}}
 		//console.log(token);
 		token[2] = this.move_to_link;
