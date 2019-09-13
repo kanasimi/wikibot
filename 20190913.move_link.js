@@ -13,6 +13,10 @@ require('./wiki loader.js');
 // Load wikiapi module.
 const Wikiapi = require('wikiapi');
 
+// Set default language. 改變預設之語言。 e.g., 'zh'
+// 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
+set_language('ja');
+
 // Load modules.
 CeL.run([
 	// for CeL.assert()
