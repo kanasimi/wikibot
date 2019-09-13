@@ -36,13 +36,19 @@ let move_pair = {};
 
 // ---------------------------------------------------------------------//
 
-set_language('ja');
-
 // 2019/9/13 9:14:49
+set_language('ja');
 diff_id = 73931956;
 section_title = '「大阪駅周辺バスのりば」改名に伴うリンク修正';
 // 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
 move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バスのりば' };
+
+
+set_language('ja');
+diff_id = 73650376;
+section_title = 'リクルートの改名に伴うリンク修正';
+// 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
+move_pair = { 'リクルート': 'リクルートホールディングス' };
 
 
 // ---------------------------------------------------------------------//
@@ -59,11 +65,28 @@ function for_each_link(token) {
 }
 
 function for_each_template(token) {
-	if (token.name in link_template_hash
-		&& token[1].toString().trim() === this.move_from_link) {
-		// e.g., {{Main|move_from_link}}
+
+	if (token.name in link_template_hash) {
+		let value = token[1].toString().trim();
+		if (value === this.move_from_link) {
+			// e.g., {{Main|move_from_link}}
+			//console.log(token);
+			token[1] = this.move_to_link;
+		}
+		if (!this.move_from_link.includes('#') && value.startsWith(this.move_from_link + '#')) {
+			// e.g., {{Main|move_from_link#section title}}
+			token[1] = this.move_to_link + value.slice(this.move_from_link.length);
+		}
+		return;
+	}
+
+	// https://ja.wikipedia.org/wiki/Template:Main2
+	if (token.name === 'Main2'
+		// [4], [6], ...
+		&& token[2].toString().trim() === this.move_from_link) {
+		// e.g., {{Main2|案内文|move_from_link}}
 		//console.log(token);
-		token[1] = this.move_to_link;
+		token[2] = this.move_to_link;
 		return;
 	}
 
@@ -102,7 +125,7 @@ async function main_move_process(options) {
 	//console.log(page_list);
 
 	await wiki.for_each_page(
-		page_list//.slice(0, 1)
+		page_list.slice(0, 1)
 		,
 		for_each_page.bind(options),
 		{
