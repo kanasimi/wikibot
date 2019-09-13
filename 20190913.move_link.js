@@ -38,7 +38,9 @@ let move_configuration = {};
 
 /*
 
-文章名稱的改變，應考慮是否採用 [[new|old]]: .keep_title
+文章名稱的改變，應考慮上下文的影響。例如：
+# 是否應採用 [[new|old]]: using .keep_title
+# 檢查重定向："株式会社[[リクルート]]" → "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
 
 */
 
@@ -77,7 +79,9 @@ move_configuration = { 'Category:時間別に分類したカテゴリ': 'Categor
 diff_id = 74082270;
 section_title = 'Category:指標別分類系カテゴリ群の改名および貼り替え';
 summary = '';
-move_configuration = { 'Category:言語別分類': 'Category:言語別' };
+move_configuration = {
+	'Category:言語別分類': 'Category:言語別', 'Category:時間別分類': 'Category:時間別'
+};
 
 
 // ---------------------------------------------------------------------//
