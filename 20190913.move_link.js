@@ -48,13 +48,19 @@ set_language('ja');
 diff_id = 73650376;
 section_title = 'リクルートの改名に伴うリンク修正';
 move_pair = { 'リクルート': 'リクルートホールディングス' };
-
-
-set_language('ja');
+// for 「株式会社リクルートホールディングス」の修正
 diff_id = 74221568;
 section_title = 'リクルートの改名に伴うリンク修正';
 summary = '「株式会社リクルートホールディングス」の修正';
 move_pair = { 'リクルートホールディングス': '' };
+
+
+diff_id = 73834996;
+section_title = '「Category:時間別に分類したカテゴリ」のリンク元除去依頼';
+summary = section_title.replace(/依頼$/, '');
+move_pair = { 'Category:時間別に分類したカテゴリ': 'Category:時間別分類' };
+
+
 
 
 // ---------------------------------------------------------------------//
@@ -67,14 +73,16 @@ function for_each_link(token, index, parent) {
 		return;
 	}
 
-	// for 「株式会社リクルートホールディングス」の修正
-	if (!token[2] && index > 0 && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith('株式会社')) {
-		//console.log(parent[index - 1]);
-		// assert: "株式会社[[リクルートホールディングス]]"
-		parent[index - 1] = parent[index - 1].replace('株式会社', '');
-		parent[index] = '[[株式会社リクルート]]';
+	if (false) {
+		// for 「株式会社リクルートホールディングス」の修正
+		if (!token[2] && index > 0 && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith('株式会社')) {
+			//console.log(parent[index - 1]);
+			// assert: "株式会社[[リクルートホールディングス]]"
+			parent[index - 1] = parent[index - 1].replace('株式会社', '');
+			parent[index] = '[[株式会社リクルート]]';
+		}
+		return;
 	}
-	return;
 
 	//e.g., [[move_from_link]]
 	//console.log(token);
@@ -82,7 +90,7 @@ function for_each_link(token, index, parent) {
 		token.truncate();
 		token[0] = this.move_to_link;
 	} else {
-		var matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
+		const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
 		if (matched) {
 			//TODO
 		}
@@ -122,11 +130,21 @@ function for_each_template(token) {
 	if (token.name === 'Pathnav') {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
 		//console.log(token);
-		token.forEach(function (value, index) {
-			if (index > 0 && value.toString().trim() === this.move_from_link) {
-				token[index] = this.move_to_link;
-			}
-		}, this);
+
+		// separate namespace and page name
+		const matched = this.move_from_link.match(/^([^:]+):(.+)$/);
+		const namespace = matched && CeL.wiki.namespace(matched[1]) || 0;
+
+		if (namespace === this.page_data.ns) {
+			const page_name = namespace ? matched[2] : this.move_from_link;
+			const to_page_name = namespace ? this.move_to_link.replace(/^([^:]+):/, '') : this.move_to_link;
+
+			token.forEach(function (value, index) {
+				if (index > 0 && value.toString().trim() === page_name) {
+					token[index] = to_page_name;
+				}
+			}, this);
+		}
 		return;
 	}
 }
@@ -134,16 +152,23 @@ function for_each_template(token) {
 function for_each_page(page_data) {
 	//console.log(page_data.revisions[0].slots.main);
 
-	// for 「株式会社リクルートホールディングス」の修正
-	if (page_data.revisions[0].user !== CeL.wiki.normalize_title(user_name)) return;
+	if (false) {
+		// for 「株式会社リクルートホールディングス」の修正
+		if (page_data.revisions[0].user !== CeL.wiki.normalize_title(user_name)
+			|| !page_data.wikitext.includes('株式会社[[リクルートホールディングス]]')) {
+			return;
+		}
+	}
 
 	/** {Array}頁面解析後的結構。 */
 	const parsed = page_data.parse();
 	//console.log(parsed);
 	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
+	this.page_data = page_data;
+
 	parsed.each('link', for_each_link.bind(this));
-	//parsed.each('template', for_each_template.bind(this));
+	parsed.each('template', for_each_template.bind(this));
 
 	// return wikitext modified.
 	return parsed.toString();
@@ -167,7 +192,7 @@ async function main_move_process(options) {
 		for_each_page.bind(options),
 		{
 			// for 「株式会社リクルートホールディングス」の修正
-			page_options: { rvprop: 'ids|content|timestamp|user' },
+			//page_options: { rvprop: 'ids|content|timestamp|user' },
 			log_to,
 			summary
 		});
