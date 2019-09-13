@@ -60,13 +60,25 @@ function for_each_link(token) {
 	if (token[0].toString().trim() === this.move_from_link) {
 		//e.g., [[move_from_link]]
 		//console.log(token);
-		token[0] = this.move_to_link;
+		if (!token[1] && token[2] === this.move_to_link) {
+			token.truncate();
+			token[0] = this.move_to_link;
+		} else {
+			var matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
+			if (matched) {
+				//TODO
+			}
+			token[0] = this.move_to_link;
+		}
 	}
 }
 
 function for_each_template(token) {
 
 	if (token.name in link_template_hash) {
+		if (!token[1]) {
+			CeL.warn('There is {{' + token.name + '}} without the link parameter.');
+		}
 		let value = token[1] && token[1].toString().trim();
 		if (value === this.move_from_link) {
 			// e.g., {{Main|move_from_link}}
@@ -97,7 +109,7 @@ function for_each_template(token) {
 			if (index > 0 && value.toString().trim() === this.move_from_link) {
 				token[index] = this.move_to_link;
 			}
-		});
+		}, this);
 		return;
 	}
 }
@@ -120,7 +132,10 @@ async function main_move_process(options) {
 		namespace: '0|1',
 	})).filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
-			&& page_data.ns !== CeL.wiki.namespace('User');
+			&& page_data.ns !== CeL.wiki.namespace('User')
+			//過去ログ
+			//&& !page_data.title.includes('ログ')
+			;
 	});
 	//console.log(page_list);
 
