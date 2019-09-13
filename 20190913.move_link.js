@@ -165,8 +165,10 @@ function for_each_page(page_data) {
 	}
 
 	// for リクルートをパイプリンクにする
-	if (page_data.revisions[0].user !== CeL.wiki.normalize_title(user_name)) {
-		return page_data.wikitext.replace(CeL.wiki.title_link_of(options.move_from_link), options.move_to_link);
+	if (page_data.revisions[0].user === CeL.wiki.normalize_title(user_name)) {
+		return page_data.wikitext.replace(
+			new RegExp(CeL.to_RegExp_pattern(CeL.wiki.title_link_of(options.move_from_link)), 'g'),
+			options.move_to_link);
 	}
 	return;
 
@@ -191,7 +193,7 @@ async function main_move_process(options) {
 	});
 
 	// separate namespace and page name
-	const matched = this.move_from_link.match(/^([^:]+):(.+)$/);
+	const matched = options.move_from_link.match(/^([^:]+):(.+)$/);
 	const namespace = matched && CeL.wiki.namespace(matched[1]) || 0;
 	options = {
 		...options,
