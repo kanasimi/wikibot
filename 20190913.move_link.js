@@ -125,6 +125,8 @@ function for_each_link(token, index, parent) {
 	}
 }
 
+var for_each_category = for_each_link;
+
 function for_each_template(token) {
 
 	if (token.name in link_template_hash) {
@@ -198,6 +200,9 @@ function for_each_page(page_data) {
 	this.page_data = page_data;
 
 	parsed.each('link', for_each_link.bind(this));
+	if (this.move_from_ns === CeL.wiki.namespace('Category')) {
+		parsed.each('category', for_each_category.bind(this));
+	}
 	parsed.each('template', for_each_template.bind(this));
 
 	// return wikitext modified.
