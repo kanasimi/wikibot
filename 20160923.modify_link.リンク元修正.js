@@ -56,7 +56,7 @@ function for_each_page(page_data, messages) {
 	}
 
 	if (page_data.ns !== 0) {
-		throw '非條目:[[' + page_data.title + ']]! 照理來說不應該出現有 ns !== 0 的情況。';
+		throw '非條目: [[' + page_data.title + ']]! 照理來說不應該出現 ns !== 0 的情況。';
 	}
 
 	/** {String}page title = page_data.title */

@@ -4,6 +4,8 @@
 
  2019/9/13 8:59:40	初版試營運
 
+ @see 20160923.modify_link.リンク元修正.js	20170828.search_and_replace.js	20161112.modify_category.js
+
  */
 
 'use strict';
@@ -13,36 +15,59 @@ require('./wiki loader.js');
 // Load wikiapi module.
 const Wikiapi = require('wikiapi');
 
-// Set default language. 改變預設之語言。 e.g., 'zh'
-// 採用這個方法，而非 Wiki(true, 'ja')，才能夠連報告介面的語系都改變。
-set_language('ja');
+/** {Object}wiki operator 操作子. */
+const wiki = new Wikiapi;
+
 
 // Load modules.
 CeL.run([
 	// for CeL.assert()
 	'application.debug.log']);
 
+/** {String}預設之編輯摘要。總結報告。編集内容の要約。 */
+let summary;
+/** {String}section title of [[WP:BOTREQ]] */
+let section_title;
+
+let move_pair;
+
 // ---------------------------------------------------------------------//
 
-const summary = '[[Special:Diff/73931956|Bot作業依頼]]：[[大阪駅周辺バスのりば]]改名に伴うリンク修正';
+set_language('ja');
 
+// 2019/9/13 9:14:49
+section_title = '「大阪駅周辺バスのりば」改名に伴うリンク修正';
 // 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
-const move_from_link = '大阪駅・梅田駅周辺バスのりば';
-const move_to_link = '大阪駅周辺バスのりば';
+move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バスのりば' };
+
+
+// ---------------------------------------------------------------------//
 
 function for_each_link(token) {
-	if (token[0].toString() === move_from_link) {
+	if (token[0].toString() === this.move_from_link) {
 		//e.g., [[move_from_link]]
 		//console.log(token);
-		token[0] == move_to_link;
+		token[0] = this.move_to_link;
 	}
 }
 
 function for_each_template(token) {
-	if (token.name === 'Main' && token[1] === move_from_link) {
+	if (token.name === 'Main' && token[1] === this.move_from_link) {
 		// e.g., {{Main|move_from_link}}
 		//console.log(token);
-		token[1] = move_to_link;
+		token[1] = this.move_to_link;
+		return;
+	}
+
+	if (token.name === 'Pathnav') {
+		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
+		//console.log(token);
+		token.forEach(function (value, index) {
+			if (index > 0 && value === this.move_from_link) {
+				token[index] = this.move_to_link;
+			}
+		});
+		return;
 	}
 }
 
@@ -52,25 +77,43 @@ function for_each_page(page_data) {
 	//console.log(parsed);
 	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
-	parsed.each('link', for_each_link);
-	parsed.each('template', for_each_template);
+	parsed.each('link', for_each_link.bind(this));
+	parsed.each('template', for_each_template.bind(this));
 
 	// return wikitext modified.
 	return parsed.toString();
 }
 
-(async () => {
-	/** {Object}wiki operator 操作子. */
-	const wiki = new Wikiapi;
-	await wiki.login(user_name, user_password, 'ja');
-
-	const page_list = await wiki.backlinks(move_from_link);
+async function main_move_process(options) {
+	const page_list = await wiki.backlinks(options.move_from_link);
 	//console.log(page_list);
 	await wiki.for_each_page(
 		page_list.slice(0, 1)
 		,
-		for_each_page, {
+		for_each_page.bind(options),
+		{
 			log_to,
 			summary
 		});
+}
+
+(async () => {
+	const _summary = summary || section_title;
+	section_title = section_title ? '#' + section_title : '';
+
+	await wiki.login(user_name, user_password, use_language);
+
+	//Object.entries(move_pair).forEach(main_move_process);
+	for (let pair of Object.entries(move_pair)) {
+		const [move_from_link, move_to_link] = pair;
+		summary = CeL.wiki.title_link_of(diff_id ? 'Special:Diff/' + diff_id + section_title : 'WP:BOTREQ',
+			use_language === 'ja' ? 'Bot作業依頼'
+				: use_language === 'zh' ? '機器人作業請求' : 'Bot request')
+			+ ': ' + (_summary || CeL.wiki.title_link_of(move_to_link)
+				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
+				+ '改名に伴うリンク修正')
+			+ ' - ' + CeL.wiki.title_link_of(log_to, 'log');
+
+		await main_move_process({ move_from_link, move_to_link });
+	}
 })();
