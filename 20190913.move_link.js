@@ -62,14 +62,17 @@ move_pair = { 'リクルートホールディングス': '' };
 // templates that the paraments will display as link.
 const link_template_hash = 'Main|See|Seealso|See also'.split('|').to_hash();
 
-function for_each_link(token) {
+function for_each_link(token, index, parent) {
 	if (token[0].toString().trim() !== this.move_from_link) {
 		return;
 	}
 
-	// 「株式会社リクルートホールディングス」の修正
-	if (!token[2]) {
-		console.log(token);
+	// for 「株式会社リクルートホールディングス」の修正
+	if (!token[2] && index > 0 && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith('株式会社')) {
+		//console.log(parent[index - 1]);
+		// assert: "株式会社[[リクルートホールディングス]]"
+		parent[index - 1] = parent[index - 1].replace('株式会社', '');
+		parent[index] = '[[株式会社リクルート]]';
 	}
 	return;
 
@@ -129,7 +132,10 @@ function for_each_template(token) {
 }
 
 function for_each_page(page_data) {
-	console.log(page_data);
+	//console.log(page_data.revisions[0].slots.main);
+
+	// for 「株式会社リクルートホールディングス」の修正
+	if (page_data.revisions[0].user !== CeL.wiki.normalize_title(user_name)) return;
 
 	/** {Array}頁面解析後的結構。 */
 	const parsed = page_data.parse();
@@ -160,6 +166,8 @@ async function main_move_process(options) {
 		,
 		for_each_page.bind(options),
 		{
+			// for 「株式会社リクルートホールディングス」の修正
+			page_options: { rvprop: 'ids|content|timestamp|user' },
 			log_to,
 			summary
 		});
