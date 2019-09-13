@@ -159,8 +159,8 @@ function for_each_template(token) {
 		//console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
 			token.forEach(function (value, index) {
-				if (index > 0 && value.toString().trim() === options.move_from_page__name) {
-					token[index] = options.move_to_page_name;
+				if (index > 0 && value.toString().trim() === this.move_from_page__name) {
+					token[index] = this.move_to_page_name;
 				}
 			}, this);
 		}
