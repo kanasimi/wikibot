@@ -33,14 +33,15 @@ const move_to_link = '大阪駅周辺バスのりば';
 function for_each_link(token) {
 	if (token[0].toString() === move_from_link) {
 		//e.g., [[move_from_link]]
-		console.log(token);
+		//console.log(token);
+		token[0] == move_to_link;
 	}
 }
 
 function for_each_template(token) {
 	if (token.name === 'Main' && token[1] === move_from_link) {
 		// e.g., {{Main|move_from_link}}
-		console.log(token);
+		//console.log(token);
 		token[1] = move_to_link;
 	}
 }
