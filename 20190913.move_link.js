@@ -47,8 +47,14 @@ move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バ�
 set_language('ja');
 diff_id = 73650376;
 section_title = 'リクルートの改名に伴うリンク修正';
-// 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
 move_pair = { 'リクルート': 'リクルートホールディングス' };
+
+
+set_language('ja');
+diff_id = 74221568;
+section_title = 'リクルートの改名に伴うリンク修正';
+summary = '「株式会社リクルートホールディングス」の修正';
+move_pair = { 'リクルートホールディングス': '' };
 
 
 // ---------------------------------------------------------------------//
@@ -57,19 +63,27 @@ move_pair = { 'リクルート': 'リクルートホールディングス' };
 const link_template_hash = 'Main|See|Seealso|See also'.split('|').to_hash();
 
 function for_each_link(token) {
-	if (token[0].toString().trim() === this.move_from_link) {
-		//e.g., [[move_from_link]]
-		//console.log(token);
-		if (!token[1] && token[2] === this.move_to_link) {
-			token.truncate();
-			token[0] = this.move_to_link;
-		} else {
-			var matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
-			if (matched) {
-				//TODO
-			}
-			token[0] = this.move_to_link;
+	if (token[0].toString().trim() !== this.move_from_link) {
+		return;
+	}
+
+	// 「株式会社リクルートホールディングス」の修正
+	if (!token[2]) {
+		console.log(token);
+	}
+	return;
+
+	//e.g., [[move_from_link]]
+	//console.log(token);
+	if (!token[1] && token[2] === this.move_to_link) {
+		token.truncate();
+		token[0] = this.move_to_link;
+	} else {
+		var matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
+		if (matched) {
+			//TODO
 		}
+		token[0] = this.move_to_link;
 	}
 }
 
@@ -115,13 +129,15 @@ function for_each_template(token) {
 }
 
 function for_each_page(page_data) {
+	console.log(page_data);
+
 	/** {Array}頁面解析後的結構。 */
 	const parsed = page_data.parse();
 	//console.log(parsed);
 	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
 	parsed.each('link', for_each_link.bind(this));
-	parsed.each('template', for_each_template.bind(this));
+	//parsed.each('template', for_each_template.bind(this));
 
 	// return wikitext modified.
 	return parsed.toString();
@@ -129,7 +145,7 @@ function for_each_page(page_data) {
 
 async function main_move_process(options) {
 	const page_list = (await wiki.backlinks(options.move_from_link, {
-		namespace: '0|1',
+		//namespace: '0|1|Template|Category',
 	})).filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
