@@ -32,43 +32,53 @@ let section_title = '';
 /** {String|Number}revision id.  {String}'old/new' or {Number}new */
 let diff_id = 0;
 /** {Object}pairs to replace. {move_from_link: move_to_link} */
-let move_pair = {};
+let move_configuration = {};
 
 // ---------------------------------------------------------------------//
+
+/*
+
+文章名稱的改變，應考慮是否採用 [[new|old]]: .keep_title
+
+*/
 
 // 2019/9/13 9:14:49
 set_language('ja');
 diff_id = 73931956;
 section_title = '「大阪駅周辺バスのりば」改名に伴うリンク修正';
 // 依頼内容:[[move_from_link]] → [[move_to_link]]への変更を依頼します。
-move_pair = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バスのりば' };
+move_configuration = { '大阪駅・梅田駅周辺バスのりば': '大阪駅周辺バスのりば' };
 
 
 set_language('ja');
 diff_id = 73650376;
 section_title = 'リクルートの改名に伴うリンク修正';
-move_pair = { 'リクルート': 'リクルートホールディングス' };
+move_configuration = {
+	'リクルート': {
+		move_from_link: 'リクルートホールディングス',
+		keep_title: true
+	}
+};
 // for 「株式会社リクルートホールディングス」の修正
 diff_id = 74221568;
 summary = '「株式会社リクルートホールディングス」の修正';
-move_pair = { 'リクルートホールディングス': '' };
+move_configuration = { 'リクルートホールディングス': '' };
 //
 diff_id = 74225967;
 summary = 'リクルートをパイプリンクにする';
-move_pair = { 'リクルートホールディングス': '[[リクルートホールディングス|リクルート]]' };
+move_configuration = { 'リクルートホールディングス': '[[リクルートホールディングス|リクルート]]' };
 
 
-/*
 diff_id = 73834996;
 section_title = '「Category:時間別に分類したカテゴリ」のリンク元除去依頼';
 summary = section_title.replace(/依頼$/, '');
-move_pair = { 'Category:時間別に分類したカテゴリ': 'Category:時間別分類' };
+move_configuration = { 'Category:時間別に分類したカテゴリ': 'Category:時間別分類' };
 
 diff_id = 74082270;
 section_title = 'Category:指標別分類系カテゴリ群の改名および貼り替え';
 summary = '';
-move_pair = { 'Category:言語別分類': 'Category:言語別' };
-*/
+move_configuration = { 'Category:言語別分類': 'Category:言語別' };
+
 
 // ---------------------------------------------------------------------//
 
@@ -105,6 +115,11 @@ function for_each_link(token, index, parent) {
 		const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
 		if (matched) {
 			//TODO
+		}
+
+		if (this.keep_title) {
+			if (!token[1]) token[1] = '';
+			if (!token[2]) token[2] = token[0];
 		}
 		token[0] = this.move_to_link;
 	}
@@ -164,13 +179,16 @@ function for_each_page(page_data) {
 		}
 	}
 
-	// for リクルートをパイプリンクにする
-	if (page_data.revisions[0].user === CeL.wiki.normalize_title(user_name)) {
-		return page_data.wikitext.replace(
-			new RegExp(CeL.to_RegExp_pattern(CeL.wiki.title_link_of(options.move_from_link)), 'g'),
-			options.move_to_link);
+	if (false) {
+		// for リクルートをパイプリンクにする
+		if (page_data.revisions[0].user === CeL.wiki.normalize_title(user_name)) {
+			return page_data.wikitext.replace(
+				new RegExp(CeL.to_RegExp_pattern(CeL.wiki.title_link_of(this.move_from_link)), 'g'),
+				this.move_to_link);
+		}
+		return;
 	}
-	return;
+
 
 	/** {Array}頁面解析後的結構。 */
 	const parsed = page_data.parse();
@@ -214,8 +232,7 @@ async function main_move_process(options) {
 	page_list = page_list.filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
-			//過去ログ
-			//&& !page_data.title.includes('ログ')
+			//&& !page_data.title.includes('/過去ログ')
 			;
 	});
 	//console.log(page_list);
@@ -227,7 +244,7 @@ async function main_move_process(options) {
 		{
 			// for 「株式会社リクルートホールディングス」の修正
 			// for リクルートをパイプリンクにする
-			page_options: { rvprop: 'ids|content|timestamp|user' },
+			//page_options: { rvprop: 'ids|content|timestamp|user' },
 			log_to,
 			summary
 		});
@@ -239,17 +256,21 @@ async function main_move_process(options) {
 
 	await wiki.login(user_name, user_password, use_language);
 
-	//Object.entries(move_pair).forEach(main_move_process);
-	for (let pair of Object.entries(move_pair)) {
+	//Object.entries(move_configuration).forEach(main_move_process);
+	for (let pair of Object.entries(move_configuration)) {
 		const [move_from_link, move_to_link] = pair;
+		let options = CeL.is_Object(move_to_link)
+			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
+			//assert: typeof move_to_link === 'string'
+			: { move_from_link, move_to_link };
 		summary = CeL.wiki.title_link_of(diff_id ? 'Special:Diff/' + diff_id + section_title : 'WP:BOTREQ',
-			use_language === 'ja' ? 'Bot作業依頼'
-				: use_language === 'zh' ? '機器人作業請求' : 'Bot request')
-			+ ': ' + (_summary || CeL.wiki.title_link_of(move_to_link)
+			use_language === 'zh' ? '機器人作業請求'
+				: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request')
+			+ ': ' + (_summary || CeL.wiki.title_link_of(options.move_to_link)
 				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
 				+ '改名に伴うリンク修正')
 			+ ' - ' + CeL.wiki.title_link_of(log_to, 'log');
 
-		await main_move_process({ move_from_link, move_to_link });
+		await main_move_process(options);
 	}
 })();

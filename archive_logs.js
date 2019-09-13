@@ -199,8 +199,15 @@ function for_log_page(page_data) {
 	/** 寫入記錄頁面的存檔 */
 	function write_archive() {
 		var archive_page = archive_title(log_title);
-		summary = '[[WP:ARCHIVE|歸檔封存作業]]: [[' + log_title + ']] → [['
-				+ archive_page + ']] ' + log_size + '字';
+		summary = CeL.wiki.title_link_of('WP:ARCHIVE',
+				use_language === 'zh' ? '歸檔封存作業'
+						: use_language === 'ja' ? '記録保存' : 'Archiving')
+				+ ': [['
+				+ log_title
+				+ ']] → [['
+				+ archive_page
+				+ ']] '
+				+ log_size + '字';
 		CeL.info('for_log_page: ' + summary);
 
 		var config = {
