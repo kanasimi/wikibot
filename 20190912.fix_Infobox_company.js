@@ -24,7 +24,8 @@ CeL.run([
 
 // ---------------------------------------------------------------------//
 
-const summary = '[[Special:Diff/55581265/55581405|BOTREQ]]：清理[[Category:公司信息框使用额外地区代码参数的页面]]';
+const summary = '[[Special:Diff/55581265/55581405|機器人作業請求]]：清理[[Category:公司信息框使用额外地区代码参数的页面]]'
+	+ ' - ' + CeL.wiki.title_link_of(log_to, 'log');
 
 const main_template_name = 'Infobox company';
 
@@ -87,7 +88,7 @@ function for_each_page(page_data) {
 
 	const page_list = await wiki.categorymembers('公司信息框使用额外地区代码参数的页面');
 	await wiki.for_each_page(
-		page_list//.slice(0, 1)
+		page_list//.slice(0, 10)
 		,
 		for_each_page, {
 			log_to,
