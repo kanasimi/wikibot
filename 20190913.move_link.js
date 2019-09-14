@@ -86,12 +86,12 @@ move_configuration = {
 	},
 	//'Category:時間別分類': 'Category:時間別'
 };
-move_configuration = Object.create(null);
-await (async () => {
+move_configuration = async () => {
 	const wiki = new Wikiapi('ja');
 	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
-	const configuration = CeL.wiki.parse_configuration(page_data);
-	configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach(function (pair) {
+	let configuration = Object.create(null);
+	const page_configuration = CeL.wiki.parse_configuration(page_data);
+	page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach(function (pair) {
 		if (pair[1].startsWith(':Category')) {
 			move_configuration[pair[0].replace(/^:/g, '')] = {
 				move_to_link: pair[1].replace(/^:/g, ''),
@@ -99,9 +99,7 @@ await (async () => {
 			};
 		}
 	});
-})();
-console.log(Object.keys(move_configuration));
-throw Object.keys(move_configuration).length;
+};
 
 
 // ---------------------------------------------------------------------//
@@ -284,6 +282,12 @@ async function main_move_process(options) {
 	section_title = section_title ? '#' + section_title : '';
 
 	await wiki.login(user_name, user_password, use_language);
+
+	if (typeof move_configuration === 'function') {
+		move_configuration = await move_configuration();
+		console.log(Object.keys(move_configuration));
+		throw Object.keys(move_configuration).length;
+	}
 
 	//Object.entries(move_configuration).forEach(main_move_process);
 	for (let pair of Object.entries(move_configuration)) {
