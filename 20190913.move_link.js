@@ -93,12 +93,13 @@ move_configuration = async () => {
 	const page_configuration = CeL.wiki.parse_configuration(page_data);
 	page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach(function (pair) {
 		if (pair[1].startsWith(':Category')) {
-			move_configuration[pair[0].replace(/^:/g, '')] = {
+			configuration[pair[0].replace(/^:/g, '')] = {
 				move_to_link: pair[1].replace(/^:/g, ''),
 				do_move_page: { noredirect: true, movetalk: true }
 			};
 		}
 	});
+	return configuration;
 };
 
 
@@ -285,8 +286,9 @@ async function main_move_process(options) {
 
 	if (typeof move_configuration === 'function') {
 		move_configuration = await move_configuration();
-		console.log(Object.keys(move_configuration));
-		throw Object.keys(move_configuration).length;
+		//console.log(move_configuration);
+		//console.log(Object.keys(move_configuration));
+		//throw Object.keys(move_configuration).length;
 	}
 
 	//Object.entries(move_configuration).forEach(main_move_process);
