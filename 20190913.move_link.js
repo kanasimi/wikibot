@@ -288,7 +288,7 @@ async function main_move_process(options) {
 		if (options.do_move_page) {
 			options.do_move_page = { reason: summary, ...options.do_move_page };
 			try {
-				await wiki.page(move_from_title);
+				await wiki.page(move_from_link);
 				// カテゴリの改名も依頼に含まれている
 				await wiki.move_to(options.move_to_link, options.do_move_page);
 			} catch (e) {
