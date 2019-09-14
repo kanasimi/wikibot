@@ -80,7 +80,11 @@ diff_id = 74082270;
 section_title = 'Category:指標別分類系カテゴリ群の改名および貼り替え';
 summary = '';
 move_configuration = {
-	'Category:言語別分類': 'Category:言語別', 'Category:時間別分類': 'Category:時間別'
+	'Category:言語別分類': {
+		move_from_link: 'Category:言語別',
+		do_move_page: { movetalk: true }
+	},
+	//'Category:時間別分類': 'Category:時間別'
 };
 
 
@@ -272,6 +276,7 @@ async function main_move_process(options) {
 			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
 			//assert: typeof move_to_link === 'string'
 			: { move_from_link, move_to_link };
+
 		summary = CeL.wiki.title_link_of(diff_id ? 'Special:Diff/' + diff_id + section_title : 'WP:BOTREQ',
 			use_language === 'zh' ? '機器人作業請求'
 				: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request')
@@ -279,6 +284,20 @@ async function main_move_process(options) {
 				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
 				+ '改名に伴うリンク修正')
 			+ ' - ' + CeL.wiki.title_link_of(log_to, 'log');
+
+		if (options.do_move_page) {
+			options.do_move_page = { reason: summary, ...options.do_move_page };
+			try {
+				await wiki.page(move_from_title);
+				// カテゴリの改名も依頼に含まれている
+				await wiki.move_to(move_to_title, options.do_move_page);
+			} catch (e) {
+				if (e.code !== 'missingtitle' && e.code !== 'articleexists') {
+					CeL.error('[' + e.code + '] ' + e.info);
+					//continue;
+				}
+			}
+		}
 
 		await main_move_process(options);
 	}
