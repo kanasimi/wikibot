@@ -49,7 +49,7 @@ function for_each_token(token) {
 			continue;
 		}
 
-		CeL.wiki.parser.replace_parameter(token, parameter, {
+		CeL.wiki.parse.replace_parameter(token, parameter, {
 			local_code_name: parameter_to_country[parameter],
 			local_code
 		});
