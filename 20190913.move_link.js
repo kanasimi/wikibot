@@ -88,8 +88,7 @@ move_configuration = {
 	},
 	//'Category:時間別分類': 'Category:時間別'
 };
-move_configuration = async () => {
-	const wiki = new Wikiapi('ja');
+move_configuration = async (wiki) => {
 	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
 	let configuration = Object.create(null);
 	const page_configuration = CeL.wiki.parse_configuration(page_data);
@@ -311,7 +310,7 @@ async function main_move_process(options) {
 	await wiki.login(user_name, user_password, use_language);
 
 	if (typeof move_configuration === 'function') {
-		move_configuration = await move_configuration();
+		move_configuration = await move_configuration(wiki);
 		//console.log(move_configuration);
 		//console.log(Object.keys(move_configuration));
 		//throw Object.keys(move_configuration).length;
