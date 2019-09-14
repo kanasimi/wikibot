@@ -82,10 +82,26 @@ summary = '';
 move_configuration = {
 	'Category:言語別分類': {
 		move_to_link: 'Category:言語別',
-		do_move_page: { movetalk: true }
+		do_move_page: { noredirect: true, movetalk: true }
 	},
 	//'Category:時間別分類': 'Category:時間別'
 };
+move_configuration = Object.create(null);
+await (async () => {
+	const wiki = new Wikiapi('ja');
+	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
+	const configuration = CeL.wiki.parse_configuration(page_data);
+	configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach(function (pair) {
+		if (pair[1].startsWith(':Category')) {
+			move_configuration[pair[0].replace(/^:/g, '')] = {
+				move_to_link: pair[1].replace(/^:/g, ''),
+				do_move_page: { noredirect: true, movetalk: true }
+			};
+		}
+	});
+})();
+console.log(Object.keys(move_configuration));
+throw Object.keys(move_configuration).length;
 
 
 // ---------------------------------------------------------------------//
