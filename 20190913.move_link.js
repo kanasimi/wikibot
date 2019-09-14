@@ -81,7 +81,7 @@ section_title = 'Category:指標別分類系カテゴリ群の改名および貼
 summary = '';
 move_configuration = {
 	'Category:言語別分類': {
-		move_from_link: 'Category:言語別',
+		move_to_link: 'Category:言語別',
 		do_move_page: { movetalk: true }
 	},
 	//'Category:時間別分類': 'Category:時間別'
@@ -290,10 +290,14 @@ async function main_move_process(options) {
 			try {
 				await wiki.page(move_from_title);
 				// カテゴリの改名も依頼に含まれている
-				await wiki.move_to(move_to_title, options.do_move_page);
+				await wiki.move_to(options.move_to_link, options.do_move_page);
 			} catch (e) {
 				if (e.code !== 'missingtitle' && e.code !== 'articleexists') {
-					CeL.error('[' + e.code + '] ' + e.info);
+					if (e.code) {
+						CeL.error('[' + e.code + '] ' + e.info);
+					} else {
+						console.error(e);
+					}
 					//continue;
 				}
 			}
