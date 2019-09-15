@@ -115,7 +115,9 @@ move_configuration = {
 
 function for_each_link(token, index, parent) {
 	// token: [ page_name, section_title, displayed_text ]
-	let page_name = token[0].toString().trim();
+	let page_name = token[0].toString().trim().replace(
+		// \u2060: word joiner (WJ). /^\s$/.test('\uFEFF')
+		/[\s\u200B\u200E\u200F\u2060]+$|^[\s\u200B\u200E\u200F\u2060]+/g, '');
 	if (Array.isArray(token[0]) && token[0][0].toString().trim() === '') {
 		page_name = page_name.replace(/^:\s*/, '');
 	}
