@@ -107,12 +107,16 @@ move_configuration = async (wiki) => {
 
 // ---------------------------------------------------------------------//
 
-function for_each_link(token, index, parent) {
-	// token: [ page_name, section_title, displayed_text ]
-	let page_name = token[0].toString().trim().replace(
+function trim_page_name(page_name) {
+	return page_name.toString().trim().replace(
 		// \u2060: word joiner (WJ). /^\s$/.test('\uFEFF')
 		/[\s\u200B\u200E\u200F\u2060]+$|^[\s\u200B\u200E\u200F\u2060]+/g, '');
-	if (Array.isArray(token[0]) && token[0][0].toString().trim() === '') {
+}
+
+function for_each_link(token, index, parent) {
+	// token: [ page_name, section_title, displayed_text ]
+	let page_name = trim_page_name(token[0]);
+	if (Array.isArray(token[0]) && trim_page_name(token[0][0]) === '') {
 		page_name = page_name.replace(/^:\s*/, '');
 	}
 	if (page_name !== this.move_from_link) {
@@ -208,7 +212,7 @@ function for_each_template(token) {
 	// https://ja.wikipedia.org/wiki/Template:Main2
 	if (token.name === 'Main2'
 		// [4], [6], ...
-		&& token[2] && token[2].toString().trim() === this.move_from_link) {
+		&& token[2] && trim_page_name(token[2]) === this.move_from_link) {
 		// e.g., {{Main2|案内文|move_from_link}}
 		//console.log(token);
 		token[2] = this.move_to_link;
@@ -220,7 +224,7 @@ function for_each_template(token) {
 		//console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
 			token.forEach(function (value, index) {
-				if (index > 0 && value.toString().trim() === this.move_from_page__name) {
+				if (index > 0 && trim_page_name(value) === this.move_from_page__name) {
 					token[index] = this.move_to_page_name;
 				}
 			}, this);
@@ -234,7 +238,7 @@ function for_each_template(token) {
 		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
 		token.forEach(function (value, index) {
 			if (index === 0) return;
-			value = value.toString().trim();
+			value = trim_page_name(value);
 			if (value.endsWith('別に分類したカテゴリ')) {
 				token[index] = value.replace(/別に分類したカテゴリ$/, '別');
 			}
