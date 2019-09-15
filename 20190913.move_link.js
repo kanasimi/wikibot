@@ -103,6 +103,12 @@ move_configuration = async (wiki) => {
 	});
 	return configuration;
 };
+move_configuration = {
+	'Category:インドの都市別に分類したカテゴリ': {
+		move_to_link: 'Category:インドの都市別'
+	},
+	//'Category:時間別分類': 'Category:時間別'
+};
 
 
 // ---------------------------------------------------------------------//
@@ -339,9 +345,11 @@ async function main_move_process(options) {
 		if (options.do_move_page) {
 			options.do_move_page = { reason: summary, ...options.do_move_page };
 			try {
-				await wiki.page(move_from_link);
-				// カテゴリの改名も依頼に含まれている
-				await wiki.move_to(options.move_to_link, options.do_move_page);
+				const page_data = await wiki.page(move_from_link);
+				if (!page_data.missing) {
+					// カテゴリの改名も依頼に含まれている
+					await wiki.move_to(options.move_to_link, options.do_move_page);
+				}
 			} catch (e) {
 				if (e.code !== 'missingtitle' && e.code !== 'articleexists') {
 					if (e.code) {
