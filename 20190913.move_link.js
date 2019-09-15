@@ -127,10 +127,11 @@ summary = 'C.Suthorn asked to change the author field of the files uploaded by h
 move_configuration = {
 	'Category:Files by C.Suthorn': {
 		text_processor: function (wikitext) {
-			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]', '|author={{User:C.Suthorn/author}}');
+			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]',
+				'|author={{User:C.Suthorn/author}}');
 		},
 		//17000+ too many logs
-		//log_to: null
+		log_to: null
 	}
 };
 
