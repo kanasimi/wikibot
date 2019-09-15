@@ -123,13 +123,14 @@ move_configuration = {
 set_language('commons');
 diff_id = 365194769;
 section_title = 'author field in info template';
-summary = 'C.Suthorn asked to change the author field of the files uploaded by C.Suthorn';
+summary = 'C.Suthorn wishes to change the author field of the files uploaded by himself';
 move_configuration = {
 	'Category:Files by C.Suthorn': {
 		text_processor: function (wikitext) {
 			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]',
 				'|author={{User:C.Suthorn/author}}');
 		},
+		no_backlinks: true, no_embeddedin: true, no_redirects: true,
 		//17000+ too many logs
 		log_to: null
 	}
@@ -323,6 +324,9 @@ function for_each_page(page_data) {
 	return parsed.toString();
 }
 
+// リンク 参照読み込み 転送ページ
+const link_types = 'backlinks|embeddedin|redirects'.split('|');
+
 /** {String}default namespace to search */
 const default_namespace = 'main|file|module|template|category';
 //	'talk|template_talk|category_talk'
@@ -332,12 +336,11 @@ async function main_move_process(options) {
 		namespace: options.namespace || default_namespace
 	};
 
-	// リンク
-	let page_list = (await wiki.backlinks(options.move_from_link, list_options))
-		// 参照読み込み
-		.append(await wiki.embeddedin(options.move_from_link, list_options))
-		// 転送ページ
-		.append(await wiki.redirects(options.move_from_link, list_options));
+	let page_list = [];
+	link_types.forEach(function (type) {
+		if (!options['no_' + type])
+			page_list.append(await wiki[type](options.move_from_link, list_options))
+	});
 
 	// separate namespace and page name
 	const matched = options.move_from_link.match(/^([^:]+):(.+)$/);
