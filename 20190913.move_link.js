@@ -97,7 +97,7 @@ move_configuration = async (wiki) => {
 			// Remove header ":"
 			configuration[pair[0].replace(/^:/g, '')] = {
 				move_to_link: pair[1].replace(/^:/g, ''),
-				do_move_page: { noredirect: true, movetalk: true }
+				//do_move_page: { noredirect: true, movetalk: true }
 			};
 		}
 	});
