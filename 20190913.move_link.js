@@ -219,6 +219,21 @@ function for_each_template(token) {
 		}
 		return;
 	}
+
+
+	if (token.name === 'Template:Category:日本の都道府県/下位') {
+		//e.g., [[Category:北海道の市町村別]]
+		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
+		token.forEach(function (value, index) {
+			if (index === 0) return;
+			value = value.toString().trim();
+			if (value.endsWith('別に分類したカテゴリ')) {
+				token[index] = value.replace(/別に分類したカテゴリ$/, '別');
+			}
+		}, this);
+		return;
+	}
+
 }
 
 function for_each_page(page_data) {
@@ -256,14 +271,8 @@ function for_each_page(page_data) {
 	}
 	parsed.each('template', for_each_template.bind(this));
 
-	parsed = parsed.toString();
-
-	//e.g., [[Category:北海道の市町村別]]
-	//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
-	parsed = parsed.replace('|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|', '|[[市町村]]別|市町村別|');
-
 	// return wikitext modified.
-	return parsed;
+	return parsed.toString();
 }
 
 /** {String}default namespace to search */
