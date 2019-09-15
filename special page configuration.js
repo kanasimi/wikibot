@@ -557,7 +557,7 @@ var page_configurations = {
 				return 'Wikipedia:井戸端/subj/' + token.parameters.title;
 			}
 			if (token.name === '井戸端から誘導' && token.parameters.page) {
-				return token.parameters.page;
+				return [ token.parameters.page, token.parameters.title ];
 			}
 		},
 		postfix : function(section_table) {

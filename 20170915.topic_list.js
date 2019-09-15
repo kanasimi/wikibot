@@ -449,6 +449,7 @@ function start_main_work(page_data) {
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:典范条目评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:特色圖片評選' ];
+	// main_talk_pages = [ 'Wikipedia:井戸端' ];
 
 	// ----------------------------------------------------
 
@@ -575,7 +576,8 @@ function get_special_users(callback, options) {
 	wiki.page('Project:BAG', function(page_data) {
 		var title = CeL.wiki.title_of(page_data),
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1051,6 +1053,14 @@ function pre_fetch_sub_pages(page_data, error) {
 		if (!page_title) {
 			return;
 		}
+		if (Array.isArray(page_title)) {
+			// [ page_title, section_title ]
+			var section_title = page_title[1];
+			if (section_title) {
+				token.transclusion_section = section_title;
+			}
+			page_title = page_title[0];
+		}
 
 		page_title = CeL.wiki.normalize_title(page_title);
 		token.index = index;
@@ -1090,13 +1100,35 @@ function pre_fetch_sub_pages(page_data, error) {
 				main_talk_pages.push(sub_page_data.title);
 				sub_page_to_main[sub_page_data.title] = page_data.title;
 			}
+
+			var content;
+			if (token.transclusion_section) {
+				// Support for section transclusion
+				var parsed = CeL.wiki.parser(sub_page_data);
+				parsed.each_section(function(section, section_index) {
+					if (false) {
+						console.log([
+								token.transclusion_section,
+								section.section_title
+										&& section.section_title.title ]);
+					}
+					if (section.section_title && section.section_title.title
+					//
+					=== token.transclusion_section) {
+						content = section.section_title + section;
+					}
+				});
+			} else {
+				content = CeL.wiki.content_of(sub_page_data);
+			}
+
 			// 直接取代。
 			// 其他提醒的格式可以參考
 			// https://www.mediawiki.org/w/api.php?action=help&modules=expandtemplates
 			// <!-- {{Template}} starts -->...<!-- {{Template}} end -->
 			token.parent[token.index] = '\n{{Transclusion start|' + title
-					+ '}}\n' + CeL.wiki.content_of(sub_page_data)
-					+ '\n{{Transclusion end|' + title + '}}\n';
+					+ '}}\n' + (content || '') + '\n{{Transclusion end|'
+					+ title + '}}\n';
 			transclusions++;
 		});
 
