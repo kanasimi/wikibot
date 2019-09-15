@@ -297,7 +297,7 @@ async function main_move_process(options) {
 	};
 
 	// リンク
-	let page_list = await wiki.backlinks(options.move_from_link, list_options)
+	let page_list = (await wiki.backlinks(options.move_from_link, list_options))
 		// 参照読み込み
 		.append(await wiki.embeddedin(options.move_from_link, list_options))
 		// 転送ページ
@@ -318,8 +318,9 @@ async function main_move_process(options) {
 	if (options.move_from_ns === CeL.wiki.namespace('Category')) {
 		page_list.append(await wiki.categorymembers(options.move_from_link, list_options));
 	}
+	// TODO: page_list.unique()
 
-	page_list = page_list.unique().filter(function (page_data) {
+	page_list = page_list.filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
 			//&& !page_data.title.includes('/過去ログ')
