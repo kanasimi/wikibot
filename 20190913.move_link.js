@@ -147,13 +147,25 @@ function for_each_link(token, index, parent) {
 	}
 }
 
-var for_each_category = for_each_link;
+const for_each_category = for_each_link;
 
+// --------------------------------------------------------
 
-// @see CeL.wiki.parse.replace_parameter()
-function check_link_template(template_token, parameter_name) {
-	const index = template_token.index_of[parameter_name];
-	let attribute_text = index >= 0 && template_token[parameter_name];
+function replace_link_parameter(value, parameter_name) {
+	if (value === this.move_from_link) {
+		// e.g., {{Main|move_from_link}}
+		//console.log(template_token);
+		return parameter_name + '=' + this.move_to_link;
+	}
+
+	if (!this.move_from_link.includes('#') && value.startsWith(this.move_from_link + '#')) {
+		// e.g., {{Main|move_from_link#section title}}
+		return parameter_name + '=' + this.move_to_link + value.slice(this.move_from_link.length);
+	}
+}
+
+function check_link_parameter(template_token, parameter_name) {
+	const attribute_text = template_token.parameters[parameter_name];
 	if (!attribute_text) {
 		if (parameter_name == 1) {
 			CeL.warn('There is {{' + template_token.name + '}} without the first parameter.');
@@ -161,15 +173,7 @@ function check_link_template(template_token, parameter_name) {
 		return;
 	}
 
-	attribute_text = attribute_text.toString().trim();
-	if (attribute_text === this.move_from_link) {
-		// e.g., {{Main|move_from_link}}
-		//console.log(template_token);
-		template_token[index] = this.move_to_link;
-	} else if (!this.move_from_link.includes('#') && attribute_text.startsWith(this.move_from_link + '#')) {
-		// e.g., {{Main|move_from_link#section title}}
-		template_token[index] = this.move_to_link + attribute_text.slice(this.move_from_link.length);
-	}
+	CeL.wiki.parse.replace_parameter(template_token, parameter_name, replace_link_parameter.bind(this));
 }
 
 // templates that the first parament is displayed as link.
@@ -180,13 +184,13 @@ const all_link_template_hash = 'Main|See|Seealso|See also|混同|Catlink'.split(
 function for_each_template(token) {
 
 	if (token.name in first_link_template_hash) {
-		check_link_template.call(this, token, 1);
+		check_link_parameter.call(this, token, 1);
 		return;
 	}
 
 	if (token.name in all_link_template_hash) {
 		for (let index = 1; index < token.length; index++) {
-			check_link_template.call(this, token, index);
+			check_link_parameter.call(this, token, index);
 		}
 		return;
 	}
@@ -291,7 +295,7 @@ async function main_move_process(options) {
 	//console.log(page_list);
 
 	await wiki.for_each_page(
-		page_list.slice(0, 10)
+		page_list.slice(0, 1)
 		,
 		for_each_page.bind(options),
 		{
