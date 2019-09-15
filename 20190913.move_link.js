@@ -123,7 +123,7 @@ move_configuration = {
 set_language('commons');
 diff_id = 365194769;
 section_title = 'author field in info template';
-summary = 'C.Suthorn asked to modify the files uploaded by himself';
+summary = 'C.Suthorn asked to change the author field of the files uploaded by himself';
 move_configuration = {
 	'Category:Files by C.Suthorn': {
 		text_processor: function (wikitext) {
