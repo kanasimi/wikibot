@@ -289,12 +289,19 @@ function for_each_page(page_data) {
 
 /** {String}default namespace to search */
 const default_namespace = 'main|module|template|category';
+//	'talk|template_talk|category_talk'
 
 async function main_move_process(options) {
-	let page_list = await wiki.backlinks(options.move_from_link, {
-		namespace: options.namespace || default_namespace,
-		//namespace: 'talk|template_talk|category_talk',
-	});
+	let list_options = {
+		namespace: options.namespace || default_namespace
+	};
+
+	// リンク
+	let page_list = await wiki.backlinks(options.move_from_link, list_options)
+		// 参照読み込み
+		.append(await wiki.embeddedin(options.move_from_link, list_options))
+		// 転送ページ
+		.append(await wiki.redirects(options.move_from_link, list_options));
 
 	// separate namespace and page name
 	const matched = options.move_from_link.match(/^([^:]+):(.+)$/);
@@ -309,13 +316,10 @@ async function main_move_process(options) {
 	};
 
 	if (options.move_from_ns === CeL.wiki.namespace('Category')) {
-		page_list.append(await wiki.categorymembers(options.move_from_link, {
-			namespace: options.namespace || default_namespace,
-			//namespace: 'talk|template_talk|category_talk',
-		}));
+		page_list.append(await wiki.categorymembers(options.move_from_link, list_options));
 	}
 
-	page_list = page_list.filter(function (page_data) {
+	page_list = page_list.unique().filter(function (page_data) {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
 			//&& !page_data.title.includes('/過去ログ')
