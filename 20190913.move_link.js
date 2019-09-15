@@ -120,8 +120,21 @@ move_configuration = {
 };
 
 
-//17000+ too many logs
-//log_to:null
+set_language('commons');
+diff_id = 365194769;
+section_title = 'author field in info template';
+summary = 'C.Suthorn asked to modify the files uploaded by himself';
+move_configuration = {
+	'Category:Files by C.Suthorn': {
+		text_processor: function (wikitext) {
+			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]', '|author={{User:C.Suthorn/author}}');
+		},
+		//17000+ too many logs
+		//log_to: null
+	}
+};
+
+
 
 // ---------------------------------------------------------------------//
 
@@ -386,13 +399,14 @@ async function main_move_process(options) {
 			//assert: typeof move_to_link === 'string'
 			: { move_from_link, move_to_link };
 
+		const _log_to = 'log_to' in move_configuration ? move_configuration.log_to : log_to;
 		summary = CeL.wiki.title_link_of(diff_id ? 'Special:Diff/' + diff_id + section_title : 'WP:BOTREQ',
 			use_language === 'zh' ? '機器人作業請求'
 				: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request')
 			+ ': ' + (_summary || CeL.wiki.title_link_of(options.move_to_link)
 				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
 				+ '改名に伴うリンク修正')
-			+ ' - ' + CeL.wiki.title_link_of(log_to, 'log');
+			+ ' - ' + CeL.wiki.title_link_of(_log_to, 'log');
 
 		if (options.do_move_page) {
 			options.do_move_page = { reason: summary, ...options.do_move_page };
