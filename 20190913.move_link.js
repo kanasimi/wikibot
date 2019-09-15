@@ -112,11 +112,16 @@ summary = undefined;
 move_configuration = {
 	'Category:Photographs by David Falkner': {
 		text_processor: function (wikitext) {
-			return wikitext.replace(/[\s\n]*<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/, '');
+			// `Made with Repix (<a href="http://repix.it" rel="noreferrer nofollow">repix.it</a>)`
+			return wikitext.replace(/[\s\n]*Made with Repix \([^)]*\)/g, '')
+				.replace(/[\s\n]*<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/g, '');
 		}
 	}
 };
 
+
+//17000+ too many logs
+//log_to:null
 
 // ---------------------------------------------------------------------//
 
@@ -355,7 +360,7 @@ async function main_move_process(options) {
 			// for 「株式会社リクルートホールディングス」の修正
 			// for リクルートをパイプリンクにする
 			//page_options: { rvprop: 'ids|content|timestamp|user' },
-			log_to,
+			log_to: 'log_to' in options ? options.log_to : log_to,
 			summary
 		});
 }
