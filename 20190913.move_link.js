@@ -400,7 +400,7 @@ async function main_move_process(options) {
 			//assert: typeof move_to_link === 'string'
 			: { move_from_link, move_to_link };
 
-		const _log_to = 'log_to' in move_configuration ? move_configuration.log_to : log_to;
+		const _log_to = 'log_to' in options ? options.log_to : log_to;
 		summary = CeL.wiki.title_link_of(diff_id ? 'Special:Diff/' + diff_id + section_title : 'WP:BOTREQ',
 			use_language === 'zh' ? '機器人作業請求'
 				: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request')
