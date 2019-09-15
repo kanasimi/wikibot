@@ -92,7 +92,7 @@ move_configuration = async (wiki) => {
 	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
 	let configuration = Object.create(null);
 	const page_configuration = CeL.wiki.parse_configuration(page_data);
-	page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach(function (pair) {
+	page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach((pair) => {
 		if (pair[1].startsWith(':Category')) {
 			// Remove header ":"
 			configuration[pair[0].replace(/^:/g, '')] = {
@@ -104,14 +104,14 @@ move_configuration = async (wiki) => {
 	return configuration;
 };
 
-set_language('zh');
+set_language('en');
 set_language('commons');
 diff_id = 364966353;
 section_title = 'Remove promotional link';
 summary = undefined;
 move_configuration = {
 	'Category:Photographs by David Falkner': {
-		text_processor: function (wikitext) {
+		text_processor(wikitext) {
 			// `Made with Repix (<a href="http://repix.it" rel="noreferrer nofollow">repix.it</a>)`
 			return wikitext.replace(/[\s\n]*Made with Repix \([^)]*\)/g, '')
 				.replace(/[\s\n]*<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/g, '');
@@ -126,7 +126,7 @@ section_title = 'author field in info template';
 summary = 'C.Suthorn wishes to change the author field of the files uploaded by himself';
 move_configuration = {
 	'Category:Files by C.Suthorn': {
-		text_processor: function (wikitext) {
+		text_processor(wikitext) {
 			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]',
 				'|author={{User:C.Suthorn/author}}');
 		},
@@ -256,7 +256,7 @@ function for_each_template(token) {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
 		//console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
-			token.forEach(function (value, index) {
+			token.forEach((value, index) => {
 				if (index > 0 && trim_page_name(value) === this.move_from_page__name) {
 					token[index] = this.move_to_page_name;
 				}
@@ -269,7 +269,7 @@ function for_each_template(token) {
 	if (token.name === 'Template:Category:日本の都道府県/下位') {
 		//e.g., [[Category:北海道の市町村別]]
 		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
-		token.forEach(function (value, index) {
+		token.forEach((value, index) => {
 			if (index === 0) return;
 			value = trim_page_name(value);
 			if (value.endsWith('別に分類したカテゴリ')) {
@@ -325,7 +325,7 @@ function for_each_page(page_data) {
 }
 
 // リンク 参照読み込み 転送ページ
-const link_types = 'backlinks|embeddedin|redirects'.split('|');
+const link_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
 
 /** {String}default namespace to search */
 const default_namespace = 'main|file|module|template|category';
@@ -335,12 +335,6 @@ async function main_move_process(options) {
 	let list_options = {
 		namespace: options.namespace || default_namespace
 	};
-
-	let page_list = [];
-	link_types.forEach(function (type) {
-		if (!options['no_' + type])
-			page_list.append(await wiki[type](options.move_from_link, list_options))
-	});
 
 	// separate namespace and page name
 	const matched = options.move_from_link.match(/^([^:]+):(.+)$/);
@@ -356,16 +350,23 @@ async function main_move_process(options) {
 		options.move_to_page_name = namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link;
 	}
 
-	if (options.move_from_ns === CeL.wiki.namespace('Category')) {
-		page_list.append(await wiki.categorymembers(options.move_from_link, list_options));
+	if (!options.no_categorymembers) {
+		options.no_categorymembers = options.move_from_ns !== CeL.wiki.namespace('Category');
 	}
-	// TODO: page_list.unique()
 
-	page_list = page_list.filter(function (page_data) {
+	let page_list = [];
+	link_types.forEach((type) => {
+		if (!options['no_' + type])
+			page_list.append(await(wiki[type](options.move_from_link, list_options)));
+	});
+
+	page_list = page_list.filter((page_data) => {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
 			//&& !page_data.title.includes('/過去ログ')
 			;
+	}).unique((page_data) => {
+		return page_data.title;
 	});
 	//console.log(page_list);
 

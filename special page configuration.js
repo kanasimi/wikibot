@@ -556,6 +556,9 @@ var page_configurations = {
 			if (token.name === '井戸端サブページ' && token.parameters.title) {
 				return 'Wikipedia:井戸端/subj/' + token.parameters.title;
 			}
+			if (token.name === '井戸端から誘導' && token.parameters.page) {
+				return token.parameters.page;
+			}
 		},
 		postfix : function(section_table) {
 			// 早見表
