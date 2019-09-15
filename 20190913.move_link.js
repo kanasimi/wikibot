@@ -407,7 +407,7 @@ async function main_move_process(options) {
 			+ ': ' + (_summary || CeL.wiki.title_link_of(options.move_to_link)
 				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
 				+ '改名に伴うリンク修正')
-			+ ' - ' + CeL.wiki.title_link_of(_log_to, 'log');
+			+ (_log_to ? ' - ' + CeL.wiki.title_link_of(_log_to, 'log') : '');
 
 		if (options.do_move_page) {
 			options.do_move_page = { reason: summary, ...options.do_move_page };
