@@ -103,12 +103,6 @@ move_configuration = async (wiki) => {
 	});
 	return configuration;
 };
-move_configuration = {
-	'Category:インドの都市別に分類したカテゴリ': {
-		move_to_link: 'Category:インドの都市別'
-	},
-	//'Category:時間別分類': 'Category:時間別'
-};
 
 
 // ---------------------------------------------------------------------//
@@ -262,8 +256,14 @@ function for_each_page(page_data) {
 	}
 	parsed.each('template', for_each_template.bind(this));
 
+	parsed = parsed.toString();
+
+	//e.g., [[Category:北海道の市町村別]]
+	//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
+	parsed = parsed.replace('|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|', '|[[市町村]]別|市町村別|');
+
 	// return wikitext modified.
-	return parsed.toString();
+	return parsed;
 }
 
 /** {String}default namespace to search */
