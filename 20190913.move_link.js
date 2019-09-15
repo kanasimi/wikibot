@@ -153,16 +153,24 @@ const for_each_category = for_each_link;
 
 // --------------------------------------------------------
 
-function replace_link_parameter(value, parameter_name) {
-	if (value === this.move_from_link) {
-		// e.g., {{Main|move_from_link}}
-		//console.log(template_token);
-		return parameter_name + '=' + this.move_to_link;
+function replace_link_parameter(value, parameter_name, template_token) {
+	let move_from_link = this.move_from_link;
+	let move_to_link = this.move_to_link;
+	// 特別處理模板引數不加命名空間前綴的情況。
+	if (template_token.name === 'Catlink') {
+		move_from_link = move_from_link.replace(/^Category:/, '');
+		move_to_link = move_to_link.replace(/^Category:/, '');
 	}
 
-	if (!this.move_from_link.includes('#') && value.startsWith(this.move_from_link + '#')) {
+	if (value === move_from_link) {
+		// e.g., {{Main|move_from_link}}
+		//console.log(template_token);
+		return parameter_name + '=' + move_to_link;
+	}
+
+	if (!move_from_link.includes('#') && value.startsWith(move_from_link + '#')) {
 		// e.g., {{Main|move_from_link#section title}}
-		return parameter_name + '=' + this.move_to_link + value.slice(this.move_from_link.length);
+		return parameter_name + '=' + move_to_link + value.slice(move_from_link.length);
 	}
 }
 
@@ -312,7 +320,7 @@ async function main_move_process(options) {
 	//console.log(page_list);
 
 	await wiki.for_each_page(
-		page_list.slice(0, 1)
+		page_list//.slice(0, 1)
 		,
 		for_each_page.bind(options),
 		{
