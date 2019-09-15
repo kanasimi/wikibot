@@ -104,6 +104,7 @@ move_configuration = async (wiki) => {
 	return configuration;
 };
 
+set_language('zh');
 set_language('commons');
 diff_id = 364966353;
 section_title = 'Remove promotional link';
@@ -111,7 +112,7 @@ summary = undefined;
 move_configuration = {
 	'Category:Photographs by David Falkner': {
 		text_processor: function (wikitext) {
-			return wikitext.replace(/<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/, '');
+			return wikitext.replace(/[\s\n]*<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/, '');
 		}
 	}
 };
@@ -304,7 +305,7 @@ function for_each_page(page_data) {
 }
 
 /** {String}default namespace to search */
-const default_namespace = 'main|module|template|category';
+const default_namespace = 'main|file|module|template|category';
 //	'talk|template_talk|category_talk'
 
 async function main_move_process(options) {
@@ -347,7 +348,7 @@ async function main_move_process(options) {
 	//console.log(page_list);
 
 	await wiki.for_each_page(
-		page_list//.slice(0, 1)
+		page_list.slice(0, 1)
 		,
 		for_each_page.bind(options),
 		{
