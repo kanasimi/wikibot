@@ -104,6 +104,18 @@ move_configuration = async (wiki) => {
 	return configuration;
 };
 
+set_language('commons');
+diff_id = 364966353;
+section_title = 'Remove promotional link';
+summary = undefined;
+move_configuration = {
+	'Category:Photographs by David Falkner': {
+		text_processor: function (wikitext) {
+			return wikitext.replace(/<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/, '');
+		}
+	}
+};
+
 
 // ---------------------------------------------------------------------//
 
@@ -251,6 +263,10 @@ function for_each_template(token) {
 function for_each_page(page_data) {
 	//console.log(page_data.revisions[0].slots.main);
 
+	if (this.text_processor) {
+		return this.text_processor(page_data.wikitext);
+	}
+
 	if (false) {
 		// for 「株式会社リクルートホールディングス」の修正
 		if (page_data.revisions[0].user !== CeL.wiki.normalize_title(user_name)
@@ -311,9 +327,11 @@ async function main_move_process(options) {
 		move_from_ns: namespace,
 		// page_name only
 		move_from_page__name: namespace ? matched[2] : options.move_from_link,
-		// page_name only
-		move_to_page_name: namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link,
 	};
+	if (options.move_to_link) {
+		// page_name only
+		options.move_to_page_name = namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link;
+	}
 
 	if (options.move_from_ns === CeL.wiki.namespace('Category')) {
 		page_list.append(await wiki.categorymembers(options.move_from_link, list_options));
