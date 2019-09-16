@@ -170,9 +170,19 @@ move_configuration = {
 	'Category:Files by C.Suthorn': {
 		text_processor(wikitext, page_data) {
 			const replace_from = '|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]';
-			const includes_from = wikitext.includes(replace_from);
 			const replace_to = '|author={{User:C.Suthorn/author}}';
+
+			const includes_from = wikitext.includes(replace_from);
+
+			if (includes_from) {
+			} else if (wikitext.includes('|Author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]')) {
+				wikitext = wikitext.replace('|Author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]', replace_to);
+			} else if (wikitext.includes('|photographer=[[User:C.Suthorn|C.Suthorn]]')) {
+				wikitext = wikitext.replace('|photographer=[[User:C.Suthorn|C.Suthorn]]', replace_to);
+			}
+
 			const includes_to = wikitext.includes(replace_to);
+
 			if (includes_from && !includes_to) {
 				// new page to replace
 				return wikitext.replace(replace_from, replace_to);
@@ -185,6 +195,7 @@ move_configuration = {
 			return wikitext;
 		},
 		list_types: 'categorymembers',
+		namespace: 'file',
 		//17000+ too many logs
 		log_to: null
 	}
