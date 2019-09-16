@@ -396,8 +396,8 @@ async function main_move_process(options) {
 	}
 
 	let page_list = [];
-	list_types.forEach((type) => {
-		page_list.append(await(wiki[type](options.move_from_link, list_options)));
+	list_types.forEach(async (type) => {
+		page_list.append(await wiki[type](options.move_from_link, list_options));
 	});
 
 	page_list = page_list.filter((page_data) => {
