@@ -96,7 +96,7 @@ move_configuration = async (wiki) => {
 	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
 	let configuration = Object.create(null);
 	const page_configuration = CeL.wiki.parse_configuration(page_data);
-	page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）'].forEach((pair) => {
+	for (let pair of page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）']) {
 		if (pair[1].startsWith(':Category')) {
 			// Remove header ":"
 			configuration[pair[0].replace(/^:/g, '')] = {
@@ -104,7 +104,7 @@ move_configuration = async (wiki) => {
 				//do_move_page: { noredirect: true, movetalk: true }
 			};
 		}
-	});
+	}
 	return configuration;
 };
 
@@ -146,7 +146,7 @@ section_title = 'Portal:バス/画像一覧/年別 整理依頼';
 summary = '';
 move_configuration = {
 	'Portal:バス/画像一覧/過去に掲載された写真/': {
-		text_processor(wikitext) {
+		text_processor(wikitext, page_data) {
 			/** {Array}頁面解析後的結構。 */
 			const parsed = page_data.parse();
 			parsed.each('table', function (token, index, parent) {
@@ -322,7 +322,7 @@ function for_each_page(page_data) {
 	//console.log(page_data.revisions[0].slots.main);
 
 	if (this.text_processor) {
-		return this.text_processor(page_data.wikitext);
+		return this.text_processor(page_data.wikitext, page_data);
 	}
 
 	if (false) {
@@ -396,9 +396,11 @@ async function main_move_process(options) {
 	}
 
 	let page_list = [];
-	list_types.forEach(async (type) => {
+	CeL.info('main_move_process: Get types: ' + list_types);
+	// Can not use `list_types.forEach(async type => ...)`
+	for (let type of list_types) {
 		page_list.append(await wiki[type](options.move_from_link, list_options));
-	});
+	}
 
 	page_list = page_list.filter((page_data) => {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
