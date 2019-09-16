@@ -36,6 +36,10 @@ let move_configuration = {};
 
 // ---------------------------------------------------------------------//
 
+/** @inner */
+const DELETE_PAGE = Symbol('DELETE_PAGE');
+
+
 /*
 
 文章名稱的改變，應考慮上下文的影響。例如：
@@ -130,12 +134,30 @@ move_configuration = {
 			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]',
 				'|author={{User:C.Suthorn/author}}');
 		},
-		no_backlinks: true, no_embeddedin: true, no_redirects: true,
+		list_types: 'categorymembers',
 		//17000+ too many logs
 		log_to: null
 	}
 };
 
+set_language('ja');
+diff_id = '74253402/74253450';
+section_title = 'Portal:バス/画像一覧/年別 整理依頼';
+summary = '';
+move_configuration = {
+	'Portal:バス/画像一覧/過去に掲載された写真/': {
+		text_processor(wikitext) {
+			/** {Array}頁面解析後的結構。 */
+			const parsed = page_data.parse();
+			parsed.each('table', function (token, index, parent) {
+				if (token.toString().includes('[[Portal:バス/画像一覧/過去に掲載された写真/'))
+					parent[index] = '{{Portal:バス/画像一覧/年別}}';
+			});
+			return parsed.toString();
+		},
+		list_types: 'prefixsearch',
+	}
+};
 
 
 // ---------------------------------------------------------------------//
@@ -228,7 +250,22 @@ const first_link_template_hash = ''.split('|').to_hash();
 // templates that ALL paraments are displayed as link.
 const all_link_template_hash = 'Main|See|Seealso|See also|混同|Catlink'.split('|').to_hash();
 
-function for_each_template(token) {
+/**
+ * 換掉整個 parent[index] token 的情況。
+ * @param {Array} parent
+ * @param {Number} index
+ * @param {String} replace_to
+ */
+function replace_token(parent, index, replace_to) {
+	parent[index] = replace_to;
+	if (replace_to === DELETE_PAGE && index + 1 < parent.length && typeof parent[index + 1] === 'string') {
+		// 去除後方的空白。 去除前方的空白或許較不合適？
+		// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
+		parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
+	}
+}
+
+function for_each_template(token, index, parent) {
 
 	if (token.name in first_link_template_hash) {
 		check_link_parameter.call(this, token, 1);
@@ -256,7 +293,7 @@ function for_each_template(token) {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
 		//console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
-			token.forEach((value, index) => {
+			token.forEach(function (value, index) {
 				if (index > 0 && trim_page_name(value) === this.move_from_page__name) {
 					token[index] = this.move_to_page_name;
 				}
@@ -269,7 +306,7 @@ function for_each_template(token) {
 	if (token.name === 'Template:Category:日本の都道府県/下位') {
 		//e.g., [[Category:北海道の市町村別]]
 		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
-		token.forEach((value, index) => {
+		token.forEach(function (value, index) {
 			if (index === 0) return;
 			value = trim_page_name(value);
 			if (value.endsWith('別に分類したカテゴリ')) {
@@ -325,13 +362,17 @@ function for_each_page(page_data) {
 }
 
 // リンク 参照読み込み 転送ページ
-const link_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
+const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
 
 /** {String}default namespace to search */
 const default_namespace = 'main|file|module|template|category';
 //	'talk|template_talk|category_talk'
 
 async function main_move_process(options) {
+	let list_types = options.list_types || default_list_types;
+	if (typeof list_types === 'string') {
+		list_types = list_types.split('|');
+	}
 	let list_options = {
 		namespace: options.namespace || default_namespace
 	};
@@ -350,14 +391,13 @@ async function main_move_process(options) {
 		options.move_to_page_name = namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link;
 	}
 
-	if (!options.no_categorymembers) {
-		options.no_categorymembers = options.move_from_ns !== CeL.wiki.namespace('Category');
+	if (options.move_from_ns !== CeL.wiki.namespace('Category')) {
+		list_types = list_types.filter(type => type !== 'categorymembers');
 	}
 
 	let page_list = [];
-	link_types.forEach((type) => {
-		if (!options['no_' + type])
-			page_list.append(await(wiki[type](options.move_from_link, list_options)));
+	list_types.forEach((type) => {
+		page_list.append(await(wiki[type](options.move_from_link, list_options)));
 	});
 
 	page_list = page_list.filter((page_data) => {
@@ -365,9 +405,7 @@ async function main_move_process(options) {
 			&& page_data.ns !== CeL.wiki.namespace('User')
 			//&& !page_data.title.includes('/過去ログ')
 			;
-	}).unique((page_data) => {
-		return page_data.title;
-	});
+	}).unique(page_data => page_data.title);
 	//console.log(page_list);
 
 	await wiki.for_each_page(
