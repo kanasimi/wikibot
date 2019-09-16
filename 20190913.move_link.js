@@ -46,6 +46,8 @@ const DELETE_PAGE = Symbol('DELETE_PAGE');
 # 是否應採用 [[new|old]]: using .keep_title
 # 檢查重定向："株式会社[[リクルート]]" → "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
 
+作業時檢查是否已經更改過、或者應該更改確沒辦法更改的情況。
+
 作業完檢查リンク元
 
 */
@@ -124,22 +126,6 @@ move_configuration = {
 };
 
 
-set_language('commons');
-diff_id = 365194769;
-section_title = 'author field in info template';
-summary = 'C.Suthorn wishes to change the author field of the files uploaded by himself';
-move_configuration = {
-	'Category:Files by C.Suthorn': {
-		text_processor(wikitext) {
-			return wikitext.replace('|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]',
-				'|author={{User:C.Suthorn/author}}');
-		},
-		list_types: 'categorymembers',
-		//17000+ too many logs
-		log_to: null
-	}
-};
-
 set_language('ja');
 diff_id = '74253402/74253450';
 section_title = 'Portal:バス/画像一覧/年別 整理依頼';
@@ -171,6 +157,36 @@ move_configuration = {
 			return parsed.toString();
 		},
 		list_types: 'prefixsearch',
+	}
+};
+
+
+set_language('en');
+set_language('commons');
+diff_id = 365194769;
+section_title = 'author field in info template';
+summary = 'C.Suthorn wishes to change the author field of the files uploaded by himself';
+move_configuration = {
+	'Category:Files by C.Suthorn': {
+		text_processor(wikitext, page_data) {
+			const replace_from = '|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]';
+			const includes_from = wikitext.includes(replace_from);
+			const replace_to = '|author={{User:C.Suthorn/author}}';
+			const includes_to = wikitext.includes(replace_to);
+			if (includes_from && !includes_to) {
+				// new page to replace
+				return wikitext.replace(replace_from, replace_to);
+			}
+			if (!includes_from && includes_to) {
+				// modified
+			} else {
+				CeL.error('Problematic page: ' + CeL.wiki.title_link_of(page_data));
+			}
+			return wikitext;
+		},
+		list_types: 'categorymembers',
+		//17000+ too many logs
+		log_to: null
 	}
 };
 
