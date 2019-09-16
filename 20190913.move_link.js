@@ -143,16 +143,31 @@ move_configuration = {
 set_language('ja');
 diff_id = '74253402/74253450';
 section_title = 'Portal:バス/画像一覧/年別 整理依頼';
-summary = '';
+summary = undefined;
 move_configuration = {
 	'Portal:バス/画像一覧/過去に掲載された写真/': {
 		text_processor(wikitext, page_data) {
 			/** {Array}頁面解析後的結構。 */
 			const parsed = page_data.parse();
+			let changed;
+			const replace_to = '{{Portal:バス/画像一覧/年別}}';
 			parsed.each('table', function (token, index, parent) {
-				if (token.toString().includes('[[Portal:バス/画像一覧/過去に掲載された写真/'))
-					parent[index] = '{{Portal:バス/画像一覧/年別}}';
+				if (token.toString().includes('[[Portal:バス/画像一覧/過去に掲載された写真/')) {
+					if (changed) {
+						CeL.error('Had modified: ' + CeL.wiki.title_link_of(page_data));
+						return;
+					}
+					parent[index] = replace_to;
+					changed = true;
+				}
 			});
+			if (!changed) {
+				// verify
+				if (!wikitext.includes(replace_to)) {
+					CeL.error('Problematic page: ' + CeL.wiki.title_link_of(page_data));
+				}
+				return wikitext;
+			}
 			return parsed.toString();
 		},
 		list_types: 'prefixsearch',
