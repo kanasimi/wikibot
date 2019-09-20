@@ -869,7 +869,8 @@ function check_BRFA_status(section) {
 			OperatorAssistanceNeeded : '請機器人操作者協助'
 		};
 		if (token.name in message_mapper) {
-			status = 'style="background-color: #ff0;" | '
+			status = 'style="background-color: #ff9;" | '
+					+ '[[File:Symbol_point_of_order.svg|20px|alt=|link=]] '
 					+ message_mapper[token.name];
 			return;
 		}
