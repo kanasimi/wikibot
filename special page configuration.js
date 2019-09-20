@@ -861,7 +861,7 @@ function check_BOTREQ_status(section, section_index) {
 
 // 議體進度狀態(Status:Approved for trial/Trial complete/Approved/...)
 function check_BRFA_status(section) {
-	var status, to_exit = this.each.exit;
+	var status, to_exit = this.each.exit, BRFA_status;
 	this.each.call(section, 'template', function(token) {
 		var message_mapper = {
 			BAGAssistanceNeeded : '請審核小組協助',
@@ -871,14 +871,14 @@ function check_BRFA_status(section) {
 		if (token.name in message_mapper) {
 			status = 'style="background-color: #ff0;" | '
 					+ message_mapper[token.name];
-			return to_exit;
+			return;
 		}
 
 		// [[w:zh:Template:StatusBRFA]]
 		if (token.name === 'StatusBRFA') {
 			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。
 			status = token.toString().replace(/(}})$/, '|prefix=$1');
-			var BRFA_status = token.parameters[1] || 'new';
+			BRFA_status = token.parameters[1] || 'new';
 			if (/^(?:tri|tiral|測試|测试)$/.test(BRFA_status)) {
 				status = 'style="background-color: #cfc;" | ' + status;
 			} else if (/^(?:new|tric|trial complete|測試完成|测试完成)$/
@@ -898,8 +898,15 @@ function check_BRFA_status(section) {
 			.test(BRFA_status)) {
 				status = 'style="background-color: #ddd;" | ' + status;
 			}
-			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
-			return to_exit;
+			BRFA_status = status;
+			// <s>此模板代表一種決定性的狀態，可不用再檢查其他內容。</s>
+			// Waiting for message_mapper
+			// return to_exit;
+		}
+
+		if (BRFA_status) {
+			// 只有 message_mapper 可顛覆 BRFA_status。其他皆不再受理。
+			return;
 		}
 
 		if (token.name in {
@@ -909,22 +916,23 @@ function check_BRFA_status(section) {
 		}) {
 			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。
 			status = token.toString().replace(/(}})$/, '|prefix=$1');
-			var BRFA_status = token.parameters[1] || 'new';
-			if (/^(?:\+|Done|done|完成)$/.test(BRFA_status)) {
+			var _BRFA_status = token.parameters[1] || 'new';
+			if (/^(?:\+|Done|done|完成)$/.test(_BRFA_status)) {
 				status = 'style="background-color: #ccf;" | ' + status;
 			} else if (
 			//
 			/^(?:\-|Not done|not done|拒絕|拒绝|驳回|駁回|未完成)$/
 			//
-			.test(BRFA_status)) {
+			.test(_BRFA_status)) {
 				status = 'style="background-color: #fcc;" | ' + status;
 			} else if (/^(?:on hold|擱置|搁置|等待|等待中|OH|oh|hold|Hold|\*|\?)$/
 			//
-			.test(BRFA_status)) {
+			.test(_BRFA_status)) {
 				status = 'style="background-color: #ddd;" | ' + status;
 			}
-			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
-			return to_exit;
+			// <s>此模板代表一種決定性的狀態，可不用再檢查其他內容。</s>
+			// Waiting for message_mapper
+			return;
 		}
 
 		// [[Template:BAG_Tools]], [[Template:Status2]]
@@ -934,9 +942,7 @@ function check_BRFA_status(section) {
 		}) {
 			status = 'style="background-color: #cfc;" | ' + token;
 		} else if (token.name in {
-			BotTrialComplete : true,
-			OperatorAssistanceNeeded : true,
-			BAGAssistanceNeeded : true
+			BotTrialComplete : true
 		}) {
 			status = 'style="background-color: #ffc;" | ' + token;
 		} else if (token.name in {
