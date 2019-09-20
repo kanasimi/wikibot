@@ -863,6 +863,17 @@ function check_BOTREQ_status(section, section_index) {
 function check_BRFA_status(section) {
 	var status, to_exit = this.each.exit;
 	this.each.call(section, 'template', function(token) {
+		var message_mapper = {
+			BAGAssistanceNeeded : '請審核小組協助',
+			'BAG assistance needed' : '請審核小組協助',
+			OperatorAssistanceNeeded : '請機器人操作者協助'
+		};
+		if (token.name in message_mapper) {
+			status = 'style="background-color: #ff0;" | '
+					+ message_mapper[token.name];
+			return to_exit;
+		}
+
 		// [[w:zh:Template:StatusBRFA]]
 		if (token.name === 'StatusBRFA') {
 			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。

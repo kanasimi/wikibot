@@ -172,12 +172,14 @@ move_configuration = {
 			const replace_from = '|author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]';
 			const replace_to = '|author={{User:C.Suthorn/author}}';
 
-			const includes_from = wikitext.includes(replace_from);
+			let includes_from = wikitext.includes(replace_from);
 
 			if (includes_from) {
 			} else if (wikitext.includes('|Author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]')) {
+				includes_from = true;
 				wikitext = wikitext.replace('|Author=[[c:Special:EmailUser/C.Suthorn|C.Suthorn]]', replace_to);
 			} else if (wikitext.includes('|photographer=[[User:C.Suthorn|C.Suthorn]]')) {
+				includes_from = true;
 				wikitext = wikitext.replace('|photographer=[[User:C.Suthorn|C.Suthorn]]', replace_to);
 			}
 
