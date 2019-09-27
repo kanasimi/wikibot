@@ -69,7 +69,19 @@ var localized_column_to_header = {
 		last_BAG_set : '<small>[[WP:BUR|決裁者]]更新</small> !! data-sort-type="isoDate" | <small>決裁者最後更新(UTC+9)</small>',
 		last_botop_set : '<small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時(UTC+9)</small>'
 	},
-}[use_language], column_to_header = Object.assign({
+	en : {
+		title : 'Title',
+		discussions : '<small title="count of replies">Replies</small>',
+		participants : '<small title="count of participants">Participants</small>',
+		last_user_set : 'Last editor !! data-sort-type="isoDate" | Date/Time (UTC)',
+		last_BAG_set : '<small>Last BAG editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)',
+		last_botop_set : '<small>Last botop editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
+	}
+};
+localized_column_to_header = localized_column_to_header[use_language]
+// e.g., unknown language or 'commons' in CeL.wiki.api_URL.wikimedia
+|| localized_column_to_header.en;
+var column_to_header = Object.assign({
 	NO : '#'
 }, localized_column_to_header);
 // free
@@ -115,7 +127,7 @@ general_topic_page = '/topic list', general_page_configuration = {
 	ja : {
 		timezone : 9
 	}
-}[use_language], global.localized_page_configuration);
+}[use_language] || Object.create(null), global.localized_page_configuration);
 
 Object.assign(general_page_configuration, localized_page_configuration);
 // free
@@ -523,6 +535,19 @@ default_DYK_vote_configurations = Object.assign(Object.create(null),
 
 // page configurations for all supported talk pages
 var page_configurations = {
+	'commons:Commons:Bots/Work requests' : {
+		topic_page : general_topic_page,
+		timezone : 0,
+		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
+		column_to_header : {
+			status : 'Status',
+		},
+		operators : {
+			// 議體進度狀態。
+			status : check_BOTREQ_status
+		}
+	},
+
 	// TODO: Wikipedia:バグの報告 Wikipedia:管理者伝言板 Wikipedia:お知らせ
 	'jawiki:Wikipedia:Bot/使用申請' : Object.assign({
 		timezone : 9
@@ -730,6 +755,16 @@ function check_BOTREQ_status(section, section_index) {
 	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
 	this.each.call(section, 'template', function(token) {
 		if (token.name in {
+			// https://commons.wikimedia.org/wiki/Template:Section_resolved
+			'Section resolved' : true
+		}) {
+			// 轉換成短顯示法。
+			status = 'style="background-color: #efe;" | ' + '{{Resolved}}';
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
+			return to_exit;
+		}
+
+		if (token.name in {
 			Resolved : true,
 			Solved : true,
 			済み : true,
@@ -739,7 +774,7 @@ function check_BOTREQ_status(section, section_index) {
 			// 這個做法可以去掉模板中的簽名。
 			status = 'style="background-color: #efe;" | '
 			// [[ja:Template:解決済み]]
-			+ '{{ ' + token.name + '}}';
+			+ '{{' + token.name + '}}';
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
 		}
@@ -781,6 +816,7 @@ function check_BOTREQ_status(section, section_index) {
 		} else if (token.name in {
 			Doing : true,
 			處理中 : true,
+			// https://en.wikipedia.org/wiki/Template:Working
 			Working : true,
 			工作中 : true,
 
