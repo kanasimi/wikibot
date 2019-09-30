@@ -531,6 +531,134 @@ default_DYK_vote_configurations.operators = Object.assign(Object.create(null),
 default_DYK_vote_configurations = Object.assign(Object.create(null),
 		default_FC_vote_configurations, default_DYK_vote_configurations);
 
+var jawiki_AFD_options = {
+	topic_page : general_topic_page,
+	timezone : 9,
+	// 4: [[Wikipedia:削除依頼/東芝グループ企業間の履歴不継承転記]]
+	level_filter : [ 3, 4 ],
+	columns : 'NO;title;status;support;oppose;discussions;participants;last_user_set',
+	column_to_header : {
+		title : '依頼ページ',
+		status : '進捗',
+		//
+		support : '<small>存続</small>',
+		oppose : '<small>削除</small>'
+	},
+	// column operators
+	operators : {
+		status : function(section, section_index) {
+			var status, to_exit = this.each.exit;
+			this.each.call(section, 'template', function(token) {
+				var decide = token.name;
+				if (decide === 'AFD') {
+					decide = token[1] && token[1].toString();
+					// https://ja.wikipedia.org/wiki/Template:AFD
+					if (!decide || decide.endsWith('r'))
+						return;
+				}
+				if (!decide)
+					return;
+				if (decide in {
+					// 取り下げ : true,
+
+					// 以下の引数は管理者専用です
+					対処 : true,
+					確認 : true,
+					却下 : true,
+					終了 : true,
+					失効 : true,
+					// {{依頼無効}}
+					依頼無効 : true
+				}) {
+					status = token.toString();
+					return to_exit;
+				}
+			});
+			return status || '';
+		},
+		support : function(section, section_index) {
+			var vote_count = 0;
+			this.each.call(section, 'template', function(token) {
+				var vote = token.name === 'AFD' && token[1]
+						&& token[1].toString();
+				// https://ja.wikipedia.org/wiki/Template:AFD
+				if (!vote || vote.endsWith('r'))
+					return;
+				if (vote.includes('存続'))
+					vote_count++;
+			});
+			return vote_count || '';
+		},
+		oppose : function(section, section_index) {
+			var vote_count = 0;
+			this.each.call(section, 'template', function(token) {
+				var vote = token.name === 'AFD' && token[1]
+						&& token[1].toString();
+				// https://ja.wikipedia.org/wiki/Template:AFD
+				if (!vote || vote.endsWith('r'))
+					return;
+				if (vote.includes('削除') || vote.includes('一部')
+						|| vote.includes('特定版') || vote.includes('版指定')
+						|| vote.includes('緊急')) {
+					vote_count++;
+				}
+			});
+			return vote_count || '';
+		}
+	},
+	preprocess_section_link_token : function(token) {
+		if (token.type === 'transclusion') {
+			// console.log(token);
+			if (token.name === 'Particle') {
+				// console.log(token);
+				// console.log(token[1] + '（ノート / 履歴 / ログ / リンク元）');
+				return token[1] + '（ノート / 履歴 / ログ / リンク元）';
+			}
+			if (token.name === 'P') {
+				// console.log(token);
+				return token[1] + ':' + token[2] + '（ノート / 履歴 / ログ / リンク元）';
+			}
+		}
+		return token;
+	},
+	transclusion_target : function(token) {
+		var prefix = 'Wikipedia:削除依頼/ログ/';
+		if (!token.name.startsWith(prefix))
+			return;
+		// console.log(token.name);
+		var matched = token.name.match(/{{#time:Y年Fj日\|-(\d+) days/);
+		if (!matched)
+			return;
+		var date = new Date;
+		date.setDate(date.getDate() - matched[1]);
+		var wiki = this.wiki;
+		var page_data = this;
+		// console.log(page_data);
+		// console.log(page_data.page_configuration);
+		// console.log(prefix + date.format('%Y年%m月%d日'));
+		return new Promise(function(resolve, reject) {
+			wiki.page(prefix + date.format({
+				format : '%Y年%m月%d日',
+				zone : page_data.page_configuration.timezone
+			}), function(page_data) {
+				var parsed = CeL.wiki.parser(page_data);
+				var page_list = [];
+				parsed.each('transclusion', function(token, index, parent) {
+					if (token.name.startsWith('Wikipedia:削除依頼/'))
+						page_list.push(token.name);
+				});
+				if (CeL.is_debug()) {
+					CeL.info(CeL.wiki.title_link_of(page_data.title)
+							+ ' transcludes:');
+					console.log(page_list);
+				}
+				page_list.multi = true;
+				resolve(page_list);
+			});
+		});
+	}
+};
+
 // ================================================================================================
 
 // page configurations for all supported talk pages
@@ -595,6 +723,8 @@ var page_configurations = {
 		},
 		purge_page : 'Wikipedia:議論が盛んなノート'
 	}, general_page_configuration),
+	'jawiki:Wikipedia:削除依頼/ログ/先週' : jawiki_AFD_options,
+	'jawiki:Wikipedia:削除依頼/ログ/先々週' : jawiki_AFD_options,
 
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,
@@ -857,7 +987,9 @@ function check_BOTREQ_status(section, section_index) {
 			中止 : true,
 
 			'On hold' : true,
+			// 以下是指向本頁面的重定向頁：
 			OnHold : true,
+			Onhold : true,
 			擱置 : true,
 			搁置 : true,
 			保留 : true,
@@ -1002,12 +1134,15 @@ function check_BRFA_status(section) {
 		}) {
 			status = 'style="background-color: #fcc;" | ' + token;
 		} else if (token.name in {
-			BotOnHold : true,
-
 			'On hold' : true,
+			// 以下是指向本頁面的重定向頁：
 			OnHold : true,
+			Onhold : true,
 			擱置 : true,
-			搁置 : true
+			搁置 : true,
+			保留 : true,
+
+			BotOnHold : true
 		}) {
 			status = 'style="background-color: #ccc;" | ' + token;
 		} else if (token.name in {

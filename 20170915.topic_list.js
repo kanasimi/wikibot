@@ -460,6 +460,7 @@ function start_main_work(page_data) {
 	// main_talk_pages = [ 'Wikipedia:典范条目评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:特色圖片評選' ];
 	// main_talk_pages = [ 'Wikipedia:井戸端' ];
+	// main_talk_pages = [ 'Wikipedia:削除依頼/ログ/先週', 'Wikipedia:削除依頼/ログ/先々週' ];
 
 	// ----------------------------------------------------
 
@@ -857,6 +858,7 @@ function setup_list_legend() {
 }
 
 // for 討論議題列表可以挑選欄位: (特定)使用者(最後)留言時間
+// e.g., last_user_set, last_admin_set
 function add_user_name_and_date_set(section, user_and_date_index) {
 	var user_shown = '', date = '';
 	if (user_and_date_index >= 0) {
@@ -1030,7 +1032,14 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
+	var page_configuration = page_data.page_configuration
+	//
+	= page_configurations[CeL.wiki.site_name(wiki) + ':' + page_data.title];
+
 	var parsed = CeL.wiki.parser(page_data, {
+		preprocess_section_link_token
+		//
+		: page_configuration.preprocess_section_link_token,
 		language : use_language
 	}).parse();
 	if (!parsed) {
@@ -1044,12 +1053,8 @@ function pre_fetch_sub_pages(page_data, error) {
 		// debug 用. check parser, test if parser working properly.
 		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parsed.toString(),
 				'diff'));
-		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
+		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 	}
-
-	var page_configuration = page_data.page_configuration
-	//
-	= page_configurations[CeL.wiki.site_name(wiki) + ':' + page_data.title];
 
 	if (!page_configuration) {
 		// for debug
@@ -1062,35 +1067,87 @@ function pre_fetch_sub_pages(page_data, error) {
 		return;
 	}
 
-	var sub_pages_to_fetch = [], sub_pages_to_fetch_hash = Object.create(null);
+	// console.log(page_data.parsed);
+
+	// let page_configuration.transclusion_target get pages
+	page_data.wiki = wiki;
+
+	var task_list = [], token_list = [];
 	// check transclusions
 	parsed.each('transclusion', function(token, index, parent) {
 		// transclusion page title
-		var page_title = page_configuration.transclusion_target.call(page_data,
-				token);
-		if (!page_title) {
+		var page_title_task = page_configuration.transclusion_target.call(
+				page_data, token);
+		if (!page_title_task) {
 			return;
 		}
+		task_list.push(Promise.resolve(page_title_task));
+		token.index = index;
+		token.parent = parent;
+		token_list.push(token);
+	}, false,
+	// Only check the first level. 只檢查第一層之 transclusion。
+	1);
+
+	Promise.all(task_list).then(detect_sub_pages_to_fetch.bind({
+		page_data : page_data,
+		token_list : token_list,
+		transclusions : 0,
+
+		// sub_pages_to_fetch[index] = page_title
+		sub_pages_to_fetch : [],
+		// insert_into_token[index] = token to insert sub_page
+		insert_into_token : [],
+		// transclusion_section[index] = section title of sub_page
+		transclusion_section : [],
+		// title_to_indexes[page_title] = [ index of sub_pages_to_fetch, ... ]
+		title_to_indexes : Object.create(null)
+	}));
+}
+
+function detect_sub_pages_to_fetch(page_title_list) {
+	var _this = this;
+	var sub_pages_to_fetch = this.sub_pages_to_fetch;
+	var title_to_indexes = this.title_to_indexes;
+	// console.log(page_title_list);
+
+	function add_page_title(page_title, token) {
+		var index = sub_pages_to_fetch.length;
 		if (Array.isArray(page_title)) {
 			// [ page_title, section_title ]
 			var section_title = page_title[1];
 			if (section_title) {
-				token.transclusion_section = section_title;
+				_this.transclusion_section[index] = section_title;
 			}
 			page_title = page_title[0];
 		}
 
 		page_title = CeL.wiki.normalize_title(page_title);
-		token.index = index;
-		token.parent = parent;
-		sub_pages_to_fetch_hash[page_title] = token;
+		_this.insert_into_token.push(token);
 		sub_pages_to_fetch.push(page_title);
-	}, false,
-	// Only check the first level. 只檢查第一層之 transclusion。
-	1);
+		if (!title_to_indexes[page_title])
+			title_to_indexes[page_title] = [ index ];
+		else
+			title_to_indexes[page_title].push(index);
+	}
+
+	page_title_list.forEach(function(page_title, index) {
+		if (!page_title) {
+			return;
+		}
+
+		var token = this.token_list[index];
+		if (Array.isArray(page_title) && page_title.multi) {
+			page_title.forEach(function(_page_title) {
+				add_page_title(_page_title, token);
+			});
+		} else {
+			add_page_title(page_title, token);
+		}
+	}, this);
 
 	if (sub_pages_to_fetch.length === 0) {
-		generate_topic_list(page_data);
+		generate_topic_list(this.page_data);
 		return;
 	}
 
@@ -1098,69 +1155,96 @@ function pre_fetch_sub_pages(page_data, error) {
 	CeL.debug(sub_pages_to_fetch.length + ' pages to load:\n'
 			+ sub_pages_to_fetch.join('\n'), 1, 'pre_fetch_sub_pages');
 
-	wiki.page(sub_pages_to_fetch, function(page_data_list, error) {
-		// @see main_work @ wiki_API.prototype.work
-		if (page_data_list.length !== sub_pages_to_fetch.length) {
-			throw new Error('Fetch pages error! ' + error);
-		}
-
-		var transclusions = 0;
+	wiki.work({
+		no_edit : true,
+		log_to : null,
+		redirects : 1,
 		// insert page contents and re-parse
-		page_data_list.forEach(function(sub_page_data) {
-			var title = sub_page_data.original_title || sub_page_data.title,
-			//
-			token = sub_pages_to_fetch_hash[title];
-			if (!token) {
-				throw '取得了未設定的頁面: ' + CeL.wiki.title_link_of(sub_page_data);
-			}
-			if (!(sub_page_data.title in sub_page_to_main)) {
-				// 有嵌入其他議題/子頁面的，也得一併監視。
-				main_talk_pages.push(sub_page_data.title);
-				sub_page_to_main[sub_page_data.title] = page_data.title;
-			}
+		each : for_each_sub_page.bind(this),
+		last : insert_sub_pages.bind(this)
+	}, Object.keys(title_to_indexes));
+}
 
-			var content;
-			if (token.transclusion_section) {
-				// Support for section transclusion
-				var parsed = CeL.wiki.parser(sub_page_data);
-				parsed.each_section(function(section, section_index) {
-					if (false) {
-						console.log([
-								token.transclusion_section,
-								section.section_title
-										&& section.section_title.title ]);
-					}
-					if (section.section_title && section.section_title.title
-					//
-					=== token.transclusion_section) {
-						content = section.section_title + section;
-					}
-				});
-			} else {
-				content = CeL.wiki.content_of(sub_page_data);
-			}
+function for_each_sub_page(sub_page_data/* , messages, config */) {
+	var sub_page_title = sub_page_data.original_title || sub_page_data.title,
+	//
+	indexes = this.title_to_indexes[sub_page_title];
+	if (!indexes) {
+		throw new Error('取得了未設定的頁面: ' + CeL.wiki.title_link_of(sub_page_data));
+	}
+	// CeL.info('for_each_sub_page: ' + CeL.wiki.title_link_of(sub_page_data));
+	if (!(sub_page_data.title in sub_page_to_main)) {
+		// 有嵌入其他議題/子頁面的，也得一併監視。
+		main_talk_pages.push(sub_page_data.title);
+		sub_page_to_main[sub_page_data.title] = this.page_data.title;
+	}
 
-			// 直接取代。
-			// 其他提醒的格式可以參考
-			// https://www.mediawiki.org/w/api.php?action=help&modules=expandtemplates
-			// <!-- {{Template}} starts -->...<!-- {{Template}} end -->
-			token.parent[token.index] = '\n{{Transclusion start|' + title
-					+ '}}\n' + (content || '') + '\n{{Transclusion end|'
-					+ title + '}}\n';
-			transclusions++;
+	this.sub_page_data = sub_page_data;
+	this.sub_page_title = sub_page_title;
+	indexes.forEach(for_each_sub_page_index, this);
+	delete this.sub_page_data;
+	delete this.sub_page_title;
+}
+
+function for_each_sub_page_index(index) {
+	var token = this.insert_into_token[index];
+	var transclusion_section = this.transclusion_section[index];
+	var content;
+	if (transclusion_section) {
+		// Support for section transclusion
+		var parsed = CeL.wiki.parser(this.sub_page_data);
+		parsed.each_section(function(section, section_index) {
+			if (false) {
+				console.log([ transclusion_section,
+				//
+				section.section_title && section.section_title.title ]);
+			}
+			if (section.section_title
+
+			&& section.section_title.title === transclusion_section) {
+				content = section.section_title + section;
+			}
 		});
+	} else {
+		content = CeL.wiki.content_of(this.sub_page_data);
+	}
 
-		if (transclusions > 0) {
-			// content changed. re-parse
-			CeL.wiki.parser(page_data, {
-				wikitext : page_data.use_wikitext = parsed.toString()
-			}).parse();
-		}
-		generate_topic_list(page_data);
-	}, {
-		multi : true,
-		redirects : 1
-	});
+	content = '\n{{Transclusion start|' + this.sub_page_title + '}}\n'
+	// 其他提醒的格式可以參考
+	// https://www.mediawiki.org/w/api.php?action=help&modules=expandtemplates
+	// <!-- {{Template}} starts -->...<!-- {{Template}} end -->
+	+ (content || '') + '\n{{Transclusion end|' + this.sub_page_title + '}}\n';
+
+	var token_to_replace = token.parent[token.index];
+	if (token_to_replace === token) {
+		// 直接取代。
+		token.parent[token.index] = content;
+	} else if (typeof token_to_replace === 'string') {
+		// 之前已經被變更過，附加在其後面。
+		// assert: 單一 token 引入了多個頁面。
+		token.parent[token.index] += content;
+	} else {
+		throw new Error('原先的 token 已被變更過!');
+	}
+
+	this.transclusions++;
+}
+
+function insert_sub_pages() {
+	// Run after all list got.
+	var page_data = this.page_data;
+	if (this.transclusions > 0) {
+		// content changed. re-parse
+		CeL.wiki.parser(page_data, {
+			preprocess_section_link_token
+			//
+			: page_data.page_configuration.preprocess_section_link_token,
+			wikitext : page_data.use_wikitext = page_data.parsed.toString()
+		}).parse();
+	}
+	// console.log(page_data.use_wikitext);
+
+	generate_topic_list(page_data);
 }
 
 // ----------------------------------------------------------------------------
