@@ -218,20 +218,20 @@ move_configuration = {
 	}
 };
 
-// ---------------------------------------------------------------------//
+set_language('ja');
+diff_id = 74458022;
+section_title = 'Template:全国大学保健管理協会の除去';
+summary = undefined;
+move_configuration = {
+	'Template:全国大学保健管理協会': DELETE_PAGE,
+	'Template:日本養護教諭養成大学協議会': DELETE_PAGE,
+};
 
-function trim_page_name(page_name) {
-	return page_name.toString().trim().replace(
-		// \u2060: word joiner (WJ). /^\s$/.test('\uFEFF')
-		/[\s\u200B\u200E\u200F\u2060]+$|^[\s\u200B\u200E\u200F\u2060]+/g, '');
-}
+// ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
 	// token: [ page_name, section_title, displayed_text ]
-	let page_name = trim_page_name(token[0]);
-	if (Array.isArray(token[0]) && trim_page_name(token[0][0]) === '') {
-		page_name = page_name.replace(/^:\s*/, '');
-	}
+	let page_name = CeL.wiki.normalize_title(token[0].toString());
 	if (page_name !== this.move_from_link) {
 		return;
 	}
@@ -247,21 +247,32 @@ function for_each_link(token, index, parent) {
 		return;
 	}
 
-	//e.g., [[move_from_link]]
+	// e.g., [[move_from_link]]
 	//console.log(token);
-	if (!token[1] && token[2] === this.move_to_link) {
-		token.truncate();
-		token[0] = this.move_to_link;
+	if (this.move_to_link === DELETE_PAGE) {
+		CeL.assert(token[2] || !token[1] && this.move_from_ns === CeL.wiki.namespace('Main'));
+		// 直接只使用 displayed_text。
+		parent[index] = token[2] || token[0];
+
+	} else if (!token[1] && token[2] === this.move_to_link) {
+		// e.g., [[move_to_link|move to link]]
+		token.splice(0, 2);
+
 	} else {
 		const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
 		if (matched) {
+			// e.g., move_to_link: 'movie (1985)', 'movie (disambiguation)'
 			//TODO
 		}
 
 		if (this.keep_title) {
+			CeL.assert(this.move_from_ns === CeL.wiki.namespace('Main'));
+			// 將原先的頁面名稱轉成顯示名稱。
 			if (!token[1]) token[1] = '';
+			// keep original title
 			if (!token[2]) token[2] = token[0];
 		}
+		// 替換頁面。
 		token[0] = this.move_to_link;
 	}
 }
@@ -315,11 +326,15 @@ const all_link_template_hash = 'Main|See|Seealso|See also|混同|Catlink'.split(
  * @param {String} replace_to
  */
 function replace_token(parent, index, replace_to) {
-	parent[index] = replace_to;
-	if (replace_to === DELETE_PAGE && index + 1 < parent.length && typeof parent[index + 1] === 'string') {
-		// 去除後方的空白。 去除前方的空白或許較不合適？
-		// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
-		parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
+	if (replace_to === DELETE_PAGE) {
+		parent[index] = '';
+		if (index + 1 < parent.length && typeof parent[index + 1] === 'string') {
+			// 去除後方的空白。 去除前方的空白或許較不合適？
+			// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
+			parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
+		}
+	} else {
+		parent[index] = replace_to;
 	}
 }
 
@@ -329,7 +344,12 @@ function for_each_template(token, index, parent) {
 		if (CeL.is_Object(this.replace_parameters)) {
 			CeL.wiki.parse.replace_parameter(token, this.replace_parameters);
 		}
+		if (this.move_to_link === DELETE_PAGE) {
+			replace_token(parent, index, DELETE_PAGE);
+			return;
+		}
 		if (this.move_to_page_name && this.move_from_ns === CeL.wiki.namespace('Template')) {
+			// 直接替換模板名稱。
 			token[0] = this.move_to_page_name;
 			return;
 		}
@@ -350,7 +370,7 @@ function for_each_template(token, index, parent) {
 	// https://ja.wikipedia.org/wiki/Template:Main2
 	if (this.move_to_link && token.name === 'Main2'
 		// [4], [6], ...
-		&& token[2] && trim_page_name(token[2]) === this.move_from_link) {
+		&& token[2] && CeL.wiki.normalize_title(token[2].toString()) === this.move_from_link) {
 		// e.g., {{Main2|案内文|move_from_link}}
 		//console.log(token);
 		token[2] = this.move_to_link;
@@ -362,7 +382,7 @@ function for_each_template(token, index, parent) {
 		//console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
 			token.forEach(function (value, index) {
-				if (index > 0 && trim_page_name(value) === this.move_from_page_name) {
+				if (index > 0 && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name) {
 					token[index] = this.move_to_page_name;
 				}
 			}, this);
@@ -378,7 +398,7 @@ function for_each_template(token, index, parent) {
 		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
 		token.forEach(function (value, index) {
 			if (index === 0) return;
-			value = trim_page_name(value);
+			value = CeL.wiki.normalize_title(value.toString());
 			if (value.endsWith('別に分類したカテゴリ')) {
 				token[index] = value.replace(/別に分類したカテゴリ$/, '別');
 			}
@@ -436,7 +456,7 @@ function for_each_page(page_data) {
 // リンク 参照読み込み 転送ページ
 const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
 
-/** {String}default namespace to search */
+/** {String}default namespace to search and replace */
 const default_namespace = 'main|file|module|template|category';
 //	'talk|template_talk|category_talk'
 
@@ -458,8 +478,9 @@ async function main_move_process(options) {
 		// page_name only
 		move_from_page_name: namespace ? matched[2] : options.move_from_link,
 	};
-	if (options.move_to_link) {
-		// page_name only
+	if (options.move_to_link && options.move_to_link !== DELETE_PAGE) {
+		// assert: typeof options.move_to_link === 'string'
+		// get page_name only
 		options.move_to_page_name = namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link;
 	}
 
@@ -495,7 +516,7 @@ async function main_move_process(options) {
 		});
 }
 
-(async () => {
+async function prepare_operation() {
 	const _summary = typeof summary === 'string' ? summary : section_title;
 	section_title = section_title ? '#' + section_title : '';
 
@@ -517,15 +538,23 @@ async function main_move_process(options) {
 			: { move_from_link, move_to_link };
 
 		const _log_to = 'log_to' in options ? options.log_to : log_to;
+		if (_summary) {
+			summary = _summary;
+		} else if (options.move_to_link === DELETE_PAGE) {
+			summary = CeL.wiki.title_link_of(move_from_link) + 'の除去';
+		} else {
+			summary = CeL.wiki.title_link_of(options.move_to_link)
+				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
+				+ '改名に伴うリンク修正';
+		}
 		summary = CeL.wiki.title_link_of(diff_id ? 'Special:Diff/' + diff_id + section_title : 'WP:BOTREQ',
 			use_language === 'zh' ? '機器人作業請求'
 				: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request')
-			+ ': ' + (_summary || CeL.wiki.title_link_of(options.move_to_link)
-				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
-				+ '改名に伴うリンク修正')
+			+ ': ' + summary
 			+ (_log_to ? ' - ' + CeL.wiki.title_link_of(_log_to, 'log') : '');
 
 		if (options.do_move_page) {
+			// 作業前先移動原頁面。
 			options.do_move_page = { reason: summary, ...options.do_move_page };
 			try {
 				const page_data = await wiki.page(move_from_link);
@@ -547,4 +576,8 @@ async function main_move_process(options) {
 
 		await main_move_process(options);
 	}
+}
+
+(async () => {
+	await prepare_operation();
 })();
