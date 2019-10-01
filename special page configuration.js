@@ -559,7 +559,7 @@ var jawiki_AFD_options = {
 			.replace('（ノート / 履歴）', ''),
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
-			var style = /^\([^()]*緊/.test(title) ? 'color: red;' : '';
+			var style = /^[(（][^()（）]*緊/.test(title) ? 'color: red;' : '';
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
 			}
