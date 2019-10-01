@@ -203,6 +203,18 @@ move_configuration = {
 	}
 };
 
+set_language('ja');
+diff_id = 74434567;
+section_title = 'Template:基礎情報 アナウンサーの引数変更';
+summary = undefined;
+move_configuration = {
+	'Template:基礎情報_アナウンサー': {
+		replace_parameters: {
+			// | 家族 = → | 著名な家族 = に変更。
+			家族: '著名な家族'
+		}
+	}
+};
 
 // ---------------------------------------------------------------------//
 
@@ -311,6 +323,16 @@ function replace_token(parent, index, replace_to) {
 
 function for_each_template(token, index, parent) {
 
+	if (token.name === this.move_from_page_name) {
+		if (CeL.is_Object(this.replace_parameters)) {
+			CeL.wiki.parse.replace_parameter(token, this.replace_parameters);
+		}
+		if (this.move_to_page_name && this.move_from_ns === CeL.wiki.namespace('Template')) {
+			token[0] = this.move_to_page_name;
+			return;
+		}
+	}
+
 	if (token.name in first_link_template_hash) {
 		check_link_parameter.call(this, token, 1);
 		return;
@@ -324,7 +346,7 @@ function for_each_template(token, index, parent) {
 	}
 
 	// https://ja.wikipedia.org/wiki/Template:Main2
-	if (token.name === 'Main2'
+	if (this.move_to_link && token.name === 'Main2'
 		// [4], [6], ...
 		&& token[2] && trim_page_name(token[2]) === this.move_from_link) {
 		// e.g., {{Main2|案内文|move_from_link}}
@@ -333,12 +355,12 @@ function for_each_template(token, index, parent) {
 		return;
 	}
 
-	if (token.name === 'Pathnav') {
+	if (this.move_to_page_name && token.name === 'Pathnav') {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
 		//console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
 			token.forEach(function (value, index) {
-				if (index > 0 && trim_page_name(value) === this.move_from_page__name) {
+				if (index > 0 && trim_page_name(value) === this.move_from_page_name) {
 					token[index] = this.move_to_page_name;
 				}
 			}, this);
@@ -346,7 +368,9 @@ function for_each_template(token, index, parent) {
 		return;
 	}
 
+	return;
 
+	// old:
 	if (token.name === 'Template:Category:日本の都道府県/下位') {
 		//e.g., [[Category:北海道の市町村別]]
 		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
@@ -395,9 +419,11 @@ function for_each_page(page_data) {
 
 	this.page_data = page_data;
 
-	parsed.each('link', for_each_link.bind(this));
-	if (this.move_from_ns === CeL.wiki.namespace('Category')) {
-		parsed.each('category', for_each_category.bind(this));
+	if (this.move_to_link) {
+		parsed.each('link', for_each_link.bind(this));
+		if (this.move_from_ns === CeL.wiki.namespace('Category')) {
+			parsed.each('category', for_each_category.bind(this));
+		}
 	}
 	parsed.each('template', for_each_template.bind(this));
 
@@ -428,7 +454,7 @@ async function main_move_process(options) {
 		...options,
 		move_from_ns: namespace,
 		// page_name only
-		move_from_page__name: namespace ? matched[2] : options.move_from_link,
+		move_from_page_name: namespace ? matched[2] : options.move_from_link,
 	};
 	if (options.move_to_link) {
 		// page_name only
