@@ -560,12 +560,12 @@ var jawiki_AFD_options = {
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
 			var style = /^\([^()]*緊/.test(title) ? 'color: red;' : '';
-			// @see section_link_toString() @ CeL.wiki
-			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
-					+ (section.section_title.link[1] || ''), title);
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
 			}
+			// @see section_link_toString() @ CeL.wiki
+			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+					+ (section.section_title.link[1] || ''), title);
 			return title_too_long ? '<small>' + title + '</small>' : title;
 		},
 		status : function(section, section_index) {
