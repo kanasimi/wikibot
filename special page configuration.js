@@ -534,7 +534,7 @@ default_DYK_vote_configurations = Object.assign(Object.create(null),
 // ----------------------------------------------
 
 // TODO: set timer
-var jawiki_AFD_options = {
+var jawiki_week_AFD_options = {
 	topic_page : general_topic_page,
 	timezone : 9,
 	// 4: [[Wikipedia:削除依頼/東芝グループ企業間の履歴不継承転記]]
@@ -651,11 +651,15 @@ var jawiki_AFD_options = {
 		if (!token.name.startsWith(prefix))
 			return;
 		// console.log(token.name);
-		var matched = token.name.match(/{{#time:Y年Fj日\|-(\d+) days/);
+		var matched = token.name.slice(prefix.length)
+		// {{Wikipedia:削除依頼/ログ/{{今日}}}}
+		.replace(/{{今日}}/g, '{{#time:Y年Fj日|-0 days +9 hours}}').match(
+				/{{ *#time: *Y年Fj日 *\| *([+\-]?\d+) +days/);
 		if (!matched)
 			return;
+
 		var date = new Date;
-		date.setDate(date.getDate() - matched[1]);
+		date.setDate(date.getDate() + +matched[1]);
 		var wiki = this.wiki;
 		var page_data = this;
 		// console.log(page_data);
@@ -672,7 +676,7 @@ var jawiki_AFD_options = {
 					if (token.name.startsWith('Wikipedia:削除依頼/'))
 						page_list.push(token.name);
 				});
-				if (CeL.is_debug()) {
+				if (CeL.is_debug(1)) {
 					CeL.info(CeL.wiki.title_link_of(page_data.title)
 							+ ' transcludes:');
 					console.log(page_list);
@@ -748,8 +752,9 @@ var page_configurations = {
 		},
 		purge_page : 'Wikipedia:議論が盛んなノート'
 	}, general_page_configuration),
-	'jawiki:Wikipedia:削除依頼/ログ/先週' : jawiki_AFD_options,
-	'jawiki:Wikipedia:削除依頼/ログ/先々週' : jawiki_AFD_options,
+	'jawiki:Wikipedia:削除依頼/ログ/今週' : jawiki_week_AFD_options,
+	'jawiki:Wikipedia:削除依頼/ログ/先週' : jawiki_week_AFD_options,
+	'jawiki:Wikipedia:削除依頼/ログ/先々週' : jawiki_week_AFD_options,
 
 	'zhwiki:Wikipedia:机器人/作业请求' : {
 		topic_page : general_topic_page,

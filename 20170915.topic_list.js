@@ -1118,7 +1118,7 @@ function detect_sub_pages_to_fetch(page_title_list) {
 	var title_to_indexes = this.title_to_indexes;
 	// console.log(page_title_list);
 
-	function add_page_title(page_title, token) {
+	function add_page_title(page_title, token, index) {
 		var index = sub_pages_to_fetch.length;
 		if (Array.isArray(page_title)) {
 			// [ page_title, section_title ]
@@ -1130,7 +1130,7 @@ function detect_sub_pages_to_fetch(page_title_list) {
 		}
 
 		page_title = CeL.wiki.normalize_title(page_title);
-		_this.insert_into_token.push(token);
+		_this.insert_into_token.push(index >= 0 ? [ token, index ] : token);
 		sub_pages_to_fetch.push(page_title);
 		if (!title_to_indexes[page_title])
 			title_to_indexes[page_title] = [ index ];
@@ -1145,8 +1145,8 @@ function detect_sub_pages_to_fetch(page_title_list) {
 
 		var token = this.token_list[index];
 		if (Array.isArray(page_title) && page_title.multi) {
-			page_title.forEach(function(_page_title) {
-				add_page_title(_page_title, token);
+			page_title.forEach(function(_page_title, index) {
+				add_page_title(_page_title, token, index);
 			});
 		} else {
 			add_page_title(page_title, token);
@@ -1195,6 +1195,12 @@ function for_each_sub_page(sub_page_data/* , messages, config */) {
 
 function for_each_sub_page_index(index) {
 	var token = this.insert_into_token[index];
+	var insert_into_index;
+	if (Array.isArray(token)) {
+		insert_into_index = token[1];
+		token = token[0];
+	}
+
 	var transclusion_section = this.transclusion_section[index];
 	var content;
 	if (transclusion_section) {
@@ -1224,12 +1230,24 @@ function for_each_sub_page_index(index) {
 
 	var token_to_replace = token.parent[token.index];
 	if (token_to_replace === token) {
-		// 直接取代。
-		token.parent[token.index] = content;
-	} else if (typeof token_to_replace === 'string') {
-		// 之前已經被變更過，附加在其後面。
+		// 首次設定，直接取代。
+		if (insert_into_index >= 0) {
+			token = token.parent[token.index] = [];
+			token.toString = function() {
+				return this.join('');
+			};
+			// 照原先的次序插入。
+			token[insert_into_index] = content;
+		} else {
+			token.parent[token.index] = content;
+		}
+
+	} else if (insert_into_index >= 0
+			&& !(insert_into_index in token.parent[token.index])) {
+		// 之前已經被變更過，照原先的次序插入。
 		// assert: 單一 token 引入了多個頁面。
-		token.parent[token.index] += content;
+		// assert: (insert_into_index in token.parent[token.index]) === false
+		token.parent[token.index][insert_into_index] = content;
 	} else {
 		throw new Error('原先的 token 已被變更過!');
 	}
