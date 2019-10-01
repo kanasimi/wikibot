@@ -550,15 +550,21 @@ var jawiki_AFD_options = {
 	// column operators
 	operators : {
 		title : function(section) {
-			var title = section.section_title.title.replace(
-					'（ノート / 履歴 / ログ / リンク元）', ''),
+			var title = section.section_title.title
+			// {{Particle}}, {{P}}
+			.replace('（ノート / 履歴 / ログ / リンク元）', '')
+			// {{Ptalk}}
+			.replace('（履歴 / ログ / リンク元）', '')
+			// {{Particle4}}
+			.replace('（ノート / 履歴）', ''),
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
+			var style = /^\([^()]*緊/.test(title) ? 'color: red;' : '';
 			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
 					+ (section.section_title.link[1] || ''), title);
-			if (/^\([^()]*緊/.test(title)) {
-				title = '<span style="color: red;">' + title + '</span>';
+			if (style) {
+				title = '<span style="' + style + '">' + title + '</span>';
 			}
 			return title_too_long ? '<small>' + title + '</small>' : title;
 		},
@@ -625,14 +631,17 @@ var jawiki_AFD_options = {
 	preprocess_section_link_token : function(token) {
 		if (token.type === 'transclusion') {
 			// console.log(token);
-			if (token.name === 'Particle') {
+			switch (token.name) {
+			case 'Particle':
 				// console.log(token);
-				// console.log(token[1] + '（ノート / 履歴 / ログ / リンク元）');
 				return token[1] + '（ノート / 履歴 / ログ / リンク元）';
-			}
-			if (token.name === 'P') {
+			case 'P':
 				// console.log(token);
 				return token[1] + ':' + token[2] + '（ノート / 履歴 / ログ / リンク元）';
+			case 'Ptalk':
+				return token[1] + '（履歴 / ログ / リンク元）';
+			case 'Particle4':
+				return token[1] + '（ノート / 履歴）';
 			}
 		}
 		return token;
