@@ -550,6 +550,9 @@ var jawiki_week_AFD_options = {
 	// column operators
 	operators : {
 		title : function(section) {
+			var AFD_status = this.page.page_configuration.operators.status
+					.call(this, section);
+
 			var title = section.section_title.title
 			// {{Particle}}, {{P}}
 			.replace('（ノート / 履歴 / ログ / リンク元）', '')
@@ -559,7 +562,8 @@ var jawiki_week_AFD_options = {
 			.replace('（ノート / 履歴）', ''),
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
-			var style = /^[(（][^()（）]*緊/.test(title) ? 'color: red;' : '';
+			var style = !AFD_status && /^[(（][^()（）]*緊/.test(title) ? 'color: red;'
+					: '';
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
 			}
@@ -568,7 +572,11 @@ var jawiki_week_AFD_options = {
 					+ (section.section_title.link[1] || ''), title);
 			return title_too_long ? '<small>' + title + '</small>' : title;
 		},
-		status : function(section, section_index) {
+		status : function(section) {
+			if ('AFD_status' in section) {
+				// has cache
+				return section.AFD_status;
+			}
 			var status, to_exit = this.each.exit;
 			this.each.call(section, 'template', function(token) {
 				var decide = token.name;
@@ -596,7 +604,8 @@ var jawiki_week_AFD_options = {
 					return to_exit;
 				}
 			});
-			return status || '';
+			// cache status
+			return section.AFD_status = status || '';
 		},
 		support : function(section, section_index) {
 			var vote_count = 0;
