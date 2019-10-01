@@ -211,7 +211,9 @@ move_configuration = {
 	'Template:基礎情報_アナウンサー': {
 		replace_parameters: {
 			// | 家族 = → | 著名な家族 = に変更。
-			家族: '著名な家族'
+			家族: value => {
+				return { 著名な家族: value };
+			}
 		}
 	}
 };
@@ -508,7 +510,7 @@ async function main_move_process(options) {
 
 	//Object.entries(move_configuration).forEach(main_move_process);
 	for (let pair of Object.entries(move_configuration)) {
-		const [move_from_link, move_to_link] = pair;
+		const [move_from_link, move_to_link] = [CeL.wiki.normalize_title(pair[0]), pair[1]];
 		let options = CeL.is_Object(move_to_link)
 			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
 			//assert: typeof move_to_link === 'string'
