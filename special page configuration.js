@@ -531,6 +531,9 @@ default_DYK_vote_configurations.operators = Object.assign(Object.create(null),
 default_DYK_vote_configurations = Object.assign(Object.create(null),
 		default_FC_vote_configurations, default_DYK_vote_configurations);
 
+// ----------------------------------------------
+
+// TODO: set timer
 var jawiki_AFD_options = {
 	topic_page : general_topic_page,
 	timezone : 9,
@@ -546,6 +549,19 @@ var jawiki_AFD_options = {
 	},
 	// column operators
 	operators : {
+		title : function(section) {
+			var title = section.section_title.title.replace(
+					'（ノート / 履歴 / ログ / リンク元）', ''),
+			// 當標題過長時，縮小標題字型。
+			title_too_long = if_too_long(title);
+			// @see section_link_toString() @ CeL.wiki
+			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+					+ (section.section_title.link[1] || ''), title);
+			if (/^\([^()]*緊/.test(title)) {
+				title = '<span style="color: red;">' + title + '</span>';
+			}
+			return title_too_long ? '<small>' + title + '</small>' : title;
+		},
 		status : function(section, section_index) {
 			var status, to_exit = this.each.exit;
 			this.each.call(section, 'template', function(token) {

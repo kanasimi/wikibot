@@ -116,6 +116,12 @@ global.localized_page_configuration = {
 	}
 }[use_language];
 
+function set_update_timer(page_title, time_ms) {
+	setTimeout(wiki.page.bind(wiki, page_title, pre_fetch_sub_pages),
+			pre_fetch_sub_pages);
+}
+global.set_update_timer = set_update_timer;
+
 global.FC_vote_configurations = {
 	vote_closed_listener : function() {
 		wiki.page(this.title, pre_fetch_sub_pages);
@@ -201,6 +207,7 @@ var section_column_operators = {
 	title : function(section) {
 		// [[Template:Small]]
 		function small_title(title, set_small) {
+			// call function section_link_toString(page_title, style)
 			title = title.toString(null, CSS_toString(section.CSS));
 			return set_small ? '<small>' + title + '</small>' : title;
 		}
