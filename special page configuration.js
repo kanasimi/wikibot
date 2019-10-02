@@ -554,8 +554,8 @@ var jawiki_week_AFD_options = {
 	// column operators
 	operators : {
 		title : function(section) {
-			var AFD_status = this.page.page_configuration.operators.status
-					.call(this, section);
+			this.page.page_configuration.operators.status.call(this, section);
+			var had_decided = section.had_decided;
 
 			var title = section.section_title.title
 			// {{Particle}}, {{P}}
@@ -566,7 +566,7 @@ var jawiki_week_AFD_options = {
 			.replace('（ノート / 履歴）', ''),
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
-			var style = AFD_status ? 'color: gray;' : /^[(（][^()（）]*緊/
+			var style = had_decided ? 'color: gray;' : /^[(（][^()（）]*緊/
 					.test(title) ? 'color: red;' : '';
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
@@ -604,6 +604,7 @@ var jawiki_week_AFD_options = {
 					// {{依頼無効}}
 					依頼無効 : true
 				}) {
+					section.had_decided = true;
 					status = token.toString();
 					return to_exit;
 				}

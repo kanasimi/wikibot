@@ -1055,20 +1055,23 @@ function pre_fetch_sub_pages(page_data, error) {
 		// 以 .timezone 為基準的時分秒 '0:0:0'
 		timezone = timezone ? ' UTC'
 				+ (timezone > 0 ? '+' + timezone : timezone) : '';
-		var next_date = '%Y-%2m-%2d ' + page_configuration.update_at + timezone;
-		CeL.debug('下次檢查 ' + CeL.wiki.title_link_of(page_data)
-				+ ' 的基準時間（多在此時間後一天檢查）: ' + next_date);
-		next_date = Date.parse((new Date).format(next_date));
-		var timeout = next_date - Date.now();
+		var next_date = '%Y-%2m-%2d ' + page_configuration.update_at.time
+				+ timezone;
+		next_date = (new Date).format(next_date);
+		var timeout = Date.parse(next_date) - Date.now();
 		if (timeout < 0) {
 			/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 			var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 			timeout += ONE_DAY_LENGTH_VALUE;
 		}
+		CeL.debug('於 ' + CeL.age_of(0, timeout, {
+			digits : 1
+		}) + ' 後檢查 ' + CeL.wiki.title_link_of(page_data) + '。基準時間（多在此時間後一天檢查）：'
+				+ next_date, 1);
 		setTimeout(function() {
 			// 更新所嵌入的頁面。通常是主頁面。
 			wiki.purge(page_configuration.purge_page || page_data.title);
-			wiki.page(page_data, pre_fetch_sub_pages);
+			wiki.page(page_data.title, pre_fetch_sub_pages);
 		}, timeout);
 	}
 
