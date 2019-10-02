@@ -221,7 +221,7 @@ move_configuration = {
 set_language('ja');
 diff_id = 74458022;
 section_title = 'Template:全国大学保健管理協会の除去';
-summary = undefined;
+summary = '';
 move_configuration = {
 	'Template:全国大学保健管理協会': DELETE_PAGE,
 	'Template:日本養護教諭養成大学協議会': DELETE_PAGE,
@@ -286,8 +286,8 @@ function replace_link_parameter(value, parameter_name, template_token) {
 	let move_to_link = this.move_to_link;
 	// 特別處理模板引數不加命名空間前綴的情況。
 	if (template_token.name === 'Catlink') {
-		move_from_link = move_from_link.replace(/^Category:/, '');
-		move_to_link = move_to_link.replace(/^Category:/, '');
+		move_from_link = move_from_link.replace(/^Category:/i, '');
+		move_to_link = move_to_link.replace(/^Category:/i, '');
 	}
 
 	if (value === move_from_link) {
