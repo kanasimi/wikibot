@@ -533,10 +533,14 @@ default_DYK_vote_configurations = Object.assign(Object.create(null),
 
 // ----------------------------------------------
 
-// TODO: set timer
 var jawiki_week_AFD_options = {
 	topic_page : general_topic_page,
 	timezone : 9,
+	// 定時更新 Refresh page automatically
+	update_at : {
+		// 以 .timezone 為基準的時分秒 '0:0:0'
+		time : '0:0'
+	},
 	// 4: [[Wikipedia:削除依頼/東芝グループ企業間の履歴不継承転記]]
 	level_filter : [ 3, 4 ],
 	columns : 'NO;title;status;support;oppose;discussions;participants;last_user_set',
@@ -562,8 +566,8 @@ var jawiki_week_AFD_options = {
 			.replace('（ノート / 履歴）', ''),
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
-			var style = !AFD_status && /^[(（][^()（）]*緊/.test(title) ? 'color: red;'
-					: '';
+			var style = AFD_status ? 'color: gray;' : /^[(（][^()（）]*緊/
+					.test(title) ? 'color: red;' : '';
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
 			}

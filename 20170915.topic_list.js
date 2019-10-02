@@ -116,9 +116,15 @@ global.localized_page_configuration = {
 	}
 }[use_language];
 
-function set_update_timer(page_title, time_ms) {
-	setTimeout(wiki.page.bind(wiki, page_title, pre_fetch_sub_pages),
-			pre_fetch_sub_pages);
+function set_update_timer(page_title, time_ms, callback) {
+	if (callback) {
+		setTimeout(function() {
+			wiki.page(page_title, pre_fetch_sub_pages).run(callback);
+		}, time_ms);
+	} else {
+		setTimeout(wiki.page.bind(wiki, page_title, pre_fetch_sub_pages),
+				time_ms);
+	}
 }
 global.set_update_timer = set_update_timer;
 
@@ -1043,6 +1049,29 @@ function pre_fetch_sub_pages(page_data, error) {
 	//
 	= page_configurations[CeL.wiki.site_name(wiki) + ':' + page_data.title];
 
+	if (page_configuration.update_at) {
+		// 定時更新 Refresh page automatically
+		var timezone = page_configuration.timezone;
+		// 以 .timezone 為基準的時分秒 '0:0:0'
+		timezone = timezone ? ' UTC'
+				+ (timezone > 0 ? '+' + timezone : timezone) : '';
+		var next_date = '%Y-%2m-%2d ' + page_configuration.update_at + timezone;
+		CeL.debug('下次檢查 ' + CeL.wiki.title_link_of(page_data)
+				+ ' 的基準時間（多在此時間後一天檢查）: ' + next_date);
+		next_date = Date.parse((new Date).format(next_date));
+		var timeout = next_date - Date.now();
+		if (timeout < 0) {
+			/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
+			var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
+			timeout += ONE_DAY_LENGTH_VALUE;
+		}
+		setTimeout(function() {
+			// 更新所嵌入的頁面。通常是主頁面。
+			wiki.purge(page_configuration.purge_page || page_data.title);
+			wiki.page(page_data, pre_fetch_sub_pages);
+		}, timeout);
+	}
+
 	var parsed = CeL.wiki.parser(page_data, {
 		preprocess_section_link_token
 		//
@@ -1331,6 +1360,7 @@ function generate_topic_list(page_data) {
 		: page_configuration.row_style) || '';
 
 		column_operators.forEach(function(operator) {
+			// using this.page.page_configuration
 			var values = operator.call(parsed, section, section_index);
 			if (Array.isArray(values)) {
 				row.append(values);
