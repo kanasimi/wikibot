@@ -290,15 +290,15 @@ function replace_link_parameter(value, parameter_name, template_token) {
 		move_to_link = move_to_link.replace(/^Category:/i, '');
 	}
 
-	if (value === move_from_link) {
+	if (value && value.toString() === move_from_link) {
 		// e.g., {{Main|move_from_link}}
 		//console.log(template_token);
 		return parameter_name + '=' + move_to_link;
 	}
 
-	if (!move_from_link.includes('#') && value.startsWith(move_from_link + '#')) {
+	if (!move_from_link.includes('#') && value && value.toString().startsWith(move_from_link + '#')) {
 		// e.g., {{Main|move_from_link#section title}}
-		return parameter_name + '=' + move_to_link + value.slice(move_from_link.length);
+		return parameter_name + '=' + move_to_link + value.toString().slice(move_from_link.length);
 	}
 }
 
@@ -329,7 +329,7 @@ function replace_token(parent, index, replace_to) {
 	if (replace_to === DELETE_PAGE) {
 		parent[index] = '';
 		if (index + 1 < parent.length && typeof parent[index + 1] === 'string') {
-			// 去除後方的空白。 去除前方的空白或許較不合適？
+			// 去除後方的空白 + 僅一個換行。 去除前方的空白或許較不合適？
 			// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
 			parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
 		}
