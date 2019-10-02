@@ -570,6 +570,9 @@ var jawiki_week_AFD_options = {
 					.test(title) ? 'color: red;' : '';
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
+			} else {
+				title = title.replace(/^([(（][^()（）][)）])/,
+						'<span style="color: green;">$1</span>')
 			}
 			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
@@ -604,8 +607,8 @@ var jawiki_week_AFD_options = {
 					// {{依頼無効}}
 					依頼無効 : true
 				}) {
-					section.had_decided = true;
 					status = token.toString();
+					section.had_decided = /* status */true;
 					return to_exit;
 				}
 			});
