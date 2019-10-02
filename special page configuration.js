@@ -680,10 +680,12 @@ var jawiki_week_AFD_options = {
 		// console.log(page_data.page_configuration);
 		// console.log(prefix + date.format('%Y年%m月%d日'));
 		return new Promise(function(resolve, reject) {
-			wiki.page(prefix + date.format({
+			var sub_page_title = prefix + date.format({
 				format : '%Y年%m月%d日',
 				zone : page_data.page_configuration.timezone
-			}), function(page_data) {
+			});
+			global.listen_sub_page(sub_page_title, page_data);
+			wiki.page(sub_page_title, function(page_data) {
 				var parsed = CeL.wiki.parser(page_data);
 				var page_list = [];
 				parsed.each('transclusion', function(token, index, parent) {

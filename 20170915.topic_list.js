@@ -1204,6 +1204,21 @@ function detect_sub_pages_to_fetch(page_title_list) {
 	}, Object.keys(title_to_indexes));
 }
 
+function listen_sub_page(sub_page_data, main_page_data) {
+	var sub_page_title = CeL.wiki.title_of(sub_page_title);
+	if (!(sub_page_title in sub_page_to_main)) {
+		// 有嵌入其他議題/子頁面的，也得一併監視。
+		main_talk_pages.push(sub_page_title);
+		if (sub_page_title !== main_page_data.title)
+			sub_page_to_main[sub_page_title] = main_page_data.title;
+		else
+			CeL.warn('listen_sub_page: The sub-page has the same main-page: '
+					+ CeL.wiki.title_link_of(sub_page_title))
+	}
+}
+
+global.listen_sub_page = listen_sub_page;
+
 function for_each_sub_page(sub_page_data/* , messages, config */) {
 	var sub_page_title = sub_page_data.original_title || sub_page_data.title,
 	//
@@ -1212,11 +1227,7 @@ function for_each_sub_page(sub_page_data/* , messages, config */) {
 		throw new Error('取得了未設定的頁面: ' + CeL.wiki.title_link_of(sub_page_data));
 	}
 	// CeL.info('for_each_sub_page: ' + CeL.wiki.title_link_of(sub_page_data));
-	if (!(sub_page_data.title in sub_page_to_main)) {
-		// 有嵌入其他議題/子頁面的，也得一併監視。
-		main_talk_pages.push(sub_page_data.title);
-		sub_page_to_main[sub_page_data.title] = this.page_data.title;
-	}
+	listen_sub_page(sub_page_data, this.page_data);
 
 	this.sub_page_data = sub_page_data;
 	this.sub_page_title = sub_page_title;
