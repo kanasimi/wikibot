@@ -571,8 +571,8 @@ var jawiki_week_AFD_options = {
 			if (style) {
 				title = '<span style="' + style + '">' + title + '</span>';
 			} else {
-				title = title.replace(/^([(（][^()（）][)）])/,
-						'<span style="color: green;">$1</span>')
+				title = title.replace(/^([(（][^()（）]+[)）])/,
+						'<span style="color: #f80;">$1</span>')
 			}
 			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
