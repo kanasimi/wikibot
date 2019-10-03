@@ -541,6 +541,7 @@ var jawiki_week_AFD_options = {
 		// 以 .timezone 為基準的時分秒 '0:0:0'
 		time : '0:0'
 	},
+	header_class : 'wikitable sortable collapsible collapsed',
 	// 4: [[Wikipedia:削除依頼/東芝グループ企業間の履歴不継承転記]]
 	level_filter : [ 3, 4 ],
 	columns : 'NO;title;status;support;oppose;discussions;participants;last_user_set',
@@ -572,7 +573,7 @@ var jawiki_week_AFD_options = {
 				title = '<span style="' + style + '">' + title + '</span>';
 			} else {
 				title = title.replace(/^([(（][^()（）]+[)）])/,
-						'<span style="color: #a60;">$1</span>')
+						'<span style="color: #c70;">$1</span>')
 			}
 			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0] + '#'
