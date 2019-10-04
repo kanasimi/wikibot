@@ -604,7 +604,8 @@ var jawiki_week_AFD_options = {
 					緊急特定版削除 : true,
 
 					緊急版指定削除 : true,
-					即時版指定削除 : true
+					即時版指定削除 : true,
+					全削除 : true
 				}) {
 					too_long = status.length > 3;
 					status = '{{AFD|' + status + '}}';
@@ -614,13 +615,14 @@ var jawiki_week_AFD_options = {
 				// was_closed
 				section.had_decided = /* status */true;
 				if (too_long) {
-					status = '<small>' + status + '</small>';
+					status = '<small title="' + status + '">' + status
+							+ '</small>';
 				}
 				var max_width = '5em';
+				// https://bennettfeely.com/clippy/
 				status = 'style="max-width: ' + max_width
-						+ '; white-space: nowrap; clip-path: polygon(0 0, '
-						+ max_width + ' 0, ' + max_width
-						+ ' 100%, 0 100%);" | ' + status;
+						+ '; white-space: nowrap; clip-path: inset(0 '
+						+ max_width + ' 0 0);" | ' + status;
 
 			} else {
 				var to_exit = this.each.exit;
