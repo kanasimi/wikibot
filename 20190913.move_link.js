@@ -227,6 +227,15 @@ move_configuration = {
 	'Template:日本養護教諭養成大学協議会': DELETE_PAGE,
 };
 
+set_language('ja');
+diff_id = '74488219/74495273';
+section_title = '「ナサケの女〜国税局査察官〜」記事とノートの内部リンク修正依頼';
+summary = '';
+move_configuration = {
+	'ナサケの女 〜国税局査察官〜': 'ナサケの女〜国税局査察官〜',
+	'ノート:ナサケの女 〜国税局査察官〜': 'ノート:ナサケの女〜国税局査察官〜'
+};
+
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
