@@ -611,10 +611,16 @@ var jawiki_week_AFD_options = {
 				} else {
 					too_long = status.length > 4;
 				}
+				// was_closed
 				section.had_decided = /* status */true;
 				if (too_long) {
 					status = '<small>' + status + '</small>';
 				}
+				var max_width = '5em';
+				status = 'style="max-width: ' + max_width
+						+ '; white-space: nowrap; clip-path: polygon(0 0, '
+						+ max_width + ' 0, ' + max_width
+						+ ' 100%, 0 100%);" | ' + status;
 
 			} else {
 				var to_exit = this.each.exit;
