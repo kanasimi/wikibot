@@ -586,7 +586,7 @@ var jawiki_week_AFD_options = {
 				// has cache
 				return section.AFD_status;
 			}
-			var status, matched = this.toString().match(
+			var status, matched = section.toString().match(
 					/議論の結果、'''([^'+]+)''' に決定しました/);
 			if (matched) {
 				status = matched[1];
