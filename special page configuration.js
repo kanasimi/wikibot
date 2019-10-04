@@ -621,8 +621,9 @@ var jawiki_week_AFD_options = {
 				var max_width = '5em';
 				// https://bennettfeely.com/clippy/
 				status = 'style="max-width: ' + max_width
-						+ '; white-space: nowrap; clip-path: inset(0 '
-						+ max_width + ' 0 0);" | ' + status;
+						+ '; white-space: nowrap; clip-path: polygon(0 0, '
+						+ max_width + ' 0, ' + max_width
+						+ ' 100%, 0 100%);" | ' + status;
 
 			} else {
 				var to_exit = this.each.exit;
@@ -707,6 +708,9 @@ var jawiki_week_AFD_options = {
 				return token[1] + '（履歴 / ログ / リンク元）';
 			case 'Particle4':
 				return token[1] + '（ノート / 履歴）';
+			case 'Curid':
+			case 'Oldid':
+				return token[2] || ('版番' + token[1]);
 			}
 		}
 		return token;
