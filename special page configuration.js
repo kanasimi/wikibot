@@ -586,39 +586,62 @@ var jawiki_week_AFD_options = {
 				// has cache
 				return section.AFD_status;
 			}
-			var status, to_exit = this.each.exit;
-			this.each.call(section, 'template', function(token) {
-				var decide = token.name;
-				if (decide === 'AFD') {
-					decide = token[1] && token[1].toString();
-					// https://ja.wikipedia.org/wiki/Template:AFD
-					if (!decide || decide.endsWith('r'))
-						return;
-				}
-				if (!decide)
-					return;
-				if (decide in {
-					// 取り下げ : true,
-
-					// Help:管理者マニュアル ページの削除
-					// 以下の引数は管理者専用です
-					対処 : true,
-					確認 : true,
-					却下 : true,
-					失効 : true,
-					議論終了 : true,
-					// {{終了}}
-					終了 : true,
-					// {{依頼無効}}
-					依頼無効 : true
+			var status, matched = this.toString().match(
+					/議論の結果、'''([^'+]+)''' に決定しました/);
+			if (matched) {
+				status = matched[1];
+				// [[Help:管理者マニュアル ページの削除#削除依頼の保存]]
+				if (status in {
+					存続 : true,
+					削除 : true,
+					即時存続 : true,
+					即時削除 : true,
+					特定版削除 : true,
+					版指定削除 : true,
+					緊急削除 : true,
+					緊急特定版削除 : true
 				}) {
-					status = token.toString();
-					section.had_decided = /* status */true;
-					return to_exit;
+					status = '{{AFD|' + status + '}}';
 				}
-			});
-			// cache status
-			return section.AFD_status = status || '';
+
+			} else {
+				var to_exit = this.each.exit;
+				this.each.call(section, 'template', function(token) {
+					var decide = token.name;
+					if (decide === 'AFD') {
+						decide = token[1] && token[1].toString();
+						// https://ja.wikipedia.org/wiki/Template:AFD
+						if (!decide || decide.endsWith('r'))
+							return;
+					}
+					if (!decide)
+						return;
+					if (decide in {
+						// 取り下げ : true,
+
+						// Help:管理者マニュアル ページの削除
+						// 以下の引数は管理者専用です
+						対処 : true,
+						確認 : true,
+						却下 : true,
+						失効 : true,
+						議論終了 : true,
+						// {{終了}}
+						終了 : true,
+						// {{依頼無効}}
+						依頼無効 : true
+					}) {
+						status = token.toString();
+						section.had_decided = /* status */true;
+						return to_exit;
+					}
+				});
+			}
+			if (status) {
+				// cache status
+				section.AFD_status = status;
+			}
+			return status;
 		},
 		support : function(section, section_index) {
 			var vote_count = 0;
