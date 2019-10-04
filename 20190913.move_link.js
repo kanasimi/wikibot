@@ -265,7 +265,8 @@ function for_each_link(token, index, parent) {
 
 	} else if (!token[1] && token[2] === this.move_to_link) {
 		// e.g., [[move_to_link|move to link]]
-		token.splice(0, 2);
+		token.pop();
+		token[0] = this.move_to_link;
 
 	} else {
 		const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
