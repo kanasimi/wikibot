@@ -590,7 +590,9 @@ var jawiki_week_AFD_options = {
 					/議論の結果、'''([^'+]+)''' に決定しました/);
 			if (matched) {
 				status = matched[1];
+				var too_long;
 				// [[Help:管理者マニュアル ページの削除#削除依頼の保存]]
+				// Must in {{AFD}} parameters
 				if (status in {
 					存続 : true,
 					削除 : true,
@@ -599,9 +601,19 @@ var jawiki_week_AFD_options = {
 					特定版削除 : true,
 					版指定削除 : true,
 					緊急削除 : true,
-					緊急特定版削除 : true
+					緊急特定版削除 : true,
+
+					緊急版指定削除 : true,
+					即時版指定削除 : true
 				}) {
+					too_long = status.length > 3;
 					status = '{{AFD|' + status + '}}';
+				} else {
+					too_long = status.length > 4;
+				}
+				section.had_decided = /* status */true;
+				if (too_long) {
+					status = '<small>' + status + '</small>';
 				}
 
 			} else {
