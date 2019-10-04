@@ -591,11 +591,11 @@ var jawiki_week_AFD_options = {
 			if (matched) {
 				var status_text = matched[1];
 				// was_closed
-				section.had_decided = /* status */true;
+				section.had_decided = /* status_text */true;
 				var too_long;
 				// [[Help:管理者マニュアル ページの削除#削除依頼の保存]]
 				// Must in {{AFD}} parameters
-				if (status in {
+				if (status_text in {
 					存続 : true,
 					削除 : true,
 					即時存続 : true,
@@ -609,10 +609,10 @@ var jawiki_week_AFD_options = {
 					即時版指定削除 : true,
 					全削除 : true
 				}) {
-					too_long = status.length > 3;
+					too_long = status_text.length > 3;
 					status = '{{AFD|' + status_text + '}}';
 				} else {
-					too_long = status.length > 4;
+					too_long = status_text.length > 4;
 					status = status_text;
 				}
 				if (too_long) {
