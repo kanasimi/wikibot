@@ -589,7 +589,9 @@ var jawiki_week_AFD_options = {
 			var status, matched = section.toString().match(
 					/議論の結果、'''([^'+]+)''' に決定しました/);
 			if (matched) {
-				status = matched[1];
+				var status_text = matched[1];
+				// was_closed
+				section.had_decided = /* status */true;
 				var too_long;
 				// [[Help:管理者マニュアル ページの削除#削除依頼の保存]]
 				// Must in {{AFD}} parameters
@@ -608,14 +610,13 @@ var jawiki_week_AFD_options = {
 					全削除 : true
 				}) {
 					too_long = status.length > 3;
-					status = '{{AFD|' + status + '}}';
+					status = '{{AFD|' + status_text + '}}';
 				} else {
 					too_long = status.length > 4;
+					status = status_text;
 				}
-				// was_closed
-				section.had_decided = /* status */true;
 				if (too_long) {
-					status = '<small title="' + status + '">' + status
+					status = '<small title="' + status_text + '">' + status
 							+ '</small>';
 				}
 				var max_width = '5em';
@@ -709,6 +710,7 @@ var jawiki_week_AFD_options = {
 			case 'Particle4':
 				return token[1] + '（ノート / 履歴）';
 			case 'Curid':
+				return token[2] || ('ページ番号' + token[1]);
 			case 'Oldid':
 				return token[2] || ('版番' + token[1]);
 			}
