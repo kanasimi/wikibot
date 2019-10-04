@@ -533,6 +533,7 @@ default_DYK_vote_configurations = Object.assign(Object.create(null),
 
 // ----------------------------------------------
 
+// https://ja.wikipedia.org/wiki/Help:管理者マニュアル_ページの削除
 var jawiki_week_AFD_options = {
 	topic_page : general_topic_page,
 	timezone : 9,
@@ -599,12 +600,15 @@ var jawiki_week_AFD_options = {
 				if (decide in {
 					// 取り下げ : true,
 
+					// Help:管理者マニュアル ページの削除
 					// 以下の引数は管理者専用です
 					対処 : true,
 					確認 : true,
 					却下 : true,
-					終了 : true,
 					失効 : true,
+					議論終了 : true,
+					// {{終了}}
+					終了 : true,
 					// {{依頼無効}}
 					依頼無効 : true
 				}) {
