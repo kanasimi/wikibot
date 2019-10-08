@@ -235,6 +235,12 @@ move_configuration = {
 	'ナサケの女 〜国税局査察官〜': 'ナサケの女〜国税局査察官〜',
 	'ノート:ナサケの女 〜国税局査察官〜': 'ノート:ナサケの女〜国税局査察官〜'
 };
+//
+diff_id = 74547628;
+section_title = 'Template:愛知学長懇話会などの除去';
+move_configuration = {
+	'Template:愛知学長懇話会': DELETE_PAGE,
+};
 
 // ---------------------------------------------------------------------//
 
@@ -263,8 +269,8 @@ function for_each_link(token, index, parent) {
 		// 直接只使用 displayed_text。
 		parent[index] = token[2] || token[0];
 
-	} else if (!token[1] && token[2] === this.move_to_link) {
-		// e.g., [[move_to_link|move to link]]
+	} else if (!token[1] && CeL.wiki.normalize_title(token[2]) === this.move_to_link) {
+		// e.g., [[move_from_link|move to link]] → [[move_to_link|move to link]] → [[move to link]]
 		token.pop();
 		token[0] = this.move_to_link;
 
