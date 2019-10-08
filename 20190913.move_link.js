@@ -235,9 +235,11 @@ move_configuration = {
 	'ナサケの女 〜国税局査察官〜': 'ナサケの女〜国税局査察官〜',
 	'ノート:ナサケの女 〜国税局査察官〜': 'ノート:ナサケの女〜国税局査察官〜'
 };
-//
-diff_id = 74547628;
+
+set_language('ja');
+diff_id = 74547811;
 section_title = 'Template:愛知学長懇話会などの除去';
+summary = '';
 move_configuration = {
 	'Template:愛知学長懇話会': DELETE_PAGE,
 };
