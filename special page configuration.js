@@ -546,7 +546,7 @@ var jawiki_week_AFD_options = {
 		// 以 .timezone 為基準的時分秒 '0:0:0'
 		time : '0:0'
 	},
-	header_class : 'wikitable sortable mw-collapsible collapsed',
+	header_class : 'wikitable sortable mw-collapsible mw-collapsed',
 	// 4: [[Wikipedia:削除依頼/東芝グループ企業間の履歴不継承転記]]
 	level_filter : [ 3, 4 ],
 	columns : 'NO;title;status;support;oppose;discussions;participants;last_user_set',
