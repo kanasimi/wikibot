@@ -816,8 +816,10 @@ function get_list_legend(page_configuration) {
 	// setup_list_legend
 	normalize_time_style_hash(short_to_long);
 	normalize_time_style_hash(long_to_short);
+	// console.log(page_configuration);
+	// console.log(general_page_configuration);
 
-	var _list_legend = list_legend[use_language]
+	var localized_list_legend = list_legend[use_language]
 	// e.g., 'zh-classical'
 	|| use_language && use_language.startsWith('zh-') && list_legend.zh
 	// e.g., 'commons'
@@ -825,20 +827,24 @@ function get_list_legend(page_configuration) {
 	// setup list_legend_used
 	var list_legend_used = [
 			// mw-collapsed https://en.wikipedia.org/wiki/Help:Collapsing
-			'{| class="' + page_configuration.list_legend_class + '" style="'
-					+ page_configuration.list_legend_style + '"',
+			'{| class="'
+					+ (page_configuration.list_legend_class || general_page_configuration.list_legend_class)
+					+ '" style="'
+					+ (page_configuration.list_legend_style || general_page_configuration.list_legend_style)
+					+ '"',
 			// TODO: .header 應該用 caption
 			// title: 相對於機器人最後一次編輯
-			'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
+			'! title="From the latest bot edit" | '
+					+ localized_list_legend.header, '|-' ];
 
-	for ( var time_interval in _list_legend) {
+	for ( var time_interval in localized_list_legend) {
 		if (time_interval === 'header') {
 			continue;
 		}
 		list_legend_used.push('| ' + (short_to_long[time_interval]
 		//
 		|| long_to_short[time_interval] || '') + ' |\n* '
-				+ _list_legend[time_interval], '|-');
+				+ localized_list_legend[time_interval], '|-');
 	}
 
 	list_legend_used.special_status_index = list_legend_used.length;
