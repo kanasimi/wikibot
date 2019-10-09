@@ -391,7 +391,7 @@ function adapt_configuration(page_configuration, traversal) {
 				.parse(configuration_now.show_subtopic);
 	}
 
-	setup_list_legend();
+	setup_list_legend(general_page_configuration);
 
 	// 顯示主題列表之頁面。
 	if (configuration.listen_to_pages) {
@@ -813,7 +813,7 @@ function setup_list_legend_special_status() {
 	list_legend_used[list_legend_used.special_status_index] = guide;
 }
 
-function setup_list_legend() {
+function setup_list_legend(page_configuration) {
 	normalize_time_style_hash(short_to_long);
 	normalize_time_style_hash(long_to_short);
 
@@ -822,9 +822,11 @@ function setup_list_legend() {
 	|| use_language && use_language.startsWith('zh-') && list_legend.zh
 	// e.g., 'commons'
 	|| list_legend.en;
+	// reset list_legend_used
 	list_legend_used = [
 			// mw-collapsed https://en.wikipedia.org/wiki/Help:Collapsing
-			'{| class="wikitable collapsible autocollapse metadata" style="float:left;margin-left:.5em;"',
+			'{| class="' + page_configuration.list_legend_class + '" style="'
+					+ page_configuration.list_legend_style + '"',
 			// TODO: .header 應該用 caption
 			// title: 相對於機器人最後一次編輯
 			'! title="From the latest bot edit" | ' + _list_legend.header, '|-' ];
@@ -867,7 +869,7 @@ function setup_list_legend() {
 	// {{clearright}}, {{-}}
 	list_legend_used.push('|}', '{{Clear}}');
 	// Release memory. 釋放被占用的記憶體.
-	list_legend = null;
+	// list_legend = null;
 }
 
 // for 討論議題列表可以挑選欄位: (特定)使用者(最後)留言時間
@@ -1204,20 +1206,24 @@ function detect_sub_pages_to_fetch(page_title_list) {
 	}, Object.keys(title_to_indexes));
 }
 
-function listen_sub_page(sub_page_data, main_page_data) {
+function listen_to_sub_page(sub_page_data, main_page_data) {
 	var sub_page_title = CeL.wiki.title_of(sub_page_title);
 	if (!(sub_page_title in sub_page_to_main)) {
 		// 有嵌入其他議題/子頁面的，也得一併監視。
 		main_talk_pages.push(sub_page_title);
-		if (sub_page_title !== main_page_data.title)
+		if (sub_page_title !== main_page_data.title) {
 			sub_page_to_main[sub_page_title] = main_page_data.title;
-		else
-			CeL.warn('listen_sub_page: The sub-page has the same main-page: '
-					+ CeL.wiki.title_link_of(sub_page_title))
+			// CeL.debug('listen_to_sub_page: ' + 'sub_page_to_main: ');
+			// console.log(sub_page_to_main);
+		} else {
+			CeL.warn('listen_to_sub_page: '
+					+ 'The sub-page has the same name with its main-page: '
+					+ CeL.wiki.title_link_of(sub_page_title));
+		}
 	}
 }
 
-global.listen_sub_page = listen_sub_page;
+global.listen_to_sub_page = listen_to_sub_page;
 
 function for_each_sub_page(sub_page_data/* , messages, config */) {
 	var sub_page_title = sub_page_data.original_title || sub_page_data.title,
@@ -1227,7 +1233,7 @@ function for_each_sub_page(sub_page_data/* , messages, config */) {
 		throw new Error('取得了未設定的頁面: ' + CeL.wiki.title_link_of(sub_page_data));
 	}
 	// CeL.info('for_each_sub_page: ' + CeL.wiki.title_link_of(sub_page_data));
-	listen_sub_page(sub_page_data, this.page_data);
+	listen_to_sub_page(sub_page_data, this.page_data);
 
 	this.sub_page_data = sub_page_data;
 	this.sub_page_title = sub_page_title;

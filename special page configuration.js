@@ -75,7 +75,7 @@ var localized_column_to_header = {
 		participants : '<small title="count of participants">Participants</small>',
 		last_user_set : 'Last editor !! data-sort-type="isoDate" | Date/Time (UTC)',
 		last_BAG_set : '<small>Last BAG editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)',
-		last_botop_set : '<small>Last botop editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
+		last_botop_set : '<small title="bot owner, bot operator">Last botop editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
 	}
 };
 localized_column_to_header = localized_column_to_header[use_language]
@@ -112,6 +112,8 @@ var
 // need to add {{/topic list}} to {{/header}}
 general_topic_page = '/topic list', general_page_configuration = {
 	topic_page : general_topic_page,
+	list_legend_class : "wikitable collapsible autocollapse",
+	list_legend_style : "float: left; margin-left: .5em;",
 	// general_page_columns
 	columns : 'NO;title;discussions;participants;last_user_set'
 // 不應該列出管理員那兩欄，似乎暗示著管理員與其他用戶不是平等的。
@@ -741,7 +743,7 @@ var jawiki_week_AFD_options = {
 				format : '%Y年%m月%d日',
 				zone : page_data.page_configuration.timezone
 			});
-			global.listen_sub_page(sub_page_title, page_data);
+			global.listen_to_sub_page(sub_page_title, page_data);
 			wiki.page(sub_page_title, function(page_data) {
 				var parsed = CeL.wiki.parser(page_data);
 				var page_list = [];
@@ -771,6 +773,7 @@ var page_configurations = {
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		column_to_header : {
 			status : 'Status',
+			last_botop_set : '<small title="bot owner, bot operator">Last [[Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
 		},
 		operators : {
 			// 議體進度狀態。
@@ -917,6 +920,7 @@ var page_configurations = {
 		// /「metadata」樣式改為「navbox」樣式，這樣起到的作用是一樣的...?
 		// https://zh.m.wikisource.org/wiki/Wikisource:%E5%86%99%E5%AD%97%E9%97%B4
 		header_class : 'wikitable sortable mw-collapsible metadata',
+		list_legend_class : "wikitable collapsible autocollapse metadata",
 		postfix : function(section_table) {
 			if (false)
 				section_table.unshift("'''關於為討論頁面增加主題列表的功能"
