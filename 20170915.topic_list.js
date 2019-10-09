@@ -828,9 +828,11 @@ function get_list_legend(page_configuration) {
 	var list_legend_used = [
 			// mw-collapsed https://en.wikipedia.org/wiki/Help:Collapsing
 			'{| class="'
-					+ (page_configuration.list_legend_class || general_page_configuration.list_legend_class)
+					+ (page_configuration.list_legend_class
+							|| general_page_configuration.list_legend_class || '')
 					+ '" style="'
-					+ (page_configuration.list_legend_style || general_page_configuration.list_legend_style)
+					+ (page_configuration.list_legend_style
+							|| general_page_configuration.list_legend_style || '')
 					+ '"',
 			// TODO: .header 應該用 caption
 			// title: 相對於機器人最後一次編輯
@@ -1345,7 +1347,7 @@ function generate_topic_list(page_data) {
 					+ ' -->',
 			'{| class="' + (page_configuration.header_class
 			// plainlinks autocollapse
-			|| 'wikitable sortable collapsible') + '"  style="float:left;"'
+			|| 'wikitable sortable mw-collapsible') + '"  style="float:left;"'
 					+ (page_configuration.additional_header || ''), '|-',
 			generate_headers(page_configuration) ],
 	//
