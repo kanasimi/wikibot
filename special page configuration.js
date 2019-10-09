@@ -112,7 +112,9 @@ var
 // need to add {{/topic list}} to {{/header}}
 general_topic_page = '/topic list', general_page_configuration = {
 	topic_page : general_topic_page,
-	list_legend_class : "wikitable mw-collapsible autocollapse",
+	// autocollapse: 使用此技術會使頁面跳轉，通常應避免使用。
+	// https://en.wikipedia.org/wiki/Help:Collapsing#%22autocollapse%22
+	list_legend_class : "wikitable mw-collapsible mw-collapsed",
 	list_legend_style : "float: left; margin-left: .5em;",
 	// general_page_columns
 	columns : 'NO;title;discussions;participants;last_user_set'
@@ -441,7 +443,7 @@ var default_DYK_vote_configurations = {
 	page_header1 : '<span style="color: red;">下面這個列表正在測試中。請[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|提供您的意見]]讓我們知道，謝謝！</span>',
 	page_header2 : '<span style="color: red;">依據[[Wikipedia:互助客栈/其他#是否要保留新條目評選列表討論|討論]]，希望回復原先列表的人數較多。將會在4月24日恢復原先列表。</span>',
 	// 默認摺疊，需要的點擊展開
-	header_class : 'wikitable sortable mw-collapsible autocollapse',
+	header_class : 'wikitable sortable mw-collapsible mw-collapsed',
 
 	// 建議把票數隱藏，我非常擔心這會為人情水票大開方便之門。
 	columns : 'NO;title;status;countdown;discussions;participants;last_user_set',
@@ -920,7 +922,7 @@ var page_configurations = {
 		// /「metadata」樣式改為「navbox」樣式，這樣起到的作用是一樣的...?
 		// https://zh.m.wikisource.org/wiki/Wikisource:%E5%86%99%E5%AD%97%E9%97%B4
 		header_class : 'wikitable sortable mw-collapsible metadata',
-		list_legend_class : "wikitable mw-collapsible autocollapse metadata",
+		list_legend_class : "wikitable mw-collapsible mw-collapsed metadata",
 		postfix : function(section_table) {
 			if (false)
 				section_table.unshift("'''關於為討論頁面增加主題列表的功能"
