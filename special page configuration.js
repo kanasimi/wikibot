@@ -84,7 +84,7 @@ localized_column_to_header = localized_column_to_header[use_language]
 var column_to_header = Object.assign({
 	NO : '#'
 }, localized_column_to_header);
-// free
+// Release memory. 釋放被占用的記憶體。
 localized_column_to_header = null;
 
 function generate_headers(page_configuration) {
@@ -132,7 +132,7 @@ general_topic_page = '/topic list', general_page_configuration = {
 }[use_language] || Object.create(null), global.localized_page_configuration);
 
 Object.assign(general_page_configuration, localized_page_configuration);
-// free
+// Release memory. 釋放被占用的記憶體。
 localized_page_configuration = null;
 // generate_headers(general_page_configuration);
 
@@ -773,7 +773,7 @@ var page_configurations = {
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		column_to_header : {
 			status : 'Status',
-			last_botop_set : '<small title="bot owner, bot operator">Last [[Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
+			last_botop_set : '<small title="bot owner, bot operator">Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
 		},
 		operators : {
 			// 議體進度狀態。

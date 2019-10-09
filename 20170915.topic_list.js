@@ -137,50 +137,6 @@ Object.assign(global, require('./special page configuration.js'));
 
 // ----------------------------------------------
 
-// 討論議題列表依狀態表現不同的背景顏色。
-// time → style
-var short_to_long = {
-	// 最近1小時內: 淺綠色。
-	'1h' : 'efe',
-	// 超過1小時到最近1日內: 淺藍色。
-	'1d' : 'eef'
-}, long_to_short = {
-	// 超過一個月: 深灰色。
-	'1 month' : 'bbb',
-	// 超過一禮拜到一個月: 淺灰色。
-	'1w' : 'ddd'
-}, list_legend = {
-	en : {
-		header : 'Legend',
-		'1h' : 'In the last hour',
-		'1d' : 'In the last day',
-
-		'' : 'In the last week',
-		'1w' : 'In the last month',
-		'1 month' : 'More than one month'
-	},
-	zh : {
-		header : '發言更新圖例',
-		'1h' : '最近一小時內',
-		'1d' : '最近一日內',
-
-		'' : '一週內',
-		'1w' : '一個月內',
-		'1 month' : '逾一個月'
-	},
-	ja : {
-		header : '発言更新の凡例',
-		'1h' : '一時間以内',
-		'1d' : '一日以内',
-
-		'' : '一週間以内',
-		'1w' : '一ヶ月以内',
-		'1 month' : '一ヶ月以上'
-	}
-}, list_legend_used;
-
-// ----------------------------------------------
-
 function CSS_toString(CSS) {
 	if (!CSS)
 		return '';
@@ -391,7 +347,7 @@ function adapt_configuration(page_configuration, traversal) {
 				.parse(configuration_now.show_subtopic);
 	}
 
-	setup_list_legend(general_page_configuration);
+	// setup_list_legend();
 
 	// 顯示主題列表之頁面。
 	if (configuration.listen_to_pages) {
@@ -774,6 +730,49 @@ function general_row_style(section, section_index) {
 
 // ----------------------------------------------
 
+// 討論議題列表依狀態表現不同的背景顏色。
+// time → style
+var short_to_long = {
+	// 最近1小時內: 淺綠色。
+	'1h' : 'efe',
+	// 超過1小時到最近1日內: 淺藍色。
+	'1d' : 'eef'
+}, long_to_short = {
+	// 超過一個月: 深灰色。
+	'1 month' : 'bbb',
+	// 超過一禮拜到一個月: 淺灰色。
+	'1w' : 'ddd'
+}, list_legend = {
+	en : {
+		header : 'Legend',
+		'1h' : 'In the last hour',
+		'1d' : 'In the last day',
+
+		'' : 'In the last week',
+		'1w' : 'In the last month',
+		'1 month' : 'More than one month'
+	},
+	zh : {
+		header : '發言更新圖例',
+		'1h' : '最近一小時內',
+		'1d' : '最近一日內',
+
+		'' : '一週內',
+		'1w' : '一個月內',
+		'1 month' : '逾一個月'
+	},
+	ja : {
+		header : '発言更新の凡例',
+		'1h' : '一時間以内',
+		'1d' : '一日以内',
+
+		'' : '一週間以内',
+		'1w' : '一ヶ月以内',
+		'1 month' : '一ヶ月以上'
+	}
+};
+
+// assert: 多次執行不會再改變其值
 function normalize_time_style_hash(time_style_hash) {
 	// console.log(time_style_hash);
 	for ( var time_interval in time_style_hash) {
@@ -794,7 +793,7 @@ function normalize_time_style_hash(time_style_hash) {
 	// console.log(time_style_hash);
 }
 
-function setup_list_legend_special_status() {
+function setup_list_legend_special_status(list_legend_used) {
 	// @see general_row_style()
 	var guide = configuration.closed_style.line_CSS ? '| ' + 'style="'
 			+ configuration.closed_style.line_CSS + '" ' : '';
@@ -813,7 +812,8 @@ function setup_list_legend_special_status() {
 	list_legend_used[list_legend_used.special_status_index] = guide;
 }
 
-function setup_list_legend(page_configuration) {
+function get_list_legend(page_configuration) {
+	// setup_list_legend
 	normalize_time_style_hash(short_to_long);
 	normalize_time_style_hash(long_to_short);
 
@@ -822,8 +822,8 @@ function setup_list_legend(page_configuration) {
 	|| use_language && use_language.startsWith('zh-') && list_legend.zh
 	// e.g., 'commons'
 	|| list_legend.en;
-	// reset list_legend_used
-	list_legend_used = [
+	// setup list_legend_used
+	var list_legend_used = [
 			// mw-collapsed https://en.wikipedia.org/wiki/Help:Collapsing
 			'{| class="' + page_configuration.list_legend_class + '" style="'
 					+ page_configuration.list_legend_style + '"',
@@ -844,7 +844,7 @@ function setup_list_legend(page_configuration) {
 	list_legend_used.special_status_index = list_legend_used.length;
 	list_legend_used.push('');
 	if (use_language === 'zh') {
-		setup_list_legend_special_status();
+		setup_list_legend_special_status(list_legend_used);
 	}
 
 	if (configuration.configuration_page_title) {
@@ -868,8 +868,8 @@ function setup_list_legend(page_configuration) {
 
 	// {{clearright}}, {{-}}
 	list_legend_used.push('|}', '{{Clear}}');
-	// Release memory. 釋放被占用的記憶體.
-	// list_legend = null;
+
+	return list_legend_used;
 }
 
 // for 討論議題列表可以挑選欄位: (特定)使用者(最後)留言時間
@@ -1415,7 +1415,7 @@ function generate_topic_list(page_data) {
 	section_table.push('|}');
 	if (page_configuration.need_time_legend) {
 		// 解説文を入れて 色違いが何を示しているのかがわかる
-		section_table.append(list_legend_used);
+		section_table.append(get_list_legend(page_configuration));
 	}
 
 	if (page_configuration.postfix) {
