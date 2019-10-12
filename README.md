@@ -26,7 +26,7 @@ $ node
 require('cejs');
 
 // Load modules.
-CeL.run('application.net.wiki');
+CeL.run([ 'application.net.wiki.parser', 'application.net.wiki.edit', 'application.net.wiki.list', 'application.net.wiki.data', 'application.net.wiki.admin' ]);
 
 // Set default language. 改變預設之語言。
 CeL.wiki.set_language('en');

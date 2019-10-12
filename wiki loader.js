@@ -78,11 +78,15 @@ CeL.run([ 'interact.DOM', 'application.debug',
 // 載入不同地區語言的功能 for wiki.work()。
 'application.locale',
 // 載入操作維基百科的主要功能。
-'application.net.wiki',
+'application.net.wiki.parser',
+//
+'application.net.wiki.edit', 'application.net.wiki.list',
+//
+'application.net.wiki.data', 'application.net.wiki.admin',
 // Add color to console messages. 添加主控端報告的顏色。
 'interact.console',
-// for 'application.platform.nodejs': CeL.env.arg_hash, CeL.wiki.cache(),
-// CeL.fs_mkdir(), CeL.wiki.read_dump()
+// for 'application.platform.nodejs': CeL.env.arg_hash,
+// CeL.wiki.cache(), CeL.fs_mkdir(), CeL.wiki.read_dump()
 'application.storage' ]);
 
 // ----------------------------------------------------------------------------
