@@ -244,6 +244,17 @@ move_configuration = {
 	'Template:愛知学長懇話会': DELETE_PAGE,
 };
 
+set_language('ja');
+diff_id = 74625844;
+section_title = 'Wikipedia:削除依頼/大学テンプレート群関連';
+summary = '';
+move_configuration = {
+	'Template:仏教系大学会議': DELETE_PAGE,
+	'Template:日本私立医科大学協会': DELETE_PAGE,
+	'Template:私立短期大学図書館協議会': DELETE_PAGE,
+	'Template:日本私立短期大学協会': DELETE_PAGE,
+};
+
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
