@@ -272,8 +272,6 @@ move_configuration = {
 				if (token.tag === 'ref' && token.toString().includes('薛聰賢出版社')) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
 					// <ref name="薛">《台灣蔬果實用百科第二輯》，薛聰賢 著，薛聰賢出版社，2001年，ISDN:957-97452-1-8</ref>
-					if (token.attributes.name)
-						remove_ref_list.push(token.attributes.name);
 					changed = true;
 					return remove_token;
 				}
@@ -292,9 +290,10 @@ move_configuration = {
 				}
 			});
 			wikitext = parsed.toString();
-			wikitext = wikitext.replace(/\n\*[^\n]+?薛聰賢出版社[^\n]+/g, function (all) {
+			wikitext = wikitext.replace(/\n\*[^\n]+?薛聰賢[^\n]+/g, function (all) {
 				// e.g., *《台灣蔬果實用百科第三輯》，薛聰賢 著，薛聰賢出版社，2003年
 				// * 薛聰賢 著：《台灣蔬果實用百科（第二輯）》，薛聰賢出版社，2001年
+				// * 薛聰賢：《臺灣花卉實用圖鑑 3 球根花卉 多肉植物 150種》，臺灣：台灣普綠有限公司出版部，1996年 ISBN 957-97021-0-1
 				changed = true;
 				return '';
 			});
