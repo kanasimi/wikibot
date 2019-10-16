@@ -140,6 +140,7 @@ move_configuration = {
 			parsed.each('table', function (token, index, parent) {
 				if (token.toString().includes('[[Portal:バス/画像一覧/過去に掲載された写真/')) {
 					if (changed) {
+						// 每一頁面只更改一次。
 						CeL.error('Had modified: ' + CeL.wiki.title_link_of(page_data));
 						return;
 					}
@@ -150,7 +151,7 @@ move_configuration = {
 			if (!changed) {
 				// verify
 				if (!wikitext.includes(replace_to)) {
-					CeL.error('Problematic page: ' + CeL.wiki.title_link_of(page_data));
+					CeL.error('Problematic page: Nothing to change: ' + CeL.wiki.title_link_of(page_data));
 				}
 				return wikitext;
 			}
@@ -192,7 +193,7 @@ move_configuration = {
 			if (!includes_from && includes_to) {
 				// modified
 			} else {
-				CeL.error('Problematic page: ' + CeL.wiki.title_link_of(page_data));
+				CeL.error('Problematic page: Nothing to change: ' + CeL.wiki.title_link_of(page_data));
 			}
 			return wikitext;
 		},
@@ -253,6 +254,35 @@ move_configuration = {
 	'Template:日本私立医科大学協会': DELETE_PAGE,
 	'Template:私立短期大学図書館協議会': DELETE_PAGE,
 	'Template:日本私立短期大学協会': DELETE_PAGE,
+};
+
+set_language('zh');
+diff_id = 56462719;
+section_title = '请求删除多笔常见植物页面中标注为薛聪贤先生的参考来源';
+summary = '';
+move_configuration = {
+	'"薛聰賢"': {
+		list_types: 'search',
+		text_processor(wikitext, page_data) {
+			/** {Array}頁面解析後的結構。 */
+			const parsed = page_data.parse();
+			let changed;
+			parsed.each('ref', function (token, index, parent) {
+				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
+					replace_token(parent, index, DELETE_PAGE);
+					changed = true;
+				}
+			});
+			if (!changed) {
+				// verify
+				if (!wikitext.includes(replace_to)) {
+					CeL.error('Problematic page: Nothing to change: ' + CeL.wiki.title_link_of(page_data));
+				}
+				return wikitext;
+			}
+			return parsed.toString();
+		}
+	}
 };
 
 // ---------------------------------------------------------------------//
@@ -490,7 +520,15 @@ const default_namespace = 'main|file|module|template|category';
 //	'talk|template_talk|category_talk'
 
 async function main_move_process(options) {
-	let list_types = options.list_types || default_list_types;
+	let list_types;
+	if (typeof options.move_from_link === 'string') {
+		list_types = options.list_types || default_list_types;
+	} else if (options.move_from_link && options.move_from_link.search) {
+		list_types = 'search';
+	} else {
+		throw new Error('Invalid move_from_link: ' + JSON.stringify(options.move_from_link));
+	}
+
 	if (typeof list_types === 'string') {
 		list_types = list_types.split('|');
 	}
@@ -498,23 +536,25 @@ async function main_move_process(options) {
 		namespace: options.namespace || default_namespace
 	};
 
-	// separate namespace and page name
-	const matched = options.move_from_link.match(/^([^:]+):(.+)$/);
-	const namespace = matched && CeL.wiki.namespace(matched[1]) || 0;
-	options = {
-		...options,
-		move_from_ns: namespace,
-		// page_name only
-		move_from_page_name: namespace ? matched[2] : options.move_from_link,
-	};
-	if (options.move_to_link && options.move_to_link !== DELETE_PAGE) {
-		// assert: typeof options.move_to_link === 'string'
-		// get page_name only
-		options.move_to_page_name = namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link;
-	}
+	if (list_types.join() !== 'search') {
+		// separate namespace and page name
+		const matched = options.move_from_link.match(/^([^:]+):(.+)$/);
+		const namespace = matched && CeL.wiki.namespace(matched[1]) || 0;
+		options = {
+			...options,
+			move_from_ns: namespace,
+			// page_name only
+			move_from_page_name: namespace ? matched[2] : options.move_from_link,
+		};
+		if (options.move_to_link && options.move_to_link !== DELETE_PAGE) {
+			// assert: typeof options.move_to_link === 'string'
+			// get page_name only
+			options.move_to_page_name = namespace ? options.move_to_link.replace(/^([^:]+):/, '') : options.move_to_link;
+		}
 
-	if (options.move_from_ns !== CeL.wiki.namespace('Category')) {
-		list_types = list_types.filter(type => type !== 'categorymembers');
+		if (options.move_from_ns !== CeL.wiki.namespace('Category')) {
+			list_types = list_types.filter(type => type !== 'categorymembers');
+		}
 	}
 
 	let page_list = [];
@@ -529,7 +569,8 @@ async function main_move_process(options) {
 			&& page_data.ns !== CeL.wiki.namespace('User')
 			//&& !page_data.title.includes('/過去ログ')
 			;
-	}).unique(page_data => page_data.title);
+	});
+	page_list = page_list.unique(page_data => page_data.title);
 	//console.log(page_list);
 
 	await wiki.for_each_page(
@@ -559,7 +600,7 @@ async function prepare_operation() {
 	}
 
 	//Object.entries(move_configuration).forEach(main_move_process);
-	for (let pair of Object.entries(move_configuration)) {
+	for (let pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
 		const [move_from_link, move_to_link] = [CeL.wiki.normalize_title(pair[0]), pair[1]];
 		let options = CeL.is_Object(move_to_link)
 			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
@@ -570,6 +611,9 @@ async function prepare_operation() {
 		if (_summary) {
 			summary = _summary;
 		} else if (options.move_to_link === DELETE_PAGE) {
+			if (typeof move_from_link !== 'string') {
+				//throw new Error('`move_from_link` should be {String}!');
+			}
 			summary = CeL.wiki.title_link_of(move_from_link) + 'の除去';
 		} else {
 			summary = CeL.wiki.title_link_of(options.move_to_link)
