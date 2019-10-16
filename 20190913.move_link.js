@@ -295,10 +295,11 @@ move_configuration = {
 				changed = true;
 				return '';
 			});
-			wikitext = wikitext.replace(/\n\*\s*\n/g, function (all) {
-				changed = true;
-				return '\n';
-			});
+			if (false)
+				wikitext = wikitext.replace(/\n\*\s*\n/g, function (all) {
+					changed = true;
+					return '\n';
+				});
 			// verify
 			if (wikitext.includes("薛聰賢")) {
 				CeL.error('Problematic page: There are still tokens to replace: ' + CeL.wiki.title_link_of(page_data));
@@ -409,11 +410,16 @@ const all_link_template_hash = 'Main|See|Seealso|See also|混同|Catlink'.split(
  */
 function replace_token(parent, index, replace_to) {
 	if (replace_to === DELETE_PAGE) {
-		parent[index] = '';
-		if (index + 1 < parent.length && typeof parent[index + 1] === 'string') {
-			// 去除後方的空白 + 僅一個換行。 去除前方的空白或許較不合適？
-			// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
-			parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
+		if (parent.type === 'list') {
+			// 直接消掉整個 item token。
+			parent.splice(index, 1);
+		} else {
+			parent[index] = '';
+			if (index + 1 < parent.length && typeof parent[index + 1] === 'string') {
+				// 去除後方的空白 + 僅一個換行。 去除前方的空白或許較不合適？
+				// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
+				parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
+			}
 		}
 	} else {
 		parent[index] = replace_to;
