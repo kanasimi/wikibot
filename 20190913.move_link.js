@@ -267,24 +267,17 @@ move_configuration = {
 		text_processor(wikitext, page_data) {
 			/** {Array}頁面解析後的結構。 */
 			const parsed = page_data.parse();
-			let changed, remove_ref_list = [];
+			let changed;
 			parsed.each('tag', function (token, index, parent) {
-				if (token.tag === 'ref' && /\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
+				if (token.tag === 'ref' && token.toString().includes('薛聰賢出版社')) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
+					// <ref name="薛">《台灣蔬果實用百科第二輯》，薛聰賢 著，薛聰賢出版社，2001年，ISDN:957-97452-1-8</ref>
 					if (token.attributes.name)
 						remove_ref_list.push(token.attributes.name);
 					changed = true;
 					return remove_token;
 				}
 			});
-			if (remove_ref_list.length > 0) {
-				parsed.each('tag_single', function (token, index, parent) {
-					if (token.tag === 'ref' && remove_ref_list.includes(token.attributes.name)) {
-						// assert: changed === true;
-						return remove_token;
-					}
-				});
-			}
 			parsed.each('template', function (token, index, parent) {
 				if (token.name === 'Cite isbn' && (token.parameters[1] in { '9789577441379': true, '9579745218': true })) {
 					// e.g., {{cite isbn|9789577441379|ref=harv|noedit}}
@@ -299,8 +292,9 @@ move_configuration = {
 				}
 			});
 			wikitext = parsed.toString();
-			wikitext = wikitext.replace(/\n\*\s*《[^《》]+》，薛聰賢\s*著[^\n]+/g, function (all) {
+			wikitext = wikitext.replace(/\n\*[^\n]+?薛聰賢出版社[^\n]+/g, function (all) {
 				// e.g., *《台灣蔬果實用百科第三輯》，薛聰賢 著，薛聰賢出版社，2003年
+				// * 薛聰賢 著：《台灣蔬果實用百科（第二輯）》，薛聰賢出版社，2001年
 				changed = true;
 				return '';
 			});
