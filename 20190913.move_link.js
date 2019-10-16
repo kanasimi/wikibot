@@ -276,7 +276,7 @@ move_configuration = {
 				}
 			});
 			parsed.each('template', function (token, index, parent) {
-				if (token.name === 'Cite isbn' && token.parameters[1] === '9789577441379') {
+				if (token.name === 'Cite isbn' && (token.parameters[1] in { '9789577441379': true, '9579745218': true })) {
 					// e.g., {{cite isbn|9789577441379|ref=harv|noedit}}
 					// [[w:zh:Template:Cite_isbn/978957744137]]
 					changed = true;
