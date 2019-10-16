@@ -268,10 +268,18 @@ move_configuration = {
 			/** {Array}頁面解析後的結構。 */
 			const parsed = page_data.parse();
 			let changed;
+			parsed.each('template', function (token, index, parent) {
+				if (token.name === 'Clref' && token.toString().includes('薛聰賢')) {
+					// *{{clref|薛聰賢|2001|ref={{cite isbn|9579745218|ref=harv|noedit}}}}
+					changed = true;
+					return remove_token;
+				}
+			});
 			parsed.each('tag', function (token, index, parent) {
-				if (token.tag === 'ref' && token.toString().includes('薛聰賢出版社')) {
+				if (token.tag === 'ref' && token.toString().includes('薛聰賢')) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
 					// <ref name="薛">《台灣蔬果實用百科第二輯》，薛聰賢 著，薛聰賢出版社，2001年，ISDN:957-97452-1-8</ref>
+					// <ref>{{cite book |author = 薛聰賢 |title = 台灣原生植物景觀圖鑑(3) |publisher = 台灣普綠 |date = 2005-01-30}}</ref>
 					changed = true;
 					return remove_token;
 				}
@@ -283,8 +291,9 @@ move_configuration = {
 					changed = true;
 					return remove_token;
 				}
-				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
+				if (/\|\s*publisher\s*=\s*薛聰賢/.test(token.toString())) {
 					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢 |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
+					// {{cite book|author=薛聰賢|year=2003|title=台灣原生景觀植物圖鑑1《蕨類植物‧草本植物》|publisher=薛聰賢|isbn=957-41-0968-2}}
 					changed = true;
 					return remove_token;
 				}
@@ -294,6 +303,7 @@ move_configuration = {
 				// e.g., *《台灣蔬果實用百科第三輯》，薛聰賢 著，薛聰賢出版社，2003年
 				// * 薛聰賢 著：《台灣蔬果實用百科（第二輯）》，薛聰賢出版社，2001年
 				// * 薛聰賢：《臺灣花卉實用圖鑑 3 球根花卉 多肉植物 150種》，臺灣：台灣普綠有限公司出版部，1996年 ISBN 957-97021-0-1
+				// *《台灣蔬果實用百科第一輯》，薛聰賢著，2001年
 				changed = true;
 				return '';
 			});
