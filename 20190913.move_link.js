@@ -268,8 +268,8 @@ move_configuration = {
 			/** {Array}頁面解析後的結構。 */
 			const parsed = page_data.parse();
 			let changed;
-			parsed.each('ref', function (token, index, parent) {
-				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
+			parsed.each('tag', function (token, index, parent) {
+				if (token.tag === 'ref' && /\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
 					changed = true;
 					return remove_token;
