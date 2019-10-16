@@ -273,11 +273,11 @@ move_configuration = {
 					changed = true;
 				}
 			});
+			// verify
+			if (wikitext.includes("薛聰賢")) {
+				CeL.error('Problematic page: Still has token "薛聰賢": ' + CeL.wiki.title_link_of(page_data));
+			}
 			if (!changed) {
-				// verify
-				if (!wikitext.includes(replace_to)) {
-					CeL.error('Problematic page: Nothing to change: ' + CeL.wiki.title_link_of(page_data));
-				}
 				return wikitext;
 			}
 			return parsed.toString();
