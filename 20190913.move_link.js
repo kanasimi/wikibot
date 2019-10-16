@@ -18,6 +18,7 @@ const Wikiapi = require('wikiapi');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
 
 // Load modules.
 CeL.run([
@@ -271,20 +272,20 @@ move_configuration = {
 				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
 					changed = true;
-					return parsed.each.remove_token;
+					return remove_token;
 				}
 			});
 			parsed.each('template', function (token, index, parent) {
-				if (token.name === 'Cite isbn' && token.parameters[1] === '978957744137') {
+				if (token.name === 'Cite isbn' && token.parameters[1] === '9789577441379') {
 					// e.g., {{cite isbn|9789577441379|ref=harv|noedit}}
 					// [[w:zh:Template:Cite_isbn/978957744137]]
 					changed = true;
-					return parsed.each.remove_token;
+					return remove_token;
 				}
 				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
 					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢 |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
 					changed = true;
-					return parsed.each.remove_token;
+					return remove_token;
 				}
 			});
 			wikitext = parsed.toString();
@@ -400,30 +401,6 @@ const first_link_template_hash = ''.split('|').to_hash();
 // templates that ALL paraments are displayed as link.
 const all_link_template_hash = 'Main|See|Seealso|See also|混同|Catlink'.split('|').to_hash();
 
-/**
- * 換掉整個 parent[index] token 的情況。
- * @param {Array} parent
- * @param {Number} index
- * @param {String} replace_to
- */
-function replace_token(parent, index, replace_to) {
-	if (replace_to === DELETE_PAGE) {
-		if (parent.type === 'list') {
-			// 直接消掉整個 item token。
-			parent.splice(index, 1);
-		} else {
-			parent[index] = '';
-			if (index + 1 < parent.length && typeof parent[index + 1] === 'string') {
-				// 去除後方的空白 + 僅一個換行。 去除前方的空白或許較不合適？
-				// e.g., "* list\n\n{{t1}}\n{{t2}}", remove "{{t1}}\n" → "* list\n\n{{t2}}"
-				parent[index + 1] = parent[index + 1].replace(/^\s*\n/, '');
-			}
-		}
-	} else {
-		parent[index] = replace_to;
-	}
-}
-
 function for_each_template(token, index, parent) {
 
 	if (token.name === this.move_from_page_name) {
@@ -431,8 +408,7 @@ function for_each_template(token, index, parent) {
 			CeL.wiki.parse.replace_parameter(token, this.replace_parameters);
 		}
 		if (this.move_to_link === DELETE_PAGE) {
-			replace_token(parent, index, DELETE_PAGE);
-			return;
+			return remove_token;
 		}
 		if (this.move_to_page_name && this.move_from_ns === CeL.wiki.namespace('Template')) {
 			// 直接替換模板名稱。
