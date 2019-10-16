@@ -279,16 +279,29 @@ move_configuration = {
 					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢 |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
 					replace_token(parent, index, DELETE_PAGE);
 					changed = true;
+					return;
+				}
+				if (token.name === 'Cite isbn' && token.parameters[1] === '978957744137') {
+					// e.g., {{cite isbn|9789577441379|ref=harv|noedit}}
+					// [[w:zh:Template:Cite_isbn/978957744137]]
+					replace_token(parent, index, DELETE_PAGE);
+					changed = true;
+					return;
 				}
 			});
-			wikitext = parsed.toString().replace(/\n\*\s*《[^《》]+》，薛聰賢\s*著[^\n]+/g, function (all) {
+			wikitext = parsed.toString();
+			wikitext = wikitext.replace(/\n\*\s*《[^《》]+》，薛聰賢\s*著[^\n]+/g, function (all) {
 				// e.g., *《台灣蔬果實用百科第三輯》，薛聰賢 著，薛聰賢出版社，2003年
 				changed = true;
 				return '';
 			});
+			wikitext = wikitext.replace(/\n\*\s*\n/g, function (all) {
+				changed = true;
+				return '\n';
+			});
 			// verify
 			if (wikitext.includes("薛聰賢")) {
-				CeL.error('Problematic page: Still has token to replace: ' + CeL.wiki.title_link_of(page_data));
+				CeL.error('Problematic page: There are still tokens to replace: ' + CeL.wiki.title_link_of(page_data));
 			}
 			return wikitext;
 		}
