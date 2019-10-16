@@ -270,23 +270,21 @@ move_configuration = {
 			parsed.each('ref', function (token, index, parent) {
 				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
-					replace_token(parent, index, DELETE_PAGE);
 					changed = true;
+					return parsed.each.remove_token;
 				}
 			});
 			parsed.each('template', function (token, index, parent) {
-				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
-					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢 |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
-					replace_token(parent, index, DELETE_PAGE);
-					changed = true;
-					return;
-				}
 				if (token.name === 'Cite isbn' && token.parameters[1] === '978957744137') {
 					// e.g., {{cite isbn|9789577441379|ref=harv|noedit}}
 					// [[w:zh:Template:Cite_isbn/978957744137]]
-					replace_token(parent, index, DELETE_PAGE);
 					changed = true;
-					return;
+					return parsed.each.remove_token;
+				}
+				if (/\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
+					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢 |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
+					changed = true;
+					return parsed.each.remove_token;
 				}
 			});
 			wikitext = parsed.toString();
