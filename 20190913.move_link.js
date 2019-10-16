@@ -259,7 +259,7 @@ move_configuration = {
 set_language('zh');
 diff_id = 56462719;
 section_title = '请求删除多笔常见植物页面中标注为薛聪贤先生的参考来源';
-summary = '';
+summary = '刪除標註為薛聰賢先生的參考來源';
 move_configuration = {
 	'"薛聰賢"': {
 		list_types: 'search',
@@ -281,7 +281,7 @@ move_configuration = {
 					changed = true;
 				}
 			});
-			wikitext = parsed.toString().replace(/\n\*\s*《[^《》]+》，薛聰賢\s*著/g, function (all) {
+			wikitext = parsed.toString().replace(/\n\*\s*《[^《》]+》，薛聰賢\s*著[^\n]+/g, function (all) {
 				// e.g., *《台灣蔬果實用百科第三輯》，薛聰賢 著，薛聰賢出版社，2003年
 				changed = true;
 				return '';
