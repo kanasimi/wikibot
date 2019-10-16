@@ -267,14 +267,24 @@ move_configuration = {
 		text_processor(wikitext, page_data) {
 			/** {Array}頁面解析後的結構。 */
 			const parsed = page_data.parse();
-			let changed;
+			let changed, remove_ref_list = [];
 			parsed.each('tag', function (token, index, parent) {
 				if (token.tag === 'ref' && /\|\s*publisher\s*=\s*薛聰賢出版社/.test(token.toString())) {
 					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
+					if (token.attributes.name)
+						remove_ref_list.push(token.attributes.name);
 					changed = true;
 					return remove_token;
 				}
 			});
+			if (remove_ref_list.length > 0) {
+				parsed.each('tag_single', function (token, index, parent) {
+					if (token.tag === 'ref' && remove_ref_list.includes(token.attributes.name)) {
+						// assert: changed === true;
+						return remove_token;
+					}
+				});
+			}
 			parsed.each('template', function (token, index, parent) {
 				if (token.name === 'Cite isbn' && (token.parameters[1] in { '9789577441379': true, '9579745218': true })) {
 					// e.g., {{cite isbn|9789577441379|ref=harv|noedit}}
