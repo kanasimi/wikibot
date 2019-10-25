@@ -331,7 +331,7 @@ move_configuration = {
 	'CAT': {
 		move_from_link: /\[\[CAT *:/i,
 		// search all namespaces
-		namespace: '',
+		namespace: '*',
 		text_processor(wikitext, page_data) {
 			return wikitext.replace(this.move_from, '[[:Category:');
 		}
