@@ -321,6 +321,24 @@ move_configuration = {
 	}
 };
 
+
+set_language('en');
+set_language('commons');
+diff_id = 371760584;
+section_title = 'Change CAT: to :CAT:';
+summary = 'Change "CAT:" to ":CAT:": Any link to a CAT: shortcut has now become a categorization';
+move_configuration = {
+	'CAT': {
+		move_from_link: /\[\[CAT *:/i,
+		// search all namespaces
+		namespace: '',
+		text_processor(wikitext, page_data) {
+			return wikitext.replace(this.move_from, '[[:Category:');
+		}
+	}
+};
+
+
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
@@ -539,7 +557,7 @@ async function main_move_process(options) {
 	let list_types;
 	if (typeof options.move_from_link === 'string') {
 		list_types = options.list_types || default_list_types;
-	} else if (options.move_from_link && options.move_from_link.search) {
+	} else if (CeL.is_RegExp(options.move_from_link)) {
 		list_types = 'search';
 	} else {
 		throw new Error('Invalid move_from_link: ' + JSON.stringify(options.move_from_link));
@@ -617,7 +635,7 @@ async function prepare_operation() {
 
 	//Object.entries(move_configuration).forEach(main_move_process);
 	for (let pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
-		const [move_from_link, move_to_link] = [CeL.wiki.normalize_title(pair[0]), pair[1]];
+		const [move_from_link, move_to_link] = [pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]), pair[1]];
 		let options = CeL.is_Object(move_to_link)
 			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
 			//assert: typeof move_to_link === 'string'
@@ -627,10 +645,11 @@ async function prepare_operation() {
 		if (_summary) {
 			summary = _summary;
 		} else if (options.move_to_link === DELETE_PAGE) {
-			if (typeof move_from_link !== 'string') {
-				//throw new Error('`move_from_link` should be {String}!');
+			if (typeof move_from_link === 'string') {
+				summary = CeL.wiki.title_link_of(move_from_link) + 'の除去';
+			} else {
+				// e.g., /\[\[CAT *:/i
 			}
-			summary = CeL.wiki.title_link_of(move_from_link) + 'の除去';
 		} else {
 			summary = CeL.wiki.title_link_of(options.move_to_link)
 				// の記事名変更に伴うリンクの修正 カテゴリ変更依頼
@@ -643,6 +662,9 @@ async function prepare_operation() {
 			+ (_log_to ? ' - ' + CeL.wiki.title_link_of(_log_to, 'log') : '');
 
 		if (options.do_move_page) {
+			if (typeof move_from_link !== 'string') {
+				throw new Error('`move_from_link` should be {String}!');
+			}
 			// 作業前先移動原頁面。
 			options.do_move_page = { reason: summary, ...options.do_move_page };
 			try {
