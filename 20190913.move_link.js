@@ -405,6 +405,14 @@ move_configuration = {
 };
 
 
+set_language('ja');
+diff_id = '74813987/74814343';
+section_title = 'Template:全国保育士養成協議会の除去';
+summary = '';
+move_configuration = {
+	'Template:全国保育士養成協議会': DELETE_PAGE,
+};
+
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
