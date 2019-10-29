@@ -347,11 +347,21 @@ move_configuration = {
 	text_processor(wikitext, page_data) {
 		const main_category_name = this.move_from_page_name;
 		const move_to_page_name = this.move_to_page_name;
-		console.log([main_category_name, move_to_page_name]);
+		//console.log([main_category_name, move_to_page_name]);
+
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = page_data.parse();
+
+		parsed.each('template', function (token, index, parent) {
+			if (token.name === 'リダイレクトの所属カテゴリ') {
+				console.log(token);
+				return;
+			}
+		});
+
 		let token_日本のYouTuber, token_data_to_rename;
 		parsed.each('category', function (token, index, parent) {
+			console.log(token);
 			if (token.name === move_to_page_name) {
 				token_日本のYouTuber = token;
 				return;
@@ -364,18 +374,18 @@ move_configuration = {
 			}
 		});
 		if (!token_data_to_rename) {
-			CeL.error('Problematic page: There are no token to replace: ' + CeL.wiki.title_link_of(page_data));
+			CeL.error('Problematic page: There is no token to replace: ' + CeL.wiki.title_link_of(page_data));
 			return;
 		}
 
-		console.log(token_日本のYouTuber);
-		console.log(token_data_to_rename);
+		//console.log(token_日本のYouTuber);
+		//console.log(token_data_to_rename);
 		if (token_日本のYouTuber) {
 			// 既に [[Category:日本のYouTuber]] がある場合は[[Category:日本の男性YouTuber]] 及び [[Category:日本の女性YouTuber]] を除去してください。
 			CeL.wiki.parser.remove_token(token_data_to_rename[2], token_data_to_rename[1]);
 		} else {
 			// [[Category:日本のYouTuber]] へ変更
-			token_data_to_rename[0][1] = move_to_page_name;
+			token_data_to_rename[0][0][1] = move_to_page_name;
 		}
 
 		return parsed.toString();
