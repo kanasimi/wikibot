@@ -352,16 +352,9 @@ move_configuration = {
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = page_data.parse();
 
-		parsed.each('template', function (token, index, parent) {
-			if (token.name === 'リダイレクトの所属カテゴリ') {
-				console.log(token);
-				return;
-			}
-		});
-
 		let token_日本のYouTuber, token_data_to_rename;
 		parsed.each('category', function (token, index, parent) {
-			console.log(token);
+			//console.log(token);
 			if (token.name === move_to_page_name) {
 				token_日本のYouTuber = token;
 				return;
@@ -374,6 +367,21 @@ move_configuration = {
 			}
 		});
 		if (!token_data_to_rename) {
+			let changed;
+			parsed.each('template', function (token, index, parent) {
+				if (token.name === 'リダイレクトの所属カテゴリ') {
+					token.forEach(function (parameter, index) {
+						if (index > 0 && parameter.includes(main_category_name)) {
+							token[index] = parameter.replace(main_category_name, move_to_page_name);
+							changed = true;
+						}
+					});
+				}
+			});
+			if (changed) {
+				return parsed.toString();
+			}
+
 			CeL.error('Problematic page: There is no token to replace: ' + CeL.wiki.title_link_of(page_data));
 			return;
 		}
