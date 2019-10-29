@@ -134,7 +134,7 @@ summary = undefined;
 move_configuration = {
 	'Portal:バス/画像一覧/過去に掲載された写真/': {
 		text_processor(wikitext, page_data) {
-			/** {Array}頁面解析後的結構。 */
+			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = page_data.parse();
 			let changed;
 			const replace_to = '{{Portal:バス/画像一覧/年別}}';
@@ -265,7 +265,7 @@ move_configuration = {
 	'"薛聰賢"': {
 		list_types: 'search',
 		text_processor(wikitext, page_data) {
-			/** {Array}頁面解析後的結構。 */
+			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = page_data.parse();
 			let changed;
 			parsed.each('template', function (token, index, parent) {
@@ -333,9 +333,57 @@ move_configuration = {
 		// search all namespaces
 		namespace: '*',
 		text_processor(wikitext, page_data) {
-			return wikitext.replace(this.move_from, '[[:Category:');
+			return wikitext.replace(this.move_from_link, '[[:Category:');
 		}
 	}
+};
+
+set_language('ja');
+diff_id = 74773136;
+section_title = 'Category:日本の男性、女性YouTuber廃止に伴う除去依頼';
+summary = null;
+move_configuration = {
+	move_to_link: 'Category:日本のYouTuber',
+	text_processor(wikitext, page_data) {
+		const main_category_name = this.move_from_page_name;
+		const move_to_page_name = this.move_to_page_name;
+		console.log([main_category_name, move_to_page_name]);
+		/** {Array} parsed page content 頁面解析後的結構。 */
+		const parsed = page_data.parse();
+		let token_日本のYouTuber, token_data_to_rename;
+		parsed.each('category', function (token, index, parent) {
+			if (token.name === move_to_page_name) {
+				token_日本のYouTuber = token;
+				return;
+			}
+			if (token.name === main_category_name) {
+				if (token_data_to_rename)
+					CeL.error('Problematic page: There are more than one token to replace: ' + CeL.wiki.title_link_of(page_data));
+				token_data_to_rename = [token, index, parent];
+				return;
+			}
+		});
+		if (!token_data_to_rename) {
+			CeL.error('Problematic page: There are no token to replace: ' + CeL.wiki.title_link_of(page_data));
+			return;
+		}
+
+		console.log(token_日本のYouTuber);
+		console.log(token_data_to_rename);
+		if (token_日本のYouTuber) {
+			// 既に [[Category:日本のYouTuber]] がある場合は[[Category:日本の男性YouTuber]] 及び [[Category:日本の女性YouTuber]] を除去してください。
+			CeL.wiki.parser.remove_token(token_data_to_rename[2], token_data_to_rename[1]);
+		} else {
+			// [[Category:日本のYouTuber]] へ変更
+			token_data_to_rename[0][1] = move_to_page_name;
+		}
+
+		return parsed.toString();
+	}
+};
+move_configuration = {
+	'Category:日本の男性YouTuber': move_configuration,
+	'Category:日本の女性YouTuber': move_configuration,
 };
 
 
@@ -527,7 +575,7 @@ function for_each_page(page_data) {
 	}
 
 
-	/** {Array}頁面解析後的結構。 */
+	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = page_data.parse();
 	//console.log(parsed);
 	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check');
@@ -642,6 +690,8 @@ async function prepare_operation() {
 			: { move_from_link, move_to_link };
 
 		const _log_to = 'log_to' in options ? options.log_to : log_to;
+		// summary = null, undefined : using section_title as summary
+		// summary = '' : auto-fill summary with page-to-delete + '改名に伴うリンク修正'
 		if (_summary) {
 			summary = _summary;
 		} else if (options.move_to_link === DELETE_PAGE) {
