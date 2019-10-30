@@ -413,6 +413,16 @@ move_configuration = {
 	'Template:全国保育士養成協議会': DELETE_PAGE,
 };
 
+
+set_language('ja');
+diff_id = 74823411;
+section_title = 'ロサンゼルス・ラムズ';
+summary = '2016年ロサンゼルスに復帰し、ロサンゼルス・ラムズとなっています';
+move_configuration = {
+	'セントルイス・ラムズ': 'ロサンゼルス・ラムズ',
+};
+
+
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
