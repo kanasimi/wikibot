@@ -419,7 +419,10 @@ diff_id = 74823411;
 section_title = 'ロサンゼルス・ラムズ';
 summary = '2016年ロサンゼルスに復帰し、ロサンゼルス・ラムズとなった';
 move_configuration = {
-	'セントルイス・ラムズ': 'ロサンゼルス・ラムズ',
+	'セントルイス・ラムズ': {
+		move_from_link: 'ロサンゼルス・ラムズ',
+		keep_title: true
+	}
 };
 
 
