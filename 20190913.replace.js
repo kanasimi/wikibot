@@ -44,7 +44,7 @@ const DELETE_PAGE = Symbol('DELETE_PAGE');
 /*
 
 文章名稱的改變，應考慮上下文的影響。例如：
-# 是否應採用 [[new|old]]: using .keep_title
+# 是否應採用 [[new|old]]: using {keep_title : true} to preserve title displayed. Default: discard title
 # 檢查重定向："株式会社[[リクルート]]" → "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
 
 作業時檢查是否已經更改過、或者應該更改確沒辦法更改的情況。
