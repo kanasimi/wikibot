@@ -750,6 +750,9 @@ var jawiki_week_AFD_options = {
 				var parsed = CeL.wiki.parser(page_data);
 				var page_list = [];
 				parsed.each('transclusion', function(token, index, parent) {
+					// e.g., for Error: 取得了未設定的頁面:
+					// [[Wikipedia:削除依頼/横浜市立十日市場中学校]]
+					// @ [[Wikipedia:削除依頼/ログ/2019年10月29日]]
 					var page_title = CeL.wiki.normalize_title(token.name);
 					if (page_title.startsWith('Wikipedia:削除依頼/'))
 						page_list.push(CeL.wiki.normalize_title(page_title));
