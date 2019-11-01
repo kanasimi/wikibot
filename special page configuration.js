@@ -750,8 +750,9 @@ var jawiki_week_AFD_options = {
 				var parsed = CeL.wiki.parser(page_data);
 				var page_list = [];
 				parsed.each('transclusion', function(token, index, parent) {
-					if (token.name.startsWith('Wikipedia:削除依頼/'))
-						page_list.push(token.name);
+					var page_title = CeL.wiki.normalize_title(token.name);
+					if (page_title.startsWith('Wikipedia:削除依頼/'))
+						page_list.push(CeL.wiki.normalize_title(page_title));
 				});
 				if (CeL.is_debug(1)) {
 					CeL.info(CeL.wiki.title_link_of(page_data.title)
@@ -944,6 +945,12 @@ function BRFA_section_filter(section) {
 	// get bot name from link in section title.
 	var bot_name = CeL.wiki.parse.user(section.section_title.toString());
 	if (is_bot_user(bot_name, section)) {
+		section.bot_name = bot_name;
+	} else if (bot_name = section.toString()
+	// e.g., [[w:ja:Wikipedia:Bot/使用申請]]
+	.match(/ボット名\/Bot: {{UserG\|([^{}]+)}}/)
+	//
+	&& (bot_name = CeL.wiki.title_of(bot_name[1]))) {
 		section.bot_name = bot_name;
 	}
 	// console.log(section);

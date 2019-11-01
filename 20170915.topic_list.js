@@ -826,7 +826,6 @@ function get_list_legend(page_configuration) {
 	|| list_legend.en;
 	// setup list_legend_used
 	var list_legend_used = [
-			// mw-collapsed https://en.wikipedia.org/wiki/Help:Collapsing
 			'{| class="'
 					+ (page_configuration.list_legend_class
 							|| general_page_configuration.list_legend_class || '')
@@ -1238,6 +1237,8 @@ function for_each_sub_page(sub_page_data/* , messages, config */) {
 	//
 	indexes = this.title_to_indexes[sub_page_title];
 	if (!indexes) {
+		// console.log(sub_page_data);
+		// console.log(this.title_to_indexes);
 		throw new Error('取得了未設定的頁面: ' + CeL.wiki.title_link_of(sub_page_data));
 	}
 	// CeL.info('for_each_sub_page: ' + CeL.wiki.title_link_of(sub_page_data));
