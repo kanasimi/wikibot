@@ -258,10 +258,12 @@ var section_column_operators = {
 };
 
 function traversal_all_pages() {
-	// CeL.info('traversal_all_pages:');
-	// console.log(main_talk_pages);
 	main_talk_pages.forEach(function(page_title) {
 		wiki.page(page_title, pre_fetch_sub_pages);
+	});
+	wiki.run(function() {
+		// CeL.info('traversal_all_pages:');
+		// console.log(main_talk_pages);
 	});
 }
 
@@ -1050,10 +1052,9 @@ function get_column_operators(page_configuration) {
 // ----------------------------------------------------------------------------
 
 function pre_fetch_sub_pages(page_data, error) {
-	if (false) {
-		CeL.info('pre_fetch_sub_pages: Get '
-				+ CeL.wiki.title_link_of(page_data));
-	}
+	CeL.debug(
+			(new Date).format() + ' Get ' + CeL.wiki.title_link_of(page_data),
+			1, 'pre_fetch_sub_pages');
 	if (page_data.title in sub_page_to_main) {
 		// 更改了子頁面，得要重新處理主要頁面。
 		wiki.page(sub_page_to_main[page_data.title], pre_fetch_sub_pages);
@@ -1236,19 +1237,21 @@ function detect_sub_pages_to_fetch(page_title_list, error) {
 }
 
 function listen_to_sub_page(sub_page_data, main_page_data) {
-	var sub_page_title = CeL.wiki.title_of(sub_page_title);
-	if (!(sub_page_title in sub_page_to_main)) {
-		// 有嵌入其他議題/子頁面的，也得一併監視。
-		main_talk_pages.push(sub_page_title);
-		if (sub_page_title !== main_page_data.title) {
-			sub_page_to_main[sub_page_title] = main_page_data.title;
-			// CeL.debug('listen_to_sub_page: ' + 'sub_page_to_main: ');
-			// console.log(sub_page_to_main);
-		} else {
-			CeL.warn('listen_to_sub_page: '
-					+ 'The sub-page has the same name with its main-page: '
-					+ CeL.wiki.title_link_of(sub_page_title));
-		}
+	var sub_page_title = CeL.wiki.title_of(sub_page_data);
+	if (!sub_page_title || (sub_page_title in sub_page_to_main)) {
+		return;
+	}
+
+	// 有嵌入其他議題/子頁面的，也得一併監視。
+	main_talk_pages.push(sub_page_title);
+	if (sub_page_title !== main_page_data.title) {
+		sub_page_to_main[sub_page_title] = main_page_data.title;
+		// CeL.debug('listen_to_sub_page: ' + 'sub_page_to_main: ');
+		// console.log(sub_page_to_main);
+	} else {
+		CeL.warn('listen_to_sub_page: '
+				+ 'The sub-page has the same name with its main-page: '
+				+ CeL.wiki.title_link_of(sub_page_title));
 	}
 }
 

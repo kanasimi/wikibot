@@ -82,7 +82,7 @@ localized_column_to_header = localized_column_to_header[use_language]
 // e.g., unknown language or 'commons' in CeL.wiki.api_URL.wikimedia
 || localized_column_to_header.en;
 var column_to_header = Object.assign({
-	NO : '#'
+	NO : 'data-sort-type="number" | #'
 }, localized_column_to_header);
 // Release memory. 釋放被占用的記憶體。
 localized_column_to_header = null;
@@ -307,7 +307,7 @@ var default_FC_vote_configurations = {
 	columns : 'NO;title;support;oppose;invalid;status;countdown;discussions;participants;last_user_set',
 	column_to_header : {
 		zh : {
-			NO : 'style="font-size: .3em;" |',
+			NO : 'data-sort-type="number" style="font-size: .3em;" |',
 			title : '條目標題',
 			// 贊成
 			support : 'data-sort-type="number" | <small>支持</small>',
