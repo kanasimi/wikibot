@@ -1171,6 +1171,7 @@ function detect_sub_pages_to_fetch(page_title_list) {
 		}
 
 		page_title = CeL.wiki.normalize_title(page_title);
+		// CeL.log('add_page_title: ' + CeL.wiki.title_link_of(page_title));
 		_this.insert_into_token.push(index >= 0 ? [ token, index ] : token);
 		sub_pages_to_fetch.push(page_title);
 		if (!title_to_indexes[page_title])
@@ -1188,7 +1189,7 @@ function detect_sub_pages_to_fetch(page_title_list) {
 		if (Array.isArray(page_title) && page_title.multi) {
 			page_title.forEach(function(_page_title, index) {
 				var normalized_page_title = CeL.wiki
-						.normalize_title(page_title);
+						.normalize_title(_page_title);
 				if (_page_title !== normalized_page_title) {
 					// e.g., for Error: 取得了未設定的頁面:
 					// [[Wikipedia:削除依頼/横浜市立十日市場中学校]]
