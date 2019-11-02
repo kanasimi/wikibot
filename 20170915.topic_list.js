@@ -258,6 +258,8 @@ var section_column_operators = {
 };
 
 function traversal_all_pages() {
+	// CeL.info('traversal_all_pages:');
+	// console.log(main_talk_pages);
 	main_talk_pages.forEach(function(page_title) {
 		wiki.page(page_title, pre_fetch_sub_pages);
 	});
@@ -1048,6 +1050,7 @@ function get_column_operators(page_configuration) {
 // ----------------------------------------------------------------------------
 
 function pre_fetch_sub_pages(page_data, error) {
+	CeL.info('pre_fetch_sub_pages: Get ' + CeL.wiki.title_link_of(page_data));
 	if (page_data.title in sub_page_to_main) {
 		// 更改了子頁面，得要重新處理主要頁面。
 		wiki.page(sub_page_to_main[page_data.title], pre_fetch_sub_pages);
@@ -1068,15 +1071,17 @@ function pre_fetch_sub_pages(page_data, error) {
 				+ timezone;
 		next_date = (new Date).format(next_date);
 		var timeout = Date.parse(next_date) - Date.now();
+		/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
+		var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 		if (timeout < 0) {
-			/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
-			var ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 			timeout += ONE_DAY_LENGTH_VALUE;
 		}
 		CeL.debug('於 ' + CeL.age_of(0, timeout, {
 			digits : 1
-		}) + ' 後檢查 ' + CeL.wiki.title_link_of(page_data) + '。基準時間（多在此時間後一天檢查）：'
-				+ next_date, 1);
+		}) + ' 後檢查 ' + CeL.wiki.title_link_of(page_data) + '。基準時間：' + next_date
+				+ '（多在此時間後 ' + CeL.age_of(0, ONE_DAY_LENGTH_VALUE, {
+					digits : 1
+				}) + ' 檢查）', 1);
 		setTimeout(function() {
 			// 更新所嵌入的頁面。通常是主頁面。
 			wiki.purge(page_configuration.purge_page || page_data.title);
@@ -1153,7 +1158,12 @@ function pre_fetch_sub_pages(page_data, error) {
 	}));
 }
 
-function detect_sub_pages_to_fetch(page_title_list) {
+function detect_sub_pages_to_fetch(page_title_list, error) {
+	if (error) {
+		CeL.error('detect_sub_pages_to_fetch: Error occurred.');
+		CeL.error(error);
+		return;
+	}
 	var _this = this;
 	var sub_pages_to_fetch = this.sub_pages_to_fetch;
 	var title_to_indexes = this.title_to_indexes;
