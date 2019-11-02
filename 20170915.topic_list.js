@@ -261,10 +261,12 @@ function traversal_all_pages() {
 	main_talk_pages.forEach(function(page_title) {
 		wiki.page(page_title, pre_fetch_sub_pages);
 	});
-	wiki.run(function() {
-		// CeL.info('traversal_all_pages:');
-		// console.log(main_talk_pages);
-	});
+	if (false) {
+		wiki.run(function() {
+			CeL.info('traversal_all_pages:');
+			console.log(main_talk_pages);
+		});
+	}
 }
 
 // ----------------------------------------------
@@ -1238,7 +1240,12 @@ function detect_sub_pages_to_fetch(page_title_list, error) {
 
 function listen_to_sub_page(sub_page_data, main_page_data) {
 	var sub_page_title = CeL.wiki.title_of(sub_page_data);
-	if (!sub_page_title || (sub_page_title in sub_page_to_main)) {
+	// assert: !!(sub_page_title && main_page_data) === true
+	if (!sub_page_title || !main_page_data) {
+		throw new Error(
+				'listen_to_sub_page: Invalid sub_page_data or main_page_data!');
+	}
+	if (sub_page_title in sub_page_to_main) {
 		return;
 	}
 
@@ -1339,6 +1346,11 @@ function for_each_sub_page_index(index) {
 }
 
 function insert_sub_pages() {
+	if (false) {
+		CeL.info('insert_sub_pages:');
+		console.log(main_talk_pages);
+	}
+
 	// Run after all list got.
 	var page_data = this.page_data;
 	if (this.transclusions > 0) {
