@@ -1050,7 +1050,10 @@ function get_column_operators(page_configuration) {
 // ----------------------------------------------------------------------------
 
 function pre_fetch_sub_pages(page_data, error) {
-	CeL.info('pre_fetch_sub_pages: Get ' + CeL.wiki.title_link_of(page_data));
+	if (false) {
+		CeL.info('pre_fetch_sub_pages: Get '
+				+ CeL.wiki.title_link_of(page_data));
+	}
 	if (page_data.title in sub_page_to_main) {
 		// 更改了子頁面，得要重新處理主要頁面。
 		wiki.page(sub_page_to_main[page_data.title], pre_fetch_sub_pages);
