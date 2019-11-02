@@ -120,8 +120,8 @@ if (check_section) {
 }
 
 /** {String}home directory */
-_global.home_directory = CeL.wiki.wmflabs ? '/data/project/' + user_name + '/'
-		: '';
+_global.home_directory = CeL.env.home || CeL.wiki.wmflabs && '/data/project/'
+		+ user_name + '/' || '';
 /** {String}bot base directory */
 _global.bot_directory = CeL.wiki.wmflabs ? home_directory + 'wikibot/' : '';
 /** {String}預設之本任務獨有的 base directory。衍生檔案如記錄檔、cache 等將置放此目錄下。 */
