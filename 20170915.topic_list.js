@@ -469,11 +469,13 @@ function start_main_work(page_data) {
 			configuration_page : configuration_page_title,
 			adapt_configuration : adapt_configuration,
 			// language : use_language,
+			// options.use_SQL: Try to use SQL. Use SQL as possibile.
+			// use_SQL : true,
 			parameters : {
 				// 跳過機器人所做的編輯。
 				// You need the "patrol" or "patrolmarks" right to request the
 				// patrolled flag.
-				rcshow : '!bot',
+				// rcshow : '!bot',
 				rcprop : 'title|ids|sizes|flags|user'
 			},
 			interval : '5s'
