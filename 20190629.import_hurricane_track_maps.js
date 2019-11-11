@@ -44,16 +44,22 @@ if (data_directory || media_directory) {
 // 'Category:2019 Pacific typhoon season'
 var category_to_parent_hash = Object.create(null);
 
-[ 'Pacific hurricane season', 'Pacific typhoon season',
-// Category:Tropical cyclones by season
-'Atlantic hurricane season', 'North Indian Ocean cyclone season',
-// Category:2018-19 Southern Hemisphere tropical cyclone season
-'South Pacific cyclone season', 'South-West Indian Ocean cyclone season',
-//
-'Australian region cyclone season',
-// 'Southern Hemisphere tropical cyclone season',
-//
-'Category:Central Weather Bureau ROC', 'Category:Japan Meteorological Agency',
+[
+		'Pacific hurricane season',
+		'Pacific typhoon season',
+		// Category:Tropical cyclones by season
+		'Atlantic hurricane season',
+		'North Indian Ocean cyclone season',
+		// Category:2018-19 Southern Hemisphere tropical cyclone season
+		'South Pacific cyclone season',
+		'South-West Indian Ocean cyclone season',
+		'Australian region cyclone season',
+		// 'Southern Hemisphere tropical cyclone season',
+
+		// parent categories
+		'Category:Central Weather Bureau ROC',
+		'Category:Images from the Philippine Atmospheric, Geophysical and Astronomical Services Administration',
+		'Category:Japan Meteorological Agency',
 		'Category:Images from the Japan Meteorological Agency' ]
 //
 .run_serial(function(run_next, parent_category_name) {
@@ -85,9 +91,10 @@ var category_to_parent_hash = Object.create(null);
 }, main_work);
 
 function check_category_exists(category_name) {
-	if (!(category_name in category_to_parent_hash))
-		CeL.warn('Category does not exist: '
+	if (!(category_name in category_to_parent_hash)) {
+		CeL.warn('check_category_exists: Category does not exist: '
 				+ CeL.wiki.title_link_of(category_name));
+	}
 }
 
 function normalize_name(name) {
@@ -135,7 +142,9 @@ function main_work() {
 	var site_mapper = {
 		NHC : start_NHC,
 		JTWC : start_JTWC,
+		// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
 		CWB : start_CWB,
+		// tagged with "All Rights Reserved"...
 		JMA : start_JMA,
 		PAGASA : start_PAGASA
 	};
@@ -169,16 +178,9 @@ function main_work() {
 	// for debug:
 	// return;
 
-	start_NHC();
-	start_JTWC();
-
-	// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
-	start_CWB();
-
-	// tagged with "All Rights Reserved"...
-	start_JMA();
-
-	start_PAGASA();
+	for (site in site_mapper) {
+		site_mapper[site]();
+	}
 }
 
 // ------------------------------------------------------------------
@@ -293,6 +295,7 @@ function upload_media(media_data) {
 		return;
 	}
 
+	// CeL.set_debug(9);
 	wiki.upload(media_data);
 }
 
@@ -1114,6 +1117,9 @@ function for_each_JMA_typhoon(html) {
 	// JMA 註解說明太長，加上 media_url 也無法完全顯現。
 	// + media_data.media_url
 	});
+
+	// https://commons.wikimedia.org/wiki/Commons:Deletion_requests/Files_in_Category:Typhoon_track_maps_by_JMA
+	media_data.test_only = true;
 
 	// for the English version.
 	upload_media(media_data);
