@@ -10,6 +10,8 @@
 
  // 輪流展示列表
 
+ @see https://en.wikipedia.org/wiki/Wikipedia:Good_articles/mismatches
+
  */
 
 'use strict';
@@ -276,7 +278,8 @@ function parse_each_FC_item_list_page(page_data) {
 	 */
 	var title = CeL.wiki.title_of(page_data),
 	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+	 * {String}page content, maybe undefined. 條目/頁面內容 =
+	 * CeL.wiki.revision_content(revision)
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
@@ -479,7 +482,8 @@ function parse_each_FC_date_page(page_data) {
 	 */
 	var title = CeL.wiki.title_of(page_data),
 	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+	 * {String}page content, maybe undefined. 條目/頁面內容 =
+	 * CeL.wiki.revision_content(revision)
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
@@ -576,7 +580,7 @@ function parse_each_FC_date_page(page_data) {
 	// 連標題連結都找不到的情況。
 	error_logs.push(content ? '無法解析 ' + CeL.wiki.title_link_of(title)
 	// + (FC_title ? ': ' + FC_title : '')
-	: CeL.wiki.title_link_of(title) + ' 不存在。');
+	: CeL.wiki.title_link_of(title) + ' 不存在。您可在設定頁面刪除快取來更新。');
 	if (CeL.is_debug())
 		CeL.error(title + ': ' + content);
 }
@@ -1046,7 +1050,8 @@ function check_date_page() {
 	wiki.page(date_page_title, function(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1245,7 +1250,8 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
-			 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+			 * {String}page content, maybe undefined. 條目/頁面內容 =
+			 * CeL.wiki.revision_content(revision)
 			 */
 			content = CeL.wiki.content_of(page_data);
 
@@ -1294,7 +1300,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		 */
 		var title = CeL.wiki.title_of(page_data),
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1363,10 +1370,15 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 				//
 				? '|' + representative_image.caption : '') + ']]\n');
 			}
+
+			var toString = introduction_section.toString;
 			introduction_section = introduction_section.filter(function(token) {
 				// 去掉單個換行。
 				return token && token !== '\n';
-			}).toString();
+			});
+			// using original .toString()
+			introduction_section = toString.call(introduction_section);
+
 			if (introduction_section.length < 3000) {
 				introduction_section
 				//
@@ -1380,7 +1392,8 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
 			var
 			/**
-			 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+			 * {String}page content, maybe undefined. 條目/頁面內容 =
+			 * CeL.wiki.revision_content(revision)
 			 */
 			content = CeL.wiki.content_of(page_data),
 			// 撰寫簡介
@@ -1420,7 +1433,8 @@ function check_month_list() {
 	wiki.page(page_title, function(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1510,7 +1524,8 @@ function update_portal() {
 	.edit(function(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 
@@ -1572,7 +1587,8 @@ function update_portal() {
 	function edit_portal(page_data) {
 		var
 		/**
-		 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
 		 */
 		content = CeL.wiki.content_of(page_data);
 		/** 頁面解析後的結構。 */
