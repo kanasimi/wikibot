@@ -1,9 +1,19 @@
 ﻿/*
 (cd ~/wikibot && date && hostname && nohup time node 20170515.signature_check.js use_language=zh-classical; date) >> modify_link/log &
 
-jstop cron-tools.cewbot-20170515.signature_check.zh
+jstop cron-20170515.signature_check.wikinews
+jstop cron-20170515.signature_check.zh
+jstop cron-20170515.signature_check.zh-classical
+jstop cron-20170515.signature_check.wikisource
+jstop cron-20170515.signature_check.wikiversity
+jstop cron-20170515.signature_check.moegirl
 
-/usr/bin/jstart -N cron-tools.cewbot-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/cewbot/wikibot/20170515.signature_check.js use_language=zh
+/usr/bin/jstart -N cron-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_language=zh
+/usr/bin/jstart -N cron-20170515.signature_check.zh-classical -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_language=zh-classical
+/usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikinews
+/usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikisource
+/usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikiversity
+/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js API_URL=https://zh.moegirl.org/api.php
 
 
  2017/5/15 21:30:19	初版試營運。
@@ -90,8 +100,8 @@ project_page_prefix = {
 }[project_name],
 
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
-// e.g., [[Wikipedia:頁面存廢討論/*]]
-page_whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikipedia talk:首页',
+// whitelist e.g., [[Wikipedia:頁面存廢討論/*]]
+page_allowlist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikipedia talk:首页',
 //
 'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
 //
@@ -99,15 +109,15 @@ page_whitelist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wi
 // for 萌娘百科 zh.moegirl.org
 'Talk:讨论版', 'Talk:提问求助区' ],
 
-// 黑名單直接封殺。黑名單的優先度高於白名單。
+// blacklist denylist 黑名單直接封殺。黑名單的優先度高於白名單。
 // 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這種頁面補簽名。
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
-page_blacklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
+page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
 		'Wikisource:管理员',
 		// [[Special:Diff/54719338]] 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
 		/Module_talk:.+\/testcases/ ],
 
-user_whitelist = [ '-Zest' ].map(function(title) {
+user_denylist = [ '-Zest' ].map(function(title) {
 	return CeL.wiki.normalize_title(title);
 }),
 
@@ -157,7 +167,7 @@ with_diff = {
 };
 
 if (test_mode) {
-	page_whitelist.push('Wikipedia:沙盒');
+	page_allowlist.push('Wikipedia:沙盒');
 }
 
 // CeL.set_debug(2);
@@ -194,7 +204,7 @@ function filter_row(row) {
 	// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
 
 	// 必須是白名單頁面，
-	&& (page_whitelist.includes(row.title)
+	&& (page_allowlist.includes(row.title)
 	// 或者討論頁面，
 	|| CeL.wiki.is_talk_namespace(row.ns)
 	// 或者只有維基百科的有額外的頁面、需要測試[[Wikipedia:]]。
@@ -248,7 +258,7 @@ if (test_the_page_only) {
 		// 解析頁面結構。
 		CeL.wiki.parser(page_data).parse();
 		// 模擬 wiki.listen() 這個函數的工作。
-		// @see add_listener() in CeL.application.net.wiki
+		// @see add_listener() @ CeL.application.net.wiki
 		Object.assign(page_data, {
 			user : revision.user,
 			timestamp : revision.timestamp,
@@ -344,7 +354,7 @@ function for_each_row(row) {
 		console.log(row.diff);
 	}
 
-	if (user_whitelist.includes(row.user)) {
+	if (user_denylist.includes(row.user)) {
 		return;
 	}
 
@@ -360,13 +370,13 @@ function for_each_row(row) {
 	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
 
 	// 黑名單直接封殺。黑名單的優先度高於白名單。
-	|| page_blacklist.some(function(filter) {
+	|| page_blocklist.some(function(filter) {
 		return CeL.is_RegExp(filter)
 		//
 		? filter.test(row.title) : filter === row.title;
 	})
 	// 白名單頁面可以省去其他的檢查。
-	|| !page_whitelist.includes(row.title)
+	|| !page_allowlist.includes(row.title)
 	//
 	&& row.title.startsWith('Wikipedia:')
 	// e.g., [[Wikipedia:机器人/申请/...]]
@@ -407,7 +417,7 @@ function for_each_row(row) {
 
 	// 比較頁面修訂差異。
 	// row.parsed, row.diff.to 的每一元素都是完整的 token；並且兩者的 index 相對應。
-	// @see add_listener() in CeL.application.net.wiki
+	// @see add_listener() @ CeL.application.net.wiki
 	// row.diff.to[index] === row.parsed[index].toString();
 	// TODO: 正常情況下 token 都是完整的；但是也要應對一些編輯錯誤或者故意編輯錯誤。
 	var to = row.diff.to, to_length = to.length, all_lines = [],
