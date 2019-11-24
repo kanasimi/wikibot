@@ -1437,39 +1437,50 @@ function check_mutiplte_vote(section, latest_vote) {
 }
 
 function cross_out_vote(section, latest_vote, cross_out_token) {
-	if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
+	if (!latest_vote || cross_out_token
 	//
-	|| latest_vote.vote_type === VOTE_OPPOSE)) {
-		if (false) {
-			CeL.info(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
-					+ section.section_title[0])
-					+ ': Cross out '
-					+ (latest_vote.vote_type === VOTE_SUPPORT ? 'support'
-							: latest_vote.vote_type === VOTE_OPPOSE ? 'oppose'
-									: latest_vote.vote_type)
-					+ ' vote: '
-					+ latest_vote);
-			console.log(latest_vote);
-		}
-		if (latest_vote.vote_type === VOTE_SUPPORT) {
-			CeL.debug('support: from ' + section.vote_list.support.length, 2,
-					'cross_out_vote');
-			// assert: the last one of {Array} is `latest_vote`
-			section.vote_list.support.pop();
-		} else if (latest_vote.vote_type === VOTE_OPPOSE) {
-			CeL.debug('oppose: from ' + section.vote_list.oppose.length, 2,
-					'cross_out_vote');
-			// console.log(section.vote_list.oppose);
-			// assert: the last one of {Array} is `latest_vote`
-			section.vote_list.oppose.pop();
-			CeL.debug('oppose: → ' + section.vote_list.oppose.length, 2,
-					'cross_out_vote');
-		}
-
-		latest_vote.vote_type = INVALID_VOTE;
-		latest_vote.invalid_reason = '被劃票:' + cross_out_token.name;
-		section.vote_list.invalid.push(latest_vote);
+	&& latest_vote.vote_type !== VOTE_SUPPORT
+	//
+	&& latest_vote.vote_type !== VOTE_OPPOSE) {
+		// 已處理過？ e.g. {{h}}<s>{{noFA}}</s>{{f}}
+		return;
 	}
+
+	CeL.info(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+			+ section.section_title[0])
+			+ ': Cross out '
+			+ (latest_vote.vote_type === VOTE_SUPPORT ? 'support'
+					: latest_vote.vote_type === VOTE_OPPOSE ? 'oppose'
+							: cross_out_token ? '' : 'rule-outed')
+			+ ' vote: '
+			+ latest_vote);
+	// console.log(latest_vote);
+
+	if (!cross_out_token) {
+		// 使用刪除線「<s>...</s>」劃掉。單純劃掉本選票。
+	} else {
+		var vote_type = latest_vote.vote_type === VOTE_SUPPORT ? 'support'
+		//
+		: latest_vote.vote_type === VOTE_OPPOSE ? 'oppose' : null;
+
+		if (vote_type && section.vote_list[vote_type].length > 0) {
+			CeL.debug(vote_type + ': from '
+					+ section.vote_list[vote_type].length, 2, 'cross_out_vote');
+			// console.log(section.vote_list[vote_type]);
+			// assert: the last one of {Array} is `latest_vote`
+			if (latest_vote === section.vote_list[vote_type][section.vote_list[vote_type].length - 1])
+				section.vote_list[vote_type].pop();
+			CeL.debug(vote_type + ': → ' + section.vote_list[vote_type].length,
+					2, 'cross_out_vote');
+		} else {
+			CeL.warn('cross_out_vote: Can not dealc with ' + token);
+		}
+	}
+
+	latest_vote.vote_type = INVALID_VOTE;
+	latest_vote.invalid_reason = '被劃票'
+			+ (cross_out_token ? ':' + cross_out_token.name : '');
+	section.vote_list.invalid.push(latest_vote);
 }
 
 function FC_section_filter(section) {
@@ -1550,12 +1561,21 @@ function FC_section_filter(section) {
 			return result_to_exit;
 		}
 
-		// TODO: 使用刪除線「<s>...</s>」劃掉。
-		// TODO: 現在必須在同一行簽名以便機器人識別。
-
 		// CeL.log(section.section_title.title + ': ' + token);
 		// CeL.log('oppose: ' + section.vote_list.oppose.length);
-		if (token.name in page_configuration.support_templates) {
+
+		if (parent.type === 'tag_inner' && parent.parent.type === 'tag'
+		// 使用刪除線「<s>...</s>」劃掉。
+		&& parent.parent.tag === 's'
+		//
+		&& ((token.name in page_configuration.support_templates)
+		//
+		|| (token.name in page_configuration.oppose_templates))) {
+			// console.log(token);
+			cross_out_vote(section, token);
+			// 還是得設定 user, date。
+			latest_vote = token;
+		} else if (token.name in page_configuration.support_templates) {
 			token.vote_type = VOTE_SUPPORT;
 			section.vote_list.support.push(token);
 			latest_vote = token;
@@ -1583,11 +1603,14 @@ function FC_section_filter(section) {
 		page_configuration.cross_out_templates_footer) {
 			// assert: {String}latest_vote.vote_user !== ''
 			if (cross_out_vote_list) {
-				CeL.info(CeL.wiki.title_link_of(section.section_title.link[0]
-						+ '#' + section.section_title[0])
-						+ ': Cross out '
-						+ cross_out_vote_list.length
-						+ ' vote(s)');
+				if (false) {
+					CeL.info(CeL.wiki
+							.title_link_of(section.section_title.link[0] + '#'
+									+ section.section_title[0])
+							+ ': Cross out '
+							+ cross_out_vote_list.length
+							+ ' vote(s)');
+				}
 				cross_out_vote_list.forEach(function(vote) {
 					cross_out_vote(section, vote, token);
 				});
