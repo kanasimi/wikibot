@@ -1326,13 +1326,19 @@ function set_FC_vote_closed(section) {
 // (@ function FC_section_filter(section))
 function get_FC_votes_on_date(section, date, support_only) {
 	function filter_via_date(previous, vote_template) {
-		return previous + (date - vote_template.vote_date >= 0 ? 1 : 0);
+		if (date - vote_template.vote_date >= 0) {
+			return previous + 1;
+		}
+		// CeL.info('逾期選票:');
+		// console.log(vote_template);
+		return previous;
 	}
 
 	if (!date)
 		date = section.vote_time_limit;
 
 	var support, oppose;
+	// 設定要獲取票數的投票種類。
 	if (typeof support_only === 'boolean') {
 		support = support_only;
 		oppose = !support_only;
@@ -1345,6 +1351,8 @@ function get_FC_votes_on_date(section, date, support_only) {
 				.reduce(filter_via_date, 0) : 0;
 		oppose = oppose ? section.vote_list.oppose.reduce(filter_via_date, 0)
 				: 0;
+		// console.log(section.vote_list.oppose);
+		// CeL.info(section.section_title.title + ': oppose: ' + oppose);
 	} else {
 		support = support ? section.vote_list.support.length : 0;
 		oppose = oppose ? section.vote_list.oppose.length : 0;
@@ -1432,10 +1440,31 @@ function cross_out_vote(section, latest_vote, cross_out_token) {
 	if (latest_vote && (latest_vote.vote_type === VOTE_SUPPORT
 	//
 	|| latest_vote.vote_type === VOTE_OPPOSE)) {
-		if (latest_vote.vote_type === VOTE_SUPPORT)
+		if (false) {
+			CeL.info(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
+					+ section.section_title[0])
+					+ ': Cross out '
+					+ (latest_vote.vote_type === VOTE_SUPPORT ? 'support'
+							: latest_vote.vote_type === VOTE_OPPOSE ? 'oppose'
+									: latest_vote.vote_type)
+					+ ' vote: '
+					+ latest_vote);
+			console.log(latest_vote);
+		}
+		if (latest_vote.vote_type === VOTE_SUPPORT) {
+			CeL.debug('support: from ' + section.vote_list.support.length, 2,
+					'cross_out_vote');
+			// assert: the last one of {Array} is `latest_vote`
 			section.vote_list.support.pop();
-		else if (latest_vote.vote_type === VOTE_OPPOSE)
+		} else if (latest_vote.vote_type === VOTE_OPPOSE) {
+			CeL.debug('oppose: from ' + section.vote_list.oppose.length, 2,
+					'cross_out_vote');
+			// console.log(section.vote_list.oppose);
+			// assert: the last one of {Array} is `latest_vote`
 			section.vote_list.oppose.pop();
+			CeL.debug('oppose: → ' + section.vote_list.oppose.length, 2,
+					'cross_out_vote');
+		}
 
 		latest_vote.vote_type = INVALID_VOTE;
 		latest_vote.invalid_reason = '被劃票:' + cross_out_token.name;
@@ -1468,6 +1497,9 @@ function FC_section_filter(section) {
 		if ((typeof token === 'string' || token.type === 'plain'
 		//
 		|| token.type === 'link') && latest_vote) {
+			if (typeof token === 'string' && token.includes('\n'))
+				latest_vote.passed_new_line = true;
+
 			// parsing user 取得每一票的投票人/選舉人/voter與投票時間點。
 			/* let */var user, date, need_check = !latest_vote.vote_user
 					|| !latest_vote.vote_date;
@@ -1478,13 +1510,17 @@ function FC_section_filter(section) {
 			) {
 				// console.log('check date: ' + token);
 				user = CeL.wiki.parse.user(token.toString());
-				if (user) {
+				if (user && (!latest_vote.vote_user
+				// 只要還沒換行，就以最後面的為主。
+				|| !latest_vote.passed_new_line)) {
+					// CeL.info('Set user: ' + user);
 					latest_vote.vote_user = user;
 					// assert: {Date}latest_vote.vote_date
 					// console.log(latest_vote);
 				}
 			} else if ((typeof token === 'string' || token.type === 'plain')
-					&& !latest_vote.vote_date) {
+			// 只要還沒換行，就以最後面的為主。
+			&& (!latest_vote.vote_date || !latest_vote.passed_new_line)) {
 				// console.log('check date: ' + token);
 				date = CeL.wiki.parse.date(token.toString());
 				if (date) {
@@ -1515,7 +1551,10 @@ function FC_section_filter(section) {
 		}
 
 		// TODO: 使用刪除線「<s>...</s>」劃掉。
+		// TODO: 現在必須在同一行簽名以便機器人識別。
 
+		// CeL.log(section.section_title.title + ': ' + token);
+		// CeL.log('oppose: ' + section.vote_list.oppose.length);
 		if (token.name in page_configuration.support_templates) {
 			token.vote_type = VOTE_SUPPORT;
 			section.vote_list.support.push(token);
@@ -1524,6 +1563,8 @@ function FC_section_filter(section) {
 
 		} else if (token.name in page_configuration.oppose_templates) {
 			// console.log(token);
+			// console.log(section.vote_list.oppose.length);
+			// console.log(cross_out_vote_list);
 			token.vote_type = VOTE_OPPOSE;
 			section.vote_list.oppose.push(token);
 			latest_vote = token;
@@ -1534,6 +1575,8 @@ function FC_section_filter(section) {
 		page_configuration.cross_out_templates_header) {
 			// 還未獲得投票模板的投票人及日期資訊，因此在這邊先不做劃票動作。
 			cross_out_vote_list = [];
+			// reset latest vote
+			latest_vote = null;
 
 		} else if (token.name in
 		//
@@ -1550,9 +1593,14 @@ function FC_section_filter(section) {
 				});
 			}
 			cross_out_vote_list = null;
+			// reset latest vote
+			latest_vote = null;
 		}
 
 	});
+
+	// console.log(section.section_title.title + ': oppose:');
+	// console.log(section.vote_list.oppose);
 
 	// --------------------------------------
 

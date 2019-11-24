@@ -1,6 +1,6 @@
 ﻿/*
 
-Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。見やすい議題一覧の作成。
+Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。トピックリスト 見やすい議題一覧の作成。
 
 jstop cron-20170915.topic_list.zh;
 jstop cron-20170915.topic_list.zh-classical;
@@ -470,7 +470,7 @@ function start_main_work(page_data) {
 			adapt_configuration : adapt_configuration,
 			// language : use_language,
 			// options.use_SQL: Try to use SQL. Use SQL as possibile.
-			// use_SQL : true,
+			use_SQL : true,
 			parameters : {
 				// 跳過機器人所做的編輯。
 				// You need the "patrol" or "patrolmarks" right to request the
