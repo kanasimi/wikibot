@@ -18,6 +18,7 @@ use_language = 'zh';
 
 const notification_template = 'Template:Old vfd multi';
 const start_date = '2008-08-12';
+const end_date = '2010/11/20'.to_Date() && Date.now();
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
@@ -58,23 +59,23 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
+	const normalized_page_title = page_data.title;
+
 	// CeL.info(CeL.wiki.title_link_of(page_data));
 	if (false) {
 		// NG: Check the talk page
-		const page_title = page_data.title.replace(/:/, ' talk:');
+		const page_title = normalized_page_title.replace(/:/, ' talk:');
 		page_data = await wiki.page(page_title);
 		CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, function (item) {
 			;
 		});
 	}
 
-	const page_title = page_data.original_title || page_data.title;
+	const page_title = page_data.original_title || normalized_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
+	//console.log(flags_of_page);
 	let flags = flags_of_page[page_title], target;
-	if (page_title.includes('[[Portal:中國大陸新聞動態')) {
-		console.log(flags_of_page);
-	}
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
 		flags = flags_of_page[flags];
 	}
@@ -89,7 +90,11 @@ async function check_deletion_page(JDN, page_data) {
 
 	const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result, true);
 
-	const discussions = deletion_flags_of_page[page_data.title] || pages_to_modify[page_data.title] || (deletion_flags_of_page[page_data.title] = []);
+	const discussions = deletion_flags_of_page[normalized_page_title]
+		|| pages_to_modify[normalized_page_title]
+		// 直接列入要改變的。
+		|| (pages_to_modify[normalized_page_title] = []);
+	//console.log(discussions);
 	let bingo, need_modify;
 	discussions.forEach(function (discussion) {
 		if (discussion.JDN !== JDN)
@@ -131,11 +136,12 @@ async function check_deletion_page(JDN, page_data) {
 			// bot_checked : FLAG_CHECKED,
 			JDN
 		});
+		//console.log(discussions);
 	}
 
-	if (need_modify && deletion_flags_of_page[page_data.title]) {
-		delete deletion_flags_of_page[page_data.title];
-		pages_to_modify[page_data.title] = discussions;
+	if (need_modify && deletion_flags_of_page[normalized_page_title]) {
+		delete deletion_flags_of_page[normalized_page_title];
+		pages_to_modify[normalized_page_title] = discussions;
 	}
 }
 
@@ -183,11 +189,13 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
+		flags.result = flags.result.toString();
+
 		let title;
 		section.section_title.some((token) => {
 			if (typeof token === 'string') {
 				// 這會順便忽略 "-->", "->"
-				return /[^,;.'"\s→、\/\->「」『』…]/.test(token);
+				return /[^,;:.'"\s→、\[\]\/\->「」『』…]/.test(token);
 			}
 			if (token.tag === 's' || token.tag === 'del') {
 				return false;
@@ -257,8 +265,8 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		CeL.error('check_deletion_discussion_page: 無法解析出欲刪除之頁面標題: ' + section.section_title);
-		console.log({ title, flags });
-		console.log(section.section_title);
+		//console.log({ title, flags });
+		//console.log(section.section_title);
 	}
 	parsed.each_section(for_each_section, {
 		// Wikipedia:頁面存廢討論/記錄/2008/10/11
@@ -283,6 +291,7 @@ async function check_deletion_discussion_page(page_data) {
 			prop: ''
 		}
 	});
+	//console.log(pages_to_modify);
 }
 
 // ----------------------------------------------------------------------------
@@ -300,8 +309,8 @@ async function main_process() {
 
 	process.title = 'Get all archived deletion discussions...';
 	const vfd_page_list = [];
-	const date_end = Date.now();
-	for (let date = new Date(start_date); date - date_end < 0; date.setDate(date.getDate() + 1)) {
+	//if (typeof end_date === 'string') end_date = end_date.to_Date();
+	for (let date = new Date(start_date); date - end_date < 0; date.setDate(date.getDate() + 1)) {
 		// await check_deletion_page_of_date(JDN);
 		vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'));
 	}
@@ -312,7 +321,7 @@ async function main_process() {
 	// ----------------------------------------------------
 
 	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
-	console.log(pages_to_modify);
+	//console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
 
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
