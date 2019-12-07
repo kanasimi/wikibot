@@ -155,18 +155,25 @@ async function check_deletion_discussion_page(page_data) {
 	let page_list = [];
 	const flags_of_page = Object.create(null);
 	flags_of_page[KEY_title] = page_data.title;
-	function add_page(title, flags) {
-		title = title && title.toString();
-		var page = CeL.wiki.normalize_title(title);
-		if (!page)
-			return;
-		// using `flags.page` as anchor
-		flags.page = title;
-		flags_of_page[page] = flags;
-		page_list.push(page);
-	}
 
 	function for_each_section(section, index) {
+
+		function add_page(title, flags) {
+			title = title && title.toString();
+			var page = CeL.wiki.normalize_title(title);
+			if (!page)
+				return;
+			if (CeL.is_digits(title)) {
+				//debug
+				CeL.warn('add_page: Add numerals: ' + title);
+				console.log(section.section_title.link);
+			}
+			// using `flags.page` as anchor
+			flags.page = title;
+			flags_of_page[page] = flags;
+			page_list.push(page);
+		}
+
 		if (index === 0) {
 			// Skip the first section
 			return;
@@ -237,15 +244,19 @@ async function check_deletion_discussion_page(page_data) {
 			}
 		}
 
+		const section_title_text = section.section_title.toString().trim();
 		// 30天仍排上 {{fame}} 或 {{importance}} 模板的條目
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍掛上 {{tl|Substub}}、{{tl|小小作品}} 或 {{tl|小小條目}} 模板的[[WP:NOTE|條目]]
 		// 30天后仍掛有{{tl|notability}}模板的條目 30天后仍掛有{{tl|notability}}模板的條目
 		// 過期小小作品 到期篩選的小小作品 台灣學校相關模板 一堆模板-5 又一堆模板 再一堆模板 废弃的化学信息框相关模板 一些年代条目
-		// 關注度提刪 關注度到期
-		// TODO: 繁简重定向 一些外語重定向 绘文字重定向
+		// 關注度提刪 關注度到期 批量模板提刪 批量提刪
 		if (// section.section_title.level <= 4 &&
-			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個).*(?:模板|頁面|條目|条目|列表)/.test(section.section_title)) {
+			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個|批量).*(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)/.test(section_title_text)
+			// 模板重定向 繁简重定向 一些外語重定向 绘文字重定向
+			|| /重定向$/.test(section_title_text)
+			|| /^(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)$/.test(section_title_text)
+		) {
 			return;
 		}
 
@@ -264,7 +275,7 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
-		CeL.error('check_deletion_discussion_page: 無法解析出欲刪除之頁面標題: ' + section.section_title);
+		CeL.error('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' 無法解析出欲刪除之頁面標題: ' + section_title_text);
 		//console.log({ title, flags });
 		//console.log(section.section_title);
 	}
@@ -286,6 +297,8 @@ async function check_deletion_discussion_page(page_data) {
 	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
 	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3]);
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
+		// no "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
+		no_warning: true,
 		page_options: {
 			redirects: true,
 			prop: ''
