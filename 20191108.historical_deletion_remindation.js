@@ -163,10 +163,13 @@ async function check_deletion_discussion_page(page_data) {
 			var page = CeL.wiki.normalize_title(title);
 			if (!page)
 				return;
-			if (CeL.is_digits(title)) {
+			if (CeL.is_digits(title)
+				&& section.section_title.link.title !== '[[' + title + ']]'
+				&& !/{{al(\|\d+)+}}/i.test(section.section_title.link.title)) {
 				//debug
 				CeL.warn('add_page: Add numerals: ' + title);
 				console.log(section.section_title.link);
+				console.log(flags);
 			}
 			// using `flags.page` as anchor
 			flags.page = title;
@@ -196,55 +199,8 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
-		flags.result = flags.result.toString();
-
-		let title;
-		section.section_title.some((token) => {
-			if (typeof token === 'string') {
-				// 這會順便忽略 "-->", "->"
-				return /[^,;:.'"\s→、\[\]\/\->「」『』…]/.test(token);
-			}
-			if (token.tag === 's' || token.tag === 'del') {
-				return false;
-			}
-			return title = token;
-		});
-
-		if (!title && section.section_title.length === 1) {
-			//e.g., ==<s>[[:AngelTalk]]</s>==
-			title = section.section_title[0];
-		}
-
-		if (title && title.is_link) {
-			// e.g., [[Wikipedia:頁面存廢討論/記錄/2008/08/12]]
-			if (!title[0].toString().startsWith('Wikipedia:頁面存廢討論/'))
-				add_page(title[0], flags);
-			return;
-		}
-		function for_Al(title_token) {
-			if (title_token && title_token.type === 'transclusion' && title_token.name === 'Al') {
-				title_token.forEach((_title, index) => {
-					if (index > 0) add_page(_title, flags);
-				});
-				return true;
-			}
-		}
-		if (for_Al(title)) return;
-
-		if (title && title.converted) {
-			if (title.converted.is_link) {
-				// "====-{[[迪奥尼日·波尼亚托夫斯基]]}-===="
-				add_page(title.converted[0], flags);
-				return;
-			}
-			if (Array.isArray(title.converted)
-				// == -{ {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}} }- ==
-				&& title.converted.some(for_Al)) {
-				return;
-			}
-		}
-
 		const section_title_text = section.section_title.toString().trim();
+		// [[31]]天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍排上 {{fame}} 或 {{importance}} 模板的條目
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍掛上 {{tl|Substub}}、{{tl|小小作品}} 或 {{tl|小小條目}} 模板的[[WP:NOTE|條目]]
@@ -258,6 +214,56 @@ async function check_deletion_discussion_page(page_data) {
 			|| /^(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)$/.test(section_title_text)
 		) {
 			return;
+		}
+
+		// ----------------------------------------------------------
+
+		flags.result = flags.result.toString();
+
+		let title_to_delete;
+		section.section_title.some((token) => {
+			if (typeof token === 'string') {
+				// 這會順便忽略 "-->", "->"
+				return /[^,;:.'"\s→、\[\]\/\->「」『』…]/.test(token);
+			}
+			if (token.tag === 's' || token.tag === 'del') {
+				return false;
+			}
+			return title_to_delete = token;
+		});
+
+		if (!title_to_delete && section.section_title.length === 1) {
+			//e.g., ==<s>[[:AngelTalk]]</s>==
+			title_to_delete = section.section_title[0];
+		}
+
+		if (title_to_delete && title_to_delete.is_link) {
+			// e.g., [[Wikipedia:頁面存廢討論/記錄/2008/08/12]]
+			if (!title_to_delete[0].toString().startsWith('Wikipedia:頁面存廢討論/'))
+				add_page(title_to_delete[0], flags);
+			return;
+		}
+		function for_Al(title_token) {
+			if (title_token && title_token.type === 'transclusion' && title_token.name === 'Al') {
+				title_token.forEach((_title, index) => {
+					if (index > 0) add_page(_title, flags);
+				});
+				return true;
+			}
+		}
+		if (for_Al(title_to_delete)) return;
+
+		if (title_to_delete && title_to_delete.converted) {
+			if (title_to_delete.converted.is_link) {
+				// "====-{[[迪奥尼日·波尼亚托夫斯基]]}-===="
+				add_page(title_to_delete.converted[0], flags);
+				return;
+			}
+			if (Array.isArray(title_to_delete.converted)
+				// == -{ {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}} }- ==
+				&& title_to_delete.converted.some(for_Al)) {
+				return;
+			}
 		}
 
 		// 去掉無效請求，或最終保留的：無傷大雅。
@@ -297,7 +303,7 @@ async function check_deletion_discussion_page(page_data) {
 	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
 	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3]);
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
-		// no "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
+		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
 		page_options: {
 			redirects: true,
@@ -348,9 +354,13 @@ async function main_process() {
 			page_title = 'Talk:' + page_title;
 		}
 		discussions.forEach((discussion) => { delete discussion.JDN; });
+
 		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
 		console.log(discussions);
+		const page_data = await wiki.page(page_title);
+		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
 		return;
+
 		await wiki.edit_page(page_title, (page_data) =>
 			CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions)
 		);
