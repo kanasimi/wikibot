@@ -20,9 +20,9 @@ const notification_template = 'Template:Old vfd multi';
 const start_date = '2008-08-12';
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
-// deletion_of_date[page_title]
+// deletion_flags_of_page[page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
-const deletion_of_date = Object.create(null);
+const deletion_flags_of_page = Object.create(null);
 // pages_to_modify[page_title] = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
 
@@ -37,8 +37,8 @@ function for_each_vfd_template(item, page_data) {
 
 	const page_title = item.page_title;
 	// delete item.page_title;
-	if (!deletion_of_date[page_title])
-		deletion_of_date[page_title] = [];
+	if (!deletion_flags_of_page[page_title])
+		deletion_flags_of_page[page_title] = [];
 
 	if (!Array.isArray(item)) {
 		item = [item];
@@ -49,7 +49,7 @@ function for_each_vfd_template(item, page_data) {
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
 	});
 
-	deletion_of_date[page_title].append(item);
+	deletion_flags_of_page[page_title].append(item);
 }
 
 async function check_deletion_page(JDN, page_data) {
@@ -72,6 +72,9 @@ async function check_deletion_page(JDN, page_data) {
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
 	let flags = flags_of_page[page_title], target;
+	if (page_title.includes('[[Portal:中國大陸新聞動態')) {
+		console.log(flags_of_page);
+	}
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
 		flags = flags_of_page[flags];
 	}
@@ -86,7 +89,7 @@ async function check_deletion_page(JDN, page_data) {
 
 	const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result, true);
 
-	const discussions = deletion_of_date[page_data.title] || pages_to_modify[page_data.title] || (deletion_of_date[page_data.title] = []);
+	const discussions = deletion_flags_of_page[page_data.title] || pages_to_modify[page_data.title] || (deletion_flags_of_page[page_data.title] = []);
 	let bingo, need_modify;
 	discussions.forEach(function (discussion) {
 		if (discussion.JDN !== JDN)
@@ -130,8 +133,8 @@ async function check_deletion_page(JDN, page_data) {
 		});
 	}
 
-	if (need_modify && deletion_of_date[page_data.title]) {
-		delete deletion_of_date[page_data.title];
+	if (need_modify && deletion_flags_of_page[page_data.title]) {
+		delete deletion_flags_of_page[page_data.title];
 		pages_to_modify[page_data.title] = discussions;
 	}
 }
@@ -168,7 +171,7 @@ async function check_deletion_discussion_page(page_data) {
 			// {{Talkendh|處理結果}}
 			if (token.name in Hat_names) {
 				flags.result = token.parameters[1];
-				if (flags.result) {
+				if (flags.result && token.parameters[2]) {
 					flags.target = token.parameters[2];
 				}
 				return parsed.exit;
@@ -181,15 +184,23 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		let title;
-		if (section.section_title.some((token) => {
+		section.section_title.some((token) => {
 			if (typeof token === 'string') {
 				// 這會順便忽略 "-->", "->"
 				return /[^,;.'"\s→、\/\->「」『』…]/.test(token);
 			}
-			if (token.tag === 's' || token.tag === 'del')
+			if (token.tag === 's' || token.tag === 'del') {
 				return false;
+			}
 			return title = token;
-		}) && title && title.is_link) {
+		});
+
+		if (!title && section.section_title.length === 1) {
+			//e.g., ==<s>[[:AngelTalk]]</s>==
+			title = section.section_title[0];
+		}
+
+		if (title && title.is_link) {
 			// e.g., [[Wikipedia:頁面存廢討論/記錄/2008/08/12]]
 			if (!title[0].toString().startsWith('Wikipedia:頁面存廢討論/'))
 				add_page(title[0], flags);
@@ -223,16 +234,18 @@ async function check_deletion_discussion_page(page_data) {
 		// 30天仍掛上 {{tl|Substub}}、{{tl|小小作品}} 或 {{tl|小小條目}} 模板的[[WP:NOTE|條目]]
 		// 30天后仍掛有{{tl|notability}}模板的條目 30天后仍掛有{{tl|notability}}模板的條目
 		// 過期小小作品 到期篩選的小小作品 台灣學校相關模板 一堆模板-5 又一堆模板 再一堆模板 废弃的化学信息框相关模板 一些年代条目
+		// 關注度提刪 關注度到期
+		// TODO: 繁简重定向 一些外語重定向 绘文字重定向
 		if (// section.section_title.level <= 4 &&
-			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相[關关]模板|(?:一[堆些]|[幾\d]個).*(?:模板|頁面|條目|条目)/.test(section.section_title)) {
+			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個).*(?:模板|頁面|條目|条目|列表)/.test(section.section_title)) {
 			return;
 		}
 
 		// 去掉無效請求，或最終保留的：無傷大雅。
 		if ((flags.result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
 			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效
-			// 提案者重复提出，请求失效。见下。
-			|| /[撤收]回|[無无失]效|未到期/.test(flags.result)) {
+			// 提案者重复提出，请求失效。见下。 改掛關注度模板，三十天後再議
+			|| /[撤收]回|[無无失]效|未到期|天後再議/.test(flags.result)) {
 			return;
 		}
 
@@ -281,7 +294,7 @@ async function main_process() {
 	process.title = 'Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...';
 	let page_list = await wiki.embeddedin(notification_template);
 	await page_list.each((page_data) => CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, for_each_vfd_template));
-	// console.log(deletion_of_date);
+	// console.log(deletion_flags_of_page);
 
 	// ----------------------------------------------------
 
@@ -298,7 +311,9 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	process.title = 'Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...';
+	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
+	console.log(pages_to_modify);
+	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
 
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		// TODO: check if the main page does not exist.
