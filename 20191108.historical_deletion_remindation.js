@@ -54,7 +54,7 @@ function for_each_vfd_template(item, page_data) {
 
 async function check_deletion_page(JDN, page_data) {
 	if ('missing' in page_data) {
-		// The page is not exist now.
+		// The page is not exist now. No-need to add `notification_template`.
 		return;
 	}
 
@@ -70,27 +70,21 @@ async function check_deletion_page(JDN, page_data) {
 
 	const page_title = page_data.original_title || page_data.title;
 	// assert: 同頁面在同一天內僅存在單一討論。
-	const result_of_page = this;
-	let result = result_of_page[page_title], target;
-	if (page_title === '學士後')
-		console.log(result_of_page);
-	if (!result && (result = result_of_page[KEY_page_list].convert_from[page_title])) {
-		result = result_of_page[result];
+	const flags_of_page = this;
+	let flags = flags_of_page[page_title], target;
+	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
+		flags = flags_of_page[flags];
 	}
-	if (!result) {
-		CeL.error('check_deletion_page: Failed to get result_of_page: ' + JSON.stringify(page_title));
-		console.log(result_of_page);
+	if (!flags) {
+		CeL.error('check_deletion_page: Failed to get flags_of_page: ' + JSON.stringify(page_title));
+		console.log(flags_of_page);
 	}
-	if (result.result) {
-		target = result.target;
-		result = result.result;
-	}
-	if (result === 'r' && page_data.redirect_from === page_title) {
+	if (flags.result === 'r' && page_data.redirect_from === page_title) {
 		// 不處理重定向來源已經過重定向的情況。
 		// return;
 	}
 
-	const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(result, true);
+	const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result, true);
 
 	const discussions = deletion_of_date[page_data.title] || pages_to_modify[page_data.title] || (deletion_of_date[page_data.title] = []);
 	let bingo, need_modify;
@@ -104,20 +98,21 @@ async function check_deletion_page(JDN, page_data) {
 		}
 
 		bingo = true;
-		if (discussion.page !== page_title) {
-			discussion.page = page_title;
+		if (discussion.page !== (flags.page || page_title)) {
+			// using `flags.page` as anchor
+			discussion.page = flags.page || page_title;
 			need_modify = true;
 		}
 
-		if (discussion.hat_result !== result) {
-			discussion.hat_result = result;
-			if (discussion.result !== result && discussion.result !== text_of_result) {
+		if (discussion.hat_result !== flags.result) {
+			discussion.hat_result = flags.result;
+			if (discussion.result !== flags.result && discussion.result !== text_of_result) {
 				discussion.result = text_of_result;
 				need_modify = true;
 			}
 		}
-		if (discussion.target !== target) {
-			discussion.target = target;
+		if (discussion.target !== flags.target) {
+			discussion.target = flags.target;
 			need_modify = true;
 		}
 		// discussion.bot_checked = FLAG_CHECKED;
@@ -129,9 +124,9 @@ async function check_deletion_page(JDN, page_data) {
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%m/%d'),
 			page: page_title,
 			result: text_of_result,
-			hat_result: result,
+			hat_result: flags.result,
 			// bot_checked : FLAG_CHECKED,
-			JDN: JDN
+			JDN
 		});
 	}
 
@@ -149,14 +144,17 @@ async function check_deletion_discussion_page(page_data) {
 	// console.log(page_data.wikitext);
 	const parsed = page_data.parse();
 	let page_list = [];
-	const result_of_page = Object.create(null);
-	result_of_page[KEY_title] = page_data.title;
+	const flags_of_page = Object.create(null);
+	flags_of_page[KEY_title] = page_data.title;
 	function add_page(title, flags) {
-		if (!title)
+		title = title && title.toString();
+		var page = CeL.wiki.normalize_title(title);
+		if (!page)
 			return;
-		title = title.toString().replace(/^:+/, '').trim();
-		result_of_page[title] = flags;
-		page_list.push(title);
+		// using `flags.page` as anchor
+		flags.page = title;
+		flags_of_page[page] = flags;
+		page_list.push(page);
 	}
 
 	function for_each_section(section, index) {
@@ -165,24 +163,22 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
-		let result, target;
+		const flags = Object.create(null);
 		section.each('template', function (token) {
 			// {{Talkendh|處理結果}}
 			if (token.name in Hat_names) {
-				result = token.parameters[1];
-				if (result) {
-					target = token.parameters[2];
+				flags.result = token.parameters[1];
+				if (flags.result) {
+					flags.target = token.parameters[2];
 				}
 				return parsed.exit;
 			}
 		});
 
-		if (!result) {
+		if (!flags.result) {
 			// Skip non-discussions
 			return;
 		}
-
-		const flags = target ? { result, target } : result;
 
 		let title;
 		if (section.section_title.some((token) => {
@@ -216,7 +212,7 @@ async function check_deletion_discussion_page(page_data) {
 				return;
 			}
 			if (Array.isArray(title.converted)
-				//== -{ {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}} }- ==
+				// == -{ {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}} }- ==
 				&& title.converted.some(for_Al)) {
 				return;
 			}
@@ -226,23 +222,21 @@ async function check_deletion_discussion_page(page_data) {
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍掛上 {{tl|Substub}}、{{tl|小小作品}} 或 {{tl|小小條目}} 模板的[[WP:NOTE|條目]]
 		// 30天后仍掛有{{tl|notability}}模板的條目 30天后仍掛有{{tl|notability}}模板的條目
-		// 過期小小作品 到期篩選的小小作品 台灣學校相關模板 一堆模板-5 又一堆模板 再一堆模板
-		if (//section.section_title.level <= 4 &&
-			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相關模板|一堆模板/.test(section.section_title)) {
+		// 過期小小作品 到期篩選的小小作品 台灣學校相關模板 一堆模板-5 又一堆模板 再一堆模板 废弃的化学信息框相关模板 一些年代条目
+		if (// section.section_title.level <= 4 &&
+			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相[關关]模板|(?:一[堆些]|[幾\d]個).*(?:模板|頁面|條目|条目)/.test(section.section_title)) {
 			return;
 		}
 
 		// 去掉無效請求，或最終保留的：無傷大雅。
-		if ((result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
-			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效 提案者重复提出，请求失效。见下。
-			|| /[撤收]回|[無无失]效|未到期/.test(result)) {
+		if ((flags.result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
+			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效
+			// 提案者重复提出，请求失效。见下。
+			|| /[撤收]回|[無无失]效|未到期/.test(flags.result)) {
 			return;
 		}
 
-		const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(result);
-		if (text_of_result.includes('')) {
-			;
-		}
+		const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result);
 
 		if (section.section_title.length === 1 && typeof section.section_title[0] === 'string') {
 			CeL.log('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' ' + section.section_title[0] + ': ' + text_of_result);
@@ -258,25 +252,24 @@ async function check_deletion_discussion_page(page_data) {
 		// Wikipedia:頁面存廢討論/記錄/2018/06/26
 		level_filter: [2, 3, 4]
 	});
+	page_list = page_list.unique();
 	if (false) {
 		CeL.info(CeL.wiki.title_link_of(page_data) + ': ' + page_list.length + ' discussions.');
 		console.log(page_list);
 	}
 
-	page_list = await wiki.page(page_list, {
-		redirects: true,
-		multi: true,
-		no_warn: true,
-		prop: ''
-	});
-	result_of_page[KEY_page_list] = page_list;
+	flags_of_page[KEY_page_list] = page_list;
 	// console.log(page_list);
 
 	// console.log(page_data.title);
 	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
 	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3]);
-	await Promise.all(
-		page_list.map(check_deletion_page.bind(result_of_page, JDN)));
+	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
+		page_options: {
+			redirects: true,
+			prop: ''
+		}
+	});
 }
 
 // ----------------------------------------------------------------------------
@@ -285,12 +278,14 @@ async function main_process() {
 	// const page_data = await wiki.page(notification_template);
 	// console.log(page_data.wikitext);
 
-	const page_list = await wiki.embeddedin(notification_template);
+	process.title = 'Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...';
+	let page_list = await wiki.embeddedin(notification_template);
 	await page_list.each((page_data) => CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, for_each_vfd_template));
 	// console.log(deletion_of_date);
 
 	// ----------------------------------------------------
 
+	process.title = 'Get all archived deletion discussions...';
 	const vfd_page_list = [];
 	const date_end = Date.now();
 	for (let date = new Date(start_date); date - date_end < 0; date.setDate(date.getDate() + 1)) {
@@ -299,13 +294,11 @@ async function main_process() {
 	}
 	// console.log(vfd_page_list);
 
-	await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page, {
-		no_edit: true
-	});
+	await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
 
 	// ----------------------------------------------------
 
-	CeL.info(Object.keys(pages_to_modify).length + ' pages to modify...');
+	process.title = 'Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...';
 
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		// TODO: check if the main page does not exist.
@@ -326,7 +319,7 @@ async function main_process() {
 		);
 	}
 
-	CeL.info('Done.');
+	CeL.info((new Date).format() + '	' + Object.keys(pages_to_modify).length + ' pages done.');
 }
 
 (async () => {

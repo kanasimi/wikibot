@@ -1,7 +1,7 @@
 ﻿require('./wiki loader.js');
 
 if (false)
-Wiki().search('相关词条', function(pages, hits, key) {
+Wiki().search('相关词条', function(pages, error) {
 	CeL.show_value(pages);
 }, 1);
 

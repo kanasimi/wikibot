@@ -4,8 +4,8 @@
 -->
 
 # CeJS MediaWiki bots demo
-Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js) of [CeJS library](https://github.com/kanasimi/CeJS).
-採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki.js)來製作 MediaWiki (維基百科/維基數據) 機器人的範例。
+Some MediaWiki bot examples including wikipedia, wikidata using [MediaWiki module](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki) of [CeJS library](https://github.com/kanasimi/CeJS).
+採用 CeJS [MediaWiki 自動化作業用程式庫](https://github.com/kanasimi/CeJS/blob/master/application/net/wiki)來製作 MediaWiki (維基百科/維基數據) 機器人的範例。
 
 You might also be interested in [wikiapi](https://github.com/kanasimi/wikiapi).
 
@@ -71,8 +71,8 @@ wiki.categorymembers(category_title, function(page_data_list, error) {
 
 ```
 
-* [A sample for wiki_session.query()](https://github.com/kanasimi/wikibot/blob/9727497238c81cfe8189bcafdb6bb17684720a9d/20171025.fix_LintErrors.js)
-* [A sample for CeL.wiki.query()](https://github.com/kanasimi/wikibot/blob/3913874380093eebae250442c083e74883239620/20171025.fix_LintErrors.js)
+* [An example for wiki_session.query()](https://github.com/kanasimi/wikibot/blob/9727497238c81cfe8189bcafdb6bb17684720a9d/20171025.fix_LintErrors.js)
+* [An example for CeL.wiki.query()](https://github.com/kanasimi/wikibot/blob/3913874380093eebae250442c083e74883239620/20171025.fix_LintErrors.js)
 
 Wikidata example:
 ``` JavaScript

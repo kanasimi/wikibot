@@ -34,7 +34,8 @@ set_language('ja');
 
 'use strict';
 
-var _global = Function('return this')();
+var _global = typeof globalThis === 'object' && globalThis
+		|| Function('return this')();
 
 // 警告： node.js 6.3.0 起，prompt 之 global, console 與 此處的 global, console 不同！
 // 但 process 為同一個。
@@ -60,7 +61,7 @@ require('./wiki configuration.js');
 // Load CeJS library.
 
 // npm: 若有 CeJS module 則用之。
-// global.use_cejs_mudule = true;
+// globalThis.use_cejs_mudule = true;
 
 require('./_CeL.loader.nodejs.js');
 
@@ -88,6 +89,16 @@ CeL.run([ 'interact.DOM', 'application.debug',
 // for 'application.platform.nodejs': CeL.env.arg_hash,
 // CeL.wiki.cache(), CeL.fs_mkdir(), CeL.wiki.read_dump()
 'application.storage' ]);
+
+// ----------------------------------------------------------------------------
+
+if (!_global.Wikiapi) {
+	try {
+		// Load wikiapi module.
+		_global.Wikiapi = require('wikiapi');
+	} catch (e) {
+	}
+}
 
 // ----------------------------------------------------------------------------
 
@@ -184,8 +195,7 @@ _global.set_language = function(language) {
 set_language(CeL.env.arg_hash && CeL.env.arg_hash.use_language || 'zh');
 
 // e.g., # node task.js debug=2
-if (CeL.env.arg_hash
-		&& (CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug) > 0) {
+if (CeL.env.arg_hash && (CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug)) {
 	CeL.set_debug(CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug);
 }
 
