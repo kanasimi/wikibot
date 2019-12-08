@@ -143,8 +143,8 @@ async function check_deletion_page(JDN, page_data) {
 		//console.log(discussions);
 	}
 
-	if (discussions.some(discussion => CeL.is_digits(discussion.page))) {
-		CeL.warn('check_deletion_page: ' + CeL.wiki.title_link_of(page_data) + ' ' + normalized_page_title + ': detects numeral page to modify:');
+	if (discussions.some(discussion => CeL.is_digits(discussion.page) && discussion.page === '0')) {
+		CeL.warn('check_deletion_page: ' + CeL.wiki.title_link_of(page_data) + ' ' + normalized_page_title + ': detects numeral page "0" to modify:');
 		console.log(discussions);
 		console.log(flags_of_page);
 		//throw new Error(normalized_page_title);
@@ -177,6 +177,10 @@ async function check_deletion_discussion_page(page_data) {
 			var page = CeL.wiki.normalize_title(title);
 			if (!page)
 				return;
+			//跳過無效的刪除請求：這些請求沒必要特別註記。
+			if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
+				return;
+
 			if (CeL.is_digits(title)
 				&& section.section_title.link.title !== '[[' + title + ']]'
 				&& !/{{al(\|\d+)+}}/i.test(section.section_title.link.title)) {
