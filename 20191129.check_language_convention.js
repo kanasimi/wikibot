@@ -11,6 +11,8 @@
 // Load CeJS library and modules.
 require('./wiki loader.js');
 
+CeL.run('application.net.wiki.template_functions');
+
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 // globalThis.use_language = 'zh';
@@ -61,6 +63,7 @@ function add_duplicated(string, from_convention, to_convention) {
 
 function add_convention(item, from_page) {
 	// console.log(item);
+	// console.log(from_page);
 	if (!item || item.type !== 'item')
 		return;
 
@@ -106,93 +109,49 @@ function add_convention(item, from_page) {
 	}
 }
 
-const NS_module = CeL.wiki.namespace('module'),
-	NS_template = CeL.wiki.namespace('template');
+const NS_MediaWiki = CeL.wiki.namespace('MediaWiki');
+const NS_Module = CeL.wiki.namespace('Module');
+const NS_Template = CeL.wiki.namespace('Template');
 
 async function for_each_page(page_data, index, conversion_group_list) {
-	if (page_data.ns !== NS_module
-		&& page_data.ns !== NS_template
+	//console.log(page_data);
+	if (page_data.ns !== NS_MediaWiki
+		&& page_data.ns !== NS_Module
+		&& page_data.ns !== NS_Template
 		// || !page_data.title.includes('')
 	) {
 		return;
 	}
 
-	function show_info(count) {
-		CeL.info((index + 1) + '/' + conversion_group_list.length
-			+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + count + ' items.');
-	}
+	// assert: page_data.ns === NS_MediaWiki || page_data.ns === NS_Module || page_data.ns === NS_Template
 
 	page_data = await wiki.page(page_data);
-	// CeL.info(CeL.wiki.title_link_of(page_data));
 	// console.log(page_data);
-	if (page_data.ns === NS_module) {
-		const object = CeL.wiki.parse.lua_object(page_data);
-		const content = object && object.content;
-		if (!Array.isArray(content)) {
-			CeL.error('Invalid group: ' + CeL.wiki.title_link_of(page_data));
-			return;
-		}
-		show_info(content.length);
-		// console.log(content);
-		content.forEach(item => add_convention(item, page_data));
-		return;
-	}
 
-	// assert: page_data.ns === NS_template
-	const parsed = CeL.wiki.parser(page_data);
-	let count = 0;
-	parsed.each('template', function (token) {
-		const item = {
-			type: 'item'
-		};
-		switch (token.name) {
-			case 'CItemHidden':
-			case 'CI':
-			case 'CItem':
-			case 'CNoteA':
-				if (token.parameters.display)
-					return;
-				item.rule = token.parameters[1];
-				if (token.parameters.original)
-					item.original = token.parameters.original;
-				break;
-
-			case 'CItemLan':
-				item.rule = token.parameters[1];
-				if (token.parameters[2])
-					item.original = token.parameters[2];
-				break;
-		}
-
-		if (!item.rule)
-			return;
-
-		if (Array.isArray(item.rule)) {
-			item.rule.forEach(function (token, index) {
-				/**
-				 * e.g.,<code>
-
-				parsed = CeL.wiki.parse("{{CItem|宿命之子誕生{{=}}>zh-cn:新生|desc=|original=The Hatchling}}");
-
-				</code>
-				 */
-				if (token.type === 'transclusion' && token.name === '=')
-					item.rule[index] = '=';
-			});
-		}
-
-		count++;
+	const count = CeL.wiki.template_functions.parse_convention_item(page_data, function (item) {
 		add_convention(item, page_data);
 	});
-	show_info(count);
+	CeL.info((index + 1) + '/' + conversion_group_list.length
+		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + count + ' items.');
 }
 
 // ----------------------------------------------------------------------------
 
-async function check_pages() {
+// 全局轉換表
+async function check_system_pages() {
+	// get all subpage links of the form
+	// [[MediaWiki:Conversiontable/zh-xx/...|...]]
+	const conversion_group_list = await wiki.prefixsearch('Mediawiki:Conversiontable/');
+	CeL.info('Traversal ' + conversion_group_list.length + ' system pages...');
+	//console.log(conversion_group);
+	await Promise.all(conversion_group_list.map(for_each_page));
+}
+
+// 公共轉換組
+async function check_CGroup_pages() {
 	const conversion_group = Object.create(null);
 	const category_tree = await wiki.category_tree(main_category, {
-		namespace: [NS_module, NS_template],
+		namespace: [NS_Module, NS_Template],
 	});
 	// console.log(page_list.subcategories);
 
@@ -217,7 +176,7 @@ async function check_pages() {
 
 			if (!conversion_group[matched[2]]
 				// module 的優先度高於 template。
-				|| page_data.ns === NS_module) {
+				|| page_data.ns === NS_Module) {
 				conversion_group[matched[2]] = page_data;
 			}
 		});
@@ -240,7 +199,7 @@ async function check_pages() {
 	//deprecated_pages = null;
 
 	const conversion_group_list = Object.values(conversion_group);
-	CeL.info('Traversal ' + conversion_group_list.length + ' pages...');
+	CeL.info('Traversal ' + conversion_group_list.length + ' CGroup pages...');
 	//console.log(conversion_group);
 	await Promise.all(conversion_group_list.map(for_each_page));
 }
@@ -299,7 +258,9 @@ async function write_duplicated_report() {
 }
 
 async function main_process() {
-	await check_pages();
+	// TODO: add 內置轉換列表 https://doc.wikimedia.org/mediawiki-core/master/php/ZhConversion_8php_source.html
+	await check_system_pages();
+	await check_CGroup_pages();
 
 	const pages = await write_convention_list();
 
