@@ -266,7 +266,7 @@ async function check_deletion_discussion_page(page_data) {
 		if ((flags.result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
 			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效
 			// 提案者重复提出，请求失效。见下。 改掛關注度模板，三十天後再議
-			|| /[撤收]回|[無无失]效|未到期|天後再議/.test(flags.result)) {
+			|| /[撤收]回|[無无失]效|未到期|天後再議|快速保留|速留/.test(flags.result)) {
 			return;
 		}
 
@@ -302,7 +302,7 @@ async function check_deletion_discussion_page(page_data) {
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
 		page_options: {
-			redirects: true,
+			//redirects: true,
 			prop: ''
 		}
 	});
