@@ -146,6 +146,8 @@ async function check_deletion_page(JDN, page_data) {
 	if (discussions.some(discussion => CeL.is_digits(discussion.page))) {
 		CeL.warn('check_deletion_page: ' + CeL.wiki.title_link_of(page_data) + ' ' + normalized_page_title + ': detects numeral page to modify:');
 		console.log(discussions);
+		console.log(flags_of_page);
+		//throw new Error(normalized_page_title);
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_page_title]) {
@@ -165,7 +167,7 @@ async function check_deletion_discussion_page(page_data) {
 	const flags_of_page = Object.create(null);
 	flags_of_page[KEY_title] = page_data.title;
 	if (pages_to_modify[0]) {
-		throw new Error(page_data.title);
+		CeL.warn('pages_to_modify[0] setted @ ' + CeL.wiki.title_link_of(page_data));
 	}
 
 	function for_each_section(section, index) {
@@ -323,6 +325,12 @@ async function check_deletion_discussion_page(page_data) {
 		}
 	});
 	//console.log(pages_to_modify);
+
+	if (pages_to_modify[0]) {
+		CeL.warn('pages_to_modify[0] setted @ ' + CeL.wiki.title_link_of(page_data));
+		console.log(pages_to_modify[0]);
+		throw new Error(page_data.title);
+	}
 }
 
 // ----------------------------------------------------------------------------
