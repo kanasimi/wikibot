@@ -48,10 +48,6 @@ function for_each_vfd_template(item, page_data) {
 	item.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
-
-		if (CeL.is_digits(discussion.page)) {
-			CeL.warn('for_each_vfd_template: ' + CeL.wiki.title_link_of(page_data) + ': detects numeral page: ' + discussion.page);
-		}
 	});
 
 	deletion_flags_of_page[page_title].append(item);
@@ -143,13 +139,6 @@ async function check_deletion_page(JDN, page_data) {
 		//console.log(discussions);
 	}
 
-	if (discussions.some(discussion => CeL.is_digits(discussion.page) && discussion.page === '0')) {
-		CeL.warn('check_deletion_page: ' + CeL.wiki.title_link_of(page_data) + ' ' + normalized_page_title + ': detects numeral page "0" to modify:');
-		console.log(discussions);
-		console.log(flags_of_page);
-		//throw new Error(normalized_page_title);
-	}
-
 	if (need_modify && deletion_flags_of_page[normalized_page_title]) {
 		delete deletion_flags_of_page[normalized_page_title];
 		pages_to_modify[normalized_page_title] = discussions;
@@ -166,9 +155,6 @@ async function check_deletion_discussion_page(page_data) {
 	let page_list = [];
 	const flags_of_page = Object.create(null);
 	flags_of_page[KEY_title] = page_data.title;
-	if (pages_to_modify[0]) {
-		CeL.warn('pages_to_modify[0] setted @ ' + CeL.wiki.title_link_of(page_data));
-	}
 
 	function for_each_section(section, index) {
 
@@ -181,14 +167,6 @@ async function check_deletion_discussion_page(page_data) {
 			if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
 				return;
 
-			if (CeL.is_digits(title)
-				&& section.section_title.link.title !== '[[' + title + ']]'
-				&& !/{{al(\|\d+)+}}/i.test(section.section_title.link.title)) {
-				//debug
-				CeL.warn('add_page: Add numerals: ' + title);
-				console.log(section.section_title.link);
-				console.log(flags);
-			}
 			// using `flags.page` as anchor
 			flags.page = title;
 			flags_of_page[page] = flags;
@@ -319,7 +297,7 @@ async function check_deletion_discussion_page(page_data) {
 
 	// console.log(page_data.title);
 	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
-	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3]);
+	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3], 'CE');
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
@@ -329,12 +307,6 @@ async function check_deletion_discussion_page(page_data) {
 		}
 	});
 	//console.log(pages_to_modify);
-
-	if (pages_to_modify[0]) {
-		CeL.warn('pages_to_modify[0] setted @ ' + CeL.wiki.title_link_of(page_data));
-		console.log(pages_to_modify[0]);
-		throw new Error(page_data.title);
-	}
 }
 
 // ----------------------------------------------------------------------------
