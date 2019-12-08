@@ -45,9 +45,13 @@ function for_each_vfd_template(item, page_data) {
 		item = [item];
 	}
 
-	item.forEach(function (discussion) {
+	item.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
+
+		if (CeL.is_digits(discussion.page)) {
+			CeL.warn('for_each_vfd_template: ' + CeL.wiki.title_link_of(page_data) + ': detects numeral page: ' + discussion.page);
+		}
 	});
 
 	deletion_flags_of_page[page_title].append(item);
@@ -66,7 +70,7 @@ async function check_deletion_page(JDN, page_data) {
 		// NG: Check the talk page
 		const page_title = normalized_page_title.replace(/:/, ' talk:');
 		page_data = await wiki.page(page_title);
-		CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, function (item) {
+		CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, (item) => {
 			;
 		});
 	}
@@ -96,7 +100,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| (pages_to_modify[normalized_page_title] = []);
 	//console.log(discussions);
 	let bingo, need_modify;
-	discussions.forEach(function (discussion) {
+	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
 		if (bingo) {
@@ -142,6 +146,10 @@ async function check_deletion_page(JDN, page_data) {
 	if (need_modify && deletion_flags_of_page[normalized_page_title]) {
 		delete deletion_flags_of_page[normalized_page_title];
 		pages_to_modify[normalized_page_title] = discussions;
+
+		if (discussions.some(discussion => CeL.is_digits(discussion.page))) {
+			CeL.warn('check_deletion_page: ' + CeL.wiki.title_link_of(page_data) + ': detects numeral page to modify: ' + discussion.page);
+		}
 	}
 }
 
@@ -183,7 +191,7 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		const flags = Object.create(null);
-		section.each('template', function (token) {
+		section.each('template', (token) => {
 			// {{Talkendh|處理結果}}
 			if (token.name in Hat_names) {
 				flags.result = token.parameters[1];
@@ -199,7 +207,7 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
-		const section_title_text = section.section_title.toString().trim();
+		const section_title_text = section.section_title.join('').trim();
 		// [[31]]天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍排上 {{fame}} 或 {{importance}} 模板的條目
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
@@ -319,14 +327,14 @@ async function main_process() {
 	// const page_data = await wiki.page(notification_template);
 	// console.log(page_data.wikitext);
 
-	process.title = 'Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...';
+	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
 	await page_list.each((page_data) => CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, for_each_vfd_template));
 	// console.log(deletion_flags_of_page);
 
 	// ----------------------------------------------------
 
-	process.title = 'Get all archived deletion discussions...';
+	CeL.info('Get all archived deletion discussions...');
 	const vfd_page_list = [];
 	//if (typeof end_date === 'string') end_date = end_date.to_Date();
 	for (let date = new Date(start_date); date - end_date < 0; date.setDate(date.getDate() + 1)) {
@@ -353,7 +361,10 @@ async function main_process() {
 		} else {
 			page_title = 'Talk:' + page_title;
 		}
-		discussions.forEach((discussion) => { delete discussion.JDN; });
+		discussions.forEach((discussion) => {
+			// 清除不需要的屬性。
+			delete discussion.JDN;
+		});
 
 		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
 		console.log(discussions);
