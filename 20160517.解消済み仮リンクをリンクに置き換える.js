@@ -116,6 +116,7 @@ message_set = {
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
 		// 手動修正必要。
 		manual_correction_required : 'このリストは手動で修正する必要のある記事群です。リストはボットによって自動更新されます。',
+		generate_date : '生成時間：',
 		edit : '編',
 		report_1 : ':: ……合計',
 		report_2 : '回発生しました。',
@@ -220,6 +221,7 @@ message_set = {
 		fix_category : 'Category:维基百科条目清理',
 		report_summary : '跨語言連結清理報告',
 		manual_correction_required : '這裡列出了需人工修正的跨語言連結。本列表將由機器人自動更新。',
+		generate_date : '產生時間：',
 		edit : '編',
 		report_1 : ':: ……共發生了',
 		report_2 : '次。',
@@ -265,6 +267,7 @@ message_set = {
 		report_summary : 'Report of converting interlanguage link templates',
 		// Manual correction required.
 		manual_correction_required : 'Here lists some templates need to be checked manually. The list will be automatically refreshed by the bot.',
+		generate_date : 'Generate date: ',
 		edit : 'E',
 		report_1 : ':: ... Total ',
 		report_2 : ' times occurred.',
@@ -453,7 +456,11 @@ function check_final_work() {
 			// 本次報告僅列出所有出問題頁面的大約 ?%。
 			+ ' of all problematic pages.',
 			//
-			message_set.manual_correction_required + ' --~~~~');
+			message_set.manual_correction_required + '\n'
+			// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+			+ '* ' + message_set.generate_date
+			//
+			+ '<onlyinclude>~~~~~</onlyinclude>\n\n');
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}

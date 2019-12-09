@@ -533,7 +533,9 @@ CeL.wiki.cache([ {
 		//
 		+ CeL.wiki.title_link_of(configuration_page_title, '這個頁面')
 		//
-		+ '更改設定參數。 --~~~~\n{{see|' + log_to
+		+ '更改設定參數。\n'
+		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n' + '{{see|' + log_to
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
 		//
