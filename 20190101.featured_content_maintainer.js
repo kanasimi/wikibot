@@ -897,8 +897,8 @@ function generate_help_message(date_page_title, message) {
 	+ message + '，謝謝。若您想使用最古老的頁面，可參考'
 	//
 	+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
-	// ' --~~~~' [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳
-	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>';
+	//
+	+ '。 --~~~~';
 }
 
 // 不是日期頁面嵌入的、有問題的標題。
@@ -973,10 +973,11 @@ function check_date_page() {
 	report = '本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
 	//
 	+ CeL.wiki.title_link_of(configuration_page_title + '#一般設定', '更改設定參數')
-	// 不簽名，避免一日之中頻繁變更。 " --~~~~"
-	+ '。\n'
+	// <s>不簽名，避免一日之中頻繁變更。 " --~~~~"</s>
+	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n';
 	//
-	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
+	+'{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
 	//
 	? '!! <small title="為' + TYPE_NAME + '列表">列表</small> ' : '')
 	// 範疇
