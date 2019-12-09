@@ -583,6 +583,12 @@ function parse_each_FC_date_page(page_data) {
 	: CeL.wiki.title_link_of(title) + ' 不存在。您可在設定頁面刪除快取來更新。');
 	if (CeL.is_debug())
 		CeL.error(title + ': ' + content);
+
+	// TODO: 不應 cache 今天起的 FC date pages。
+	// delete FC date page for recent date
+	CeL.remove_file(base_directory + 'page/'
+	// 正規化檔名。
+	+ title.replace(/[:*?<>]/g, '_') + '.json');
 }
 
 // ---------------------------------------------------------------------//
@@ -891,8 +897,8 @@ function generate_help_message(date_page_title, message) {
 	+ message + '，謝謝。若您想使用最古老的頁面，可參考'
 	//
 	+ CeL.wiki.title_link_of('Wikipedia:首頁/' + TYPE_NAME + '展示報告')
-	//
-	+ '。 --~~~~';
+	// ' --~~~~' [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳
+	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>';
 }
 
 // 不是日期頁面嵌入的、有問題的標題。
