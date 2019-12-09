@@ -586,6 +586,10 @@ function parse_each_FC_date_page(page_data) {
 
 	// TODO: 不應 cache 今天起的 FC date pages。
 	// delete FC date page for recent date
+	console.log('parse_each_FC_date_page: remove '
+			+ JSON.stringify(base_directory + 'page/'
+			// 正規化檔名。
+			+ title.replace(/[:*?<>]/g, '_') + '.json'));
 	CeL.remove_file(base_directory + 'page/'
 	// 正規化檔名。
 	+ title.replace(/[:*?<>]/g, '_') + '.json');
@@ -975,9 +979,9 @@ function check_date_page() {
 	+ CeL.wiki.title_link_of(configuration_page_title + '#一般設定', '更改設定參數')
 	// <s>不簽名，避免一日之中頻繁變更。 " --~~~~"</s>
 	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n';
+	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n'
 	//
-	+'{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
+	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
 	//
 	? '!! <small title="為' + TYPE_NAME + '列表">列表</small> ' : '')
 	// 範疇
@@ -1174,7 +1178,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	}
 	if (!is_FC(FC_title) && !is_FC(FC_title = candidates.shift())) {
 		// TODO: 檢查簡介/摘要頁面是否存在。
-		throw '沒有可供選擇的' + TYPE_NAME + '頁面! 照理來說這不應該發生!';
+		throw new Error('沒有可供選擇的' + TYPE_NAME + '頁面! 照理來說這不應該發生!');
 	}
 
 	var transcluding_title = get_FC_title_to_transclude(FC_title),
