@@ -114,7 +114,7 @@ const NS_Module = CeL.wiki.namespace('Module');
 const NS_Template = CeL.wiki.namespace('Template');
 
 async function for_each_page(page_data, index, conversion_group_list) {
-	//console.log(page_data);
+	// console.log(page_data);
 	if (page_data.ns !== NS_MediaWiki
 		&& page_data.ns !== NS_Module
 		&& page_data.ns !== NS_Template
@@ -123,7 +123,8 @@ async function for_each_page(page_data, index, conversion_group_list) {
 		return;
 	}
 
-	// assert: page_data.ns === NS_MediaWiki || page_data.ns === NS_Module || page_data.ns === NS_Template
+	// assert: page_data.ns === NS_MediaWiki || page_data.ns === NS_Module ||
+	// page_data.ns === NS_Template
 
 	page_data = await wiki.page(page_data);
 	// console.log(page_data);
@@ -143,7 +144,7 @@ async function check_system_pages() {
 	// [[MediaWiki:Conversiontable/zh-xx/...|...]]
 	const conversion_group_list = await wiki.prefixsearch('Mediawiki:Conversiontable/');
 	CeL.info('Traversal ' + conversion_group_list.length + ' system pages...');
-	//console.log(conversion_group);
+	// console.log(conversion_group);
 	await Promise.all(conversion_group_list.map(for_each_page));
 }
 
@@ -182,8 +183,8 @@ async function check_CGroup_pages() {
 		});
 		if (page_list.subcategories) {
 			for (let [subcategory, sub_list] of Object.entries(page_list.subcategories)) {
-				//CeL.info('Add Category:' + subcategory + '...');
-				//console.log(sub_list);
+				// CeL.info('Add Category:' + subcategory + '...');
+				// console.log(sub_list);
 				add_page(sub_list, subcategory.includes('已停用') || deprecated);
 			}
 		}
@@ -194,13 +195,13 @@ async function check_CGroup_pages() {
 		if (conversion_group[name] && conversion_group[name].title === page_data.title)
 			delete conversion_group[name];
 	}
-	//console.log(deprecated_pages);
+	// console.log(deprecated_pages);
 	// free
-	//deprecated_pages = null;
+	// deprecated_pages = null;
 
 	const conversion_group_list = Object.values(conversion_group);
 	CeL.info('Traversal ' + conversion_group_list.length + ' CGroup pages...');
-	//console.log(conversion_group);
+	// console.log(conversion_group);
 	await Promise.all(conversion_group_list.map(for_each_page));
 }
 
@@ -224,7 +225,10 @@ async function write_convention_list() {
 	await wiki.edit_page(convention_list_page,
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
-		+ '總共' + count + '個公共轉換組頁面。 --~~~~\n\n'
+		+ '總共' + count + '個公共轉換組頁面。\n'
+		+ '* 本條目會定期更新，毋須手動修正。\n'
+		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
 		+ CeL.wiki.array_to_table(report_array, {
 			'class': "wikitable sortable"
 		}), {
@@ -247,7 +251,10 @@ async function write_duplicated_report() {
 	await wiki.edit_page(duplicated_report_page,
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
-		+ '出現在多個不同的公共轉換組中的詞彙：' + count + '個詞彙。 --~~~~\n\n'
+		+ '出現在多個不同的公共轉換組中的詞彙：' + count + '個詞彙。\n'
+		+ '* 本條目會定期更新，毋須手動修正。\n'
+		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
 		+ CeL.wiki.array_to_table(report_array, {
 			'class': "wikitable sortable"
 		}), {
@@ -258,7 +265,8 @@ async function write_duplicated_report() {
 }
 
 async function main_process() {
-	// TODO: add 內置轉換列表 https://doc.wikimedia.org/mediawiki-core/master/php/ZhConversion_8php_source.html
+	// TODO: add 內置轉換列表
+	// https://doc.wikimedia.org/mediawiki-core/master/php/ZhConversion_8php_source.html
 	await check_system_pages();
 	await check_CGroup_pages();
 

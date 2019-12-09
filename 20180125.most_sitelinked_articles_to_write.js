@@ -366,8 +366,9 @@ function for_item_list_passed(item_list, options) {
 	});
 
 	var content = [ '以下列出最多語言版本的待撰條目。有些條目已經存在，是因為有消歧義的問題，或者需要合併、被分割（重新導向）等。',
-	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-	'* 本條目會定期更新，毋須手動修正。產生時間：<onlyinclude>~~~~~</onlyinclude>', '',
+			'* 本條目會定期更新，毋須手動修正。',
+			// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+			'* 產生時間：<onlyinclude>~~~~~</onlyinclude>', '',
 			'{| class="wikitable"', '! 語言數 !! 中文維基百科欠缺的條目' ], item_counter = 0;
 
 	Object.keys(items_of_count).sort(CeL.descending)
