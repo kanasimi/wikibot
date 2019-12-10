@@ -312,6 +312,7 @@ async function main_process() {
 
 	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
+	//可能有重複頁面!
 	page_list.append(await wiki.embeddedin('Article history'));
 	await page_list.each(for_each_page_including_vfd_template);
 	// console.log(deletion_flags_of_page);
@@ -335,6 +336,7 @@ async function main_process() {
 	//console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
 
+	var _count=0;
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		// TODO: check if the main page does not exist.
 		const namespace = page_title.match(/^([^:]+):/);
@@ -354,7 +356,8 @@ async function main_process() {
 		console.log(discussions);
 		const page_data = await wiki.page(page_title);
 		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
-		return;
+		if(_count++>10)break;
+		continue;
 
 		await wiki.edit_page(page_title, (page_data) =>
 			CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions)
