@@ -29,7 +29,8 @@ const pages_to_modify = Object.create(null);
 
 // ----------------------------------------------------------------------------
 
-function for_each_vfd_template(item_list, page_data) {
+function for_each_page_including_vfd_template(page_data) {
+	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
 	if (item_list.length === 0) {
 		CeL.warn('No Hat template found: ' + CeL.wiki.title_link_of(page_data));
 		// console.log(page_data);
@@ -312,7 +313,7 @@ async function main_process() {
 	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
 	page_list.append(await wiki.embeddedin('Article history'));
-	await page_list.each((page_data) => for_each_vfd_template(CeL.wiki.template_functions.Old_vfd_multi.parse(page_data)));
+	await page_list.each(for_each_page_including_vfd_template);
 	// console.log(deletion_flags_of_page);
 
 	// ----------------------------------------------------
