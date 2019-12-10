@@ -29,28 +29,24 @@ const pages_to_modify = Object.create(null);
 
 // ----------------------------------------------------------------------------
 
-function for_each_vfd_template(item, page_data) {
-	if (!item) {
+function for_each_vfd_template(item_list, page_data) {
+	if (item_list.length === 0) {
 		CeL.warn('No Hat template found: ' + CeL.wiki.title_link_of(page_data));
 		// console.log(page_data);
 		return;
 	}
 
-	const page_title = item.page_title;
-	// delete item.page_title;
+	const page_title = item_list.page_title;
+	// delete item_list.page_title;
 	if (!deletion_flags_of_page[page_title])
 		deletion_flags_of_page[page_title] = [];
 
-	if (!Array.isArray(item)) {
-		item = [item];
-	}
-
-	item.forEach((discussion) => {
+	item_list.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
 	});
 
-	deletion_flags_of_page[page_title].append(item);
+	deletion_flags_of_page[page_title].append(item_list);
 }
 
 async function check_deletion_page(JDN, page_data) {
@@ -66,9 +62,7 @@ async function check_deletion_page(JDN, page_data) {
 		// NG: Check the talk page
 		const page_title = normalized_page_title.replace(/:/, ' talk:');
 		page_data = await wiki.page(page_title);
-		CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, (item) => {
-			;
-		});
+		//const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
 	}
 
 	const page_title = page_data.original_title || normalized_page_title;
@@ -129,7 +123,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (!bingo) {
 		need_modify = true;
 		discussions.push({
-			date: CeL.Julian_day.to_Date(JDN).format('%Y/%m/%d'),
+			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			page: page_title,
 			result: text_of_result,
 			hat_result: flags.result,
@@ -317,7 +311,7 @@ async function main_process() {
 
 	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
-	await page_list.each((page_data) => CeL.wiki.template_functions.Old_vfd_multi.parse(page_data, for_each_vfd_template));
+	await page_list.each((page_data) => for_each_vfd_template(CeL.wiki.template_functions.Old_vfd_multi.parse(page_data)));
 	// console.log(deletion_flags_of_page);
 
 	// ----------------------------------------------------

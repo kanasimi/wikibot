@@ -129,11 +129,10 @@ async function for_each_page(page_data, index, conversion_group_list) {
 	page_data = await wiki.page(page_data);
 	// console.log(page_data);
 
-	const count = CeL.wiki.template_functions.parse_convention_item(page_data, function (item) {
-		add_convention(item, page_data);
-	});
+	const convention_item_list = CeL.wiki.template_functions.parse_convention_item(page_data);
+	convention_item_list.forEach((item) => add_convention(item, page_data));
 	CeL.info((index + 1) + '/' + conversion_group_list.length
-		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + count + ' items.');
+		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + convention_item_list.length + ' items.');
 }
 
 // ----------------------------------------------------------------------------
