@@ -127,7 +127,7 @@ async function check_deletion_page(JDN, page_data) {
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			page: page_title,
 			result: text_of_result,
-			hat_result: flags.result,
+			hat_result: text_of_result !== flags.result && flags.result,
 			// bot_checked : FLAG_CHECKED,
 			JDN
 		});
@@ -151,22 +151,22 @@ async function check_deletion_discussion_page(page_data) {
 	const flags_of_page = Object.create(null);
 	flags_of_page[KEY_title] = page_data.title;
 
+	function add_page(title, section, flags) {
+		title = title && title.toString();
+		var page = CeL.wiki.normalize_title(title);
+		if (!page)
+			return;
+		//跳過無效的刪除請求：這些請求沒必要特別註記。
+		if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
+			return;
+
+		// using `flags.page` as anchor
+		flags.page = section.section_title.link[1];
+		flags_of_page[page] = flags;
+		page_list.push(page);
+	}
+
 	function for_each_section(section, index) {
-
-		function add_page(title, flags) {
-			title = title && title.toString();
-			var page = CeL.wiki.normalize_title(title);
-			if (!page)
-				return;
-			//跳過無效的刪除請求：這些請求沒必要特別註記。
-			if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
-				return;
-
-			// using `flags.page` as anchor
-			flags.page = title;
-			flags_of_page[page] = flags;
-			page_list.push(page);
-		}
 
 		if (index === 0) {
 			// Skip the first section
@@ -231,13 +231,13 @@ async function check_deletion_discussion_page(page_data) {
 		if (title_to_delete && title_to_delete.is_link) {
 			// e.g., [[Wikipedia:頁面存廢討論/記錄/2008/08/12]]
 			if (!title_to_delete[0].toString().startsWith('Wikipedia:頁面存廢討論/'))
-				add_page(title_to_delete[0], flags);
+				add_page(title_to_delete[0], section, flags);
 			return;
 		}
 		function for_Al(title_token) {
 			if (title_token && title_token.type === 'transclusion' && title_token.name === 'Al') {
 				title_token.forEach((_title, index) => {
-					if (index > 0) add_page(_title, flags);
+					if (index > 0) add_page(_title, section, flags);
 				});
 				return true;
 			}
@@ -247,7 +247,7 @@ async function check_deletion_discussion_page(page_data) {
 		if (title_to_delete && title_to_delete.converted) {
 			if (title_to_delete.converted.is_link) {
 				// "====-{[[迪奥尼日·波尼亚托夫斯基]]}-===="
-				add_page(title_to_delete.converted[0], flags);
+				add_page(title_to_delete.converted[0], section, flags);
 				return;
 			}
 			if (Array.isArray(title_to_delete.converted)
@@ -356,12 +356,15 @@ async function main_process() {
 		console.log(discussions);
 		const page_data = await wiki.page(page_title);
 		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
-		if (_count++ > 50) break;
+		if (_count++ > 100) break;
 		continue;
 
-		await wiki.edit_page(page_title, (page_data) =>
-			CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions)
-		);
+		await wiki.edit_page(page_title,
+			(page_data) => CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions),
+			{
+				bot: 1,
+				summary: 'bot test: 維護討論頁之存廢討論記錄模板 {{tl|Old vfd multi}}'
+			});
 	}
 
 	CeL.info((new Date).format() + '	' + Object.keys(pages_to_modify).length + ' pages done.');
