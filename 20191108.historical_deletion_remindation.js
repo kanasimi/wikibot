@@ -336,7 +336,7 @@ async function main_process() {
 	//console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
 
-	var _count=0;
+	var _count = 0;
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		// TODO: check if the main page does not exist.
 		const namespace = page_title.match(/^([^:]+):/);
@@ -356,7 +356,7 @@ async function main_process() {
 		console.log(discussions);
 		const page_data = await wiki.page(page_title);
 		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
-		if(_count++>10)break;
+		if (_count++ > 50) break;
 		continue;
 
 		await wiki.edit_page(page_title, (page_data) =>
