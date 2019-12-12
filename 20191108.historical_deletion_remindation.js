@@ -2,6 +2,10 @@
 
  	初版試營運
 
+TODO:
+{{Multidel}}
+Wikipedia:存廢覆核請求/存檔/*
+
  */
 
 'use strict';
@@ -53,6 +57,11 @@ function for_each_page_including_vfd_template(page_data) {
 async function check_deletion_page(JDN, page_data) {
 	if ('missing' in page_data) {
 		// The page is not exist now. No-need to add `notification_template`.
+		return;
+	}
+
+	if (CeL.wiki.parse.redirect(page_data)) {
+		// Should not create talk page when the main page is a redirect page. e.g., [[326]]
 		return;
 	}
 
@@ -306,6 +315,17 @@ async function check_deletion_discussion_page(page_data) {
 
 // ----------------------------------------------------------------------------
 
+function edit_notice_page(page_data) {
+	if (CeL.wiki.parse.redirect(page_data)) {
+		// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
+		return;
+	}
+
+	return CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions);
+}
+
+// ----------------------------------------------------------------------------
+
 async function main_process() {
 	// const page_data = await wiki.page(notification_template);
 	// console.log(page_data.wikitext);
@@ -359,12 +379,10 @@ async function main_process() {
 		if (_count++ > 200) break;
 		continue;
 
-		await wiki.edit_page(page_title,
-			(page_data) => CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions),
-			{
-				bot: 1,
-				summary: 'bot test: 維護討論頁之存廢討論記錄模板 {{tl|Old vfd multi}}'
-			});
+		await wiki.edit_page(page_title, edit_notice_page, {
+			bot: 1,
+			summary: 'bot test: 維護討論頁之存廢討論記錄模板 {{tl|Old vfd multi}}'
+		});
 	}
 
 	CeL.info((new Date).format() + '	' + Object.keys(pages_to_modify).length + ' pages done.');
