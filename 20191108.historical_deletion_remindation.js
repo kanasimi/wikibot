@@ -356,7 +356,7 @@ async function main_process() {
 		console.log(discussions);
 		const page_data = await wiki.page(page_title);
 		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
-		if (_count++ > 100) break;
+		if (_count++ > 200) break;
 		continue;
 
 		await wiki.edit_page(page_title,
