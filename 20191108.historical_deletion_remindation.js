@@ -1,6 +1,6 @@
 ﻿/*
 
- 	初版試營運: 維護討論頁存廢覆核請求紀錄與模板 {{Old vfd multi}}
+初版試營運: 維護討論頁存廢覆核請求紀錄與模板 {{Old vfd multi}}
 
 TODO:
 {{Multidel}}
@@ -191,7 +191,8 @@ async function check_deletion_discussion_page(page_data) {
 				if (flags.result && token.parameters[2]) {
 					flags.target = token.parameters[2];
 				}
-				return parsed.exit;
+				// 僅以第一個有結論的為主。 e.g., [[Wikipedia:頁面存廢討論/記錄/2010/09/26#158]]
+				return section.each.exit;
 			}
 		});
 
@@ -366,15 +367,20 @@ async function main_process() {
 		});
 
 		// ----------------------------
-		const page_data = await wiki.page(page_title);
-		if (CeL.wiki.parse.redirect(page_data)) {
-			// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
+		if (false) {
+			const page_data = await wiki.page(page_title);
+			if (CeL.wiki.parse.redirect(page_data)) {
+				// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
+				continue;
+			}
+			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
+			console.log(discussions);
+			console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
+			if (_count++ > 200) break;
 			continue;
 		}
-		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
-		console.log(discussions);
-		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
-		if (_count++ > 200) break;
+
+		if (_count++ > 20) break;
 		continue;
 		// ----------------------------
 
