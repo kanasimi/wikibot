@@ -1,6 +1,7 @@
 ﻿/*
 
-初版試營運: 維護討論頁存廢覆核請求紀錄與模板 {{Old vfd multi}}
+2019/12/14 7:7:53	初版試營運: 維護討論頁之存廢討論紀錄與模板 {{Old vfd multi}}
+
 
 TODO:
 {{Multidel}}
@@ -186,9 +187,8 @@ async function check_deletion_discussion_page(page_data) {
 		const flags = Object.create(null);
 		section.each('template', (token) => {
 			// {{Talkendh|處理結果}}
-			if (token.name in Hat_names) {
-				flags.result = token.parameters[1];
-				if (flags.result && token.parameters[2]) {
+			if ((token.name in Hat_names) && (flags.result = token.parameters[1])) {
+				if (token.parameters[2]) {
 					flags.target = token.parameters[2];
 				}
 				// 僅以第一個有結論的為主。 e.g., [[Wikipedia:頁面存廢討論/記錄/2010/09/26#158]]
@@ -317,12 +317,15 @@ async function check_deletion_discussion_page(page_data) {
 
 // ----------------------------------------------------------------------------
 
+var edit_count = 0;
 function edit_notice_page(page_data) {
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
 		return;
 	}
 
+	edit_count++;
+	this.summary += ' 增加 ' + discussions.length +' 筆紀錄';
 	return CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions);
 }
 
@@ -358,7 +361,6 @@ async function main_process() {
 	//console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
 
-	var _count = 0;
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		page_title = CeL.wiki.to_talk_page(page_title);
 		discussions.forEach((discussion) => {
@@ -376,17 +378,17 @@ async function main_process() {
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
 			console.log(discussions);
 			console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
-			if (_count++ > 200) break;
+			if (edit_count++ > 200) break;
 			continue;
 		}
 
-		if (_count++ > 20) break;
+		if (edit_count > 50) break;
 		continue;
 		// ----------------------------
 
 		await wiki.edit_page(page_title, edit_notice_page, {
 			bot: 1,
-			summary: 'bot test: 維護討論頁之存廢討論記錄模板 {{tl|Old vfd multi}}'
+			summary: 'bot test: 維護討論頁之存廢討論紀錄與模板 {{tl|Old vfd multi}}'
 		});
 	}
 
