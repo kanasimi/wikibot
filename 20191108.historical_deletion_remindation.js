@@ -1,6 +1,6 @@
 ﻿/*
 
- 	初版試營運
+ 	初版試營運: 維護討論頁存廢覆核請求紀錄與模板 {{Old vfd multi}}
 
 TODO:
 {{Multidel}}
@@ -55,6 +55,7 @@ function for_each_page_including_vfd_template(page_data) {
 }
 
 async function check_deletion_page(JDN, page_data) {
+	// Check if the main page does not exist.
 	if ('missing' in page_data) {
 		// The page is not exist now. No-need to add `notification_template`.
 		return;
@@ -70,7 +71,7 @@ async function check_deletion_page(JDN, page_data) {
 	// CeL.info(CeL.wiki.title_link_of(page_data));
 	if (false) {
 		// NG: Check the talk page
-		const page_title = normalized_page_title.replace(/:/, ' talk:');
+		const page_title = CeL.wiki.to_talk_page(normalized_page_title);
 		page_data = await wiki.page(page_title);
 		//const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
 	}
@@ -358,28 +359,20 @@ async function main_process() {
 
 	var _count = 0;
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
-		// TODO: check if the main page does not exist.
-		const namespace = page_title.match(/^([^:]+):/);
-		if (!namespace) {
-			page_title = 'Talk:' + page_title;
-		} else if (/ talk$/.test(namespace[1])) {
-			CeL.log('Modify talk page: ' + page_title);
-		} else {
-			page_title = 'Talk:' + page_title;
-		}
+		page_title = CeL.wiki.to_talk_page(page_title);
 		discussions.forEach((discussion) => {
 			// 清除不需要的屬性。
 			delete discussion.JDN;
 		});
 
 		// ----------------------------
-		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
-		console.log(discussions);
 		const page_data = await wiki.page(page_title);
 		if (CeL.wiki.parse.redirect(page_data)) {
 			// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
 			continue;
 		}
+		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
+		console.log(discussions);
 		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
 		if (_count++ > 200) break;
 		continue;
