@@ -373,13 +373,13 @@ async function main_process() {
 		});
 
 		// ----------------------------
+		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
+		console.log(discussions);
+		const page_data = await wiki.page(page_title);
 		if (CeL.wiki.parse.redirect(page_data)) {
 			// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
 			continue;
 		}
-		CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
-		console.log(discussions);
-		const page_data = await wiki.page(page_title);
 		console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
 		if (_count++ > 200) break;
 		continue;
