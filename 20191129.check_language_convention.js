@@ -67,8 +67,9 @@ function add_convention(item, from_page) {
 	if (!item || item.type !== 'item')
 		return;
 
-	// + ' ': 當作 page，取得 .conversion_table。
-	const parsed = CeL.wiki.parse('-{H|' + item.rule + '}-' + ' ');
+	const parsed = CeL.wiki.parse('-{H|' + item.rule + '}-'
+		// + ' ': 當作 page，取得 .conversion_table。
+		+ ' ');
 	let table = parsed.conversion_table;
 	if (!table) {
 		if (typeof parsed[0].converted === 'string') {
