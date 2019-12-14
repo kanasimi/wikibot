@@ -385,8 +385,8 @@ async function modify_pages() {
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
-			if (typeof e === 'object') {
-				CeL.error(e);
+			if (!e.from_string) {
+				console.error(e);
 			} else {
 				// e.g., e === 'empty'
 			}
@@ -422,7 +422,7 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	// 跑到這邊約需要兩個半小時。
+	// 跑到這邊約需要 2.5小時。
 	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
 	// console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
