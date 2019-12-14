@@ -35,7 +35,7 @@ const pages_to_modify = Object.create(null);
 // ----------------------------------------------------------------------------
 
 function for_each_page_including_vfd_template(page_data) {
-	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
+	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data);
 	if (item_list.length === 0) {
 		CeL.warn('No Hat template found: ' + CeL.wiki.title_link_of(page_data));
 		// console.log(page_data);
@@ -79,7 +79,7 @@ async function check_deletion_page(JDN, page_data) {
 		const page_title = CeL.wiki.to_talk_page(normalized_page_title);
 		page_data = await wiki.page(page_title);
 		// const item_list =
-		// CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
+		// CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data);
 	}
 
 	const page_title = page_data.original_title || normalized_page_title;
@@ -253,11 +253,11 @@ async function check_deletion_discussion_page(page_data) {
 				add_page(title_to_delete[0], section, flags);
 			return;
 		}
+
 		function for_Al(title_token) {
-			if (title_token && title_token.type === 'transclusion' && title_token.name === 'Al') {
-				title_token.forEach((_title, index) => {
-					if (index > 0) add_page(_title, section, flags);
-				});
+			const page_title_list = CeL.wiki.template_functions.zh_Al.parse(title_token);
+			if (page_title_list && page_title_list.length > 0) {
+				page_title_list.forEach((title) => add_page(title, section, flags));
 				return true;
 			}
 		}
@@ -342,8 +342,8 @@ function modified_notice_page(page_data, discussions) {
 
 	// console.log(this.summary);
 	// console.log(page_data);
-	CeL.info('Edit ' + CeL.wiki.title_link_of(page_data));
-	console.log(discussions);
+	CeL.info('modified_notice_page: Edit ' + CeL.wiki.title_link_of(page_data));
+	//console.log(discussions);
 	// console.log(wikitext);
 
 	this.summary += ' 共' + discussions.length + '筆紀錄';
@@ -385,7 +385,7 @@ async function modify_pages() {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				bot: 1,
-				summary: 'bot test: 維護討論頁之存廢討論紀錄與模板'
+				summary: '[[Wikipedia:机器人/申请/Cewbot/21‎‎|bot test]]: 維護討論頁之存廢討論紀錄與模板'
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
