@@ -22,8 +22,8 @@ const wiki = new Wikiapi;
 use_language = 'zh';
 
 const notification_template = 'Template:' + CeL.wiki.template_functions.Old_vfd_multi.main_name;
-const start_date = '2008-08-12';
-const end_date = Date.now();
+const start_date = '2008-08-12'/* && '2011-06-28' */;
+const end_date = Date.now()/* && Date.parse('2011-06-29') */;
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
@@ -42,17 +42,20 @@ function for_each_page_including_vfd_template(page_data) {
 		return;
 	}
 
-	const page_title = item_list.page_title;
+	// TODO: 對於本來就針對說明頁的存廢討論紀錄，一樣會被歸類到主頁面去。
+	const page_title = CeL.wiki.talk_page_to_main(/* item_list.page_title */ page_data.title);
 	// delete item_list.page_title;
-	if (!deletion_flags_of_page[page_title])
-		deletion_flags_of_page[page_title] = [];
+	const discussions = deletion_flags_of_page[page_title]
+		|| (deletion_flags_of_page[page_title] = []);
 
 	item_list.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
+		discussions.push(discussion);
 	});
 
-	deletion_flags_of_page[page_title].append(item_list);
+	//CeL.info(page_title);
+	//console.log(discussions);
 }
 
 async function check_deletion_page(JDN, page_data) {
@@ -175,6 +178,7 @@ async function check_deletion_discussion_page(page_data) {
 		if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
 			return;
 
+		//console.log(section.section_title.link);
 		// using `flags.page` as anchor
 		flags.page = section.section_title.link[1];
 		flags_of_page[page] = flags;
@@ -425,7 +429,7 @@ async function main_process() {
 	// 跑到這邊約需要 2.5小時。
 	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
 	// console.log(pages_to_modify);
-	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
+	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
 
 	await modify_pages();
 
