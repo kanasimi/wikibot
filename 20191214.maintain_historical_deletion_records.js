@@ -342,7 +342,7 @@ function modified_notice_page(page_data, discussions) {
 	console.log(discussions);
 	// console.log(wikitext);
 
-	this.summary += ' 共 ' + discussions.length + ' 筆紀錄';
+	this.summary += ' 共' + discussions.length + '筆紀錄';
 	edit_count++;
 	return wikitext;
 }
@@ -373,7 +373,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (edit_count > 50) break;
+		if (edit_count > 100) break;
 		// ----------------------------
 
 		try {
