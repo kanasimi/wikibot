@@ -21,9 +21,9 @@ const wiki = new Wikiapi;
 // globalThis.use_language = 'zh';
 use_language = 'zh';
 
-const notification_template = 'Template:Old vfd multi';
+const notification_template = 'Template:' + CeL.wiki.template_functions.Old_vfd_multi.main_name;
 const start_date = '2008-08-12';
-const end_date = '2010/11/20'.to_Date() && Date.now();
+const end_date = Date.now();
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
@@ -63,7 +63,8 @@ async function check_deletion_page(JDN, page_data) {
 	}
 
 	if (CeL.wiki.parse.redirect(page_data)) {
-		// Should not create talk page when the main page is a redirect page. e.g., [[326]]
+		// Should not create talk page when the main page is a redirect page.
+		// e.g., [[326]]
 		return;
 	}
 
@@ -74,13 +75,14 @@ async function check_deletion_page(JDN, page_data) {
 		// NG: Check the talk page
 		const page_title = CeL.wiki.to_talk_page(normalized_page_title);
 		page_data = await wiki.page(page_title);
-		//const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
+		// const item_list =
+		// CeL.wiki.template_functions.Old_vfd_multi.parse(page_data);
 	}
 
 	const page_title = page_data.original_title || normalized_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	//console.log(flags_of_page);
+	// console.log(flags_of_page);
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
 		flags = flags_of_page[flags];
@@ -100,13 +102,13 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_page_title] = []);
-	//console.log(discussions);
+	// console.log(discussions);
 	let bingo, need_modify;
 	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
 		if (bingo) {
-			need_modify = true;
+			need_modify = 'duplicated';
 			discussion.bot_checked = FLAG_DUPLICATED;
 			return;
 		}
@@ -115,25 +117,26 @@ async function check_deletion_page(JDN, page_data) {
 		if (discussion.page !== (flags.page || page_title)) {
 			// using `flags.page` as anchor
 			discussion.page = flags.page || page_title;
-			need_modify = true;
+			need_modify = 'page';
 		}
 
 		if (discussion.hat_result !== flags.result) {
 			discussion.hat_result = flags.result;
 			if (discussion.result !== flags.result && discussion.result !== text_of_result) {
 				discussion.result = text_of_result;
-				need_modify = true;
+				need_modify = 'hat_result';
 			}
 		}
 		if (discussion.target !== flags.target) {
 			discussion.target = flags.target;
-			need_modify = true;
+			need_modify = 'target';
 		}
 		// discussion.bot_checked = FLAG_CHECKED;
 	});
 
 	if (!bingo) {
-		need_modify = true;
+		need_modify = 'add';
+		CeL.debug('Add ' + CeL.wiki.title_link_of(normalized_page_title) + ' to pages_to_modify.', 1, 'check_deletion_page');
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			page: page_title,
@@ -142,10 +145,11 @@ async function check_deletion_page(JDN, page_data) {
 			// bot_checked : FLAG_CHECKED,
 			JDN
 		});
-		//console.log(discussions);
+		// console.log(discussions);
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_page_title]) {
+		CeL.debug('Move ' + CeL.wiki.title_link_of(normalized_page_title) + ' to pages_to_modify: ' + need_modify, 1, 'check_deletion_page');
 		delete deletion_flags_of_page[normalized_page_title];
 		pages_to_modify[normalized_page_title] = discussions;
 	}
@@ -164,10 +168,10 @@ async function check_deletion_discussion_page(page_data) {
 
 	function add_page(title, section, flags) {
 		title = title && title.toString();
-		var page = CeL.wiki.normalize_title(title);
+		const page = CeL.wiki.normalize_title(title);
 		if (!page)
 			return;
-		//跳過無效的刪除請求：這些請求沒必要特別註記。
+		// 跳過無效的刪除請求：這些請求沒必要特別註記。
 		if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
 			return;
 
@@ -235,7 +239,7 @@ async function check_deletion_discussion_page(page_data) {
 		});
 
 		if (!title_to_delete && section.section_title.length === 1) {
-			//e.g., ==<s>[[:AngelTalk]]</s>==
+			// e.g., ==<s>[[:AngelTalk]]</s>==
 			title_to_delete = section.section_title[0];
 		}
 
@@ -262,7 +266,9 @@ async function check_deletion_discussion_page(page_data) {
 				return;
 			}
 			if (Array.isArray(title_to_delete.converted)
-				// == -{ {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}} }- ==
+				// == -{
+				// {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}}
+				// }- ==
 				&& title_to_delete.converted.some(for_Al)) {
 				return;
 			}
@@ -284,8 +290,8 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		CeL.error('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' 無法解析出欲刪除之頁面標題: ' + section_title_text);
-		//console.log({ title, flags });
-		//console.log(section.section_title);
+		// console.log({ title, flags });
+		// console.log(section.section_title);
 	}
 	parsed.each_section(for_each_section, {
 		// Wikipedia:頁面存廢討論/記錄/2008/10/11
@@ -308,71 +314,56 @@ async function check_deletion_discussion_page(page_data) {
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
 		page_options: {
-			//redirects: true,
+			// redirects: true,
 			prop: 'info'
 		}
 	});
-	//console.log(pages_to_modify);
+	// console.log(pages_to_modify);
 }
 
 // ----------------------------------------------------------------------------
 
-var edit_count = 0;
-function edit_notice_page(page_data) {
+let edit_count = 0;
+
+function modified_notice_page(page_data, discussions) {
 	if (CeL.wiki.parse.redirect(page_data)) {
-		// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
-		return;
+		// Should not create talk page when the talk page is a redirect page.
+		// e.g., [[Talk:405]]
+		return Wikiapi.skip_edit;
 	}
 
+	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
+		additional_parameters: 'hat_result|bot_checked'.split('|')
+	});
+
+	// console.log(this.summary);
+	// console.log(page_data);
+	CeL.info('Edit ' + CeL.wiki.title_link_of(page_data));
+	console.log(discussions);
+	// console.log(wikitext);
+
+	this.summary += ' 共 ' + discussions.length + ' 筆紀錄';
 	edit_count++;
-	this.summary += ' 增加 ' + discussions.length +' 筆紀錄';
-	return CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions);
+	return wikitext;
 }
 
-// ----------------------------------------------------------------------------
-
-async function main_process() {
-	// const page_data = await wiki.page(notification_template);
-	// console.log(page_data.wikitext);
-
-	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
-	let page_list = await wiki.embeddedin(notification_template);
-	//可能有重複頁面!
-	page_list.append(await wiki.embeddedin('Article history'));
-	await page_list.each(for_each_page_including_vfd_template);
-	// console.log(deletion_flags_of_page);
-
-	// ----------------------------------------------------
-
-	CeL.info('Get all archived deletion discussions...');
-	const vfd_page_list = [];
-	//if (typeof end_date === 'string') end_date = end_date.to_Date();
-	for (let date = new Date(start_date); date - end_date < 0; date.setDate(date.getDate() + 1)) {
-		// await check_deletion_page_of_date(JDN);
-		vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'));
-	}
-	// console.log(vfd_page_list);
-
-	await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
-
-	// ----------------------------------------------------
-
-	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
-	//console.log(pages_to_modify);
-	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
-
+async function modify_pages() {
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		page_title = CeL.wiki.to_talk_page(page_title);
 		discussions.forEach((discussion) => {
 			// 清除不需要的屬性。
 			delete discussion.JDN;
+			if (discussion.hat_result === discussion.result)
+				delete discussion.hat_result;
 		});
 
 		// ----------------------------
 		if (false) {
+			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
-				// Should not create talk page when the talk page is a redirect page. e.g., [[Talk:405]]
+				// Should not create talk page when the talk page is a redirect
+				// page. e.g., [[Talk:405]]
 				continue;
 			}
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
@@ -383,14 +374,62 @@ async function main_process() {
 		}
 
 		if (edit_count > 50) break;
-		continue;
 		// ----------------------------
 
-		await wiki.edit_page(page_title, edit_notice_page, {
-			bot: 1,
-			summary: 'bot test: 維護討論頁之存廢討論紀錄與模板 {{tl|Old vfd multi}}'
-		});
+		try {
+			await wiki.edit_page(page_title, function (page_data) {
+				return modified_notice_page.call(this, page_data, discussions);
+			}, {
+				bot: 1,
+				summary: 'bot test: 維護討論頁之存廢討論紀錄與模板'
+					+ CeL.wiki.title_link_of(notification_template)
+			});
+		} catch (e) {
+			if (typeof e === 'object') {
+				CeL.error(e);
+			} else {
+				// e.g., e === 'empty'
+			}
+		}
 	}
+}
+
+// ----------------------------------------------------------------------------
+
+async function main_process() {
+	// const page_data = await wiki.page(notification_template);
+	// console.log(page_data.wikitext);
+
+	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
+	let page_list = await wiki.embeddedin(notification_template);
+	// 可能有重複頁面!
+	page_list.append(await wiki.embeddedin('Article history'));
+	await page_list.each(for_each_page_including_vfd_template);
+	// console.log(deletion_flags_of_page);
+
+	// ----------------------------------------------------
+
+	CeL.info('Get all archived deletion discussions...');
+	const vfd_page_list = [];
+	// if (typeof end_date === 'string') end_date = end_date.to_Date();
+	for (let date = new Date(start_date); date - end_date < 0; date.setDate(date.getDate() + 1)) {
+		// await check_deletion_page_of_date(JDN);
+		vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'));
+	}
+	// console.log(vfd_page_list);
+
+	await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
+
+	// ----------------------------------------------------
+
+	// 跑到這邊約需要兩個半小時。
+	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
+	// console.log(pages_to_modify);
+	CeL.write_file('historical_deletion_remindation.pages_to_modify.json', pages_to_modify);
+
+	await modify_pages();
+
+	// ----------------------------------------------------
 
 	CeL.info((new Date).format() + '	' + Object.keys(pages_to_modify).length + ' pages done.');
 }
