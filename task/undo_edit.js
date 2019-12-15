@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node undo_edit.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node undo_edit.js use_language=ja
 
 /*
 
@@ -14,7 +14,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
 var wiki = Wiki(true/* , 'ja' */);
@@ -27,8 +27,10 @@ summary = 'fix error made by bot';
 
 // fix these edits.
 function filter_summary(summary) {
+	// console.log(summary);
+	return summary === 'Robot';
 	// return summary.includes('16: Unicode');
-	return summary.includes('16: 去除條目中之不可見字符');
+	return summary.includes('2016年ロサンゼルスに復帰し');
 }
 
 // ---------------------------------------------------------------------//
