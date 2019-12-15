@@ -12,7 +12,7 @@ Wikipedia:存廢覆核請求/存檔/*
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 CeL.run('application.net.wiki.template_functions');
 
@@ -22,13 +22,13 @@ const wiki = new Wikiapi;
 use_language = 'zh';
 
 const notification_template = 'Template:' + CeL.wiki.template_functions.Old_vfd_multi.main_name;
-const start_date = '2008-08-12'/* && '2011-06-28' */;
-const end_date = Date.now()/* && Date.parse('2011-06-29') */;
+const start_date = '2008-08-12' /*&& '2008-11-22'*/;
+const end_date = Date.now() /*&& Date.parse('2008-11-22')*/;
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
-const deletion_flags_of_page = Object.create(null);
+let deletion_flags_of_page = Object.create(null);
 // pages_to_modify[page_title] = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
 
@@ -117,9 +117,10 @@ async function check_deletion_page(JDN, page_data) {
 		}
 
 		bingo = true;
-		if (discussion.page !== (flags.page || page_title)) {
+		// 照理 flags.page 應已在 add_page() 設定。
+		if (flags.page && discussion.page !== flags.page) {
 			// using `flags.page` as anchor
-			discussion.page = flags.page || page_title;
+			discussion.page = flags.page;
 			need_modify = 'page';
 		}
 
@@ -142,7 +143,8 @@ async function check_deletion_page(JDN, page_data) {
 		CeL.debug('Add ' + CeL.wiki.title_link_of(normalized_page_title) + ' to pages_to_modify.', 1, 'check_deletion_page');
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
-			page: page_title,
+			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 page_title。
+			page: flags.page /*|| page_title */,
 			result: text_of_result,
 			hat_result: text_of_result !== flags.result && flags.result,
 			// bot_checked : FLAG_CHECKED,
@@ -377,7 +379,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (edit_count > 100) break;
+		if (edit_count > 50) break;
 		// ----------------------------
 
 		try {
@@ -385,7 +387,7 @@ async function modify_pages() {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				bot: 1,
-				summary: '[[Wikipedia:机器人/申请/Cewbot/21‎‎|bot test]]: 維護討論頁之存廢討論紀錄與模板'
+				summary: '[[Wikipedia:机器人/申请/Cewbot/21|bot test]]: 維護討論頁之存廢討論紀錄與模板'
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
@@ -416,15 +418,22 @@ async function main_process() {
 	CeL.info('Get all archived deletion discussions...');
 	const vfd_page_list = [];
 	// if (typeof end_date === 'string') end_date = end_date.to_Date();
-	for (let date = new Date(start_date); date - end_date < 0; date.setDate(date.getDate() + 1)) {
+	for (let date = new Date(start_date); date - end_date <= 0; date.setDate(date.getDate() + 1)) {
 		// await check_deletion_page_of_date(JDN);
 		vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'));
 	}
-	// console.log(vfd_page_list);
 
-	await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
+	if (vfd_page_list.length === 0) {
+		CeL.warn('main_process: No archived deletion discussion to check!');
+	} else {
+		//console.log(vfd_page_list);
+		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
+	}
 
 	// ----------------------------------------------------
+
+	// free
+	deletion_flags_of_page = null;
 
 	// 跑到這邊約需要 2.5小時。
 	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
