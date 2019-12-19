@@ -380,7 +380,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (edit_count > 50) break;
+		if (edit_count > 500) break;
 		// ----------------------------
 
 		try {
@@ -410,8 +410,11 @@ async function main_process() {
 	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
 	page_list.append(await wiki.embeddedin('Article history'));
+	const each = page_list.each;
 	// 可能有重複頁面。
 	page_list = page_list.unique(page_data => page_data.title);
+	// recover
+	page_list.each = each;
 	await page_list.each(for_each_page_including_vfd_template);
 	// console.log(deletion_flags_of_page);
 
