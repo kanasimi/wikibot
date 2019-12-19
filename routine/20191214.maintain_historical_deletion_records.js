@@ -22,8 +22,8 @@ const wiki = new Wikiapi;
 use_language = 'zh';
 
 const notification_template = 'Template:' + CeL.wiki.template_functions.Old_vfd_multi.main_name;
-const start_date = '2008-08-12' /*&& '2008-11-22'*/;
-const end_date = Date.now() /*&& Date.parse('2008-11-22')*/;
+const start_date = '2008-08-12' /* && '2008-11-22' */;
+const end_date = Date.now() /* && Date.parse('2008-11-22') */;
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
@@ -54,8 +54,8 @@ function for_each_page_including_vfd_template(page_data) {
 		discussions.push(discussion);
 	});
 
-	//CeL.info(page_title);
-	//console.log(discussions);
+	// CeL.info(page_title);
+	// console.log(discussions);
 }
 
 async function check_deletion_page(JDN, page_data) {
@@ -144,7 +144,7 @@ async function check_deletion_page(JDN, page_data) {
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 page_title。
-			page: flags.page /*|| page_title */,
+			page: flags.page /* || page_title */,
 			result: text_of_result,
 			hat_result: text_of_result !== flags.result && flags.result,
 			// bot_checked : FLAG_CHECKED,
@@ -180,7 +180,7 @@ async function check_deletion_discussion_page(page_data) {
 		if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
 			return;
 
-		//console.log(section.section_title.link);
+		// console.log(section.section_title.link);
 		// using `flags.page` as anchor
 		flags.page = section.section_title.link[1];
 		flags_of_page[page] = flags;
@@ -319,6 +319,7 @@ async function check_deletion_discussion_page(page_data) {
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
+		no_message: true,
 		page_options: {
 			// redirects: true,
 			prop: 'info'
@@ -345,7 +346,7 @@ function modified_notice_page(page_data, discussions) {
 	// console.log(this.summary);
 	// console.log(page_data);
 	CeL.info('modified_notice_page: Edit ' + CeL.wiki.title_link_of(page_data));
-	//console.log(discussions);
+	// console.log(discussions);
 	// console.log(wikitext);
 
 	this.summary += ' 共' + discussions.length + '筆紀錄';
@@ -408,8 +409,9 @@ async function main_process() {
 
 	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
-	// 可能有重複頁面!
 	page_list.append(await wiki.embeddedin('Article history'));
+	// 可能有重複頁面。
+	page_list = page_list.unique(page_data => page_data.title);
 	await page_list.each(for_each_page_including_vfd_template);
 	// console.log(deletion_flags_of_page);
 
@@ -426,7 +428,7 @@ async function main_process() {
 	if (vfd_page_list.length === 0) {
 		CeL.warn('main_process: No archived deletion discussion to check!');
 	} else {
-		//console.log(vfd_page_list);
+		// console.log(vfd_page_list);
 		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
 	}
 
