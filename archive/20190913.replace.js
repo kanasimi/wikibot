@@ -1,10 +1,13 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190913.move_link.js
-
-/*
+﻿/*
 
  2019/9/13 8:59:40	初版試營運
 
  @see 20160923.modify_link.リンク元修正.js	20170828.search_and_replace.js	20161112.modify_category.js
+ @see https://www.mediawiki.org/wiki/Manual:Pywikibot/replace.py
+
+TODO:
+https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
+並非所有常規修補程序都適用於所有語言。
 
  */
 
@@ -12,8 +15,6 @@
 
 // Load CeJS library and modules.
 require('./wiki loader.js');
-// Load wikiapi module.
-const Wikiapi = require('wikiapi');
 
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
@@ -30,7 +31,7 @@ let summary = '';
 /** {String}section title of [[WP:BOTREQ]] */
 let section_title = '';
 
-/** {String|Number}revision id.  {String}'old/new' or {Number}new */
+/** {String|Number}revision id. {String}'old/new' or {Number}new */
 let diff_id = 0;
 /** {Object}pairs to replace. {move_from_link: move_to_link} */
 let move_configuration = {};
@@ -42,16 +43,16 @@ const DELETE_PAGE = Symbol('DELETE_PAGE');
 
 
 /*
-
-文章名稱的改變，應考慮上下文的影響。例如：
-# 是否應採用 [[new|old]]: using {keep_title : true} to preserve title displayed. Default: discard title
-# 檢查重定向："株式会社[[リクルート]]" → "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
-
-作業時檢查是否已經更改過、或者應該更改確沒辦法更改的情況。
-
-作業完檢查リンク元
-
-*/
+ * 
+ * 文章名稱的改變，應考慮上下文的影響。例如： # 是否應採用 [[new|old]]: using {keep_title : true} to
+ * preserve title displayed. Default: discard title # 檢查重定向："株式会社[[リクルート]]" →
+ * "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
+ * 
+ * 作業時檢查是否已經更改過、或者應該更改確沒辦法更改的情況。
+ * 
+ * 作業完檢查リンク元
+ * 
+ */
 
 // 2019/9/13 9:14:49
 set_language('ja');
@@ -93,7 +94,7 @@ move_configuration = {
 		move_to_link: 'Category:言語別',
 		do_move_page: { noredirect: true, movetalk: true }
 	},
-	//'Category:時間別分類': 'Category:時間別'
+	// 'Category:時間別分類': 'Category:時間別'
 };
 move_configuration = async (wiki) => {
 	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
@@ -104,7 +105,7 @@ move_configuration = async (wiki) => {
 			// Remove header ":"
 			configuration[pair[0].replace(/^:/g, '')] = {
 				move_to_link: pair[1].replace(/^:/g, ''),
-				//do_move_page: { noredirect: true, movetalk: true }
+				// do_move_page: { noredirect: true, movetalk: true }
 			};
 		}
 	}
@@ -119,7 +120,8 @@ summary = undefined;
 move_configuration = {
 	'Category:Photographs by David Falkner': {
 		text_processor(wikitext) {
-			// `Made with Repix (<a href="http://repix.it" rel="noreferrer nofollow">repix.it</a>)`
+			// `Made with Repix (<a href="http://repix.it" rel="noreferrer
+			// nofollow">repix.it</a>)`
 			return wikitext.replace(/[\s\n]*Made with Repix \([^)]*\)/g, '')
 				.replace(/[\s\n]*<a\s+href=[^<>]+>[\s\S]+?<\/a\s*>/g, '');
 		}
@@ -133,6 +135,7 @@ section_title = 'Portal:バス/画像一覧/年別 整理依頼';
 summary = undefined;
 move_configuration = {
 	'Portal:バス/画像一覧/過去に掲載された写真/': {
+		list_types: 'prefixsearch',
 		text_processor(wikitext, page_data) {
 			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = page_data.parse();
@@ -157,8 +160,7 @@ move_configuration = {
 				return wikitext;
 			}
 			return parsed.toString();
-		},
-		list_types: 'prefixsearch',
+		}
 	}
 };
 
@@ -200,7 +202,7 @@ move_configuration = {
 		},
 		list_types: 'categorymembers',
 		namespace: 'file',
-		//17000+ too many logs
+		// 17000+ too many logs
 		log_to: null
 	}
 };
@@ -211,6 +213,9 @@ section_title = 'Template:基礎情報 アナウンサーの引数変更';
 summary = undefined;
 move_configuration = {
 	'Template:基礎情報_アナウンサー': {
+		// parameter updates [[for Template:]] and related
+		// removal of deprecated parameters from [[Template:]]
+		// 刪除模板中不推薦使用的參數
 		replace_parameters: {
 			// | 家族 = → | 著名な家族 = に変更。
 			家族: value => {
@@ -257,6 +262,7 @@ move_configuration = {
 	'Template:日本私立短期大学協会': DELETE_PAGE,
 };
 
+
 set_language('zh');
 diff_id = 56462719;
 section_title = '请求删除多笔常见植物页面中标注为薛聪贤先生的参考来源';
@@ -270,16 +276,20 @@ move_configuration = {
 			let changed;
 			parsed.each('template', function (token, index, parent) {
 				if (token.name === 'Clref' && token.toString().includes('薛聰賢')) {
-					// *{{clref|薛聰賢|2001|ref={{cite isbn|9579745218|ref=harv|noedit}}}}
+					// *{{clref|薛聰賢|2001|ref={{cite
+					// isbn|9579745218|ref=harv|noedit}}}}
 					changed = true;
 					return remove_token;
 				}
 			});
 			parsed.each('tag', function (token, index, parent) {
 				if (token.tag === 'ref' && token.toString().includes('薛聰賢')) {
-					// e.g., <ref name="薛">{{cite book zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
-					// <ref name="薛">《台灣蔬果實用百科第二輯》，薛聰賢 著，薛聰賢出版社，2001年，ISDN:957-97452-1-8</ref>
-					// <ref>{{cite book |author = 薛聰賢 |title = 台灣原生植物景觀圖鑑(3) |publisher = 台灣普綠 |date = 2005-01-30}}</ref>
+					// e.g., <ref name="薛">{{cite book
+					// zh|title=《台灣蔬果實用百科第一輯》|author=薛聰賢|publisher=薛聰賢出版社|year=2001年|ISBN=957-97452-1-8}}</ref>
+					// <ref name="薛">《台灣蔬果實用百科第二輯》，薛聰賢
+					// 著，薛聰賢出版社，2001年，ISDN:957-97452-1-8</ref>
+					// <ref>{{cite book |author = 薛聰賢 |title = 台灣原生植物景觀圖鑑(3)
+					// |publisher = 台灣普綠 |date = 2005-01-30}}</ref>
 					changed = true;
 					return remove_token;
 				}
@@ -292,8 +302,10 @@ move_configuration = {
 					return remove_token;
 				}
 				if (/\|\s*publisher\s*=\s*薛聰賢/.test(token.toString())) {
-					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢 |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
-					// {{cite book|author=薛聰賢|year=2003|title=台灣原生景觀植物圖鑑1《蕨類植物‧草本植物》|publisher=薛聰賢|isbn=957-41-0968-2}}
+					// e.g., {{cite book zh |title=《台灣蔬果實用百科第一輯》 |author=薛聰賢
+					// |publisher=薛聰賢出版社 |year=2001年 |ISBN = 957-97452-1-8 }}
+					// {{cite
+					// book|author=薛聰賢|year=2003|title=台灣原生景觀植物圖鑑1《蕨類植物‧草本植物》|publisher=薛聰賢|isbn=957-41-0968-2}}
 					changed = true;
 					return remove_token;
 				}
@@ -302,7 +314,8 @@ move_configuration = {
 			wikitext = wikitext.replace(/\n\*[^\n]+?薛聰賢[^\n]+/g, function (all) {
 				// e.g., *《台灣蔬果實用百科第三輯》，薛聰賢 著，薛聰賢出版社，2003年
 				// * 薛聰賢 著：《台灣蔬果實用百科（第二輯）》，薛聰賢出版社，2001年
-				// * 薛聰賢：《臺灣花卉實用圖鑑 3 球根花卉 多肉植物 150種》，臺灣：台灣普綠有限公司出版部，1996年 ISBN 957-97021-0-1
+				// * 薛聰賢：《臺灣花卉實用圖鑑 3 球根花卉 多肉植物 150種》，臺灣：台灣普綠有限公司出版部，1996年 ISBN
+				// 957-97021-0-1
 				// *《台灣蔬果實用百科第一輯》，薛聰賢著，2001年
 				changed = true;
 				return '';
@@ -347,14 +360,14 @@ move_configuration = {
 	text_processor(wikitext, page_data) {
 		const main_category_name = this.move_from_page_name;
 		const move_to_page_name = this.move_to_page_name;
-		//console.log([main_category_name, move_to_page_name]);
+		// console.log([main_category_name, move_to_page_name]);
 
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = page_data.parse();
 
 		let token_日本のYouTuber, token_data_to_rename;
 		parsed.each('category', function (token, index, parent) {
-			//console.log(token);
+			// console.log(token);
 			if (token.name === move_to_page_name) {
 				token_日本のYouTuber = token;
 				return;
@@ -386,10 +399,11 @@ move_configuration = {
 			return;
 		}
 
-		//console.log(token_日本のYouTuber);
-		//console.log(token_data_to_rename);
+		// console.log(token_日本のYouTuber);
+		// console.log(token_data_to_rename);
 		if (token_日本のYouTuber) {
-			// 既に [[Category:日本のYouTuber]] がある場合は[[Category:日本の男性YouTuber]] 及び [[Category:日本の女性YouTuber]] を除去してください。
+			// 既に [[Category:日本のYouTuber]] がある場合は[[Category:日本の男性YouTuber]] 及び
+			// [[Category:日本の女性YouTuber]] を除去してください。
 			CeL.wiki.parser.remove_token(token_data_to_rename[2], token_data_to_rename[1]);
 		} else {
 			// [[Category:日本のYouTuber]] へ変更
@@ -426,6 +440,29 @@ move_configuration = {
 };
 
 
+set_language('zh');
+diff_id = 56927593;
+section_title = '替换参数';
+summary = '替換 cite 系列模板的舊參數 url-status';
+move_configuration = {
+	// https://zh.wikipedia.org/wiki/Template:Cite_web
+	'替換 url-status 參數': {
+		list_types: 'search',
+		// insource:"url-status"
+		move_from_link: 'insource:"url-status"',
+		// search all namespaces
+		// namespace: '*',
+		text_processor(wikitext, page_data) {
+			// console.log(wikitext);
+			// console.log(page_data);
+			return wikitext.replace(/(\|\s*)url-status(\s*=\s*)(dead|live)/g,
+				(all, prefix, equal, status) => prefix + 'dead-url' + equal + (status === 'dead' ? 'yes' : 'no')
+			).replace(/(\|\s*)url-status(\s*=\s*)(\||}})/g, '$3');
+		}
+	}
+};
+
+
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
@@ -438,7 +475,7 @@ function for_each_link(token, index, parent) {
 	if (false) {
 		// for 「株式会社リクルートホールディングス」の修正
 		if (!token[2] && index > 0 && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith('株式会社')) {
-			//console.log(parent[index - 1]);
+			// console.log(parent[index - 1]);
 			// assert: "株式会社[[リクルートホールディングス]]"
 			parent[index - 1] = parent[index - 1].replace('株式会社', '');
 			parent[index] = '[[株式会社リクルート]]';
@@ -447,14 +484,15 @@ function for_each_link(token, index, parent) {
 	}
 
 	// e.g., [[move_from_link]]
-	//console.log(token);
+	// console.log(token);
 	if (this.move_to_link === DELETE_PAGE) {
 		CeL.assert(token[2] || !token[1] && this.move_from_ns === CeL.wiki.namespace('Main'));
 		// 直接只使用 displayed_text。
 		parent[index] = token[2] || token[0];
 
 	} else if (!token[1] && CeL.wiki.normalize_title(token[2]) === this.move_to_link) {
-		// e.g., [[move_from_link|move to link]] → [[move_to_link|move to link]] → [[move to link]]
+		// e.g., [[move_from_link|move to link]] → [[move_to_link|move to link]]
+		// → [[move to link]]
 		token.pop();
 		token[0] = this.move_to_link;
 
@@ -462,7 +500,7 @@ function for_each_link(token, index, parent) {
 		const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
 		if (matched) {
 			// e.g., move_to_link: 'movie (1985)', 'movie (disambiguation)'
-			//TODO
+			// TODO
 		}
 
 		if (this.keep_title) {
@@ -492,7 +530,7 @@ function replace_link_parameter(value, parameter_name, template_token) {
 
 	if (value && value.toString() === move_from_link) {
 		// e.g., {{Main|move_from_link}}
-		//console.log(template_token);
+		// console.log(template_token);
 		return parameter_name + '=' + move_to_link;
 	}
 
@@ -552,14 +590,14 @@ function for_each_template(token, index, parent) {
 		// [4], [6], ...
 		&& token[2] && CeL.wiki.normalize_title(token[2].toString()) === this.move_from_link) {
 		// e.g., {{Main2|案内文|move_from_link}}
-		//console.log(token);
+		// console.log(token);
 		token[2] = this.move_to_link;
 		return;
 	}
 
 	if (this.move_to_page_name && token.name === 'Pathnav') {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
-		//console.log(token);
+		// console.log(token);
 		if (this.move_from_ns === this.page_data.ns) {
 			token.forEach(function (value, index) {
 				if (index > 0 && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name) {
@@ -574,8 +612,8 @@ function for_each_template(token, index, parent) {
 
 	// old:
 	if (token.name === 'Template:Category:日本の都道府県/下位') {
-		//e.g., [[Category:北海道の市町村別]]
-		//{{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
+		// e.g., [[Category:北海道の市町村別]]
+		// {{Template:Category:日本の都道府県/下位|北海道|[[市町村]]別に分類したカテゴリ|市町村別に分類したカテゴリ|市町村|*}}
 		token.forEach(function (value, index) {
 			if (index === 0) return;
 			value = CeL.wiki.normalize_title(value.toString());
@@ -589,7 +627,7 @@ function for_each_template(token, index, parent) {
 }
 
 function for_each_page(page_data) {
-	//console.log(page_data.revisions[0].slots.main);
+	// console.log(page_data.revisions[0].slots.main);
 
 	if (this.text_processor) {
 		return this.text_processor(page_data.wikitext, page_data);
@@ -616,7 +654,7 @@ function for_each_page(page_data) {
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = page_data.parse();
-	//console.log(parsed);
+	// console.log(parsed);
 	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
 	this.page_data = page_data;
@@ -638,12 +676,12 @@ const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.spli
 
 /** {String}default namespace to search and replace */
 const default_namespace = 'main|file|module|template|category';
-//	'talk|template_talk|category_talk'
+// 'talk|template_talk|category_talk'
 
 async function main_move_process(options) {
 	let list_types;
 	if (typeof options.move_from_link === 'string') {
-		list_types = options.list_types || default_list_types;
+		list_types = options.move_from_link.startsWith('insource:') ? 'search' : options.list_types || default_list_types;
 	} else if (CeL.is_RegExp(options.move_from_link)) {
 		list_types = 'search';
 	} else {
@@ -688,20 +726,22 @@ async function main_move_process(options) {
 	page_list = page_list.filter((page_data) => {
 		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
 			&& page_data.ns !== CeL.wiki.namespace('User')
-			//&& !page_data.title.includes('/過去ログ')
+			// && !page_data.title.includes('/過去ログ')
 			;
 	});
 	page_list = page_list.unique(page_data => page_data.title);
-	//console.log(page_list);
+	// manually for debug
+	// page_list = ['']
+	// console.log(page_list);
 
 	await wiki.for_each_page(
-		page_list.slice(0, 1)
+		page_list// .slice(0, 1)
 		,
 		for_each_page.bind(options),
 		{
 			// for 「株式会社リクルートホールディングス」の修正
 			// for リクルートをパイプリンクにする
-			//page_options: { rvprop: 'ids|content|timestamp|user' },
+			// page_options: { rvprop: 'ids|content|timestamp|user' },
 			log_to: 'log_to' in options ? options.log_to : log_to,
 			summary
 		});
@@ -715,17 +755,17 @@ async function prepare_operation() {
 
 	if (typeof move_configuration === 'function') {
 		move_configuration = await move_configuration(wiki);
-		//console.log(move_configuration);
-		//console.log(Object.keys(move_configuration));
-		//throw Object.keys(move_configuration).length;
+		// console.log(move_configuration);
+		// console.log(Object.keys(move_configuration));
+		// throw Object.keys(move_configuration).length;
 	}
 
-	//Object.entries(move_configuration).forEach(main_move_process);
+	// Object.entries(move_configuration).forEach(main_move_process);
 	for (let pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
 		const [move_from_link, move_to_link] = [pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]), pair[1]];
 		let options = CeL.is_Object(move_to_link)
 			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
-			//assert: typeof move_to_link === 'string'
+			// assert: typeof move_to_link === 'string'
 			: { move_from_link, move_to_link };
 
 		const _log_to = 'log_to' in options ? options.log_to : log_to;
@@ -769,7 +809,7 @@ async function prepare_operation() {
 					} else {
 						console.error(e);
 					}
-					//continue;
+					// continue;
 				}
 			}
 		}
