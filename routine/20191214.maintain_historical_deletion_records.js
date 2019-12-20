@@ -415,7 +415,9 @@ async function main_process() {
 	page_list = page_list.unique(page_data => page_data.title);
 	// recover
 	page_list.each = each;
-	await page_list.each(for_each_page_including_vfd_template);
+	await page_list.each(for_each_page_including_vfd_template, {
+		no_message: true
+	});
 	// console.log(deletion_flags_of_page);
 
 	// ----------------------------------------------------
@@ -432,7 +434,9 @@ async function main_process() {
 		CeL.warn('main_process: No archived deletion discussion to check!');
 	} else {
 		// console.log(vfd_page_list);
-		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page);
+		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page, {
+			no_message: true
+		});
 	}
 
 	// ----------------------------------------------------
