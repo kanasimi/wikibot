@@ -201,10 +201,11 @@ async function check_deletion_discussion_page(page_data) {
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍掛上 {{tl|Substub}}、{{tl|小小作品}} 或 {{tl|小小條目}} 模板的[[WP:NOTE|條目]]
 		// 30天后仍掛有{{tl|notability}}模板的條目 30天后仍掛有{{tl|notability}}模板的條目
+		//  超過30天條目未能突顯其[[Wikipedia:知名度|知名度]]或[[wikipedia:重要性|重要性]]
 		// 過期小小作品 到期篩選的小小作品 台灣學校相關模板 一堆模板-5 又一堆模板 再一堆模板 废弃的化学信息框相关模板 一些年代条目
 		// 關注度提刪 關注度到期 批量模板提刪 批量提刪
 		if (// section.section_title.level <= 4 &&
-			/天[後后]?仍[排掛][有上]|[過到]期.*作品|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個|批量).*(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)/.test(section_title_text)
+			/天[後后]?仍[排掛][有上]|超[過过].{2,3}天|[過到]期.*作品|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個|批量).*(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)/.test(section_title_text)
 			// 模板重定向 繁简重定向 一些外語重定向 绘文字重定向
 			|| /重定向$/.test(section_title_text)
 			|| /^(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)$/.test(section_title_text)
@@ -222,7 +223,12 @@ async function check_deletion_discussion_page(page_data) {
 				// 這會順便忽略 "-->", "->"
 				return /[^,;:.'"\s→、\[\]\/\->「」『』…]/.test(token);
 			}
-			if (token.tag === 's' || token.tag === 'del') {
+			if (token.tag in {
+				s: true,
+				del: true,
+				//[[Wikipedia:删除投票和请求/2007年9月1日]] <span id="rub1">{{al|淆底|群腳仔|9up|膠理論|淆鴨|李汝俊}}</span>
+				span: true
+			}) {
 				return false;
 			}
 			return title_to_delete = token;
@@ -240,14 +246,33 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
-		function for_Al(title_token) {
+		function for_template(title_token) {
 			const page_title_list = CeL.wiki.template_functions.zh_Al.parse(title_token);
 			if (page_title_list && page_title_list.length > 0) {
 				page_title_list.forEach((title) => add_page(title, section, flags));
 				return true;
 			}
+
+			if (title_token.name === 'A') {
+				title_token = title_token.parameters[1];
+				if (title_token) {
+					add_page(title_token, section, flags);
+					return true;
+				}
+			}
+
+			if (title_token.name === 'Tl') {
+				//[[Wikipedia:删除投票和请求/2007年1月5日]] {{tl|cnPublicationLaw}}
+				title_token = title_token.parameters[1];
+				if (!title_token.includes(':'))
+					title_token = 'Template:' + title_token;
+				if (title_token) {
+					add_page(title_token, section, flags);
+					return true;
+				}
+			}
 		}
-		if (for_Al(title_to_delete)) return;
+		if (for_template(title_to_delete)) return;
 
 		if (title_to_delete && title_to_delete.converted) {
 			if (title_to_delete.converted.is_link) {
@@ -259,7 +284,7 @@ async function check_deletion_discussion_page(page_data) {
 				// == -{
 				// {{al|Template:東鐵綫未來發展車站列表|Template:南北線車站列表|Template:南北綫車站列表}}
 				// }- ==
-				&& title_to_delete.converted.some(for_Al)) {
+				&& title_to_delete.converted.some(for_template)) {
 				return;
 			}
 		}
