@@ -26,15 +26,18 @@ const notification_template = 'Template:' + CeL.wiki.template_functions.Old_vfd_
 // [[維基百科:刪除投票和請求/2006年4月13日]]開始有依照段落來分割討論的格式。
 // [[維基百科:刪除投票和請求/2006年5月2日]]開始有{{delh|}}標示處理結果。
 const start_date = '2006-05-02';
-// const start_date = '2018/05/13';
+// const start_date = '2008/01/06';
 
 // 刪除投票分拆方案已經通過，並將於2008年8月12日起正式分拆。
 const revision_date = Date.parse('2008-08-12');
 
 const end_date = Date.now();
 // const end_date = Date.parse('2018/05/13');
+// const end_date = Date.parse(start_date);
 
-const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
+const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
+// const FLAG_TO_ADD = 'need add';
+
 // deletion_flags_of_page[page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 let deletion_flags_of_page = Object.create(null);
@@ -64,7 +67,7 @@ async function main_process() {
 	// free
 	deletion_flags_of_page = null;
 
-	// 跑到這邊約需要 2.5小時。
+	// 全副武裝測試，跑到這邊約需要 2.5小時。
 	CeL.info('Check ' + Object.keys(pages_to_modify).length + ' pages if need modify...');
 	// console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
@@ -81,6 +84,8 @@ async function main_process() {
 async function get_pages_embeddedin_notification_template() {
 	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
 	let page_list = await wiki.embeddedin(notification_template);
+	// 現在 CeL.wiki.template_functions.Old_vfd_multi.parse_page()
+	// 讀得懂的只有 {{Old vfd multi}}、{{Article history}} 這兩種模板。
 	page_list.append(await wiki.embeddedin('Article history'));
 
 	const each = page_list.each;
@@ -112,6 +117,8 @@ function for_each_page_including_vfd_template(page_data) {
 	item_list.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
+		// 預先設定。
+		discussion.bot_checked = FLAG_TO_REMOVE;
 		discussions.push(discussion);
 	});
 
@@ -155,8 +162,14 @@ async function check_deletion_discussion_page(page_data) {
 	// console.log(page_data.wikitext);
 	const parsed = page_data.parse();
 	let page_list = [];
+	const normalized_page_title = page_data.title;
 	const flags_of_page = Object.create(null);
-	flags_of_page[KEY_title] = page_data.title;
+	flags_of_page[KEY_title] = normalized_page_title;
+
+	// console.log(normalized_page_title);
+	const matched = normalized_page_title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
+		|| normalized_page_title.match(/\/(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3], 'CE');
 
 	function add_page(title, section, flags) {
 		title = CeL.wiki.normalize_title(title && title.toString());
@@ -187,10 +200,24 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		const flags = CeL.wiki.template_functions.Hat.parse(section);
+		if (false && section.section_title.title === '香港浸會園') {
+			console.log(section.section_title);
+			console.log(flags);
+		}
 
-		if (!flags || !flags.result) {
+		if (!flags) {
 			// Skip non-discussions
 			return;
+		}
+		if (!flags.result) {
+			// 對付早期未設定 {{delh}} 之 result，{{ArticleHistory}} 卻有更詳細資訊的情況。
+			// e.g., [[Wikipedia:删除投票和请求/2008年1月6日#香港浸會園]]
+			const discussions = deletion_flags_of_page[normalized_page_title]
+				|| pages_to_modify[normalized_page_title];
+			console.log(discussions);
+			if (!discussions || discussions.every(discussion => discussion.JDN !== JDN)) {
+				return;
+			}
 		}
 
 		const section_title_text = section.section_title.join('').trim();
@@ -201,21 +228,25 @@ async function check_deletion_discussion_page(page_data) {
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍掛上 {{tl|Substub}}、{{tl|小小作品}} 或 {{tl|小小條目}} 模板的[[WP:NOTE|條目]]
 		// 30天后仍掛有{{tl|notability}}模板的條目 30天后仍掛有{{tl|notability}}模板的條目
-		//  超過30天條目未能突顯其[[Wikipedia:知名度|知名度]]或[[wikipedia:重要性|重要性]]
+		// 超過30天條目未能突顯其[[Wikipedia:知名度|知名度]]或[[wikipedia:重要性|重要性]]
+		// 到期篩選的未符合「[[Wikipedia:知名度|知名度]]或[[wikipedia:重要性|重要性]]」標準的條目
 		// 過期小小作品 到期篩選的小小作品 台灣學校相關模板 一堆模板-5 又一堆模板 再一堆模板 废弃的化学信息框相关模板 一些年代条目
 		// 關注度提刪 關注度到期 批量模板提刪 批量提刪
 		if (// section.section_title.level <= 4 &&
-			/天[後后]?仍[排掛][有上]|超[過过].{2,3}天|[過到]期.*作品|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個|批量).*(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)/.test(section_title_text)
+			/天[後后]?仍[排掛][有上]|超[過过].{2,3}天|[過到]期.*作品|到期篩選|相[關关]模板|關注度|(?:一[堆些]|[幾\d]個|批量|更多).*(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|消歧頁|圖片|專題|分類|提刪)/.test(section_title_text)
 			// 模板重定向 繁简重定向 一些外語重定向 绘文字重定向
 			|| /重定向$/.test(section_title_text)
-			|| /^(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|提刪)$/.test(section_title_text)
+			// <span id="cannot-submit">{{red|'''錯誤：沒有填寫檔案名稱'''}}</span>
+			|| section_title_text.includes('沒有填寫檔案名稱')
+			|| /^(?:模板|頁面|页面|條目|条目|列表|討論頁|讨论页|消歧頁|圖片|專題|分類|提刪)$/.test(section_title_text)
 		) {
 			return;
 		}
 
 		// ----------------------------------------------------------
 
-		flags.result = flags.result.toString();
+		if (flags.result)
+			flags.result = flags.result.toString();
 
 		let title_to_delete;
 		section.section_title.some((token) => {
@@ -226,7 +257,8 @@ async function check_deletion_discussion_page(page_data) {
 			if (token.tag in {
 				s: true,
 				del: true,
-				//[[Wikipedia:删除投票和请求/2007年9月1日]] <span id="rub1">{{al|淆底|群腳仔|9up|膠理論|淆鴨|李汝俊}}</span>
+				// [[Wikipedia:删除投票和请求/2007年9月1日]]
+				// <span id="rub1">{{al|淆底|群腳仔|9up|膠理論|淆鴨|李汝俊}}</span>
 				span: true
 			}) {
 				return false;
@@ -237,6 +269,12 @@ async function check_deletion_discussion_page(page_data) {
 		if (!title_to_delete && section.section_title.length === 1) {
 			// e.g., ==<s>[[:AngelTalk]]</s>==
 			title_to_delete = section.section_title[0];
+		}
+
+		if (title_to_delete && title_to_delete.tag) {
+			// title_to_delete[1].type: 'tag_inner'
+			// title_to_delete[1].length should be 1
+			title_to_delete = title_to_delete[1][0];
 		}
 
 		if (title_to_delete && title_to_delete.is_link) {
@@ -253,6 +291,9 @@ async function check_deletion_discussion_page(page_data) {
 				return true;
 			}
 
+			if (!title_token)
+				return;
+
 			if (title_token.name === 'A') {
 				title_token = title_token.parameters[1];
 				if (title_token) {
@@ -262,7 +303,7 @@ async function check_deletion_discussion_page(page_data) {
 			}
 
 			if (title_token.name === 'Tl') {
-				//[[Wikipedia:删除投票和请求/2007年1月5日]] {{tl|cnPublicationLaw}}
+				// [[Wikipedia:删除投票和请求/2007年1月5日]] {{tl|cnPublicationLaw}}
 				title_token = title_token.parameters[1];
 				if (!title_token.includes(':'))
 					title_token = 'Template:' + title_token;
@@ -290,18 +331,20 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		// 去掉無效請求，或最終保留的：無傷大雅。
-		if ((flags.result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
+		if (flags.result && (flags.result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
 			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效
 			// 提案者重复提出，请求失效。见下。 改掛關注度模板，三十天後再議
 			|| /[撤收]回|[無无失]效|未到期|天後再議|快速保留|速留/.test(flags.result)) {
 			return;
 		}
 
-		const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result);
+		if (flags.result) {
+			const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result);
 
-		if (section.section_title.length === 1 && typeof section.section_title[0] === 'string') {
-			CeL.log('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' ' + section.section_title[0] + ': ' + text_of_result);
-			return;
+			if (section.section_title.length === 1 && typeof section.section_title[0] === 'string') {
+				CeL.log('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' ' + section.section_title[0] + ': ' + text_of_result);
+				return;
+			}
 		}
 
 		CeL.error('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' 無法解析出欲刪除之頁面標題: ' + section_title_text);
@@ -323,10 +366,6 @@ async function check_deletion_discussion_page(page_data) {
 	flags_of_page[KEY_page_list] = page_list;
 	// console.log(page_list);
 
-	// console.log(page_data.title);
-	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
-		|| page_data.title.match(/\/(\d{4})年(\d{1,2})月(\d{1,2})日$/);
-	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3], 'CE');
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
@@ -381,17 +420,18 @@ async function check_deletion_page(JDN, page_data) {
 		// return;
 	}
 
-	const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result, true);
+	const text_of_result = flags.result && CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result, true);
 
 	const discussions = deletion_flags_of_page[normalized_page_title]
 		|| pages_to_modify[normalized_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_page_title] = []);
 	// console.log(discussions);
-	let bingo, need_modify;
+	let bingo, need_modify = 1;
 	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
+
 		if (bingo) {
 			need_modify = 'duplicated';
 			discussion.bot_checked = FLAG_DUPLICATED;
@@ -399,14 +439,19 @@ async function check_deletion_page(JDN, page_data) {
 		}
 
 		bingo = true;
+		discussion.bot_checked = FLAG_CHECKED;
 		// 照理 flags.page 應已在 add_page() 設定。
 		if (flags.page && discussion.page !== flags.page) {
 			// using `flags.page` as anchor
 			discussion.page = flags.page;
-			need_modify = 'page';
+			// 光是有 .page 還不作更改。
+			// e.g., [[Talk:土木系]]
+			// need_modify = 'page';
 		}
 
-		if (discussion.hat_result !== flags.result) {
+		// 有時可能無 flags.result。
+		// e.g., [[Wikipedia:删除投票和请求/2008年1月6日#香港浸會園]]
+		if (flags.result && discussion.hat_result !== flags.result) {
 			discussion.hat_result = flags.result;
 			if (discussion.result !== flags.result && discussion.result !== text_of_result) {
 				discussion.result = text_of_result;
@@ -421,6 +466,7 @@ async function check_deletion_page(JDN, page_data) {
 	});
 
 	if (!bingo) {
+		// assert: !!flags.result === !!text_of_result === true
 		need_modify = 'add';
 		CeL.debug('Add ' + CeL.wiki.title_link_of(normalized_page_title) + ' to pages_to_modify.', 1, 'check_deletion_page');
 		discussions.push({
@@ -429,7 +475,8 @@ async function check_deletion_page(JDN, page_data) {
 			page: flags.page /* || page_title */,
 			result: text_of_result,
 			hat_result: text_of_result !== flags.result && flags.result,
-			// bot_checked : FLAG_CHECKED,
+			// FLAG_TO_ADD: need add
+			bot_checked: FLAG_CHECKED,
 			JDN
 		});
 		// console.log(discussions);
@@ -455,7 +502,7 @@ async function modify_pages() {
 		});
 
 		// ----------------------------
-		if (false) {
+		if (false || 1) {
 			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
@@ -470,7 +517,9 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (edit_count > 50) break;
+		if (edit_count > 0
+			&& !page_title.includes('香港浸會園')
+		) continue;
 		// ----------------------------
 
 		try {
