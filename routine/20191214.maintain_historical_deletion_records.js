@@ -30,7 +30,7 @@ const start_date = '2018/05/13';
 const revision_date = Date.parse('2008-08-12');
 
 //const end_date = Date.now();
-const end_date = Date.parse('2018/05/14');
+const end_date = Date.parse('2018/05/13');
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
@@ -70,8 +70,12 @@ async function main_process() {
 	const vfd_page_list = [];
 	// if (typeof end_date === 'string') end_date = end_date.to_Date();
 	for (let date = new Date(start_date); date - end_date <= 0; date.setDate(date.getDate() + 1)) {
-		// await check_deletion_page_of_date(JDN);
-		vfd_page_list.push(date.format(date - revision_date < 0 ? 'Wikipedia:删除投票和请求/%Y年%m月%d日' : 'Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'));
+		if (date.getTime() < revision_date) {
+			vfd_page_list.push(date.format('Wikipedia:删除投票和请求/%Y年%m月%d日'));
+		} else {
+			vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'),
+				date.format('Wikipedia:檔案存廢討論/記錄/%Y/%2m/%2d'));
+		}
 	}
 
 	if (vfd_page_list.length === 0) {
@@ -128,7 +132,6 @@ function for_each_page_including_vfd_template(page_data) {
 
 // ----------------------------------------------------------------------------
 
-const Hat_names = CeL.wiki.template_functions.Hat.names;
 const KEY_title = Symbol('title');
 const KEY_page_list = Symbol('page list');
 
@@ -162,24 +165,16 @@ async function check_deletion_discussion_page(page_data) {
 			return;
 		}
 
-		const flags = Object.create(null);
-		section.each('template', (token) => {
-			// {{Talkendh|處理結果}}
-			if ((token.name in Hat_names) && (flags.result = token.parameters[1])) {
-				if (token.parameters[2]) {
-					flags.target = token.parameters[2];
-				}
-				// 僅以第一個有結論的為主。 e.g., [[Wikipedia:頁面存廢討論/記錄/2010/09/26#158]]
-				return section.each.exit;
-			}
-		});
+		const flags = CeL.wiki.template_functions.Hat.parse(section);
 
-		if (!flags.result) {
+		if (!flags || !flags.result) {
 			// Skip non-discussions
 			return;
 		}
 
 		const section_title_text = section.section_title.join('').trim();
+		 console.log({ section_title_text, flags });
+
 		// [[31]]天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍排上 {{fame}} 或 {{importance}} 模板的條目
 		// 30天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
@@ -264,7 +259,6 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		CeL.error('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' 無法解析出欲刪除之頁面標題: ' + section_title_text);
-		// console.log({ title, flags });
 		// console.log(section.section_title);
 	}
 	parsed.each_section(for_each_section, {
