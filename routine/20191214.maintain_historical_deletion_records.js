@@ -23,14 +23,16 @@ use_language = 'zh';
 
 const notification_template = 'Template:' + CeL.wiki.template_functions.Old_vfd_multi.main_name;
 
-//const start_date = '2008-08-12';
-const start_date = '2018/05/13';
+// [[維基百科:刪除投票和請求/2006年4月13日]]開始有依照段落來分割討論的格式。
+// [[維基百科:刪除投票和請求/2006年5月2日]]開始有{{delh|}}標示處理結果。
+const start_date = '2006-05-02';
+// const start_date = '2018/05/13';
 
 // 刪除投票分拆方案已經通過，並將於2008年8月12日起正式分拆。
 const revision_date = Date.parse('2008-08-12');
 
-//const end_date = Date.now();
-const end_date = Date.parse('2018/05/13');
+const end_date = Date.now();
+// const end_date = Date.parse('2018/05/13');
 
 const FLAG_CHECKED = 'OK', FLAG_TO_ADD = 'need add', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
 // deletion_flags_of_page[page_title]
@@ -51,41 +53,11 @@ async function main_process() {
 	// const page_data = await wiki.page(notification_template);
 	// console.log(page_data.wikitext);
 
-	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
-	let page_list = await wiki.embeddedin(notification_template);
-	page_list.append(await wiki.embeddedin('Article history'));
-	const each = page_list.each;
-	// 可能有重複頁面。
-	page_list = page_list.unique(page_data => page_data.title);
-	// recover
-	page_list.each = each;
-	await page_list.each(for_each_page_including_vfd_template, {
-		no_message: true
-	});
-	// console.log(deletion_flags_of_page);
+	await get_pages_embeddedin_notification_template();
 
 	// ----------------------------------------------------
 
-	CeL.info('Get all archived deletion discussions...');
-	const vfd_page_list = [];
-	// if (typeof end_date === 'string') end_date = end_date.to_Date();
-	for (let date = new Date(start_date); date - end_date <= 0; date.setDate(date.getDate() + 1)) {
-		if (date.getTime() < revision_date) {
-			vfd_page_list.push(date.format('Wikipedia:删除投票和请求/%Y年%m月%d日'));
-		} else {
-			vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'),
-				date.format('Wikipedia:檔案存廢討論/記錄/%Y/%2m/%2d'));
-		}
-	}
-
-	if (vfd_page_list.length === 0) {
-		CeL.warn('main_process: No archived deletion discussion to check!');
-	} else {
-		// console.log(vfd_page_list);
-		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page, {
-			no_message: true
-		});
-	}
+	await get_deletion_discussions();
 
 	// ----------------------------------------------------
 
@@ -105,6 +77,23 @@ async function main_process() {
 }
 
 // ----------------------------------------------------------------------------
+
+async function get_pages_embeddedin_notification_template() {
+	CeL.info('Get pages embeddedin ' + CeL.wiki.title_link_of(notification_template) + '...');
+	let page_list = await wiki.embeddedin(notification_template);
+	page_list.append(await wiki.embeddedin('Article history'));
+
+	const each = page_list.each;
+	// 可能有重複頁面。
+	page_list = page_list.unique(page_data => page_data.title);
+	// recover
+	page_list.each = each;
+
+	await page_list.each(for_each_page_including_vfd_template, {
+		no_message: true
+	});
+	// console.log(deletion_flags_of_page);
+}
 
 function for_each_page_including_vfd_template(page_data) {
 	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data);
@@ -132,10 +121,37 @@ function for_each_page_including_vfd_template(page_data) {
 
 // ----------------------------------------------------------------------------
 
+async function get_deletion_discussions() {
+	CeL.info('Get all archived deletion discussions...');
+
+	const vfd_page_list = [];
+	// if (typeof end_date === 'string') end_date = end_date.to_Date();
+	for (let date = new Date(start_date); date - end_date <= 0; date.setDate(date.getDate() + 1)) {
+		if (date.getTime() < revision_date) {
+			vfd_page_list.push(date.format('Wikipedia:删除投票和请求/%Y年%m月%d日'));
+		} else {
+			vfd_page_list.push(date.format('Wikipedia:頁面存廢討論/記錄/%Y/%2m/%2d'),
+				date.format('Wikipedia:檔案存廢討論/記錄/%Y/%2m/%2d')
+			);
+		}
+	}
+
+	if (vfd_page_list.length === 0) {
+		CeL.warn('get_deletion_discussions: No archived deletion discussion to check!');
+	} else {
+		// console.log(vfd_page_list);
+		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page, {
+			no_warning: true,
+			no_message: true
+		});
+	}
+}
+
 const KEY_title = Symbol('title');
 const KEY_page_list = Symbol('page list');
 
 async function check_deletion_discussion_page(page_data) {
+	// console.log(page_data);
 	// console.log(page_data.wikitext);
 	const parsed = page_data.parse();
 	let page_list = [];
@@ -143,19 +159,24 @@ async function check_deletion_discussion_page(page_data) {
 	flags_of_page[KEY_title] = page_data.title;
 
 	function add_page(title, section, flags) {
-		title = title && title.toString();
-		const page = CeL.wiki.normalize_title(title);
-		if (!page)
+		title = CeL.wiki.normalize_title(title && title.toString());
+		if (!title)
 			return;
-		// 跳過無效的刪除請求：這些請求沒必要特別註記。
-		if (flags.result in { ir: true, rr: true, sk: true, drep: true, nq: true, ne: true, rep: true })
+		if (flags.result in {
+			// 跳過無效的刪除請求：這些請求沒必要特別註記。
+			ir: true, rr: true,
+			// e.g., [[香港浸會園]]
+			// sk: true, drep: true,
+			nq: true, ne: true, rep: true
+		}) {
 			return;
+		}
 
 		// console.log(section.section_title.link);
 		// using `flags.page` as anchor
 		flags.page = section.section_title.link[1];
-		flags_of_page[page] = flags;
-		page_list.push(page);
+		flags_of_page[title] = flags;
+		page_list.push(title);
 	}
 
 	function for_each_section(section, index) {
@@ -173,7 +194,7 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		const section_title_text = section.section_title.join('').trim();
-		 console.log({ section_title_text, flags });
+		// console.log({ section_title_text, flags });
 
 		// [[31]]天仍掛上 {{tl|fame}} 或 {{tl|notability}} 模板的[[WP:NOTE|條目]]
 		// 30天仍排上 {{fame}} 或 {{importance}} 模板的條目
@@ -266,7 +287,9 @@ async function check_deletion_discussion_page(page_data) {
 		// Wikipedia:頁面存廢討論/記錄/2018/06/26
 		level_filter: [2, 3, 4]
 	});
-	page_list = page_list.unique();
+	page_list = page_list
+		// .map(page_title => page_title.toString())
+		.unique();
 	if (false) {
 		CeL.info(CeL.wiki.title_link_of(page_data) + ': ' + page_list.length + ' discussions.');
 		console.log(page_list);
@@ -291,8 +314,9 @@ async function check_deletion_discussion_page(page_data) {
 }
 
 async function check_deletion_page(JDN, page_data) {
+	// console.log(page_data);
 	// Check if the main page does not exist.
-	if ('missing' in page_data) {
+	if (!page_data || ('missing' in page_data)) {
 		// The page is not exist now. No-need to add `notification_template`.
 		return;
 	}
@@ -405,7 +429,7 @@ async function modify_pages() {
 		});
 
 		// ----------------------------
-		if (1) {
+		if (false) {
 			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
