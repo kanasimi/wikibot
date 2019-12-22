@@ -299,7 +299,8 @@ async function check_deletion_discussion_page(page_data) {
 	// console.log(page_list);
 
 	// console.log(page_data.title);
-	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+	const matched = page_data.title.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
+		|| page_data.title.match(/\/(\d{4})年(\d{1,2})月(\d{1,2})日$/);
 	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3], 'CE');
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
@@ -444,7 +445,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (edit_count > 500) break;
+		if (edit_count > 50) break;
 		// ----------------------------
 
 		try {
