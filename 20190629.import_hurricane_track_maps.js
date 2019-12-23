@@ -245,7 +245,9 @@ function upload_media(media_data) {
 	// TODO: using `.id`. e.g., "WP0719": Northwest Pacific
 	// area.includes('north indian') ? 'North Indian Ocean' :
 	area.includes('pacific') ? 'Pacific'
-			: area.includes('atlantic') ? 'Atlantic' : null;
+			: area.includes('atlantic') ? 'Atlantic'
+			// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
+			: area === 'southern hemisphere' ? 'Southern Hemisphere' : null;
 	if (!track_maps_category) {
 		CeL.error('Unknown area: ' + area);
 		console.log(media_data);
@@ -587,7 +589,9 @@ function for_each_JTWC_cyclone(html, media_data) {
 
 	</code>
 	 */
-	var NO, full_name = html.between(null, '</b>')
+	var NO, full_name = (html.between(null, '</b>')
+	// 可能有 "<b><b>Tropical Cyclone 02S (Belna) Warning #03 <b><br>"
+	|| html.between(null, '<br>'))
 	// Warnings.
 	// Warning #05
 	.replace(/\s+\#(\d+).*/, function(all, _NO) {
