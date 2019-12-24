@@ -41,8 +41,8 @@ const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'dupl
 // deletion_flags_of_page[main_page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 let deletion_flags_of_page = Object.create(null);
-// pages_to_modify[main_page_title] = [ {date:'',result:'',...,bot_checked:''},
-// ... ]
+// pages_to_modify[main_page_title]
+// = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
 
 // ----------------------------------------------------------------------------
@@ -256,7 +256,7 @@ async function check_deletion_discussion_page(page_data) {
 		section.section_title.some((token) => {
 			if (typeof token === 'string') {
 				// 這會順便忽略 "-->", "->"
-				return /[^,;:.'"\s→、\[\]\/\->「」『』…]/.test(token);
+				return /[^,;:.'"\s→、\[\]\/\->「」『』“”…]/.test(token);
 			}
 			if (token.tag in {
 				s: true,
@@ -279,6 +279,11 @@ async function check_deletion_discussion_page(page_data) {
 			// title_to_delete[1].type: 'tag_inner'
 			// title_to_delete[1].length should be 1
 			title_to_delete = title_to_delete[1][0];
+		}
+
+		if (title_to_delete && title_to_delete.type === 'bold') {
+			// '''[[李日昇]]'''
+			title_to_delete = title_to_delete[0];
 		}
 
 		if (title_to_delete && title_to_delete.is_link) {
@@ -521,7 +526,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (// edit_count > 50 &&
+		if (false &&// edit_count > 50 &&
 			!page_title.includes('香港浸會園')
 		) continue;
 		// ----------------------------
@@ -531,7 +536,7 @@ async function modify_pages() {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				bot: 1,
-				summary: '[[Wikipedia:机器人/申请/Cewbot/21|bot test]]: 維護討論頁之存廢討論紀錄與模板'
+				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
