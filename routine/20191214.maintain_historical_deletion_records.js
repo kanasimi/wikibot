@@ -387,17 +387,20 @@ async function check_deletion_discussion_page(page_data) {
 	// console.log(pages_to_modify);
 }
 
+const NS_User = CeL.wiki.namespace('User');
+
 async function check_deletion_page(JDN, page_data) {
 	// console.log(page_data);
-	// Check if the main page does not exist.
-	if (!page_data || ('missing' in page_data)) {
+	if (!page_data
+		// Check if the main page does not exist.
 		// The page is not exist now. No-need to add `notification_template`.
-		return;
-	}
-
-	if (CeL.wiki.parse.redirect(page_data)) {
+		|| ('missing' in page_data)
 		// Should not create talk page when the main page is a redirect page.
 		// e.g., [[326]]
+		|| CeL.wiki.parse.redirect(page_data)
+		// Should not edit user page. 不應該編輯使用者頁面。
+		|| page_data.ns === NS_User
+	) {
 		return;
 	}
 
