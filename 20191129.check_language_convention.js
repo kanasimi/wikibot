@@ -20,56 +20,56 @@ use_language = 'zh';
 
 const main_category = 'Category:公共轉換組模板';
 const report_base = 'Wikipedia:字詞轉換處理/公共轉換組/';
-const convention_list_page = report_base + '各頁面包含字詞';
+const conversion_list_page = report_base + '各頁面包含字詞';
 const duplicated_report_page = report_base + '重複字詞報告';
-const convention_table_file = 'convention_table.' + use_language + '.json';
+const conversion_table_file = 'conversion_table.' + use_language + '.json';
 
 // ----------------------------------------------------------------------------
 
 const KEY_page = Symbol('page');
 
-// convention_table[string] = {'zh-tw':'string', ...}
-const convention_table = Object.create(null);
+// conversion_table[string] = {'zh-tw':'string', ...}
+const conversion_table = Object.create(null);
 
-// convention_of_page[page_title] = [ string, string, ... ];
-const convention_of_page = Object.create(null);
+// conversion_of_page[page_title] = [ string, string, ... ];
+const conversion_of_page = Object.create(null);
 
 // duplicated_items[string] = [ pages ]
 const duplicated_items = Object.create(null);
 
-function add_duplicated(string, from_convention, to_convention) {
+function add_duplicated(string, from_conversion, to_conversion) {
 	if (CeL.is_debug()) {
 		CeL.warn('add_duplicated: Overwrite ' + JSON.stringify(string));
-		console.log(from_convention);
+		console.log(from_conversion);
 		CeL.info(string + ' →');
-		console.log(to_convention);
+		console.log(to_conversion);
 	} else if (false) {
 		CeL.warn('add_duplicated: ' + JSON.stringify(string)
-			+ ': ' + from_convention[KEY_page].title
-			+ ' → ' + to_convention[KEY_page].title);
+			+ ': ' + from_conversion[KEY_page].title
+			+ ' → ' + to_conversion[KEY_page].title);
 	}
 
 	if (duplicated_items[string]) {
 		duplicated_items[string].push(
-			CeL.wiki.title_link_of(to_convention[KEY_page])
+			CeL.wiki.title_link_of(to_conversion[KEY_page])
 		);
 	} else {
 		duplicated_items[string] = [
-			CeL.wiki.title_link_of(from_convention[KEY_page]),
-			CeL.wiki.title_link_of(to_convention[KEY_page])
+			CeL.wiki.title_link_of(from_conversion[KEY_page]),
+			CeL.wiki.title_link_of(to_conversion[KEY_page])
 		];
 	}
 }
 
-function add_convention(item, from_page) {
+function add_conversion(item, from_page) {
 	// console.log(item);
 	// console.log(from_page);
 	if (!item || item.type !== 'item')
 		return;
 
-	const parsed = CeL.wiki.parse('-{H|' + item.rule + '}-'
-		// + ' ': 當作 page，取得 .conversion_table。
-		+ ' ');
+	const parsed = CeL.wiki.parse('-{H|' + item.rule + '}-',
+		// 當作 page，取得 .conversion_table。
+		'with_properties');
 	let table = parsed.conversion_table;
 	if (!table) {
 		if (typeof parsed[0].converted === 'string') {
@@ -86,7 +86,7 @@ function add_convention(item, from_page) {
 
 			</code>
 			 */
-			CeL.warn('add_convention: Can not parse:');
+			CeL.warn('add_conversion: Can not parse:');
 			console.log(item);
 			return;
 		}
@@ -94,19 +94,19 @@ function add_convention(item, from_page) {
 	// console.log(table);
 
 	for (let [string, conv] of Object.entries(table)) {
-		if (!convention_of_page[from_page.title])
-			convention_of_page[from_page.title] = [];
-		convention_of_page[from_page.title].push(string);
+		if (!conversion_of_page[from_page.title])
+			conversion_of_page[from_page.title] = [];
+		conversion_of_page[from_page.title].push(string);
 
 		if (conv.conversion)
 			conv = conv.conversion;
 		// console.log([string, conv]);
 		conv[KEY_page] = from_page;
-		if ((string in convention_table)
-			&& convention_table[string][KEY_page] !== from_page) {
-			add_duplicated(string, convention_table[string], conv);
+		if ((string in conversion_table)
+			&& conversion_table[string][KEY_page] !== from_page) {
+			add_duplicated(string, conversion_table[string], conv);
 		}
-		convention_table[string] = conv;
+		conversion_table[string] = conv;
 	}
 }
 
@@ -130,10 +130,10 @@ async function for_each_page(page_data, index, conversion_group_list) {
 	page_data = await wiki.page(page_data);
 	// console.log(page_data);
 
-	const convention_item_list = CeL.wiki.template_functions.parse_convention_item(page_data);
-	convention_item_list.forEach((item) => add_convention(item, page_data));
+	const conversion_item_list = CeL.wiki.template_functions.parse_conversion_item(page_data);
+	conversion_item_list.forEach((item) => add_conversion(item, page_data));
 	CeL.info((index + 1) + '/' + conversion_group_list.length
-		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + convention_item_list.length + ' items.');
+		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + conversion_item_list.length + ' items.');
 }
 
 // ----------------------------------------------------------------------------
@@ -211,18 +211,18 @@ function ascending(a, b) {
 	return a < b ? -1 : a > b ? 1 : 0;
 }
 
-async function write_convention_list() {
-	CeL.info('Writing report to ' + CeL.wiki.title_link_of(convention_list_page) + '...');
+async function write_conversion_list() {
+	CeL.info('Writing report to ' + CeL.wiki.title_link_of(conversion_list_page) + '...');
 	const report_array = [];
-	for (let [page_title, convention_list] of Object.entries(convention_of_page)) {
-		convention_list = convention_list.sort().unique();
-		report_array.push([CeL.wiki.title_link_of(page_title) + ' (' + convention_list.length + ')',
-		'data-sort-value="' + convention_list.length + '"|' + convention_list.join('; ')]);
+	for (let [page_title, conversion_list] of Object.entries(conversion_of_page)) {
+		conversion_list = conversion_list.sort().unique();
+		report_array.push([CeL.wiki.title_link_of(page_title) + ' (' + conversion_list.length + ')',
+		'data-sort-value="' + conversion_list.length + '"|' + conversion_list.join('; ')]);
 	}
 	const count = report_array.length;
 	report_array.sort(ascending);
 	report_array.unshift('公共轉換組頁面|定義的詞彙'.split('|'));
-	await wiki.edit_page(convention_list_page,
+	await wiki.edit_page(conversion_list_page,
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
 		+ '總共' + count + '個公共轉換組頁面。\n'
@@ -258,6 +258,8 @@ async function write_duplicated_report() {
 		+ CeL.wiki.array_to_table(report_array, {
 			'class': "wikitable sortable"
 		}), {
+		// {{bots|optout=VFD}}
+		notification: 'VFD',
 		nocreate: 1,
 		summary: count + '個重複詞彙'
 	});
@@ -270,11 +272,11 @@ async function main_process() {
 	await check_system_pages();
 	await check_CGroup_pages();
 
-	const pages = await write_convention_list();
+	const pages = await write_conversion_list();
 
 	const items = await write_duplicated_report();
 
-	CeL.write_file(convention_table_file, convention_table);
+	CeL.write_file(conversion_table_file, conversion_table);
 	CeL.info((new Date).format() + '	' + pages + ' pages, ' + items + ' items done.');
 }
 
