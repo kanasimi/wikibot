@@ -1164,7 +1164,7 @@ function start_PAGASA() {
 		author : '{{label|Q747963}}',
 		license : '{{PD-PhilippinesGov}}',
 		categories : [ 'Category:Typhoon track maps by PAGASA' ],
-		source_url : base_URL + 'tropical-cyclone/severe-weather-bulletin'
+		source_url : base_URL + 'tropical-cyclone/severe-weather-bulletin/2'
 	};
 
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
