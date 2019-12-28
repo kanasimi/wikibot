@@ -35,7 +35,7 @@ const end_date = Date.now();
 // const end_date = Date.parse('2018/05/13');
 // const end_date = Date.parse(start_date);
 
-const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated';
+const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated', FLAG_CONFLICTED = 'conflicted';
 // const FLAG_TO_ADD = 'need add';
 
 // deletion_flags_of_page[main_page_title]
@@ -439,14 +439,20 @@ async function check_deletion_page(JDN, page_data) {
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
 	// console.log(discussions);
+	// 是否已找到紀錄。
 	let bingo, need_modify = 1;
 	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
 
 		if (bingo) {
-			need_modify = 'duplicated';
-			discussion.bot_checked = FLAG_DUPLICATED;
+			if (flags.result === discussion.result || discussion.hat_result === flags.result) {
+				discussion.bot_checked = FLAG_DUPLICATED;
+			} else {
+				discussion.bot_checked = FLAG_CONFLICTED;
+				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
+			}
+			need_modify = discussion.bot_checked;
 			return;
 		}
 
