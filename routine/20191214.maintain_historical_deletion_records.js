@@ -512,15 +512,19 @@ async function check_deletion_page(JDN, page_data) {
 async function modify_pages() {
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		page_title = CeL.wiki.to_talk_page(page_title);
-		discussions.forEach((discussion) => {
-			// 清除不需要的屬性。
-			delete discussion.JDN;
-			if (discussion.hat_result === discussion.result)
-				delete discussion.hat_result;
+		discussions = discussions.filter((discussion) => {
+			// remove duplicated
+			if (discussion.bot_checked !== FLAG_DUPLICATED) {
+				// 清除不需要的屬性。
+				delete discussion.JDN;
+				if (discussion.hat_result === discussion.result)
+					delete discussion.hat_result;
+				return true;
+			}
 		});
 
 		// ----------------------------
-		if (false) {
+		if (1 || false) {
 			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
@@ -544,8 +548,8 @@ async function modify_pages() {
 			await wiki.edit_page(page_title, function (page_data) {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
-				// 若有不需要添加存廢紀錄的頁面，煩請在討論頁加上 {{tlx|bots|optout{{=}}VFD}} 即可。
-				// {{bots|optout=VFD}}
+				// 若有不需要添加存廢紀錄的頁面，煩請在討論頁加上 {{tlx|bots|optout{{=}}VFD|reason{{=}}<nowiki>[[Wikipedia:机器人/申请/Cewbot/21]]</nowiki>}} 即可。
+				// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
 				notification: 'VFD',
 				bot: 1,
 				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
