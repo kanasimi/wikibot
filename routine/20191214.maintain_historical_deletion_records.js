@@ -4,6 +4,8 @@
 
 
 TODO:
+[[Wikipedia:删除投票和请求/2007年3月12日#十二點零五]]
+
 {{Multidel}}
 Wikipedia:存廢覆核請求/存檔/*
 
@@ -105,7 +107,7 @@ function for_each_page_including_vfd_template(page_data) {
 	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data);
 	if (item_list.length === 0) {
 		if (!item_list.Article_history_items)
-			CeL.warn('No Hat template found: ' + CeL.wiki.title_link_of(page_data));
+			CeL.warn('No VFD template found: ' + CeL.wiki.title_link_of(page_data));
 		// console.log(page_data);
 		return;
 	}
@@ -440,23 +442,30 @@ async function check_deletion_page(JDN, page_data) {
 		|| (pages_to_modify[normalized_main_page_title] = []);
 	// console.log(discussions);
 	// 是否已找到紀錄。
-	let bingo, need_modify = 1;
+	let first_record, need_modify = 1;
 	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
 
-		if (bingo) {
-			if (flags.result === discussion.result || discussion.hat_result === flags.result) {
+		if (first_record) {
+			if (discussion.result === first_record.result || discussion.result && first_record.result
+				// e.g., [[以色列]]
+				&& (discussion.result.toLowerCase() === first_record.result.toLowerCase()
+					// e.g., [[我愛黑澀會節目列表 (2007年)]]
+					|| CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion.result) === CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record.result)
+				)) {
 				discussion.bot_checked = FLAG_DUPLICATED;
 			} else {
 				discussion.bot_checked = FLAG_CONFLICTED;
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
+				console.log(flags);
+				console.log(discussions);
 			}
 			need_modify = discussion.bot_checked;
 			return;
 		}
 
-		bingo = true;
+		first_record = discussion;
 		discussion.bot_checked = FLAG_CHECKED;
 		// 照理 flags.page 應已在 add_page() 設定。
 		if (flags.page && discussion.page !== flags.page) {
@@ -483,7 +492,7 @@ async function check_deletion_page(JDN, page_data) {
 		// discussion.bot_checked = FLAG_CHECKED;
 	});
 
-	if (!bingo) {
+	if (!first_record) {
 		// assert: !!flags.result === !!text_of_result === true
 		need_modify = 'add';
 		CeL.debug('Add ' + CeL.wiki.title_link_of(normalized_main_page_title) + ' to pages_to_modify.', 1, 'check_deletion_page');
@@ -513,7 +522,7 @@ async function modify_pages() {
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		page_title = CeL.wiki.to_talk_page(page_title);
 		discussions = discussions.filter((discussion) => {
-			// remove duplicated
+			// remove duplicate records
 			if (discussion.bot_checked !== FLAG_DUPLICATED) {
 				// 清除不需要的屬性。
 				delete discussion.JDN;
