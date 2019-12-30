@@ -81,6 +81,8 @@ async function main_process() {
 	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
 
 	await modify_pages();
+	// 若有更改過，則需要重新再取得。
+	CeL.remove_file(deletion_flags_of_page_file);
 
 	// ----------------------------------------------------
 
@@ -459,7 +461,7 @@ async function check_deletion_page(JDN, page_data) {
 				) {
 				discussion.bot_checked = FLAG_DUPLICATED;
 			} else {
-				//　result_list 方便檢查前幾個 discussions
+				// result_list 方便檢查前幾個 discussions
 				result_list.push(discussion.result);
 				discussion.bot_checked = FLAG_CONFLICTED;
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
@@ -573,7 +575,9 @@ async function modify_pages() {
 			await wiki.edit_page(page_title, function (page_data) {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
-				// 若有不需要添加存廢紀錄的頁面，煩請在討論頁加上 {{tlx|bots|optout{{=}}VFD|reason{{=}}<nowiki>[[Wikipedia:机器人/申请/Cewbot/21]]</nowiki>}} 即可。
+				// 若有不需要添加存廢紀錄的頁面，煩請在討論頁加上
+				// {{tlx|bots|optout{{=}}VFD|reason{{=}}<nowiki>[[Wikipedia:机器人/申请/Cewbot/21]]</nowiki>}}
+				// 即可。
 				// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
 				notification: 'VFD',
 				bot: 1,
