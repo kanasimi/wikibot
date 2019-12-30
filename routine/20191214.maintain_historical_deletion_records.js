@@ -449,7 +449,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| (pages_to_modify[normalized_main_page_title] = []);
 	// console.log(discussions);
 	// 是否已找到紀錄。
-	let first_record, need_modify = 1, result_list;
+	let first_record, need_modify, result_list;
 	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
@@ -504,7 +504,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (!first_record) {
 		// assert: !!flags.result === !!text_of_result === true
 		need_modify = 'add';
-		CeL.debug('Add ' + CeL.wiki.title_link_of(normalized_main_page_title) + ' to pages_to_modify.', 1, 'check_deletion_page');
+		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 1, 'check_deletion_page');
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 page_title。
@@ -519,7 +519,7 @@ async function check_deletion_page(JDN, page_data) {
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
-		CeL.debug('Move ' + CeL.wiki.title_link_of(normalized_main_page_title) + ' to pages_to_modify: ' + need_modify, 1, 'check_deletion_page');
+		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 1, 'check_deletion_page');
 		delete deletion_flags_of_page[normalized_main_page_title];
 		pages_to_modify[normalized_main_page_title] = discussions;
 	}
