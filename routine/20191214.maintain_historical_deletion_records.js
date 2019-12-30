@@ -357,7 +357,7 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		if (flags.result) {
-			const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result);
+			const text_of_result = CeL.wiki.template_functions.Old_vfd_multi.text_of(flags);
 
 			if (section.section_title.length === 1 && typeof section.section_title[0] === 'string') {
 				CeL.log('check_deletion_discussion_page: ' + CeL.wiki.title_link_of(section.section_title.link[0]) + ' ' + section.section_title[0] + ': ' + text_of_result);
@@ -441,7 +441,7 @@ async function check_deletion_page(JDN, page_data) {
 		// return;
 	}
 
-	const text_of_result = flags.result && CeL.wiki.template_functions.Old_vfd_multi.text_of(flags.result, true);
+	const text_of_result = flags.result && CeL.wiki.template_functions.Old_vfd_multi.text_of(flags, true);
 
 	const discussions = deletion_flags_of_page[normalized_main_page_title]
 		|| pages_to_modify[normalized_main_page_title]
@@ -457,7 +457,7 @@ async function check_deletion_page(JDN, page_data) {
 		if (first_record) {
 			if (result_list.includes(discussion.result)
 				//
-				|| CeL.wiki.template_functions.Hat.result_includes(first_record.result, discussion.result)
+				|| CeL.wiki.template_functions.Hat.result_includes(first_record, discussion)
 				) {
 				discussion.bot_checked = FLAG_DUPLICATED;
 			} else {
@@ -467,7 +467,7 @@ async function check_deletion_page(JDN, page_data) {
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
 				console.log(flags);
 				console.log(discussions);
-				console.log([CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion.result), CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record.result)]);
+				console.log([CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion), CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record)]);
 			}
 			need_modify = discussion.bot_checked;
 			return;
@@ -489,9 +489,9 @@ async function check_deletion_page(JDN, page_data) {
 		// e.g., [[Wikipedia:删除投票和请求/2008年1月6日#香港浸會園]]
 		if (flags.result && discussion.hat_result !== flags.result) {
 			discussion.hat_result = flags.result;
-			if (discussion.result !== flags.result && discussion.result !== text_of_result) {
+			if (!CeL.wiki.template_functions.Hat.result_includes(discussion, flags)) {
 				discussion.result = text_of_result;
-				need_modify = 'hat_result';
+				need_modify = `hat_result: ${discussion.result}, ${flags.result}`;
 			}
 		}
 		if (discussion.target !== flags.target) {
@@ -504,7 +504,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (!first_record) {
 		// assert: !!flags.result === !!text_of_result === true
 		need_modify = 'add';
-		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 1, 'check_deletion_page');
+		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 0, 'check_deletion_page');
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 page_title。
