@@ -4,8 +4,6 @@
 
 
 TODO:
-[[Wikipedia:删除投票和请求/2007年3月12日#十二點零五]]
-
 {{Multidel}}
 Wikipedia:存廢覆核請求/存檔/*
 
@@ -28,7 +26,7 @@ const notification_template = `Template:${CeL.wiki.template_functions.Old_vfd_mu
 // [[維基百科:刪除投票和請求/2006年4月13日]]開始有依照段落來分割討論的格式。
 // [[維基百科:刪除投票和請求/2006年5月2日]]開始有{{delh|}}標示處理結果。
 const start_date = '2006-05-02';
-// const start_date = '2008/01/06';
+// const start_date = '2007-03-12';
 
 // 刪除投票分拆方案已經通過，並將於2008年8月12日起正式分拆。
 const revision_date = Date.parse('2008-08-12');
@@ -40,9 +38,11 @@ const end_date = Date.now();
 const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated', FLAG_CONFLICTED = 'conflicted';
 // const FLAG_TO_ADD = 'need add';
 
+const using_cache = true;
+const deletion_flags_of_page_file = 'deletion_flags_of_page.json';
 // deletion_flags_of_page[main_page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
-let deletion_flags_of_page = Object.create(null);
+let deletion_flags_of_page = using_cache && CeL.get_JSON(deletion_flags_of_page_file) || Object.create(null);
 // pages_to_modify[main_page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
@@ -59,16 +59,21 @@ async function main_process() {
 	// const page_data = await wiki.page(notification_template);
 	// console.log(page_data.wikitext);
 
-	await get_pages_embeddedin_notification_template();
+	if (!using_cache || CeL.is_empty_object(deletion_flags_of_page)) {
+		await get_pages_embeddedin_notification_template();
+		using_cache && CeL.write_file(deletion_flags_of_page_file, deletion_flags_of_page);
+	} else {
+		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
+	}
 
 	// ----------------------------------------------------
 
 	await get_deletion_discussions();
 
-	// ----------------------------------------------------
-
 	// free
 	deletion_flags_of_page = null;
+
+	// ----------------------------------------------------
 
 	// 全副武裝測試，跑到這邊約需要 2.5小時。
 	CeL.info(`Check ${Object.keys(pages_to_modify).length} pages if need modify...`);
@@ -121,8 +126,8 @@ function for_each_page_including_vfd_template(page_data) {
 	item_list.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
-		// 預先設定。
-		discussion.bot_checked = FLAG_TO_REMOVE;
+		// reset flag
+		delete discussion.bot_checked;
 		discussions.push(discussion);
 	});
 
@@ -204,7 +209,7 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		const flags = CeL.wiki.template_functions.Hat.parse(section);
-		if (false && section.section_title.title === '香港浸會園') {
+		if (false && section.section_title.title === '') {
 			console.log(section.section_title);
 			console.log(flags);
 		}
@@ -442,30 +447,32 @@ async function check_deletion_page(JDN, page_data) {
 		|| (pages_to_modify[normalized_main_page_title] = []);
 	// console.log(discussions);
 	// 是否已找到紀錄。
-	let first_record, need_modify = 1;
+	let first_record, need_modify = 1, result_list;
 	discussions.forEach((discussion) => {
 		if (discussion.JDN !== JDN)
 			return;
 
 		if (first_record) {
-			if (discussion.result === first_record.result || discussion.result && first_record.result
-				// e.g., [[以色列]]
-				&& (discussion.result.toLowerCase() === first_record.result.toLowerCase()
-					// e.g., [[我愛黑澀會節目列表 (2007年)]]
-					|| CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion.result) === CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record.result)
-				)) {
+			if (result_list.includes(discussion.result)
+				//
+				|| CeL.wiki.template_functions.Hat.result_includes(first_record.result, discussion.result)
+				) {
 				discussion.bot_checked = FLAG_DUPLICATED;
 			} else {
+				//　result_list 方便檢查前幾個 discussions
+				result_list.push(discussion.result);
 				discussion.bot_checked = FLAG_CONFLICTED;
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
 				console.log(flags);
 				console.log(discussions);
+				console.log([CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion.result), CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record.result)]);
 			}
 			need_modify = discussion.bot_checked;
 			return;
 		}
 
 		first_record = discussion;
+		result_list = [ discussion.result ];
 		discussion.bot_checked = FLAG_CHECKED;
 		// 照理 flags.page 應已在 add_page() 設定。
 		if (flags.page && discussion.page !== flags.page) {
@@ -523,13 +530,22 @@ async function modify_pages() {
 		page_title = CeL.wiki.to_talk_page(page_title);
 		discussions = discussions.filter((discussion) => {
 			// remove duplicate records
-			if (discussion.bot_checked !== FLAG_DUPLICATED) {
-				// 清除不需要的屬性。
-				delete discussion.JDN;
-				if (discussion.hat_result === discussion.result)
-					delete discussion.hat_result;
-				return true;
+			if (discussion.bot_checked === FLAG_DUPLICATED) {
+				return false;
 			}
+
+			if (!discussion.bot_checked) {
+				// 預設設定。
+				discussion.bot_checked = FLAG_TO_REMOVE;
+			}
+
+			// 清除不需要的屬性。
+			delete discussion.JDN;
+			if (discussion.hat_result === discussion.result) {
+				delete discussion.hat_result;
+			}
+
+			return true;
 		});
 
 		// ----------------------------
@@ -549,7 +565,7 @@ async function modify_pages() {
 		}
 
 		if (false &&// edit_count > 50 &&
-			!page_title.includes('香港浸會園')
+			!page_title.includes('')
 		) continue;
 		// ----------------------------
 
