@@ -184,8 +184,11 @@ async function check_deletion_discussion_page(page_data) {
 
 	function add_page(title, section, flags) {
 		title = CeL.wiki.normalize_title(title && title.toString());
-		if (!title)
+		if (!title
+			// e.g., 'Topic:'
+			|| !CeL.wiki.to_talk_page(title)) {
 			return;
+		}
 		if (flags.result in {
 			// 跳過無效的刪除請求：這些請求沒必要特別註記。
 			ir: true, rr: true,
@@ -458,9 +461,10 @@ async function check_deletion_page(JDN, page_data) {
 			if (result_list.includes(discussion.result)
 				//
 				|| CeL.wiki.template_functions.Hat.result_includes(first_record, discussion)
-				) {
+			) {
 				discussion.bot_checked = FLAG_DUPLICATED;
 			} else {
+				// 常見的原因是其中一項為無效討論。
 				// result_list 方便檢查前幾個 discussions
 				result_list.push(discussion.result);
 				discussion.bot_checked = FLAG_CONFLICTED;
@@ -474,7 +478,7 @@ async function check_deletion_page(JDN, page_data) {
 		}
 
 		first_record = discussion;
-		result_list = [ discussion.result ];
+		result_list = [discussion.result];
 		discussion.bot_checked = FLAG_CHECKED;
 		// 照理 flags.page 應已在 add_page() 設定。
 		if (flags.page && discussion.page !== flags.page) {
@@ -503,6 +507,7 @@ async function check_deletion_page(JDN, page_data) {
 
 	if (!first_record) {
 		// assert: !!flags.result === !!text_of_result === true
+		// 常見的原因是本 talk 頁面為 redirect。
 		need_modify = 'add';
 		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 0, 'check_deletion_page');
 		discussions.push({
@@ -530,6 +535,9 @@ async function check_deletion_page(JDN, page_data) {
 async function modify_pages() {
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
 		page_title = CeL.wiki.to_talk_page(page_title);
+		if (!page_title)
+			continue;
+
 		discussions = discussions.filter((discussion) => {
 			// remove duplicate records
 			if (discussion.bot_checked === FLAG_DUPLICATED) {
@@ -561,7 +569,10 @@ async function modify_pages() {
 			}
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
 			console.log(discussions);
-			console.log(CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions));
+			const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
+				additional_parameters: 'hat_result|bot_checked'.split('|')
+			});
+			console.log(wikitext);
 			if (edit_count++ > 200) break;
 			continue;
 		}
