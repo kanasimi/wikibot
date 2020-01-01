@@ -559,7 +559,7 @@ async function modify_pages() {
 		});
 
 		// ----------------------------
-		if (1 || false) {
+		if (false) {
 			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
@@ -577,8 +577,8 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (false &&// edit_count > 50 &&
-			!page_title.includes('')
+		if (//false &&// edit_count > 50 &&
+			!page_title.includes('丁龍講座')
 		) continue;
 		// ----------------------------
 
