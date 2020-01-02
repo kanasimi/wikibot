@@ -125,6 +125,7 @@ function for_each_page_including_vfd_template(page_data) {
 	const discussions = deletion_flags_of_page[main_page_title]
 		|| (deletion_flags_of_page[main_page_title] = []);
 
+	// 注意: 即使刪除的是 talk page，這邊也會被歸類到主頁面。
 	item_list.forEach((discussion) => {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
@@ -183,7 +184,8 @@ async function check_deletion_discussion_page(page_data) {
 	const JDN = CeL.Julian_day.from_YMD(matched[1], matched[2], matched[3], 'CE');
 
 	function add_page(title, section, flags) {
-		title = CeL.wiki.normalize_title(title && title.toString());
+		// 注意: 即使刪除的是 talk page，這邊也會被歸類到主頁面。
+		title = CeL.wiki.talk_page_to_main(title && title.toString());
 		if (!title
 			// e.g., 'Topic:'
 			|| !CeL.wiki.to_talk_page(title)) {
@@ -521,7 +523,7 @@ async function check_deletion_page(JDN, page_data) {
 			JDN
 		});
 		if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋'))
-		 console.log(discussions);
+			console.log(discussions);
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
@@ -560,11 +562,11 @@ async function modify_pages() {
 		});
 
 		// ----------------------------
-		if (//false &&// edit_count > 50 &&
+		if (// false &&// edit_count > 50 &&
 			!page_title.includes('丁龍講座') && !page_title.includes('朱雪璋')
 		) continue;
 
-		if (1||false) {
+		if (1 || false) {
 			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
@@ -582,7 +584,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (//false &&// edit_count > 50 &&
+		if (// false &&// edit_count > 50 &&
 			!page_title.includes('丁龍講座') && !page_title.includes('朱雪璋')
 		) continue;
 		// ----------------------------
