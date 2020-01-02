@@ -432,7 +432,7 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋')) console.log(flags_of_page);
+	//if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋')) console.log(flags_of_page);
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
 		flags = flags_of_page[flags];
@@ -452,7 +452,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋')) console.log(discussions);
+	//if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋')) console.log(discussions);
 	// 是否已找到紀錄。
 	let first_record, need_modify, result_list;
 	discussions.forEach((discussion) => {
@@ -522,8 +522,7 @@ async function check_deletion_page(JDN, page_data) {
 			bot_checked: FLAG_CHECKED,
 			JDN
 		});
-		if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋'))
-			console.log(discussions);
+		//if (normalized_main_page_title.includes('丁龍講座') || normalized_main_page_title.includes('朱雪璋')) console.log(discussions);
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
@@ -562,11 +561,11 @@ async function modify_pages() {
 		});
 
 		// ----------------------------
-		if (// false &&// edit_count > 50 &&
-			!page_title.includes('丁龍講座') && !page_title.includes('朱雪璋')
+		if (false // edit_count > 50 &&
+			//&& !page_title.includes('丁龍講座') && !page_title.includes('朱雪璋')
 		) continue;
 
-		if (1 || false) {
+		if (false) {
 			// only for debug
 			const page_data = await wiki.page(page_title);
 			if (CeL.wiki.parse.redirect(page_data)) {
@@ -584,8 +583,7 @@ async function modify_pages() {
 			continue;
 		}
 
-		if (// false &&// edit_count > 50 &&
-			!page_title.includes('丁龍講座') && !page_title.includes('朱雪璋')
+		if (false //&& edit_count > 50
 		) continue;
 		// ----------------------------
 
