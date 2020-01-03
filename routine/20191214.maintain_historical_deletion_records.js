@@ -66,6 +66,9 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
+	// console.log(deletion_flags_of_page['']);
+	// return;
+
 	// ----------------------------------------------------
 
 	await get_deletion_discussions();
@@ -112,11 +115,11 @@ async function get_pages_embeddedin_notification_template() {
 
 function for_each_page_including_vfd_template(page_data) {
 	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data, {
-		unique : true
+		unique: true
 	});
 	if (item_list.length === 0) {
 		if (!item_list.Article_history_items)
-			CeL.warn('No VFD template found: ' + CeL.wiki.title_link_of(page_data));
+			CeL.warn('No VFD record found: ' + CeL.wiki.title_link_of(page_data));
 		// console.log(page_data);
 		return;
 	}
