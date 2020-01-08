@@ -49,7 +49,9 @@ const pages_to_modify = Object.create(null);
 
 // 紀錄 redirect pages
 const redirect_pages_file = base_directory + 'redirect_pages.json';
-const redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file)?.redirect_pages || [];
+//const redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file)?.redirect_pages || [];
+let redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file);
+redirect_pages = redirect_pages && redirect_pages.redirect_pages || [];
 const redirect_page_hash = redirect_pages.to_hash();
 
 // ----------------------------------------------------------------------------
