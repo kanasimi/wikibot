@@ -39,7 +39,7 @@ const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'dupl
 // const FLAG_TO_ADD = 'need add';
 
 const using_cache = true;
-const deletion_flags_of_page_file = 'deletion_flags_of_page.json';
+const deletion_flags_of_page_file = base_directory + 'deletion_flags_of_page.json';
 // deletion_flags_of_page[main_page_title]
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 let deletion_flags_of_page = using_cache && CeL.get_JSON(deletion_flags_of_page_file) || Object.create(null);
@@ -47,7 +47,14 @@ let deletion_flags_of_page = using_cache && CeL.get_JSON(deletion_flags_of_page_
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
 
+// 紀錄 redirect pages
+const redirect_pages_file = base_directory + 'redirect_pages.json';
+const redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file)?.redirect_pages || [];
+const redirect_page_hash = redirect_pages.to_hash();
+
 // ----------------------------------------------------------------------------
+
+prepare_directory(base_directory);
 
 (async () => {
 	await wiki.login(user_name, user_password, use_language);
@@ -84,6 +91,7 @@ async function main_process() {
 	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
 
 	await modify_pages();
+	using_cache && CeL.write_file(redirect_pages_file, { date: Date.now(), redirect_pages });
 	// 若有更改過，則需要重新再取得。
 	CeL.remove_file(deletion_flags_of_page_file);
 
@@ -193,7 +201,8 @@ async function check_deletion_discussion_page(page_data) {
 		title = CeL.wiki.talk_page_to_main(title && title.toString());
 		if (!title
 			// e.g., 'Topic:'
-			|| !CeL.wiki.to_talk_page(title)) {
+			|| !CeL.wiki.to_talk_page(title)
+			|| (title in redirect_page_hash)) {
 			return;
 		}
 		if (flags.result in {
@@ -529,8 +538,11 @@ async function check_deletion_page(JDN, page_data) {
 			bot_checked: FLAG_CHECKED,
 			JDN
 		});
-		// if (normalized_main_page_title.includes('丁龍講座') ||
-		// normalized_main_page_title.includes('朱雪璋')) console.log(discussions);
+		if (normalized_main_page_title.includes('')
+			// || normalized_main_page_title.includes('')
+		) {
+			// console.log(discussions);
+		}
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
@@ -579,6 +591,7 @@ async function modify_pages() {
 			if (CeL.wiki.parse.redirect(page_data)) {
 				// Should not create talk page when the talk page is a redirect
 				// page. e.g., [[Talk:405]]
+				redirect_pages.push(page_data.title);
 				continue;
 			}
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
@@ -624,6 +637,7 @@ function modified_notice_page(page_data, discussions) {
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page.
 		// e.g., [[Talk:405]]
+		redirect_pages.push(page_data.title);
 		return Wikiapi.skip_edit;
 	}
 
