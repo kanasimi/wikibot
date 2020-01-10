@@ -49,7 +49,8 @@ const pages_to_modify = Object.create(null);
 
 // 紀錄 redirect pages
 const redirect_pages_file = base_directory + 'redirect_pages.json';
-//const redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file)?.redirect_pages || [];
+// const redirect_pages = using_cache &&
+// CeL.get_JSON(redirect_pages_file)?.redirect_pages || [];
 let redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file);
 redirect_pages = redirect_pages && redirect_pages.redirect_pages || [];
 const redirect_page_hash = redirect_pages.to_hash();
@@ -425,12 +426,16 @@ async function check_deletion_page(JDN, page_data) {
 		// Check if the main page does not exist.
 		// The page is not exist now. No-need to add `notification_template`.
 		|| ('missing' in page_data)
-		// Should not create talk page when the main page is a redirect page.
-		// e.g., [[326]]
-		|| CeL.wiki.parse.redirect(page_data)
 		// Should not edit user page. 不應該編輯使用者頁面。
 		|| page_data.ns === NS_User
 	) {
+		return;
+	}
+
+	// Should not create talk page when the main page is a redirect page.
+	// e.g., [[326]]
+	if (CeL.wiki.parse.redirect(page_data)) {
+		redirect_pages.push(page_data.title);
 		return;
 	}
 
