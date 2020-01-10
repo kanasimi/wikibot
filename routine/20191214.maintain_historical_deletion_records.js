@@ -202,10 +202,12 @@ async function check_deletion_discussion_page(page_data) {
 	function add_page(title, section, flags) {
 		// 注意: 即使刪除的是 talk page，這邊也會被歸類到主頁面。
 		title = CeL.wiki.talk_page_to_main(title && title.toString());
-		if (!title
-			// e.g., 'Topic:'
-			|| !CeL.wiki.to_talk_page(title)
-			|| (title in redirect_page_hash)) {
+		if (!title || (title in redirect_page_hash)) {
+			return;
+		}
+		const talk_page = CeL.wiki.to_talk_page(title);
+		// e.g., 'Topic:'
+		if (!talk_page || (talk_page in redirect_page_hash)) {
 			return;
 		}
 		if (flags.result in {
