@@ -129,8 +129,10 @@ function for_each_page_including_vfd_template(page_data) {
 		unique: true
 	});
 	if (item_list.length === 0) {
-		if (!item_list.Article_history_items)
-			CeL.warn('No VFD record found: ' + CeL.wiki.title_link_of(page_data));
+		if (!item_list.Article_history_items) {
+			// e.g., [[Talk:医学]] WP:條目質量提升計劃
+			CeL.warn('No valid VFD record found: ' + CeL.wiki.title_link_of(page_data));
+		}
 		// console.log(page_data);
 		return;
 	}
@@ -455,8 +457,9 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	// if (normalized_main_page_title.includes('丁龍講座') ||
-	// normalized_main_page_title.includes('朱雪璋')) console.log(flags_of_page);
+	if (normalized_main_page_title.includes('摩爾莊園') || normalized_main_page_title.includes('')) {
+		console.log(flags_of_page);
+	}
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
 		flags = flags_of_page[flags];
@@ -476,8 +479,9 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	// if (normalized_main_page_title.includes('丁龍講座') ||
-	// normalized_main_page_title.includes('朱雪璋')) console.log(discussions);
+	if (normalized_main_page_title.includes('摩爾莊園') || normalized_main_page_title.includes('')) {
+		console.log(discussions);
+	}
 	// 是否已找到紀錄。
 	let first_record, need_modify, result_list;
 	discussions.forEach((discussion) => {
@@ -547,15 +551,15 @@ async function check_deletion_page(JDN, page_data) {
 			bot_checked: FLAG_CHECKED,
 			JDN
 		});
-		if (normalized_main_page_title.includes('')
-			// || normalized_main_page_title.includes('')
-		) {
-			// console.log(discussions);
+		if (normalized_main_page_title.includes('摩爾莊園') || normalized_main_page_title.includes('')) {
+			 console.log(discussions);
 		}
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 1, 'check_deletion_page');
+		// console.log(flags_of_page);
+		// console.log(discussions);
 		delete deletion_flags_of_page[normalized_main_page_title];
 		pages_to_modify[normalized_main_page_title] = discussions;
 	}
@@ -590,9 +594,10 @@ async function modify_pages() {
 		});
 
 		// ----------------------------
-		if (false // edit_count > 50 &&
-			// && !page_title.includes('丁龍講座') && !page_title.includes('朱雪璋')
-		) continue;
+		if (edit_count > 50 && !page_title.includes('') && !page_title.includes('')
+		) {
+			// continue;
+		}
 
 		if (false) {
 			// only for debug
