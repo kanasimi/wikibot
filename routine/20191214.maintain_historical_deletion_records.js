@@ -131,7 +131,7 @@ function for_each_page_including_vfd_template(page_data) {
 	if (item_list.length === 0) {
 		if (!item_list.Article_history_items) {
 			// e.g., [[Talk:医学]] WP:條目質量提升計劃
-			CeL.warn('No valid VFD record found: ' + CeL.wiki.title_link_of(page_data));
+			CeL.warn('No valid VFD record included: ' + CeL.wiki.title_link_of(page_data));
 		}
 		// console.log(page_data);
 		return;
