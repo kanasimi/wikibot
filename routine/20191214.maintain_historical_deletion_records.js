@@ -458,7 +458,7 @@ async function check_deletion_page(JDN, page_data) {
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
 	if (normalized_main_page_title.includes('摩爾莊園') || normalized_main_page_title.includes('')) {
-		console.log(flags_of_page);
+		//console.log(flags_of_page);
 	}
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
@@ -479,7 +479,10 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('摩爾莊園') || normalized_main_page_title.includes('')) {
+	if (normalized_main_page_title.includes('摩爾莊園')
+		//|| normalized_main_page_title.includes('')
+	) {
+		console.log(flags_of_page);
 		console.log(discussions);
 	}
 	// 是否已找到紀錄。
@@ -551,8 +554,10 @@ async function check_deletion_page(JDN, page_data) {
 			bot_checked: FLAG_CHECKED,
 			JDN
 		});
-		if (normalized_main_page_title.includes('摩爾莊園') || normalized_main_page_title.includes('')) {
-			 console.log(discussions);
+		if (normalized_main_page_title.includes('摩爾莊園')
+			//|| normalized_main_page_title.includes('')
+		) {
+			console.log(discussions);
 		}
 	}
 
