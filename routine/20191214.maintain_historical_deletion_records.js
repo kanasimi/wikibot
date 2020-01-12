@@ -152,10 +152,10 @@ function for_each_page_including_vfd_template(page_data) {
 	});
 
 	if (main_page_title.includes('九降風')) {
-		// CeL.info(main_page_title);
-		// console.log(page_data);
-		// console.log(item_list);
-		// console.log(discussions);
+		CeL.info(main_page_title);
+		console.log(page_data);
+		console.log(item_list);
+		console.log(discussions);
 	}
 }
 
@@ -467,7 +467,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (normalized_main_page_title.includes('九降風')
 		// || normalized_main_page_title.includes('')
 	) {
-		// console.log(flags_of_page);
+		 console.log(flags_of_page);
 	}
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
@@ -491,8 +491,8 @@ async function check_deletion_page(JDN, page_data) {
 	if (normalized_main_page_title.includes('九降風')
 		// || normalized_main_page_title.includes('')
 	) {
-		// console.log(flags_of_page);
-		// console.log(discussions);
+		 console.log(flags_of_page);
+		 console.log(discussions);
 	}
 	// 是否已找到紀錄。
 	let first_record, need_modify, result_list;
@@ -571,7 +571,7 @@ async function check_deletion_page(JDN, page_data) {
 		if (normalized_main_page_title.includes('九降風')
 			// || normalized_main_page_title.includes('')
 		) {
-			// console.log(discussions);
+			 console.log(discussions);
 		}
 	}
 
