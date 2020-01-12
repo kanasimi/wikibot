@@ -146,7 +146,8 @@ function for_each_page_including_vfd_template(page_data) {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
 		// reset flag
-		delete discussion.bot_checked;
+		if (discussion.bot_checked !== FLAG_CONFLICTED)
+			delete discussion.bot_checked;
 		discussions.push(discussion);
 	});
 
@@ -438,6 +439,10 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
+	if (page_data.title.includes('榕树')) {
+		CeL.info(CeL.wiki.title_link_of(page_data));
+		console.log(CeL.wiki.parse.redirect(page_data));
+	}
 	// Should not create talk page when the main page is a redirect page.
 	// e.g., [[326]]
 	if (CeL.wiki.parse.redirect(page_data)) {
@@ -501,17 +506,22 @@ async function check_deletion_page(JDN, page_data) {
 				|| CeL.wiki.template_functions.Hat.result_includes(first_record, discussion)
 			) {
 				discussion.bot_checked = FLAG_DUPLICATED;
+				need_modify = discussion.bot_checked;
 			} else {
 				// 常見的原因是其中一項為無效討論。
 				// result_list 方便檢查前幾個 discussions
 				result_list.push(discussion.result);
-				discussion.bot_checked = FLAG_CONFLICTED;
+				// 對於已設定 `discussion.bot_checked === FLAG_CONFLICTED` 的，
+				// 不去設定 need_modify。
+				if (!discussion.bot_checked) {
+					discussion.bot_checked = FLAG_CONFLICTED;
+					need_modify = discussion.bot_checked;
+				}
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
 				console.log(flags);
 				console.log(discussions);
 				console.log([CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion), CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record)]);
 			}
-			need_modify = discussion.bot_checked;
 			return;
 		}
 
