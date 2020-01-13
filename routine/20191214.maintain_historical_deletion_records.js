@@ -641,11 +641,8 @@ async function modify_pages() {
 			await wiki.edit_page(page_title, function (page_data) {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
-				// 若有不需要添加存廢紀錄的頁面，煩請在討論頁加上
-				// {{tlx|bots|optout{{=}}VFD|reason{{=}}<nowiki>[[Wikipedia:机器人/申请/Cewbot/21]]</nowiki>}}
-				// 即可。
-				// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
-				notification: 'VFD',
+				// will using cache
+				// notification: 'VFD',
 				bot: 1,
 				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
 					+ CeL.wiki.title_link_of(notification_template)
@@ -670,6 +667,10 @@ function modified_notice_page(page_data, discussions) {
 		return Wikiapi.skip_edit;
 	}
 
+	// 若有不需要添加存廢紀錄的頁面，煩請在討論頁加上
+	// {{tlx|bots|optout{{=}}VFD|reason{{=}}<nowiki>[[Wikipedia:机器人/申请/Cewbot/21]]</nowiki>}}
+	// 即可。
+	// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
 	if (CeL.wiki.edit.denied(page_data, user_name, 'VFD')) {
 		ignore_pages[page_data.title] = 'bots denied';
 		return Wikiapi.skip_edit;
