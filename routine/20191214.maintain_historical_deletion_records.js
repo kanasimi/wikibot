@@ -47,13 +47,9 @@ let deletion_flags_of_page = using_cache && CeL.get_JSON(deletion_flags_of_page_
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
 
-// 紀錄 redirect pages
-const redirect_pages_file = base_directory + 'redirect_pages.json';
-// const redirect_pages = using_cache &&
-// CeL.get_JSON(redirect_pages_file)?.redirect_pages || [];
-let redirect_pages = using_cache && CeL.get_JSON(redirect_pages_file);
-redirect_pages = redirect_pages && redirect_pages.redirect_pages || [];
-const redirect_page_hash = redirect_pages.to_hash();
+// 紀錄 redirect pages 之類需要忽略的。
+const ignore_pages_file = base_directory + 'ignore_pages.json';
+const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.create(null);
 
 // ----------------------------------------------------------------------------
 
@@ -76,7 +72,7 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	 console.log(deletion_flags_of_page['九降風']);
+	console.log(deletion_flags_of_page['九降風']);
 	// return;
 
 	// ----------------------------------------------------
@@ -94,7 +90,7 @@ async function main_process() {
 	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
 
 	await modify_pages();
-	using_cache && CeL.write_file(redirect_pages_file, { date: Date.now(), redirect_pages });
+	using_cache && CeL.write_file(ignore_pages_file, ignore_pages);
 	// 若有更改過，則需要重新再取得。
 	CeL.remove_file(deletion_flags_of_page_file);
 
@@ -152,7 +148,7 @@ function for_each_page_including_vfd_template(page_data) {
 	});
 
 	if (main_page_title.includes('九降風')) {
-		CeL.info(main_page_title);
+		CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
 		console.log(page_data);
 		console.log(item_list);
 		console.log(discussions);
@@ -207,12 +203,12 @@ async function check_deletion_discussion_page(page_data) {
 	function add_page(title, section, flags) {
 		// 注意: 即使刪除的是 talk page，這邊也會被歸類到主頁面。
 		title = CeL.wiki.talk_page_to_main(title && title.toString());
-		if (!title || (title in redirect_page_hash)) {
+		if (!title || (title in ignore_pages)) {
 			return;
 		}
 		const talk_page = CeL.wiki.to_talk_page(title);
 		// e.g., 'Topic:'
-		if (!talk_page || (talk_page in redirect_page_hash)) {
+		if (!talk_page || (talk_page in ignore_pages)) {
 			return;
 		}
 		if (flags.result in {
@@ -446,7 +442,7 @@ async function check_deletion_page(JDN, page_data) {
 	// Should not create talk page when the main page is a redirect page.
 	// e.g., [[326]]
 	if (CeL.wiki.parse.redirect(page_data)) {
-		redirect_pages.push(page_data.title);
+		ignore_pages[page_data.title] = 'redirect';
 		return;
 	}
 
@@ -467,7 +463,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (normalized_main_page_title.includes('九降風')
 		// || normalized_main_page_title.includes('')
 	) {
-		 console.log(flags_of_page);
+		console.log(flags_of_page);
 	}
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
@@ -491,8 +487,8 @@ async function check_deletion_page(JDN, page_data) {
 	if (normalized_main_page_title.includes('九降風')
 		// || normalized_main_page_title.includes('')
 	) {
-		 console.log(flags_of_page);
-		 console.log(discussions);
+		console.log(flags_of_page);
+		console.log(discussions);
 	}
 	// 是否已找到紀錄。
 	let first_record, need_modify, result_list;
@@ -571,7 +567,7 @@ async function check_deletion_page(JDN, page_data) {
 		if (normalized_main_page_title.includes('九降風')
 			// || normalized_main_page_title.includes('')
 		) {
-			 console.log(discussions);
+			console.log(discussions);
 		}
 	}
 
@@ -624,7 +620,7 @@ async function modify_pages() {
 			if (CeL.wiki.parse.redirect(page_data)) {
 				// Should not create talk page when the talk page is a redirect
 				// page. e.g., [[Talk:405]]
-				redirect_pages.push(page_data.title);
+				ignore_pages[page_data.title] = 'redirect';
 				continue;
 			}
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
@@ -670,7 +666,12 @@ function modified_notice_page(page_data, discussions) {
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page.
 		// e.g., [[Talk:405]]
-		redirect_pages.push(page_data.title);
+		ignore_pages[page_data.title] = 'redirect';
+		return Wikiapi.skip_edit;
+	}
+
+	if (CeL.wiki.edit.denied(page_data, user_name, 'VFD')) {
+		ignore_pages[page_data.title] = 'bots denied';
 		return Wikiapi.skip_edit;
 	}
 
