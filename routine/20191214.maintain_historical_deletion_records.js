@@ -572,9 +572,11 @@ async function check_deletion_page(JDN, page_data) {
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
-		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 1, 'check_deletion_page');
-		// console.log(flags_of_page);
-		// console.log(discussions);
+		if (normalized_main_page_title.includes('阿卡奇观')) {
+			CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
+			console.log(flags_of_page);
+			console.log(discussions);
+		}
 		delete deletion_flags_of_page[normalized_main_page_title];
 		pages_to_modify[normalized_main_page_title] = discussions;
 	}
