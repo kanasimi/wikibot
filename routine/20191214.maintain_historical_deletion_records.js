@@ -542,7 +542,7 @@ async function check_deletion_page(JDN, page_data) {
 				need_modify = `hat_result: ${discussion.result}, ${flags.result}`;
 			}
 		}
-		if (discussion.target !== flags.target) {
+		if (flags.target && String(discussion.target) !== String(flags.target)) {
 			discussion.target = flags.target;
 			need_modify = 'target';
 		}
