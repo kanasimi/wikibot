@@ -525,7 +525,7 @@ async function check_deletion_page(JDN, page_data) {
 		result_list = [discussion.result];
 		discussion.bot_checked = FLAG_CHECKED;
 		// 照理 flags.page 應已在 add_page() 設定。
-		if (flags.page && discussion.page !== flags.page) {
+		if (flags.page && (!discussion.page || String(discussion.page) !== String(flags.page))) {
 			// using `flags.page` as anchor
 			discussion.page = flags.page;
 			// 光是有 .page 還不作更改。
@@ -535,14 +535,14 @@ async function check_deletion_page(JDN, page_data) {
 
 		// 有時可能無 flags.result。
 		// e.g., [[Wikipedia:删除投票和请求/2008年1月6日#香港浸會園]]
-		if (flags.result && discussion.hat_result !== flags.result) {
+		if (flags.result && (!discussion.hat_result || String(discussion.hat_result) !== String(flags.result))) {
 			discussion.hat_result = flags.result;
 			if (!CeL.wiki.template_functions.Hat.result_includes(discussion, flags)) {
 				discussion.result = text_of_result;
 				need_modify = `hat_result: ${discussion.result}, ${flags.result}`;
 			}
 		}
-		if (flags.target && String(discussion.target) !== String(flags.target)) {
+		if (flags.target && (!discussion.target || String(discussion.target) !== String(flags.target))) {
 			discussion.target = flags.target;
 			need_modify = 'target';
 		}
