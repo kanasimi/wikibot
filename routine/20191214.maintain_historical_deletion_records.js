@@ -72,7 +72,7 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	console.log(deletion_flags_of_page['阿卡奇观']);
+	console.log(deletion_flags_of_page['台灣電影']);
 	// return;
 
 	// ----------------------------------------------------
@@ -147,7 +147,7 @@ function for_each_page_including_vfd_template(page_data) {
 		discussions.push(discussion);
 	});
 
-	if (main_page_title.includes('阿卡奇观')) {
+	if (main_page_title.includes('台灣電影')) {
 		CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
 		console.log(page_data);
 		console.log(item_list);
@@ -435,7 +435,7 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
-	if (page_data.title.includes('阿卡奇观')) {
+	if (page_data.title.includes('台灣電影')) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
@@ -460,7 +460,7 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (normalized_main_page_title.includes('阿卡奇观')
+	if (normalized_main_page_title.includes('台灣電影')
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -484,7 +484,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('阿卡奇观')
+	if (normalized_main_page_title.includes('台灣電影')
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -564,7 +564,7 @@ async function check_deletion_page(JDN, page_data) {
 			bot_checked: FLAG_CHECKED,
 			JDN
 		});
-		if (normalized_main_page_title.includes('阿卡奇观')
+		if (normalized_main_page_title.includes('台灣電影')
 			// || normalized_main_page_title.includes('')
 		) {
 			console.log(discussions);
@@ -572,8 +572,8 @@ async function check_deletion_page(JDN, page_data) {
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
-		if (normalized_main_page_title.includes('阿卡奇观')) {
-			CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
+		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
+		if (normalized_main_page_title.includes('台灣電影')) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
