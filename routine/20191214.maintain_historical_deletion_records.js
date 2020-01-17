@@ -649,6 +649,9 @@ async function modify_pages() {
 
 		try {
 			await wiki.edit_page(page_title, function (page_data) {
+				if (page_title !== page_data.title) {
+					report_lines.push([CeL.wiki.title_link_of(page_title), `放棄編輯: ${page_title} → ${page_data.title}`]);
+				}
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				// will using cache
@@ -709,7 +712,9 @@ async function generate_report() {
 	report_lines.unshift(['頁面', '更動原因']);
 	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
 	await wiki.edit_page(`User:${user_name}/頁面存廢討論維護報告`,
-		`總共編輯${page_count}個討論頁，列出其中${report_count}筆特殊紀錄。\n`
+		// __NOTITLECONVERT__
+		'__NOCONTENTCONVERT__\n'
+		+ `總共編輯${page_count}個討論頁，列出其中${report_count}筆特殊紀錄。\n`
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
