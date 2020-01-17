@@ -74,7 +74,7 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	// console.log(deletion_flags_of_page['三寶顏共和國']);
+	 console.log(deletion_flags_of_page['鍾離姓']);
 	// return;
 
 	// ----------------------------------------------------
@@ -151,11 +151,11 @@ function for_each_page_including_vfd_template(page_data) {
 		discussions.push(discussion);
 	});
 
-	if (main_page_title.includes('三寶顏共和國')) {
-		// CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
-		// console.log(page_data);
-		// console.log(item_list);
-		// console.log(discussions);
+	if (main_page_title.includes('鍾離姓')) {
+		 CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
+		 console.log(page_data);
+		 console.log(item_list);
+		 console.log(discussions);
 	}
 }
 
@@ -439,9 +439,9 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
-	if (page_data.title.includes('三寶顏共和國')) {
-		// CeL.info(CeL.wiki.title_link_of(page_data));
-		// console.log(CeL.wiki.parse.redirect(page_data));
+	if (page_data.title.includes('鍾離姓')) {
+		 CeL.info(CeL.wiki.title_link_of(page_data));
+		 console.log(CeL.wiki.parse.redirect(page_data));
 	}
 	// Should not create talk page when the main page is a redirect page.
 	// e.g., [[326]]
@@ -464,10 +464,10 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (false && normalized_main_page_title.includes('三寶顏共和國')
+	if (false && normalized_main_page_title.includes('鍾離姓')
 		// || normalized_main_page_title.includes('')
 	) {
-		// console.log(flags_of_page);
+		 console.log(flags_of_page);
 	}
 	let flags = flags_of_page[page_title], target;
 	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
@@ -488,11 +488,11 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('三寶顏共和國')
+	if (normalized_main_page_title.includes('鍾離姓')
 		// || normalized_main_page_title.includes('')
 	) {
-		// console.log(flags_of_page);
-		// console.log(discussions);
+		 console.log(flags_of_page);
+		 console.log(discussions);
 	}
 	// 是否已找到紀錄。
 	let first_record, need_modify, result_list;
@@ -569,19 +569,19 @@ async function check_deletion_page(JDN, page_data) {
 			bot_checked: FLAG_CHECKED,
 			JDN
 		});
-		if (normalized_main_page_title.includes('三寶顏共和國')
+		if (normalized_main_page_title.includes('鍾離姓')
 			// || normalized_main_page_title.includes('')
 		) {
-			// console.log(discussions);
+			 console.log(discussions);
 		}
 	}
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
 		report_lines.push([normalized_main_page_title, need_modify]);
-		if (normalized_main_page_title.includes('三寶顏共和國')) {
-			// console.log(flags_of_page);
-			// console.log(discussions);
+		if (normalized_main_page_title.includes('鍾離姓')) {
+			 console.log(flags_of_page);
+			 console.log(discussions);
 		}
 		delete deletion_flags_of_page[normalized_main_page_title];
 		pages_to_modify[normalized_main_page_title] = discussions;
@@ -702,16 +702,18 @@ function modified_notice_page(page_data, discussions) {
 // ----------------------------------------------------------------------------
 
 async function generate_report() {
+	const count = report_lines.length;
 	report_lines.unshift(['頁面', '更動原因']);
+	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
 	await wiki.edit_page(`User:${user_name}/頁面存廢討論維護報告`,
-		+ '總共編輯' + (report_lines.length - 1) + '個討論頁。\n'
+		+ '總共編輯' + count + '個討論頁。\n'
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
 		+ CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
 		}), {
-		//nocreate: 1,
+		nocreate: 1,
 		summary: '維護討論頁之存廢討論紀錄與模板: ' + count + '個討論頁'
 	});
 }
