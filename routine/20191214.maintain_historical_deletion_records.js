@@ -703,7 +703,7 @@ function modified_notice_page(page_data, discussions) {
 
 async function generate_report() {
 	report_lines.unshift(['頁面', '更動原因']);
-	await wiki.edit_page('Wikipedia:頁面存廢討論/討論頁模板維護報告',
+	await wiki.edit_page(`User:${user_name}/頁面存廢討論維護報告`,
 		+ '總共編輯' + (report_lines.length - 1) + '個討論頁。\n'
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
@@ -711,7 +711,7 @@ async function generate_report() {
 		+ CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
 		}), {
-		nocreate: 1,
+		//nocreate: 1,
 		summary: '維護討論頁之存廢討論紀錄與模板: ' + count + '個討論頁'
 	});
 }
