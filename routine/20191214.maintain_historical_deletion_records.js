@@ -541,26 +541,31 @@ async function check_deletion_page(JDN, page_data) {
 		first_record = discussion;
 		result_list = [discussion.result];
 		discussion.bot_checked = FLAG_CHECKED;
-		// 照理 flags.page 應已在 add_page() 設定。
-		if (flags.page && (!discussion.page || discussion.page.toString() !== flags.page.toString())) {
-			// using `flags.page` as anchor
-			discussion.page = flags.page;
-			// 光是有 .page 還不作更改。
-			// e.g., [[Talk:土木系]]
-			// need_modify = 'page';
+
+		function check_and_set(property, property_2) {
+			if (flags[property] && (!discussion[property_2 || property]
+				// .toLowerCase()
+				|| discussion[property_2 || property].toString().trim() !== flags[property].toString().trim())) {
+				return discussion[property_2 || property] = flags[property];
+			}
 		}
+
+		// 照理 flags.page 應已在 add_page() 設定。
+		// using `flags.page` as anchor
+		check_and_set('page');
+		// 光是有 .page 還不作更改。
+		// e.g., [[Talk:土木系]]
+		// need_modify = 'page';
 
 		// 有時可能無 flags.result。
 		// e.g., [[Wikipedia:删除投票和请求/2008年1月6日#香港浸會園]]
-		if (flags.result && (!discussion.hat_result || discussion.hat_result.toString() !== flags.result.toString())) {
-			discussion.hat_result = flags.result;
+		if (check_and_set('result', 'hat_result')) {
 			if (!CeL.wiki.template_functions.Hat.result_includes(discussion, flags)) {
+				need_modify = `hat_result: ${discussion.result}; ${flags.result}`;
 				discussion.result = text_of_result;
-				need_modify = `hat_result: ${discussion.result}, ${flags.result}`;
 			}
 		}
-		if (flags.target && (!discussion.target || discussion.target.toString() !== flags.target.toString())) {
-			discussion.target = flags.target;
+		if (check_and_set('target')) {
 			need_modify = 'target';
 		}
 		// discussion.bot_checked = FLAG_CHECKED;
@@ -583,7 +588,7 @@ async function check_deletion_page(JDN, page_data) {
 		});
 		if (!deletion_flags_of_page[normalized_main_page_title])
 			report_lines.push([normalized_main_page_title, need_modify]);
-		if (normalized_main_page_title.includes('梅小青')
+		if (true || normalized_main_page_title.includes('梅小青')
 			// || normalized_main_page_title.includes('')
 		) {
 			console.log(discussions);
@@ -593,7 +598,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
 		report_lines.push([normalized_main_page_title, need_modify]);
-		if (normalized_main_page_title.includes('梅小青')) {
+		if (true || normalized_main_page_title.includes('梅小青')) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
@@ -680,7 +685,7 @@ async function modify_pages() {
 			} else if (e.code === 'protectedpage' || e.code === 'invalidtitle' || e.code === 'skip') {
 				ignore_pages[page_title] = e.code;
 			} else {
-				console.error(JSON.stringify(e));
+				console.error(e);
 			}
 		}
 	}
