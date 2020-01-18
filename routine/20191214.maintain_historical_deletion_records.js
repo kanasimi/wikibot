@@ -74,7 +74,7 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	console.log(deletion_flags_of_page['钟离姓']);
+	console.log(deletion_flags_of_page['明德學院']);
 	// return;
 
 	// ----------------------------------------------------
@@ -151,7 +151,7 @@ function for_each_page_including_vfd_template(page_data) {
 		discussions.push(discussion);
 	});
 
-	if (main_page_title.includes('钟离姓')) {
+	if (main_page_title.includes('明德學院')) {
 		CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
 		console.log(page_data);
 		console.log(item_list);
@@ -430,16 +430,20 @@ const NS_User = CeL.wiki.namespace('User');
 async function check_deletion_page(JDN, page_data) {
 	// console.log(page_data);
 	if (!page_data
-		// Check if the main page does not exist.
-		// The page is not exist now. No-need to add `notification_template`.
-		|| ('missing' in page_data)
 		// Should not edit user page. 不應該編輯使用者頁面。
 		|| page_data.ns === NS_User
 	) {
 		return;
 	}
 
-	if (page_data.title.includes('钟离姓')) {
+	// Check if the main page does not exist.
+	// The page is not exist now. No-need to add `notification_template`.
+	if ('missing' in page_data) {
+		// ignore_pages[page_data.title] = 'missing';
+		return;
+	}
+
+	if (page_data.title.includes('明德學院')) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
@@ -464,7 +468,7 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (false && normalized_main_page_title.includes('钟离姓')
+	if (false && normalized_main_page_title.includes('明德學院')
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -488,7 +492,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('钟离姓')
+	if (normalized_main_page_title.includes('明德學院')
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -570,8 +574,8 @@ async function check_deletion_page(JDN, page_data) {
 			JDN
 		});
 		if (!deletion_flags_of_page[normalized_main_page_title])
-			report_lines.push([CeL.wiki.title_link_of(normalized_main_page_title), need_modify]);
-		if (normalized_main_page_title.includes('钟离姓')
+			report_lines.push([normalized_main_page_title, need_modify]);
+		if (normalized_main_page_title.includes('明德學院')
 			// || normalized_main_page_title.includes('')
 		) {
 			console.log(discussions);
@@ -580,8 +584,8 @@ async function check_deletion_page(JDN, page_data) {
 
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
-		report_lines.push([CeL.wiki.title_link_of(normalized_main_page_title), need_modify]);
-		if (normalized_main_page_title.includes('钟离姓')) {
+		report_lines.push([normalized_main_page_title, need_modify]);
+		if (normalized_main_page_title.includes('明德學院')) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
@@ -650,7 +654,8 @@ async function modify_pages() {
 		try {
 			await wiki.edit_page(page_title, function (page_data) {
 				if (page_title !== page_data.title) {
-					report_lines.push([CeL.wiki.title_link_of(page_title), `放棄編輯: ${page_title} → ${page_data.title}`]);
+					console.log(page_data);
+					report_lines.push([page_title, `放棄編輯: ${page_title} → ${page_data.title}`]);
 				}
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
@@ -661,10 +666,13 @@ async function modify_pages() {
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
-			if (!e.from_string) {
-				console.error(e);
+			if (e.from_string) {
+				if (e !== 'empty')
+					CeL.error(e);
+			} else if (e.code === 'protectedpage' || e.code === 'invalidtitle') {
+				ignore_pages[page_title] = e.code;
 			} else {
-				// e.g., e === 'empty'
+				console.error(e);
 			}
 		}
 	}
@@ -709,6 +717,10 @@ function modified_notice_page(page_data, discussions) {
 async function generate_report() {
 	const page_count = Object.keys(pages_to_modify).length;
 	const report_count = report_lines.length;
+	report_lines.forEach(message => {
+		// CeL.wiki.title_link_of(page_title)
+		message[0] = `[[${CeL.wiki.to_talk_page(message[0])}|${message[0]}]]`;
+	});
 	report_lines.unshift(['頁面', '更動原因']);
 	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
 	await wiki.edit_page(`User:${user_name}/頁面存廢討論維護報告`,
