@@ -124,7 +124,8 @@ async function get_pages_embeddedin_notification_template() {
 
 function for_each_page_including_vfd_template(page_data) {
 	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data, {
-		unique: true
+		unique: true,
+		additional_parameters: 'hat_result|bot_checked'.split('|')
 	});
 	if (item_list.length === 0) {
 		if (!item_list.Article_history_items) {
@@ -146,8 +147,8 @@ function for_each_page_including_vfd_template(page_data) {
 		if (discussion.date)
 			discussion.JDN = CeL.Julian_day(discussion.date.to_Date());
 		// reset flag
-		// 實際上因為不會讀取.bot_checked，因此不會有效果。
-		if (false && discussion.bot_checked !== FLAG_CONFLICTED) delete discussion.bot_checked;
+		if (discussion.bot_checked !== FLAG_CONFLICTED)
+			delete discussion.bot_checked;
 		discussions.push(discussion);
 	});
 
@@ -525,8 +526,7 @@ async function check_deletion_page(JDN, page_data) {
 				result_list.push(discussion.result);
 				// 對於已設定 `discussion.bot_checked === FLAG_CONFLICTED` 的，
 				// 不去設定 need_modify。
-				// 實際上因為不會讀取 .bot_checked，因此不會有效果。
-				if (true || !discussion.bot_checked) {
+				if (discussion.bot_checked !== FLAG_CONFLICTED) {
 					discussion.bot_checked = FLAG_CONFLICTED;
 					need_modify = discussion.bot_checked;
 				}
@@ -667,7 +667,8 @@ async function modify_pages() {
 		try {
 			await wiki.edit_page(page_title, function (page_data) {
 				if (page_title !== page_data.title) {
-					console.log(page_data);
+					// console.log(page_data);
+					// assert: page_data.original_title === page_title
 					report_lines.push([page_title, `放棄編輯: ${page_title} → ${page_data.title}`]);
 				}
 				return modified_notice_page.call(this, page_data, discussions);
