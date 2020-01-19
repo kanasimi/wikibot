@@ -669,7 +669,9 @@ async function modify_pages() {
 				if (page_title !== page_data.title) {
 					// console.log(page_data);
 					// assert: page_data.original_title === page_title
-					report_lines.push([page_title, `放棄編輯: ${page_title} → ${page_data.title}`]);
+					report_lines.push([page_title, `放棄編輯 (converted): ${page_title} → ${page_data.title}`]);
+					ignore_pages[page_title] = 'converted';
+					return Wikiapi.skip_edit;
 				}
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
