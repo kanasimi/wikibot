@@ -74,7 +74,7 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	console.log(deletion_flags_of_page['明德學院']);
+	console.log(deletion_flags_of_page['团结就是力量']);
 	// return;
 
 	// ----------------------------------------------------
@@ -152,7 +152,7 @@ function for_each_page_including_vfd_template(page_data) {
 		discussions.push(discussion);
 	});
 
-	if (main_page_title.includes('明德學院')) {
+	if (main_page_title.includes('团结就是力量')) {
 		CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
 		console.log(page_data);
 		console.log(item_list);
@@ -452,7 +452,7 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
-	if (page_data.title.includes('明德學院')) {
+	if (page_data.title.includes('团结就是力量')) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
@@ -477,7 +477,7 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (false && normalized_main_page_title.includes('明德學院')
+	if (false && normalized_main_page_title.includes('团结就是力量')
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -501,7 +501,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('明德學院')
+	if (normalized_main_page_title.includes('团结就是力量')
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -588,7 +588,7 @@ async function check_deletion_page(JDN, page_data) {
 		});
 		if (!deletion_flags_of_page[normalized_main_page_title])
 			report_lines.push([normalized_main_page_title, need_modify]);
-		if (true || normalized_main_page_title.includes('明德學院')
+		if (true || normalized_main_page_title.includes('团结就是力量')
 			// || normalized_main_page_title.includes('')
 		) {
 			console.log(discussions);
@@ -598,7 +598,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
 		report_lines.push([normalized_main_page_title, need_modify]);
-		if (true || normalized_main_page_title.includes('明德學院')) {
+		if (true || normalized_main_page_title.includes('团结就是力量')) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
@@ -682,10 +682,11 @@ async function modify_pages() {
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
-			CeL.error('modify_pages: Error:');
-			console.log(e);
+			//CeL.error('modify_pages: Error:');
+			//console.log(e);
 			if (e.from_string) {
-				if (e !== 'empty')
+				// assert: error.constructor === Error
+				if (e.message !== 'empty')
 					CeL.error(e);
 			} else if (e.code === 'protectedpage' || e.code === 'invalidtitle') {
 				ignore_pages[page_title] = e.code;
