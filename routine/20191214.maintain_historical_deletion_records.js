@@ -452,6 +452,13 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
+	if (CeL.wiki.to_talk_page(page_data) in ignore_pages) {
+		//e.g., [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
+		CeL.info('============================================');
+		console.log(page_data);
+		return;
+	}
+
 	if (page_data.title.includes('团结就是力量')) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
