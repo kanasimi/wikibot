@@ -683,7 +683,7 @@ async function modify_pages() {
 			});
 		} catch (e) {
 			if (e.from_string) {
-				if (e !== 'empty')
+				if (e !== 'empty' && e !== 'skip')
 					CeL.error(e);
 			} else if (e.code === 'protectedpage' || e.code === 'invalidtitle' || e.code === 'skip') {
 				ignore_pages[page_title] = e.code;
