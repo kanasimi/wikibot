@@ -707,7 +707,7 @@ async function modify_pages() {
 	}
 }
 
-const replace__Old_vfd_multi(page_data, discussions){
+function replace__Old_vfd_multi(page_data, discussions) {
 	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
 		modify_Article_history_warning(token, page_data) {
 			// duplicated?
