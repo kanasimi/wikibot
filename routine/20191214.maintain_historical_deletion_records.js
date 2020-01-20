@@ -712,27 +712,40 @@ async function modify_pages() {
 				CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_object(discussions, {
 					additional_parameters
 				}, page_title));
+				replace_report(page_title, 'add', e.code || e);
 			}
 		}
 	}
+}
+
+function replace_report(page_title, message, replace_by_message) {
+	page_title = CeL.wiki.talk_page_to_main(page_title);
+	const replace_by = [page_title, replace_by_message];
+	for (let i = 0; i < report_lines.length; i++) {
+		const line = report_lines[i];
+		if (line[0] === page_title && (!message || line[1] === message)) {
+			if (replace_by_message) {
+				report_lines.splice(i--, 1, replace_by);
+				replace_by_message = null;
+			} else {
+				// remove this item.
+				report_lines.splice(i--, 1);
+			}
+			// There should be only one line in the report_lines.
+			// break;
+		}
+	}
+
+	if (replace_by_message)
+		report_lines.push(replace_by);
 }
 
 function replace__Old_vfd_multi(page_data, discussions) {
 	let should_modify;
 	const options = {
 		modify_Article_history_warning(token/* , page_data */) {
-			const page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title);
-			for (let i = 0; i < report_lines.length; i++) {
-				const line = report_lines[i];
-				if (line[0] === page_title && line[1] === 'duplicated') {
-					// remove this item.
-					report_lines.splice(i--, 1);
-					// There should be only one line in the report_lines.
-					// break;
-				}
-			}
+			replace_report(page_data.original_title || page_data.title, 'duplicated', 'Should modify {{tl|Article history}} manually.');
 			should_modify = true;
-			report_lines.push([page_title, 'Should modify {{tl|Article history}} manually.']);
 		},
 		additional_parameters
 	};
