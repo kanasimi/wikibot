@@ -53,7 +53,7 @@ const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.cr
 
 const report_lines = [];
 
-const DEBUG_PAGE = '复旦大学邯郸校区';
+const DEBUG_PAGE = '';
 
 // ----------------------------------------------------------------------------
 
@@ -674,44 +674,60 @@ async function modify_pages() {
 		) continue;
 		// ----------------------------
 
-		try {
-			await wiki.edit_page(page_title, function (page_data) {
-				if (page_title !== page_data.title) {
-					// console.log(page_data);
-					// assert: page_data.original_title === page_title
-					report_lines.push([page_title, `放棄編輯 (title converted): ${page_title} → ${page_data.title}`]);
-					ignore_pages[page_data.original_title || page_title] = 'converted';
-					return Wikiapi.skip_edit;
-				}
-				return modified_notice_page.call(this, page_data, discussions);
-			}, {
-				// will using cache
-				// notification: 'VFD',
-				bot: 1,
-				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
-					+ CeL.wiki.title_link_of(notification_template)
-			});
-		} catch (e) {
-			// CeL.error('modify_pages: Error:');
-			// console.log(e);
-			if (e.from_string) {
-				// assert: error.constructor === Error
-				if (e.message !== 'empty')
-					CeL.error(e);
-			} else if (e.code === 'protectedpage' || e.code === 'invalidtitle') {
-				ignore_pages[page_title] = e.code;
-			} else {
-				console.error(e);
+		await wiki.edit_page(page_title, function (page_data) {
+			if (page_title !== page_data.title) {
+				// console.log(page_data);
+				// assert: page_data.original_title === page_title
+				report_lines.push([page_title, `放棄編輯 (title converted): ${page_title} → ${page_data.title}`]);
+				ignore_pages[page_data.original_title || page_title] = 'converted';
+				return Wikiapi.skip_edit;
 			}
-		}
+
+			try {
+				return modified_notice_page.call(this, page_data, discussions);
+			} catch (e) {
+				// CeL.error('modify_pages: Error:');
+				// console.log(e);
+				if (e.from_string) {
+					// assert: error.constructor === Error
+					if (e.message !== 'empty')
+						CeL.error(e);
+				} else if (e.code in {
+					protectedpage: true,
+					invalidtitle: true,
+					'titleblacklist-forbidden': true,
+					// spamblacklist: true,
+				}) {
+					ignore_pages[page_title] = e.code;
+				} else {
+					console.error(e);
+					CeL.error('wikitext:\n' + replace__Old_vfd_multi(page_data, discussions));
+				}
+			}
+		}, {
+			// will using cache
+			// notification: 'VFD',
+			bot: 1,
+			summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
+				+ CeL.wiki.title_link_of(notification_template)
+		});
 	}
 }
 
 function replace__Old_vfd_multi(page_data, discussions) {
 	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
-		modify_Article_history_warning(token/*, page_data*/) {
-			// duplicated?
-			report_lines.push([page_data.original_title || page_data.title, 'Should modify {{tl|Article history}} manually.']);
+		modify_Article_history_warning(token/* , page_data */) {
+			const page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title);
+			for (let i = 0; i < report_lines.length; i++) {
+				const line = report_lines[i];
+				if (line[0] === page_title && line[1] === 'duplicated') {
+					// remove this item.
+					report_lines.splice(i--, 1);
+					// There should be only one line in the report_lines.
+					// break;
+				}
+			}
+			report_lines.push([page_title, 'Should modify {{tl|Article history}} manually.']);
 		},
 		additional_parameters: 'hat_result|bot_checked'.split('|')
 	});
