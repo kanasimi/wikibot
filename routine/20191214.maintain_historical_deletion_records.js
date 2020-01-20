@@ -674,47 +674,47 @@ async function modify_pages() {
 		) continue;
 		// ----------------------------
 
-		await wiki.edit_page(page_title, function (page_data) {
-			if (page_title !== page_data.title) {
-				// console.log(page_data);
-				// assert: page_data.original_title === page_title
-				report_lines.push([page_title, `放棄編輯 (title converted): ${page_title} → ${page_data.title}`]);
-				ignore_pages[page_data.original_title || page_title] = 'converted';
-				return Wikiapi.skip_edit;
-			}
-
-			try {
-				return modified_notice_page.call(this, page_data, discussions);
-			} catch (e) {
-				// CeL.error('modify_pages: Error:');
-				// console.log(e);
-				if (e.from_string) {
-					// assert: error.constructor === Error
-					if (e.message !== 'empty')
-						CeL.error(e);
-				} else if (e.code in {
-					protectedpage: true,
-					invalidtitle: true,
-					'titleblacklist-forbidden': true,
-					// spamblacklist: true,
-				}) {
-					ignore_pages[page_title] = e.code;
-				} else {
-					console.error(e);
-					CeL.error('wikitext:\n' + replace__Old_vfd_multi(page_data, discussions));
+		try {
+			await wiki.edit_page(page_title, function (page_data) {
+				if (page_title !== page_data.title) {
+					// console.log(page_data);
+					// assert: page_data.original_title === page_title
+					report_lines.push([page_title, `放棄編輯 (title converted): ${page_title} → ${page_data.title}`]);
+					ignore_pages[page_data.original_title || page_title] = 'converted';
+					return Wikiapi.skip_edit;
 				}
+
+				return modified_notice_page.call(this, page_data, discussions);
+			}, {
+				// will using cache
+				// notification: 'VFD',
+				bot: 1,
+				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
+					+ CeL.wiki.title_link_of(notification_template)
+			});
+		} catch (e) {
+			// CeL.error('modify_pages: Error:');
+			// console.log(e);
+			if (e.from_string) {
+				// assert: error.constructor === Error
+				if (e.message !== 'empty')
+					CeL.error(e);
+			} else if (e.code in {
+				protectedpage: true,
+				invalidtitle: true,
+				'titleblacklist-forbidden': true,
+				// spamblacklist: true,
+			}) {
+				ignore_pages[page_title] = e.code;
+			} else {
+				console.error(e);
 			}
-		}, {
-			// will using cache
-			// notification: 'VFD',
-			bot: 1,
-			summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
-				+ CeL.wiki.title_link_of(notification_template)
-		});
+		}
 	}
 }
 
 function replace__Old_vfd_multi(page_data, discussions) {
+	let should_modify;
 	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
 		modify_Article_history_warning(token/* , page_data */) {
 			const page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title);
@@ -727,10 +727,13 @@ function replace__Old_vfd_multi(page_data, discussions) {
 					// break;
 				}
 			}
+			should_modify = true;
 			report_lines.push([page_title, 'Should modify {{tl|Article history}} manually.']);
 		},
 		additional_parameters: 'hat_result|bot_checked'.split('|')
 	});
+	if (should_modify)
+		CeL.error('wikitext:\n' + wikitext);
 	return wikitext;
 }
 
