@@ -709,9 +709,9 @@ async function modify_pages() {
 
 function replace__Old_vfd_multi(page_data, discussions) {
 	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
-		modify_Article_history_warning(token, page_data) {
+		modify_Article_history_warning(token/*, page_data*/) {
 			// duplicated?
-			report_lines.push([page_title, 'Should modify {{tl|Article history}} manually.']);
+			report_lines.push([page_data.original_title || page_data.title, 'Should modify {{tl|Article history}} manually.']);
 		},
 		additional_parameters: 'hat_result|bot_checked'.split('|')
 	});
