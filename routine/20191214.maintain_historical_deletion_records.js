@@ -53,6 +53,8 @@ const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.cr
 
 const report_lines = [];
 
+const DEBUG_PAGE = '复旦大学邯郸校区';
+
 // ----------------------------------------------------------------------------
 
 prepare_directory(base_directory);
@@ -74,7 +76,8 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	console.log(deletion_flags_of_page['团结就是力量']);
+	if (DEBUG_PAGE)
+		console.log(deletion_flags_of_page[DEBUG_PAGE]);
 	// return;
 
 	// ----------------------------------------------------
@@ -152,7 +155,7 @@ function for_each_page_including_vfd_template(page_data) {
 		discussions.push(discussion);
 	});
 
-	if (main_page_title.includes('团结就是力量')) {
+	if (DEBUG_PAGE && main_page_title.includes(DEBUG_PAGE)) {
 		CeL.info(`for_each_page_including_vfd_template: ${main_page_title}`);
 		console.log(page_data);
 		console.log(item_list);
@@ -452,13 +455,14 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
-	if (page_data.title.includes('团结就是力量')) {
+	if (DEBUG_PAGE && page_data.title.includes(DEBUG_PAGE)) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
 	if (CeL.wiki.to_talk_page(page_data) in ignore_pages) {
 		// e.g., Skip [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
-		// [[Talk:團結就是力量]] convert-> [[Talk:团结就是力量]] redirect-> [[Talk:团结就是力量 (歌曲)]]
+		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]] redirect→ [[Talk:团结就是力量
+		// (歌曲)]]
 		CeL.info('============================================');
 		console.log(page_data);
 		return;
@@ -485,7 +489,7 @@ async function check_deletion_page(JDN, page_data) {
 	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (false && normalized_main_page_title.includes('团结就是力量')
+	if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -509,7 +513,7 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (normalized_main_page_title.includes('团结就是力量')
+	if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
 		// || normalized_main_page_title.includes('')
 	) {
 		console.log(flags_of_page);
@@ -596,7 +600,7 @@ async function check_deletion_page(JDN, page_data) {
 		});
 		if (!deletion_flags_of_page[normalized_main_page_title])
 			report_lines.push([normalized_main_page_title, need_modify]);
-		if (true || normalized_main_page_title.includes('团结就是力量')
+		if (true || DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
 			// || normalized_main_page_title.includes('')
 		) {
 			console.log(discussions);
@@ -606,7 +610,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
 		report_lines.push([normalized_main_page_title, need_modify]);
-		if (true || normalized_main_page_title.includes('团结就是力量')) {
+		if (true || DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
@@ -660,9 +664,7 @@ async function modify_pages() {
 			}
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
 			console.log(discussions);
-			const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
-				additional_parameters: 'hat_result|bot_checked'.split('|')
-			});
+			const wikitext = replace__Old_vfd_multi(page_data, discussions);
 			console.log(wikitext);
 			if (edit_count++ > 200) break;
 			continue;
@@ -678,7 +680,7 @@ async function modify_pages() {
 					// console.log(page_data);
 					// assert: page_data.original_title === page_title
 					report_lines.push([page_title, `放棄編輯 (title converted): ${page_title} → ${page_data.title}`]);
-					ignore_pages[page_title] = 'converted';
+					ignore_pages[page_data.original_title || page_title] = 'converted';
 					return Wikiapi.skip_edit;
 				}
 				return modified_notice_page.call(this, page_data, discussions);
@@ -690,8 +692,8 @@ async function modify_pages() {
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 		} catch (e) {
-			//CeL.error('modify_pages: Error:');
-			//console.log(e);
+			// CeL.error('modify_pages: Error:');
+			// console.log(e);
 			if (e.from_string) {
 				// assert: error.constructor === Error
 				if (e.message !== 'empty')
@@ -705,13 +707,24 @@ async function modify_pages() {
 	}
 }
 
+const replace__Old_vfd_multi(page_data, discussions){
+	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
+		modify_Article_history_warning(token, page_data) {
+			// duplicated?
+			report_lines.push([page_title, 'Should modify {{tl|Article history}} manually.']);
+		},
+		additional_parameters: 'hat_result|bot_checked'.split('|')
+	});
+	return wikitext;
+}
+
 let edit_count = 0;
 
 function modified_notice_page(page_data, discussions) {
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page.
 		// e.g., [[Talk:405]]
-		ignore_pages[page_data.title] = 'redirect';
+		ignore_pages[page_data.original_title || page_data.title] = 'redirect';
 		return Wikiapi.skip_edit;
 	}
 
@@ -720,13 +733,11 @@ function modified_notice_page(page_data, discussions) {
 	// 即可。
 	// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
 	if (CeL.wiki.edit.denied(page_data, user_name, 'VFD')) {
-		ignore_pages[page_data.title] = 'bots denied';
+		ignore_pages[page_data.original_title || page_data.title] = 'bots denied';
 		return Wikiapi.skip_edit;
 	}
 
-	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
-		additional_parameters: 'hat_result|bot_checked'.split('|')
-	});
+	const wikitext = replace__Old_vfd_multi(page_data, discussions);
 
 	// console.log(this.summary);
 	// console.log(page_data);
