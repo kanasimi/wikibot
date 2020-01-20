@@ -125,10 +125,11 @@ async function get_pages_embeddedin_notification_template() {
 	// console.log(deletion_flags_of_page);
 }
 
+const additional_parameters = 'hat_result|bot_checked'.split('|');
 function for_each_page_including_vfd_template(page_data) {
 	const item_list = CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data, {
 		unique: true,
-		additional_parameters: 'hat_result|bot_checked'.split('|')
+		additional_parameters
 	});
 	if (item_list.length === 0) {
 		if (!item_list.Article_history_items) {
@@ -708,6 +709,9 @@ async function modify_pages() {
 				ignore_pages[page_title] = e.code;
 			} else {
 				console.error(e);
+				CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_object(discussions, {
+					additional_parameters
+				}, page_title));
 			}
 		}
 	}
@@ -715,7 +719,7 @@ async function modify_pages() {
 
 function replace__Old_vfd_multi(page_data, discussions) {
 	let should_modify;
-	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, {
+	const options = {
 		modify_Article_history_warning(token/* , page_data */) {
 			const page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title);
 			for (let i = 0; i < report_lines.length; i++) {
@@ -730,10 +734,11 @@ function replace__Old_vfd_multi(page_data, discussions) {
 			should_modify = true;
 			report_lines.push([page_title, 'Should modify {{tl|Article history}} manually.']);
 		},
-		additional_parameters: 'hat_result|bot_checked'.split('|')
-	});
+		additional_parameters
+	};
+	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, options);
 	if (should_modify)
-		CeL.error('wikitext:\n' + wikitext);
+		CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_object(discussions, options, page_data));
 	return wikitext;
 }
 
