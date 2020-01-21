@@ -460,11 +460,11 @@ async function check_deletion_page(JDN, page_data) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
-	if (CeL.wiki.to_talk_page(page_data) in ignore_pages) {
+	if (false && (CeL.wiki.to_talk_page(page_data) in ignore_pages)) {
 		// e.g., Skip [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
 		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]] redirect→ [[Talk:团结就是力量
 		// (歌曲)]]
-		CeL.info('============================================');
+		CeL.info(`Skip ${CeL.wiki.title_link_of(page_data)}`);
 		console.log(page_data);
 		return;
 	}
@@ -707,12 +707,13 @@ async function modify_pages() {
 				// spamblacklist: true,
 			}) {
 				ignore_pages[page_title] = e.code;
+				replace_report(page_title, null, e.code);
 			} else {
 				console.error(e);
-				CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_object(discussions, {
+				CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_wikitext(discussions, {
 					additional_parameters
 				}, page_title));
-				replace_report(page_title, 'add', e.code || e);
+				replace_report(page_title, null, e.code || e);
 			}
 		}
 	}
@@ -751,7 +752,7 @@ function replace__Old_vfd_multi(page_data, discussions) {
 	};
 	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, options);
 	if (should_modify)
-		CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_object(discussions, options, page_data));
+		CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_wikitext(discussions, options, page_data));
 	return wikitext;
 }
 
@@ -796,7 +797,16 @@ async function generate_report() {
 		// CeL.wiki.title_link_of(page_title)
 		message[0] = `[[${CeL.wiki.to_talk_page(message[0])}|${message[0]}]]`;
 	});
-	report_lines.unshift(['頁面', '特別情況/更動原因']);
+	let report_wikitext;
+	if (report_count.length > 0) {
+		report_lines.unshift(['頁面', '特別情況/更動原因']);
+		report_wikitext = CeL.wiki.array_to_table(report_lines, {
+			'class': "wikitable sortable"
+		}) + '\n[[Category:维基百科积压工作]]';
+	} else {
+		report_wikitext = "* '''太好了！無特殊頁面。'''";
+	}
+
 	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
 	await wiki.edit_page(`User:${user_name}/頁面存廢討論維護報告`,
 		// __NOTITLECONVERT__
@@ -805,9 +815,7 @@ async function generate_report() {
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
-		+ CeL.wiki.array_to_table(report_lines, {
-			'class': "wikitable sortable"
-		}), {
+		+ report_wikitext, {
 		nocreate: 1,
 		summary: `維護討論頁之存廢討論紀錄與模板: ${page_count}個討論頁，${report_count}筆特別情況特殊紀錄。`
 	});
