@@ -575,6 +575,7 @@ async function check_deletion_page(JDN, page_data) {
 		if (check_and_set('result', 'hat_result')) {
 			if (!CeL.wiki.template_functions.Hat.result_includes(discussion, flags)) {
 				need_modify = `hat_result: ${discussion.result}; ${flags.result}`;
+				console.log(discussion);
 				discussion.result = text_of_result;
 			}
 		}
@@ -721,13 +722,13 @@ async function modify_pages() {
 
 function replace_report(page_title, message, replace_by_message) {
 	page_title = CeL.wiki.talk_page_to_main(page_title);
-	const replace_by = [page_title, replace_by_message];
+	let replace_by = [page_title, replace_by_message];
 	for (let i = 0; i < report_lines.length; i++) {
 		const line = report_lines[i];
 		if (line[0] === page_title && (!message || line[1] === message)) {
-			if (replace_by_message) {
-				report_lines.splice(i--, 1, replace_by);
-				replace_by_message = null;
+			if (replace_by) {
+				report_lines[i] = replace_by;
+				replace_by = null;
 			} else {
 				// remove this item.
 				report_lines.splice(i--, 1);
@@ -737,7 +738,7 @@ function replace_report(page_title, message, replace_by_message) {
 		}
 	}
 
-	if (replace_by_message)
+	if (replace_by)
 		report_lines.push(replace_by);
 }
 
@@ -791,14 +792,14 @@ function modified_notice_page(page_data, discussions) {
 // ----------------------------------------------------------------------------
 
 async function generate_report() {
-	const page_count = Object.keys(pages_to_modify).length;
-	const report_count = report_lines.length;
 	report_lines.forEach(message => {
 		// CeL.wiki.title_link_of(page_title)
 		message[0] = `[[${CeL.wiki.to_talk_page(message[0])}|${message[0]}]]`;
 	});
+
+	const report_count = report_lines.length;
 	let report_wikitext;
-	if (report_count.length > 0) {
+	if (report_count > 0) {
 		report_lines.unshift(['頁面', '特別情況/更動原因']);
 		report_wikitext = CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
@@ -807,6 +808,7 @@ async function generate_report() {
 		report_wikitext = "* '''太好了！無特殊頁面。'''";
 	}
 
+	const page_count = Object.keys(pages_to_modify).length;
 	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
 	await wiki.edit_page(`User:${user_name}/頁面存廢討論維護報告`,
 		// __NOTITLECONVERT__
