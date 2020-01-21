@@ -683,7 +683,7 @@ async function modify_pages() {
 					// console.log(page_data);
 					// assert: page_data.original_title === page_title
 					// 放棄編輯
-					report_lines.push([page_title, `Give up editing (title converted): ${page_title} → ${page_data.title}`]);
+					replace_report(page_title, null, `Give up editing (title converted): ${page_title} → ${page_data.title}`);
 					ignore_pages[CeL.wiki.talk_page_to_main(page_title)] = 'converted';
 					return Wikiapi.skip_edit;
 				}
