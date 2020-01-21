@@ -763,10 +763,11 @@ function replace__Old_vfd_multi(page_data, discussions) {
 let edit_count = 0;
 
 function modified_notice_page(page_data, discussions) {
+	const main_page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page.
 		// e.g., [[Talk:405]]
-		ignore_pages[CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title)] = 'redirect';
+		ignore_pages[main_page_title] = 'redirect';
 		return Wikiapi.skip_edit;
 	}
 
@@ -775,7 +776,7 @@ function modified_notice_page(page_data, discussions) {
 	// 即可。
 	// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
 	if (CeL.wiki.edit.denied(page_data, user_name, 'VFD')) {
-		ignore_pages[CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title)] = 'bots denied';
+		ignore_pages[main_page_title] = 'bots denied';
 		return Wikiapi.skip_edit;
 	}
 
