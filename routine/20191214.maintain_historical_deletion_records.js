@@ -679,15 +679,6 @@ async function modify_pages() {
 
 		try {
 			await wiki.edit_page(page_title, function (page_data) {
-				if (page_title !== page_data.title) {
-					// console.log(page_data);
-					// assert: page_data.original_title === page_title
-					// 放棄編輯
-					replace_report(page_title, null, `Give up editing (title converted): ${page_title} → ${page_data.title}`);
-					ignore_pages[CeL.wiki.talk_page_to_main(page_title)] = 'converted';
-					return Wikiapi.skip_edit;
-				}
-
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				// will using cache
@@ -763,7 +754,16 @@ function replace__Old_vfd_multi(page_data, discussions) {
 let edit_count = 0;
 
 function modified_notice_page(page_data, discussions) {
+	// console.log(page_data);
 	const main_page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
+
+	if (page_data.original_title !== page_data.title) {
+		// 放棄編輯
+		replace_report(main_page_title, null, `Give up editing (title converted): ${page_data.original_title} → ${page_data.title}`);
+		ignore_pages[main_page_title] = 'converted';
+		return Wikiapi.skip_edit;
+	}
+
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page.
 		// e.g., [[Talk:405]]
