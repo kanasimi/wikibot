@@ -683,8 +683,9 @@ async function modify_pages() {
 				if (page_title !== page_data.title) {
 					// console.log(page_data);
 					// assert: page_data.original_title === page_title
-					report_lines.push([page_title, `放棄編輯 (title converted): ${page_title} → ${page_data.title}`]);
-					ignore_pages[page_data.original_title || page_title] = 'converted';
+					// 放棄編輯
+					report_lines.push([page_title, `Give up editing (title converted): ${page_title} → ${page_data.title}`]);
+					ignore_pages[CeL.wiki.talk_page_to_main(page_title)] = 'converted';
 					return Wikiapi.skip_edit;
 				}
 
@@ -696,6 +697,7 @@ async function modify_pages() {
 				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
 					+ CeL.wiki.title_link_of(notification_template)
 			});
+
 		} catch (e) {
 			// CeL.error('modify_pages: Error:');
 			// console.log(e);
@@ -709,7 +711,7 @@ async function modify_pages() {
 				'titleblacklist-forbidden': true,
 				// spamblacklist: true,
 			}) {
-				ignore_pages[page_title] = e.code;
+				ignore_pages[CeL.wiki.talk_page_to_main(page_title)] = e.code;
 				replace_report(page_title, null, e.code);
 			} else {
 				console.error(e);
@@ -765,7 +767,7 @@ function modified_notice_page(page_data, discussions) {
 	if (CeL.wiki.parse.redirect(page_data)) {
 		// Should not create talk page when the talk page is a redirect page.
 		// e.g., [[Talk:405]]
-		ignore_pages[page_data.original_title || page_data.title] = 'redirect';
+		ignore_pages[CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title)] = 'redirect';
 		return Wikiapi.skip_edit;
 	}
 
@@ -774,7 +776,7 @@ function modified_notice_page(page_data, discussions) {
 	// 即可。
 	// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
 	if (CeL.wiki.edit.denied(page_data, user_name, 'VFD')) {
-		ignore_pages[page_data.original_title || page_data.title] = 'bots denied';
+		ignore_pages[CeL.wiki.talk_page_to_main(page_data.original_title || page_data.title)] = 'bots denied';
 		return Wikiapi.skip_edit;
 	}
 
