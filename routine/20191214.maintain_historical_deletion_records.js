@@ -544,7 +544,7 @@ async function check_deletion_page(JDN, page_data) {
 					discussion.bot_checked = FLAG_CONFLICTED;
 					need_modify = discussion.bot_checked;
 				}
-				report_lines.push([normalized_main_page_title, discussion.bot_checked]);
+				report_lines.push([normalized_main_page_title, discussion.bot_checked + ': 存在相衝突的紀錄']);
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
 				console.log(flags);
 				console.log(discussions);
@@ -663,7 +663,6 @@ async function modify_pages() {
 			if (CeL.wiki.parse.redirect(page_data)) {
 				// Should not create talk page when the talk page is a redirect
 				// page. e.g., [[Talk:405]]
-				ignore_pages[page_data.title] = 'redirect';
 				continue;
 			}
 			CeL.info('Edit ' + CeL.wiki.title_link_of(page_title));
