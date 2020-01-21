@@ -6,6 +6,7 @@
 TODO:
 {{Multidel}}
 Wikipedia:存廢覆核請求/存檔/*
+using [[Special:Log]]
 
  */
 
@@ -543,6 +544,7 @@ async function check_deletion_page(JDN, page_data) {
 					discussion.bot_checked = FLAG_CONFLICTED;
 					need_modify = discussion.bot_checked;
 				}
+				report_lines.push([normalized_main_page_title, discussion.bot_checked]);
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
 				console.log(flags);
 				console.log(discussions);
@@ -589,7 +591,7 @@ async function check_deletion_page(JDN, page_data) {
 		// assert: !!flags.result === !!text_of_result === true
 		// 常見的原因是本 talk 頁面為 redirect。
 		need_modify = 'add';
-		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 0, 'check_deletion_page');
+		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 1, 'check_deletion_page');
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
 			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 page_title。
@@ -602,7 +604,7 @@ async function check_deletion_page(JDN, page_data) {
 		});
 		if (!deletion_flags_of_page[normalized_main_page_title])
 			report_lines.push([normalized_main_page_title, need_modify]);
-		if (true || DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
+		if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
 			// || normalized_main_page_title.includes('')
 		) {
 			console.log(discussions);
@@ -612,7 +614,7 @@ async function check_deletion_page(JDN, page_data) {
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
 		report_lines.push([normalized_main_page_title, need_modify]);
-		if (true || DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)) {
+		if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
