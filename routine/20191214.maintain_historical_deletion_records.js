@@ -757,7 +757,7 @@ function modified_notice_page(page_data, discussions) {
 	// console.log(page_data);
 	const main_page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
 
-	if (page_data.original_title !== page_data.title) {
+	if (page_data.original_title && page_data.original_title !== page_data.title) {
 		// 放棄編輯
 		replace_report(main_page_title, null, `Give up editing (title converted): ${page_data.original_title} → ${page_data.title}`);
 		ignore_pages[main_page_title] = 'converted';
