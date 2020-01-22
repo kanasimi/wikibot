@@ -48,7 +48,7 @@ let deletion_flags_of_page = using_cache && CeL.get_JSON(deletion_flags_of_page_
 // = [ {date:'',result:'',...,bot_checked:''}, ... ]
 const pages_to_modify = Object.create(null);
 
-// 紀錄 redirect pages 之類需要忽略的。
+// 紀錄 redirect pages 之類需要忽略的。以非討論空間為主。
 const ignore_pages_file = base_directory + 'ignore_pages.json';
 const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.create(null);
 
@@ -226,7 +226,7 @@ async function check_deletion_discussion_page(page_data) {
 		}
 		const talk_page = CeL.wiki.to_talk_page(title);
 		// e.g., 'Topic:'
-		if (!talk_page || (talk_page in ignore_pages)) {
+		if (!talk_page) {
 			return;
 		}
 		if (flags.result in {
@@ -463,8 +463,8 @@ async function check_deletion_page(JDN, page_data) {
 	}
 	if (false && (CeL.wiki.to_talk_page(page_data) in ignore_pages)) {
 		// e.g., Skip [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
-		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]] redirect→ [[Talk:团结就是力量
-		// (歌曲)]]
+		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]]
+		// redirect→ [[Talk:团结就是力量 (歌曲)]]
 		CeL.info(`Skip ${CeL.wiki.title_link_of(page_data)}`);
 		console.log(page_data);
 		return;
@@ -473,7 +473,7 @@ async function check_deletion_page(JDN, page_data) {
 	// Should not create talk page when the main page is a redirect page.
 	// e.g., [[326]]
 	if (CeL.wiki.parse.redirect(page_data)) {
-		ignore_pages[page_data.title] = 'redirect';
+		ignore_pages[CeL.wiki.talk_page_to_main(page_data.original_title || page_data)] = 'redirect';
 		return;
 	}
 
