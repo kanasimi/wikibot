@@ -395,9 +395,9 @@ function check_final_work() {
 	}
 	check_final_work.done = true;
 
-	wiki.page('User:' + user_name + '/' + message_set.report_page)
-	//
-	.edit(function() {
+	wiki.page('User:' + user_name + '/' + message_set.report_page, {
+		redirects : 1
+	}).edit(function() {
 		var messages = [], listed = 0, all = 0,
 		//
 		data = processed_data[processed_data.KEY_DATA];
@@ -460,7 +460,9 @@ function check_final_work() {
 			// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 			+ '* ' + message_set.generate_date
 			//
-			+ '<onlyinclude>~~~~~</onlyinclude>\n\n');
+			+ '<onlyinclude>~~~~~</onlyinclude>\n'
+			// + '== Problematic pages ==\n'
+			);
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}
