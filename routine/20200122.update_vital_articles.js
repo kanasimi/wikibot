@@ -4,6 +4,8 @@
 
 TODO:
 report level/class change
+count report table each page
+maintain vital articles template
 
  */
 
@@ -18,6 +20,8 @@ CeL.run('application.net.wiki.featured_content');
 set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
+
+prepare_directory(base_directory, true);
 
 // ----------------------------------------------
 
@@ -39,8 +43,6 @@ const DEFAULT_LEVEL = 3;
 const report_lines = [];
 
 // ----------------------------------------------------------------------------
-
-prepare_directory(base_directory, true);
 
 (async () => {
 	await wiki.login(user_name, user_password, use_language);
@@ -67,7 +69,8 @@ async function main_process() {
 		// '5/People/Writers and journalists',
 		// '5/People/Artists, musicians, and composers',
 		// '5/Physical sciences/Physics',
-		'5/Technology',
+		// '5/Technology',
+		'5/Everyday life/Sports, games and recreation',
 		// '5/Mathematics',
 	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
 	// console.log(vital_articles_list.length);
@@ -118,6 +121,8 @@ async function get_page_info() {
 	// ---------------------------------------------
 
 	const icon_to_category = Object.create(null);
+	// list an article's icon for current quality status always first
+	// they're what the vital article project is most concerned about.
 	// [[Category:Wikipedia vital articles by class]]
 	// FA|FL|GA|
 	'A|B|C|List|Start|Stub|Unassessed'.split('|').forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
@@ -132,9 +137,12 @@ async function get_page_info() {
 		FFPo: 'Wikipedia former featured portals',
 		FPoC: 'Wikipedia featured portal candidates (contested)',
 		LIST: 'List-Class List articles',
-		PR: 'Old requests for peer review',
-		ITN: 'Wikipedia In the news articles',
-		OTD: 'Article history templates with linked otd dates',
+
+		// The icons that haven't been traditionally listed (peer review, in the
+		// news) might even be unnecessary.
+		// PR: 'Old requests for peer review',
+		// ITN: 'Wikipedia In the news articles',
+		// OTD: 'Article history templates with linked otd dates',
 	});
 	for (let icon in icon_to_category) {
 		const pages = await wiki.categorymembers(icon_to_category[icon]);
@@ -228,7 +236,7 @@ function for_each_list_page(list_page_data) {
 					// `category_level===undefined`: e.g., redirected
 					let has_error = !category_level || _item.type !== 'plain';
 					if (!has_error) {
-						const PATTERN_level = /\((?:level \d|\[\[([^\[\]\|]+)\|level \d\]\])\)/i;
+						const PATTERN_level = /\s*\((?:level \d|\[\[([^\[\]\|]+)\|level \d\]\])\)/i;
 						const rest_wikitext = _item.slice(index + 1).join('').trim();
 						const matched = rest_wikitext && rest_wikitext.match(PATTERN_level);
 						if (!rest_wikitext || matched) {
@@ -243,7 +251,11 @@ function for_each_list_page(list_page_data) {
 					}
 
 					if (has_error) {
-						const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
+						if (false) {
+							const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
+						}
+						// reduce size
+						const message = category_level ? `Category level ${category_level}{{r|c}}` : 'Redirected?{{r|e}}';
 						CeL.warn(`${page_title}: ${message}`);
 						report_lines.push([page_title, list_page_data, message]);
 						if (icons.length === 0) {
@@ -352,7 +364,18 @@ function for_each_list_page(list_page_data) {
 		}
 	}
 
-	parsed.some((token, index) => {
+	function for_root_token(token, index, root) {
+		if (token.type === 'transclusion' && token.name === 'Columns-list') {
+			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games
+			// and recreation]]
+			token = token.parameters[1];
+			// console.log(token);
+			if (Array.isArray(token)) {
+				token.forEach(for_root_token);
+			}
+			return;
+		}
+
 		if (token.type === 'list') {
 			token.forEach(for_item);
 			return;
@@ -367,8 +390,10 @@ function for_each_list_page(list_page_data) {
 			return;
 		}
 
-		section_text_to_title(token, index, parsed);
-	});
+		section_text_to_title(token, index, root);
+	}
+
+	parsed.some(for_root_token);
 
 	// -------------------------------------------------------
 
@@ -412,12 +437,21 @@ function check_page_count() {
 		}
 	}
 
+	let skipped_records = 0;
 	for (let page_title in page_listed_in) {
 		const level_list = page_listed_in[page_title];
+		if (level_list.length > 0) {
+			// [contenttoobig] The content you supplied exceeds the article size
+			// limit of 2048 kilobytes.
+			skipped_records++;
+			continue;
+		}
 		report_lines.push([page_title, level_of_page[page_title], level_list.length > 0
 			? `Listed ${level_list.length} times in ${level_list.map(level_page_link)}`
 			: `Did not listed in ${level_page_link(level_of_page[page_title])}.`]);
 	}
+	if (skipped_records > 0)
+		report_lines.push([, , `Skip ${skipped_records} records`]);
 }
 
 async function generate_report() {
@@ -452,6 +486,7 @@ async function generate_report() {
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
 		+ '* The report will update automatically.\n'
+		+ '* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Please modify the link manually.</ref>\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
 		+ report_wikitext + '\n<!-- report end -->', {
