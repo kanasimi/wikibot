@@ -2,7 +2,8 @@
 
 2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
 
-report error, level/class change
+TODO:
+report level/class change
 
  */
 
@@ -13,21 +14,27 @@ require('../wiki loader.js');
 
 CeL.run('application.net.wiki.featured_content');
 
-/** {Object}wiki operator 操作子. */
-const wiki = new Wikiapi;
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('en');
+/** {Object}wiki operator 操作子. */
+const wiki = new Wikiapi;
 
+// ----------------------------------------------
+
+// badge
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = CeL.get_JSON(page_info_cache_file);
 
-// badge
+/** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object.create(null);
+/** {Object}icons_of_page[title]=1–5 */
 const level_of_page = page_info_cache && page_info_cache.level_of_page || Object.create(null);
+/** {Object}page_listed_in[title]=[level,level,...] */
+const page_listed_in = Object.create(null);
 
-// [[Wikipedia:Vital articles/Level/3]] redirect→ [[Wikipedia:Vital articles]]
-const DEFAULT_LEVEL = 3;
 const base_page = 'Wikipedia:Vital articles';
+// [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
+const DEFAULT_LEVEL = 3;
 
 const report_lines = [];
 
@@ -50,16 +57,16 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = await wiki.prefixsearch('Wikipedia:Vital articles') || [
+	const vital_articles_list = (await wiki.prefixsearch(base_page)) || [
 		// 1,
-		// 2,
-		// '',
+		2,
+		// 3 && '',
 		// '4/People',
 		// '4/History',
-		//'4/Physical sciences',
+		// '4/Physical sciences',
 		// '5/People/Writers and journalists',
-		//'5/People/Artists, musicians, and composers',
-		//'5/Physical sciences/Physics',
+		// '5/People/Artists, musicians, and composers',
+		// '5/Physical sciences/Physics',
 		// '5/Technology',
 		// '5/Mathematics',
 	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
@@ -74,6 +81,8 @@ async function main_process() {
 	});
 
 	// ----------------------------------------------------
+
+	check_page_count();
 
 	await generate_report();
 
@@ -93,7 +102,8 @@ async function get_page_info() {
 
 	// ---------------------------------------------
 
-	for (let i = 1; i <= 5; i++) {
+	// Skip [[Category:All Wikipedia level-unknown vital articles]]
+	for (let i = 5; i >= 1; i--) {
 		const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`);
 		page_list.forEach(page_data => {
 			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
@@ -146,9 +156,18 @@ function level_page_link(level, number_only, page_title) {
 	return `[[${page_title || (level === DEFAULT_LEVEL ? base_page : base_page + '/Level/' + level)}|${number_only ? '' : 'Level '}${level}]]`;
 }
 
+function level_of_page_title(page_title, number_only) {
+	// page_title.startsWith(base_page);
+	// [, 1–5, section ]
+	const matched = page_title.match(/\/Level(?:\/(\d)(\/.+))?$/);
+	if (matched) {
+		const level = number_only || !matched[2] ? + matched[1] || DEFAULT_LEVEL : matched[1] + matched[2];
+		return level;
+	}
+}
+
 function for_each_list_page(list_page_data) {
-	let matched = list_page_data.title.match(/\/Level\/(\d)(?:$|\/)/);
-	const level = matched && + matched[1] || DEFAULT_LEVEL;
+	const level = level_of_page_title(list_page_data.title, true) || DEFAULT_LEVEL;
 	const parsed = list_page_data.parse();
 	// console.log(parsed);
 	parsed.each_section();
@@ -183,6 +202,11 @@ function for_each_list_page(list_page_data) {
 			}
 			if (token.type === 'link' && !item_wikitext) {
 				const page_title = token[0].toString();
+				if (!(page_title in page_listed_in)) {
+					page_listed_in[page_title] = [];
+				}
+				page_listed_in[page_title].push(level_of_page_title(list_page_data.title));
+
 				if (page_title in icons_of_page) {
 					icons.append(icons_of_page[page_title]);
 				}
@@ -191,12 +215,7 @@ function for_each_list_page(list_page_data) {
 					icons.append(wiki.FC_data_hash[page_title].types);
 				}
 
-				if (latest_section) {
-					latest_section.item_count++;
-				}
-
 				const category_level = level_of_page[page_title];
-				// The bot '''WILL NOT COUNT''' the articles listed in level other than current page to prevent from double counting.
 				// The frist link should be the main article.
 				if (category_level !== level) {
 					// `category_level===undefined`: e.g., redirected
@@ -214,6 +233,9 @@ function for_each_list_page(list_page_data) {
 						} else {
 							has_error = true;
 						}
+					} else if (!category_level && latest_section) {
+						// Counting for unleveled articles when preventint from double counting.
+						//latest_section.item_count++;
 					}
 
 					if (has_error) {
@@ -222,9 +244,18 @@ function for_each_list_page(list_page_data) {
 						report_lines.push([page_title, list_page_data, message]);
 						if (icons.length === 0) {
 							// Leave untouched if error with no icon.
+							// e.g., [[unleveled article]]
 							return true;
 						}
 					}
+
+				}
+				if (latest_section) {
+					// Good: Always count articles.
+					// NG:
+					// The bot '''WILL NOT COUNT''' the articles listed in level
+					// other than current page to prevent from double counting.
+					latest_section.item_count++;
 				}
 
 				icons = icons.map(icon => `{{Icon|${icon}}}`);
@@ -358,14 +389,39 @@ function for_each_list_page(list_page_data) {
 	}
 
 	this.summary += `: Total ${set_section_title_count(parsed)} articles`;
-	//console.log(this.summary);
+	// console.log(this.summary);
 
-	//console.log(parsed.toString());
-	//return Wikiapi.skip_edit;
+	// console.log(parsed.toString());
+	// return Wikiapi.skip_edit;
 	return parsed.toString();
 }
 
 // ----------------------------------------------------------------------------
+
+function check_page_count() {
+	for (let page_title in level_of_page) {
+		const level = level_of_page[page_title];
+		const level_list = page_listed_in[page_title];
+		if (!level_list) {
+			page_listed_in[page_title] = [];
+			continue;
+		}
+		if (level_list.length <= 3
+			// report identifying articles that have been listed twice
+			&& level_list.length === level_list.unique().length
+			&& level_list.some(_level => typeof _level === 'string' ? _level.startsWith(level + '/') : level === _level)) {
+			delete page_listed_in[page_title];
+			continue;
+		}
+	}
+
+	for (let page_title in page_listed_in) {
+		const level_list = page_listed_in[page_title];
+		report_lines.push([page_title, level_of_page[page_title], level_list.length > 0
+			? `Listed ${level_list.length} times in ${level_list.map(level_page_link)}`
+			: `Did not listed in ${level_page_link(level_of_page[page_title])}.`]);
+	}
+}
 
 async function generate_report() {
 	report_lines.forEach(record => {
