@@ -1,6 +1,6 @@
 ﻿/*
 
-	初版試營運
+2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of Wikipedia:Vital articles.
 
 report error, level/class change
 
@@ -18,7 +18,7 @@ const wiki = new Wikiapi;
 // globalThis.use_language = 'zh';
 use_language = 'en';
 
-const page_info_cache_file = `${base_directory}/vital_articles_cache.json`;
+const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = CeL.get_JSON(page_info_cache_file);
 
 // badge
@@ -28,16 +28,6 @@ const level_of_page = page_info_cache && page_info_cache.level_of_page || Object
 // [[Wikipedia:Vital articles/Level/3]] redirect→ [[Wikipedia:Vital articles]]
 const DEFAULT_LEVEL = 3;
 const base_page = 'Wikipedia:Vital articles';
-
-const vital_articles_list = [
-	// 1,
-	// 2,
-	// '',
-	// '4/People',
-	// '4/History',
-	// '5/People/Writers and journalists',
-	'5/Technology',
-].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
 
 const report_lines = [];
 
@@ -60,15 +50,30 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
+	const vital_articles_list = await wiki.prefixsearch('Wikipedia:Vital articles') && [
+		// 1,
+		// 2,
+		// '',
+		// '4/People',
+		// '4/History',
+		//'4/Physical sciences',
+		// '5/People/Writers and journalists',
+		//'5/People/Artists, musicians, and composers',
+		'5/Physical sciences/Physics',
+		// '5/Technology',
+		// '5/Mathematics',
+	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
+	// console.log(vital_articles_list.length);
+
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
 		redirects: 1,
 		bot: 1,
-		// summary: '',
+		summary: '[[Wikipedia:Database reports/Vital articles update report|Update the section counts and article assessment icons]]',
 	});
 
 	// ----------------------------------------------------
 
-	// await generate_report();
+	await generate_report();
 
 	CeL.info(`${(new Date).format()}	done.`);
 }
@@ -76,14 +81,18 @@ async function main_process() {
 // ----------------------------------------------------------------------------
 
 async function get_page_info() {
-	await wiki.get_featured_content();
+	await wiki.get_featured_content({
+		on_conflict(FC_title, data) {
+			report_lines.push([FC_title, , `Category conflict: ${data.from}→${CeL.wiki.title_link_of('Category:' + data.category, data.to)}`]);
+		}
+	});
 	// console.log(wiki.FC_data_hash);
 
 	// ---------------------------------------------
 
 	for (let i = 1; i <= 5; i++) {
-		const pages = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`);
-		pages.forEach(page_data => {
+		const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`);
+		page_list.forEach(page_data => {
 			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (title in level_of_page) {
 				report_lines.push([title, , `${level_of_page[title]}→${i}`]);
@@ -312,7 +321,7 @@ function for_each_list_page(list_page_data) {
 		}
 	}
 
-	parsed.some(function (token, index) {
+	parsed.some((token, index) => {
 		if (token.type === 'list') {
 			token.forEach(for_item);
 			return;
@@ -335,16 +344,22 @@ function for_each_list_page(list_page_data) {
 	function set_section_title_count(parent_section) {
 		const item_count = parent_section.subsections.reduce((item_count, subsection) => item_count + set_section_title_count(subsection), parent_section.item_count || 0);
 
-		// $1: Target number
-		parent_section[0] = parent_section.join('').replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
-		// console.log(parent_section[0]);
-		parent_section.truncate(1);
+		if (parent_section.type === 'section_title') {
+			// $1: Target number
+			parent_section[0] = parent_section.join('').replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
+			// console.log(parent_section[0]);
+			parent_section.truncate(1);
+		}
+
 		return item_count;
 	}
 
-	parsed.subsections.forEach(set_section_title_count);
+	this.summary += `: Total ${set_section_title_count(parsed)} articles`;
+	//console.log(this.summary);
 
-	console.log(parsed.toString());
+	//console.log(parsed.toString());
+	//return Wikiapi.skip_edit;
+	return parsed.toString();
 }
 
 // ----------------------------------------------------------------------------
@@ -382,8 +397,8 @@ async function generate_report() {
 		'__NOCONTENTCONVERT__\n'
 		+ '* The report will update automatically.\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n\n'
-		+ report_wikitext, {
+		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
+		+ report_wikitext + '\n<!-- report end -->', {
 		bot: 1,
 		nocreate: 1,
 		summary: `Vital articles update report: ${report_count} records`
