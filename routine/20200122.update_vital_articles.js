@@ -59,7 +59,7 @@ async function main_process() {
 
 	const vital_articles_list = (await wiki.prefixsearch(base_page)) || [
 		// 1,
-		2,
+		// 2,
 		// 3 && '',
 		// '4/People',
 		// '4/History',
@@ -67,7 +67,7 @@ async function main_process() {
 		// '5/People/Writers and journalists',
 		// '5/People/Artists, musicians, and composers',
 		// '5/Physical sciences/Physics',
-		// '5/Technology',
+		'5/Technology',
 		// '5/Mathematics',
 	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
 	// console.log(vital_articles_list.length);
@@ -159,7 +159,7 @@ function level_page_link(level, number_only, page_title) {
 function level_of_page_title(page_title, number_only) {
 	// page_title.startsWith(base_page);
 	// [, 1–5, section ]
-	const matched = page_title.match(/\/Level(?:\/(\d)(\/.+))?$/);
+	const matched = page_title.match(/\/Level(?:\/(\d)(\/.+)?)?$/);
 	if (matched) {
 		const level = number_only || !matched[2] ? + matched[1] || DEFAULT_LEVEL : matched[1] + matched[2];
 		return level;
@@ -215,6 +215,13 @@ function for_each_list_page(list_page_data) {
 					icons.append(wiki.FC_data_hash[page_title].types);
 				}
 
+				// Good: Always count articles.
+				// NG: The bot '''WILL NOT COUNT''' the articles listed in level
+				// other than current page to prevent from double counting.
+				if (latest_section) {
+					latest_section.item_count++;
+				}
+
 				const category_level = level_of_page[page_title];
 				// The frist link should be the main article.
 				if (category_level !== level) {
@@ -233,9 +240,6 @@ function for_each_list_page(list_page_data) {
 						} else {
 							has_error = true;
 						}
-					} else if (!category_level && latest_section) {
-						// Counting for unleveled articles when preventint from double counting.
-						//latest_section.item_count++;
 					}
 
 					if (has_error) {
@@ -249,13 +253,6 @@ function for_each_list_page(list_page_data) {
 						}
 					}
 
-				}
-				if (latest_section) {
-					// Good: Always count articles.
-					// NG:
-					// The bot '''WILL NOT COUNT''' the articles listed in level
-					// other than current page to prevent from double counting.
-					latest_section.item_count++;
 				}
 
 				icons = icons.map(icon => `{{Icon|${icon}}}`);
@@ -308,13 +305,13 @@ function for_each_list_page(list_page_data) {
 			}
 		}
 
-		if (section_text_to_title(item, index, list)) {
+		if (section_text_to_title(item, index, list) || typeof item === 'string') {
 			// e.g., ":Popes (3 articles)"
 			return;
 		}
 
 		if (!item.some) {
-			console.error(JSON.stringify(item));
+			console.error(`No .some() @ ${list_page_data.title}: ${JSON.stringify(item)}`);
 		}
 		if ((item.type === 'link' ? for_item_token(item, index, list) : item.some(for_item_token)) && !item_wikitext) {
 			return parsed.each.exit;
