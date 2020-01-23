@@ -1,6 +1,6 @@
 ﻿/*
 
-2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of Wikipedia:Vital articles.
+2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
 
 report error, level/class change
 
@@ -15,8 +15,8 @@ CeL.run('application.net.wiki.featured_content');
 
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
-// globalThis.use_language = 'zh';
-use_language = 'en';
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('en');
 
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = CeL.get_JSON(page_info_cache_file);
@@ -33,7 +33,7 @@ const report_lines = [];
 
 // ----------------------------------------------------------------------------
 
-prepare_directory(base_directory);
+prepare_directory(base_directory, true);
 
 (async () => {
 	await wiki.login(user_name, user_password, use_language);
@@ -50,7 +50,7 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = await wiki.prefixsearch('Wikipedia:Vital articles') && [
+	const vital_articles_list = await wiki.prefixsearch('Wikipedia:Vital articles') || [
 		// 1,
 		// 2,
 		// '',
@@ -59,7 +59,7 @@ async function main_process() {
 		//'4/Physical sciences',
 		// '5/People/Writers and journalists',
 		//'5/People/Artists, musicians, and composers',
-		'5/Physical sciences/Physics',
+		//'5/Physical sciences/Physics',
 		// '5/Technology',
 		// '5/Mathematics',
 	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
@@ -68,7 +68,9 @@ async function main_process() {
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
 		redirects: 1,
 		bot: 1,
-		summary: '[[Wikipedia:Database reports/Vital articles update report|Update the section counts and article assessment icons]]',
+		minor: false,
+		log_to: null,
+		summary: '[[Wikipedia:Database reports/Vital articles update report|Update the section counts and article assessment icons]]'
 	});
 
 	// ----------------------------------------------------
@@ -80,6 +82,7 @@ async function main_process() {
 
 // ----------------------------------------------------------------------------
 
+// All attributes of articles get from corresponding categories.
 async function get_page_info() {
 	await wiki.get_featured_content({
 		on_conflict(FC_title, data) {
@@ -193,7 +196,7 @@ function for_each_list_page(list_page_data) {
 				}
 
 				const category_level = level_of_page[page_title];
-				// The bot will not count the articles listed in other level.
+				// The bot '''WILL NOT COUNT''' the articles listed in level other than current page to prevent from double counting.
 				// The frist link should be the main article.
 				if (category_level !== level) {
 					// `category_level===undefined`: e.g., redirected
