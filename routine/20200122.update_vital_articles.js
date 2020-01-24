@@ -4,7 +4,7 @@
 
 TODO:
 report level/class change
-count report table each page
+summary table / count report table each page
 maintain vital articles template
 
  */
@@ -21,7 +21,7 @@ set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-prepare_directory(base_directory, true);
+prepare_directory(base_directory/* , true */);
 
 // ----------------------------------------------
 
@@ -41,6 +41,7 @@ const base_page = 'Wikipedia:Vital articles';
 const DEFAULT_LEVEL = 3;
 
 const report_lines = [];
+report_lines.skipped_records = 0;
 
 // ----------------------------------------------------------------------------
 
@@ -59,18 +60,18 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = (await wiki.prefixsearch(base_page)) || [
+	const vital_articles_list = (await wiki.prefixsearch(base_page)) && [
 		// 1,
 		// 2,
 		// 3 && '',
-		// '4/People',
+		'4/People',
 		// '4/History',
 		// '4/Physical sciences',
 		// '5/People/Writers and journalists',
 		// '5/People/Artists, musicians, and composers',
 		// '5/Physical sciences/Physics',
 		// '5/Technology',
-		'5/Everyday life/Sports, games and recreation',
+		// '5/Everyday life/Sports, games and recreation',
 		// '5/Mathematics',
 	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
 	// console.log(vital_articles_list.length);
@@ -124,8 +125,12 @@ async function get_page_info() {
 	// list an article's icon for current quality status always first
 	// they're what the vital article project is most concerned about.
 	// [[Category:Wikipedia vital articles by class]]
-	// FA|FL|GA|
-	'A|B|C|List|Start|Stub|Unassessed'.split('|').forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
+	//
+	// [[Category:All Wikipedia List-Class vital articles]]
+	// duplicated with [[Category:List-Class List articles]]
+	//
+	// FA|FL|GA|List|
+	'A|B|C|Start|Stub|Unassessed'.split('|').forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
 	// @see [[Module:Article history/config]], [[Template:Icon]]
 	Object.assign(icon_to_category, {
 		// FFA: 'Wikipedia former featured articles',
@@ -136,6 +141,7 @@ async function get_page_info() {
 		FPo: 'Wikipedia featured portals',
 		FFPo: 'Wikipedia former featured portals',
 		FPoC: 'Wikipedia featured portal candidates (contested)',
+
 		LIST: 'List-Class List articles',
 
 		// The icons that haven't been traditionally listed (peer review, in the
@@ -174,14 +180,46 @@ function level_of_page_title(page_title, number_only) {
 	}
 }
 
+function replace_level_note(item, index, category_level, new_wikitext) {
+	if (item.type !== 'plain')
+		return;
+
+	const rest_wikitext = item.slice(index + 1).join('').trim();
+	const PATTERN_level = /\s*\((?:level \d|\[\[([^\[\]\|]+)\|level \d\]\])\)/i;
+	const matched = rest_wikitext && rest_wikitext.match(PATTERN_level);
+
+	if (new_wikitext === undefined) {
+		new_wikitext = ` (${level_page_link(category_level, false, matched &&
+			//preserve level page. e.g., " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
+			(category_level === DEFAULT_LEVEL || matched[1] && matched[1].includes(`/${category_level}`)) && matched[1])})`;
+	}
+	// assert: typeof new_wikitext === 'string'
+	// || typeof new_wikitext === 'number'
+
+	// Decide whether we need to replace or not.
+	if (new_wikitext ? rest_wikitext.includes(new_wikitext)
+		// new_wikitext === '': Remove level note.
+		: !matched) {
+		return;
+	}
+
+	item.truncate(index + 1);
+	// _item.push()
+	item[index + 1] = rest_wikitext ? rest_wikitext.replace(PATTERN_level, new_wikitext) : new_wikitext;
+	return true;
+}
+
 function for_each_list_page(list_page_data) {
 	const level = level_of_page_title(list_page_data.title, true) || DEFAULT_LEVEL;
+	// console.log([list_page_data.title, level]);
 	const parsed = list_page_data.parse();
 	// console.log(parsed);
 	parsed.each_section();
 	// console.log(parsed.subsections);
 	// console.log(parsed.subsections[0]);
 	// console.log(parsed.subsections[0].subsections[0]);
+
+	const article_count_of_icon = Object.create(null);
 
 	let latest_section;
 
@@ -232,42 +270,34 @@ function for_each_list_page(list_page_data) {
 
 				const category_level = level_of_page[page_title];
 				// The frist link should be the main article.
-				if (category_level !== level) {
+				if (category_level === level) {
+					// Remove level note. It is unnecessary.
+					replace_level_note(_item, index, category_level, '');
+				} else {
 					// `category_level===undefined`: e.g., redirected
-					let has_error = !category_level || _item.type !== 'plain';
-					if (!has_error) {
-						const PATTERN_level = /\s*\((?:level \d|\[\[([^\[\]\|]+)\|level \d\]\])\)/i;
-						const rest_wikitext = _item.slice(index + 1).join('').trim();
-						const matched = rest_wikitext && rest_wikitext.match(PATTERN_level);
-						if (!rest_wikitext || matched) {
-							const new_wikitext = ` (${level_page_link(category_level, false, matched &&
-								//preserve level page. e.g., " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
-								(category_level === DEFAULT_LEVEL || matched[1] && matched[1].includes(`/${category_level}`)) && matched[1])})`;
-							_item.truncate(index + 1);
-							_item[index + 1] = rest_wikitext ? rest_wikitext.replace(PATTERN_level, new_wikitext) : new_wikitext;
-						} else {
-							has_error = true;
-						}
-					}
+					replace_level_note(_item, index, category_level, category_level ? undefined : '');
 
-					if (has_error) {
-						if (false) {
-							const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
-						}
-						// reduce size
-						const message = category_level ? `Category level ${category_level}{{r|c}}` : 'Redirected?{{r|e}}';
-						CeL.warn(`${page_title}: ${message}`);
-						report_lines.push([page_title, list_page_data, message]);
-						if (icons.length === 0) {
-							// Leave untouched if error with no icon.
-							// e.g., [[unleveled article]]
-							return true;
-						}
+					if (false) {
+						const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
 					}
-
+					// reduce size
+					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'Redirected?{{r|e}}';
+					CeL.warn(`${page_title}: ${message}`);
+					report_lines.push([page_title, list_page_data, message]);
+					if (icons.length === 0) {
+						// Leave untouched if error with no icon.
+						// e.g., unleveled articles
+						return true;
+					}
 				}
 
-				icons = icons.map(icon => `{{Icon|${icon}}}`);
+				icons = icons.map(icon => {
+					if (icon in article_count_of_icon)
+						article_count_of_icon[icon]++;
+					else
+						article_count_of_icon[icon] = 1;
+					return `{{Icon|${icon}}}`;
+				});
 
 				// This will preserve link display text.
 				if (parent_of_link) {
@@ -410,12 +440,24 @@ function for_each_list_page(list_page_data) {
 		return item_count;
 	}
 
-	this.summary += `: Total ${set_section_title_count(parsed)} articles`;
+	const total_articles = `Total ${set_section_title_count(parsed)} articles.`;
+	this.summary += `: ${total_articles}`;
 	// console.log(this.summary);
 
-	// console.log(parsed.toString());
+	let wikitext = parsed.toString();
+
+	const summary_table = [['Class', 'Articles']];
+	for (let icon in article_count_of_icon) {
+		summary_table.push([`{{Icon|${icon}}} ${icon}`, article_count_of_icon[icon]]);
+	}
+	// ~~~~~
+	wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `$1\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
+		'class': "wikitable sortable"
+	}) + '\n$2');
+
+	// console.log(wikitext);
 	// return Wikiapi.skip_edit;
-	return parsed.toString();
+	return wikitext;
 }
 
 // ----------------------------------------------------------------------------
@@ -437,24 +479,26 @@ function check_page_count() {
 		}
 	}
 
-	let skipped_records = 0;
 	for (let page_title in page_listed_in) {
 		const level_list = page_listed_in[page_title];
 		if (level_list.length > 0) {
 			// [contenttoobig] The content you supplied exceeds the article size
 			// limit of 2048 kilobytes.
-			skipped_records++;
+			report_lines.skipped_records++;
 			continue;
 		}
 		report_lines.push([page_title, level_of_page[page_title], level_list.length > 0
 			? `Listed ${level_list.length} times in ${level_list.map(level_page_link)}`
-			: `Did not listed in ${level_page_link(level_of_page[page_title])}.`]);
+			: `Did not listed in level ${level_of_page[page_title]}.`]);
 	}
-	if (skipped_records > 0)
-		report_lines.push([, , `Skip ${skipped_records} records`]);
 }
 
 async function generate_report() {
+	const records_limit = 500;
+	if (report_lines.length > records_limit) {
+		report_lines.skipped_records += report_lines.length - records_limit;
+		report_lines.truncate(records_limit);
+	}
 	report_lines.forEach(record => {
 		const page_title = record[0];
 		record[0] = CeL.wiki.title_link_of(page_title);
@@ -478,6 +522,8 @@ async function generate_report() {
 		report_wikitext = CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
 		});
+		if (report_lines.skipped_records > 0)
+			report_wikitext = `Skip ${report_lines.skipped_records.toLocaleString()} records.\n` + report_wikitext;
 	} else {
 		report_wikitext = "* '''So good, no news!'''";
 	}
@@ -492,6 +538,6 @@ async function generate_report() {
 		+ report_wikitext + '\n<!-- report end -->', {
 		bot: 1,
 		nocreate: 1,
-		summary: `Vital articles update report: ${report_count} records`
+		summary: `Vital articles update report: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} records`
 	});
 }
