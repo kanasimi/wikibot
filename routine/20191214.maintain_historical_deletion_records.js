@@ -126,6 +126,7 @@ async function get_pages_embeddedin_notification_template() {
 		no_message: true
 	});
 	// console.log(deletion_flags_of_page);
+	CeL.info(`Get ${Object.keys(deletion_flags_of_page).length} embeddedin records.`);
 }
 
 const additional_parameters = 'hat_result|bot_checked'.split('|');
