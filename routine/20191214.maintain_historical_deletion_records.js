@@ -17,10 +17,14 @@ require('../wiki loader.js');
 
 CeL.run('application.net.wiki.template_functions');
 
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
-// globalThis.use_language = 'zh';
-use_language = 'zh';
+
+prepare_directory(base_directory);
+
+// ----------------------------------------------
 
 const notification_template = `Template:${CeL.wiki.template_functions.Old_vfd_multi.main_name}`;
 
@@ -57,8 +61,6 @@ const report_lines = [];
 const DEBUG_PAGE = '';
 
 // ----------------------------------------------------------------------------
-
-prepare_directory(base_directory);
 
 (async () => {
 	await wiki.login(user_name, user_password, use_language);
@@ -142,7 +144,7 @@ function for_each_page_including_vfd_template(page_data) {
 	}
 
 	// TODO: 對於本來就針對說明頁的存廢討論紀錄，一樣會被歸類到主頁面去。
-	const main_page_title = CeL.wiki.talk_page_to_main(/* item_list.page_title */ page_data);
+	const main_page_title = wiki.talk_page_to_main(/* item_list.page_title */ page_data);
 	// delete item_list.page_title;
 	const discussions = deletion_flags_of_page[main_page_title]
 		|| (deletion_flags_of_page[main_page_title] = []);
@@ -220,11 +222,11 @@ async function check_deletion_discussion_page(page_data) {
 			} catch { }
 		}
 		// 注意: 即使刪除的是 talk page，這邊也會被歸類到主頁面。
-		title = CeL.wiki.talk_page_to_main(title);
+		title = wiki.talk_page_to_main(title);
 		if (!title || (title in ignore_pages)) {
 			return;
 		}
-		const talk_page = CeL.wiki.to_talk_page(title);
+		const talk_page = wiki.to_talk_page(title);
 		// e.g., 'Topic:'
 		if (!talk_page) {
 			return;
@@ -461,7 +463,7 @@ async function check_deletion_page(JDN, page_data) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
-	if (false && (CeL.wiki.to_talk_page(page_data) in ignore_pages)) {
+	if (false && (wiki.to_talk_page(page_data) in ignore_pages)) {
 		// e.g., Skip [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
 		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]]
 		// redirect→ [[Talk:团结就是力量 (歌曲)]]
@@ -473,7 +475,7 @@ async function check_deletion_page(JDN, page_data) {
 	// Should not create talk page when the main page is a redirect page.
 	// e.g., [[326]]
 	if (CeL.wiki.parse.redirect(page_data)) {
-		ignore_pages[CeL.wiki.talk_page_to_main(page_data.original_title || page_data)] = 'redirect';
+		ignore_pages[wiki.talk_page_to_main(page_data.original_title || page_data)] = 'redirect';
 		return;
 	}
 
@@ -482,7 +484,7 @@ async function check_deletion_page(JDN, page_data) {
 	// CeL.info(CeL.wiki.title_link_of(page_data));
 	if (false) {
 		// NG: Check the talk page
-		const page_title = CeL.wiki.to_talk_page(normalized_main_page_title);
+		const page_title = wiki.to_talk_page(normalized_main_page_title);
 		page_data = await wiki.page(page_title);
 		// const item_list =
 		// CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data);
@@ -627,7 +629,7 @@ async function check_deletion_page(JDN, page_data) {
 
 async function modify_pages() {
 	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
-		page_title = CeL.wiki.to_talk_page(page_title);
+		page_title = wiki.to_talk_page(page_title);
 		if (!page_title)
 			continue;
 
@@ -701,7 +703,7 @@ async function modify_pages() {
 				'titleblacklist-forbidden': true,
 				// spamblacklist: true,
 			}) {
-				ignore_pages[CeL.wiki.talk_page_to_main(page_title)] = e.code;
+				ignore_pages[wiki.talk_page_to_main(page_title)] = e.code;
 				replace_report(page_title, null, e.code);
 			} else {
 				console.error(e);
@@ -715,7 +717,7 @@ async function modify_pages() {
 }
 
 function replace_report(page_title, message, replace_by_message) {
-	page_title = CeL.wiki.talk_page_to_main(page_title);
+	page_title = wiki.talk_page_to_main(page_title);
 	let replace_by = [page_title, replace_by_message];
 	for (let i = 0; i < report_lines.length; i++) {
 		const line = report_lines[i];
@@ -755,7 +757,7 @@ let edit_count = 0;
 
 function modified_notice_page(page_data, discussions) {
 	// console.log(page_data);
-	const main_page_title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
+	const main_page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
 
 	if (page_data.original_title && page_data.original_title !== page_data.title
 		// remove namespace, get pure page title without namespace
@@ -798,9 +800,10 @@ function modified_notice_page(page_data, discussions) {
 // ----------------------------------------------------------------------------
 
 async function generate_report() {
-	report_lines.forEach(message => {
+	report_lines.forEach(record => {
+		const page_title = record[0];
 		// CeL.wiki.title_link_of(page_title)
-		message[0] = `[[${CeL.wiki.to_talk_page(message[0])}|${message[0]}]]`;
+		record[0] = `[[${wiki.to_talk_page(page_title)}|${page_title}]]`;
 	});
 
 	const report_count = report_lines.length;
@@ -822,8 +825,9 @@ async function generate_report() {
 		+ `總共編輯${page_count}個討論頁，列出其中${report_count}筆特別情況紀錄。\n`
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
-		+ report_wikitext, {
+		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
+		+ report_wikitext + '\n<!-- report end -->', {
+		bot: 1,
 		nocreate: 1,
 		summary: `維護討論頁之存廢討論紀錄與模板: ${page_count}個討論頁，${report_count}筆特別情況特殊紀錄。`
 	});
