@@ -58,7 +58,7 @@ const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.cr
 
 const report_lines = [];
 
-const DEBUG_PAGE = '生产力';
+const DEBUG_PAGE = '';
 
 // ----------------------------------------------------------------------------
 
@@ -464,50 +464,58 @@ async function check_deletion_page(JDN, page_data) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
 	}
-	if (false && (wiki.to_talk_page(page_data) in ignore_pages)) {
+
+	const normalized_main_page_title = page_data.title;
+
+	if (normalized_main_page_title in ignore_pages) {
+		// e.g., Skip [[生產力]] convert→ [[生产力]]
+		//[[Talk:生产力]] redirect→ [[Talk:生产力 (消歧义)]]
+		//records as ignore_pages['生产力'] = 'redirect' @ modified_notice_page()
+
 		// e.g., Skip [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
 		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]]
 		// redirect→ [[Talk:团结就是力量 (歌曲)]]
-		CeL.info(`Skip ${CeL.wiki.title_link_of(page_data)}`);
-		console.log(page_data);
+		//records as ignore_pages['团结就是力量'] = 'redirect' @ modified_notice_page()
+
+		//CeL.info(`Skip ${CeL.wiki.title_link_of(page_data)}`);
+		//console.log(page_data);
 		return;
 	}
+
+	const original_page_title = page_data.original_title || normalized_main_page_title;
 
 	// Should not create talk page when the main page is a redirect page.
 	// e.g., [[326]]
 	if (CeL.wiki.parse.redirect(page_data)) {
-		ignore_pages[wiki.talk_page_to_main(page_data.original_title || page_data)] = 'redirect';
+		ignore_pages[wiki.talk_page_to_main(original_page_title)] = 'redirect';
 		return;
 	}
-
-	const normalized_main_page_title = page_data.title;
 
 	// CeL.info(CeL.wiki.title_link_of(page_data));
 	if (false) {
 		// NG: Check the talk page
-		const page_title = wiki.to_talk_page(normalized_main_page_title);
+		const page_title = wiki.to_talk_page(original_page_title);
 		page_data = await wiki.page(page_title);
 		// const item_list =
 		// CeL.wiki.template_functions.Old_vfd_multi.parse_page(page_data);
 	}
 
-	const page_title = page_data.original_title || normalized_main_page_title;
 	// assert: 同頁面在同一天內僅存在單一討論。
 	const flags_of_page = this;
-	if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
-		// || normalized_main_page_title.includes('')
-	) {
+	if (DEBUG_PAGE && (original_page_title.includes(DEBUG_PAGE) || normalized_main_page_title.includes(DEBUG_PAGE)
+		// || original_page_title.includes('')
+	)) {
 		console.log(flags_of_page);
 	}
-	let flags = flags_of_page[page_title], target;
-	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[page_title])) {
+	let flags = flags_of_page[original_page_title], target;
+	if (!flags && (flags = flags_of_page[KEY_page_list].convert_from[original_page_title])) {
 		flags = flags_of_page[flags];
 	}
 	if (!flags) {
-		CeL.error('check_deletion_page: Failed to get flags_of_page: ' + JSON.stringify(page_title));
+		CeL.error('check_deletion_page: Failed to get flags_of_page: ' + JSON.stringify(original_page_title));
 		console.log(flags_of_page);
 	}
-	if (flags.result === 'r' && page_data.redirect_from === page_title) {
+	if (flags.result === 'r' && page_data.redirect_from === original_page_title) {
 		// 不處理重定向來源已經過重定向的情況。
 		// return;
 	}
@@ -518,9 +526,9 @@ async function check_deletion_page(JDN, page_data) {
 		|| pages_to_modify[normalized_main_page_title]
 		// 直接列入要改變的。
 		|| (pages_to_modify[normalized_main_page_title] = []);
-	if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
-		// || normalized_main_page_title.includes('')
-	) {
+	if (DEBUG_PAGE && (original_page_title.includes(DEBUG_PAGE) || normalized_main_page_title.includes(DEBUG_PAGE)
+		// || original_page_title.includes('')
+	)) {
 		console.log(flags_of_page);
 		console.log(discussions);
 	}
@@ -548,7 +556,7 @@ async function check_deletion_page(JDN, page_data) {
 					need_modify = discussion.bot_checked;
 				}
 				report_lines.push([normalized_main_page_title, discussion.bot_checked + ': 存在相衝突的紀錄，須手動排除問題。']);
-				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
+				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(original_page_title));
 				console.log(flags);
 				console.log(discussions);
 				console.log([CeL.wiki.template_functions.Old_vfd_multi.text_of(discussion), CeL.wiki.template_functions.Old_vfd_multi.text_of(first_record)]);
@@ -597,8 +605,8 @@ async function check_deletion_page(JDN, page_data) {
 		CeL.debug(`Add ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify.`, 1, 'check_deletion_page');
 		discussions.push({
 			date: CeL.Julian_day.to_Date(JDN).format('%Y/%2m/%2d'),
-			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 page_title。
-			page: flags.page /* || page_title */,
+			// 就算沒設定 .page，{{Old vfd multi}} 也會預設為 original_page_title。
+			page: flags.page /* || original_page_title */,
 			result: text_of_result,
 			hat_result: text_of_result !== flags.result && flags.result,
 			// FLAG_TO_ADD: need add
@@ -607,9 +615,9 @@ async function check_deletion_page(JDN, page_data) {
 		});
 		if (!deletion_flags_of_page[normalized_main_page_title])
 			report_lines.push([normalized_main_page_title, need_modify]);
-		if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)
-			// || normalized_main_page_title.includes('')
-		) {
+		if (DEBUG_PAGE && (original_page_title.includes(DEBUG_PAGE) || normalized_main_page_title.includes(DEBUG_PAGE)
+			// || original_page_title.includes('')
+		)) {
 			console.log(discussions);
 		}
 	}
@@ -617,7 +625,9 @@ async function check_deletion_page(JDN, page_data) {
 	if (need_modify && deletion_flags_of_page[normalized_main_page_title]) {
 		CeL.debug(`Move ${CeL.wiki.title_link_of(normalized_main_page_title)} to pages_to_modify: ${need_modify}`, 0, 'check_deletion_page');
 		report_lines.push([normalized_main_page_title, need_modify]);
-		if (DEBUG_PAGE && normalized_main_page_title.includes(DEBUG_PAGE)) {
+		if (DEBUG_PAGE && (original_page_title.includes(DEBUG_PAGE) || normalized_main_page_title.includes(DEBUG_PAGE)
+			// || original_page_title.includes('')
+		)) {
 			console.log(flags_of_page);
 			console.log(discussions);
 		}
