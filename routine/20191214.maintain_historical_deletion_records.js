@@ -58,7 +58,7 @@ const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.cr
 
 const report_lines = [];
 
-const DEBUG_PAGE = '';
+const DEBUG_PAGE = '生产力';
 
 // ----------------------------------------------------------------------------
 
@@ -547,7 +547,7 @@ async function check_deletion_page(JDN, page_data) {
 					discussion.bot_checked = FLAG_CONFLICTED;
 					need_modify = discussion.bot_checked;
 				}
-				report_lines.push([normalized_main_page_title, discussion.bot_checked + ': 存在相衝突的紀錄']);
+				report_lines.push([normalized_main_page_title, discussion.bot_checked + ': 存在相衝突的紀錄，須手動排除問題。']);
 				CeL.warn('check_deletion_page: conflicted page: ' + JSON.stringify(page_title));
 				console.log(flags);
 				console.log(discussions);
@@ -743,7 +743,7 @@ function replace__Old_vfd_multi(page_data, discussions) {
 	let should_modify;
 	const options = {
 		modify_Article_history_warning(token/* , page_data */) {
-			replace_report(page_data.original_title || page_data.title, 'duplicated', 'Should modify {{tl|Article history}} manually.');
+			replace_report(page_data.original_title || page_data.title, 'duplicated', 'Should modify {{tl|Article history}} manually. 須手動編輯 {{tl|Article history}} 以排除問題。');
 			should_modify = true;
 		},
 		additional_parameters
