@@ -1,6 +1,6 @@
 ﻿/*
 
-	初版試營運
+2020/1/25 9:15:3	初版試營運
 
  */
 
@@ -27,11 +27,13 @@ const replace_tool = require('./replace_tool.js');
 			for_template(token) {
 				//CeL.log(Object.keys(token.index_of).join('|'));
 				for (let parameter of Object.keys(token.index_of)) {
+					// TODO: prevent {{| ...{{...}}... = ... }}
 					if (/[A-Z]/.test(parameter)) {
 						const index = token.index_of[parameter];
 						CeL.log(`${parameter}→${parameter.toLowerCase()}`);
-						token[index] = token[index].toString()
-							.replace(/^([^=]+)=/, (_, parameter) => parameter.toLowerCase() + '=');
+						token[index][0] = token[index][0].toString()
+							// assert: param.includes(parameter)
+							.replace(parameter, param => param.toLowerCase());
 					}
 				}
 			}
