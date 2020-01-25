@@ -811,10 +811,13 @@ function modified_notice_page(page_data, discussions) {
 // ----------------------------------------------------------------------------
 
 async function generate_report() {
+	let need_care;
 	report_lines.forEach(record => {
 		const page_title = record[0];
 		// CeL.wiki.title_link_of(page_title)
 		record[0] = `[[${wiki.to_talk_page(page_title)}|${page_title}]]`;
+		if (!need_care && record[1] !== 'add')
+			need_care = true;
 	});
 
 	const report_count = report_lines.length;
@@ -823,7 +826,9 @@ async function generate_report() {
 		report_lines.unshift(['頁面', '特別情況/更動原因']);
 		report_wikitext = CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
-		}) + '\n[[Category:维基百科积压工作]]';
+		});
+		if (need_care)
+			report_wikitext += '\n[[Category:维基百科积压工作]]';
 	} else {
 		report_wikitext = "* '''太好了！無特殊頁面。'''";
 	}
