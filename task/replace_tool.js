@@ -195,7 +195,10 @@ async function main_move_process(task_configuration) {
 	const wiki = task_configuration.wiki;
 	let list_types;
 	if (typeof task_configuration.move_from_link === 'string') {
-		list_types = task_configuration.move_from_link.startsWith('insource:') ? 'search' : task_configuration.list_types || default_list_types;
+		list_types = task_configuration.list_types || (
+			/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(task_configuration.move_from_link) ? 'search'
+				: !task_configuration.move_to_link && task_configuration.for_template ? 'embeddedin'
+					: default_list_types);
 	} else if (CeL.is_RegExp(task_configuration.move_from_link)) {
 		list_types = 'search';
 	} else {
@@ -250,13 +253,14 @@ async function main_move_process(task_configuration) {
 			;
 	});
 	page_list = page_list.unique(page_data => page_data.title);
+	if (task_configuration.page_limit >= 1)
+		page_list = page_list.truncate(task_configuration.page_limit);
 	// manually for debug
 	//page_list = [''];
 	// console.log(page_list);
 
 	await wiki.for_each_page(
-		page_list// .slice(0, 1)
-		,
+		page_list,
 		for_each_page.bind(task_configuration),
 		{
 			// for 「株式会社リクルートホールディングス」の修正
@@ -348,8 +352,10 @@ const for_each_category = for_each_link;
 // --------------------------------------------------------
 
 function replace_link_parameter(value, parameter_name, template_token) {
-	let move_from_link = this.move_from_link;
 	let move_to_link = this.move_to_link;
+	if (!move_to_link)
+		return;
+	let move_from_link = this.move_from_link;
 	// 特別處理模板引數不加命名空間前綴的情況。
 	if (template_token.name === 'Catlink') {
 		move_from_link = move_from_link.replace(/^Category:/i, '');
@@ -419,28 +425,65 @@ function for_each_template(page_data, token, index, parent) {
 		return;
 	}
 
-	// https://ja.wikipedia.org/wiki/Template:Main2
-	if (this.move_to_link && token.name === 'Main2'
-		// [4], [6], ...
-		&& token[2] && CeL.wiki.normalize_title(token[2].toString()) === this.move_from_link) {
+	// ----------------------------------------------------
+
+	// [[w:ja:Template:Main2]]
+	if (token.name === 'Main2') {
+		if (!this.move_to_link || this.move_from_ns !== this.page_data.ns)
+			return;
 		// e.g., {{Main2|案内文|move_from_link}}
 		// console.log(token);
-		token[2] = this.move_to_link;
+		//console.log(token.length);
+		// [2], [4], [6], ...
+		for (let i = 2; i < token.length; i += 2) {
+			const value = token.parameters[i];
+			if (value && CeL.wiki.normalize_title(value.toString()) === this.move_from_link)
+				token[token.index_of[i]] = this.move_to_link;
+		}
 		return;
 	}
 
-	if (this.move_to_page_name && token.name === 'Pathnav') {
+	// -----------------------------------
+
+	// [[w:ja:Template:Redirect]], [[w:ja:Template:Otheruseslist]]
+	const odd_name_parameters_start_index = {
+		Redirect: 1,
+		Otheruseslist: 3,
+		Otheruses: 3,
+	};
+	if (token.name in odd_name_parameters_start_index) {
+		if (!this.move_to_page_name || this.move_from_ns !== this.page_data.ns)
+			return;
+		//console.log(token);
+		//console.log(token.length);
+		// [3], [5], ...
+		for (let i = odd_name_parameters_start_index[token.name]; i < token.length; i += 2) {
+			const value = token.parameters[i];
+			if (value && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name)
+				token[token.index_of[i]] = this.move_to_page_name;
+		}
+		return;
+	}
+
+	// -----------------------------------
+
+	// [[w:ja:Template:Pathnav]]
+	const every_name_parameters_start_index = {
 		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
+		Pathnav: 1,
+	};
+	if (token.name in every_name_parameters_start_index) {
+		if (!this.move_to_page_name || this.move_from_ns !== this.page_data.ns)
+			return;
 		// console.log(token);
-		if (this.move_from_ns === this.page_data.ns) {
-			token.forEach(function (value, index) {
-				if (index > 0 && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name
-					//e.g., [[w:ja:Special:Diff/75582728|Xbox (ゲーム機)]]
-					//	&& page_data.title !== this.move_to_page_name
-				) {
-					token[index] = this.move_to_page_name;
-				}
-			}, this);
+		for (let i = every_name_parameters_start_index[token.name]; i < token.length; i++) {
+			const value = token.parameters[i];
+			if (value && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name
+				//e.g., [[w:ja:Special:Diff/75582728|Xbox (ゲーム機)]]
+				//	&& page_data.title !== this.move_to_page_name
+			) {
+				token[token.index_of[i]] = this.move_to_page_name;
+			}
 		}
 		return;
 	}
