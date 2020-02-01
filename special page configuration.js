@@ -915,7 +915,7 @@ var page_configurations = {
 		timezone : 8
 	}, general_page_configuration),
 
-	'zhwikiversity:Wikiversity:互助客棧' : Object.assign({
+	'zhwikiversity:Wikiversity:互助客栈' : Object.assign({
 		timezone : 8
 	}, general_page_configuration),
 
