@@ -1489,9 +1489,11 @@ function generate_topic_list(page_data) {
 		});
 	}
 
-	wiki.page(topic_page)
+	wiki.page(topic_page, {
+		redirects : 1
+	}).edit(
 	// TODO: CeL.wiki.array_to_table(section_table)
-	.edit(section_table.join('\n'), {
+	section_table.join('\n'), {
 		bot : 1,
 		nocreate : 1,
 		tags : edit_tags,
