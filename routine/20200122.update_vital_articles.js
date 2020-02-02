@@ -451,7 +451,7 @@ function for_each_list_page(list_page_data) {
 	const summary_table = [['Class', 'Articles']];
 	for (let icon in article_count_of_icon) {
 		const category_name = icon_to_category[icon];
-		summary_table.push([`[[:Category:${category_name}|{{Icon|${icon}}} ${icon}]]`, article_count_of_icon[icon]]);
+		summary_table.push([`{{Icon|${icon}}} ` + (category_name ? `[[:Category:${category_name}|${icon}]]` : icon), article_count_of_icon[icon]]);
 	}
 	// ~~~~~
 	wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `$1\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
