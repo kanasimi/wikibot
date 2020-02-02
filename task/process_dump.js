@@ -1,11 +1,17 @@
-﻿// Import Wikimedia database backup dumps data to user-created database on Tool Labs.
-// 應用工具: 遍歷所有 dumps data 之頁面，並將資料寫入 .csv file，進而匯入 database。
-// @see https://www.mediawiki.org/wiki/Manual:Importing_XML_dumps#Using_importDump.php.2C_if_you_have_shell_access
-
-// 2016/3/12 11:56:10	初版試營運。純粹篩選約需近 3 minutes。
-
-// 使用新版 node.js 能加快寫入 .csv file 之速度，降低 CPU 與 RAM 使用；
-// 2016/3/19 do_write_CSV 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes 執行。
+﻿/**
+ * @name Process Wikimedia database backup dumps data
+ * 
+ * @fileoverview Sample for importing Wikimedia database backup dumps data to
+ *               user-created database on Tool Labs. [zh] 應用工具: 遍歷所有 dumps data
+ *               之頁面，並將資料寫入 .csv file，進而匯入 database。
+ * 
+ * @see https://www.mediawiki.org/wiki/Manual:Importing_XML_dumps#Using_importDump.php.2C_if_you_have_shell_access
+ * 
+ * @since 2016/3/12 11:56:10 初版試營運。純粹篩選約需近 3 minutes。<br />
+ *        使用新版 node.js 能加快寫入 .csv file 之速度，降低 CPU 與 RAM 使用；<br />
+ *        2016/3/19 do_write_CSV 使用時間約需近 20 minutes，LOAD DATA 使用時間約需近 10 minutes
+ *        執行。
+ */
 
 'use strict';
 
