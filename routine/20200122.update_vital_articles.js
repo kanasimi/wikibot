@@ -4,8 +4,7 @@
 
 TODO:
 report level/class change
-summary table / count report table each page
-maintain vital articles template
+maintain vital articles templates
 
  */
 
@@ -21,7 +20,7 @@ set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-prepare_directory(base_directory/* , true */);
+prepare_directory(base_directory, true);
 
 // ----------------------------------------------
 
@@ -95,6 +94,8 @@ async function main_process() {
 
 // ----------------------------------------------------------------------------
 
+const icon_to_category = Object.create(null);
+
 // All attributes of articles get from corresponding categories.
 async function get_page_info() {
 	await wiki.get_featured_content({
@@ -121,7 +122,6 @@ async function get_page_info() {
 
 	// ---------------------------------------------
 
-	const icon_to_category = Object.create(null);
 	// list an article's icon for current quality status always first
 	// they're what the vital article project is most concerned about.
 	// [[Category:Wikipedia vital articles by class]]
@@ -151,7 +151,8 @@ async function get_page_info() {
 		// OTD: 'Article history templates with linked otd dates',
 	});
 	for (let icon in icon_to_category) {
-		const pages = await wiki.categorymembers(icon_to_category[icon]);
+		const category_name = icon_to_category[icon];
+		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
 			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (title in icons_of_page) {
@@ -446,9 +447,11 @@ function for_each_list_page(list_page_data) {
 
 	let wikitext = parsed.toString();
 
+	// summary table / count report table for each page
 	const summary_table = [['Class', 'Articles']];
 	for (let icon in article_count_of_icon) {
-		summary_table.push([`{{Icon|${icon}}} ${icon}`, article_count_of_icon[icon]]);
+		const category_name = icon_to_category[icon];
+		summary_table.push([`[[:Category:${category_name}|{{Icon|${icon}}} ${icon}]]`, article_count_of_icon[icon]]);
 	}
 	// ~~~~~
 	wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `$1\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
