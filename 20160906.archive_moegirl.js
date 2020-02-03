@@ -70,6 +70,7 @@ function for_board(page_data) {
 	var archive_title = page_data.title + '/存档/' + (new Date).format('%Y年%2m月');
 
 	sections.forEach(function(parser_index, section_index) {
+		// console.log(parser[parser_index]);
 		var section_title = parser[parser_index].join('').trim(),
 		// +1: 跳過 section title 本身
 		slice = [ parser_index + 1,
@@ -99,6 +100,7 @@ function for_board(page_data) {
 			return;
 		}
 
+		var section_anchor = parser[parser_index].link[1];
 		var needless = undefined,
 		// 所有日期戳記皆在此 archive_boundary_date 前，方進行存檔。
 		// CeL.log(index+': '+new Date(latest));
@@ -137,14 +139,15 @@ function for_board(page_data) {
 			return;
 		}
 		if (needless === undefined) {
-			CeL.warn('跳過一個文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
+			// 經查本對話串中沒有一般型式的一般格式的日期，造成無法辨識。下次遇到這樣的問題，可以在最後由任何一個人加上本討論串已終結、準備存檔的字樣，簽名並且'''加上一般日期格式'''即可。
+			CeL.warn('跳過一個日期文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
 			return;
 		}
 
 		CeL.log('need archive: [' + section_title + ']');
 		archive_count++;
 		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
-				+ section_title + '}}\n';
+				+ section_anchor + '}}\n';
 		for (var i = slice[0] + 1; i < slice[1]; i++) {
 			// stupid way
 			parser[i] = '';
