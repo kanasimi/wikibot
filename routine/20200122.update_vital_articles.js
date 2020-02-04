@@ -4,7 +4,7 @@
 
 TODO:
 report level/class change
-maintain vital articles templates
+maintain vital articles templates: FA|FL|GA|List, add new {{Vital articles|class=unassessed}} ({{WikiProject *|class=start}})
 
  */
 
@@ -59,7 +59,7 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = (await wiki.prefixsearch(base_page)) && [
+	const vital_articles_list = (await wiki.prefixsearch(base_page)) || [
 		// 1,
 		// 2,
 		// 3 && '',
@@ -129,6 +129,7 @@ async function get_page_info() {
 	// [[Category:All Wikipedia List-Class vital articles]]
 	// duplicated with [[Category:List-Class List articles]]
 	//
+	// [[Wikipedia:Content_assessment#Grades]]
 	// FA|FL|GA|List|
 	'A|B|C|Start|Stub|Unassessed'.split('|').forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
 	// @see [[Module:Article history/config]], [[Template:Icon]]
@@ -284,7 +285,10 @@ function for_each_list_page(list_page_data) {
 					// reduce size
 					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'Redirected?{{r|e}}';
 					CeL.warn(`${page_title}: ${message}`);
-					report_lines.push([page_title, list_page_data, message]);
+					if (!(category_level < level)) {
+						// Only report when category_level (main level) is not smallar than level list in.
+						report_lines.push([page_title, list_page_data, message]);
+					}
 					if (icons.length === 0) {
 						// Leave untouched if error with no icon.
 						// e.g., unleveled articles
@@ -374,7 +378,7 @@ function for_each_list_page(list_page_data) {
 			.replace(/^'''?|'''?$/g, '');
 		let next_wikitext;
 		// console.log(wikitext + next_wikitext);
-		const PATTERN_counter_title = /^[\w\s\-']+ \([\d,]+(\/[\d,]+)? articles?\)$/i;
+		const PATTERN_counter_title = /^[\w\s\-–']+ \([\d,]+(\/[\d,]+)? articles?\)$/i;
 		if (PATTERN_counter_title.test(wikitext.trim())
 			|| !parent.list_prefix && (next_wikitext = parent[index + 1] && parent[index + 1].toString()
 				.replace(/^'''?|'''?$/g, ''))
@@ -441,7 +445,7 @@ function for_each_list_page(list_page_data) {
 		return item_count;
 	}
 
-	const total_articles = `Total ${set_section_title_count(parsed)} articles.`;
+	const total_articles = `Total ${set_section_title_count(parsed).toLocaleString()} articles.`;
 	this.summary += `: ${total_articles}`;
 	// console.log(this.summary);
 
@@ -450,8 +454,25 @@ function for_each_list_page(list_page_data) {
 	// summary table / count report table for each page
 	const summary_table = [['Class', 'Articles']];
 	for (let icon in article_count_of_icon) {
-		const category_name = icon_to_category[icon];
-		summary_table.push([`{{Icon|${icon}}} ` + (category_name ? `[[:Category:${category_name}|${icon}]]` : icon), article_count_of_icon[icon]]);
+		let category_name = icon_to_category[icon];
+		if (category_name) {
+			category_name = `[[:Category:${category_name}|${icon}]]`;
+		} else if (category_name = wiki.get_featured_content_configurations()) {
+			category_name = category_name.list_source;
+			if (!category_name) {
+				CeL.error(`Invalid featured_content_configurations of icon: ${icon}`);
+			} else if (category_name = category_name[icon]) {
+				if (typeof category_name === 'string')
+					category_name = `[[:Category:${category_name}|${icon}]]`;
+				else if (category_name && category_name.page)
+					category_name = `[[${category_name.page}|${icon}]]`;
+				else {
+					CeL.error(`Invalid featured_content_configurations: ${JSON.stringify(category_name)}`);
+					category_name = null;
+				}
+			}
+		}
+		summary_table.push([`{{Icon|${icon}}} ${category_name || icon}`, article_count_of_icon[icon].toLocaleString()]);
 	}
 	// ~~~~~
 	wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `$1\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
@@ -538,7 +559,8 @@ async function generate_report() {
 		+ '* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Please modify the link manually.</ref>\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
-		+ report_wikitext + '\n<!-- report end -->', {
+		+ report_wikitext + '\n<!-- report end -->'
+		+ '\n[[Category:Wikipedia vital articles]]', {
 		bot: 1,
 		nocreate: 1,
 		summary: `Vital articles update report: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} records`
