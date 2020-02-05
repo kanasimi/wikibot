@@ -501,7 +501,8 @@ function check_page_count() {
 		}
 
 		const listed_level = Math.min(level_list
-			.filter(level => typeof level === 'string' && /^\d/.test(level) ? +level.match(/^\d+/)[0] : level || DEFAULT_LEVEL)
+			//level maybe `null`
+			.map(level => typeof level === 'string' && /^\d/.test(level) ? +level.match(/^\d+/)[0] : level || DEFAULT_LEVEL)
 			.unique());
 		if (listed_level !== category_level) {
 			if (1 <= listed_level && listed_level <= 5) {
