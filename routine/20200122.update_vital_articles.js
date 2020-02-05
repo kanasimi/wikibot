@@ -501,13 +501,13 @@ function check_page_count() {
 		}
 
 		const listed_level = Math.min(level_list
-			.filter(level => typeof level === 'string' && /^\d/.test(level) ? +level.match(/^\d+/)[0] : level === '' ? DEFAULT_LEVEL : level)
+			.filter(level => typeof level === 'string' && /^\d/.test(level) ? +level.match(/^\d+/)[0] : level || DEFAULT_LEVEL)
 			.unique());
 		if (listed_level !== category_level) {
-			if (/^[1-5]$/.test(listed_level)) {
+			if (1 <= listed_level && listed_level <= 5) {
 				need_edit_VA_template[page_title] = listed_level;
 			} else {
-				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${level_list}`);
+				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${JSON.stringify(level_list)}`);
 			}
 		}
 
