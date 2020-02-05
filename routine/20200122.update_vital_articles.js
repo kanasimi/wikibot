@@ -4,7 +4,6 @@
 
 TODO:
 report level/class change
-maintain vital articles templates: FA|FL|GA|List, add new {{Vital articles|class=unassessed}} ({{WikiProject *|class=start}})
 
  */
 
@@ -86,6 +85,10 @@ async function main_process() {
 	// ----------------------------------------------------
 
 	check_page_count();
+
+	//await wiki.for_each_page(Object.keys(need_edit_VA_template).map(wiki.to_talk_page), maintain_VA_template);
+
+	// ----------------------------------------------------
 
 	await generate_report();
 
@@ -235,7 +238,8 @@ function for_each_list_page(list_page_data) {
 		function for_item_token(token, index, _item) {
 			let parent_of_link;
 			if (!item_wikitext && token.type !== 'link') {
-				//find the first link children
+				//For token.type 'bold', 'italic', finding the first link children.
+				//e.g., `'' title ''`, `''' title '''`
 				parsed.each.call(token, 'link', (_token, index, parent) => {
 					//assert: token.type === 'link'
 					token = _token;
@@ -496,9 +500,9 @@ function check_page_count() {
 			continue;
 		}
 
-		const listed_level = Math.min(level_list
+		const listed_level = Math.min.apply(null, level_list
 			//level maybe `null`
-			.map(level => typeof level === 'string' && /^\d/.test(level) ? +level.match(/^\d+/)[0] : level || DEFAULT_LEVEL)
+			.map(level => typeof level === 'string' && /^\d\//.test(level) ? +level.match(/^\d/)[0] : level || DEFAULT_LEVEL)
 			.unique());
 		if (listed_level !== category_level) {
 			if (1 <= listed_level && listed_level <= 5) {
@@ -530,6 +534,51 @@ function check_page_count() {
 			: `Did not listed in level ${level_of_page[page_title]}.`]);
 	}
 }
+
+// maintain vital articles templates: FA|FL|GA|List, add new {{Vital articles|class=unassessed}} or via ({{WikiProject *|class=start}})
+async function maintain_VA_template(talk_page_data) {
+	const main_page_title = wiki.talk_page_to_main(talk_page_data.original_title || talk_page_data.title);
+	const level = need_edit_VA_template[main_page_title];
+	const parsed = list_page_data.parse();
+	let VA_template, _class;
+
+	/**scan for existing informations
+	 * <code>
+
+{{WikiProjectBannerShell|1=
+{{WikiProject Video games|class=C|importance=High}}
+{{WikiProject Apple Inc.|class=C|ios=yes|ios-importance=High}}
+{{WikiProject Apps |class=C|importance=High}}
+}}
+
+	 * </code>*/
+	parsed.each('template', token => {
+		if (token.name === 'Vital articles') {
+			//get the first one
+			if (VA_template) {
+				CeL.error(`Get multiple {{Vital articles}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+			} else {
+				VA_template = token;
+			}
+		} else if (token.name.startsWith('WikiProject ') && token.parameters.class) {
+			// TODO: verify if class is the same.
+			_class = token.parameters.class;
+		}
+	});
+
+	let wikitext;
+	if (VA_template) {
+		CeL.wiki.parse.replace_parameter(token, { level }, 'value_only');
+		wikitext = parsed.toString();
+	} else {
+		//TODO: |topic=
+		wikitext = `{{Vital articles|level=${level}|topic=|class=}}\n` + parsed.toString();
+	}
+
+	//return wikitext;
+}
+
+// ----------------------------------------------------------------------------
 
 async function generate_report() {
 	const records_limit = 500;
