@@ -253,7 +253,7 @@ function for_each_list_page(list_page_data) {
 				if (!(page_title in page_listed_in)) {
 					page_listed_in[page_title] = [];
 				}
-				page_listed_in[page_title].push(level_of_page_title(list_page_data.title));
+				page_listed_in[page_title].push(level_of_page_title(list_page_data.title) || list_page_data.title);
 
 				if (page_title in icons_of_page) {
 					icons.append(icons_of_page[page_title]);
@@ -501,10 +501,11 @@ function check_page_count() {
 		}
 		const listed_level = Math.min(level_list.filter(level => typeof level === 'string' ? +level.match(/^\d+/)[0] : level).unique());
 		if (listed_level !== category_level) {
-			if (!/^[1-5]$/.test(listed_level)) {
-				throw new Error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${level_list}`);
+			if (/^[1-5]$/.test(listed_level)) {
+				need_edit_VA_template[page_title] = listed_level;
+			} else {
+				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${level_list}`);
 			}
-			need_edit_VA_template[page_title] = listed_level;
 		}
 		if (level_list.length <= 3
 			// report identifying articles that have been listed twice
