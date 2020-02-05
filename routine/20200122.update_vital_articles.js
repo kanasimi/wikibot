@@ -234,19 +234,15 @@ function for_each_list_page(list_page_data) {
 		let item_wikitext, icons = [];
 		function for_item_token(token, index, _item) {
 			let parent_of_link;
-			if (!item_wikitext) {
-				let _token = token;
-				while (_token.type
-					// e.g., 'bold', 'italic'
-					&& _token.type !== 'link' && _token[0]) {
-					if (_token[0].type === 'link') {
-						parent_of_link = _token;
-						token = _token[0];
-						break;
-					} else {
-						_token = _token[0];
-					}
-				}
+			if (!item_wikitext && token.type !== 'link') {
+				//find the first link children
+				parsed.each.call(token, 'link', (_token, index, parent) => {
+					//assert: token.type === 'link'
+					token = _token;
+					token.index = index;
+					parent_of_link = parent;
+					return parsed.each.exit;
+				});
 			}
 			if (token.type === 'link' && !item_wikitext) {
 				const page_title = token[0].toString();
@@ -307,7 +303,7 @@ function for_each_list_page(list_page_data) {
 				// This will preserve link display text.
 				if (parent_of_link) {
 					// replace the [[link]]
-					parent_of_link[0] = token;
+					parent_of_link[token.index] = token;
 					icons.push(_item[index]);
 				} else {
 					icons.push(token);
