@@ -30,7 +30,7 @@ const page_info_cache = CeL.get_JSON(page_info_cache_file);
 
 /** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object.create(null);
-/** {Object}icons_of_page[title]=1–5 */
+/** {Object}level of page get from category. icons_of_page[title]=1–5 */
 const level_of_page = page_info_cache && page_info_cache.level_of_page || Object.create(null);
 /** {Object}page_listed_in[title]=[level,level,...] */
 const page_listed_in = Object.create(null);
@@ -486,18 +486,30 @@ function for_each_list_page(list_page_data) {
 
 // ----------------------------------------------------------------------------
 
+/** {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = modify to level */
+const need_edit_VA_template = Object.create(null);
+
 function check_page_count() {
 	for (let page_title in level_of_page) {
-		const level = level_of_page[page_title];
+		const category_level = level_of_page[page_title];
 		const level_list = page_listed_in[page_title];
 		if (!level_list) {
+			// pages that is not listed in the Wikipedia:Vital articles/Level/*
+			need_edit_VA_template[page_title] = '';
 			page_listed_in[page_title] = [];
 			continue;
+		}
+		const listed_level = Math.min(level_list.filter(level => typeof level === 'string' ? +level.match(/^\d+/)[0] : level).unique());
+		if (listed_level !== category_level) {
+			if (!/^[1-5]$/.test(listed_level)) {
+				throw new Error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${level_list}`);
+			}
+			need_edit_VA_template[page_title] = listed_level;
 		}
 		if (level_list.length <= 3
 			// report identifying articles that have been listed twice
 			&& level_list.length === level_list.unique().length
-			&& level_list.some(_level => typeof _level === 'string' ? _level.startsWith(level + '/') : level === _level)) {
+			&& level_list.some(level => typeof level === 'string' ? level.startsWith(category_level + '/') : category_level === level)) {
 			delete page_listed_in[page_title];
 			continue;
 		}
@@ -546,8 +558,10 @@ async function generate_report() {
 		report_wikitext = CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
 		});
+		if (!CeL.is_empty_object(need_edit_VA_template))
+			report_wikitext = `* ${Object.keys(need_edit_VA_template).length} talk pages to edit.\n` + report_wikitext;
 		if (report_lines.skipped_records > 0)
-			report_wikitext = `Skip ${report_lines.skipped_records.toLocaleString()} records.\n` + report_wikitext;
+			report_wikitext = `* Skip ${report_lines.skipped_records.toLocaleString()} records.\n` + report_wikitext;
 	} else {
 		report_wikitext = "* '''So good, no news!'''";
 	}
