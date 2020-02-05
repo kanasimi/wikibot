@@ -499,7 +499,8 @@ function check_page_count() {
 			page_listed_in[page_title] = [];
 			continue;
 		}
-		const listed_level = Math.min(level_list.filter(level => typeof level === 'string' ? +level.match(/^\d+/)[0] : level).unique());
+
+		const listed_level = Math.min(level_list.filter(level => typeof level === 'string' && /^\d/.test(level) ? +level.match(/^\d+/)[0] : level).unique());
 		if (listed_level !== category_level) {
 			if (/^[1-5]$/.test(listed_level)) {
 				need_edit_VA_template[page_title] = listed_level;
@@ -507,6 +508,7 @@ function check_page_count() {
 				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${level_list}`);
 			}
 		}
+
 		if (level_list.length <= 3
 			// report identifying articles that have been listed twice
 			&& level_list.length === level_list.unique().length
