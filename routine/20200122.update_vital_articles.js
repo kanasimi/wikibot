@@ -91,14 +91,14 @@ async function main_process() {
 
 	check_page_count();
 
-	const main_title_of_talk_title = Object.create(null);
+	let main_title_of_talk_title = Object.create(null);
 	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
-		const talk_page = wiki.to_talk_page.bind(wiki);
+		const talk_page = wiki.to_talk_page(title);
 		main_title_of_talk_title[talk_page] = title;
 		return talk_page;
 	}), talk_page_data => maintain_VA_template(talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]));
 	//free
-	main_title_of_talk_title.truncate();
+	main_title_of_talk_title = null;
 
 	// ----------------------------------------------------
 
