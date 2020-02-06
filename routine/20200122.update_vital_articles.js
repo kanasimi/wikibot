@@ -87,7 +87,7 @@ async function main_process() {
 
 	check_page_count();
 
-	//await wiki.for_each_page(Object.keys(need_edit_VA_template).map(wiki.to_talk_page), maintain_VA_template);
+	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(wiki.to_talk_page), maintain_VA_template);
 
 	// ----------------------------------------------------
 
@@ -265,7 +265,11 @@ function for_each_list_page(list_page_data) {
 				if (!(page_title in listed_article_info)) {
 					listed_article_info[page_title] = [];
 				}
-				listed_article_info[page_title].push({ level: level_of_page_title(list_page_data.title), topic: latest_section.link });
+				//console.log(latest_section && latest_section.link);
+				listed_article_info[page_title].push({
+					level: level_of_page_title(list_page_data.title),
+					topic: latest_section && latest_section.link[2].toString().replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, '').trim()
+				});
 
 				if (page_title in icons_of_page) {
 					icons.append(icons_of_page[page_title]);
@@ -415,7 +419,7 @@ function for_each_list_page(list_page_data) {
 			.replace(/^'''?|'''?$/g, '');
 		let next_wikitext;
 		// console.log(wikitext + next_wikitext);
-		const PATTERN_counter_title = /^[\w\s\-–']+ \([\d,]+(\/[\d,]+)? articles?\)$/i;
+		const PATTERN_counter_title = /^[\w\s\-–']+\([\d,]+(\/[\d,]+)? articles?\)$/i;
 		if (PATTERN_counter_title.test(wikitext.trim())
 			|| !parent.list_prefix && (next_wikitext = parent[index + 1] && parent[index + 1].toString()
 				.replace(/^'''?|'''?$/g, ''))
@@ -474,7 +478,8 @@ function for_each_list_page(list_page_data) {
 
 		if (parent_section.type === 'section_title') {
 			// $1: Target number
-			parent_section[0] = parent_section.join('').replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
+			parent_section[0] = parent_section.join('')
+				.replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
 			// console.log(parent_section[0]);
 			parent_section.truncate(1);
 		}
@@ -600,7 +605,7 @@ async function maintain_VA_template(talk_page_data) {
 		if (token.name === 'Vital articles') {
 			//get the first one
 			if (VA_template) {
-				CeL.error(`Get multiple {{Vital articles}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				CeL.error(`Find multiple {{Vital articles}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				VA_template = token;
 			}
@@ -612,11 +617,17 @@ async function maintain_VA_template(talk_page_data) {
 
 	let wikitext;
 	if (VA_template) {
-		CeL.wiki.parse.replace_parameter(token, { level: article_info.level, topic: article_info.topic }, 'value_only');
+		CeL.wiki.parse.replace_parameter(token, {
+			level: article_info.level,
+			class: VA_template.parameters.topic || _class || '',
+			topic: article_info.topic || VA_template.parameters.topic || '',
+		}, 'value_only');
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${token.toString()}`);
 		wikitext = parsed.toString();
 	} else {
-		//TODO: |topic=
-		wikitext = `{{Vital articles|level=${article_info.level}|topic=|class=}}\n` + parsed.toString();
+		wikitext = `{{Vital articles|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}}}\n`;
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext.trim()}`);
+		wikitext += parsed.toString();
 	}
 
 	//return wikitext;
