@@ -357,11 +357,11 @@ function for_each_list_page(list_page_data) {
 					console.log(_item);
 					//report_lines.push([page_title, list_page_data, `Invalid item: ${_item}`]);
 				}
-				if (_item.type === 'plain' && /''{{icon|/.test(_item.toString())) {
+				if (_item.type === 'plain' && /(''){{Icon\|\w+}}\s*/i.test(_item.toString())) {
 					// {{Icon|B}} '''{{Icon|A}} [[title]]'''
 					// → {{Icon|B}} '''[[title]]'''
 					_item.truncate();
-					_item[0] = _item.toString().replace(/(''){{icon|\w+}}\s*/, '$1');
+					_item[0] = _item.toString().replace(/(''){{Icon\|\w+}}\s*/i, '$1');
 				}
 				return true;
 			}
