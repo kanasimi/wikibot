@@ -39,6 +39,9 @@ const base_page = 'Wikipedia:Vital articles';
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
 const DEFAULT_LEVEL = 3;
 
+const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)? articles?\)/i;
+const PATTERN_counter_title = new RegExp(/^[\w\s\-–']+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
+
 const report_lines = [];
 report_lines.skipped_records = 0;
 
@@ -179,7 +182,7 @@ function level_page_link(level, number_only, page_title) {
 function level_of_page_title(page_title, number_only) {
 	// page_title.startsWith(base_page);
 	// [, 1–5, section ]
-	const matched = page_title.match(/\/Level(?:\/(\d)(\/.+)?)?$/);
+	const matched = page_title.match(/\/Level(?:\/([1-5])(\/.+)?)?$/);
 	if (matched) {
 		const level = number_only || !matched[2] ? + matched[1] || DEFAULT_LEVEL : matched[1] + matched[2];
 		return level;
@@ -191,7 +194,7 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 		return;
 
 	const rest_wikitext = item.slice(index + 1).join('').trim();
-	const PATTERN_level = /\s*\((?:level \d|\[\[([^\[\]\|]+)\|level \d\]\])\)/i;
+	const PATTERN_level = /\s*\((?:level [1-5]|\[\[([^\[\]\|]+)\|level [1-5]\]\])\)/i;
 	const matched = rest_wikitext && rest_wikitext.match(PATTERN_level);
 
 	if (new_wikitext === undefined) {
@@ -268,7 +271,8 @@ function for_each_list_page(list_page_data) {
 				//console.log(latest_section && latest_section.link);
 				listed_article_info[page_title].push({
 					level: level_of_page_title(list_page_data.title),
-					topic: latest_section && latest_section.link[2].toString().replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, '').trim()
+					topic: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
+					link: latest_section.link
 				});
 
 				if (page_title in icons_of_page) {
@@ -419,7 +423,6 @@ function for_each_list_page(list_page_data) {
 			.replace(/^'''?|'''?$/g, '');
 		let next_wikitext;
 		// console.log(wikitext + next_wikitext);
-		const PATTERN_counter_title = /^[\w\s\-–']+\([\d,]+(\/[\d,]+)? articles?\)$/i;
 		if (PATTERN_counter_title.test(wikitext.trim())
 			|| !parent.list_prefix && (next_wikitext = parent[index + 1] && parent[index + 1].toString()
 				.replace(/^'''?|'''?$/g, ''))
@@ -479,7 +482,7 @@ function for_each_list_page(list_page_data) {
 		if (parent_section.type === 'section_title') {
 			// $1: Target number
 			parent_section[0] = parent_section.join('')
-				.replace(/\([\d,]+(\/[\d,]+)? articles?\)/i, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
+				.replace(PATTERN_count_mark, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
 			// console.log(parent_section[0]);
 			parent_section.truncate(1);
 		}
@@ -537,7 +540,7 @@ function check_page_count() {
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
-			need_edit_VA_template[page_title] = '';
+			need_edit_VA_template[page_title] = { level: category_level };
 			listed_article_info[page_title] = [];
 			continue;
 		}
@@ -546,10 +549,11 @@ function check_page_count() {
 		const listed_level_array = article_info_list.map(article_info => {
 			//level maybe `null`
 			let level = article_info.level;
-			level = typeof level === 'string' && /^\d\//.test(level) ? +level.match(/^\d/)[0] : level || DEFAULT_LEVEL;
+			level = typeof level === 'string' && /^[1-5]\//.test(level) ? +level.match(/^[1-5]/)[0] : level || DEFAULT_LEVEL;
 			if (!min_level || level < min_level) {
 				min_level = level;
 				min_level_info = { ...article_info, level };
+				//console.log(min_level_info);
 			}
 			return level;
 		});
@@ -617,15 +621,18 @@ async function maintain_VA_template(talk_page_data) {
 
 	let wikitext;
 	if (VA_template) {
-		CeL.wiki.parse.replace_parameter(token, {
+		wikitext = {
 			level: article_info.level,
 			class: VA_template.parameters.topic || _class || '',
 			topic: article_info.topic || VA_template.parameters.topic || '',
-		}, 'value_only');
+		};
+		if (article_info.link)
+			wikitext.link = article_info.link.toString();
+		CeL.wiki.parse.replace_parameter(token, wikitext, 'value_only');
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${token.toString()}`);
 		wikitext = parsed.toString();
 	} else {
-		wikitext = `{{Vital articles|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}}}\n`;
+		wikitext = `{{Vital articles|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}${article_info.link ? 'link=' + article_info.link.toString() : ''}}}\n`;
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext.trim()}`);
 		wikitext += parsed.toString();
 	}
@@ -648,11 +655,11 @@ async function generate_report() {
 			record[1] = level_of_page[page_title];
 		} else if (record[1].title) {
 			record[1] = record[1].title;
-			const matched = record[1].match(/Level\/(\d(?:\/.+)?)$/);
+			const matched = record[1].match(/Level\/([1-5](?:\/.+)?)$/);
 			if (matched)
 				record[1] = matched[1];
 		}
-		if (/^\d(?:\/.+)?$/.test(record[1])) {
+		if (/^[1-5](?:\/.+)?$/.test(record[1])) {
 			record[1] = level_page_link(record[1], true);
 		}
 	});
