@@ -215,6 +215,9 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 }
 
 function for_each_list_page(list_page_data) {
+	if (CeL.wiki.parse.redirect(list_page_data))
+		return Wikiapi.skip_edit;
+
 	const level = level_of_page_title(list_page_data.title, true) || DEFAULT_LEVEL;
 	// console.log([list_page_data.title, level]);
 	const parsed = list_page_data.parse();
