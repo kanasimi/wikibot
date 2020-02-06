@@ -4,6 +4,7 @@
 
 TODO:
 report level/class change
+report articles without class
 
  */
 
@@ -31,8 +32,8 @@ const page_info_cache = CeL.get_JSON(page_info_cache_file);
 const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object.create(null);
 /** {Object}level of page get from category. icons_of_page[title]=1–5 */
 const level_of_page = page_info_cache && page_info_cache.level_of_page || Object.create(null);
-/** {Object}page_listed_in[title]=[level,level,...] */
-const page_listed_in = Object.create(null);
+/** {Object}listed_article_info[title]=[{level,topic},{level,topic},...] */
+const listed_article_info = Object.create(null);
 
 const base_page = 'Wikipedia:Vital articles';
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
@@ -261,10 +262,10 @@ function for_each_list_page(list_page_data) {
 			}
 			if (token.type === 'link' && !item_wikitext) {
 				const page_title = token[0].toString();
-				if (!(page_title in page_listed_in)) {
-					page_listed_in[page_title] = [];
+				if (!(page_title in listed_article_info)) {
+					listed_article_info[page_title] = [];
 				}
-				page_listed_in[page_title].push(level_of_page_title(list_page_data.title));
+				listed_article_info[page_title].push({ level: level_of_page_title(list_page_data.title), topic: latest_section.link });
 
 				if (page_title in icons_of_page) {
 					icons.append(icons_of_page[page_title]);
@@ -357,7 +358,8 @@ function for_each_list_page(list_page_data) {
 					console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
 					// console.log(_item.join('\n'));
 					// delete _item.parent;
-					console.log(_item);
+					//console.log(_item);
+
 					//report_lines.push([page_title, list_page_data, `Invalid item: ${_item}`]);
 
 					//Fix invalid pattern.
@@ -521,51 +523,58 @@ function for_each_list_page(list_page_data) {
 
 // ----------------------------------------------------------------------------
 
-/** {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = modify to level */
+/** {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = {level,topic} */
 const need_edit_VA_template = Object.create(null);
 
 function check_page_count() {
 	for (let page_title in level_of_page) {
 		const category_level = level_of_page[page_title];
-		const level_list = page_listed_in[page_title];
-		if (!level_list) {
+		const article_info_list = listed_article_info[page_title];
+		if (!article_info_list) {
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
 			need_edit_VA_template[page_title] = '';
-			page_listed_in[page_title] = [];
+			listed_article_info[page_title] = [];
 			continue;
 		}
 
-		const listed_level = Math.min.apply(null, level_list
+		let min_level_info, min_level;
+		const listed_level_array = article_info_list.map(article_info => {
 			//level maybe `null`
-			.map(level => typeof level === 'string' && /^\d\//.test(level) ? +level.match(/^\d/)[0] : level || DEFAULT_LEVEL)
-			.unique());
-		if (listed_level !== category_level) {
-			if (1 <= listed_level && listed_level <= 5) {
-				need_edit_VA_template[page_title] = listed_level;
+			let level = article_info.level;
+			level = typeof level === 'string' && /^\d\//.test(level) ? +level.match(/^\d/)[0] : level || DEFAULT_LEVEL;
+			if (!min_level || level < min_level) {
+				min_level = level;
+				min_level_info = { ...article_info, level };
+			}
+			return level;
+		});
+		if (min_level !== category_level) {
+			if (1 <= min_level && min_level <= 5) {
+				need_edit_VA_template[page_title] = min_level_info;
 			} else {
-				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${JSON.stringify(level_list)}`);
+				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${JSON.stringify(article_info_list)}`);
 			}
 		}
 
-		if (level_list.length <= 3
+		if (listed_level_array.length <= 3
 			// report identifying articles that have been listed twice
-			&& level_list.length === level_list.unique().length
-			&& level_list.some(level => typeof level === 'string' ? level.startsWith(category_level + '/') : category_level === level)) {
-			delete page_listed_in[page_title];
+			&& listed_level_array.length === listed_level_array.unique().length
+			&& listed_level_array.some(level => level === category_level)) {
+			delete listed_article_info[page_title];
 			continue;
 		}
 	}
 
-	for (let page_title in page_listed_in) {
-		const level_list = page_listed_in[page_title];
-		if (level_list.length > 0) {
+	for (let page_title in listed_article_info) {
+		const article_info_list = listed_article_info[page_title];
+		if (article_info_list.length > 0) {
 			// [contenttoobig] The content you supplied exceeds the article size
 			// limit of 2048 kilobytes.
 			report_lines.skipped_records++;
 			continue;
 		}
-		report_lines.push([page_title, level_of_page[page_title], level_list.length > 0
-			? `Listed ${level_list.length} times in ${level_list.map(level_page_link)}`
+		report_lines.push([page_title, level_of_page[page_title], article_info_list.length > 0
+			? `Listed ${article_info_list.length} times in ${article_info_list.map(article_info => level_page_link(article_info.level))}`
 			: `Did not listed in level ${level_of_page[page_title]}.`]);
 	}
 }
@@ -573,7 +582,7 @@ function check_page_count() {
 // maintain vital articles templates: FA|FL|GA|List, add new {{Vital articles|class=unassessed}} or via ({{WikiProject *|class=start}})
 async function maintain_VA_template(talk_page_data) {
 	const main_page_title = wiki.talk_page_to_main(talk_page_data.original_title || talk_page_data.title);
-	const level = need_edit_VA_template[main_page_title];
+	const article_info = need_edit_VA_template[main_page_title];
 	const parsed = list_page_data.parse();
 	let VA_template, _class;
 
@@ -603,11 +612,11 @@ async function maintain_VA_template(talk_page_data) {
 
 	let wikitext;
 	if (VA_template) {
-		CeL.wiki.parse.replace_parameter(token, { level }, 'value_only');
+		CeL.wiki.parse.replace_parameter(token, { level: article_info.level, topic: article_info.topic }, 'value_only');
 		wikitext = parsed.toString();
 	} else {
 		//TODO: |topic=
-		wikitext = `{{Vital articles|level=${level}|topic=|class=}}\n` + parsed.toString();
+		wikitext = `{{Vital articles|level=${article_info.level}|topic=|class=}}\n` + parsed.toString();
 	}
 
 	//return wikitext;
