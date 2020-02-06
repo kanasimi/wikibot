@@ -253,8 +253,7 @@ function for_each_list_page(list_page_data) {
 					}
 					if (typeof _token === 'string'
 						//e.g., "{{Icon|A}} ''[[title]]''"
-						//`{{Icon|A}} '''"[[title]]"'''`
-						&& !/^['"\s]*$/.test(_token)) {
+						&& !/^['\s]*$/.test(_token)) {
 						//Skip links with non-space prefix.
 						return parsed.each.exit;
 					}
@@ -375,6 +374,11 @@ function for_each_list_page(list_page_data) {
 						// "{{Icon|C}} '''[[title]]'''"
 						_item.truncate();
 						_item[0] = wikitext.replace(PATTERN, '$1$2$3$2');
+					} else if ((PATTERN = /^([^"]*)" *(\[\[[^\[\]]+\]\]) *"/).test(wikitext)) {
+						// `{{Icon|D}} " [[title]]"` →
+						// `{{Icon|D}} [[title]]`
+						_item.truncate();
+						_item[0] = wikitext.replace(PATTERN, '$1$2');
 					}
 				}
 
