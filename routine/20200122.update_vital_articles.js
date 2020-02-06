@@ -239,7 +239,7 @@ function for_each_list_page(list_page_data) {
 			let parent_of_link;
 			if (!item_wikitext && token.type !== 'link') {
 				//For token.type 'bold', 'italic', finding the first link children.
-				//e.g., `'' [[title]] ''`, `''' [[title]] '''`
+				//e.g., `'' [[title]] ''`, `''' [[title]] '''`, `''''' [[title]] '''''`
 				parsed.each.call(token, (_token, index, parent) => {
 					if (_token.type === 'link') {
 						//assert: token.type === 'link'
@@ -248,9 +248,8 @@ function for_each_list_page(list_page_data) {
 						parent_of_link = parent;
 						return parsed.each.exit;
 					}
-					if (_token.toString().trim() !== '') {
+					if (typeof _token === 'string' && _token.trim() !== '') {
 						//Skip links with non-space prefix.
-						CeL.error(_token.toString());
 						return parsed.each.exit;
 					}
 				});
