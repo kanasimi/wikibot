@@ -252,8 +252,9 @@ function for_each_list_page(list_page_data) {
 						return parsed.each.exit;
 					}
 					if (typeof _token === 'string'
-						//e.g., "{{Icon|A}} ''[[title]]"
-						&& !/^['\s]*$/.test(_token)) {
+						//e.g., "{{Icon|A}} ''[[title]]''"
+						//`{{Icon|A}} '''"[[title]]"'''`
+						&& !/^['"\s]*$/.test(_token)) {
 						//Skip links with non-space prefix.
 						return parsed.each.exit;
 					}
@@ -295,10 +296,10 @@ function for_each_list_page(list_page_data) {
 					}
 					// reduce size
 					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'Redirected?{{r|e}}';
-					CeL.warn(`${page_title}: ${message}`);
 					if (!(category_level < level)) {
 						// Only report when category_level (main level) is not smallar than level list in.
 						report_lines.push([page_title, list_page_data, message]);
+						//CeL.warn(`${CeL.wiki.title_link_of(page_title)}: ${message}`);
 					}
 					if (icons.length === 0) {
 						// Leave untouched if error with no icon.
