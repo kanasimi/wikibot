@@ -34,6 +34,9 @@ const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object
 const level_of_page = page_info_cache && page_info_cache.level_of_page || Object.create(null);
 /** {Object}listed_article_info[title]=[{level,topic},{level,topic},...] */
 const listed_article_info = Object.create(null);
+/** {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = {level,topic} */
+const need_edit_VA_template = Object.create(null);
+const VA_template_name = 'Vital article';
 
 const base_page = 'Wikipedia:Vital articles';
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
@@ -543,9 +546,6 @@ function for_each_list_page(list_page_data) {
 
 // ----------------------------------------------------------------------------
 
-/** {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = {level,topic} */
-const need_edit_VA_template = Object.create(null);
-
 function check_page_count() {
 	for (let page_title in level_of_page) {
 		const category_level = level_of_page[page_title];
@@ -617,10 +617,10 @@ async function maintain_VA_template(talk_page_data, main_page_title) {
 
 	 * </code>*/
 	parsed.each('template', token => {
-		if (token.name === 'Vital articles') {
+		if (token.name === VA_template_name) {
 			//get the first one
 			if (VA_template) {
-				CeL.error(`Find multiple {{Vital articles}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				CeL.error(`Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				VA_template = token;
 			}
@@ -643,7 +643,7 @@ async function maintain_VA_template(talk_page_data, main_page_title) {
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${token.toString()}`);
 		wikitext = parsed.toString();
 	} else {
-		wikitext = `{{Vital articles|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}${article_info.link ? '|link=' + article_info.link.toString() : ''}}}\n`;
+		wikitext = `{{${VA_template_name}|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}${article_info.link ? '|link=' + article_info.link.toString() : ''}}}\n`;
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext.trim()}`);
 		wikitext += parsed.toString();
 	}
