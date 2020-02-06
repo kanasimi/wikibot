@@ -241,15 +241,16 @@ function for_each_list_page(list_page_data) {
 				//For token.type 'bold', 'italic', finding the first link children.
 				//e.g., `'' [[title]] ''`, `''' [[title]] '''`
 				parsed.each.call(token, (_token, index, parent) => {
-					if (token.type === 'link') {
+					if (_token.type === 'link') {
 						//assert: token.type === 'link'
 						token = _token;
 						token.index = index;
 						parent_of_link = parent;
 						return parsed.each.exit;
 					}
-					if (token.toString().trim() !== '') {
+					if (_token.toString().trim() !== '') {
 						//Skip links with non-space prefix.
+						CeL.error(_token.toString());
 						return parsed.each.exit;
 					}
 				});
