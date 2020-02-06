@@ -361,14 +361,14 @@ function for_each_list_page(list_page_data) {
 					const wikitext = _item.type === 'plain' && _item.toString();
 					let PATTERN;
 					if (!wikitext) {
-					} else if ((PATTERN = /(''){{Icon\|\w+}}\s*/i).test(wikitext)) {
-						// `{{Icon|B}} '''{{Icon|A}} [[title]]'''`
-						// → `{{Icon|B}} '''[[title]]'''`
+					} else if ((PATTERN = /('{2,5})((?:{{Icon\|\w+}}\s*)+)/i).test(wikitext)) {
+						// "{{Icon|B}} '''{{Icon|A}} {{Icon|C}} [[title]]'''" →
+						// "{{Icon|B}} {{Icon|A}} {{Icon|C}} '''[[title]]'''"
 						_item.truncate();
-						_item[0] = wikitext.replace(PATTERN, '$1');
+						_item[0] = wikitext.replace(PATTERN, '$2$1');
 					} else if ((PATTERN = /^([^']*)('{2,5}) *(\[\[[^\[\]]+\]\][^']*)$/).test(wikitext)) {
-						// `{{Icon|C}} ''' [[title]]`
-						// → `{{Icon|C}} '''[[title]]'''`
+						// "{{Icon|C}} ''' [[title]]" →
+						// "{{Icon|C}} '''[[title]]'''"
 						_item.truncate();
 						_item[0] = wikitext.replace(PATTERN, '$1$2$3$2');
 					}
