@@ -87,7 +87,7 @@ async function main_process() {
 
 	check_page_count();
 
-	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(wiki.to_talk_page), maintain_VA_template);
+	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(wiki.to_talk_page.bind(wiki)), maintain_VA_template);
 
 	// ----------------------------------------------------
 
@@ -588,7 +588,7 @@ function check_page_count() {
 async function maintain_VA_template(talk_page_data) {
 	const main_page_title = wiki.talk_page_to_main(talk_page_data.original_title || talk_page_data.title);
 	const article_info = need_edit_VA_template[main_page_title];
-	const parsed = list_page_data.parse();
+	const parsed = talk_page_data.parse();
 	let VA_template, _class;
 
 	/**scan for existing informations
