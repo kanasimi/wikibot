@@ -248,7 +248,9 @@ function for_each_list_page(list_page_data) {
 						parent_of_link = parent;
 						return parsed.each.exit;
 					}
-					if (typeof _token === 'string' && _token.trim() !== '') {
+					if (typeof _token === 'string'
+						//e.g., "{{Icon|A}} ''[[title]]"
+						&& !/^['\s]*$/.test(_token)) {
 						//Skip links with non-space prefix.
 						return parsed.each.exit;
 					}
@@ -349,10 +351,17 @@ function for_each_list_page(list_page_data) {
 				throw new Error('for_item: Invalid item: ' + _item);
 			} else {
 				if (_item.length !== 1 || typeof token !== 'string') {
-					console.log(`Skip from ${index}/${_item.length}, ${token.type} of item: ${_item}`);
+					console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
 					// console.log(_item.join('\n'));
 					// delete _item.parent;
 					console.log(_item);
+					//report_lines.push([page_title, list_page_data, `Invalid item: ${_item}`]);
+				}
+				if (_item.type === 'plain' && /''{{icon|/.test(_item.toString())) {
+					// {{Icon|B}} '''{{Icon|A}} [[title]]'''
+					// → {{Icon|B}} '''[[title]]'''
+					_item.truncate();
+					_item[0] = _item.toString().replace(/(''){{icon|\w+}}\s*/, '$1');
 				}
 				return true;
 			}
