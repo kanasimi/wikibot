@@ -638,12 +638,12 @@ async function maintain_VA_template(talk_page_data, main_page_title) {
 			topic: article_info.topic || VA_template.parameters.topic || '',
 		};
 		if (article_info.link)
-			wikitext.link = article_info.link.toString();
-		CeL.wiki.parse.replace_parameter(token, wikitext, 'value_only');
-		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${token.toString()}`);
+			wikitext.link = article_info.link.slice(0, 1).join('');
+		CeL.wiki.parse.replace_parameter(VA_template, wikitext, 'value_only');
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
 		wikitext = parsed.toString();
 	} else {
-		wikitext = `{{${VA_template_name}|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}${article_info.link ? '|link=' + article_info.link.toString() : ''}}}\n`;
+		wikitext = `{{${VA_template_name}|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}${article_info.link ? '|link=' + article_info.link.slice(0, 1).join('') : ''}}}\n`;
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext.trim()}`);
 		wikitext += parsed.toString();
 	}
