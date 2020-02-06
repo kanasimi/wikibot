@@ -357,16 +357,20 @@ function for_each_list_page(list_page_data) {
 					console.log(_item);
 					//report_lines.push([page_title, list_page_data, `Invalid item: ${_item}`]);
 				}
-				if (token.type !== 'plain') {
-				} else if (/(''){{Icon\|\w+}}\s*/i.test(token.toString())) {
+
+				const wikitext = token.type === 'plain' && token.toString();
+				let PATTERN;
+				if (!wikitext) {
+				} else if ((PATTERN = /(''){{Icon\|\w+}}\s*/i).test(wikitext)) {
 					// `{{Icon|B}} '''{{Icon|A}} [[title]]'''`
 					// → `{{Icon|B}} '''[[title]]'''`
-					_item[index] = token.toString().replace(/(''){{Icon\|\w+}}\s*/i, '$1');
-				} else if (/^([^']*)('''?) *(\[\[[^\[\]]+\]\][^']+)$/.test(token.toString())) {
+					_item[index] = wikitext.replace(PATTERN, '$1');
+				} else if ((PATTERN = /^([^']*)('{2,5}) *(\[\[[^\[\]]+\]\][^']*)$/).test(wikitext)) {
 					// `{{Icon|C}} ''' [[title]]`
 					// → `{{Icon|C}} '''[[title]]'''`
-					_item[index] = token.toString().replace(/^([^']*)('''?) *(\[\[[^\[\]]+\]\][^']+)$/, '$1$2$3$2');
+					_item[index] = wikitext.replace(PATTERN, '$1$2$3$2');
 				}
+
 				return true;
 			}
 		}
