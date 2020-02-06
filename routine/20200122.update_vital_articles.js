@@ -39,7 +39,8 @@ const base_page = 'Wikipedia:Vital articles';
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
 const DEFAULT_LEVEL = 3;
 
-const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)? articles?\)/i;
+//@see function set_section_title_count(parent_section)
+const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)?\s+articles?\)/i;
 const PATTERN_counter_title = new RegExp(/^[\w\s\-–']+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
 
 const report_lines = [];
@@ -272,7 +273,7 @@ function for_each_list_page(list_page_data) {
 				listed_article_info[page_title].push({
 					level: level_of_page_title(list_page_data.title),
 					topic: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
-					link: latest_section.link
+					link: latest_section && latest_section.link
 				});
 
 				if (page_title in icons_of_page) {
