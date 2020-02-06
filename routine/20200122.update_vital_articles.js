@@ -356,21 +356,25 @@ function for_each_list_page(list_page_data) {
 					// delete _item.parent;
 					console.log(_item);
 					//report_lines.push([page_title, list_page_data, `Invalid item: ${_item}`]);
+
+					//Fix invalid pattern.
+					const wikitext = _item.type === 'plain' && _item.toString();
+					let PATTERN;
+					if (!wikitext) {
+					} else if ((PATTERN = /(''){{Icon\|\w+}}\s*/i).test(wikitext)) {
+						// `{{Icon|B}} '''{{Icon|A}} [[title]]'''`
+						// → `{{Icon|B}} '''[[title]]'''`
+						_item.truncate();
+						_item[0] = wikitext.replace(PATTERN, '$1');
+					} else if ((PATTERN = /^([^']*)('{2,5}) *(\[\[[^\[\]]+\]\][^']*)$/).test(wikitext)) {
+						// `{{Icon|C}} ''' [[title]]`
+						// → `{{Icon|C}} '''[[title]]'''`
+						_item.truncate();
+						_item[0] = wikitext.replace(PATTERN, '$1$2$3$2');
+					}
 				}
 
-				const wikitext = token.type === 'plain' && token.toString();
-				let PATTERN;
-				if (!wikitext) {
-				} else if ((PATTERN = /(''){{Icon\|\w+}}\s*/i).test(wikitext)) {
-					// `{{Icon|B}} '''{{Icon|A}} [[title]]'''`
-					// → `{{Icon|B}} '''[[title]]'''`
-					_item[index] = wikitext.replace(PATTERN, '$1');
-				} else if ((PATTERN = /^([^']*)('{2,5}) *(\[\[[^\[\]]+\]\][^']*)$/).test(wikitext)) {
-					// `{{Icon|C}} ''' [[title]]`
-					// → `{{Icon|C}} '''[[title]]'''`
-					_item[index] = wikitext.replace(PATTERN, '$1$2$3$2');
-				}
-
+				//Skip to next item.
 				return true;
 			}
 		}
