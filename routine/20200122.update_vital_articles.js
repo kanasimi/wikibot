@@ -324,7 +324,8 @@ function for_each_list_page(list_page_data) {
 						// Only report when category_level (main level) is not smallar than level list in.
 						report_lines.push([page_title, list_page_data, message]);
 						CeL.warn(`${CeL.wiki.title_link_of(page_title)}: ${message}`);
-						console.log(CeL.wiki.parse.redirect(await wiki.page(page_title)));
+						const main_page_data = await wiki.page(page_title);
+						console.log(CeL.wiki.parse.redirect(main_page_data));
 					}
 					if (icons.length === 0) {
 						// Leave untouched if error with no icon.
