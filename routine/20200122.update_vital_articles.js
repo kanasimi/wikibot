@@ -283,6 +283,9 @@ async function for_each_list_page(list_page_data) {
 			if (token.type === 'link' && !item_wikitext) {
 				//e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
+				//Need avoid [[PH|pH]]
+				if (token[2] && token[2].toString().trim() === normalized_page_title)
+					token[2] = '';
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
@@ -520,7 +523,10 @@ async function for_each_list_page(list_page_data) {
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
 			if (page_data.original_title && page_data.original_title !== page_data.title) {
 				// Fix redirect in the list.
-				need_check_redirected[page_data.original_title][0] = page_data.title;
+				const link_token = need_check_redirected[page_data.original_title];
+				link_token[0] = page_data.title;
+				if (link_token[2] && link_token[2].toString().trim() === page_data.title)
+					link_token[2] = '';
 				fixed++;
 			}
 		}, { no_edit: true, no_warning: true, page_options: { redirects: 1 } });
