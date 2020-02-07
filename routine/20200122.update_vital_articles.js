@@ -512,14 +512,15 @@ async function for_each_list_page(list_page_data) {
 	this.summary += `: ${total_articles}`;
 	// console.log(this.summary);
 
-	if (CeL.is_empty_object(need_check_redirected)) {
-		await wiki.for_each_page(Object.keys(need_check_redirected), page_data => {
-			const redirect_to = CeL.wiki.parse.redirect(page_data);
+	if (!CeL.is_empty_object(need_check_redirected)) {
+		const need_check_redirected_list = Object.keys(need_check_redirected);
+		CeL.info(`Check ${need_check_redirected_list.length} pages for redirect.`);
+		await wiki.for_each_page(need_check_redirected_list, page_data => {
 			if (page_data.original_title && page_data.original_title !== page_data.title) {
 				// Fix redirect in the list.
 				need_check_redirected[page_data.original_title][0] = page_data.title;
 			}
-		});
+		}, { redirects: 1 });
 	}
 
 	let wikitext = parsed.toString();
