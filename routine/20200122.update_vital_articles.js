@@ -552,6 +552,7 @@ function check_page_count() {
 		const category_level = level_of_page[page_title];
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
+			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Not listed. Add level ${category_level}.`);
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
 			need_edit_VA_template[page_title] = { level: category_level };
 			listed_article_info[page_title] = [];
