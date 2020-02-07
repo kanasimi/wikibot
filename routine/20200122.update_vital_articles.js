@@ -1,6 +1,7 @@
 ﻿/*
 
 2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
+2020/2/7 7:12:28	於 Wikimedia Toolforge 執行需要耗費30分鐘，大部分都耗在 for_each_list_page()。
 
 TODO:
 report level/class change
@@ -571,6 +572,7 @@ function check_page_count() {
 		});
 		if (min_level !== category_level) {
 			if (1 <= min_level && min_level <= 5) {
+				CeL.log(`${CeL.wiki.title_link_of(page_title)}: level ${category_level}→${min_level}`);
 				need_edit_VA_template[page_title] = min_level_info;
 			} else {
 				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${JSON.stringify(article_info_list)}`);
@@ -634,7 +636,7 @@ async function maintain_VA_template(talk_page_data, main_page_title) {
 	if (VA_template) {
 		wikitext = {
 			level: article_info.level,
-			class: VA_template.parameters.topic || _class || '',
+			class: VA_template.parameters.class || _class || '',
 			topic: article_info.topic || VA_template.parameters.topic || '',
 		};
 		if (article_info.link)
