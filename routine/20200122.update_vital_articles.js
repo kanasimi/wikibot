@@ -523,7 +523,7 @@ async function for_each_list_page(list_page_data) {
 				need_check_redirected[page_data.original_title][0] = page_data.title;
 				fixed++;
 			}
-		}, { redirects: 1, no_edit: true });
+		}, { no_edit: true, no_warning: true, page_options: { redirects: 1 } });
 		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} link(s) fixed.`, 0, 'for_each_list_page');
 	}
 
