@@ -515,15 +515,17 @@ async function for_each_list_page(list_page_data) {
 	if (!CeL.is_empty_object(need_check_redirected)) {
 		const need_check_redirected_list = Object.keys(need_check_redirected);
 		let fixed = 0;
-		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} page(s) for redirect.`);
+		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} page(s) for redirects.`);
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
-			if (page_data.original_title && page_data.original_title !== page_data.title) {
+			if (page_data.original_title && page_data.original_title !== page_data.title
+				//e.g., [[pH]], [[iOS]]
+				&& CeL.wiki.upper_case_initial(page_data.original_title) !== page_data.title) {
 				// Fix redirect in the list.
 				need_check_redirected[page_data.original_title][0] = page_data.title;
 				fixed++;
 			}
-		}, { redirects: 1 });
-		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} fixed`, 0, 'for_each_list_page');
+		}, { redirects: 1, no_edit: true });
+		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} redirects fixed`, 0, 'for_each_list_page');
 	}
 
 	let wikitext = parsed.toString();
