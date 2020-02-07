@@ -191,6 +191,11 @@ function filter_row(row) {
 	: !CeL.wiki.PATTERN_BOT_NAME.test(row.user) && row.user !== user_name
 	//
 	&& row.user !== 'MediaWiki message delivery'
+	// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
+	// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
+	&& !/\/Editnotice(\/|$)/i.test(row.title)
+	// 迴避 [[Wikipedia:Preload]]
+	&& !/\/Preload$/i.test(row.title)
 	// 篩選頁面標題。跳過封存/存檔頁面。
 	&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
 	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
