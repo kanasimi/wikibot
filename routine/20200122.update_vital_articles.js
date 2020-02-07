@@ -514,13 +514,16 @@ async function for_each_list_page(list_page_data) {
 
 	if (!CeL.is_empty_object(need_check_redirected)) {
 		const need_check_redirected_list = Object.keys(need_check_redirected);
+		let fixed = 0;
 		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} page(s) for redirect.`);
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
 			if (page_data.original_title && page_data.original_title !== page_data.title) {
 				// Fix redirect in the list.
 				need_check_redirected[page_data.original_title][0] = page_data.title;
+				fixed++;
 			}
 		}, { redirects: 1 });
+		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} fixed`, 0, 'for_each_list_page');
 	}
 
 	let wikitext = parsed.toString();
@@ -553,7 +556,6 @@ async function for_each_list_page(list_page_data) {
 		'class': "wikitable sortable"
 	}) + '\n$2');
 
-	CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: return`, 0, 'for_each_list_page');
 	// console.log(wikitext);
 	// return Wikiapi.skip_edit;
 	return wikitext;
