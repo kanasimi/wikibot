@@ -282,7 +282,7 @@ async function for_each_list_page(list_page_data) {
 			}
 			if (token.type === 'link' && !item_wikitext) {
 				//e.g., [[pH]], [[iOS]]
-				const normalized_page_title = CeL.wiki.normalize_title(token[0].toString());
+				const normalized_page_title = wiki.normalize_title(token[0].toString());
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
