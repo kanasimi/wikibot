@@ -281,23 +281,24 @@ async function for_each_list_page(list_page_data) {
 				});
 			}
 			if (token.type === 'link' && !item_wikitext) {
-				const page_title = token[0].toString();
-				if (!(page_title in listed_article_info)) {
-					listed_article_info[page_title] = [];
+				//e.g., [[pH]], [[iOS]]
+				const normalized_page_title = CeL.wiki.normalize_title(token[0].toString());
+				if (!(normalized_page_title in listed_article_info)) {
+					listed_article_info[normalized_page_title] = [];
 				}
 				//console.log(latest_section && latest_section.link);
-				listed_article_info[page_title].push({
+				listed_article_info[normalized_page_title].push({
 					level: level_of_page_title(list_page_data.title),
 					topic: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
 					link: latest_section && latest_section.link
 				});
 
-				if (page_title in icons_of_page) {
-					icons.append(icons_of_page[page_title]);
+				if (normalized_page_title in icons_of_page) {
+					icons.append(icons_of_page[normalized_page_title]);
 				}
 
-				if (page_title in wiki.FC_data_hash) {
-					icons.append(wiki.FC_data_hash[page_title].types);
+				if (normalized_page_title in wiki.FC_data_hash) {
+					icons.append(wiki.FC_data_hash[normalized_page_title].types);
 				}
 
 				// Good: Always count articles.
@@ -307,7 +308,7 @@ async function for_each_list_page(list_page_data) {
 					latest_section.item_count++;
 				}
 
-				const category_level = level_of_page[page_title];
+				const category_level = level_of_page[normalized_page_title];
 				// The frist link should be the main article.
 				if (category_level === level) {
 					// Remove level note. It is unnecessary.
@@ -323,9 +324,9 @@ async function for_each_list_page(list_page_data) {
 					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'Redirected?{{r|e}}';
 					if (!(category_level < level)) {
 						// Only report when category_level (main level) is not smallar than level list in.
-						report_lines.push([page_title, list_page_data, message]);
-						//CeL.warn(`${CeL.wiki.title_link_of(page_title)}: ${message}`);
-						need_check_redirected[page_title] = token;
+						report_lines.push([normalized_page_title, list_page_data, message]);
+						//CeL.warn(`${CeL.wiki.title_link_of(normalized_page_title)}: ${message}`);
+						need_check_redirected[normalized_page_title] = token;
 					}
 					if (icons.length === 0) {
 						// Leave untouched if error with no icon.
@@ -386,7 +387,7 @@ async function for_each_list_page(list_page_data) {
 					// delete _item.parent;
 					//console.log(_item);
 
-					//report_lines.push([page_title, list_page_data, `Invalid item: ${_item}`]);
+					//report_lines.push([normalized_page_title, list_page_data, `Invalid item: ${_item}`]);
 
 					//Fix invalid pattern.
 					const wikitext = _item.type === 'plain' && _item.toString();
@@ -515,17 +516,15 @@ async function for_each_list_page(list_page_data) {
 	if (!CeL.is_empty_object(need_check_redirected)) {
 		const need_check_redirected_list = Object.keys(need_check_redirected);
 		let fixed = 0;
-		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} page(s) for redirects.`);
+		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} link(s) for redirects.`);
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
-			if (page_data.original_title && page_data.original_title !== page_data.title
-				//e.g., [[pH]], [[iOS]]
-				&& CeL.wiki.upper_case_initial(page_data.original_title) !== page_data.title) {
+			if (page_data.original_title && page_data.original_title !== page_data.title) {
 				// Fix redirect in the list.
 				need_check_redirected[page_data.original_title][0] = page_data.title;
 				fixed++;
 			}
 		}, { redirects: 1, no_edit: true });
-		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} redirects fixed`, 0, 'for_each_list_page');
+		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} link(s) fixed.`, 0, 'for_each_list_page');
 	}
 
 	let wikitext = parsed.toString();
