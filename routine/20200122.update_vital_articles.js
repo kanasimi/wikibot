@@ -230,7 +230,7 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 	return true;
 }
 
-function for_each_list_page(list_page_data) {
+async function for_each_list_page(list_page_data) {
 	if (CeL.wiki.parse.redirect(list_page_data))
 		return Wikiapi.skip_edit;
 	if (list_page_data.title.endsWith('/Removed')) {
@@ -249,6 +249,7 @@ function for_each_list_page(list_page_data) {
 
 	const article_count_of_icon = Object.create(null);
 
+	const need_check_redirected = [];
 	let latest_section;
 
 	function for_item(item, index, list) {
@@ -323,9 +324,8 @@ function for_each_list_page(list_page_data) {
 					if (!(category_level < level)) {
 						// Only report when category_level (main level) is not smallar than level list in.
 						report_lines.push([page_title, list_page_data, message]);
-						CeL.warn(`${CeL.wiki.title_link_of(page_title)}: ${message}`);
-						const main_page_data = await wiki.page(page_title);
-						console.log(CeL.wiki.parse.redirect(main_page_data));
+						//CeL.warn(`${CeL.wiki.title_link_of(page_title)}: ${message}`);
+						need_check_redirected[page_title] = token;
 					}
 					if (icons.length === 0) {
 						// Leave untouched if error with no icon.
@@ -511,6 +511,16 @@ function for_each_list_page(list_page_data) {
 	const total_articles = `Total ${set_section_title_count(parsed).toLocaleString()} articles.`;
 	this.summary += `: ${total_articles}`;
 	// console.log(this.summary);
+
+	if (CeL.is_empty_object(need_check_redirected)) {
+		await wiki.for_each_page(Object.keys(need_check_redirected), page_data => {
+			const redirect_to = CeL.wiki.parse.redirect(page_data);
+			if (page_data.original_title && page_data.original_title !== page_data.title) {
+				// Fix redirect in the list.
+				need_check_redirected[page_data.original_title][0] = page_data.title;
+			}
+		});
+	}
 
 	let wikitext = parsed.toString();
 
