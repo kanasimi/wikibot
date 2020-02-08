@@ -521,15 +521,21 @@ async function for_each_list_page(list_page_data) {
 		let fixed = 0;
 		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} link(s) for redirects.`);
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
-			if (page_data.original_title && page_data.original_title !== page_data.title) {
-				// Fix redirect in the list.
-				const link_token = need_check_redirected[page_data.original_title];
-				link_token[0] = page_data.title;
-				if (link_token[2] && link_token[2].toString().trim() === page_data.title)
-					link_token[2] = '';
-				fixed++;
+			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data));
+			// Need check if redirects to #section.
+			if (!normalized_redirect_to
+				//Skip [[Plaster of Paris]]: #REDIRECT [[Plaster#Gypsum plaster]]
+				|| normalized_redirect_to.includes('#')) {
+				return;
 			}
-		}, { no_edit: true, no_warning: true, page_options: { redirects: 1 } });
+
+			// Fix redirect in the list.
+			const link_token = need_check_redirected[page_data.original_title];
+			link_token[0] = normalized_redirect_to;
+			if (link_token[2] && link_token[2].toString().trim() === normalized_redirect_to)
+				link_token[2] = '';
+			fixed++;
+		}, { no_edit: true, no_warning: true });
 		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} link(s) fixed.`, 0, 'for_each_list_page');
 	}
 
