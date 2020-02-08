@@ -285,7 +285,7 @@ async function for_each_list_page(list_page_data) {
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
 				//Need avoid [[PH|pH]]
 				if (token[2] && token[2].toString().trim() === normalized_page_title)
-					token[2] = '';
+					token.length = 2;
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
@@ -530,10 +530,11 @@ async function for_each_list_page(list_page_data) {
 			}
 
 			// Fix redirect in the list.
-			const link_token = need_check_redirected[page_data.original_title];
+			const link_token = need_check_redirected[page_data.title];
 			link_token[0] = normalized_redirect_to;
+			//console.log(link_token);
 			if (link_token[2] && link_token[2].toString().trim() === normalized_redirect_to)
-				link_token[2] = '';
+				link_token.length = 2;
 			fixed++;
 		}, { no_edit: true, no_warning: true });
 		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} link(s) fixed.`, 0, 'for_each_list_page');
