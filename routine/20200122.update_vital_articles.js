@@ -252,6 +252,18 @@ async function for_each_list_page(list_page_data) {
 	const need_check_redirected = [];
 	let latest_section;
 
+	function simplify_link(link_token, normalized_page_title) {
+		//console.log(link_token);
+		if (link_token[2]
+			//Need avoid [[PH|pH]], do not usewiki.normalize_title(link_token[2].toString())
+			&& link_token[2].toString().trim() ===
+			//assert: normalized_page_title === wiki.normalize_title(link_token[0].toString())
+			(normalized_page_title || wiki.normalize_title(link_token[0].toString()))) {
+			//assert: link_token.length === 3
+			link_token.length = 2;
+		}
+	}
+
 	function for_item(item, index, list) {
 		if (item.type === 'list') {
 			item.forEach(for_item);
@@ -283,9 +295,7 @@ async function for_each_list_page(list_page_data) {
 			if (token.type === 'link' && !item_wikitext) {
 				//e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
-				//Need avoid [[PH|pH]]
-				if (token[2] && token[2].toString().trim() === normalized_page_title)
-					token.length = 2;
+				simplify_link(token, normalized_page_title);
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
@@ -520,6 +530,9 @@ async function for_each_list_page(list_page_data) {
 		const need_check_redirected_list = Object.keys(need_check_redirected);
 		let fixed = 0;
 		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} link(s) for redirects.`);
+		if (need_check_redirected_list.length < 9) {
+			console.log(need_check_redirected_list);
+		}
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
 			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data));
 			// Need check if redirects to #section.
@@ -532,9 +545,7 @@ async function for_each_list_page(list_page_data) {
 			// Fix redirect in the list.
 			const link_token = need_check_redirected[page_data.title];
 			link_token[0] = normalized_redirect_to;
-			//console.log(link_token);
-			if (link_token[2] && link_token[2].toString().trim() === normalized_redirect_to)
-				link_token.length = 2;
+			simplify_link(link_token, normalized_redirect_to);
 			fixed++;
 		}, { no_edit: true, no_warning: true });
 		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} link(s) fixed.`, 0, 'for_each_list_page');
