@@ -187,7 +187,7 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 // CJK 用 外國語言版本指示器。
 // 注意: 採取寧缺勿濫原則。
 // TODO: [[:en:List of ISO 639-2 codes]]
-PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](文|[語语國国]文?)[名字]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](?:文|[語语國国]文?)[名字]?$|(?:国|フランス|ドイツ|ロシア)語$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
 
 '著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語|ケベック英語|法律英語'
 // TODO: should be OK: |英語版の有名人のリスト
@@ -255,7 +255,10 @@ function for_each_page(page_data, messages) {
 
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
-	/** {String}page content, maybe undefined. 頁面內容 = CeL.wiki.revision_content(revision) */
+	/**
+	 * {String}page content, maybe undefined. 頁面內容 =
+	 * CeL.wiki.revision_content(revision)
+	 */
 	content = CeL.wiki.content_of(page_data),
 	/** {Natural}所取得之版本編號。 */
 	revid = page_data.revisions[0].revid;
@@ -347,7 +350,7 @@ function for_each_page(page_data, messages) {
 			return;
 		}
 
-		if (foreign_language in CeL.wiki.namespace.hash) {
+		if (wiki.namespace(foreign_language)) {
 			CeL.debug('Skip wiki namespace: [' + foreign_language
 			// e.g., [[:template:光緒六年庚辰科殿試金榜|光緒六年進士]]
 			+ '], foreign_title: ' + foreign_title, 2, 'add_label');
@@ -693,7 +696,8 @@ function for_each_page(page_data, messages) {
 	// ----------------------------------------------------
 
 	while (matched = PATTERN_link.exec(content)) {
-		// @see function language_to_project(language) @ application.net.wiki
+		// @see function language_to_project(language) @
+		// CeL.application.net.wiki
 		// 以防 incase wikt, wikisource
 		if (matched[1].includes('wik')
 		// 光是只有 "Category"，代表還是在本 wiki 中，不算外國語言。
@@ -1106,7 +1110,8 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			wiki.page(title).edit(function(page_data) {
 				var
 				/**
-				 * {String}page content, maybe undefined. 頁面內容 = CeL.wiki.revision_content(revision)
+				 * {String}page content, maybe undefined. 頁面內容 =
+				 * CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data),
 				// [ link, local title ]
@@ -1714,7 +1719,8 @@ CeL.wiki.cache([ {
 				+ '|伊莫拉|阿根廷|南非|土耳其').split('|');
 				var matched, pattern = /, *rule *= *'([^']+)'/g,
 				/**
-				 * {String}page content, maybe undefined. 頁面內容 = CeL.wiki.revision_content(revision)
+				 * {String}page content, maybe undefined. 頁面內容 =
+				 * CeL.wiki.revision_content(revision)
 				 */
 				content = CeL.wiki.content_of(page_data);
 				while (matched = pattern.exec(content)) {
