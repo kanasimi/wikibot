@@ -35,7 +35,10 @@ const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object
 const level_of_page = page_info_cache && page_info_cache.level_of_page || Object.create(null);
 /** {Object}listed_article_info[title]=[{level,topic},{level,topic},...] */
 const listed_article_info = Object.create(null);
-/** {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = {level,topic} */
+/**
+ * {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the
+ * talk page] = {level,topic}
+ */
 const need_edit_VA_template = Object.create(null);
 const VA_template_name = 'Vital article';
 
@@ -43,7 +46,7 @@ const base_page = 'Wikipedia:Vital articles';
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
 const DEFAULT_LEVEL = 3;
 
-//@see function set_section_title_count(parent_section)
+// @see function set_section_title_count(parent_section)
 const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)?\s+articles?\)/i;
 const PATTERN_counter_title = new RegExp(/^[\w\s\-–']+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
 
@@ -101,7 +104,7 @@ async function main_process() {
 		main_title_of_talk_title[talk_page] = title;
 		return talk_page;
 	}), talk_page_data => maintain_VA_template(talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]));
-	//free
+	// free
 	main_title_of_talk_title = null;
 
 	// ----------------------------------------------------
@@ -234,7 +237,7 @@ async function for_each_list_page(list_page_data) {
 	if (CeL.wiki.parse.redirect(list_page_data))
 		return Wikiapi.skip_edit;
 	if (list_page_data.title.endsWith('/Removed')) {
-		//Skip non-list pages.
+		// Skip non-list pages.
 		return;
 	}
 
@@ -253,13 +256,15 @@ async function for_each_list_page(list_page_data) {
 	let latest_section;
 
 	function simplify_link(link_token, normalized_page_title) {
-		//console.log(link_token);
+		// console.log(link_token);
 		if (link_token[2]
-			//Need avoid [[PH|pH]], do not usewiki.normalize_title(link_token[2].toString())
+			// Need avoid [[PH|pH]], do not use
+			// wiki.normalize_title(link_token[2].toString())
 			&& link_token[2].toString().trim() ===
-			//assert: normalized_page_title === wiki.normalize_title(link_token[0].toString())
+			// assert: normalized_page_title ===
+			// wiki.normalize_title(link_token[0].toString())
 			(normalized_page_title || wiki.normalize_title(link_token[0].toString()))) {
-			//assert: link_token.length === 3
+			// assert: link_token.length === 3
 			link_token.length = 2;
 		}
 	}
@@ -274,32 +279,34 @@ async function for_each_list_page(list_page_data) {
 		function for_item_token(token, index, _item) {
 			let parent_of_link;
 			if (!item_wikitext && token.type !== 'link') {
-				//For token.type 'bold', 'italic', finding the first link children.
-				//e.g., `'' [[title]] ''`, `''' [[title]] '''`, `''''' [[title]] '''''`
+				// For token.type 'bold', 'italic', finding the first link
+				// children.
+				// e.g., `'' [[title]] ''`, `''' [[title]] '''`,
+				// `''''' [[title]] '''''`
 				parsed.each.call(token, (_token, index, parent) => {
 					if (_token.type === 'link') {
-						//assert: token.type === 'link'
+						// assert: token.type === 'link'
 						token = _token;
 						token.index = index;
 						parent_of_link = parent;
 						return parsed.each.exit;
 					}
 					if (typeof _token === 'string'
-						//e.g., "{{Icon|A}} ''[[title]]''"
+						// e.g., "{{Icon|A}} ''[[title]]''"
 						&& !/^['\s]*$/.test(_token)) {
-						//Skip links with non-space prefix.
+						// Skip links with non-space prefix.
 						return parsed.each.exit;
 					}
 				});
 			}
 			if (token.type === 'link' && !item_wikitext) {
-				//e.g., [[pH]], [[iOS]]
+				// e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
 				simplify_link(token, normalized_page_title);
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
-				//console.log(latest_section && latest_section.link);
+				// console.log(latest_section && latest_section.link);
 				listed_article_info[normalized_page_title].push({
 					level: level_of_page_title(list_page_data.title),
 					topic: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
@@ -336,10 +343,15 @@ async function for_each_list_page(list_page_data) {
 					// reduce size
 					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'Redirected?{{r|e}}';
 					if (!(category_level < level)) {
-						// Only report when category_level (main level) is not smallar than level list in.
+						// Only report when category_level (main level) is not
+						// smallar than level list in.
 						report_lines.push([normalized_page_title, list_page_data, message]);
-						//CeL.warn(`${CeL.wiki.title_link_of(normalized_page_title)}: ${message}`);
-						need_check_redirected[normalized_page_title] = token;
+						if (false) CeL.warn(`${CeL.wiki.title_link_of(normalized_page_title)}: ${message}`);
+						if (!category_level) {
+							// If there is category_level, the page was not
+							// redirected.
+							need_check_redirected[normalized_page_title] = token;
+						}
 					}
 					if (icons.length === 0) {
 						// Leave untouched if error with no icon.
@@ -398,11 +410,11 @@ async function for_each_list_page(list_page_data) {
 					console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
 					// console.log(_item.join('\n'));
 					// delete _item.parent;
-					//console.log(_item);
+					// console.log(_item);
 
-					//report_lines.push([normalized_page_title, list_page_data, `Invalid item: ${_item}`]);
+					if (false) report_lines.push([normalized_page_title, list_page_data, `Invalid item: ${_item}`]);
 
-					//Fix invalid pattern.
+					// Fix invalid pattern.
 					const wikitext = _item.type === 'plain' && _item.toString();
 					let PATTERN;
 					if (!wikitext) {
@@ -424,7 +436,7 @@ async function for_each_list_page(list_page_data) {
 					}
 				}
 
-				//Skip to next item.
+				// Skip to next item.
 				return true;
 			}
 		}
@@ -537,7 +549,8 @@ async function for_each_list_page(list_page_data) {
 			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data));
 			// Need check if redirects to #section.
 			if (!normalized_redirect_to
-				//Skip [[Plaster of Paris]]: #REDIRECT [[Plaster#Gypsum plaster]]
+				// Skip [[Plaster of Paris]]:
+				// #REDIRECT [[Plaster#Gypsum plaster]]
 				|| normalized_redirect_to.includes('#')) {
 				return;
 			}
@@ -602,13 +615,13 @@ function check_page_count() {
 
 		let min_level_info, min_level;
 		const listed_level_array = article_info_list.map(article_info => {
-			//level maybe `null`
+			// level maybe `null`
 			let level = article_info.level;
 			level = typeof level === 'string' && /^[1-5]\//.test(level) ? +level.match(/^[1-5]/)[0] : level || DEFAULT_LEVEL;
 			if (!min_level || level < min_level) {
 				min_level = level;
 				min_level_info = { ...article_info, level };
-				//console.log(min_level_info);
+				// console.log(min_level_info);
 			}
 			return level;
 		});
@@ -644,14 +657,16 @@ function check_page_count() {
 	}
 }
 
-// maintain vital articles templates: FA|FL|GA|List, add new {{Vital articles|class=unassessed}} or via ({{WikiProject *|class=start}})
+// maintain vital articles templates: FA|FL|GA|List,
+// add new {{Vital articles|class=unassessed}}
+// or via ({{WikiProject *|class=start}})
 async function maintain_VA_template(talk_page_data, main_page_title) {
 	const article_info = need_edit_VA_template[main_page_title];
 	const parsed = talk_page_data.parse();
 	let VA_template, _class;
 
-	/**scan for existing informations
-	 * <code>
+	/**
+	 * scan for existing informations <code>
 
 {{WikiProjectBannerShell|1=
 {{WikiProject Video games|class=C|importance=High}}
@@ -659,10 +674,11 @@ async function maintain_VA_template(talk_page_data, main_page_title) {
 {{WikiProject Apps |class=C|importance=High}}
 }}
 
-	 * </code>*/
+	 * </code>
+	 */
 	parsed.each('template', token => {
 		if (token.name === VA_template_name) {
-			//get the first one
+			// get the first one
 			if (VA_template) {
 				CeL.error(`Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
@@ -692,7 +708,7 @@ async function maintain_VA_template(talk_page_data, main_page_title) {
 		wikitext += parsed.toString();
 	}
 
-	//return wikitext;
+	// return wikitext;
 }
 
 // ----------------------------------------------------------------------------
