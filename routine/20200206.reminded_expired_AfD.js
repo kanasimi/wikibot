@@ -34,11 +34,13 @@ const PATTERN_AfD_page = /^Wikipedia:Articles for deletion\/([^\/]+)$/;
 })();
 
 async function main_process() {
-	// await for_AfD('Wikipedia:Articles for deletion/Quintana Olleras');
-	// await for_AfD('Wikipedia:Articles for deletion/Michael Breslin Murphy');
-	// await for_AfD('Wikipedia:Articles for deletion/Andy Duncan (musician)');
+	if (false) {
+		await for_AfD('Wikipedia:Articles for deletion/Quintana Olleras');
+		await for_AfD('Wikipedia:Articles for deletion/Michael Breslin Murphy');
+		await for_AfD('Wikipedia:Articles for deletion/Andy Duncan (musician)');
 
-	//for_AfD_list(await wiki.page('Wikipedia:Articles for deletion/Log/2020 February 1'));
+		for_AfD_list(await wiki.page('Wikipedia:Articles for deletion/Log/2020 February 1'));
+	}
 
 	for (let date = 1; date < 6; date++) {
 		for_AfD_list(await wiki.page('Wikipedia:Articles for deletion/Log/2020 February ' + date));
@@ -48,7 +50,7 @@ async function main_process() {
 // ----------------------------------------------------------------------------
 
 async function for_AfD_list(AfD_list_page_data) {
-	//CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: start:`);
+	// CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: start:`);
 	const parsed = AfD_list_page_data.parse();
 	const main_page_title_list = [];
 	const discussion_title_list = [];
@@ -56,8 +58,8 @@ async function for_AfD_list(AfD_list_page_data) {
 		const discussion_page_title = token.name;
 		const matched = discussion_page_title.match(PATTERN_AfD_page);
 		if (matched
-			//For only single AfD
-			//&& discussion_page_title.includes('Tok Nimol')
+			// For only single AfD
+			// && discussion_page_title.includes('Tok Nimol')
 		) {
 			main_page_title_list.push(matched[1]);
 			discussion_title_list.push(discussion_page_title);
@@ -69,10 +71,10 @@ async function for_AfD_list(AfD_list_page_data) {
 
 	const all_report_lines = [];
 	await wiki.for_each_page(discussion_title_list, for_AfD, { no_edit: true, all_report_lines, page_data_hash });
-	//console.log(all_report_lines);
-	const report_wikitext = `{{Please leave this line alone (sandbox heading)}}\n\n== Report for ${CeL.wiki.title_link_of(AfD_list_page_data)} if no participants ==\n\n${all_report_lines.join('\n\n')}`;
-	//CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
-	//console.log(report_wikitext);
+	// console.log(all_report_lines);
+	const report_wikitext = `{{Please leave this line alone (sandbox heading)}}\n\n== Report for ${CeL.wiki.title_link_of(AfD_list_page_data)} ==\n\n${all_report_lines.join('\n\n')}`;
+	// CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
+	// console.log(report_wikitext);
 	await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
 }
 
@@ -128,7 +130,7 @@ function extract_target_page_of_AfD(AfD_page_data) {
 // TODO: check if there are participations.
 function check_AfD_participations(AfD_page_data) {
 	const participations = Object.create(null);
-	//preserve sort
+	// preserve sort
 	check_AfD_participations.recommendation_types.forEach(type => { participations[type] = []; });
 	participations[check_AfD_participations.type_others] = [];
 	const parsed = AfD_page_data.parse();
@@ -152,6 +154,7 @@ function check_AfD_participations(AfD_page_data) {
 		return participations;
 }
 
+// [[Wikipedia:Guide_to_deletion#Shorthands]]
 check_AfD_participations.recommendation_types = 'keep|delete|merge|redirect'.split('|');
 check_AfD_participations.type_others = 'misc';
 check_AfD_participations.PATTERN = new RegExp(check_AfD_participations.recommendation_types.join('|'));
@@ -182,6 +185,11 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 	const previous_discussions = [], related_discussions = [];
 	await wiki.for_each_page(discussion_page_list, discussion_page_data => {
 		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
+		 */
+		const content = discussion_page_data.wikitext;
+		/**
 		 * <code>
 		
 		[[Wikipedia:Articles for deletion/Michael Breslin Murphy]]
@@ -195,20 +203,31 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 		
 		</code>
 		 */
-		let result = discussion_page_data.wikitext.match(/The result .+? '''(.+?)'''/)
-			// Wikipedia:Articles for deletion/Race and intelligence
-			// "The result of the debate was KEEP"
-			|| discussion_page_data.wikitext.match(/The result .+? was (.+?)(?:.[ \n]|\n)/);
+		let result = content.match(/The result .+? '''(.+?)'''/)
+			// [[Wikipedia:Articles for deletion/Race and intelligence]]
+			// "The result of the debate was KEEP\n"
+			|| content.match(/The result .+? was (.+?)(?:\.[ \n]|\n)/);
 		if (!result || !(result = result[1])) {
 			return;
 		}
+
 		if (false && AfD_page_data) {
 			CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: get_AfD_discussions of ${CeL.wiki.title_link_of(discussion_page_data)}: ${result}`);
 			console.log(discussion_page_data);
 		}
 
-		const revision = discussion_page_data.revisions[0];
-		const discussion_report = [revision, discussion_page_data, result];
+		// parse date from the AfD
+		let timestamp = CeL.wiki.parse.date(content, {
+			get_timevalue: true,
+			get_all_list: true
+		});
+		if (timestamp && (timestamp = Math.max.apply(null, timestamp)) > 0) {
+			timestamp = (new Date(timestamp)).toISOString();
+		} else {
+			// ... or using revision.timestamp
+			timestamp = discussion_page_data.revisions[0].timestamp;
+		}
+		const discussion_report = [timestamp, discussion_page_data, result];
 		if (extract_target_page_of_AfD(discussion_page_data) === target_page_title) {
 			previous_discussions.push(discussion_report);
 		} else {
@@ -223,9 +242,9 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 	}
 	function sort_discussions(discussions) {
 		return discussions
-			.sort((a, b) => a[0].timestamp < b[0].timestamp ? 1 : a[0].timestamp > b[0].timestamp ? -1 : 0)
+			.sort((a, b) => a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0)
 			// discussion_report may contain links
-			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp(item[0]))} ${item[2]}`);
+			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }))} ${item[2]}`);
 	}
 	const report = {
 		previous: sort_discussions(previous_discussions),
@@ -271,12 +290,22 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 					// type: 'pagetriage-curation',
 					|| Array.isArray(log.params && log.params.tags) && log.params.tags.some(tag => /prod/.test(tag));
 				// [[WP:CSD]]
-				let link = log.comment && log.comment.match(/\[\[[^\[\]]+\|[GARFCUTPX]\d{1,2}\]\]/);
-				if (link)
-					link = link[0];
-				log_text = `${to_timestamp(log)} {{color|red|✗}} ` + (is_PROD ? '[[WP:PROD|]]' : link || 'deleted');
-				if (!logs.note)
-					logs.note = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${link ? ` (${link})` : ''}.`;
+				let CSD_link = log.comment;
+				if (CSD_link) {
+					CSD_link = CSD_link.match(/\[\[[^\[\]]+\|[GARFCUTPX]\d{1,2}\]\]/)
+						// e.g., "CSD-A1"
+						|| CSD_link.match(/CSD[-\s]([GARFCUTPX]\d{1,2})/);
+					if (CSD_link)
+						CSD_link = CSD_link[0];
+				}
+				log_text = `${to_timestamp(log)} {{color|red|✗}} ` + (is_PROD ? '[[WP:PROD|]]' : CSD_link || 'deleted');
+				const note = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
+				if (is_PROD)
+					result_notice_data.PROD = note;
+				// CSD/BLPPROD doesn't affect PROD/soft deletion eligibility
+				// ([[WP:PROD#cite_ref-1]]), so don't need to track that.
+				if (false && is_PROD && !logs.note)
+					logs.note = note;
 				break;
 			case 'restore':
 				// type: 'delete'
@@ -302,6 +331,31 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 	return logs;
 }
 
+
+// ----------------------------------------------------------------------------
+
+// parse edit summaries or diffs to find /PROD/i
+async function find_PROD_in_the_summaries(target_page_title, result_notice_data) {
+	const page_data = await wiki.page(target_page_title, {
+		rvprop: 'ids|timestamp|comment', rvlimit: 'max'
+	});
+	const revisions = page_data && page_data.revisions;
+	if (!revisions) {
+		console.log(page_data);
+		return;
+	}
+	// revisions: new → old
+	// TODO: link to the live diff instead if the PROD wasn't successful
+	revisions.some(revision => {
+		// e.g., 'prod added', NOT ' | producer = '
+		if (!/(?:^|[^\w])PROD(?:$|[^\w])/i.test(revision.comment))
+			return;
+		// NOT ineligible for PROD.
+		result_notice_data.PROD = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [[Special:Diff/${revision.revid}|previously PROD'd]] (via summary).`;
+		return true;
+	});
+}
+
 // ----------------------------------------------------------------------------
 
 const PROD_MESSAGE_PREFIX = "* '''Note to closer''': While this discussion appears to have [[WP:NOQUORUM|no quorum]], ";
@@ -318,7 +372,7 @@ async function for_AfD(AfD_page_data) {
 
 	const participations = check_AfD_participations(AfD_page_data);
 	if (participations) {
-		//return;
+		// return;
 	}
 
 	const target_page_data = this.page_data_hash[target_page_title] || await wiki.page(target_page_title);
@@ -348,8 +402,8 @@ async function for_AfD(AfD_page_data) {
 	// -------------------------------------------------------
 
 	const discussions = await get_AfD_discussions(target_page_title, AfD_page_data);
-	//CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: discussions`);
-	//console.log(discussions);
+	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: discussions`);
+	// console.log(discussions);
 	if (discussions) {
 		if (discussions.result)
 			result_notice_data.discussion = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [[${discussions.result[1]}|previously discussed at AfD]] and the result was ${discussions.result[0]}.`;
@@ -363,30 +417,40 @@ async function for_AfD(AfD_page_data) {
 	if (logs.note) {
 		result_notice_data.log = logs.note;
 	}
-	//CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: logs`);
-	//console.log(logs);
+	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: logs`);
+	// console.log(logs);
 	// [{{fullurl:Special:Log|page=target_page_title}} Logs]
 	add_report_line(logs, 'Logs');
 
 	// -------------------------------------------------------
 
-	if (report_lines.length === 0)
+	if (!result_notice_data.PROD) {
+		await find_PROD_in_the_summaries(target_page_title, result_notice_data);
+	}
+
+	// -------------------------------------------------------
+
+	let result_notice = result_notice_data.redirect || result_notice_data.discussion || result_notice_data.PROD || result_notice_data.log;
+	if (report_lines.length === 0 && !result_notice)
 		return;
 
-	let result_notice = result_notice_data.redirect || result_notice_data.discussion || result_notice_data.log
-		|| `* '''Note to closer''': From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
+	if (!result_notice) {
+		// eligible for PROD
+		result_notice = `* '''Note to closer''': From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
+	}
 
 	if (participations) {
 		result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: '
 			+ Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ')
 			+ '\n' + result_notice;
 	} else {
-		participations = "There is no participation and '''the report may show in the AfD'''."
+		result_notice = "There is no participation and '''the report may show in the AfD'''."
 			+ '\n' + result_notice;
 	}
 
-	report_lines.unshift(`=== ${CeL.wiki.title_link_of(AfD_page_data)} ===\n` + result_notice);
-	//CeL.info(report_lines.join('\n: '));
-	this.all_report_lines.push(report_lines.join('\n: '));
-	// await wiki.edit_page(AfD_page_data, AfD_page_data.wikitext.replace(//));
+	report_lines.unshift(`=== ${CeL.wiki.title_link_of(AfD_page_data)} ===\n` + result_notice + ' --~~~~');
+	const report_wikitext = report_lines.join('\n: ');
+	// CeL.info(report_wikitext);
+	this.all_report_lines.push(report_wikitext);
+	//await wiki.edit_page(AfD_page_data, AfD_page_data.wikitext + '\n' + report_wikitext);
 }
