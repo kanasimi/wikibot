@@ -5,7 +5,8 @@
 
 TODO:
 report level/class change
-report articles without class
+report articles with {{`VA_template_name`}} but is not listing in the list page.
+Synchronize FA|FL|GA|List|
 
  */
 
@@ -74,7 +75,8 @@ async function main_process() {
 		// 1,
 		// 2,
 		// 3 && '',
-		'4/People',
+		'4/Removed',
+		//'4/People',
 		// '4/History',
 		// '4/Physical sciences',
 		// '5/People/Writers and journalists',
@@ -148,9 +150,6 @@ async function get_page_info() {
 	// they're what the vital article project is most concerned about.
 	// [[Category:Wikipedia vital articles by class]]
 	//
-	// [[Category:All Wikipedia List-Class vital articles]]
-	// duplicated with [[Category:List-Class List articles]]
-	//
 	// [[Wikipedia:Content_assessment#Grades]]
 	// FA|FL|GA|List|
 	'A|B|C|Start|Stub|Unassessed'.split('|').forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
@@ -165,10 +164,12 @@ async function get_page_info() {
 		FFPo: 'Wikipedia former featured portals',
 		FPoC: 'Wikipedia featured portal candidates (contested)',
 
+		// [[Category:All Wikipedia List-Class vital articles]]
+		// duplicated with [[Category:List-Class List articles]]
 		LIST: 'List-Class List articles',
 
-		// The icons that haven't been traditionally listed (peer review, in the
-		// news) might even be unnecessary.
+		// The icons that haven't been traditionally listed
+		// (peer review, in the news) might even be unnecessary.
 		// PR: 'Old requests for peer review',
 		// ITN: 'Wikipedia In the news articles',
 		// OTD: 'Article history templates with linked otd dates',
@@ -238,7 +239,7 @@ async function for_each_list_page(list_page_data) {
 		return Wikiapi.skip_edit;
 	if (list_page_data.title.endsWith('/Removed')) {
 		// Skip non-list pages.
-		return;
+		return Wikiapi.skip_edit;
 	}
 
 	const level = level_of_page_title(list_page_data.title, true) || DEFAULT_LEVEL;
@@ -341,15 +342,18 @@ async function for_each_list_page(list_page_data) {
 						const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
 					}
 					// reduce size
-					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'Redirected?{{r|e}}';
+					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'No VA template?{{r|e}}';
 					if (!(category_level < level)) {
 						// Only report when category_level (main level) is not
 						// smallar than level list in.
 						report_lines.push([normalized_page_title, list_page_data, message]);
 						if (false) CeL.warn(`${CeL.wiki.title_link_of(normalized_page_title)}: ${message}`);
+						// If there is category_level, the page was not
+						// redirected.
 						if (!category_level) {
-							// If there is category_level, the page was not
-							// redirected.
+							// e.g., deleted; redirected (fix latter);
+							// does not has {{`VA_template_name`}}
+							// (fix @ maintain_VA_template())
 							need_check_redirected[normalized_page_title] = token;
 						}
 					}
@@ -555,7 +559,7 @@ async function for_each_list_page(list_page_data) {
 				return;
 			}
 
-			// Fix redirect in the list.
+			// Fix redirect in the list page.
 			const link_token = need_check_redirected[page_data.title];
 			link_token[0] = normalized_redirect_to;
 			simplify_link(link_token, normalized_redirect_to);
@@ -594,6 +598,7 @@ async function for_each_list_page(list_page_data) {
 		'class': "wikitable sortable"
 	}) + '\n$2');
 
+	//console.trace(`for_each_list_page: return ${wikitext.length} chars`);
 	// console.log(wikitext);
 	// return Wikiapi.skip_edit;
 	return wikitext;
@@ -660,7 +665,7 @@ function check_page_count() {
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
-async function maintain_VA_template(talk_page_data, main_page_title) {
+function maintain_VA_template(talk_page_data, main_page_title) {
 	const article_info = need_edit_VA_template[main_page_title];
 	const parsed = talk_page_data.parse();
 	let VA_template, _class;
