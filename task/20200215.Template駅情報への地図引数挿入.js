@@ -34,12 +34,21 @@ const replace_tool = require('./replace_tool.js');
 						if (token.name !== 'Infobox mapframe' && token.name !== 'Maplink2')
 							return;
 						if (/^\s*地図\s*=\s*/.test(parent.slice(0, index).join(''))) {
-							//replaced
+							//already replaced
 							return;
 						}
 						changed = true;
 						//console.log(token.toString());
-						parent[index] = (index === 0 || !/\n\s*$/.test(parent[index - 1].toString()) ? '\n' : '') + '|地図=' + token.toString();
+						let prefix = '';
+						if (index > 0) {
+							const previous = parent[index - 1].toString().replace(/(\s|<br[^<>]+>)+$/, '');
+							if (!previous.endsWith('\n'))
+								prefix = '\n';
+							parent[index - 1] = previous;
+						} else {
+							prefix = '\n';
+						}
+						parent[index] = prefix + '|地図=' + token.toString();
 					});
 				});
 				if (changed)
