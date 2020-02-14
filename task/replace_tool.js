@@ -23,7 +23,7 @@ CeL.run([
 	'application.debug.log']);
 
 
-//20190913.replace.js
+// 20190913.replace.js
 log_to = log_to.replace(/\d+$/, 20190913);
 
 // global variables using in move_configuration
@@ -38,7 +38,7 @@ const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
  * @param {Object|String}meta_configuration {
  *            {String}summary 預設之編輯摘要。總結報告。編集内容の要約。,<br />
  *            {String|Number}diff_id revision id.<br />
- *            diff_id: {String}'small_oldid/big_new_diff' or {Number}new,<br />
+ *            diff_id: {String}'small_oldid/big_new_diff' or {Number}new_diff,<br />
  *            {String}section_title section title of [[WP:BOTREQ]]<br />
  *            ... }
  * @param {Object}move_configuration
@@ -102,7 +102,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				// e.g., 20200121.「離陸決心速度」の「V速度」への統合に伴うリンク修正.js
 				|| task_configuration.move_to_link.includes('#')
 			)) {
-			CeL.warn('prepare_operation: Set .keep_title = true. 請注意可能有錯誤的 redirect、{{Pathnav}}、{{Main2}} 編輯');
+			CeL.warn('prepare_operation: Set .keep_title = true. 請注意可能有錯誤的 redirect、{{Pathnav}}、{{Main2}}、{{Navbox}} 等編輯!');
 			task_configuration.keep_title = true;
 		}
 
@@ -184,6 +184,33 @@ async function prepare_operation(meta_configuration, move_configuration) {
 }
 
 
+// separate namespace and page name
+function parse_move_link(link) {
+	// /^(?<namespace>[^:]+):(?<page_name>.+)$/
+	const matched = typeof link === 'string' && link.trim().match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
+	if (!matched)
+		return;
+
+	return {
+		// "ns:page_name#anchor|display_text"
+		// link: matched[0],
+
+		// page_title: 'ns:page_name'
+		page_title: matched[1],
+		// namespace
+		ns: CeL.wiki.namespace(matched[2]) || CeL.wiki.namespace('Main'),
+		// page name only
+		page_name: matched[3],
+		// anchor without '#'
+		anchor: matched[4],
+		display_text: matched[5]
+	};
+}
+
+function text_processor_for_search(wikitext, page_data) {
+	return wikitext.replace(this.replace_from, this.move_to_link);
+}
+
 // リンク 参照読み込み 転送ページ
 const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
 
@@ -194,15 +221,22 @@ const default_namespace = 'main|file|module|template|category';
 async function main_move_process(task_configuration) {
 	const wiki = task_configuration.wiki;
 	let list_types;
-	if (typeof task_configuration.move_from_link === 'string') {
-		list_types = task_configuration.list_types || (
-			/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(task_configuration.move_from_link) ? 'search'
-				: !task_configuration.move_to_link && task_configuration.for_template ? 'embeddedin'
-					: default_list_types);
+	if (task_configuration.list_types) {
+		list_types = task_configuration.list_types;
 	} else if (CeL.is_RegExp(task_configuration.move_from_link)) {
 		list_types = 'search';
-	} else {
+	} else if (typeof task_configuration.move_from_link !== 'string') {
 		throw new Error(`Invalid move_from_link: ${JSON.stringify(task_configuration.move_from_link)}`);
+	} else if (/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(task_configuration.move_from_link)) {
+		list_types = 'search';
+	} else if (/^https?:\/\//.test(task_configuration.move_to_link)) {
+		// should have task_configuration.text_processor()
+		list_types = 'exturlusage';
+	} else if (!task_configuration.move_to_link && task_configuration.for_template) {
+		// replace template only.
+		list_types = 'embeddedin';
+	} else {
+		list_types = default_list_types;
 	}
 
 	if (typeof list_types === 'string') {
@@ -214,35 +248,55 @@ async function main_move_process(task_configuration) {
 
 	if (list_types.join() !== 'search') {
 		// separate namespace and page name
-		const matched = task_configuration.move_from_link.match(/^(?<namespace>[^:]+):(?<page_name>.+)$/);
-		const namespace = matched && CeL.wiki.namespace(matched.groups.namespace) || 0;
-		task_configuration = {
-			...task_configuration,
-			move_from_ns: namespace,
-			// page_name only
-			move_from_page_name: namespace ? matched.groups.page_name : task_configuration.move_from_link,
-		};
-		if (task_configuration.move_to_link && task_configuration.move_to_link !== DELETE_PAGE) {
-			// assert: typeof task_configuration.move_to_link === 'string'
-			// get page_name only
-			task_configuration.move_to_page_name = namespace ? task_configuration.move_to_link.replace(/^([^:]+):/, '') : task_configuration.move_to_link;
-		}
+		task_configuration.move_from = Object.assign(parse_move_link(task_configuration.move_from_link), task_configuration.move_from);
+		const move_to = parse_move_link(task_configuration.move_to_link);
+		if (move_to)
+			task_configuration.move_to = Object.assign(move_to, task_configuration.move_to);
+		// console.log(task_configuration.move_from);
 
-		if (task_configuration.move_from_ns !== CeL.wiki.namespace('Category')) {
+		if (task_configuration.move_from.ns !== CeL.wiki.namespace('Category')) {
 			list_types = list_types.filter(type => type !== 'categorymembers');
 		}
+
+	} else if (!task_configuration.text_processor && typeof task_configuration.move_to_link === 'string') {
+		if (!task_configuration.replace_from) {
+			let move_from_string = task_configuration.move_from_link.match(/^insource:(.+)$/);
+			if (!move_from_string) {
+				CeL.warn(`main_move_process: Should set text_processor() with list_types=${list_types}!`);
+			} else {
+				move_from_string = move_from_string[1];
+				let replace_from = move_from_string.match(/^\/(.+)\/([ig]*)$/);
+				if (replace_from) {
+					// Should use {'note':{move_from_link:/move from
+					// string/,move_to_link:'move to string'}}
+					// instead of {'insource:/move from string/':'move to
+					// string'}
+					replace_from = new RegExp(replace_from[1], 'g' + (replace_from[2].includes('i') ? 'i' : ''));
+				} else {
+					// e.g., {'insource:"move from string"':'move to string'}
+					replace_from = move_from_string.match(/^"([^"]+)"$/);
+					replace_from = new RegExp(CeL.to_RegExp_pattern(replace_from ? replace_from[1] : move_from_string), 'g');
+				}
+				task_configuration.replace_from = replace_from;
+			}
+		}
+		if (task_configuration.replace_from)
+			task_configuration.text_processor = text_processor_for_search;
+		// console.log(task_configuration);
 	}
 
 	let page_list = task_configuration.page_list;
 	if (page_list) {
-		//assert: Array.isArray(task_configuration.page_list)
+		// assert: Array.isArray(task_configuration.page_list)
 		CeL.info(`main_move_process: Process ${page_list.length} pages`);
 	} else {
 		page_list = [];
-		CeL.info(`main_move_process: Get types: ${list_types}`);
+		CeL.info(`main_move_process: Get types: ${list_types}`
+			+ (task_configuration.move_from.page_title ? ` of ${CeL.wiki.title_link_of(task_configuration.move_from.page_title)}` : '')
+			+ (task_configuration.move_from_link && task_configuration.move_from_link !== task_configuration.move_from.page_title ? ` (${JSON.stringify(task_configuration.move_from_link)})` : ''));
 		// Can not use `list_types.forEach(async type => ...)`
 		for (let type of list_types) {
-			page_list.append(await wiki[type](task_configuration.move_from_link, list_options));
+			page_list.append(await wiki[type](task_configuration.move_from.page_title, list_options));
 		}
 	}
 
@@ -256,7 +310,8 @@ async function main_move_process(task_configuration) {
 	if (task_configuration.page_limit >= 1)
 		page_list = page_list.truncate(task_configuration.page_limit);
 	// manually for debug
-	//page_list = [''];
+	// page_list = [''];
+	// page_list.truncate(2);
 	// console.log(page_list);
 
 	await wiki.for_each_page(
@@ -276,6 +331,7 @@ async function main_move_process(task_configuration) {
 
 function for_each_page(page_data) {
 	// console.log(page_data.revisions[0].slots.main);
+	// console.log(this);
 
 	if (this.text_processor) {
 		return this.text_processor(page_data.wikitext, page_data);
@@ -291,10 +347,12 @@ function for_each_page(page_data) {
 	if (this.move_to_link || this.for_each_link) {
 		parsed.each('link', for_each_link.bind(this));
 	}
-	if (this.move_to_link && this.move_from_ns === CeL.wiki.namespace('Category')) {
+	if (this.move_to_link && this.move_from.ns === CeL.wiki.namespace('Category')) {
 		parsed.each('category', for_each_category.bind(this));
 	}
-	parsed.each('template', for_each_template.bind(this, page_data));
+	if (!this.move_from.anchor && !this.move_from.display_text) {
+		parsed.each('template', for_each_template.bind(this, page_data));
+	}
 
 	// return wikitext modified.
 	return parsed.toString();
@@ -304,46 +362,66 @@ function for_each_page(page_data) {
 // ---------------------------------------------------------------------//
 
 function for_each_link(token, index, parent) {
-	// token: [ page_name, section_title, displayed_text ]
-	const page_name = CeL.wiki.normalize_title(token[0].toString());
-	if (page_name !== this.move_from_link) {
+	// token: [ page_name, anchor / section_title, displayed_text ]
+	const page_title = CeL.wiki.normalize_title(token[0].toString());
+	// if (page_title === this.move_from.page_title) console.log(token);
+	if (page_title !== this.move_from.page_title
+		|| typeof this.move_from.anchor === 'string' && this.move_from.anchor !== token.anchor
+		|| typeof this.move_from.display_text === 'string' && this.move_from.display_text !== (token[2] || '').toString().trim()
+	) {
 		return;
 	}
+	// console.log(token);
+	// console.log(page_title);
+	// console.log(this);
 
 	if (this.for_each_link) {
 		return this.for_each_link(token, index, parent);
+	}
 
-	} else if (this.move_to_link === DELETE_PAGE) {
-		// e.g., [[move_from_link]]
+	if (this.move_to_link === DELETE_PAGE) {
+		// e.g., [[.move_from.page_title]]
 		// console.log(token);
-		CeL.assert(token[2] || !token[1] && this.move_from_ns === CeL.wiki.namespace('Main'));
+		CeL.assert(token[2] || !token[1] && this.move_from.ns === CeL.wiki.namespace('Main'));
 		// 直接只使用 displayed_text。
 		parent[index] = token[2] || token[0];
+		return;
+	}
 
-	} else if (!token[1] && CeL.wiki.normalize_title(token[2]) === this.move_to_link) {
-		// e.g., [[move_from_link|move to link]] → [[move_to_link|move to link]]
-		// → [[move to link]]
-		token.pop();
-		token[0] = this.move_to_link;
+	const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
+	if (matched) {
+		// e.g., move_to_link: 'movie (1985)', 'movie (disambiguation)'
+		// TODO
+	}
 
+	// 替換頁面。
+	token[0] = this.move_to.page_title;
+	if (typeof this.move_to.anchor === 'string')
+		token[1] = this.move_to.anchor ? '#' + this.move_to.anchor : '';
+
+	if (this.keep_title) {
+		// e.g., [[.move_from.page_title]] →
+		// [[move_to_link|.move_from.page_title]]
+		// [[.move_from.page_title|顯示名稱]] → [[move_to_link|顯示名稱]]
+		CeL.assert(this.move_from.ns === CeL.wiki.namespace('Main'));
+		// 將原先的頁面名稱轉成顯示名稱。
+		// keep original title
+		if (!token[2]) token[2] = token[0];
 	} else {
-		const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
-		if (matched) {
-			// e.g., move_to_link: 'movie (1985)', 'movie (disambiguation)'
-			// TODO
-		}
+		if (this.move_to.display_text || this.move_to.display_text === '')
+			token[2] = this.move_to.display_text;
+	}
+	// console.log('~~~~~~~~');
+	// console.log(token);
 
-		if (this.keep_title) {
-			// e.g., [[move_from_link]] → [[move_to_link|move_from_link]]
-			// [[move_from_link|顯示名稱]] → [[move_to_link|顯示名稱]]
-			CeL.assert(this.move_from_ns === CeL.wiki.namespace('Main'));
-			// 將原先的頁面名稱轉成顯示名稱。
-			if (!token[1]) token[1] = '';
-			// keep original title
-			if (!token[2]) token[2] = token[0];
-		}
-		// 替換頁面。
-		token[0] = this.move_to_link;
+	// preserve [[PH|pH]]
+	if (!token[1] && token[2] && CeL.wiki.normalize_title(token[2].toString()) === this.move_to.page_title) {
+		// e.g., [[.move_from.page_title|move to link]] →
+		// [[.move_to.page_title|move to link]]
+		// → [[move to link]]
+		token[0] = token[2];
+		// assert: token.length === 2
+		token.pop();
 	}
 }
 
@@ -358,8 +436,8 @@ function replace_link_parameter(value, parameter_name, template_token) {
 	let move_from_link = this.move_from_link;
 	// 特別處理模板引數不加命名空間前綴的情況。
 	if (template_token.name === 'Catlink') {
-		move_from_link = move_from_link.replace(/^Category:/i, '');
-		move_to_link = move_to_link.replace(/^Category:/i, '');
+		move_from_link = this.move_from.page_name;
+		move_to_link = this.move_to.page_name;
 	}
 
 	if (value && value.toString() === move_from_link) {
@@ -391,9 +469,38 @@ const first_link_template_hash = ''.split('|').to_hash();
 // templates that ALL paraments are displayed as link.
 const all_link_template_hash = 'Main|See|Seealso|See also|混同|Catlink'.split('|').to_hash();
 
+function replace_link_parameter(task_configuration, token, template_hash, increase) {
+	if (!(token.name in template_hash))
+		return false;
+
+	if (!task_configuration.move_to_link || !task_configuration.move_to.page_name
+		|| task_configuration.move_from.ns !== task_configuration.page_data.ns)
+		return true;
+
+	// console.log(token);
+	// console.log(token.length);
+	for (let i = odd_name_parameters_start_index[token.name]; i < token.length;) {
+		const link = parse_move_link(token.parameters[i] && token.parameters[i].toString());
+		if (link && CeL.wiki.normalize_title(link.page_name) === task_configuration.move_from.page_name
+			// e.g., [[w:ja:Special:Diff/75582728|Xbox (ゲーム機)]]
+			// && (token.name !== 'Pathnav' ||
+			// task_configuration.page_data.title !== this.move_to.page_name)
+		) {
+			// assert: link.display_text === undefined
+			// TODO: using CeL.wiki.parse.replace_parameter(token, { name: value
+			// }, 'value_only');
+			token[token.index_of[i]] = task_configuration.move_to.page_name
+				+ (task_configuration.move_to.anchor ? '#' + task_configuration.move_to.anchor
+					: link.anchor ? '#' + link.anchor : '');
+		}
+		if (increase > 0) i += increase; else break;
+	}
+	return true;
+}
+
 function for_each_template(page_data, token, index, parent) {
 
-	if (token.name === this.move_from_page_name) {
+	if (token.name === this.move_from.page_name) {
 		if (this.for_template) {
 			this.for_template.call(page_data, token, index, parent);
 		}
@@ -406,9 +513,9 @@ function for_each_template(page_data, token, index, parent) {
 		if (this.move_to_link === DELETE_PAGE) {
 			return remove_token;
 		}
-		if (this.move_to_page_name && this.move_from_ns === CeL.wiki.namespace('Template')) {
+		if (this.move_to.page_name && this.move_from.ns === CeL.wiki.namespace('Template')) {
 			// 直接替換模板名稱。
-			token[0] = this.move_to_page_name;
+			token[0] = this.move_to.page_name;
 			return;
 		}
 	}
@@ -427,68 +534,35 @@ function for_each_template(page_data, token, index, parent) {
 
 	// ----------------------------------------------------
 
-	// [[w:ja:Template:Main2]]
-	if (token.name === 'Main2') {
-		if (!this.move_to_link || this.move_from_ns !== this.page_data.ns)
-			return;
-		// e.g., {{Main2|案内文|move_from_link}}
-		// console.log(token);
-		//console.log(token.length);
-		// [2], [4], [6], ...
-		for (let i = 2; i < token.length; i += 2) {
-			const value = token.parameters[i];
-			if (value && CeL.wiki.normalize_title(value.toString()) === this.move_from_link)
-				token[token.index_of[i]] = this.move_to_link;
-		}
-		return;
-	}
-
-	// -----------------------------------
+	if (replace_link_parameter(this, token, {
+		// [[w:ja:Template:Main2]]
+		// e.g., {{Main2|案内文|.move_from.page_title}}
+		// [2], [4], ...
+		Main2: 2
+	}, 2)) return;
 
 	// [[w:ja:Template:Redirect]], [[w:ja:Template:Otheruseslist]]
-	const odd_name_parameters_start_index = {
+	if (replace_link_parameter(this, token, {
 		Redirect: 1,
+		// [3], [5], ...
 		Otheruseslist: 3,
 		Otheruses: 3,
-	};
-	if (token.name in odd_name_parameters_start_index) {
-		if (!this.move_to_page_name || this.move_from_ns !== this.page_data.ns)
-			return;
-		//console.log(token);
-		//console.log(token.length);
-		// [3], [5], ...
-		for (let i = odd_name_parameters_start_index[token.name]; i < token.length; i += 2) {
-			const value = token.parameters[i];
-			if (value && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name)
-				token[token.index_of[i]] = this.move_to_page_name;
-		}
-		return;
-	}
+	}, 2)) return;
+
+	// [[w:ja:Template:Pathnav]]
+	if (replace_link_parameter(this, token, {
+		// e.g., {{Pathnav|主要カテゴリ|…|.move_from.page_title}}
+		Pathnav: 1,
+	}, 1)) return;
 
 	// -----------------------------------
 
-	// [[w:ja:Template:Pathnav]]
-	const every_name_parameters_start_index = {
-		// e.g., {{Pathnav|主要カテゴリ|…|move_from_link}}
-		Pathnav: 1,
-	};
-	if (token.name in every_name_parameters_start_index) {
-		if (!this.move_to_page_name || this.move_from_ns !== this.page_data.ns)
-			return;
-		// console.log(token);
-		for (let i = every_name_parameters_start_index[token.name]; i < token.length; i++) {
-			const value = token.parameters[i];
-			if (value && CeL.wiki.normalize_title(value.toString()) === this.move_from_page_name
-				//e.g., [[w:ja:Special:Diff/75582728|Xbox (ゲーム機)]]
-				//	&& page_data.title !== this.move_to_page_name
-			) {
-				token[token.index_of[i]] = this.move_to_page_name;
-			}
-		}
+	// [[w:ja:Template:Navbox]]
+	if (token.name === 'Navbox' && token.parameters.name === this.move_from.page_name) {
+		CeL.wiki.parse.replace_parameter(token, { name: this.move_to.page_name }, 'value_only');
 		return;
 	}
 }
-
 
 // ---------------------------------------------------------------------//
 // export
