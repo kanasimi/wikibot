@@ -33,6 +33,10 @@ const replace_tool = require('./replace_tool.js');
 					parsed.each.call(駅情報_token, 'template', (token, index, parent) => {
 						if (token.name !== 'Infobox mapframe' && token.name !== 'Maplink2')
 							return;
+						if (/^\s*地図\s*=\s*/.test(parent.slice(0, index).join(''))) {
+							//replaced
+							return;
+						}
 						changed = true;
 						//console.log(token.toString());
 						parent[index] = '|地図=' + (index === 0 || !/\n\s*$/.test(parent[index - 1].toString()) ? '\n' : '') + token.toString();
