@@ -39,7 +39,7 @@ const replace_tool = require('./replace_tool.js');
 						}
 						changed = true;
 						//console.log(token.toString());
-						parent[index] = '|地図=' + (index === 0 || !/\n\s*$/.test(parent[index - 1].toString()) ? '\n' : '') + token.toString();
+						parent[index] = (index === 0 || !/\n\s*$/.test(parent[index - 1].toString()) ? '\n' : '') + '|地図=' + token.toString();
 					});
 				});
 				if (changed)
