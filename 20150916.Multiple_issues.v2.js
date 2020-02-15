@@ -406,6 +406,7 @@ CeL.wiki.cache([ {
 	},
 	operator : function(list) {
 		CeL.log('總共有 ' + list.length + ' 個維護模板名.');
+		// console.log(list);
 		this.維護模板名 = list;
 	}
 }, {
@@ -524,7 +525,11 @@ CeL.wiki.cache([ {
 			count += list.length;
 			return list.length > 0 ? '|-\n| ' + index + ' || 共'
 			// \n\n
-			+ list.length + '條目。\n[[' + list.join(']], [[') + ']]' : '';
+			+ list.length + '條目。\n[['
+			// 避免顯示過多。
+			+ (list.length <= 1e4 ? list : list.slice(0, 1e4))
+			//
+			.join(']], [[') + ']]' : '';
 		}).reverse().join('\n').replace(/\n{2,}/g, '\n').trim();
 
 		content = '以下列出含有太多維護模板之條目：共' + count + '條目。\n'
