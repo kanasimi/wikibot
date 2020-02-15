@@ -146,13 +146,17 @@ async function get_page_info() {
 
 	// ---------------------------------------------
 
+	const synchronize_icons = 'FA|FL|GA|List'.split('|');
+	const icon_to_synchronize = Object.fromEntries(synchronize_icons.map(icon => [icon, true]));
+
 	// list an article's icon for current quality status always first
 	// they're what the vital article project is most concerned about.
 	// [[Category:Wikipedia vital articles by class]]
 	//
 	// [[Wikipedia:Content_assessment#Grades]]
 	// FA|FL|GA|List|
-	'A|B|C|Start|Stub|Unassessed'.split('|').forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
+	('A|B|C|Start|Stub|Unassessed'.split('|')).append(synchronize_icons)
+		.forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
 	// @see [[Module:Article history/config]], [[Template:Icon]]
 	Object.assign(icon_to_category, {
 		// FFA: 'Wikipedia former featured articles',
@@ -180,9 +184,15 @@ async function get_page_info() {
 		pages.forEach(page_data => {
 			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (title in icons_of_page) {
-				icons_of_page[title].push(icon);
+				if (icon in icon_to_synchronize)
+					icons_of_page[title].FC = icon.toUpperCase();
+				else
+					icons_of_page[title].push(icon);
 			} else {
-				icons_of_page[title] = [icon];
+				if (icon in icon_to_synchronize)
+					(icons_of_page[title] = []).FC = icon.toUpperCase();
+				else
+					icons_of_page[title] = [icon];
 			}
 		});
 	}
