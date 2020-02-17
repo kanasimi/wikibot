@@ -42,8 +42,14 @@ async function main_process() {
 		for_AfD_list(await wiki.page('Wikipedia:Articles for deletion/Log/2020 February 1'));
 	}
 
-	for (let date = 1; date < 6; date++) {
-		for_AfD_list(await wiki.page('Wikipedia:Articles for deletion/Log/2020 February ' + date));
+	let date = new Date();
+	//from 9 days ago
+	date.setDate(date.getDate() - 9);
+	for (let days = 0; days < 6; days++) {
+		date.setDate(date.getDate() + 1);
+		const AfD_list_page_title = `Wikipedia:Articles for deletion/Log/${date.format({ locale: 'en', format: '%Y %B %d' })}`;
+		CeL.info(`Process ${CeL.wiki.title_link_of(AfD_list_page_title)}:`);
+		await for_AfD_list(await wiki.page(AfD_list_page_title));
 	}
 }
 
@@ -221,7 +227,7 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 			get_timevalue: true,
 			get_all_list: true
 		});
-		if (timestamp && (timestamp = Math.max.apply(null, timestamp)) > 0) {
+		if (timestamp && (timestamp = timestamp.max_timevalue)) {
 			timestamp = (new Date(timestamp)).toISOString();
 		} else {
 			// ... or using revision.timestamp
@@ -244,7 +250,7 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 		return discussions
 			.sort((a, b) => a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0)
 			// discussion_report may contain links
-			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }))} ${item[2]}`);
+			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }))} ${/(?:^|\W)(?:delete)(?:$|\W)/i.test(item[2]) ? '{{color|red|✗}} ' : /(?:^|\W)(?:keep)(?:$|\W)/i.test(item[2]) ? '{{color|green|✓}} ' : ''}${item[2]}`);
 	}
 	const report = {
 		previous: sort_discussions(previous_discussions),
@@ -258,6 +264,8 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 	}
 	return report;
 }
+
+const PATTERN_PROD = /(?:^|\W)(?:PROD|soft deletion)(?:$|\W)/i;
 
 async function get_AfD_logs(target_page_title, result_notice_data) {
 	const logs = [];
@@ -285,10 +293,10 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				break;
 			case 'delete':
 				// type: 'delete'
-				let is_PROD = log.comment && /PROD|soft deletion/.test(log.comment)
+				let is_PROD = log.comment && PATTERN_PROD.test(log.comment)
 					// params: { tags: [ 'subst:prod' ] },
 					// type: 'pagetriage-curation',
-					|| Array.isArray(log.params && log.params.tags) && log.params.tags.some(tag => /prod/.test(tag));
+					|| Array.isArray(log.params && log.params.tags) && log.params.tags.some(tag => PATTERN_PROD.test(tag));
 				// [[WP:CSD]]
 				let CSD_link = log.comment;
 				if (CSD_link) {
@@ -334,7 +342,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 
 // ----------------------------------------------------------------------------
 
-// parse edit summaries or diffs to find /PROD/i
+// parse edit summaries or diffs to find PROD
 async function find_PROD_in_the_summaries(target_page_title, result_notice_data) {
 	const page_data = await wiki.page(target_page_title, {
 		rvprop: 'ids|timestamp|comment', rvlimit: 'max'
@@ -348,7 +356,7 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 	// TODO: link to the live diff instead if the PROD wasn't successful
 	revisions.some(revision => {
 		// e.g., 'prod added', NOT ' | producer = '
-		if (!/(?:^|[^\w])PROD(?:$|[^\w])/i.test(revision.comment))
+		if (!PATTERN_PROD.test(revision.comment))
 			return;
 		// NOT ineligible for PROD.
 		result_notice_data.PROD = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [[Special:Diff/${revision.revid}|previously PROD'd]] (via summary).`;
@@ -439,10 +447,11 @@ async function for_AfD(AfD_page_data) {
 		result_notice = `* '''Note to closer''': From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
 	}
 
-	if (participations) {
+	if (Object.keys(participations).length > 0) {
 		result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: '
 			+ Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ')
 			+ '\n' + result_notice;
+		//return;
 	} else {
 		result_notice = "There is no participation and '''the report may show in the AfD'''."
 			+ '\n' + result_notice;
