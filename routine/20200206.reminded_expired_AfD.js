@@ -1,4 +1,6 @@
 ﻿/*
+Assist administrators to close AfDs. Especially discussions without participants.
+協助管理員關閉刪除討論。尤其是無參與者的討論。
 
 2020/2/6	擷取redirect_to,logs,discussions三項資訊
 2020/2/8 17:19:57	增加報告
@@ -78,7 +80,15 @@ async function for_AfD_list(AfD_list_page_data) {
 	const all_report_lines = [];
 	await wiki.for_each_page(discussion_title_list, for_AfD, { no_edit: true, all_report_lines, page_data_hash });
 	// console.log(all_report_lines);
-	const report_wikitext = `{{Please leave this line alone (sandbox heading)}}\n\n== Report for ${CeL.wiki.title_link_of(AfD_list_page_data)} ==\n\n${all_report_lines.join('\n\n')}`;
+	const report_wikitext = `
+{{Please leave this line alone (sandbox heading)}}
+
+== Report for ${CeL.wiki.title_link_of(AfD_list_page_data)} ==
+
+{{see|Wikipedia:Bot requests#A heads up for AfD closers re: PROD eligibility when approaching NOQUORUM}}
+
+${all_report_lines.join('\n\n')}
+`;
 	// CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
 	// console.log(report_wikitext);
 	await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
@@ -447,9 +457,9 @@ async function for_AfD(AfD_page_data) {
 		result_notice = `* '''Note to closer''': From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
 	}
 
-	if (Object.keys(participations).length > 0) {
-		result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: '
-			+ Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ')
+	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
+	if (participations_report) {
+		result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: ' + participations_report
 			+ '\n' + result_notice;
 		//return;
 	} else {
