@@ -47,10 +47,13 @@ _global.user_name = 'bot_name';
 /** {String}user/bot owner name */
 _global.owner_name = 'bot_owner_name';
 
-user_name = owner_name = _global.process && process.env;
-if (user_name) {
-	owner_name = user_name.SUDO_USER;
-	if (user_name = user_name.USER) {
+var process_env = _global.process && process.env;
+if (process_env) {
+	// e.g., "cron-20170915.topic_list.zh"
+	_global.task_name = process_env.JOB_NAME;
+	owner_name = process_env.SUDO_USER;
+	user_name = process_env.USER;
+	if (user_name) {
 		user_name = user_name.replace(/^tools\./, '');
 	}
 }
@@ -218,28 +221,31 @@ _global.Wiki = function new_wiki(login, API_URL) {
 	var un = user_name, pw = _global.user_password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
-	var wiki = CeL.wiki.login(un, pw, {
+	var session = CeL.wiki.login(un, pw, {
 		API_URL : api,
-		preserve_password : true
+		preserve_password : true,
+		task_configuration_page : log_to + '/configuration'
 	});
 	if (typeof check_section === 'string') {
-		wiki.check_options = {
+		session.check_options = {
 			section : check_section
 		};
 	}
 
-	if (!wiki.get_URL_options.headers) {
-		wiki.get_URL_options.headers = Object.create(null);
+	if (!session.get_URL_options.headers) {
+		session.get_URL_options.headers = Object.create(null);
 	}
 	if (CeL.get_script_name()) {
 		// set User-Agent to use:
 		// Special:ApiFeatureUsage&wpagent=CeJS script_name
-		wiki.get_URL_options.headers['User-Agent'] = CeL.get_URL.default_user_agent
+		session.get_URL_options.headers['User-Agent'] = CeL.get_URL.default_user_agent
 				// User-Agent 不可含有中文。
 				+ ' ' + encodeURI(CeL.get_script_name());
 	}
 
-	return wiki;
+	check_routine_task(session);
+
+	return session;
 };
 
 // ----------------------------------------------------------------------------
@@ -268,3 +274,98 @@ _global.fetch = _global.fetch || function fetch(url) {
 	}
 	return CeL.fetch(url);
 };
+
+// ----------------------------------------------------------------------------
+
+// TODO: yet test
+var routine_task_log_file = 'routine_task_log.json';
+
+function get_task_log() {
+	if (!task_name)
+		return;
+
+	var all_task_log = CeL.get_JSON(routine_task_log_file);
+	if (!all_task_log)
+		return;
+
+	if (!all_task_log[task_name]) {
+		// 初始化
+		all_task_log[task_name] = Object.create(null);
+	}
+	return all_task_log;
+}
+
+function check_routine_task(session) {
+	var all_task_log = get_task_log();
+	if (!all_task_log)
+		return;
+
+	var notice_list = [];
+	for ( var task_id in all_task_log) {
+		if (task_id === task_name) {
+			// 跳過本身任務的提醒。
+			continue;
+		}
+
+		var task_log = all_task_log[task_id], last_done = task_log.last_done;
+		// 預設一個月未成功執行到最後就通報。
+		var interval = CeL.to_millisecond(task_log.interval || '1m');
+		if (typeof last_done === 'string')
+			last_done = Date.parse(task_log.last_done);
+		if (!(interval > Date.now() - last_done))
+			continue;
+
+		task_log.id = task_id;
+		notice_list.push(task_log);
+	}
+
+	if (notice_list.length === 0)
+		return;
+
+	// 任務太久沒執行則提醒使用者。
+	session.page('User talk:' + user_name).edit(function(page_data) {
+		var title = CeL.wiki.title_of(page_data),
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
+		 */
+		content = CeL.wiki.content_of(page_data) || '';
+
+		notice_list = notice_list.map(function(task_log) {
+			var mark = '<!-- ' + task_log.id
+			// 去掉已經提醒過的。
+			+ '' + task_log.last_done + ' -->';
+			if (content.includes(mark)) {
+				return '* <code>' + task_id + '</code> 上次成功執行於 '
+				//
+				+ (new Date(task_log.last_done)).format() + '，距今已 '
+				//
+				+ CeL.age_of(task_log.last_done) + '。' + mark;
+			}
+		}).filter(function(log) {
+			return !!log;
+		});
+
+		if (notice_list.length > 0) {
+			return content + '\n\n== 任務太久未成功執行提醒 ==\n'
+			//
+			+ notice_list.join('\n') + ' --~~~~';
+		}
+	}, {
+		redirects : 1
+	});
+}
+
+function routine_task_done(interval) {
+	var all_task_log = get_task_log();
+	if (!all_task_log)
+		return;
+
+	var this_task_log = all_task_log[task_name];
+	this_task_log.last_done = (new Date).toISOString();
+	if (interval > 0)
+		this_task_log.interval = interval;
+	CeL.write_file(routine_task_log_file, all_task_log);
+}
+
+_global.routine_task_done = routine_task_done;
