@@ -146,8 +146,8 @@ async function get_page_info() {
 
 	// ---------------------------------------------
 
-	const synchronize_icons = 'FA|FL|GA|List'.split('|');
-	const icon_to_synchronize = Object.fromEntries(synchronize_icons.map(icon => [icon, true]));
+	const synchronize_icons = 'List|FA|FL|GA'.split('|');
+	const synchronize_icon_hash = Object.fromEntries(synchronize_icons.map(icon => [icon, true]));
 
 	// list an article's icon for current quality status always first
 	// they're what the vital article project is most concerned about.
@@ -183,16 +183,13 @@ async function get_page_info() {
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
 			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
-			if (title in icons_of_page) {
-				if (icon in icon_to_synchronize)
-					icons_of_page[title].FC = icon.toUpperCase();
-				else
-					icons_of_page[title].push(icon);
+			if (!(title in icons_of_page))
+				icons_of_page[title] = [];
+			if (icon in synchronize_icon_hash) {
+				//List → LIST
+				icons_of_page[title].FC = icon.toUpperCase();
 			} else {
-				if (icon in icon_to_synchronize)
-					(icons_of_page[title] = []).FC = icon.toUpperCase();
-				else
-					icons_of_page[title] = [icon];
+				icons_of_page[title].push(icon);
 			}
 		});
 	}
