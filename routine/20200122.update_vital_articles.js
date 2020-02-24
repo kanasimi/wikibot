@@ -62,6 +62,8 @@ report_lines.skipped_records = 0;
 	await main_process();
 })();
 
+const talk_page_summary = 'Maintain {{Vital article}}';
+
 async function main_process() {
 	wiki.FC_data_hash = page_info_cache && page_info_cache.FC_data_hash;
 	if (!wiki.FC_data_hash) {
@@ -100,12 +102,21 @@ async function main_process() {
 
 	check_page_count();
 
+	CeL.info('need_edit_VA_template:');
+	//console.log(need_edit_VA_template);
 	let main_title_of_talk_title = Object.create(null);
 	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
 		const talk_page = wiki.to_talk_page(title);
 		main_title_of_talk_title[talk_page] = title;
 		return talk_page;
-	}), talk_page_data => maintain_VA_template(talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]));
+	}), function (talk_page_data) {
+		return maintain_VA_template.call(this, talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
+	}, {
+		redirects: 1,
+		bot: 1,
+		log_to: null,
+		summary: talk_page_summary
+	});
 	// free
 	main_title_of_talk_title = null;
 
@@ -113,7 +124,7 @@ async function main_process() {
 
 	await generate_report();
 
-	CeL.info(`${(new Date).format()}	done.`);
+	routine_task_done('1d');
 }
 
 // ----------------------------------------------------------------------------
@@ -205,7 +216,7 @@ function level_page_link(level, number_only, page_title) {
 function level_of_page_title(page_title, number_only) {
 	// page_title.startsWith(base_page);
 	// [, 1–5, section ]
-	const matched = page_title.match(/\/Level(?:\/([1-5])(\/.+)?)?$/);
+	const matched = (page_title && page_title.title || page_title).match(/\/Level(?:\/([1-5])(\/.+)?)?$/);
 	if (matched) {
 		const level = number_only || !matched[2] ? + matched[1] || DEFAULT_LEVEL : matched[1] + matched[2];
 		return level;
@@ -249,7 +260,7 @@ async function for_each_list_page(list_page_data) {
 		return Wikiapi.skip_edit;
 	}
 
-	const level = level_of_page_title(list_page_data.title, true) || DEFAULT_LEVEL;
+	const level = level_of_page_title(list_page_data, true) || DEFAULT_LEVEL;
 	// console.log([list_page_data.title, level]);
 	const parsed = list_page_data.parse();
 	// console.log(parsed);
@@ -315,11 +326,23 @@ async function for_each_list_page(list_page_data) {
 					listed_article_info[normalized_page_title] = [];
 				}
 				// console.log(latest_section && latest_section.link);
-				listed_article_info[normalized_page_title].push({
-					level: level_of_page_title(list_page_data.title),
-					topic: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
-					link: latest_section && latest_section.link
-				});
+				const subpage = String(level_of_page_title(list_page_data));
+				const matched = subpage.match(/^([1-5])(?:\/([^\/]+)(?:\/(.+))?)?$/);
+				if (matched) {
+					const article_info = {
+						level: /*level_of_page_title(list_page_data, true)*/matched[1],
+						//subtitle: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
+						link: latest_section && latest_section.link
+					};
+					if (matched[2]) {
+						article_info.topic = matched[2];
+						if (matched[3])
+							article_info.subpage = matched[3];
+					}
+					listed_article_info[normalized_page_title].push(article_info);
+				} else {
+					CeL.error(`Invalid level of ${CeL.wiki.title_link_of(list_page_data)}: ${subpage}`);
+				}
 
 				if (normalized_page_title in icons_of_page) {
 					icons.append(icons_of_page[normalized_page_title]);
@@ -618,9 +641,9 @@ function check_page_count() {
 		const category_level = level_of_page[page_title];
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
-			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Not listed (redirected?). Add level ${category_level}.`);
+			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
-			need_edit_VA_template[page_title] = { level: category_level };
+			need_edit_VA_template[page_title] = { level: '' };
 			listed_article_info[page_title] = [];
 			continue;
 		}
@@ -669,6 +692,8 @@ function check_page_count() {
 	}
 }
 
+let maintain_VA_template_count = 0;
+
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
@@ -701,6 +726,7 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 			_class = token.parameters.class;
 		}
 	});
+	//console.log([_class, VA_template]);
 
 	let wikitext;
 	if (VA_template) {
@@ -708,7 +734,10 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 			level: article_info.level,
 			class: VA_template.parameters.class || _class || '',
 			topic: article_info.topic || VA_template.parameters.topic || '',
+			subtitle: article_info.subtitle
 		};
+		if (article_info.subpage || VA_template.parameters.subpage)
+			wikitext.subpage = article_info.subpage || '';
 		if (article_info.link)
 			wikitext.link = article_info.link.slice(0, 1).join('');
 		CeL.wiki.parse.replace_parameter(VA_template, wikitext, 'value_only');
@@ -720,7 +749,15 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 		wikitext += parsed.toString();
 	}
 
-	// return wikitext;
+	if (true) {
+		if (wikitext === talk_page_data.wikitext)
+			return Wikiapi.skip_edit;
+		if (++maintain_VA_template_count > 2)
+			return Wikiapi.skip_edit;
+		console.log(wikitext);
+	}
+	this.summary = talk_page_summary + ': ' + (article_info.level ? 'The article is listed in the level ' + article_info.level + ' page.' : 'The article is not listed in the list page.');
+	return wikitext;
 }
 
 // ----------------------------------------------------------------------------
