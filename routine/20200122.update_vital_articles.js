@@ -112,6 +112,7 @@ async function main_process() {
 	}), function (talk_page_data) {
 		return maintain_VA_template.call(this, talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
 	}, {
+		//TODO: useless? e.g., [[Talk:Volume 1]]
 		redirects: 1,
 		bot: 1,
 		log_to: null,
@@ -326,23 +327,12 @@ async function for_each_list_page(list_page_data) {
 					listed_article_info[normalized_page_title] = [];
 				}
 				// console.log(latest_section && latest_section.link);
-				const subpage = String(level_of_page_title(list_page_data));
-				const matched = subpage.match(/^([1-5])(?:\/([^\/]+)(?:\/(.+))?)?$/);
-				if (matched) {
-					const article_info = {
-						level: /*level_of_page_title(list_page_data, true)*/matched[1],
-						//subtitle: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
-						link: latest_section && latest_section.link
-					};
-					if (matched[2]) {
-						article_info.topic = matched[2];
-						if (matched[3])
-							article_info.subpage = matched[3];
-					}
-					listed_article_info[normalized_page_title].push(article_info);
-				} else {
-					CeL.error(`Invalid level of ${CeL.wiki.title_link_of(list_page_data)}: ${subpage}`);
-				}
+				const article_info = {
+					level: level_of_page_title(list_page_data, true),
+					//subtitle: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
+					link: latest_section && latest_section.link
+				};
+				listed_article_info[normalized_page_title].push(article_info);
 
 				if (normalized_page_title in icons_of_page) {
 					icons.append(icons_of_page[normalized_page_title]);
@@ -698,6 +688,11 @@ let maintain_VA_template_count = 0;
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
 function maintain_VA_template(talk_page_data, main_page_title) {
+	// e.g., [[Talk:Volume 1]]
+	if (CeL.wiki.parse.redirect(talk_page_data))
+		return Wikiapi.skip_edit;
+	//TODO: fix disambiguation
+
 	const article_info = need_edit_VA_template[main_page_title];
 	const parsed = talk_page_data.parse();
 	let VA_template, _class;
@@ -728,33 +723,31 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 	});
 	//console.log([_class, VA_template]);
 
-	let wikitext;
+	let wikitext = {
+		level: article_info.level,
+		class: VA_template && VA_template.parameters.class || _class || '',
+	};
+	if (article_info.link) {
+		wikitext.link = article_info.link[0];
+		if (article_info.link[1])
+			wikitext.anchor = article_info.link[1];
+	}
 	if (VA_template) {
-		wikitext = {
-			level: article_info.level,
-			class: VA_template.parameters.class || _class || '',
-			topic: article_info.topic || VA_template.parameters.topic || '',
-			subtitle: article_info.subtitle
-		};
-		if (article_info.subpage || VA_template.parameters.subpage)
-			wikitext.subpage = article_info.subpage || '';
-		if (article_info.link)
-			wikitext.link = article_info.link.slice(0, 1).join('');
 		CeL.wiki.parse.replace_parameter(VA_template, wikitext, 'value_only');
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
 		wikitext = parsed.toString();
 	} else {
-		wikitext = `{{${VA_template_name}|level=${article_info.level}|class=${_class || ''}|topic=${article_info.topic || ''}${article_info.link ? '|link=' + article_info.link.slice(0, 1).join('') : ''}}}\n`;
-		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext.trim()}`);
-		wikitext += parsed.toString();
+		wikitext = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, wikitext);
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext}`);
+		wikitext += '\n' + talk_page_data.wikitext;
 	}
 
 	if (true) {
 		if (wikitext === talk_page_data.wikitext)
 			return Wikiapi.skip_edit;
-		if (++maintain_VA_template_count > 2)
+		if (++maintain_VA_template_count > 0)
 			return Wikiapi.skip_edit;
-		console.log(wikitext);
+		//console.log(wikitext);
 	}
 	this.summary = talk_page_summary + ': ' + (article_info.level ? 'The article is listed in the level ' + article_info.level + ' page.' : 'The article is not listed in the list page.');
 	return wikitext;
