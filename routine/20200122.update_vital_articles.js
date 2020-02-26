@@ -6,7 +6,6 @@
 TODO:
 report level/class change
 report articles with {{`VA_template_name`}} but is not listing in the list page.
-Synchronize FA|FL|GA|List|
 
  */
 
@@ -78,7 +77,7 @@ async function main_process() {
 		// 2,
 		// 3 && '',
 		'4/Removed',
-		//'4/People',
+		// '4/People',
 		// '4/History',
 		// '4/Physical sciences',
 		// '5/People/Writers and journalists',
@@ -103,7 +102,7 @@ async function main_process() {
 	check_page_count();
 
 	CeL.info('need_edit_VA_template:');
-	//console.log(need_edit_VA_template);
+	// console.log(need_edit_VA_template);
 	let main_title_of_talk_title = Object.create(null);
 	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
 		const talk_page = wiki.to_talk_page(title);
@@ -112,7 +111,6 @@ async function main_process() {
 	}), function (talk_page_data) {
 		return maintain_VA_template.call(this, talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
 	}, {
-		//TODO: useless? e.g., [[Talk:Volume 1]]
 		redirects: 1,
 		bot: 1,
 		log_to: null,
@@ -197,15 +195,77 @@ async function get_page_info() {
 			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (!(title in icons_of_page))
 				icons_of_page[title] = [];
-			if (icon in synchronize_icon_hash) {
-				//List → LIST
-				icons_of_page[title].FC = icon.toUpperCase();
+			if (icon in synchronize_icon_hash /* synchronize_icons.includes(icon) */) {
+				// assert: ('VA_class' in icons_of_page[title]) === false
+				icons_of_page[title].VA_class = icon.toUpperCase();
 			} else {
 				icons_of_page[title].push(icon);
 			}
 		});
 	}
 	// console.log(icons_of_page);
+
+	// ---------------------------------------------
+	// Check VA class, synchronize FA|FL|GA|List.
+
+	for (let page_title in icons_of_page) {
+		const icons = icons_of_page[page_title];
+		if (!icons.VA_class) {
+			// There is no VA class of the title. abnormal!
+			continue;
+		}
+
+		// List → LIST
+		const VA_class = icons.VA_class.toUpperCase();
+		// free
+		delete icons.VA_class;
+		if (icons.includes(VA_class)) {
+			// assert: VA_class === 'LIST'
+			continue;
+		}
+
+		const FC_type = wiki.FC_data_hash[page_title] && wiki.FC_data_hash[page_title].type;
+		if (FC_type) {
+			if (FC_type !== VA_class) {
+				need_edit_VA_template[page_title] = {
+					class: FC_type,
+					reason: `The article is listed in featured content type: [[Category:${wiki.get_featured_content_configurations()[FC_type]}]]`
+				};
+			}
+			continue;
+		}
+
+		let icon = 'LIST';
+		// Must test after wiki.FC_data_hash[]
+		if (icons.includes(icon)) {
+			// e.g., list in [[Category:List-Class List articles]]
+			// but not in [[Category:All Wikipedia List-Class vital articles]]
+			need_edit_VA_template[page_title] = {
+				class: icon,
+				reason: `The article is listed in list type: [[Category:${icon_to_category[icon]}]]`
+			};
+			continue;
+		}
+
+		icon = 'LIST';
+		// e.g., list in [[Category:All Wikipedia List-Class vital articles]]
+		// but not in [[Category:List-Class List articles]]
+		if (VA_class === icon) {
+			icons.push(VA_class);
+			continue;
+		}
+
+		// assert: /^(?:FA|FL|GA)$/.test(VA_class)
+		if (/^(?:FA|FL|GA)$/.test(VA_class)) {
+			// e.g., FFA
+			// Move class from FA|FL|GA → A|LIST|A
+			need_edit_VA_template[page_title] = {
+				class: VA_class === 'FL' ? 'LIST' : 'A',
+				reason: `The article is no more a ${VA_class}.`
+			};
+			continue;
+		}
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -234,7 +294,8 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 
 	if (new_wikitext === undefined) {
 		new_wikitext = ` (${level_page_link(category_level, false, matched &&
-			//preserve level page. e.g., " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
+			// preserve level page. e.g.,
+			// " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
 			(category_level === DEFAULT_LEVEL || matched[1] && matched[1].includes(`/${category_level}`)) && matched[1])})`;
 	}
 	// assert: typeof new_wikitext === 'string'
@@ -329,7 +390,7 @@ async function for_each_list_page(list_page_data) {
 				// console.log(latest_section && latest_section.link);
 				const article_info = {
 					level: level_of_page_title(list_page_data, true),
-					//subtitle: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
+					// subtitle: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
 					link: latest_section && latest_section.link
 				};
 				listed_article_info[normalized_page_title].push(article_info);
@@ -618,7 +679,7 @@ async function for_each_list_page(list_page_data) {
 		'class': "wikitable sortable"
 	}) + '\n$2');
 
-	//console.trace(`for_each_list_page: return ${wikitext.length} chars`);
+	// console.trace(`for_each_list_page: return ${wikitext.length} chars`);
 	// console.log(wikitext);
 	// return Wikiapi.skip_edit;
 	return wikitext;
@@ -633,7 +694,10 @@ function check_page_count() {
 		if (!article_info_list) {
 			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
-			need_edit_VA_template[page_title] = { level: '' };
+			need_edit_VA_template[page_title] = {
+				level: '',
+				reason: 'The article is NOT listed in the list page.'
+			};
 			listed_article_info[page_title] = [];
 			continue;
 		}
@@ -645,7 +709,11 @@ function check_page_count() {
 			level = typeof level === 'string' && /^[1-5]\//.test(level) ? +level.match(/^[1-5]/)[0] : level || DEFAULT_LEVEL;
 			if (!min_level || level < min_level) {
 				min_level = level;
-				min_level_info = { ...article_info, level };
+				min_level_info = {
+					...article_info,
+					level,
+					reason: 'The article is listed in the level ' + level + ' page.'
+				};
 				// console.log(min_level_info);
 			}
 			return level;
@@ -688,12 +756,14 @@ let maintain_VA_template_count = 0;
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
 function maintain_VA_template(talk_page_data, main_page_title) {
-	// e.g., [[Talk:Volume 1]]
-	if (CeL.wiki.parse.redirect(talk_page_data))
+	if (false && CeL.wiki.parse.redirect(talk_page_data)) {
+		// Warning: Should not go to here!
 		return Wikiapi.skip_edit;
-	//TODO: fix disambiguation
+	}
+	// TODO: fix disambiguation
 
 	const article_info = need_edit_VA_template[main_page_title];
+	// console.log(article_info);
 	const parsed = talk_page_data.parse();
 	let VA_template, _class;
 
@@ -721,19 +791,22 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 			_class = token.parameters.class;
 		}
 	});
-	//console.log([_class, VA_template]);
+	// console.log([_class, VA_template]);
 
 	let wikitext = {
-		level: article_info.level,
-		class: VA_template && VA_template.parameters.class || _class || '',
+		class: VA_template && VA_template.parameters.class || _class || ''
 	};
+	if ('level' in article_info) {
+		wikitext.level = article_info.level;
+	}
 	if (article_info.link) {
 		wikitext.link = article_info.link[0];
 		if (article_info.link[1])
 			wikitext.anchor = article_info.link[1];
 	}
+	// console.log(wikitext);
 	if (VA_template) {
-		CeL.wiki.parse.replace_parameter(VA_template, wikitext, 'value_only');
+		CeL.wiki.parse.replace_parameter(VA_template, wikitext, { value_only: true, force_add: true, append_key_value: true });
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
 		wikitext = parsed.toString();
 	} else {
@@ -745,11 +818,11 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 	if (true) {
 		if (wikitext === talk_page_data.wikitext)
 			return Wikiapi.skip_edit;
-		if (++maintain_VA_template_count > 0)
+		if (++maintain_VA_template_count > 50)
 			return Wikiapi.skip_edit;
-		//console.log(wikitext);
+		// console.log(wikitext);
 	}
-	this.summary = talk_page_summary + ': ' + (article_info.level ? 'The article is listed in the level ' + article_info.level + ' page.' : 'The article is not listed in the list page.');
+	this.summary = talk_page_summary + ': ' + article_info.reason;
 	return wikitext;
 }
 
