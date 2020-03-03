@@ -24,14 +24,16 @@ const replace_tool = require('./replace_tool.js');
 		'下町ロケット': {
 			for_each_link(token, index, parent) {
 				// console.log(token);
-				switch (token[1]) {
+				switch (token.anchor) {
 					case 'WOWOW版':
 						token[0] = '下町ロケット (WOWOWのテレビドラマ)';
 						token[1] = '';
+						break;
 
 					case 'TBS版':
 						token[0] = '下町ロケット (TBSのテレビドラマ)';
 						token[1] = '';
+						break;
 				}
 			}
 		}

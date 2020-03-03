@@ -1,6 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node undo_edit.js use_language=ja
-
-/*
+﻿/*
 
  recover, revert error edit
  連續發生大量編輯錯誤，要回退時使用的工具。
@@ -23,12 +21,15 @@ var wiki = Wiki(true/* , 'ja' */);
 
 user_name = CeL.wiki.normalize_title(user_name);
 
-summary = 'fix error made by bot';
+summary = 'revert error made by bot';
+// 向前追溯筆數。
+const length = 80;
 
 // fix these edits.
 function filter_summary(summary) {
 	// console.log(summary);
-	return summary === 'Robot';
+	// return summary === 'Robot';
+	return summary.includes('替換 cite 系列模板');
 	// return summary.includes('16: Unicode');
 	return summary.includes('2016年ロサンゼルスに復帰し');
 }
@@ -77,7 +78,7 @@ wiki.usercontribs(user_name, function(list) {
 	list.run_serial(for_each_page);
 
 }, {
-	limit : 800
+	limit : length
 });
 
 function for_each_page(run_next, title, index, list) {
@@ -109,7 +110,7 @@ function for_each_page(run_next, title, index, list) {
 			return;
 		}
 
-		CeL.log('Try to undo edit on ' + (index + 1) + '/' + list.length + ' '
+		CeL.log('Undo edit on ' + (index + 1) + '/' + list.length + ' '
 				+ CeL.wiki.title_link_of(title));
 		if (false) {
 			run_next();
@@ -118,6 +119,8 @@ function for_each_page(run_next, title, index, list) {
 
 		wiki.page(title).edit('', {
 			undo : 1,
+			bot : 1,
+			minor : 1,
 			summary : summary
 		}).run(run_next);
 	}, {

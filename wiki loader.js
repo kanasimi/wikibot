@@ -309,7 +309,7 @@ function check_routine_task(session) {
 
 		var task_log = all_task_log[task_id], last_done = task_log.last_done;
 		// 預設一個月未成功執行到最後就通報。
-		var interval = CeL.to_millisecond(task_log.interval || '1m');
+		var interval = CeL.to_millisecond(task_log.interval || '1 month');
 		if (typeof last_done === 'string')
 			last_done = Date.parse(task_log.last_done);
 		if (!(interval > Date.now() - last_done))
@@ -357,15 +357,19 @@ function check_routine_task(session) {
 }
 
 function routine_task_done(interval) {
+	CeL.info((task_name || script_name) + ': '
+	//
+	+ (new Date).format() + '	done.');
 	var all_task_log = get_task_log();
 	if (!all_task_log)
 		return;
 
 	var this_task_log = all_task_log[task_name];
 	this_task_log.last_done = (new Date).toISOString();
-	if (interval > 0)
+	if (interval)
 		this_task_log.interval = interval;
 	CeL.write_file(routine_task_log_file, all_task_log);
+	// process.exit(0);
 }
 
 _global.routine_task_done = routine_task_done;

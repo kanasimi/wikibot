@@ -49,7 +49,7 @@ function get_files_of_category(category, callback) {
 		//
 		+ CeL.wiki.title_link_of(category), 1, 'get_files_of_category');
 		list.run_serial(function(run_next, page) {
-			if (page.ns === CeL.wiki.namespace.hash.category) {
+			if (wiki.is_namespace(page, 'Category')) {
 				// Search all sub-categories.
 				get_files_of_category(page, run_next);
 				if (mark_HIDDENCAT) {
@@ -68,7 +68,7 @@ function get_files_of_category(category, callback) {
 					}, edit_options));
 				}
 
-			} else if (page.ns === CeL.wiki.namespace.hash.file) {
+			} else if (wiki.is_namespace(page, 'File')) {
 				if (mark_HIDDENCAT) {
 					setTimeout(run_next, 0);
 					return;

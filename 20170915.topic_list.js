@@ -237,7 +237,7 @@ var section_column_operators = {
 		? sign_count >= 10 ? 'style="background-color: #ffe;' : ''
 				: 'style="background-color: #fcc;"');
 	},
-	// 參與討論人數
+	// 參與討論人數 participation
 	participants : function(section) {
 		return local_number(section.users.unique().length, section.users
 				.unique().length >= 2 ? '' : 'style="background-color: #fcc;"');
@@ -482,9 +482,9 @@ function start_main_work(page_data) {
 		});
 	}
 
-	new CeL.wiki(null, null, 'en').page(botop_sitelinks.enwiki)
-	//
-	.data(function(entity) {
+	new CeL.wiki(null, null, 'en').page(botop_sitelinks.enwiki, {
+		redirects : 1
+	}).data(function(entity) {
 		// console.log(entity);
 		// throw 'botop_sitelinks';
 		get_special_users(main_process, {

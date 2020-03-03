@@ -11,8 +11,8 @@ require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
-// globalThis.use_language = 'zh';
-use_language = 'zh';
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('zh');
 
 // ----------------------------------------------------------------------------
 

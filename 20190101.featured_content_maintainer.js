@@ -68,18 +68,26 @@ DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 			+ '頁面似乎有問題，無法解決，通知社群幫忙處理。'
 },
 
-KEY_IS_LIST = 0, KEY_ISFFC = 1,
+/** 特色內容為列表 */
+KEY_IS_LIST = 0,
+/** 為已撤銷的特色內容 */
+KEY_ISFFC = 1,
 // to {String}transcluding page title.
 // e.g., FC_data[KEY_TRANSCLUDING_PAGE]="Wikipedia:典範條目/條目"
 KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3,
 // 指示用。會在 parse_each_FC_item_list_page() 之後就刪除。
 KEY_LIST_PAGE = 4,
-//
-KEY_LATEST_JDN = 4, KEY_CATEGORY = 5, KEY_TITLES_TO_MOVE = 6,
+// 上次展示時間
+KEY_LATEST_JDN = 4,
+/** 特色內容類別 */
+KEY_CATEGORY = 5,
+// 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
+KEY_TITLES_TO_MOVE = 6,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = Object.create(null), new_FC_pages,
 
+/** {Array}錯誤記錄 */
 error_logs = [], FC_title_sorted, redirects_list_to_check = [],
 // cache file of redirects
 redirects_to_file = base_directory + 'redirects_to.json',
@@ -283,7 +291,9 @@ function parse_each_FC_item_list_page(page_data) {
 	 */
 	content = CeL.wiki.content_of(page_data),
 	//
-	matched, is_list = title.includes('列表')
+	matched,
+	/** 特色內容為列表 */
+	is_list = /list|列表/.test(title)
 	// e.g., 'Wikipedia:FL'
 	|| /:[DF]?[FG]L/.test(page_data.original_title || title),
 	// 本頁面為已撤消的條目列表。注意: 這包含了被撤銷後再次被評為典範的條目。
@@ -351,8 +361,8 @@ function parse_each_FC_item_list_page(page_data) {
 
 		if (matched[3]) {
 			// 分類/類別。
-			catalog = matched[3].replace(/<!--.*?-->/g, '').trim().replace(
-					/\s*（\d+）$/, '');
+			catalog = matched[3].replace(/<!--[\s\S]*?-->/g, '').trim()
+					.replace(/\s*（\d+）$/, '');
 			continue;
 		}
 

@@ -469,16 +469,17 @@ async function check_deletion_page(JDN, page_data) {
 
 	if (normalized_main_page_title in ignore_pages) {
 		// e.g., Skip [[生產力]] convert→ [[生产力]]
-		//[[Talk:生产力]] redirect→ [[Talk:生产力 (消歧义)]]
-		//records as ignore_pages['生产力'] = 'redirect' @ modified_notice_page()
+		// [[Talk:生产力]] redirect→ [[Talk:生产力 (消歧义)]]
+		// records as ignore_pages['生产力'] = 'redirect' @ modified_notice_page()
 
 		// e.g., Skip [[Wikipedia:删除投票和请求/2007年9月30日#團結就是力量]]
 		// [[Talk:團結就是力量]] convert→ [[Talk:团结就是力量]]
 		// redirect→ [[Talk:团结就是力量 (歌曲)]]
-		//records as ignore_pages['团结就是力量'] = 'redirect' @ modified_notice_page()
+		// records as ignore_pages['团结就是力量'] = 'redirect' @
+		// modified_notice_page()
 
-		//CeL.info(`Skip ${CeL.wiki.title_link_of(page_data)}`);
-		//console.log(page_data);
+		// CeL.info(`Skip ${CeL.wiki.title_link_of(page_data)}`);
+		// console.log(page_data);
 		return;
 	}
 
@@ -760,7 +761,7 @@ function replace__Old_vfd_multi(page_data, discussions) {
 	};
 	const wikitext = CeL.wiki.template_functions.Old_vfd_multi.replace_by(page_data, discussions, options);
 	if (should_modify)
-		CeL.error('wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_wikitext(discussions, options, page_data));
+		CeL.error('Should modify {{tl|Article history}} manually. wikitext:\n' + CeL.wiki.template_functions.Old_vfd_multi.item_list_to_wikitext(discussions, options, page_data));
 	return wikitext;
 }
 
@@ -799,7 +800,8 @@ function modified_notice_page(page_data, discussions) {
 
 	// console.log(this.summary);
 	// console.log(page_data);
-	CeL.info('modified_notice_page: Edit ' + CeL.wiki.title_link_of(page_data));
+	// CeL.info('modified_notice_page: Edit ' +
+	// CeL.wiki.title_link_of(page_data));
 	// console.log(discussions);
 	// console.log(wikitext);
 

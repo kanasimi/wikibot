@@ -39,16 +39,11 @@ const replace_tool = require('./replace_tool.js');
 						}
 						changed = true;
 						//console.log(token.toString());
-						let prefix = '';
 						if (index > 0) {
-							const previous = parent[index - 1].toString().replace(/(\s|<br[^<>]+>)+$/, '');
-							if (!previous.endsWith('\n'))
-								prefix = '\n';
-							parent[index - 1] = previous;
-						} else {
-							prefix = '\n';
+							parent[index - 1] = parent[index - 1].toString().replace(/([\s\n]|<br[^<>]+>)+$/, '');
 						}
-						parent[index] = prefix + '|地図=' + token.toString();
+						// TODO: 地図\s*=\s*
+						parent[index] = '\n|地図=' + token.toString();
 					});
 				});
 				if (changed)

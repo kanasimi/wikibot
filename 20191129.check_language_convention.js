@@ -13,10 +13,10 @@ require('./wiki loader.js');
 
 CeL.run('application.net.wiki.template_functions');
 
+// Set default language. 改變預設之語言。 e.g., 'zh'
+set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
-// globalThis.use_language = 'zh';
-use_language = 'zh';
 
 const main_category = 'Category:公共轉換組模板';
 const report_base = 'Wikipedia:字詞轉換處理/公共轉換組/';
@@ -213,15 +213,15 @@ function ascending(a, b) {
 
 async function write_conversion_list() {
 	CeL.info('Writing report to ' + CeL.wiki.title_link_of(conversion_list_page) + '...');
-	const report_array = [];
+	const report_lines = [];
 	for (let [page_title, conversion_list] of Object.entries(conversion_of_page)) {
 		conversion_list = conversion_list.sort().unique();
-		report_array.push([CeL.wiki.title_link_of(page_title) + ' (' + conversion_list.length + ')',
+		report_lines.push([CeL.wiki.title_link_of(page_title) + ' (' + conversion_list.length + ')',
 		'data-sort-value="' + conversion_list.length + '"|' + conversion_list.join('; ')]);
 	}
-	const count = report_array.length;
-	report_array.sort(ascending);
-	report_array.unshift('公共轉換組頁面|定義的詞彙'.split('|'));
+	const count = report_lines.length;
+	report_lines.sort(ascending);
+	report_lines.unshift('公共轉換組頁面|定義的詞彙'.split('|'));
 	await wiki.edit_page(conversion_list_page,
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
@@ -229,7 +229,7 @@ async function write_conversion_list() {
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
-		+ CeL.wiki.array_to_table(report_array, {
+		+ CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
 		}), {
 		nocreate: 1,
@@ -238,32 +238,40 @@ async function write_conversion_list() {
 	return count;
 }
 
+// generate_report()
 async function write_duplicated_report() {
 	CeL.info('Writing report to ' + CeL.wiki.title_link_of(duplicated_report_page) + '...');
-	const report_array = [];
+	const report_lines = [];
 	for (let [string, page_list] of Object.entries(duplicated_items)) {
 		page_list = page_list.sort().unique();
-		report_array.push([string, 'data-sort-value="' + page_list.length + '"|' + page_list.length + ': ' + page_list.join(', ')]);
+		report_lines.push([string, 'data-sort-value="' + page_list.length + '"|' + page_list.length + ': ' + page_list.join(', ')]);
 	}
-	const count = report_array.length;
-	report_array.sort(ascending);
-	report_array.unshift('重複出現的詞彙|定義於公共轉換組頁面'.split('|'));
+
+	const report_count = report_lines.length;
+	let report_wikitext;
+	if (report_count > 0) {
+		report_lines.sort(ascending);
+		report_lines.unshift('重複出現的詞彙|定義於公共轉換組頁面'.split('|'));
+		report_wikitext = CeL.wiki.array_to_table(report_lines, {
+			'class': "wikitable sortable"
+		});
+	} else {
+		report_wikitext = "* '''太好了！無特殊頁面。'''";
+	}
+
 	await wiki.edit_page(duplicated_report_page,
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
-		+ '出現在多個不同的公共轉換組中的詞彙：' + count + '個詞彙。\n'
+		+ `出現在多個不同的公共轉換組中的詞彙：${report_count}個詞彙。\n`
 		+ '* 本條目會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n'
-		+ CeL.wiki.array_to_table(report_array, {
-			'class': "wikitable sortable"
-		}), {
-		// {{bots|optout=VFD}}
-		notification: 'VFD',
+		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
+		+ report_wikitext + '\n<!-- report end -->', {
+		bot: 1,
 		nocreate: 1,
-		summary: count + '個重複詞彙'
+		summary: report_count + '個重複詞彙'
 	});
-	return count;
+	return report_count;
 }
 
 async function main_process() {

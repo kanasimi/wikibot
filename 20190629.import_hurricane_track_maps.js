@@ -50,11 +50,12 @@ var category_to_parent_hash = Object.create(null);
 		// Category:Tropical cyclones by season
 		'Atlantic hurricane season',
 		'North Indian Ocean cyclone season',
-		// Category:2018-19 Southern Hemisphere tropical cyclone season
 		'South Pacific cyclone season',
 		'South-West Indian Ocean cyclone season',
 		'Australian region cyclone season',
-		// 'Southern Hemisphere tropical cyclone season',
+		// Category:2019 Southern Hemisphere typhoon season track maps
+		// Category:2019-20 Southern Hemisphere tropical cyclone season
+		'Southern Hemisphere tropical cyclone season',
 
 		// parent categories
 		'Category:Central Weather Bureau ROC',

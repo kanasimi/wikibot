@@ -1052,7 +1052,13 @@ function check_BOTREQ_status(section, section_index) {
 		if (token.name === 'BOTREQ') {
 			// [[Template:BOTREQ]]
 			status = (token[1] || '').toString().toLowerCase().trim();
-			if (status === 'done' || status === '完了') {
+			if (status in {
+				済 : true,
+				作業済み : true,
+				作業済み3 : true,
+				完了 : true,
+				done : true
+			}) {
 				status = 'style="background-color: #dfd;" | ' + token;
 				if (project === 'jawiki') {
 					// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。

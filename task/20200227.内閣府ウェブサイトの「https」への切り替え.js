@@ -12,7 +12,7 @@ const replace_tool = require('./replace_tool.js');
 
 // ----------------------------------------------------------------------------
 
-const replace_to = {
+const _replace_to = {
 	text_processor(wikitext, page_data) {
 		const PATTERN = /^http(:\/\/[a-z\d.]+?\.cao\.go\.jp(?:\/|$))/i;
 		/** {Array} parsed page content 頁面解析後的結構。 */
@@ -30,6 +30,8 @@ const replace_to = {
 			return wikitext;
 	}
 };
+
+const replace_to = { replace_protocol_to: 'https' };
 
 //async function main_process()
 (async () => {

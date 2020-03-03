@@ -9,7 +9,7 @@ SP="\n-----------------------------------------------------------"
 
 cd ~
 
-echo "$SP\nClone CeJS..."
+printf "$SP\nClone CeJS..."
 
 # 若有更新，得自己刪除 ~/CeJS。
 #rm -rf ~/CeJS
@@ -33,13 +33,13 @@ cd node_modules
 # ---------------------------------------------------------
 # 2019/9/12 18:25:17
 
-echo "$SP\nUpdate wikiapi..."
+printf "$SP\nUpdate wikiapi..."
 
 /usr/bin/wget -O wikiapi.zip https://github.com/kanasimi/wikiapi/archive/master.zip && [ -d wikiapi ] && /usr/bin/diff wikiapi.zip wikiapi.zip.old && mv -f wikiapi.zip wikiapi.zip.old && echo "wikiapi: No news." || ( echo "Extracting wikiapi..." && /usr/bin/unzip wikiapi.zip > /dev/null && mv -f wikiapi.zip wikiapi.zip.old && rm -rf wikiapi && mv wikiapi-master wikiapi || echo "Failed to get CeJS" )
 
 # ---------------------------------------------------------
 
-echo "$SP\nCopy task programs..."
+printf "$SP\nCopy task programs..."
 
 cd ~
 
@@ -67,7 +67,7 @@ cd ~
 
 # ---------------------------------------------------------
 
-#echo "$SP\n作必要的 link..."
+#printf "$SP\n作必要的 link..."
 
 #cd ~/wikibot
 
@@ -75,7 +75,7 @@ cd ~
 
 # ---------------------------------------------------------
 
-echo "$SP\nCopy config data..."
+printf "$SP\nCopy config data..."
 
 cd ~/wikibot
 

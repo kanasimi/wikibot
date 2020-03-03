@@ -24,8 +24,8 @@ prepare_directory(base_directory, true);
 
 // ----------------------------------------------
 
+// [ , page title to delete ]
 const PATTERN_AfD_page = /^Wikipedia:Articles for deletion\/([^\/]+)$/;
-
 
 // ----------------------------------------------------------------------------
 
@@ -45,17 +45,26 @@ async function main_process() {
 	}
 
 	let date = new Date();
-	//from 9 days ago
-	date.setDate(date.getDate() - 9);
-	for (let days = 0; days < 6; days++) {
-		date.setDate(date.getDate() + 1);
-		const AfD_list_page_title = `Wikipedia:Articles for deletion/Log/${date.format({ locale: 'en', format: '%Y %B %d' })}`;
-		CeL.info(`Process ${CeL.wiki.title_link_of(AfD_list_page_title)}:`);
-		await for_AfD_list(await wiki.page(AfD_list_page_title));
+	if (false) {
+		// from 9 days ago
+		date.setDate(date.getDate() - 9);
+		for (let days = 0; days < 6; days++) {
+			date.setDate(date.getDate() + 1);
+			await process_AfD_date(date);
+		}
 	}
+
+	date.setDate(date.getDate() - 7);
+	await process_AfD_date(date);
 }
 
 // ----------------------------------------------------------------------------
+
+async function process_AfD_date(date) {
+	const AfD_list_page_title = `Wikipedia:Articles for deletion/Log/${date.format({ locale: 'en', format: '%Y %B %d' })}`;
+	CeL.info(`Process ${CeL.wiki.title_link_of(AfD_list_page_title)}:`);
+	await for_AfD_list(await wiki.page(AfD_list_page_title));
+}
 
 async function for_AfD_list(AfD_list_page_data) {
 	// CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: start:`);
@@ -256,15 +265,15 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 		console.log(previous_discussions);
 		console.log(related_discussions);
 	}
-	function sort_discussions(discussions) {
+	function sort_discussions(discussions, add_title) {
 		return discussions
 			.sort((a, b) => a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0)
 			// discussion_report may contain links
-			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }))} ${/(?:^|\W)(?:delete)(?:$|\W)/i.test(item[2]) ? '{{color|red|✗}} ' : /(?:^|\W)(?:keep)(?:$|\W)/i.test(item[2]) ? '{{color|green|✓}} ' : ''}${item[2]}`);
+			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }) + (add_title ? ' ' + extract_target_page_of_AfD(item[1]) : ''))} ${/(?:^|\W)(?:delete)(?:$|\W)/i.test(item[2]) ? '{{color|red|✗}} ' : /(?:^|\W)(?:keep)(?:$|\W)/i.test(item[2]) ? '{{color|green|✓}} ' : ''}${item[2]}`);
 	}
 	const report = {
 		previous: sort_discussions(previous_discussions),
-		related: sort_discussions(related_discussions)
+		related: sort_discussions(related_discussions, true)
 	};
 	if (previous_discussions.length > 0)
 		report.result = [previous_discussions[0][2], previous_discussions[0][1].title];
@@ -461,7 +470,7 @@ async function for_AfD(AfD_page_data) {
 	if (participations_report) {
 		result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: ' + participations_report
 			+ '\n' + result_notice;
-		//return;
+		// return;
 	} else {
 		result_notice = "There is no participation and '''the report may show in the AfD'''."
 			+ '\n' + result_notice;
@@ -471,5 +480,5 @@ async function for_AfD(AfD_page_data) {
 	const report_wikitext = report_lines.join('\n: ');
 	// CeL.info(report_wikitext);
 	this.all_report_lines.push(report_wikitext);
-	//await wiki.edit_page(AfD_page_data, AfD_page_data.wikitext + '\n' + report_wikitext);
+	await wiki.edit_page(AfD_page_data, AfD_page_data.wikitext + '\n' + report_wikitext);
 }
