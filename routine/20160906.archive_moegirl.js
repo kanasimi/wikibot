@@ -46,7 +46,9 @@ remove_old_notice_section = (new Date(Date.now()
 // remove_old_notice_section = true;
 // CeL.set_debug(2);
 
-wiki.page('Talk:讨论版', for_board).page('Talk:提问求助区', for_board);
+[ 'Talk:讨论版', 'Talk:提问求助区' ].forEach(function(board) {
+	wiki.page(board, for_board);
+});
 
 function for_board(page_data) {
 	// 更動 counter
@@ -122,6 +124,7 @@ function for_board(page_data) {
 						+ (token.parameters['archive-offset']
 						// archive-offset 可以省略（默認為3天）
 						|| 3) * ONE_DAY_LENGTH_VALUE;
+				// console.log([Date.now(), date]);
 				needless = Date.now() < date;
 				if (false) {
 					CeL.log('[' + section_title + ']: 存檔 @ '
@@ -133,7 +136,7 @@ function for_board(page_data) {
 			slice : slice
 		});
 
-		if (typeof needless === undefined) {
+		if (needless === undefined) {
 			// 所有日期戳記皆在此 archive_boundary_date 前，方進行存檔。
 			// CeL.log(index+': '+new Date(latest));
 			// 都做成10天存檔
@@ -178,6 +181,7 @@ function for_board(page_data) {
 			return;
 		}
 
+		// console.log(needless);
 		CeL.log('need archive: [' + section_title + ']');
 		archive_count++;
 		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
@@ -186,7 +190,9 @@ function for_board(page_data) {
 			// stupid way
 			parser[i] = '';
 		}
+		// return;
 
+		// 把本需要存檔的議題段落寫到存檔頁面。
 		// TODO: 錯誤處理
 		wiki.page(archive_title).edit(function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
@@ -238,7 +244,9 @@ function for_board(page_data) {
 			+ '←' + CeL.wiki.title_link_of(page_data)
 		});
 	});
+	// return;
 
+	// 移除需要存檔的議題段落。
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (remove_count > 0) {
