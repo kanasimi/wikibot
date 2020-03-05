@@ -126,10 +126,9 @@ function for_board(page_data) {
 						|| 3) * ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), date]);
 				needless = Date.now() < date;
-				if (false) {
-					CeL.log('[' + section_title + ']: 存檔 @ '
-							+ (new Date(date)).format() + ' ('
-							+ (needless ? 'needless' : 'need') + ')');
+				if (1 || false) {
+					CeL.log('[' + section_title + ']: 存檔 @ ' + new Date(date)
+							+ ' (' + (needless ? 'needless' : 'need') + ')');
 				}
 			}
 		}, {
