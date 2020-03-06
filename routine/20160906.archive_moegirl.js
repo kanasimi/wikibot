@@ -139,7 +139,8 @@ function for_board(page_data) {
 		var needless = undefined;
 		parser.each('template', function(token, index) {
 			// https://zh.moegirl.org/Template:MarkAsResolved
-			// 您仍可以繼續在本模板上方回復，但這個討論串將會在本模板懸掛3日後 (於2020年3月6日) 被存檔。
+			// 2020年3月3日 →
+			// 您仍可以繼續在本模板上方回覆，但這個討論串將會在本模板懸掛3日後 (於2020年3月7日凌晨) 存檔。
 			if (token.name in {
 				标记为完成 : true,
 				MAR : true,
@@ -153,9 +154,9 @@ function for_board(page_data) {
 					return;
 				var boundary_date = Date.parse(matched[1] + '-' + matched[2]
 						+ '-' + matched[3] + ' UTC+8')
-						+ (token.parameters['archive-offset']
+						+ ((token.parameters['archive-offset']
 						// archive-offset 可以省略（默認為3天）
-						|| 3) * ONE_DAY_LENGTH_VALUE;
+						|| 3) + 1) * ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), boundary_date]);
 				needless = Date.now() < boundary_date;
 				if (false) {
