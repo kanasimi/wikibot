@@ -22,9 +22,17 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-var board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ], archive_page_postfix = '/存档/%Y年%2m月',
-// [[Special:tags]] "tag應該多加一個【Bot】tag"
+var
+/** {Array}討論區列表 */
+board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ],
+/** {String}存檔頁面 postfix */
+archive_page_postfix = '/存档/%Y年%2m月',
+/** {String} 存檔作業[[Special:tags]] "tag應該多加一個【Bot】tag" */
 tags = 'Bot|快速存档讨论串',
+/** {Array}標記已完成討論串的模板 */
+resolved_template = [ 'MarkAsResolved', 'MAR', '标记为完成' ],
+/** {Number}archive-offset 默認為3天 */
+resolved_template_dafault_days = 3,
 
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
@@ -65,6 +73,10 @@ function main_process() {
 		}
 		archive_page_postfix = configuration.archive_page_postfix
 				|| archive_page_postfix;
+		resolved_template = configuration.resolved_template
+				|| resolved_template;
+		resolved_template_dafault_days = configuration.resolved_template_dafault_days
+				|| resolved_template_dafault_days;
 	}
 	// console.log(board_list);
 	// console.log(tags);
@@ -141,11 +153,7 @@ function for_board(page_data) {
 			// https://zh.moegirl.org/Template:MarkAsResolved
 			// 2020年3月3日 →
 			// 您仍可以繼續在本模板上方回覆，但這個討論串將會在本模板懸掛3日後 (於2020年3月7日凌晨) 存檔。
-			if (token.name in {
-				标记为完成 : true,
-				MAR : true,
-				MarkAsResolved : true
-			}) {
+			if (resolved_template.includes(token.name)) {
 				// console.log(token);
 				var matched = token.parameters.time
 						&& token.parameters.time
@@ -156,7 +164,8 @@ function for_board(page_data) {
 						+ '-' + matched[3] + ' UTC+8')
 						+ ((token.parameters['archive-offset']
 						// archive-offset 可以省略（默認為3天）
-						|| 3) + 1) * ONE_DAY_LENGTH_VALUE;
+						|| resolved_template_dafault_days) + 1)
+						* ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), boundary_date]);
 				needless = Date.now() < boundary_date;
 				if (false) {
