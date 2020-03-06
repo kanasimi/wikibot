@@ -121,9 +121,9 @@ function for_board(page_data) {
 				if (!date)
 					return;
 				date = Date.parse(date[1] + '-' + date[2] + '-' + date[3] + "T00:00:00.000+08:00")
-						+ (token.parameters['archive-offset']
+						+ ((token.parameters['archive-offset']
 						// archive-offset 可以省略（默認為3天）
-						|| 3) * ONE_DAY_LENGTH_VALUE;
+						|| 3) + 1) * ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), date]);
 				needless = Date.now() > date;
 				if (false) {
