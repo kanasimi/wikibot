@@ -22,13 +22,14 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-var board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ],
+var board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ], archive_page_postfix = '/存档/%Y年%2m月',
+// [[Special:tags]] "tag應該多加一個【Bot】tag"
+tags = 'Bot|快速存档讨论串',
+
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
-// [[Special:tags]] "tag應該多加一個【Bot】tag"
-tags = 'Bot|快速存档讨论串',
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
 // 討論串10日無回復，則將標題進行複製、討論內容進行剪切存檔。
 // 在「兩討論區」中，保留標題、內容存檔的討論串，其標題將於每月1日0時刪除。
@@ -46,9 +47,25 @@ remove_old_notice_section = (new Date(Date.now()
 // remove_old_notice_section = true;
 // CeL.set_debug(2);
 
-main_process();
+wiki.run(main_process);
 
 function main_process() {
+	var configuration = wiki.latest_task_configuration
+			&& wiki.latest_task_configuration.general;
+	if (configuration) {
+		CeL.info('Configuration:');
+		console.log(configuration);
+		if (Array.isArray(configuration.board_list))
+			board_list = configuration.board_list;
+		if (Array.isArray(configuration.tags))
+			tags = configuration.tags;
+		archive_page_postfix = configuration.archive_page_postfix
+				|| archive_page_postfix;
+	}
+	// console.log(board_list);
+	// console.log(tags);
+	// return;
+
 	var board_left = board_list.length;
 	board_list.forEach(function(board) {
 		wiki.page(board, function() {
@@ -80,7 +97,8 @@ function for_board(page_data) {
 	}, false, 1);
 
 	// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
-	var archive_title = page_data.title + '/存档/' + (new Date).format('%Y年%2m月');
+	var archive_title = page_data.title
+			+ (new Date).format(archive_page_postfix);
 
 	sections.forEach(function(parser_index, section_index) {
 		// console.log(parser[parser_index]);
