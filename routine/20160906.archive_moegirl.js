@@ -120,12 +120,12 @@ function for_board(page_data) {
 								.match(/^(\d{4})(\d{2})(\d{2})$/);
 				if (!date)
 					return;
-				date = Date.parse(date[1] + '-' + date[2] + '-' + date[3])
+				date = Date.parse(date[1] + '-' + date[2] + '-' + date[3] + "T00:00:00.000+08:00")
 						+ (token.parameters['archive-offset']
 						// archive-offset 可以省略（默認為3天）
 						|| 3) * ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), date]);
-				needless = Date.now() < date;
+				needless = Date.now() > date;
 				if (false) {
 					CeL.log('[' + section_title + ']: 存檔 @ ' + new Date(date)
 							+ ' (' + (needless ? 'needless' : 'need') + ')');
