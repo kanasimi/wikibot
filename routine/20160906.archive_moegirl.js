@@ -22,7 +22,7 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-var
+var board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ],
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
@@ -46,9 +46,18 @@ remove_old_notice_section = (new Date(Date.now()
 // remove_old_notice_section = true;
 // CeL.set_debug(2);
 
-[ 'Talk:讨论版', 'Talk:提问求助区' ].forEach(function(board) {
-	wiki.page(board, for_board);
-});
+main_process();
+
+function main_process() {
+	var board_left = board_list.length;
+	board_list.forEach(function(board) {
+		wiki.page(board, function() {
+			for_board.apply(this, arguments);
+			if (--board_left === 0)
+				routine_task_done('1d');
+		});
+	});
+}
 
 function for_board(page_data) {
 	// 更動 counter
@@ -115,20 +124,22 @@ function for_board(page_data) {
 				MarkAsResolved : true
 			}) {
 				// console.log(token);
-				var date = token.parameters.time
+				var matched = token.parameters.time
 						&& token.parameters.time
 								.match(/^(\d{4})(\d{2})(\d{2})$/);
-				if (!date)
+				if (!matched)
 					return;
-				date = Date.parse(date[1] + '-' + date[2] + '-' + date[3])
+				var boundary_date = Date.parse(matched[1] + '-' + matched[2]
+						+ '-' + matched[3] + ' UTC+8')
 						+ (token.parameters['archive-offset']
 						// archive-offset 可以省略（默認為3天）
 						|| 3) * ONE_DAY_LENGTH_VALUE;
-				// console.log([Date.now(), date]);
-				needless = Date.now() < date;
+				// console.log([Date.now(), boundary_date]);
+				needless = Date.now() < boundary_date;
 				if (false) {
-					CeL.log('[' + section_title + ']: 存檔 @ ' + new Date(date)
-							+ ' (' + (needless ? 'needless' : 'need') + ')');
+					CeL.log('[' + section_title + ']: 存檔 @ '
+							+ new Date(boundary_date) + ' ('
+							+ (needless ? 'needless' : 'need') + ')');
 				}
 			}
 		}, {
