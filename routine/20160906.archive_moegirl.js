@@ -57,8 +57,12 @@ function main_process() {
 		console.log(configuration);
 		if (Array.isArray(configuration.board_list))
 			board_list = configuration.board_list;
-		if (Array.isArray(configuration.tags))
-			tags = configuration.tags;
+		if (configuration.tags) {
+			tags = Array.isArray(configuration.tags) ? configuration.tags
+					.join('|')
+			// assert: typeof tags === 'string'
+			: configuration.tags;
+		}
 		archive_page_postfix = configuration.archive_page_postfix
 				|| archive_page_postfix;
 	}
