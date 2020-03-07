@@ -548,7 +548,7 @@ function replace_link_parameter(task_configuration, template_token, template_has
 	if (!(template_token.name in template_hash))
 		return false;
 
-	if (!task_configuration.move_to_link || !task_configuration.move_to.page_name
+	if (!task_configuration.move_to_link || task_configuration.move_to && !task_configuration.move_to.page_name
 		|| task_configuration.page_data.ns !== task_configuration.move_from.ns) {
 		return true;
 	}
