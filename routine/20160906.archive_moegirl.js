@@ -162,8 +162,9 @@ function for_board(page_data) {
 					return;
 				var boundary_date = Date.parse(matched[1] + '-' + matched[2]
 						+ '-' + matched[3] + ' UTC+8')
-						+ ((token.parameters['archive-offset']
-						// archive-offset 可以省略（默認為3天）
+						// 機器人只讀得懂`archive-offset=數字`的情況
+						+ ((+token.parameters['archive-offset']
+						// {{#expr:{{{archive-offset|3}}} + 1}} days}}
 						|| resolved_template_dafault_days) + 1)
 						* ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), boundary_date]);
