@@ -75,8 +75,8 @@ function main_process() {
 				|| archive_page_postfix;
 		resolved_template = configuration.resolved_template
 				|| resolved_template;
-		resolved_template_dafault_days = configuration.resolved_template_dafault_days
-				|| resolved_template_dafault_days;
+		if (configuration.resolved_template_dafault_days >= 1)
+			resolved_template_dafault_days = configuration.resolved_template_dafault_days;
 	}
 	// console.log(board_list);
 	// console.log(tags);
@@ -160,13 +160,14 @@ function for_board(page_data) {
 								.match(/^(\d{4})(\d{2})(\d{2})$/);
 				if (!matched)
 					return;
-				var boundary_date = Date.parse(matched[1] + '-' + matched[2]
-						+ '-' + matched[3] + ' UTC+8')
-						// 機器人只讀得懂`archive-offset=數字`的情況
-						+ ((+token.parameters['archive-offset']
-						// {{#expr:{{{archive-offset|3}}} + 1}} days}}
-						|| resolved_template_dafault_days) + 1)
-						* ONE_DAY_LENGTH_VALUE;
+				// 機器人只讀得懂`archive-offset=數字`的情況
+				var boundary_date = +token.parameters['archive-offset'];
+				if (!(boundary_date >= 1))
+					boundary_date = resolved_template_dafault_days;
+				boundary_date = Date.parse(matched[1] + '-' + matched[2] + '-'
+						+ matched[3] + ' UTC+8')
+						// +1: {{#expr:{{{archive-offset|3}}} + 1}} days}}
+						+ (boundary_date + 1) * ONE_DAY_LENGTH_VALUE;
 				// console.log([Date.now(), boundary_date]);
 				needless = Date.now() < boundary_date;
 				if (false) {
