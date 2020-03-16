@@ -2,6 +2,8 @@
 Assist administrators to close AfDs. Especially discussions without participants.
 協助管理員關閉刪除討論。尤其是無參與者的討論。
 
+node 20200206.reminded_expired_AfD.js days_ago=8
+
 2020/2/6	擷取redirect_to,logs,discussions三項資訊
 2020/2/8 17:19:57	增加報告
 	初版試營運
@@ -20,7 +22,7 @@ set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-prepare_directory(base_directory, true);
+// prepare_directory(base_directory, true);
 
 // ----------------------------------------------
 
@@ -54,7 +56,7 @@ async function main_process() {
 		}
 	}
 
-	date.setDate(date.getDate() - 7);
+	date.setDate(date.getDate() - (CeL.env.arg_hash && CeL.env.arg_hash.days_ago || 7));
 	await process_AfD_date(date);
 }
 
@@ -87,7 +89,7 @@ async function for_AfD_list(AfD_list_page_data) {
 	await wiki.for_each_page(main_page_title_list, page_data => page_data_hash[page_data.title] = page_data, { no_edit: true });
 
 	const all_report_lines = [];
-	await wiki.for_each_page(discussion_title_list, for_AfD, { no_edit: true, all_report_lines, page_data_hash });
+	await wiki.for_each_page(discussion_title_list, for_AfD.bind({ all_report_lines, page_data_hash }), { no_edit: true });
 	// console.log(all_report_lines);
 	const report_wikitext = `
 {{Please leave this line alone (sandbox heading)}}
@@ -100,7 +102,7 @@ ${all_report_lines.join('\n\n')}
 `;
 	// CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
 	// console.log(report_wikitext);
-	await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
+	// await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
 }
 
 // ----------------------------------------------------------------------------
@@ -201,8 +203,7 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 
 		discussion_page_list.push(discussion_page_data);
 	}
-	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}:
-	// discussion_page_list`);
+	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: discussion_page_list`);
 	// console.log(discussion_page_list);
 	if (discussion_page_list.length === 0)
 		return;
@@ -326,7 +327,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 						CSD_link = CSD_link[0];
 				}
 				log_text = `${to_timestamp(log)} {{color|red|✗}} ` + (is_PROD ? '[[WP:PROD|]]' : CSD_link || 'deleted');
-				const note = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
+				const note = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
 				if (is_PROD)
 					result_notice_data.PROD = note;
 				// CSD/BLPPROD doesn't affect PROD/soft deletion eligibility
@@ -338,7 +339,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				// type: 'delete'
 				// [[File:Gnome-undelete.svg|20px]]
 				log_text = `${to_timestamp(log)} {{color|blue|↻}} restored`;
-				logs.note = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
+				logs.note = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
 				break;
 			case 'create':
 				// type: 'create'
@@ -378,14 +379,16 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 		if (!PATTERN_PROD.test(revision.comment))
 			return;
 		// NOT ineligible for PROD.
-		result_notice_data.PROD = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [[Special:Diff/${revision.revid}|previously PROD'd]] (via summary).`;
+		result_notice_data.PROD = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [[Special:Diff/${revision.revid}|previously PROD'd]] (via summary).`;
 		return true;
 	});
 }
 
 // ----------------------------------------------------------------------------
 
-const PROD_MESSAGE_PREFIX = "* '''Note to closer''': While this discussion appears to have [[WP:NOQUORUM|no quorum]], ";
+const PROD_MESSAGE_PREFIX = `* '''Note to closer''': <!-- PROD notice: ${now.toISOString()} --> `;
+const PATTERN_PROD_MESSAGE = /<!--\s*PROD notice:\s*([^\s]+)/;
+const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], ";
 
 async function for_AfD(AfD_page_data) {
 	/** {String}target page title */
@@ -395,12 +398,15 @@ async function for_AfD(AfD_page_data) {
 		return;
 	}
 
+	const matched = AfD_page_data.wikitext.match(PATTERN_PROD_MESSAGE);
+	if (matched && Date.now() - Date.parse(matched[1]) < CeL.to_millisecond('1 month')) {
+		CeL.info(`Already noticed: ${CeL.wiki.title_link_of(AfD_page_data)}`);
+		return;
+	}
+
 	const report_lines = [];
 
 	const participations = check_AfD_participations(AfD_page_data);
-	if (participations) {
-		// return;
-	}
 
 	const target_page_data = this.page_data_hash[target_page_title] || await wiki.page(target_page_title);
 	// console.log(target_page_data);
@@ -422,7 +428,7 @@ async function for_AfD(AfD_page_data) {
 	// console.log(redirect_to);
 	if (redirect_to) {
 		result_notice_data.redirect_to = redirect_to;
-		result_notice_data.redirect = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because the subject is currently redirecting to ${CeL.wiki.title_link_of(redirect_to)}.`;
+		result_notice_data.redirect = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because the subject is currently redirecting to ${CeL.wiki.title_link_of(redirect_to)}.`;
 		report_lines.push(`Current redirect {{color|green|↪}} ${CeL.wiki.title_link_of(redirect_to)}`);
 	}
 
@@ -433,7 +439,7 @@ async function for_AfD(AfD_page_data) {
 	// console.log(discussions);
 	if (discussions) {
 		if (discussions.result)
-			result_notice_data.discussion = `${PROD_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [[${discussions.result[1]}|previously discussed at AfD]] and the result was ${discussions.result[0]}.`;
+			result_notice_data.discussion = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [[${discussions.result[1]}|previously discussed at AfD]] and the result was ${discussions.result[0]}.`;
 		add_report_line(discussions.previous, 'Previous discussions');
 		add_report_line(discussions.related, 'Related discussions');
 	}
@@ -458,27 +464,45 @@ async function for_AfD(AfD_page_data) {
 	// -------------------------------------------------------
 
 	let result_notice = result_notice_data.redirect || result_notice_data.discussion || result_notice_data.PROD || result_notice_data.log;
-	if (report_lines.length === 0 && !result_notice)
-		return;
-
 	if (!result_notice) {
+		if (report_lines.length === 0)
+			return;
+
 		// eligible for PROD
-		result_notice = `* '''Note to closer''': From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
+		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
 	}
 
 	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
-	if (participations_report) {
-		result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: ' + participations_report
-			+ '\n' + result_notice;
-		// return;
+	if (true) {
+		if (participations_report) {
+			return;
+		}
+		report_lines.unshift(result_notice + ' --~~~~');
 	} else {
-		result_notice = "There is no participation and '''the report may show in the AfD'''."
-			+ '\n' + result_notice;
+		// for debug report:
+		if (participations_report) {
+			result_notice = 'There are participations and the report will not shown in the [[deployment environment]]: ' + participations_report
+				+ '\n' + result_notice;
+			return;
+		} else {
+			result_notice = "There is no participation and '''the report may show in the AfD'''."
+				+ '\n' + result_notice;
+		}
+
+		report_lines.unshift(`=== ${CeL.wiki.title_link_of(AfD_page_data)} ===
+${result_notice} --~~~~`);
 	}
 
-	report_lines.unshift(`=== ${CeL.wiki.title_link_of(AfD_page_data)} ===\n` + result_notice + ' --~~~~');
 	const report_wikitext = report_lines.join('\n: ');
-	// CeL.info(report_wikitext);
+	const page_wikitext = AfD_page_data.wikitext.trimEnd() + '\n' + report_wikitext;
+	//console.log(CeL.wiki.title_link_of(AfD_page_data));
+	//CeL.info(page_wikitext);
+	//console.log(report_lines);
 	this.all_report_lines.push(report_wikitext);
-	await wiki.edit_page(AfD_page_data, AfD_page_data.wikitext + '\n' + report_wikitext);
+	// for debug:
+	// return;
+
+	await wiki.edit_page(AfD_page_data, page_wikitext, {
+		summary: "bot trial edit: Informing the article's PROD eligibility",
+	});
 }
