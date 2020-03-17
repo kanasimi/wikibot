@@ -1,12 +1,12 @@
 ﻿/*
+node 20200206.reminded_expired_AfD.js days_ago=8
+
 Assist administrators to close AfDs. Especially discussions without participants.
 協助管理員關閉刪除討論。尤其是無參與者的討論。
 
-node 20200206.reminded_expired_AfD.js days_ago=8
-
 2020/2/6	擷取redirect_to,logs,discussions三項資訊
 2020/2/8 17:19:57	增加報告
-	初版試營運
+2020/3/17 5:56:34	初版試營運
 
 TODO:
 
@@ -21,6 +21,9 @@ require('../wiki loader.js');
 set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
+
+// Discussions are usually closed after seven days (168 hours).
+const close_days = 7;
 
 // prepare_directory(base_directory, true);
 
@@ -56,7 +59,7 @@ async function main_process() {
 		}
 	}
 
-	date.setDate(date.getDate() - (CeL.env.arg_hash && CeL.env.arg_hash.days_ago || 7));
+	date.setDate(date.getDate() - (CeL.env.arg_hash && CeL.env.arg_hash.days_ago || close_days));
 	await process_AfD_date(date);
 }
 
@@ -399,7 +402,7 @@ async function for_AfD(AfD_page_data) {
 	}
 
 	const matched = AfD_page_data.wikitext.match(PATTERN_PROD_MESSAGE);
-	if (matched && Date.now() - Date.parse(matched[1]) < CeL.to_millisecond('1 month')) {
+	if (matched && Date.now() - Date.parse(matched[1]) < CeL.to_millisecond('7D')) {
 		CeL.info(`Already noticed: ${CeL.wiki.title_link_of(AfD_page_data)}`);
 		return;
 	}
@@ -469,7 +472,7 @@ async function for_AfD(AfD_page_data) {
 			return;
 
 		// eligible for PROD
-		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its seven-day listing.`;
+		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
 	}
 
 	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
