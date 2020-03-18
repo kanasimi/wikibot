@@ -23,7 +23,8 @@ set_language('en');
 const wiki = new Wikiapi;
 
 // Discussions are usually closed after seven days (168 hours).
-const close_days = 7;
+// +1: using 7+1 days to be sure there is full 7 days.
+const close_days = 7 + 1;
 
 // prepare_directory(base_directory, true);
 
@@ -170,9 +171,12 @@ function check_AfD_participations(AfD_page_data) {
 			let recommendation = token.toString().match(/'''(.+?)'''/);
 			if (!recommendation)
 				return;
-			recommendation = recommendation[1].toLowerCase().match(check_AfD_participations.PATTERN)
-				|| check_AfD_participations.type_others;
-			participations[recommendation].push(participations);
+			recommendation = recommendation[1].toLowerCase().match(check_AfD_participations.PATTERN);
+			if (recommendation in ignore_recommendations) {
+				// Ignore the notes by bot it self.
+				return;
+			}
+			participations[recommendation || check_AfD_participations.type_others].push(participations);
 		});
 	}, { level_filter: 1 });
 
@@ -389,7 +393,14 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 
 // ----------------------------------------------------------------------------
 
-const PROD_MESSAGE_PREFIX = `* '''Note to closer''': <!-- PROD notice: ${now.toISOString()} --> `;
+const PROD_MESSAGE_recommendation = 'Note to closer';
+let ignore_recommendations = {
+	[PROD_MESSAGE_recommendation]: true,
+	'Previous discussions': true,
+	'Related discussions': true,
+	'Logs': true,
+};
+const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE_recommendation}''': <!-- PROD notice: ${now.toISOString()} --> `;
 const PATTERN_PROD_MESSAGE = /<!--\s*PROD notice:\s*([^\s]+)/;
 const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], ";
 
@@ -467,11 +478,12 @@ async function for_AfD(AfD_page_data) {
 	// -------------------------------------------------------
 
 	let result_notice = result_notice_data.redirect || result_notice_data.discussion || result_notice_data.PROD || result_notice_data.log;
+	let summary;
 	if (!result_notice) {
 		if (report_lines.length === 0)
 			return;
 
-		// eligible for PROD
+		summary = 'Seems eligible for PROD';
 		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
 	}
 
@@ -506,6 +518,6 @@ ${result_notice} --~~~~`);
 	// return;
 
 	await wiki.edit_page(AfD_page_data, page_wikitext, {
-		summary: "bot trial edit: Informing the article's PROD eligibility",
+		summary: `bot trial edit: [[Wikipedia:Bot requests#A heads up for AfD closers re: PROD eligibility when approaching NOQUORUM|Informing the article's PROD eligibility]]: ${summary || 'Seems NOT eligible for PROD'}`,
 	});
 }
