@@ -23,8 +23,7 @@ set_language('en');
 const wiki = new Wikiapi;
 
 // Discussions are usually closed after seven days (168 hours).
-// +1: using 7+1 days to be sure there is full 7 days.
-const close_days = 7 + 1;
+const close_days = 7;
 
 // prepare_directory(base_directory, true);
 
@@ -60,7 +59,9 @@ async function main_process() {
 		}
 	}
 
-	date.setDate(date.getDate() - (CeL.env.arg_hash && CeL.env.arg_hash.days_ago || close_days));
+	date.setDate(date.getDate() - (CeL.env.arg_hash && CeL.env.arg_hash.days_ago || (close_days
+	// +1: using 7+1 days to be sure there is full 7 days.
+	+ 1)));
 	await process_AfD_date(date);
 }
 
@@ -393,7 +394,7 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 
 // ----------------------------------------------------------------------------
 
-const PROD_MESSAGE_recommendation = 'Note to closer';
+const PROD_MESSAGE_recommendation = 'Note to closer for soft deletion';
 let ignore_recommendations = {
 	[PROD_MESSAGE_recommendation]: true,
 	'Previous discussions': true,
