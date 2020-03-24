@@ -21,13 +21,15 @@ set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-prepare_directory(base_directory, true);
+const using_cache = false;
+if (using_cache)
+	prepare_directory(base_directory, true);
 
 // ----------------------------------------------
 
 // badge
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
-const page_info_cache = CeL.get_JSON(page_info_cache_file);
+const page_info_cache = using_cache && CeL.get_JSON(page_info_cache_file);
 
 /** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object.create(null);
@@ -67,7 +69,8 @@ async function main_process() {
 	wiki.FC_data_hash = page_info_cache && page_info_cache.FC_data_hash;
 	if (!wiki.FC_data_hash) {
 		await get_page_info();
-		CeL.write_file(page_info_cache_file, { level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
+		if (using_cache)
+			CeL.write_file(page_info_cache_file, { level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
 	}
 
 	// ----------------------------------------------------
@@ -101,11 +104,12 @@ async function main_process() {
 
 	check_page_count();
 
-	CeL.info('need_edit_VA_template:');
+	// CeL.info('need_edit_VA_template: ');
 	// console.log(need_edit_VA_template);
 	let main_title_of_talk_title = Object.create(null);
 	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
 		const talk_page = wiki.to_talk_page(title);
+		// console.log(`${title} → talk page: ${talk_page}`);
 		main_title_of_talk_title[talk_page] = title;
 		return talk_page;
 	}), function (talk_page_data) {
@@ -145,7 +149,7 @@ async function get_page_info() {
 	for (let i = 5; i >= 1; i--) {
 		const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`);
 		page_list.forEach(page_data => {
-			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
+			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (title in level_of_page) {
 				report_lines.push([title, , `${level_of_page[title]}→${i}`]);
 			}
@@ -192,7 +196,7 @@ async function get_page_info() {
 		const category_name = icon_to_category[icon];
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
-			const title = CeL.wiki.talk_page_to_main(page_data.original_title || page_data);
+			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (!(title in icons_of_page))
 				icons_of_page[title] = [];
 			if (icon in synchronize_icon_hash /* synchronize_icons.includes(icon) */) {
@@ -314,6 +318,10 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 	return true;
 }
 
+function icons_and_item_toString() {
+	return this.join(' ');
+}
+
 async function for_each_list_page(list_page_data) {
 	if (CeL.wiki.parse.redirect(list_page_data))
 		return Wikiapi.skip_edit;
@@ -333,7 +341,7 @@ async function for_each_list_page(list_page_data) {
 
 	const article_count_of_icon = Object.create(null);
 
-	const need_check_redirected = [];
+	const need_check_redirected = Object.create(null);
 	let latest_section;
 
 	function simplify_link(link_token, normalized_page_title) {
@@ -356,10 +364,10 @@ async function for_each_list_page(list_page_data) {
 			return;
 		}
 
-		let item_wikitext, icons = [];
+		let item_replace_to, icons = [];
 		function for_item_token(token, index, _item) {
 			let parent_of_link;
-			if (!item_wikitext && token.type !== 'link') {
+			if (!item_replace_to && token.type !== 'link') {
 				// For token.type 'bold', 'italic', finding the first link
 				// children.
 				// e.g., `'' [[title]] ''`, `''' [[title]] '''`,
@@ -380,7 +388,7 @@ async function for_each_list_page(list_page_data) {
 					}
 				});
 			}
-			if (token.type === 'link' && !item_wikitext) {
+			if (token.type === 'link' && !item_replace_to) {
 				// e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
 				simplify_link(token, normalized_page_title);
@@ -462,11 +470,14 @@ async function for_each_list_page(list_page_data) {
 					icons.push(token);
 				}
 
-				item_wikitext = icons.join(' ');
+				// 為避免替換後 `Check redirects` 無效，依然保留 token。
+				//item_replace_to = icons.join(' ');
+				item_replace_to = icons;
+				item_replace_to.toString = icons_and_item_toString;
 
 				// 前面的全部消除光，後面的原封不動
-				// list[index] = item_wikitext;
-				_item[index] = item_wikitext;
+				// list[index] = item_replace_to;
+				_item[index] = item_replace_to;
 				if (_item === item)
 					_item.splice(0, index);
 				return true;
@@ -485,9 +496,9 @@ async function for_each_list_page(list_page_data) {
 				if (icon === 'FFAC') {
 					icons.push(icon);
 				}
-			} else if (item_wikitext) {
+			} else if (item_replace_to) {
 				// CeL.error('for_item: Invalid item: ' + _item);
-				console.log(item_wikitext);
+				console.log(item_replace_to);
 				console.log(token);
 				throw new Error('for_item: Invalid item: ' + _item);
 			} else {
@@ -534,11 +545,11 @@ async function for_each_list_page(list_page_data) {
 		if (!item.some) {
 			console.error(`No .some() @ ${list_page_data.title}: ${JSON.stringify(item)}`);
 		}
-		if ((item.type === 'link' ? for_item_token(item, index, list) : item.some(for_item_token)) && !item_wikitext) {
+		if ((item.type === 'link' ? for_item_token(item, index, list) : item.some(for_item_token)) && !item_replace_to) {
 			return parsed.each.exit;
 		}
 
-		if (!item_wikitext) {
+		if (!item_replace_to) {
 			throw new Error('No link! ' + list_page_data.title);
 		}
 	}
@@ -623,17 +634,18 @@ async function for_each_list_page(list_page_data) {
 	this.summary += `: ${total_articles}`;
 	// console.log(this.summary);
 
+	// `Check redirects`
 	if (!CeL.is_empty_object(need_check_redirected)) {
 		const need_check_redirected_list = Object.keys(need_check_redirected);
-		let fixed = 0;
+		const fixed_list = [];
 		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} link(s) for redirects.`);
 		if (need_check_redirected_list.length < 9) {
 			console.log(need_check_redirected_list);
 		}
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
 			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data));
-			// Need check if redirects to #section.
 			if (!normalized_redirect_to
+				// Need check if redirects to [[title#section]].
 				// Skip [[Plaster of Paris]]:
 				// #REDIRECT [[Plaster#Gypsum plaster]]
 				|| normalized_redirect_to.includes('#')) {
@@ -642,14 +654,25 @@ async function for_each_list_page(list_page_data) {
 
 			// Fix redirect in the list page.
 			const link_token = need_check_redirected[page_data.title];
+			if (!link_token) {
+				CeL.error(`for_each_list_page: No need_check_redirected[${page_data.title}]!`);
+				console.log(page_data.wikitext);
+				console.log(page_data);
+			}
+			fixed_list.push(link_token[0] + '→' + normalized_redirect_to);
 			link_token[0] = normalized_redirect_to;
 			simplify_link(link_token, normalized_redirect_to);
-			fixed++;
-		}, { no_edit: true, no_warning: true });
-		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed} link(s) fixed.`, 0, 'for_each_list_page');
+		}, { no_edit: true, no_warning: true, redirects: false });
+		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed_list.length} link(s) fixed.`, 0, 'for_each_list_page');
+		if (fixed_list.length > 0 && fixed_list.length < 9) {
+			CeL.log(fixed_list.join('\n'));
+		}
 	}
 
 	let wikitext = parsed.toString();
+	if (wikitext !== list_page_data.wikitext) {
+		// CeL.info(`for_each_list_page: Modify ${CeL.wiki.title_link_of(list_page_data)}`);
+	}
 
 	// summary table / count report table for each page
 	const summary_table = [['Class', 'Articles']];
@@ -712,7 +735,7 @@ function check_page_count() {
 				min_level_info = {
 					...article_info,
 					level,
-					reason: 'The article is listed in the level ' + level + ' page.'
+					reason: `The article is listed in the level ${level} page`
 				};
 				// console.log(min_level_info);
 			}
@@ -801,8 +824,12 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 	}
 	if (article_info.link) {
 		wikitext.link = article_info.link[0];
-		if (article_info.link[1])
+		if (article_info.link[1]) {
 			wikitext.anchor = article_info.link[1];
+			article_info.reason += `: [[${wikitext.link}#${wikitext.anchor}|${wikitext.anchor}]]`;
+		} else {
+			article_info.reason += `: [[${wikitext.link}]]`;
+		}
 	}
 	// console.log(wikitext);
 	if (VA_template) {
@@ -815,7 +842,8 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 		wikitext += '\n' + talk_page_data.wikitext;
 	}
 
-	if (true) {
+	if (false) {
+		// for debug
 		if (wikitext === talk_page_data.wikitext)
 			return Wikiapi.skip_edit;
 		if (++maintain_VA_template_count > 50)
