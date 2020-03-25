@@ -93,7 +93,8 @@ async function main_process() {
 	// console.log(vital_articles_list.length);
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
-		redirects: 1,
+		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+		//redirects: 1,
 		bot: 1,
 		minor: false,
 		log_to: null,
