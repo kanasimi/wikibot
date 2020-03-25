@@ -44,8 +44,8 @@ const listed_article_info = Object.create(null);
 const need_edit_VA_template = Object.create(null);
 const VA_template_name = 'Vital article';
 
-const base_page = 'Wikipedia:Vital articles';
-// [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page`
+const base_page_prefix = 'Wikipedia:Vital articles';
+// [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page_prefix`
 const DEFAULT_LEVEL = 3;
 
 // @see function set_section_title_count(parent_section)
@@ -75,7 +75,7 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = (await wiki.prefixsearch(base_page)) || [
+	const vital_articles_list = (await wiki.prefixsearch(base_page_prefix)) || [
 		// 1,
 		// 2,
 		// 3 && '',
@@ -89,7 +89,7 @@ async function main_process() {
 		// '5/Technology',
 		// '5/Everyday life/Sports, games and recreation',
 		// '5/Mathematics',
-	].map(level => `${base_page}${level ? `/Level/${level}` : ''}`);
+	].map(level => `${base_page_prefix}${level ? `/Level/${level}` : ''}`);
 	// console.log(vital_articles_list.length);
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
@@ -109,18 +109,20 @@ async function main_process() {
 	let main_title_of_talk_title = Object.create(null);
 	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
 		const talk_page = wiki.to_talk_page(title);
-		// console.log(`${title} → talk page: ${talk_page}`);
+		// console.log(`${title}→${talk_page}`);
 		main_title_of_talk_title[talk_page] = title;
 		return talk_page;
 	}), function (talk_page_data) {
 		return maintain_VA_template.call(this, talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
 	}, {
-		redirects: 1,
+		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+		//redirects: 1,
+		nocreate: false,
 		bot: 1,
 		log_to: null,
 		summary: talk_page_summary
 	});
-	// free
+	// Release memory. 釋放被占用的記憶體。
 	main_title_of_talk_title = null;
 
 	// ----------------------------------------------------
@@ -147,7 +149,10 @@ async function get_page_info() {
 
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	for (let i = 5; i >= 1; i--) {
-		const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`);
+		const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`, {
+			// exclude [[User:Fox News Brasil]]
+			namespace: 'talk'
+		});
 		page_list.forEach(page_data => {
 			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (title in level_of_page) {
@@ -221,7 +226,7 @@ async function get_page_info() {
 
 		// List → LIST
 		const VA_class = icons.VA_class.toUpperCase();
-		// free
+		// Release memory. 釋放被占用的記憶體。
 		delete icons.VA_class;
 		if (icons.includes(VA_class)) {
 			// assert: VA_class === 'LIST'
@@ -275,11 +280,11 @@ async function get_page_info() {
 // ----------------------------------------------------------------------------
 
 function level_page_link(level, number_only, page_title) {
-	return `[[${page_title || (level === DEFAULT_LEVEL ? base_page : base_page + '/Level/' + level)}|${number_only ? '' : 'Level '}${level}]]`;
+	return `[[${page_title || (level === DEFAULT_LEVEL ? base_page_prefix : base_page_prefix + '/Level/' + level)}|${number_only ? '' : 'Level '}${level}]]`;
 }
 
 function level_of_page_title(page_title, number_only) {
-	// page_title.startsWith(base_page);
+	// page_title.startsWith(base_page_prefix);
 	// [, 1–5, section ]
 	const matched = (page_title && page_title.title || page_title).match(/\/Level(?:\/([1-5])(\/.+)?)?$/);
 	if (matched) {
@@ -432,6 +437,13 @@ async function for_each_list_page(list_page_data) {
 					}
 					// reduce size
 					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'No VA template?{{r|e}}';
+					if (!category_level) {
+						need_edit_VA_template[normalized_page_title] = {
+							...article_info,
+							level,
+							reason: `The article is listed in the level ${level} page`
+						};
+					}
 					if (!(category_level < level)) {
 						// Only report when category_level (main level) is not
 						// smallar than level list in.
@@ -719,7 +731,7 @@ function check_page_count() {
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
 			need_edit_VA_template[page_title] = {
 				level: '',
-				reason: 'The article is NOT listed in the list page.'
+				reason: 'The article is NOT listed in the vital article list page.'
 			};
 			listed_article_info[page_title] = [];
 			continue;
@@ -779,11 +791,19 @@ let maintain_VA_template_count = 0;
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
 function maintain_VA_template(talk_page_data, main_page_title) {
-	if (false && CeL.wiki.parse.redirect(talk_page_data)) {
+	if (CeL.wiki.parse.redirect(talk_page_data)) {
 		// Warning: Should not go to here!
+		// TODO: fix disambiguation
+		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+		CeL.warn(`maintain_VA_template: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		return Wikiapi.skip_edit;
 	}
-	// TODO: fix disambiguation
+
+	if (!wiki.is_namespace(talk_page_data, 'talk')) {
+		// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
+		CeL.warn(`maintain_VA_template: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
+		return Wikiapi.skip_edit;
+	}
 
 	const article_info = need_edit_VA_template[main_page_title];
 	// console.log(article_info);
@@ -805,11 +825,13 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 		if (token.name === VA_template_name) {
 			// get the first one
 			if (VA_template) {
-				CeL.error(`Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				CeL.error(`maintain_VA_template: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				VA_template = token;
 			}
-		} else if (token.name.startsWith('WikiProject ') && token.parameters.class) {
+		} else if (token.parameters.class
+			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
+			&& /project|rating/i.test(token.name)) {
 			// TODO: verify if class is the same.
 			_class = token.parameters.class;
 		}
@@ -817,7 +839,7 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 	// console.log([_class, VA_template]);
 
 	let wikitext = {
-		class: VA_template && VA_template.parameters.class || _class || ''
+		class: article_info.class || VA_template && VA_template.parameters.class || _class || ''
 	};
 	if ('level' in article_info) {
 		wikitext.level = article_info.level;
