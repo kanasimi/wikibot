@@ -60,9 +60,11 @@ async function main_process() {
 	}
 
 	date.setDate(date.getDate() - (CeL.env.arg_hash && CeL.env.arg_hash.days_ago || (close_days
-	// +1: using 7+1 days to be sure there is full 7 days.
-	+ 1)));
+		// +1: using 7+1 days to be sure there is full 7 days.
+		+ 1)));
 	await process_AfD_date(date);
+
+	routine_task_done('1d');
 }
 
 // ----------------------------------------------------------------------------
@@ -401,8 +403,7 @@ let ignore_recommendations = {
 	'Related discussions': true,
 	'Logs': true,
 };
-const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE_recommendation}''': <!-- PROD notice: ${now.toISOString()} --> `;
-const PATTERN_PROD_MESSAGE = /<!--\s*PROD notice:\s*([^\s]+)/;
+const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE_recommendation}''': `;
 const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], ";
 
 async function for_AfD(AfD_page_data) {
@@ -413,11 +414,20 @@ async function for_AfD(AfD_page_data) {
 		return;
 	}
 
-	const matched = AfD_page_data.wikitext.match(PATTERN_PROD_MESSAGE);
-	if (matched && Date.now() - Date.parse(matched[1]) < CeL.to_millisecond('7D')) {
+	let already_noticed;
+	AfD_page_data.wikitext.each_between(PROD_MESSAGE_PREFIX, '\n', token => {
+		const date_list = CeL.wiki.parse.date(token, { language: use_language, get_timevalue: true, get_all_list: true });
+		console.log([token, date_list]);
+		if (Date.now() - date_list.min_timevalue < CeL.to_millisecond('7D')) {
+			already_noticed = true;
+		}
+	});
+	if (already_noticed) {
 		CeL.info(`Already noticed: ${CeL.wiki.title_link_of(AfD_page_data)}`);
 		return;
 	}
+
+	// -------------------------------------------------------
 
 	const report_lines = [];
 
@@ -485,7 +495,7 @@ async function for_AfD(AfD_page_data) {
 			return;
 
 		summary = 'Seems eligible for PROD';
-		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. It seems no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
+		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. There are no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
 	}
 
 	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
