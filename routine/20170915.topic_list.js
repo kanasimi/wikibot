@@ -162,7 +162,8 @@ function CSS_toString(CSS) {
 var section_column_operators = {
 	// function: .call(page_data, section, section_index)
 	NO : function(section, section_index) {
-		if (!(section_index >= 1)) {
+		if (/* force */true || !(section_index >= 1)) {
+			// CeL.info('NO_counter: ' + this.page.NO_counter);
 			if (!this.page.NO_counter)
 				this.page.NO_counter = 0;
 			section_index = ++this.page.NO_counter;
