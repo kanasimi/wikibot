@@ -133,7 +133,7 @@ global.FC_vote_configurations = {
 		wiki.page(this.title, pre_fetch_sub_pages);
 	},
 };
-Object.assign(global, require('./special page configuration.js'));
+Object.assign(global, require('../special page configuration.js'));
 
 // ----------------------------------------------
 
@@ -162,8 +162,15 @@ function CSS_toString(CSS) {
 var section_column_operators = {
 	// function: .call(page_data, section, section_index)
 	NO : function(section, section_index) {
-		return local_number('section_index' in section ? section.section_index
-				: section_index);
+		if (!(section_index >= 1)) {
+			if (!this.page.NO_counter)
+				this.page.NO_counter = 0;
+			section_index = ++this.page.NO_counter;
+			// section.section_index 序號可能因 section_filter，沒有連號。
+			if (false && section.section_index >= 1)
+				section_index = section.section_index;
+		}
+		return local_number(section_index);
 	},
 	// 議題的標題。
 	title : function(section) {
