@@ -63,8 +63,6 @@ report_lines.skipped_records = 0;
 	await main_process();
 })();
 
-const talk_page_summary = 'Maintain {{Vital article}}';
-
 async function main_process() {
 	wiki.FC_data_hash = page_info_cache && page_info_cache.FC_data_hash;
 	if (!wiki.FC_data_hash) {
@@ -75,21 +73,24 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = (await wiki.prefixsearch(base_page_prefix)) || [
-		// 1,
-		// 2,
-		// 3 && '',
-		'4/Removed',
-		// '4/People',
-		// '4/History',
-		// '4/Physical sciences',
-		// '5/People/Writers and journalists',
-		// '5/People/Artists, musicians, and composers',
-		// '5/Physical sciences/Physics',
-		// '5/Technology',
-		// '5/Everyday life/Sports, games and recreation',
-		// '5/Mathematics',
-	].map(level => `${base_page_prefix}${level ? `/Level/${level}` : ''}`);
+	const vital_articles_list = (await wiki.prefixsearch(base_page_prefix))
+		// exclude [[Wikipedia:Vital articles/Labels]], [[Wikipedia:Vital articles 5/Labels]]
+		.filter(page_data => !page_data.title.endsWith('/Labels')) || [
+			// 1,
+			// 2,
+			// 3 && '',
+			// '4/Removed',
+			// '4/People',
+			// '4/History',
+			// '4/Physical sciences',
+			// '5/People/Writers and journalists',
+			// '5/People/Artists, musicians, and composers',
+			// '5/Physical sciences/Physics',
+			// '5/Technology',
+			// '5/Everyday life/Sports, games and recreation',
+			// '5/Mathematics',
+			'5/Geography/Cities',
+		].map(level => `${base_page_prefix}${level ? `/Level/${level}` : ''}`);
 	// console.log(vital_articles_list.length);
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
@@ -105,26 +106,7 @@ async function main_process() {
 
 	check_page_count();
 
-	// CeL.info('need_edit_VA_template: ');
-	// console.log(need_edit_VA_template);
-	let main_title_of_talk_title = Object.create(null);
-	await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
-		const talk_page = wiki.to_talk_page(title);
-		// console.log(`${title}→${talk_page}`);
-		main_title_of_talk_title[talk_page] = title;
-		return talk_page;
-	}), function (talk_page_data) {
-		return maintain_VA_template.call(this, talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
-	}, {
-		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
-		//redirects: 1,
-		nocreate: false,
-		bot: 1,
-		log_to: null,
-		summary: talk_page_summary
-	});
-	// Release memory. 釋放被占用的記憶體。
-	main_title_of_talk_title = null;
+	await maintain_VA_template();
 
 	// ----------------------------------------------------
 
@@ -455,7 +437,7 @@ async function for_each_list_page(list_page_data) {
 						if (!category_level) {
 							// e.g., deleted; redirected (fix latter);
 							// does not has {{`VA_template_name`}}
-							// (fix @ maintain_VA_template())
+							// (fix @ maintain_VA_template_each_talk_page())
 							need_check_redirected[normalized_page_title] = token;
 						}
 					}
@@ -774,15 +756,48 @@ function check_page_count() {
 
 	for (let page_title in listed_article_info) {
 		const article_info_list = listed_article_info[page_title];
-		if (article_info_list.length > 0) {
+		if (article_info_list.length === 1) {
+			continue;
+		}
+		if (false && article_info_list.length > 0) {
 			// [contenttoobig] The content you supplied exceeds the article size
 			// limit of 2048 kilobytes.
 			report_lines.skipped_records++;
 			continue;
 		}
 		report_lines.push([page_title, level_of_page[page_title], article_info_list.length > 0
-			? `Listed ${article_info_list.length} times in ${article_info_list.map(article_info => level_page_link(article_info.level))}`
+			? `Listed ${article_info_list.length} times in ${article_info_list.map(article_info => level_page_link(article_info.level || DEFAULT_LEVEL))}`
 			: `Did not listed in level ${level_of_page[page_title]}.`]);
+	}
+}
+
+// ----------------------------------------------------------------------------
+
+const talk_page_summary = 'Maintain {{Vital article}}';
+
+async function maintain_VA_template() {
+	// CeL.info('need_edit_VA_template: ');
+	// console.log(need_edit_VA_template);
+
+	let main_title_of_talk_title = Object.create(null);
+	try {
+		await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
+			const talk_page = wiki.to_talk_page(title);
+			// console.log(`${title}→${talk_page}`);
+			main_title_of_talk_title[talk_page] = title;
+			return talk_page;
+		}), function (talk_page_data) {
+			return maintain_VA_template_each_talk_page.call(this, talk_page_data, main_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
+		}, {
+			// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+			//redirects: 1,
+			nocreate: false,
+			bot: 1,
+			log_to: null,
+			summary: talk_page_summary
+		});
+	} catch (e) {
+		// e.g., [[Talk:Chenla]]: [spamblacklist]
 	}
 }
 
@@ -791,22 +806,27 @@ let maintain_VA_template_count = 0;
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
-function maintain_VA_template(talk_page_data, main_page_title) {
+function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
+	const article_info = need_edit_VA_template[main_page_title];
+
 	if (CeL.wiki.parse.redirect(talk_page_data)) {
 		// Warning: Should not go to here!
 		// TODO: fix disambiguation
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
-		CeL.warn(`maintain_VA_template: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
+		CeL.warn(`maintain_VA_template_each_talk_page: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
+		//console.log(talk_page_data.wikitext);
+		report_lines.push([main_page_title, article_info.level,
+			`${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`]);
 		return Wikiapi.skip_edit;
 	}
 
 	if (!wiki.is_namespace(talk_page_data, 'talk')) {
 		// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
-		CeL.warn(`maintain_VA_template: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
+		CeL.warn(`maintain_VA_template_each_talk_page: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
+		//console.log(article_info);
 		return Wikiapi.skip_edit;
 	}
 
-	const article_info = need_edit_VA_template[main_page_title];
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
 	let VA_template, _class;
@@ -826,7 +846,7 @@ function maintain_VA_template(talk_page_data, main_page_title) {
 		if (token.name === VA_template_name) {
 			// get the first one
 			if (VA_template) {
-				CeL.error(`maintain_VA_template: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				CeL.error(`maintain_VA_template_each_talk_page: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				VA_template = token;
 			}
