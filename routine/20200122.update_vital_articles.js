@@ -713,6 +713,8 @@ function check_page_count() {
 			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
 			need_edit_VA_template[page_title] = {
+				// When an article is not listed {{Vital article}} should be removed, not just blanking the |level=.
+				remove: true,
 				level: '',
 				reason: 'The article is NOT listed in the vital article list page.'
 			};
@@ -842,13 +844,19 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	 * </code>
 	 */
-	parsed.each('template', token => {
+	parsed.each('template', (token, index, parent) => {
 		if (token.name === VA_template_name) {
 			// get the first one
 			if (VA_template) {
 				CeL.error(`maintain_VA_template_each_talk_page: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				VA_template = token;
+			}
+			if (article_info.remove) {
+				parent[index] = '';
+				if (index + 1 < parent.length && /^\s*\n/.test(parent[index + 1].toString())) {
+					parent[index + 1] = parent[index + 1].toString().replace(/^\s*\n/, '');
+				}
 			}
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
