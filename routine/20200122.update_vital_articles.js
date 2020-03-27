@@ -815,6 +815,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// Warning: Should not go to here!
 		// TODO: fix disambiguation
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+		// this kind of redirects will be skipped and listed in [[Wikipedia:Database reports/Vital articles update report]] for manually fixing.
 		CeL.warn(`maintain_VA_template_each_talk_page: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		//console.log(talk_page_data.wikitext);
 		report_lines.push([main_page_title, article_info.level,
@@ -822,6 +823,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		return Wikiapi.skip_edit;
 	}
 
+	// the bot only fix namespace=talk.
 	if (!wiki.is_namespace(talk_page_data, 'talk')) {
 		// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
 		CeL.warn(`maintain_VA_template_each_talk_page: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
@@ -844,7 +846,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	 * </code>
 	 */
-	parsed.each('template', (token, index, parent) => {
+	parsed.each('template', token => {
 		if (token.name === VA_template_name) {
 			// get the first one
 			if (VA_template) {
@@ -853,10 +855,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				VA_template = token;
 			}
 			if (article_info.remove) {
-				parent[index] = '';
-				if (index + 1 < parent.length && /^\s*\n/.test(parent[index + 1].toString())) {
-					parent[index + 1] = parent[index + 1].toString().replace(/^\s*\n/, '');
-				}
+				return parsed.remove_token;
 			}
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
