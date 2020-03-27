@@ -495,7 +495,7 @@ async function for_AfD(AfD_page_data) {
 			return;
 
 		summary = 'Seems eligible for PROD';
-		result_notice = `${PROD_MESSAGE_PREFIX}From lack of discussion, this nomination appears to have [[WP:NOQUORUM|no quorum]]. There are no previous PRODs, previous AfD discussions, previous undeletions, ${result_notice_data.redirect_to ? '' : 'or a current redirect, '}so this nomination appears to be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
+		result_notice = `${PROD_MESSAGE_PREFIX}This nomination has had limited participation and falls within the standards set for [[WP:NOQUORUM|lack of quorum]]. There are no previous AfD discussions, undeletions, ${result_notice_data.redirect_to ? '' : 'or current redirects '}and no previous PRODs have been located. This nomination may be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
 	}
 
 	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
