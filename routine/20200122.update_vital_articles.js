@@ -432,8 +432,7 @@ async function for_each_list_page(list_page_data) {
 						// smallar than level list in.
 						report_lines.push([normalized_page_title, list_page_data, message]);
 						if (false) CeL.warn(`${CeL.wiki.title_link_of(normalized_page_title)}: ${message}`);
-						// If there is category_level, the page was not
-						// redirected.
+						// If there is category_level, the page was not redirected.
 						if (!category_level) {
 							// e.g., deleted; redirected (fix latter);
 							// does not has {{`VA_template_name`}}
@@ -580,8 +579,7 @@ async function for_each_list_page(list_page_data) {
 
 	function for_root_token(token, index, root) {
 		if (token.type === 'transclusion' && token.name === 'Columns-list') {
-			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games
-			// and recreation]]
+			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games and recreation]]
 			token = token.parameters[1];
 			// console.log(token);
 			if (Array.isArray(token)) {
@@ -775,7 +773,7 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary = 'Maintain {{Vital article}}';
+const talk_page_summary = `Maintain {{${VA_template_name}}}`;
 
 async function maintain_VA_template() {
 	// CeL.info('need_edit_VA_template: ');
@@ -805,17 +803,23 @@ async function maintain_VA_template() {
 
 let maintain_VA_template_count = 0;
 
+function normalize_class(_class) {
+	//@see [[Category:Wikipedia vital articles by class]]
+	return _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
+}
+
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
 function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	const article_info = need_edit_VA_template[main_page_title];
 
+	// TODO: fix disambiguation
+
 	if (CeL.wiki.parse.redirect(talk_page_data)) {
-		// Warning: Should not go to here!
-		// TODO: fix disambiguation
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
 		// this kind of redirects will be skipped and listed in [[Wikipedia:Database reports/Vital articles update report]] for manually fixing.
+		// Warning: Should not go to here!
 		CeL.warn(`maintain_VA_template_each_talk_page: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		//console.log(talk_page_data.wikitext);
 		report_lines.push([main_page_title, article_info.level,
@@ -833,7 +837,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
-	let VA_template, _class;
+	let VA_template, class_from_other_templates;
 
 	/**
 	 * scan for existing informations <code>
@@ -855,39 +859,41 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				VA_template = token;
 			}
 			if (article_info.remove) {
-				return parsed.remove_token;
+				return parsed.each.remove_token;
 			}
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			&& /project|rating/i.test(token.name)) {
 			// TODO: verify if class is the same.
-			_class = token.parameters.class;
+			class_from_other_templates = token.parameters.class;
 		}
 	});
-	// console.log([_class, VA_template]);
+	// console.log([class_from_other_templates, VA_template]);
 
-	let wikitext = {
-		class: article_info.class || VA_template && VA_template.parameters.class || _class || ''
+	let VA_template_object = {
+		// normalize_class(): e.g., for [[Talk:Goosebumps]]
+		class: normalize_class(article_info.class || VA_template && VA_template.parameters.class || class_from_other_templates || '')
 	};
 	if ('level' in article_info) {
-		wikitext.level = article_info.level;
+		VA_template_object.level = article_info.level;
 	}
 	if (article_info.link) {
-		wikitext.link = article_info.link[0];
+		VA_template_object.link = article_info.link[0];
 		if (article_info.link[1]) {
-			wikitext.anchor = article_info.link[1];
-			article_info.reason += `: [[${wikitext.link}#${wikitext.anchor}|${wikitext.anchor}]]`;
+			VA_template_object.anchor = article_info.link[1];
+			article_info.reason += `: [[${VA_template_object.link}#${VA_template_object.anchor}|${VA_template_object.anchor}]]`;
 		} else {
-			article_info.reason += `: [[${wikitext.link}]]`;
+			article_info.reason += `: [[${VA_template_object.link}]]`;
 		}
 	}
-	// console.log(wikitext);
+	// console.log(VA_template_object);
+	let wikitext;
 	if (VA_template) {
-		CeL.wiki.parse.replace_parameter(VA_template, wikitext, { value_only: true, force_add: true, append_key_value: true });
+		CeL.wiki.parse.replace_parameter(VA_template, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
 		wikitext = parsed.toString();
 	} else {
-		wikitext = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, wikitext);
+		wikitext = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext}`);
 		wikitext += '\n' + talk_page_data.wikitext;
 	}
