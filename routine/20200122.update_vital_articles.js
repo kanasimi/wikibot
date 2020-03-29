@@ -714,7 +714,7 @@ function check_page_count() {
 				// When an article is not listed {{Vital article}} should be removed, not just blanking the |level=.
 				remove: true,
 				level: '',
-				reason: 'The article is NOT listed in the vital article list page.'
+				reason: 'The article is NOT listed in any vital article list page.'
 			};
 			listed_article_info[page_title] = [];
 			continue;
@@ -791,7 +791,9 @@ async function maintain_VA_template() {
 		}, {
 			// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
 			//redirects: 1,
-			nocreate: false,
+
+			// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
+			nocreate: 1,
 			bot: 1,
 			log_to: null,
 			summary: talk_page_summary
