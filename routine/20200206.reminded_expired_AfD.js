@@ -415,11 +415,11 @@ async function for_AfD(AfD_page_data) {
 	}
 
 	let already_noticed;
-	AfD_page_data.wikitext.each_between(PROD_MESSAGE_PREFIX, '\n', token => {
+	(AfD_page_data.wikitext + '\n').each_between(PROD_MESSAGE_PREFIX, '\n', token => {
 		const date_list = CeL.wiki.parse.date(token, { language: use_language, get_timevalue: true, get_all_list: true });
-		console.log([token, date_list]);
+		//console.log([AfD_page_data.title, token, date_list]);
 		if (Date.now() - date_list.min_timevalue < CeL.to_millisecond('7D')) {
-			already_noticed = true;
+			already_noticed = date_list.min_timevalue;
 		}
 	});
 	if (already_noticed) {
@@ -529,6 +529,7 @@ ${result_notice} --~~~~`);
 	// return;
 
 	await wiki.edit_page(AfD_page_data, page_wikitext, {
+		tags: 'bot trial',
 		summary: `bot trial edit: [[Wikipedia:Bot requests#A heads up for AfD closers re: PROD eligibility when approaching NOQUORUM|Informing the article's PROD eligibility]]: ${summary || 'Seems NOT eligible for PROD'}`,
 	});
 }
