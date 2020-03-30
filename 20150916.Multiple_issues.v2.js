@@ -546,12 +546,14 @@ CeL.wiki.cache([ {
 		//
 		+ content + '\n|}\n\n' + configuration.報表添加維護分類;
 
+		var postfix = ' (列入報表的最低模板數:' + 列入報表的最低模板數 + ')';
+
 		wiki.page(title + '/計數').edit(String(count), {
-			summary : _summary + '數: ' + count
+			summary : _summary + '數: ' + count + postfix
 		});
 
 		wiki.page(title).edit(content, {
-			summary : _summary + ': ' + count + '條'
+			summary : _summary + ': ' + count + '條' + postfix
 		});
 
 		return 含有太多維護模板之頁面.map(function(list, index) {
