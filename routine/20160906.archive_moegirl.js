@@ -33,6 +33,11 @@ tags = 'Bot|快速存档讨论串',
 resolved_template = [ 'MarkAsResolved', 'MAR', '标记为完成' ],
 /** {Number}archive-offset 默認為3天 */
 resolved_template_dafault_days = 3,
+// 最快`MIN_archive_offset`天才會存檔
+MIN_archive_offset = 1,
+
+// 存檔標題數量上限
+max_archived_topics,
 
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
@@ -75,8 +80,10 @@ function main_process() {
 				|| archive_page_postfix;
 		resolved_template = configuration.resolved_template
 				|| resolved_template;
-		if (configuration.resolved_template_dafault_days >= 1)
+		if (configuration.resolved_template_dafault_days >= MIN_archive_offset)
 			resolved_template_dafault_days = configuration.resolved_template_dafault_days;
+		if (configuration.max_archived_topics > 0)
+			max_archived_topics = configuration.max_archived_topics;
 	}
 	// console.log(board_list);
 	// console.log(tags);
@@ -116,6 +123,18 @@ function for_board(page_data) {
 	var archive_title = page_data.title
 			+ (new Date).format(archive_page_postfix);
 
+	// archived_topic_list = [ slice, slice, ... ]
+	var archived_topic_list = [];
+
+	function remove_slice(slice) {
+		// parser[slice[0] - 1] : section title
+		for (var i = slice[0] - 1; i < slice[1]; i++) {
+			// stupid way
+			parser[i] = '';
+		}
+		remove_count++;
+	}
+
 	sections.forEach(function(parser_index, section_index) {
 		// console.log(parser[parser_index]);
 		var section_title = parser[parser_index].join('').trim(),
@@ -138,11 +157,9 @@ function for_board(page_data) {
 						.test(section_text)) {
 			// 每月1號：刪除所有{{Saved}}提示模板。
 			if (remove_old_notice_section) {
-				remove_count++;
-				for (var i = slice[0] - 1; i < slice[1]; i++) {
-					// stupid way
-					parser[i] = '';
-				}
+				remove_slice(slice);
+			} else {
+				archived_topic_list.push(slice);
 			}
 			return;
 		}
@@ -162,7 +179,7 @@ function for_board(page_data) {
 					return;
 				// 機器人只讀得懂`archive-offset=數字`的情況
 				var boundary_date = +token.parameters['archive-offset'];
-				if (!(boundary_date >= 1))
+				if (!(boundary_date >= MIN_archive_offset))
 					boundary_date = resolved_template_dafault_days;
 				boundary_date = Date.parse(matched[1] + '-' + matched[2] + '-'
 						+ matched[3] + ' UTC+8')
@@ -288,6 +305,11 @@ function for_board(page_data) {
 			+ '←' + CeL.wiki.title_link_of(page_data)
 		});
 	});
+
+	while (archived_topic_list.length > max_archived_topics) {
+		remove_slice(archived_topic_list.shift());
+	}
+
 	// return;
 
 	// 移除需要存檔的議題段落。
