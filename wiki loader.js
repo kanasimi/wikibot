@@ -95,6 +95,12 @@ CeL.run([ 'interact.DOM', 'application.debug',
 
 // ----------------------------------------------------------------------------
 
+if (_global.on_load_CeL) {
+	// e.g., in `./wiki configuration.js`
+	_global.on_load_CeL();
+	delete _global.on_load_CeL;
+}
+
 if (!_global.Wikiapi) {
 	try {
 		// Load wikiapi module.
