@@ -32,11 +32,11 @@ tags = 'Bot|快速存档讨论串',
 /** {Array}標記已完成討論串的模板 */
 resolved_template = [ 'MarkAsResolved', 'MAR', '标记为完成' ],
 /** {Number}archive-offset 默認為3天 */
-resolved_template_dafault_days = 3,
+resolved_template_default_days = 3,
 // 最快`MIN_archive_offset`天才會存檔
 MIN_archive_offset = 1,
 
-// 存檔標題數量上限
+// 已存檔標題數量上限。每當已存檔的標題數量到達`max_archived_topics`時，每新增一個存檔標題就移除一個已存檔標題。
 max_archived_topics,
 
 /** {Object}wiki operator 操作子. */
@@ -80,8 +80,8 @@ function main_process() {
 				|| archive_page_postfix;
 		resolved_template = configuration.resolved_template
 				|| resolved_template;
-		if (configuration.resolved_template_dafault_days >= MIN_archive_offset)
-			resolved_template_dafault_days = configuration.resolved_template_dafault_days;
+		if (configuration.resolved_template_default_days >= MIN_archive_offset)
+			resolved_template_default_days = configuration.resolved_template_default_days;
 		if (configuration.max_archived_topics > 0)
 			max_archived_topics = configuration.max_archived_topics;
 	}
@@ -180,7 +180,7 @@ function for_board(page_data) {
 				// 機器人只讀得懂`archive-offset=數字`的情況
 				var boundary_date = +token.parameters['archive-offset'];
 				if (!(boundary_date >= MIN_archive_offset))
-					boundary_date = resolved_template_dafault_days;
+					boundary_date = resolved_template_default_days;
 				boundary_date = Date.parse(matched[1] + '-' + matched[2] + '-'
 						+ matched[3] + ' UTC+8')
 						// +1: {{#expr:{{{archive-offset|3}}} + 1}} days}}
