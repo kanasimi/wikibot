@@ -337,7 +337,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 						CSD_link = CSD_link[0];
 				}
 				log_text = `${to_timestamp(log)} {{color|red|✗}} ` + (is_PROD ? '[[WP:PROD|]]' : CSD_link || 'deleted');
-				const note = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
+				const note = `${PROD_ineligible_MESSAGE_PREFIX}it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
 				if (is_PROD)
 					result_notice_data.PROD = note;
 				// CSD/BLPPROD doesn't affect PROD/soft deletion eligibility
@@ -349,7 +349,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				// type: 'delete'
 				// [[File:Gnome-undelete.svg|20px]]
 				log_text = `${to_timestamp(log)} {{color|blue|↻}} restored`;
-				logs.note = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
+				logs.note = `${PROD_ineligible_MESSAGE_PREFIX}it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
 				break;
 			case 'create':
 				// type: 'create'
@@ -389,7 +389,7 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 		if (!PATTERN_PROD.test(revision.comment))
 			return;
 		// NOT ineligible for PROD.
-		result_notice_data.PROD = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it has been [[Special:Diff/${revision.revid}|previously PROD'd]] (via summary).`;
+		result_notice_data.PROD = `${PROD_ineligible_MESSAGE_PREFIX}it has been [[Special:Diff/${revision.revid}|previously PROD'd]] (via summary).`;
 		return true;
 	});
 }
@@ -404,7 +404,7 @@ let ignore_recommendations = {
 	'Logs': true,
 };
 const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE_recommendation}''': `;
-const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], ";
+const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], it is '''NOT eligible for [[WP:SOFTDELETE|soft deletion]]''' because ";
 
 async function for_AfD(AfD_page_data) {
 	/** {String}target page title */
@@ -453,7 +453,7 @@ async function for_AfD(AfD_page_data) {
 	// console.log(redirect_to);
 	if (redirect_to) {
 		result_notice_data.redirect_to = redirect_to;
-		result_notice_data.redirect = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because the subject is currently redirecting to ${CeL.wiki.title_link_of(redirect_to)}.`;
+		result_notice_data.redirect = `${PROD_ineligible_MESSAGE_PREFIX}the subject is currently redirecting to ${CeL.wiki.title_link_of(redirect_to)}.`;
 		report_lines.push(`Current redirect {{color|green|↪}} ${CeL.wiki.title_link_of(redirect_to)}`);
 	}
 
@@ -464,7 +464,7 @@ async function for_AfD(AfD_page_data) {
 	// console.log(discussions);
 	if (discussions) {
 		if (discussions.result)
-			result_notice_data.discussion = `${PROD_ineligible_MESSAGE_PREFIX}it is NOT eligible for [[WP:SOFTDELETE|soft deletion]] because it was [[${discussions.result[1]}|previously discussed at AfD]] and the result was ${discussions.result[0]}.`;
+			result_notice_data.discussion = `${PROD_ineligible_MESSAGE_PREFIX}it was [[${discussions.result[1]}|previously discussed at AfD]] and the result was ${discussions.result[0]}.`;
 		add_report_line(discussions.previous, 'Previous discussions');
 		add_report_line(discussions.related, 'Related discussions');
 	}
@@ -495,7 +495,7 @@ async function for_AfD(AfD_page_data) {
 			return;
 
 		summary = 'Seems eligible for PROD';
-		result_notice = `${PROD_MESSAGE_PREFIX}This nomination has had limited participation and falls within the standards set for [[WP:NOQUORUM|lack of quorum]]. There are no previous AfD discussions, undeletions, ${result_notice_data.redirect_to ? '' : 'or current redirects '}and no previous PRODs have been located. This nomination may be eligible for [[WP:SOFTDELETE|soft deletion]] at the end of its ${close_days}-day listing.`;
+		result_notice = `${PROD_MESSAGE_PREFIX}This nomination has had limited participation and falls within the standards set for [[WP:NOQUORUM|lack of quorum]]. There are no previous AfD discussions, undeletions, ${result_notice_data.redirect_to ? '' : 'or current redirects '}and no previous PRODs have been located. This nomination may be '''eligible for [[WP:SOFTDELETE|soft deletion]]''' at the end of its ${close_days}-day listing.`;
 	}
 
 	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
