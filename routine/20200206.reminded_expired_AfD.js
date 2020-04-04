@@ -176,7 +176,7 @@ function check_AfD_participations(AfD_page_data) {
 				return;
 			recommendation = recommendation[1].toLowerCase().match(check_AfD_participations.PATTERN);
 			if (recommendation in ignore_recommendations) {
-				// Ignore the notes by bot it self.
+				// Ignore the notes adding by the bot it self.
 				return;
 			}
 			participations[recommendation || check_AfD_participations.type_others].push(participations);
@@ -396,14 +396,14 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 
 // ----------------------------------------------------------------------------
 
-const PROD_MESSAGE_recommendation = 'Note to closer for soft deletion';
-let ignore_recommendations = {
-	[PROD_MESSAGE_recommendation]: true,
-	'Previous discussions': true,
-	'Related discussions': true,
-	'Logs': true,
+const PROD_MESSAGE = {
+	recommendation: 'Note to closer for soft deletion',
+	previous_discussions: 'Previous discussions',
+	related_discussions: 'Related discussions',
+	logs: 'Logs',
 };
-const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE_recommendation}''': `;
+const ignore_recommendations = PROD_MESSAGE;
+const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE.recommendation}''': `;
 const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], it is '''NOT eligible for [[WP:SOFTDELETE|soft deletion]]''' because ";
 
 async function for_AfD(AfD_page_data) {
@@ -465,8 +465,8 @@ async function for_AfD(AfD_page_data) {
 	if (discussions) {
 		if (discussions.result)
 			result_notice_data.discussion = `${PROD_ineligible_MESSAGE_PREFIX}it was [[${discussions.result[1]}|previously discussed at AfD]] and the result was ${discussions.result[0]}.`;
-		add_report_line(discussions.previous, 'Previous discussions');
-		add_report_line(discussions.related, 'Related discussions');
+		add_report_line(discussions.previous, PROD_MESSAGE.previous_discussions);
+		add_report_line(discussions.related, PROD_MESSAGE.related_discussions);
 	}
 
 	// -------------------------------------------------------
@@ -478,7 +478,7 @@ async function for_AfD(AfD_page_data) {
 	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: logs`);
 	// console.log(logs);
 	// [{{fullurl:Special:Log|page=target_page_title}} Logs]
-	add_report_line(logs, 'Logs');
+	add_report_line(logs, PROD_MESSAGE.logs);
 
 	// -------------------------------------------------------
 
