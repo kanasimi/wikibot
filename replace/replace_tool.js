@@ -25,6 +25,7 @@ CeL.run([
 
 // 20190913.replace.js
 log_to = log_to.replace(/\d+$/, 20190913);
+const bot_requests_page = 'WP:BOTREQ';
 
 // global variables using in move_configuration
 const DELETE_PAGE = Symbol('DELETE_PAGE');
@@ -70,16 +71,118 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
-async function prepare_operation(meta_configuration, move_configuration) {
-	// 解構賦值 `({ a, b, c = 3 } = { a: 1, b: 2 })`
-	const { summary, section_title } = meta_configuration;
-	const _summary = typeof summary === 'string' ? summary : section_title;
-	const _section_title = section_title ? '#' + section_title : '';
+// 從已知資訊解開並自動填寫 `meta_configuration`
+async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
+	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
+	if (!meta_configuration.section_title) {
+		if (script_name) {
+			CeL.info(`Get section title from task file name: ${script_name}`);
+			meta_configuration.section_title = script_name;
+		} else {
+			throw new Error('Can not extract section title from task file name!');
+		}
+	}
 
+	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
+	const section_title = meta_configuration.section_title;
+	if (!meta_configuration.diff_id) {
+		if (section_title) {
+			// TODO: get diff_id from content
+			const bot_requests_page_data = await wiki.page(bot_requests_page, {
+				redirects: 1,
+				//rvprop: 'ids|comment|user|content',
+				rvprop: 'ids|comment|user',
+				//rvlimit: 'max',
+				rvlimit: 80,
+			});
+			let user, diff_to, diff_from;
+			bot_requests_page_data.revisions.forEach(revision => {
+				const comment = section_title === script_name
+					// 去掉檔名中不能包含的字元。
+					? revision.comment.replace(/:/g, '') : revision.comment;
+				//console.log([section_title, comment]);
+				const matched = comment.match(/^\/\*(.+)\*\//);
+				//console.log(matched);
+				if (matched && matched[1].includes(section_title)) {
+					// console.log(revision);
+					if (user === revision.user && diff_to > 0) {
+						diff_from = revision.parentid;
+					} else {
+						user = revision.user;
+						diff_to = revision.revid;
+						//diff_from = revision.parentid;
+						diff_from = null;
+					}
+
+					if (section_title === script_name) {
+						// 復原檔名中不能包含的字元。
+						const _section_title = revision.comment.match(/^\/\*(.+)\*\//)[1].trim();
+						//console.log([section_title, _section_title]);
+						if (section_title !== _section_title) {
+							CeL.info(`Change section_title: ${section_title}→${_section_title}`);
+							// TODO: parse
+							section_title = meta_configuration.section_title = _section_title;
+						}
+					}
+				} else {
+					user = null;
+				}
+			});
+			if (diff_to > 0) {
+				meta_configuration.diff_id = diff_from > 0 ? diff_from + '/' + diff_to : diff_to;
+				CeL.info(`Get diff_id from edit summary: [[Special:Diff/${meta_configuration.diff_id}#${section_title}]]`);
+			} else {
+				throw new Error(`Can not extract diff id from ${CeL.wiki.title_link_of(bot_requests_page)} edit summary!`);
+			}
+
+		} else {
+			CeL.error(`Did not set diff_id!`);
+		}
+	}
+
+}
+
+// auto-notice: start to edit
+async function note_to_edit(wiki, meta_configuration) {
+	const bot_requests_page_data = await wiki.page(bot_requests_page, { redirects: 1 });
+	/** {Array} parsed page content 頁面解析後的結構。 */
+	const parsed = bot_requests_page_data.parse();
+	let need_edit;
+
+	const section_title = meta_configuration.section_title;
+	parsed.each_section(section => {
+		if (!section.section_title || !section.section_title[0].includes(section_title)) {
+			return;
+		}
+		//console.log(section.toString());
+		if ((new RegExp('\\n: {{BOTREQ\\|作業中}} .+?' + user_name, 'i')).test(section.toString())) {
+			CeL.info(`Already noticed: ${section_title}`);
+			return;
+		}
+		//assert: parsed[section.range[1] - 1] ===section[section.length - 1]
+		parsed[section.range[1] - 1] += '\n: {{BOTREQ|作業中}} --~~~~';
+		need_edit = true;
+	});
+
+	if (need_edit) {
+		await wiki.edit_page(bot_requests_page, parsed.toString(), { redirects: 1 });
+	}
+}
+
+async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = new Wikiapi;
 
 	await wiki.login(user_name, user_password, use_language);
+
+	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
+
+	await note_to_edit(wiki, meta_configuration);
+
+	// 解構賦值 `({ a, b, c = 3 } = { a: 1, b: 2 })`
+	const { summary, section_title } = meta_configuration;
+	const _summary = typeof summary === 'string' ? summary : section_title;
+	const _section_title = section_title ? '#' + section_title : '';
 
 	if (typeof move_configuration === 'function') {
 		move_configuration = await move_configuration(wiki);
@@ -279,6 +382,7 @@ const default_namespace = 'main|file|module|template|category';
 
 async function main_move_process(task_configuration) {
 	const wiki = task_configuration.wiki;
+
 	let list_types;
 	if (task_configuration.list_types) {
 		// empty, using page_list to debug: list_types:[],
