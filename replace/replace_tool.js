@@ -107,6 +107,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 					// console.log(revision);
 					if (user === revision.user && diff_to > 0) {
 						diff_from = revision.parentid;
+						// At last, diff_from should starts from e.g., "→‎鈴木正人のリンク修正: 新しい節"
 					} else {
 						user = revision.user;
 						diff_to = revision.revid;
@@ -140,6 +141,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 		}
 	}
 
+	//throw new Error(section_title);
 }
 
 // auto-notice: start to edit
@@ -155,17 +157,22 @@ async function note_to_edit(wiki, meta_configuration) {
 			return;
 		}
 		//console.log(section.toString());
-		if ((new RegExp('\\n: {{BOTREQ\\|作業中}} .+?' + user_name, 'i')).test(section.toString())) {
+		let PATTERN = /\n[:* ]*{{BOTREQ\|作業中}}/i;
+		//PATTERN = new RegExp(PATTERN.source + ' .+?' + user_name, PATTERN.flags);
+		if (PATTERN.test(section.toString())) {
 			CeL.info(`Already noticed: ${section_title}`);
 			return;
 		}
 		//assert: parsed[section.range[1] - 1] ===section[section.length - 1]
-		parsed[section.range[1] - 1] += '\n: {{BOTREQ|作業中}} --~~~~';
+		parsed[section.range[1] - 1] += '\n* {{BOTREQ|作業中}} --~~~~';
 		need_edit = true;
 	});
 
 	if (need_edit) {
-		await wiki.edit_page(bot_requests_page, parsed.toString(), { redirects: 1 });
+		await wiki.edit_page(bot_requests_page, parsed.toString(), {
+			redirects: 1,
+			summary: 'Starting bot request task: ' + section_title
+		});
 	}
 }
 
@@ -578,6 +585,7 @@ function for_each_link(token, index, parent) {
 				// 直接只使用 displayed_text。
 				CeL.info(`Using displayed text directly: ${CeL.wiki.title_link_of(this.page_data.title)}`);
 			}
+			// リンクを外してその文字列にして
 			parent[index] = token[2] || token[0];
 		} else {
 			// e.g., リダイレクト解消
@@ -733,6 +741,8 @@ function for_each_template(page_data, token, index, parent) {
 	}
 
 	// ----------------------------------------------------
+
+	// 不可處理: {{改名提案}}
 
 	// templates that ONLY ONE parament is displayed as link.
 	if (replace_link_parameter(this, token, {
