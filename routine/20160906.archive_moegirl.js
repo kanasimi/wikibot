@@ -51,13 +51,13 @@ archive_boundary_10 = Date.now() - 10 * ONE_DAY_LENGTH_VALUE,
 // NG: 申請升職管理員的討論串，將於投票結束且討論結束的3日（即72小時）後進行存檔。
 archive_boundary_3 = Date.now() - 3 * ONE_DAY_LENGTH_VALUE,
 // 每月1號：刪除所有{{Saved}}提示模板。
-remove_old_notice_section = (new Date(Date.now()
+monthly_remove_old_notice_section = (new Date(Date.now()
 // to UTC+0
 + (new Date).getTimezoneOffset() * 60 * 1000
 // Use UTC+8
 + 8 * 60 * 60 * 1000)).getUTCDate() === 1;
 
-// remove_old_notice_section = true;
+// monthly_remove_old_notice_section = true;
 // CeL.set_debug(2);
 
 wiki.run(main_process);
@@ -126,15 +126,6 @@ function for_board(page_data) {
 	// archived_topic_list = [ slice, slice, ... ]
 	var archived_topic_list = [];
 
-	function remove_slice(slice) {
-		// parser[slice[0] - 1] : section title
-		for (var i = slice[0] - 1; i < slice[1]; i++) {
-			// stupid way
-			parser[i] = '';
-		}
-		remove_count++;
-	}
-
 	sections.forEach(function(parser_index, section_index) {
 		// console.log(parser[parser_index]);
 		var section_title = parser[parser_index].join('').trim(),
@@ -155,12 +146,7 @@ function for_board(page_data) {
 				// 跳過已存檔{{Saved}}, {{Movedto}}
 				&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
 						.test(section_text)) {
-			// 每月1號：刪除所有{{Saved}}提示模板。
-			if (remove_old_notice_section) {
-				remove_slice(slice);
-			} else {
-				archived_topic_list.push(slice);
-			}
+			archived_topic_list.push(slice);
 			return;
 		}
 
@@ -306,8 +292,15 @@ function for_board(page_data) {
 		});
 	});
 
-	while (archived_topic_list.length > max_archived_topics) {
-		remove_slice(archived_topic_list.shift());
+	// 每月1號：刪除所有{{Saved}}提示模板。
+	while (monthly_remove_old_notice_section
+			|| archived_topic_list.length > max_archived_topics) {
+		// parser[slice[0] - 1] : section title
+		for (var index = slice[0] - 1; index < slice[1]; index++) {
+			// stupid way
+			parser[index] = '';
+		}
+		remove_count++;
 	}
 
 	// return;
@@ -317,7 +310,10 @@ function for_board(page_data) {
 		var summary_list = [];
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
-			summary_list.push('本月首日移除' + remove_count + '個討論串');
+			summary_list.push((monthly_remove_old_notice_section ? '本月首日'
+					: '已存檔' + archived_topic_list.length + '個標題，超過存檔標題數量上限'
+							+ max_archived_topics + '，')
+					+ '移除' + remove_count + '個討論串');
 		}
 		if (archive_count > 0) {
 			summary_list.push('存檔' + archive_count + '個過期討論串→'
