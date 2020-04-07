@@ -338,8 +338,14 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				}
 				log_text = `${to_timestamp(log)} {{color|red|✗}} ` + (is_PROD ? '[[WP:PROD|]]' : CSD_link || 'deleted');
 				const note = `${PROD_ineligible_MESSAGE_PREFIX}it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
-				if (is_PROD)
+				if (is_PROD) {
 					result_notice_data.PROD = note;
+				} else if (CSD_link && logs.length > 0 && logs[logs.length - 1].includes('restored')
+					//[[Wikipedia:Articles for deletion/Stella Nova]]: a restored speedy deletion does not prevent SOFTDELETE.
+					&& logs.note && logs.note.includes('previously undeleted')) {
+					delete logs.note;
+				}
+
 				// CSD/BLPPROD doesn't affect PROD/soft deletion eligibility
 				// ([[WP:PROD#cite_ref-1]]), so don't need to track that.
 				if (false && is_PROD && !logs.note)
@@ -349,7 +355,8 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				// type: 'delete'
 				// [[File:Gnome-undelete.svg|20px]]
 				log_text = `${to_timestamp(log)} {{color|blue|↻}} restored`;
-				logs.note = `${PROD_ineligible_MESSAGE_PREFIX}it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
+				if (!logs.note)
+					logs.note = `${PROD_ineligible_MESSAGE_PREFIX}it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
 				break;
 			case 'create':
 				// type: 'create'
