@@ -123,17 +123,18 @@ function for_board(page_data) {
 	var archive_title = page_data.title
 			+ (new Date).format(archive_page_postfix);
 
-	// archived_topic_list = [ slice, slice, ... ]
+	// archived_topic_list = [ topic_slice, topic_slice, ... ]
 	var archived_topic_list = [];
 
 	sections.forEach(function(parser_index, section_index) {
 		// console.log(parser[parser_index]);
 		var section_title = parser[parser_index].join('').trim(),
 		// +1: 跳過 section title 本身
-		slice = [ parser_index + 1,
+		topic_slice = [ parser_index + 1,
 				sections[section_index + 1] || parser.length ],
 		//
-		section_text = Array.prototype.slice.apply(parser, slice).join('');
+		section_text = Array.prototype.slice.apply(parser, topic_slice)
+				.join('');
 		if (!section_title) {
 			CeL.error('No title: ' + section_text);
 			return;
@@ -146,7 +147,7 @@ function for_board(page_data) {
 				// 跳過已存檔{{Saved}}, {{Movedto}}
 				&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
 						.test(section_text)) {
-			archived_topic_list.push(slice);
+			archived_topic_list.push(topic_slice);
 			return;
 		}
 
@@ -180,7 +181,7 @@ function for_board(page_data) {
 				}
 			}
 		}, {
-			slice : slice
+			slice : topic_slice
 		});
 
 		if (needless === undefined) {
@@ -213,7 +214,7 @@ function for_board(page_data) {
 					return date > archive_boundary_date;
 				});
 			}, {
-				slice : slice
+				slice : topic_slice
 			});
 
 			if (needless === undefined) {
@@ -231,9 +232,9 @@ function for_board(page_data) {
 		// console.log(needless);
 		CeL.log('need archive: [' + section_title + ']');
 		archive_count++;
-		parser[slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
+		parser[topic_slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
 				+ section_anchor + '}}\n';
-		for (var i = slice[0] + 1; i < slice[1]; i++) {
+		for (var i = topic_slice[0] + 1; i < topic_slice[1]; i++) {
 			// stupid way
 			parser[i] = '';
 		}
@@ -295,8 +296,9 @@ function for_board(page_data) {
 	// 每月1號：刪除所有{{Saved}}提示模板。
 	while (monthly_remove_old_notice_section
 			|| archived_topic_list.length > max_archived_topics) {
-		// parser[slice[0] - 1] : section title
-		for (var index = slice[0] - 1; index < slice[1]; index++) {
+		var topic_slice = archived_topic_list.shift();
+		// parser[topic_slice[0] - 1] : section title
+		for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
 			// stupid way
 			parser[index] = '';
 		}
