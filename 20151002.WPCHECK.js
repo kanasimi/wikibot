@@ -47,9 +47,10 @@ only_check = approved,
 /** {Natural|Array}限制每一項最大處理頁面數。 */
 處理頁面數;
 
-if (0)
+if (false) {
 	only_check = [ 1, 2, 5, 8, 9, 10, 13, 14, 15, 16, 17, 23, 24, 26, 29, 38,
 			54, 64, 65, 69, 76, 80, 86, 93, 98, 99, 102, 103, 104 ];
+}
 only_check = [ 1, 2, 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ];
 
 // only_check = not_approved;
@@ -473,6 +474,18 @@ function fix_9(content, page_data, messages, config) {
 
 // is_tail_part: 為後面之 token
 function NOT_inside_square_brackets(token, is_tail_part) {
+	// [[Special:Diff/58854944]]
+	// 不修復包在<source>、<syntaxhighlight>及其對應的#tag{{#tag:source}}、{{#tag:syntaxhighlight}}中的疑似連結
+	var matched = token.match(/<(source|syntaxhighlight)[^\w]([\s\S]+?)$/);
+	if (matched && !matched[2].includes('</' + matched[1])) {
+		return;
+	}
+
+	matched = token.match(/{{#tag:(source|syntaxhighlight)([\s\S]+?)$/);
+	if (matched && !matched[2].includes('}}')) {
+		return;
+	}
+
 	// token: [[text]] 內部 ((text)) 部分之資料。
 	// console.log(' :"' + token + '"');
 	token = token.replace(/\|(.+)$/, function(all) {
@@ -489,7 +502,7 @@ function NOT_inside_square_brackets(token, is_tail_part) {
 
 	// console.log(' >"' + token + '"');
 
-	var matched = token.match(is_tail_part ? /^[^\[\]]*([\[\]])/
+	matched = token.match(is_tail_part ? /^[^\[\]]*([\[\]])/
 			: /([\[\]])[^\[\]]*$/);
 	// console.log(matched);
 	// console.log(!matched || matched[1] !== (is_tail_part ? ']' : '['));
@@ -502,7 +515,7 @@ fix_10.title = '連結方括號未對應';
 function fix_10(content, page_data, messages, config) {
 	var match_previous = NOT_inside_square_brackets;
 
-	function match_next(text) {
+	function match_following(text) {
 		return NOT_inside_square_brackets(text, true);
 	}
 
@@ -510,22 +523,22 @@ function fix_10(content, page_data, messages, config) {
 
 	// e.g., [[[L]] → [[L]]
 	content = content.replace_check_near(/\[{3,4}([^\[\]]{1,20})\]\]/g,
-			'[[$1]]', match_previous, match_next);
+			'[[$1]]', match_previous, match_following);
 	// console.log('1→ ' + content);
 
 	// e.g., [[L] → [[L]]
 	content = content.replace_check_near(/\[\[([^\[\]]{1,20})\]/g, '[[$1]]',
-			match_previous, match_next);
+			match_previous, match_following);
 	// console.log('2→ ' + content);
 
 	// e.g., [[L]]] 排除 [[L|[註]]] → [[L]]
 	content = content.replace_check_near(/\[\[([^\[\]]{1,20})\]{3,4}/g,
-			'[[$1]]', match_previous, match_next);
+			'[[$1]]', match_previous, match_following);
 	// console.log('3→ ' + content);
 
 	// e.g., [L]] 排除 [[L|[註]]] → [[L]]
 	content = content.replace_check_near(/\[([^\[\]]{1,20})\]\]/g, '[[$1]]',
-			match_previous, match_next);
+			match_previous, match_following);
 	// console.log('4→ ' + content);
 
 	// e.g., [[[L]][ → [[L]]
@@ -789,7 +802,8 @@ var PATTERN_category = /\[\[(?:Category|分類|分类):([^|\[\]]+)(\|[^|\[\]]+)?
 // 頁面分類名稱重複
 fix_17.title = '分類名稱重複，排序索引以後出現者為主。';
 function fix_17(content, page_data, messages, config) {
-	var category_index_hash = Object.create(null), category_hash = Object.create(null), matched;
+	var category_index_hash = Object.create(null), category_hash = Object
+			.create(null), matched;
 	// search all category list
 	while (matched = PATTERN_category.exec(content)) {
 		// 經測試，排序索引會以後面出現者為主。
