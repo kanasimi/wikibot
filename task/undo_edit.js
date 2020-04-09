@@ -15,7 +15,7 @@
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
-var wiki = Wiki(true/* , 'ja' */);
+var wiki = Wiki(true/* , 'ja' */, 'en');
 
 // ---------------------------------------------------------------------//
 
@@ -29,6 +29,7 @@ const length = 80;
 function filter_summary(summary) {
 	// console.log(summary);
 	// return summary === 'Robot';
+	return summary.includes('The article is listed in the level ');
 	return summary.includes('替換 cite 系列模板');
 	// return summary.includes('16: Unicode');
 	return summary.includes('2016年ロサンゼルスに復帰し');
