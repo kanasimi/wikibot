@@ -49,6 +49,7 @@ const base_page_prefix = 'Wikipedia:Vital articles';
 const DEFAULT_LEVEL = 3;
 
 // @see function set_section_title_count(parent_section)
+// [ all, quota+articles postfix ]
 const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)?\s+articles?\)/i;
 const PATTERN_counter_title = new RegExp(/^[\w\s\-–']+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
 
@@ -73,24 +74,22 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = (await wiki.prefixsearch(base_page_prefix))
-		// exclude [[Wikipedia:Vital articles/Labels]], [[Wikipedia:Vital articles 5/Labels]]
-		.filter(page_data => !page_data.title.endsWith('/Labels')) || [
-			// 1,
-			// 2,
-			// 3 && '',
-			// '4/Removed',
-			// '4/People',
-			// '4/History',
-			// '4/Physical sciences',
-			// '5/People/Writers and journalists',
-			// '5/People/Artists, musicians, and composers',
-			// '5/Physical sciences/Physics',
-			// '5/Technology',
-			// '5/Everyday life/Sports, games and recreation',
-			// '5/Mathematics',
-			'5/Geography/Cities',
-		].map(level => `${base_page_prefix}${level ? `/Level/${level}` : ''}`);
+	const vital_articles_list = (await wiki.prefixsearch(base_page_prefix)) || [
+		// 1,
+		// 2,
+		// 3 && '',
+		// '4/Removed',
+		// '4/People',
+		// '4/History',
+		// '4/Physical sciences',
+		// '5/People/Writers and journalists',
+		// '5/People/Artists, musicians, and composers',
+		// '5/Physical sciences/Physics',
+		// '5/Technology',
+		// '5/Everyday life/Sports, games and recreation',
+		// '5/Mathematics',
+		'5/Geography/Cities',
+	].map(level => `${base_page_prefix}${level ? `/Level/${level}` : ''}`);
 	// console.log(vital_articles_list.length);
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
@@ -310,10 +309,17 @@ function icons_and_item_toString() {
 	return this.join(' ');
 }
 
+function is_ignored_list_page(list_page_data) {
+	const title = list_page_data.title;
+	return title.endsWith('/Removed')
+		//[[Wikipedia:Vital articles/Level/4/People/Candidates]]
+		|| title.endsWith('/Candidates');
+}
+
 async function for_each_list_page(list_page_data) {
 	if (CeL.wiki.parse.redirect(list_page_data))
 		return Wikiapi.skip_edit;
-	if (list_page_data.title.endsWith('/Removed')) {
+	if (list_page_data.title.endsWith('/Labels')) {
 		// Skip non-list pages.
 		return Wikiapi.skip_edit;
 	}
@@ -408,7 +414,7 @@ async function for_each_list_page(list_page_data) {
 
 				const category_level = level_of_page[normalized_page_title];
 				// The frist link should be the main article.
-				if (category_level === level) {
+				if (category_level === level || is_ignored_list_page(list_page_data)) {
 					// Remove level note. It is unnecessary.
 					replace_level_note(_item, index, category_level, '');
 				} else {
