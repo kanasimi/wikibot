@@ -323,6 +323,10 @@ async function for_each_list_page(list_page_data) {
 		// Skip non-list pages.
 		return Wikiapi.skip_edit;
 	}
+	if (is_ignored_list_page(list_page_data)) {
+		// 想要更新這些被忽略的頁面，必須做更多測試，避免他們也列入索引。
+		return Wikiapi.skip_edit;
+	}
 
 	const level = level_of_page_title(list_page_data, true) || DEFAULT_LEVEL;
 	// console.log([list_page_data.title, level]);
