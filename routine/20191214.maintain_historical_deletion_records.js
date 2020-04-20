@@ -31,13 +31,13 @@ const notification_template = `Template:${CeL.wiki.template_functions.Old_vfd_mu
 // [[維基百科:刪除投票和請求/2006年4月13日]]開始有依照段落來分割討論的格式。
 // [[維基百科:刪除投票和請求/2006年5月2日]]開始有{{delh|}}標示處理結果。
 const start_date = '2006-05-02';
-// const start_date = '2007-03-12';
+// const start_date = '2008-02-12';
 
 // 刪除投票分拆方案已經通過，並將於2008年8月12日起正式分拆。
 const revision_date = Date.parse('2008-08-12');
 
 const end_date = Date.now();
-// const end_date = Date.parse('2018/05/13');
+// const end_date = Date.parse('2008/10/13');
 // const end_date = Date.parse(start_date);
 
 const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated', FLAG_CONFLICTED = 'conflicted';
@@ -97,6 +97,9 @@ async function main_process() {
 	// console.log(pages_to_modify);
 	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
 
+	// Wait 10 seconds.
+	//await new Promise(resolve => setTimeout(resolve, 10 * 1000));
+
 	await modify_pages();
 	using_cache && CeL.write_file(ignore_pages_file, ignore_pages);
 	// 若有更改過，則需要重新再取得。
@@ -107,6 +110,8 @@ async function main_process() {
 	await generate_report();
 
 	CeL.info(`${(new Date).format()}	${Object.keys(pages_to_modify).length} pages done.`);
+
+	routine_task_done('7d');
 }
 
 // ----------------------------------------------------------------------------
@@ -190,10 +195,13 @@ async function get_deletion_discussions() {
 	} else {
 		// console.log(vfd_page_list);
 		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page, {
+			//hash: `[${vfd_page_list.length}] vfd_page_list`,
+			//last() { CeL.info(`get_deletion_discussions: last: ${vfd_page_list.length} vfd pages finished.`); },
 			no_warning: true,
 			no_message: true
 		});
 	}
+	//CeL.info(`get_deletion_discussions: return: ${vfd_page_list.length} vfd pages.`);
 }
 
 const KEY_title = Symbol('title');
@@ -217,7 +225,7 @@ async function check_deletion_discussion_page(page_data) {
 		if (!title)
 			return;
 		title = title.toString();
-		if (/%[a-f\d]{2}/.test(title)) {
+		if (/%[a-f\d]{2}/i.test(title)) {
 			try {
 				title = decodeURIComponent(title);
 			} catch { }
@@ -431,6 +439,8 @@ async function check_deletion_discussion_page(page_data) {
 	// console.log(page_list);
 
 	await wiki.for_each_page(page_list, check_deletion_page.bind(flags_of_page, JDN), {
+		//hash: `check_deletion_discussion_page: [${page_list.length}] page_list: ${page_list.slice(0, 1)}`,
+		//last() { CeL.info(`check_deletion_discussion_page: last: ${page_list.length} pages finished. ${normalized_main_page_title}`); },
 		// no warning like "wiki_API.work: 取得 10/11 個頁面，應有 1 個重複頁面。"
 		no_warning: true,
 		no_message: true,
@@ -439,9 +449,11 @@ async function check_deletion_discussion_page(page_data) {
 			prop: 'info'
 		}
 	});
+	//CeL.info(`check_deletion_discussion_page: done: ${normalized_main_page_title}`);
 	// console.log(pages_to_modify);
 }
 
+//wiki.namespace('User');
 const NS_User = CeL.wiki.namespace('User');
 
 async function check_deletion_page(JDN, page_data) {
@@ -692,13 +704,26 @@ async function modify_pages() {
 		// ----------------------------
 
 		try {
+			//console.trace(`modify_pages: Edit talk page 1: ${page_title}`);
+			//CeL.set_debug();
 			await wiki.edit_page(page_title, function (page_data) {
+				//console.trace(`modify_pages: Edit talk page 2: to set content: ${page_title}; ${page_data && page_data.title}`);
+				if (false && page_title !== (page_data && page_data.title)) {
+					//e.g., converted: Talk:重楼; Talk:重樓
+					// Talk:範姓; Talk:范姓
+
+					//process.exit(0);
+					throw new Error(`${page_title}; ${page_data && page_data.title}`);
+				}
+				//process.exit(0);
+				//CeL.set_debug(0);
+				//return;
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				// will using cache
 				// notification: 'VFD',
 				bot: 1,
-				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]]'
+				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]] '
 					+ CeL.wiki.title_link_of(notification_template)
 			});
 
