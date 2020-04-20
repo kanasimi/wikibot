@@ -51,7 +51,7 @@ const DEFAULT_LEVEL = 3;
 // @see function set_section_title_count(parent_section)
 // [ all, quota+articles postfix ]
 const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)?\s+articles?\)/i;
-const PATTERN_counter_title = new RegExp(/^[\w\s\-–']+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
+const PATTERN_counter_title = new RegExp(/^[\w\s\-–',\/]+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
 
 const report_lines = [];
 report_lines.skipped_records = 0;
@@ -199,8 +199,14 @@ async function get_page_info() {
 	// ---------------------------------------------
 	// Check VA class, synchronize FA|FL|GA|List.
 
+	const former_icon_of_VA_class = {
+		FA: 'FFA',
+		FL: 'FFLC',
+		GA: 'FGAN',
+	};
+
 	for (let page_title in icons_of_page) {
-		const icons = icons_of_page[page_title];
+		let icons = icons_of_page[page_title];
 		if (!icons.VA_class) {
 			// There is no VA class of the title. abnormal!
 			continue;
@@ -208,6 +214,16 @@ async function get_page_info() {
 
 		// List → LIST
 		const VA_class = icons.VA_class.toUpperCase();
+
+		// Remove FGAN form ".VA_class = GA".
+		if (former_icon_of_VA_class[VA_class] && icons.includes(former_icon_of_VA_class[VA_class])) {
+			icons = icons_of_page[page_title] = icons.filter(icon => icon !== former_icon_of_VA_class[VA_class]);
+		}
+		// Also remove the FGAN symbol from articles that are also DGA. It just seems redundant to show the FGAN symbol for delisted good articles.
+		if (icons.includes('DGA') && icons.includes('FGAN')) {
+			icons = icons_of_page[page_title] = icons.filter(icon => icon !== 'FGAN');
+		}
+
 		// Release memory. 釋放被占用的記憶體。
 		delete icons.VA_class;
 		if (icons.includes(VA_class)) {
