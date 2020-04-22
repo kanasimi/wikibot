@@ -192,9 +192,17 @@ _global.use_language = '';
 // project = language_code.family
 _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 
+_global.login_options = {
+	user_name: user_name,
+	password: _global.user_password,
+	preserve_password: true,
+	task_configuration_page: log_to + '/configuration'
+};
+
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function(language) {
 	use_language = language;
+	login_options.API_URL = language;
 	CeL.gettext.use_domain(language, true);
 	// 因為 CeL.wiki.set_language() 會用到 gettext()，
 	// 因此得置於 CeL.gettext.use_domain() 後。
@@ -227,11 +235,9 @@ _global.Wiki = function new_wiki(login, API_URL) {
 	var un = user_name, pw = _global.user_password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
-	var session = CeL.wiki.login(un, pw, {
-		API_URL : api,
-		preserve_password : true,
-		task_configuration_page : log_to + '/configuration'
-	});
+	var session = CeL.wiki.login(un, pw, Object.assign(Object.create(null), login_options, {
+		API_URL : api
+	}));
 	if (typeof check_section === 'string') {
 		session.check_options = {
 			section : check_section

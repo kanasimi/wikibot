@@ -35,12 +35,17 @@ const PATTERN_AfD_page = /^Wikipedia:Articles for deletion\/([^\/]+)$/;
 // ----------------------------------------------------------------------------
 
 (async () => {
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
 
 async function main_process() {
+	//console.log(wiki.latest_task_configuration);
+	if (!wiki.latest_task_configuration.general) {
+		wiki.latest_task_configuration.general = Object.create(null);
+	}
+
 	if (false) {
 		await for_AfD('Wikipedia:Articles for deletion/Quintana Olleras');
 		await for_AfD('Wikipedia:Articles for deletion/Michael Breslin Murphy');
@@ -497,11 +502,12 @@ async function for_AfD(AfD_page_data) {
 
 	let result_notice = result_notice_data.redirect || result_notice_data.discussion || result_notice_data.PROD || result_notice_data.log;
 	let summary;
+	const task_configuration = wiki.latest_task_configuration.general;
 	if (!result_notice) {
 		if (report_lines.length === 0)
 			return;
 
-		summary = 'Seems eligible for PROD';
+		summary = task_configuration.eligible_PROD_summary || 'Seems eligible for PROD';
 		result_notice = `${PROD_MESSAGE_PREFIX}This nomination has had limited participation and falls within the standards set for [[WP:NOQUORUM|lack of quorum]]. There are no previous AfD discussions, undeletions, ${result_notice_data.redirect_to ? '' : 'or current redirects '}and no previous PRODs have been located. This nomination may be '''eligible for [[WP:SOFTDELETE|soft deletion]]''' at the end of its ${close_days}-day listing.`;
 	}
 
@@ -536,7 +542,7 @@ ${result_notice} --~~~~`);
 	// return;
 
 	await wiki.edit_page(AfD_page_data, page_wikitext, {
-		tags: 'bot trial',
-		summary: `bot trial edit: [[Wikipedia:Bot requests#A heads up for AfD closers re: PROD eligibility when approaching NOQUORUM|Informing the article's PROD eligibility]]: ${summary || 'Seems NOT eligible for PROD'}`,
+		//tags: 'bot trial',
+		summary: `${task_configuration.edit_summary_prefix || ''}${summary || task_configuration.NOT_eligible_PROD_summary || 'Seems NOT eligible for PROD'}`,
 	});
 }
