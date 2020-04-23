@@ -100,11 +100,11 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 				const comment = section_title === script_name
 					// 去掉檔名中不能包含的字元。
 					? revision.comment.replace(/:/g, '') : revision.comment;
-				// console.log(section_title);
-				// console.log(comment);
+				//console.log(section_title);
+				//console.log(comment);
 				const matched = comment.match(/^\/\*(.+)\*\//);
 				// console.log(matched);
-				if (matched && matched[1].includes(section_title)) {
+				if (matched && matched[1].trim() === section_title.trim()) {
 					// console.log(revision);
 					if (user === revision.user && diff_to > 0) {
 						diff_from = revision.parentid;
@@ -157,7 +157,7 @@ async function note_to_edit(wiki, meta_configuration) {
 	//console.log(section_title);
 	parsed.each_section(section => {
 		//console.log(section.section_title && section.section_title.link[1]);
-		if (!section.section_title || !section.section_title.link[1].includes(section_title)) {
+		if (!section.section_title || section.section_title.link[1] !== section_title) {
 			return;
 		}
 		// console.log(section.toString());
@@ -168,8 +168,9 @@ async function note_to_edit(wiki, meta_configuration) {
 			CeL.info(`Already noticed: ${section_title}`);
 			return;
 		}
-		// assert: parsed[section.range[1] - 1] ===section[section.length - 1]
-		parsed[section.range[1] - 1] += '\n* {{BOTREQ|作業中}} --~~~~';
+		const index = section.range[1] - 1;
+		// assert: parsed[index] ===section[section.length - 1]
+		parsed[index] = parsed[index].toString().trimEnd() + '\n* {{BOTREQ|作業中}} --~~~~\n';
 		need_edit = true;
 	});
 
@@ -185,7 +186,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = new Wikiapi;
 
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
+	// await wiki.login(null, null, use_language);
 
 	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
 
@@ -395,20 +397,26 @@ const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.spli
 const default_namespace = 'main|file|module|template|category';
 // 'talk|template_talk|category_talk'
 
-async function main_move_process(task_configuration) {
+async function get_list(task_configuration, list_configuration) {
+	if (!list_configuration) {
+		list_configuration = task_configuration;
+	} else if (typeof list_configuration === 'string') {
+		list_configuration = { move_from_link: list_configuration };
+	}
+
 	const wiki = task_configuration.wiki;
 
 	let list_types;
-	if (task_configuration.list_types) {
+	if (list_configuration.list_types) {
 		// empty, using page_list to debug: list_types:[],
-		list_types = task_configuration.list_types;
-	} else if (CeL.is_RegExp(task_configuration.move_from_link)) {
+		list_types = list_configuration.list_types;
+	} else if (CeL.is_RegExp(list_configuration.move_from_link)) {
 		list_types = 'search';
-	} else if (typeof task_configuration.move_from_link !== 'string') {
-		throw new Error(`Invalid move_from_link: ${JSON.stringify(task_configuration.move_from_link)}`);
-	} else if (/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(task_configuration.move_from_link)) {
+	} else if (typeof list_configuration.move_from_link !== 'string') {
+		throw new Error(`Invalid move_from_link: ${JSON.stringify(list_configuration.move_from_link)}`);
+	} else if (/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(list_configuration.move_from_link)) {
 		list_types = 'search';
-	} else if (/^https?:\/\//.test(task_configuration.move_from_link)) {
+	} else if (/^https?:\/\//.test(list_configuration.move_from_link)) {
 		// should have task_configuration.text_processor()
 		list_types = 'exturlusage';
 	} else if (!task_configuration.move_to_link && task_configuration.for_template) {
@@ -424,21 +432,27 @@ async function main_move_process(task_configuration) {
 	let list_options = {
 		// combine_pages: for list_types = 'exturlusage'
 		// combine_pages: true,
-		namespace: task_configuration.namespace || default_namespace
+		namespace: list_configuration.namespace || default_namespace
 	};
 
 	if (list_types.join() === 'exturlusage') {
-		task_configuration.move_from = {
-			page_title: task_configuration.move_from_link
+		list_configuration.move_from = {
+			page_title: list_configuration.move_from_link
 		};
-		if (task_configuration.replace_protocol_to && !task_configuration.move_to_link) {
+
+		if (task_configuration !== list_configuration) {
+			// Skip
+		} else if (task_configuration.replace_protocol_to && !task_configuration.move_to_link) {
 			// e.g., {'http://www.example.com/':{replace_protocol_to:'https'}}
 			// →
 			// {'http://www.example.com/':{replace_protocol_to:'https',move_to_url:'https://www.example.com/'}}
 			// Overwrite `task_configuration.move_to_url`
 			task_configuration.move_to_url = task_configuration.move_from_link.replace(/^.+?:\/\//, task_configuration.replace_protocol_to.replace(/:$/, '') + '://');
 		}
-		if (!task_configuration.text_processor && (task_configuration.move_to_link || task_configuration.move_to_url)) {
+
+		if (task_configuration !== list_configuration) {
+			// Skip
+		} else if (!task_configuration.text_processor && (task_configuration.move_to_link || task_configuration.move_to_url)) {
 			// e.g.,
 			// {'http://www.example.com/':{external_link_only:true,move_to_link:'https://www.example.com/'}}
 			// {'http://www.example.com/':{replace_protocol_to:'https',external_link_only:true}}
@@ -447,22 +461,33 @@ async function main_move_process(task_configuration) {
 		}
 
 	} else if (list_types.join() !== 'search') {
-		// separate namespace and page name
-		task_configuration.move_from = Object.assign(parse_move_link(task_configuration.move_from_link, wiki), task_configuration.move_from);
-		const move_to = parse_move_link(task_configuration.move_to_link, wiki);
-		if (move_to)
-			task_configuration.move_to = Object.assign(move_to, task_configuration.move_to);
-		// console.log(task_configuration.move_from);
-
-		if (task_configuration.move_from.ns !== CeL.wiki.namespace('Category')) {
-			list_types = list_types.filter(type => type !== 'categorymembers');
+		if (list_configuration.move_from_link) {
+			// separate namespace and page name
+			list_configuration.move_from = Object.assign(parse_move_link(list_configuration.move_from_link, wiki), list_configuration.move_from);
+			// console.log(task_configuration.move_from);
+			if (list_configuration.move_from.ns !== wiki.namespace('Category')) {
+				list_types = list_types.filter(type => type !== 'categorymembers');
+			}
+		} else {
+			// There is no list_configuration.move_from_link for list_types: 'allcategories'
+			list_configuration.move_from = Object.create(null);
 		}
 
+		if (task_configuration !== list_configuration) {
+			// Skip
+		} else {
+			const move_to = parse_move_link(task_configuration.move_to_link, wiki);
+			if (move_to)
+				task_configuration.move_to = Object.assign(move_to, task_configuration.move_to);
+		}
+
+	} else if (task_configuration !== list_configuration) {
+		// Skip
 	} else if (!task_configuration.text_processor && typeof task_configuration.move_to_link === 'string') {
 		if (!task_configuration.replace_from) {
-			let move_from_string = task_configuration.move_from_link.match(/^insource:(.+)$/);
+			let move_from_string = list_configuration.move_from_link.match(/^insource:(.+)$/);
 			if (!move_from_string) {
-				CeL.warn(`main_move_process: Should set text_processor() with list_types=${list_types}!`);
+				CeL.warn(`get_list: Should set text_processor() with list_types=${list_types}!`);
 			} else {
 				move_from_string = move_from_string[1];
 				let replace_from = move_from_string.match(/^\/(.+)\/([ig]*)$/);
@@ -477,44 +502,77 @@ async function main_move_process(task_configuration) {
 					replace_from = move_from_string.match(/^"([^"]+)"$/);
 					replace_from = new RegExp(CeL.to_RegExp_pattern(replace_from ? replace_from[1] : move_from_string), 'g');
 				}
-				task_configuration.replace_from = replace_from;
+				list_configuration.replace_from = replace_from;
 			}
 		}
-		if (task_configuration.replace_from)
+		if (list_configuration.replace_from)
 			task_configuration.text_processor = text_processor_for_search;
 		// console.log(task_configuration);
 	}
 
-	let page_list = task_configuration.page_list;
+	let page_list = list_configuration.page_list;
+	const list_title = list_configuration.move_from.page_title ? CeL.wiki.title_link_of(list_configuration.move_from.page_title) : list_types;
 	if (page_list) {
-		// assert: Array.isArray(task_configuration.page_list)
-		CeL.info(`main_move_process: Process ${page_list.length} pages`);
+		// assert: Array.isArray(list_configuration.page_list)
+		CeL.info(`get_list: Process ${page_list.length} pages`);
 	} else {
 		page_list = [];
-		CeL.info(`main_move_process: Get types: ${list_types}`
-			+ (task_configuration.move_from.page_title ? ` of ${use_language}: ${CeL.wiki.title_link_of(task_configuration.move_from.page_title)}` : '')
-			+ (task_configuration.move_from_link && task_configuration.move_from_link !== task_configuration.move_from.page_title ? ` (${JSON.stringify(task_configuration.move_from_link)})` : ''));
+		CeL.info(`get_list: Get types: ${list_types}`
+			+ (list_configuration.move_from.page_title ? ` of ${use_language}: ${CeL.wiki.title_link_of(list_configuration.move_from.page_title)}` : '')
+			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_configuration.move_from.page_title ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
+		);
+		const list_filter = list_configuration.list_filter;
 		// Can not use `list_types.forEach(async type => ...)`
 		for (let type of list_types) {
-			page_list.append(await wiki[type](task_configuration.move_from.page_title, list_options));
+			let list_segment = await wiki[type](list_configuration.move_from.page_title, list_options);
+			if (list_filter) {
+				list_segment = list_segment.filter(list_filter);
+			}
+			page_list.append(list_segment);
+			process.stdout.write(`${list_title}: ${page_list.length} pages...\r`);
 		}
 	}
 
 	page_list = page_list.filter((page_data) => {
-		return page_data.ns !== CeL.wiki.namespace('Wikipedia')
-			&& page_data.ns !== CeL.wiki.namespace('User')
+		return !wiki.is_namespace(page_data, 'Wikipedia')
+			&& !wiki.is_namespace(page_data, 'User')
 			// && !page_data.title.includes('/過去ログ')
 			;
 	});
 	page_list = page_list.unique(page_data => page_data.title);
-	if (task_configuration.page_limit >= 1)
-		page_list = page_list.truncate(task_configuration.page_limit);
+	if (list_configuration.page_limit >= 1)
+		page_list = page_list.truncate(list_configuration.page_limit);
 	// manually for debug
 	// page_list = [''];
 
 	// page_list.truncate(2);
 	// console.log(page_list);
 
+	CeL.info(`get_list: Got ${page_list.length} page(s) from ${list_title}`);
+	return page_list;
+}
+
+async function main_move_process(task_configuration) {
+	let page_list = await get_list(task_configuration);
+	//console.log(page_list.length);
+	//console.log(page_list.slice(0, 10));
+
+	let list_intersection = task_configuration.list_intersection;
+	if (list_intersection && (typeof list_intersection === 'string' || CeL.is_Object(list_intersection))) {
+		list_intersection = [list_intersection];
+	}
+	// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
+	if (Array.isArray(list_intersection)) {
+		for (let list_configuration of list_intersection) {
+			const sub_page_id_hash = Object.create(null);
+			(await get_list(task_configuration, list_configuration)).forEach(page_data => { sub_page_id_hash[page_data.pageid] = null; });
+			page_list = page_list.filter(page_data => page_data.pageid in sub_page_id_hash);
+		}
+	}
+	//console.log(page_list.length);
+	//console.log(page_list.slice(0, 10));
+
+	const wiki = task_configuration.wiki;
 	await wiki.for_each_page(
 		page_list,
 		for_each_page.bind(task_configuration),
