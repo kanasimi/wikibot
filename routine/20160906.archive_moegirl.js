@@ -298,8 +298,10 @@ function for_board(page_data) {
 
 	archived_topic_list.total_count = archived_topic_list.length;
 	// 每月1號：刪除所有{{Saved}}提示模板。
-	while (monthly_remove_old_notice_section
-			|| archived_topic_list.length + archive_count > max_archived_topics) {
+	while (monthly_remove_old_notice_section || archived_topic_list.length
+	// 不移除當天存檔者，除非執行第二次。
+	// + archive_count
+	> max_archived_topics) {
 		var topic_slice = archived_topic_list.shift();
 		// parser[topic_slice[0] - 1] : section title
 		for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
@@ -315,7 +317,6 @@ function for_board(page_data) {
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (remove_count > 0) {
-			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
 			summary_list.push((monthly_remove_old_notice_section ? '本月首日'
 					: '已存檔' + archived_topic_list.total_count
 							+ '個標題，超過存檔標題數量上限' + max_archived_topics + '，')
