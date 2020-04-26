@@ -19,12 +19,12 @@
 // Load CeJS library and modules.
 require('./wiki loader.js');
 
+login_options.configuration_adapter = adapt_configuration;
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-/** {String}設定頁面標題。 e.g., "User:bot/設定" */
-configuration_page_title = 'Wikipedia:首頁/特色內容展示設定',
 /** {Object}設定頁面所獲得之手動設定。 */
 configuration;
 
@@ -119,101 +119,89 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-wiki.cache([ {
-	type : 'page',
-	list : configuration_page_title,
-	redirects : 1,
-	reget : true,
-	operator : setup_configuration
-}, {
-	type : 'page',
-	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
-	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
-	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
-	// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
-	list : Former_FC_list_pages.concat(FC_list_pages),
-	redirects : 1,
-	reget : true,
-	each : parse_each_FC_item_list_page
-}, {
-	type : 'page',
-	list : sub_FC_list_pages,
-	redirects : 1,
-	reget : true,
-	each : parse_each_FC_item_list_page
-}, {
-	type : 'redirects_here',
-	// TODO: 一次取得大量頁面。
-	list : function() {
-		CeL.debug('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
-		CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
-		new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
-			delete FC_data_hash[FC_title][KEY_LIST_PAGE];
-			return !(FC_title in redirects_to_hash);
-		});
-		return new_FC_pages;
-	},
-	reget : true,
-	// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
-	each : check_FC_redirects
-}, {
-	type : 'page',
-	// TODO: 一次取得大量頁面。
-	list : generate_FC_date_page_list,
-	redirects : 1,
-	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
-	each : parse_each_FC_date_page
-}, {
-	type : 'redirects_here',
-	// TODO: 一次取得大量頁面。
-	list : redirects_list_to_check,
-	reget : true,
-	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
-	each : check_redirects
-}, {
-	// 檢查含有特色內容、優良條目模板之頁面是否與登記項目頁面相符合。
-	type : 'embeddedin',
-	reget : true,
-	list : (using_GA ? 'Template:Good article'
-	//
-	: 'Template:Featured article|Template:Featured list').split('|'),
-	each : check_FC_template,
-	operator : summary_FC_template
-} ], check_date_page, {
-	// JDN index in parse_each_FC_date_page()
-	JDN : JDN_start,
-	// index in check_redirects()
-	redirects_index : 0,
+wiki.run(function() {
 
-	// default options === this
-	// [SESSION_KEY]
-	// session : wiki,
-	// cache path prefix
-	prefix : base_directory
+	wiki.cache([ {
+		type : 'page',
+		// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
+		// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
+		// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
+		// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
+		list : Former_FC_list_pages.concat(FC_list_pages),
+		redirects : 1,
+		reget : true,
+		each : parse_each_FC_item_list_page
+	}, {
+		type : 'page',
+		list : sub_FC_list_pages,
+		redirects : 1,
+		reget : true,
+		each : parse_each_FC_item_list_page
+	}, {
+		type : 'redirects_here',
+		// TODO: 一次取得大量頁面。
+		list : function() {
+			CeL.debug('redirects_to_hash = '
+			//
+			+ JSON.stringify(redirects_to_hash));
+			CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
+			new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
+				delete FC_data_hash[FC_title][KEY_LIST_PAGE];
+				return !(FC_title in redirects_to_hash);
+			});
+			return new_FC_pages;
+		},
+		reget : true,
+		// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
+		each : check_FC_redirects
+	}, {
+		type : 'page',
+		// TODO: 一次取得大量頁面。
+		list : generate_FC_date_page_list,
+		redirects : 1,
+		// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
+		each : parse_each_FC_date_page
+	}, {
+		type : 'redirects_here',
+		// TODO: 一次取得大量頁面。
+		list : redirects_list_to_check,
+		reget : true,
+		// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
+		each : check_redirects
+	}, {
+		// 檢查含有特色內容、優良條目模板之頁面是否與登記項目頁面相符合。
+		type : 'embeddedin',
+		reget : true,
+		list : (using_GA ? 'Template:Good article'
+		//
+		: 'Template:Featured article|Template:Featured list').split('|'),
+		each : check_FC_template,
+		operator : summary_FC_template
+	} ], check_date_page, {
+		// JDN index in parse_each_FC_date_page()
+		JDN : JDN_start,
+		// index in check_redirects()
+		redirects_index : 0,
+
+		// default options === this
+		// [SESSION_KEY]
+		// session : wiki,
+		// cache path prefix
+		prefix : base_directory
+	});
+
 });
 
 // ---------------------------------------------------------------------//
 
-function parse_configuration_table(table) {
-	var configuration = Object.create(null);
-	if (Array.isArray(table)) {
-		table.forEach(function(line) {
-			configuration[line[0]] = line[1];
-		});
-	}
+// 讀入手動設定 manual settings。
+function adapt_configuration(latest_task_configuration) {
+	configuration = latest_task_configuration;
 	// console.log(configuration);
-	return configuration;
-}
-
-function setup_configuration(page_data) {
-	// 讀入手動設定 manual settings。
-	configuration = CeL.wiki.parse_configuration(page_data);
-	// console.log(configuration);
+	// console.log(wiki);
 
 	// 一般設定
-	var general = configuration.general
-	// 設定必要的屬性。
-	= parse_configuration_table(configuration.general);
+	var general = configuration.general;
 
 	if (general.stop_working && general.stop_working !== 'false') {
 		CeL.info('stop_working setted. exiting...');
@@ -264,8 +252,8 @@ function setup_configuration(page_data) {
 					+ flush_cache_before.format()
 					+ ' 前要更新 cache。'
 					+ (latest_flush_time ? '上一次更新是在'
-							+ new Date(latest_flush_time).format() : '')
-					+ '，因此清空 cache 目錄。移除 cache 重新取得資料。');
+							+ new Date(latest_flush_time).format() + '，' : '')
+					+ '因此清空 cache 目錄。移除 cache 重新取得資料。');
 			prepare_directory(base_directory, true);
 		}
 		latest_flush.date = new Date;
@@ -986,7 +974,9 @@ function check_date_page() {
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
 	//
-	+ CeL.wiki.title_link_of(configuration_page_title + '#一般設定', '更改設定參數')
+	+ CeL.wiki.title_link_of(configuration.configuration_page_title
+	//
+	+ '#一般設定', '更改設定參數')
 	// <s>不簽名，避免一日之中頻繁變更。 " --~~~~"</s>
 	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n'
@@ -1241,7 +1231,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		FC_data_hash[FC_title][KEY_LATEST_JDN])) + '展示' : '沒上過首頁')
 		//
-		+ '。作業機制請參考' + CeL.wiki.title_link_of(configuration_page_title)
+		+ '。作業機制請參考'
+		//
+		+ CeL.wiki.title_link_of(configuration.configuration_page_title)
 	// 已轉換過
 	// + ' 編輯摘要的red link經繁簡轉換後存在'
 	}, function(page_data, error, result) {
@@ -1503,7 +1495,8 @@ function update_portal() {
 		bot : 1,
 		nocreate : 1,
 		summary : 'bot: 更新[[Portal:特色內容]]。作業機制請參考'
-				+ CeL.wiki.title_link_of(configuration_page_title)
+		//
+		+ CeL.wiki.title_link_of(configuration.configuration_page_title)
 	};
 
 	// ----------------------------------------------------

@@ -99,7 +99,7 @@ move_configuration = {
 move_configuration = async (wiki) => {
 	const page_data = await wiki.page('Category‐ノート:カテゴリを集めたカテゴリ (分類指標別)/「○○別に分類したカテゴリ」の一覧');
 	let configuration = Object.create(null);
-	const page_configuration = CeL.wiki.parse_configuration(page_data);
+	const page_configuration = CeL.wiki.parse.configuration(page_data);
 	for (let pair of page_configuration['○○別に分類したカテゴリ系の改名対象候補（143件）']) {
 		if (pair[1].startsWith(':Category')) {
 			// Remove header ":"

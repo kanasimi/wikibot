@@ -9,6 +9,7 @@ jstop cron-20170915.topic_list.ja;
 jstop cron-20170915.topic_list.wikisource;
 jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
+jstop cron-20170915.topic_list.moegirl;
 
 /usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=zh-classical
@@ -17,6 +18,7 @@ jstop cron-20170915.topic_list.commons;
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=commons
+/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js API_URL=https://zh.moegirl.org/api.php
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -87,14 +89,13 @@ require('../wiki loader.js');
 /* global CeL */
 /* global Wiki */
 
+login_options.configuration_adapter = adapt_configuration;
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-/** {String}設定頁面標題。 e.g., "User:bot/設定" */
-configuration_page_title = 'User:' + user_name + '/'
-		+ (use_language === 'zh' ? '討論頁面主題列表設定' : 'topic list configuration'),
-/** {Object}設定頁面所獲得之手動設定 manual settings。 */
+/** {Object}設定頁面所獲得之手動設定 manual settings。 === wiki.latest_task_configuration */
 configuration,
 
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
@@ -163,6 +164,7 @@ var section_column_operators = {
 	// function: .call(page_data, section, section_index)
 	NO : function(section, section_index) {
 		if (/* force */true || !(section_index >= 1)) {
+			// e.g., [[w:zh:Wikipedia:机器人/申请]]
 			// CeL.info('NO_counter: ' + this.page.NO_counter);
 			if (!this.page.NO_counter)
 				this.page.NO_counter = 0;
@@ -279,27 +281,17 @@ function traversal_all_pages() {
 
 // ----------------------------------------------
 
-function parse_configuration_table(table) {
-	var configuration = Object.create(null);
-	if (Array.isArray(table)) {
-		table.forEach(function(line) {
-			configuration[line[0]] = line[1];
-		});
-	}
-	// console.log(configuration);
-	return configuration;
-}
+var had_adapted;
 
 // 讀入手動設定 manual settings。
-function adapt_configuration(page_configuration, traversal) {
-	configuration = page_configuration;
+function adapt_configuration(latest_task_configuration) {
+	configuration = latest_task_configuration;
 	// console.log(configuration);
+	// console.log(wiki);
 	adapt_configuration_to_page(configuration);
 
 	// 一般設定
-	var general = configuration.general
-	// 設定必要的屬性。
-	= parse_configuration_table(configuration.general);
+	var general = configuration.general;
 
 	if (general.stop_working && general.stop_working !== 'false') {
 		CeL.info('stop_working setted. exiting...');
@@ -320,7 +312,7 @@ function adapt_configuration(page_configuration, traversal) {
 		delete general.max_title_display_width;
 	}
 
-	var configuration_now = configuration.list_style = parse_configuration_table(configuration.list_style);
+	var configuration_now = configuration.list_style;
 	for ( var attribute_name in configuration_now) {
 		var style = configuration_now[attribute_name];
 		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
@@ -334,7 +326,7 @@ function adapt_configuration(page_configuration, traversal) {
 		}
 	}
 
-	configuration_now = configuration.closed_style = parse_configuration_table(configuration.closed_style);
+	configuration_now = configuration.closed_style;
 	for ( var attribute_name in {
 		link_color : true,
 		link_backgroundColor : true
@@ -359,32 +351,51 @@ function adapt_configuration(page_configuration, traversal) {
 	if (configuration_now.show_subtopic === 'false') {
 		configuration_now.show_subtopic = JSON
 				.parse(configuration_now.show_subtopic);
+	} else {
+		configuration_now.show_subtopic = !!configuration_now.show_subtopic;
 	}
 
 	// setup_list_legend();
 
 	// 顯示主題列表之頁面。
-	if (configuration.listen_to_pages) {
-		configuration_now = configuration.listen_to_pages = parse_configuration_table(configuration.listen_to_pages);
+	configuration_now = configuration.listen_to_pages;
+	function adapt_listen_to_page(page_title) {
+		var page_config = configuration_now[page_title];
+		if (!page_title.startsWith(CeL.wiki.site_name(wiki)))
+			page_title = CeL.wiki.site_name(wiki) + ':' + page_title;
+		if (page_configurations[page_title]) {
+			// Skip existed page.
+			return;
+		}
 
-		Object.keys(configuration_now).forEach(function(page_title) {
-			var page_config = configuration_now[page_title];
-			if (!page_title.startsWith(CeL.wiki.site_name(wiki)))
-				page_title = CeL.wiki.site_name(wiki) + ':' + page_title;
-			if (!page_configurations[page_title])
-				page_configurations[page_title] = general_page_configuration;
-		});
+		try {
+			page_config = page_config ? JSON.parse(page_config) : page_config;
+		} catch (e) {
+			CeL.error('adapt_configuration: Invalid page configuration for '
+					+ CeL.wiki.title_link_of(page_title) + ': ' + page_config);
+			return;
+		}
+
+		CeL.info('+ Listen to page: ' + CeL.wiki.title_link_of(page_title));
+		page_configurations[page_title] = /^zh/.test(page_title)
+		// workaround. TODO: using String_to_Date.zone
+		? Object.assign({
+			timezone : 8
+		}, general_page_configuration) : general_page_configuration;
 	}
-
-	// 這是轉換過的標題。
-	configuration_page_title = configuration.configuration_page_title;
+	if (configuration_now) {
+		Object.keys(configuration_now).forEach(adapt_listen_to_page);
+	}
 
 	CeL.log('Configuration:');
 	console.log(configuration);
 
-	// 每次更改過設定之後重新生成一輪討論頁面主題列表。
-	if (traversal !== 'no_traversal')
+	if (had_adapted) {
+		// 每次更改過設定之後重新生成一輪討論頁面主題列表。
 		traversal_all_pages();
+	} else {
+		had_adapted = true;
+	}
 }
 
 // ----------------------------------------------
@@ -402,14 +413,9 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-wiki.page(configuration_page_title, start_main_work);
+wiki.run(start_main_work);
 
-function start_main_work(page_data) {
-
-	adapt_configuration(CeL.wiki.parse_configuration(page_data), 'no_traversal');
-
-	// ----------------------------------------------------
-
+function start_main_work() {
 	// for debug: 僅處理此頁面
 	if (false) {
 		page_configurations = {
@@ -444,6 +450,7 @@ function start_main_work(page_data) {
 	// main_talk_pages = [ 'Wikipedia:特色圖片評選' ];
 	// main_talk_pages = [ 'Wikipedia:井戸端' ];
 	// main_talk_pages = [ 'Wikipedia:削除依頼/ログ/先週', 'Wikipedia:削除依頼/ログ/先々週' ];
+	// main_talk_pages = [ 'Wikipedia:机器人/申请' ];
 
 	// ----------------------------------------------------
 
@@ -474,8 +481,6 @@ function start_main_work(page_data) {
 			delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
 			filter : main_talk_pages,
 			with_content : true,
-			configuration_page : configuration_page_title,
-			adapt_configuration : adapt_configuration,
 			// language : use_language,
 			// options.use_SQL: Try to use SQL. Use SQL as possibile.
 			use_SQL : true,

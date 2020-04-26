@@ -46,6 +46,7 @@ var _global = typeof globalThis === 'object' && globalThis
 _global.user_name = 'bot_name';
 /** {String}user/bot owner name */
 _global.owner_name = 'bot_owner_name';
+_global.user_password = '';
 
 var process_env = _global.process && process.env;
 if (process_env) {
@@ -193,10 +194,12 @@ _global.use_language = '';
 _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 
 _global.login_options = {
-	user_name: user_name,
-	password: _global.user_password,
-	preserve_password: true,
-	task_configuration_page: log_to + '/configuration'
+	user_name : user_name,
+	password : user_password,
+	preserve_password : true,
+	// wiki.latest_task_configuration.configuration_page_title
+	task_configuration_page : log_to + '/configuration',
+	configuration_adapter : null
 };
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
@@ -232,12 +235,13 @@ _global.Wiki = function new_wiki(login, API_URL) {
 		return new CeL.wiki(null, null, api);
 	}
 
-	var un = user_name, pw = _global.user_password;
+	var un = user_name, pw = user_password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
-	var session = CeL.wiki.login(un, pw, Object.assign(Object.create(null), login_options, {
-		API_URL : api
-	}));
+	var session = CeL.wiki.login(un, pw, Object.assign(Object.create(null),
+			login_options, {
+				API_URL : api
+			}));
 	if (typeof check_section === 'string') {
 		session.check_options = {
 			section : check_section

@@ -24,13 +24,13 @@ require('../wiki loader.js');
 
 var
 /** {Array}討論區列表 */
-board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ], board_left,
+board_list = [], board_left,
 /** {String}存檔頁面 postfix */
 archive_page_postfix = '/存档/%Y年%2m月',
 /** {String} 存檔作業[[Special:tags]] "tag應該多加一個【Bot】tag" */
 tags = 'Bot|快速存档讨论串',
-/** {Array}標記已完成討論串的模板 */
-resolved_template = [ 'MarkAsResolved', 'MAR', '标记为完成' ],
+/** {Array}標記已完成討論串的模板別名列表 */
+resolved_template_aliases = [ 'MarkAsResolved' ],
 /** {Number}archive-offset 默認為3天 */
 resolved_template_default_days = 3,
 // 最快`MIN_archive_offset`天才會存檔
@@ -65,6 +65,7 @@ wiki.run(main_process);
 function main_process() {
 	var configuration = wiki.latest_task_configuration
 			&& wiki.latest_task_configuration.general;
+	// console.log(wiki.task_configuration);
 	if (configuration) {
 		CeL.info('Configuration:');
 		console.log(configuration);
@@ -78,8 +79,8 @@ function main_process() {
 		}
 		archive_page_postfix = configuration.archive_page_postfix
 				|| archive_page_postfix;
-		resolved_template = configuration.resolved_template
-				|| resolved_template;
+		resolved_template_aliases = configuration.resolved_template_aliases
+				|| resolved_template_aliases;
 		if (configuration.resolved_template_default_days >= MIN_archive_offset)
 			resolved_template_default_days = configuration.resolved_template_default_days;
 		if (+configuration.max_archived_topics >= 1)
@@ -153,7 +154,7 @@ function for_board(page_data) {
 			// https://zh.moegirl.org/Template:MarkAsResolved
 			// 2020年3月3日 →
 			// 您仍可以繼續在本模板上方回覆，但這個討論串將會在本模板懸掛3日後 (於2020年3月7日凌晨) 存檔。
-			if (resolved_template.includes(token.name)) {
+			if (resolved_template_aliases.includes(token.name)) {
 				// console.log(token);
 				var matched = token.parameters.time
 						&& token.parameters.time
@@ -288,7 +289,7 @@ function for_board(page_data) {
 			sectiontitle : section_title,
 			summary : CeL.wiki.title_link_of(
 			//
-			wiki.latest_task_configuration.configuration_page_title,
+			wiki.task_configuration.configuration_page_title,
 			//
 			'存檔過期討論串') + ': ' + section_title
 			//
@@ -300,7 +301,7 @@ function for_board(page_data) {
 	// 每月1號：刪除所有{{Saved}}提示模板。
 	while (monthly_remove_old_notice_section || archived_topic_list.length
 	// 不移除當天存檔者，除非執行第二次。
-	// + archive_count
+	// + archive_count: 移除當天存檔者
 	> max_archived_topics) {
 		var topic_slice = archived_topic_list.shift();
 		// parser[topic_slice[0] - 1] : section title
@@ -339,7 +340,7 @@ function for_board(page_data) {
 			tags : tags,
 			summary : CeL.wiki.title_link_of(
 			//
-			wiki.latest_task_configuration.configuration_page_title,
+			wiki.task_configuration.configuration_page_title,
 			//
 			'存檔討論串') + ': ' + summary_list
 		}, check_board_left);

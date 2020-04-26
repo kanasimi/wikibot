@@ -113,6 +113,7 @@ var
 general_topic_page = '/topic list', general_page_configuration = {
 	topic_page : general_topic_page,
 	// autocollapse: 使用此技術會使頁面跳轉，通常應避免使用。
+	// https://www.mediawiki.org/wiki/Manual:Collapsible_elements
 	// https://en.wikipedia.org/wiki/Help:Collapsing#%22autocollapse%22
 	list_legend_class : "wikitable mw-collapsible mw-collapsed",
 	list_legend_style : "float: left; margin-left: .5em;",
@@ -936,7 +937,9 @@ var page_configurations = {
 		}
 	}, general_page_configuration),
 
-	'zh_classicalwiki:維基大典:會館' : general_page_configuration
+	'zh_classicalwiki:維基大典:會館' : general_page_configuration,
+
+	'zhmoegirl:萌娘百科 talk:討論版/提問求助' : general_page_configuration
 };
 
 // ================================================================================================
@@ -1241,6 +1244,7 @@ function check_BRFA_status(section) {
 			status = 'style="background-color: #ffc;" | ' + token;
 		} else if (token.name in {
 			対処 : true,
+			済 : true,
 
 			BotSpeedy : true,
 			BotApproved : true

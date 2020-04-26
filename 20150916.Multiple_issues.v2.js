@@ -291,7 +291,7 @@ CeL.wiki.cache([ {
 	reget : true,
 	operator : function(page_data) {
 		// 讀入手動設定 manual settings。
-		configuration = CeL.wiki.parse_configuration(page_data);
+		configuration = CeL.wiki.parse.configuration(page_data);
 
 		多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
 

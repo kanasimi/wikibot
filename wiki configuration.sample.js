@@ -5,8 +5,6 @@
 
 'use strict';
 
-var _global = Function('return this')();
-
-_global.owner_name = 'owner_name';
-_global.user_name = 'user_name';
-_global.user_password = 'user_password';
+owner_name = 'bot owner name';
+user_name = 'user name';
+user_password = 'bot / user password';
