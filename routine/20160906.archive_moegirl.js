@@ -24,7 +24,7 @@ require('../wiki loader.js');
 
 var
 /** {Array}討論區列表 */
-board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ],
+board_list = [ 'Talk:讨论版', 'Talk:提问求助区' ], board_left,
 /** {String}存檔頁面 postfix */
 archive_page_postfix = '/存档/%Y年%2m月',
 /** {String} 存檔作業[[Special:tags]] "tag應該多加一個【Bot】tag" */
@@ -82,20 +82,16 @@ function main_process() {
 				|| resolved_template;
 		if (configuration.resolved_template_default_days >= MIN_archive_offset)
 			resolved_template_default_days = configuration.resolved_template_default_days;
-		if (configuration.max_archived_topics > 0)
-			max_archived_topics = configuration.max_archived_topics;
+		if (+configuration.max_archived_topics >= 1)
+			max_archived_topics = +configuration.max_archived_topics;
 	}
 	// console.log(board_list);
 	// console.log(tags);
 	// return;
 
-	var board_left = board_list.length;
+	board_left = board_list.length;
 	board_list.forEach(function(board) {
-		wiki.page(board, function() {
-			for_board.apply(this, arguments);
-			if (--board_left === 0)
-				routine_task_done('1d');
-		});
+		wiki.page(board, for_board);
 	});
 }
 
@@ -240,7 +236,8 @@ function for_board(page_data) {
 		}
 		// return;
 
-		// 把本需要存檔的議題段落寫到存檔頁面。
+		CeL.debug('把本需要存檔的議題段落 [' + section_title + '] 寫到存檔頁面 '
+				+ CeL.wiki.title_link_of(archive_title) + '。');
 		// TODO: 錯誤處理
 		wiki.page(archive_title).edit(function(page_data) {
 			var content = CeL.wiki.content_of(page_data);
@@ -263,6 +260,8 @@ function for_board(page_data) {
 				// append 存檔段落(討論串)內容
 				+ ' ==\n' + section_text.trim();
 			}
+
+			return [ CeL.wiki.edit.cancel, 'skip' ];
 
 		}, {
 			bot : 1,
@@ -287,15 +286,20 @@ function for_board(page_data) {
 			section : 'new',
 			// 章節標題。
 			sectiontitle : section_title,
-			summary : '存檔過期討論串:' + section_title
+			summary : CeL.wiki.title_link_of(
+			//
+			wiki.latest_task_configuration.configuration_page_title,
+			//
+			'存檔過期討論串') + ': ' + section_title
 			//
 			+ '←' + CeL.wiki.title_link_of(page_data)
 		});
 	});
 
+	archived_topic_list.total_count = archived_topic_list.length;
 	// 每月1號：刪除所有{{Saved}}提示模板。
 	while (monthly_remove_old_notice_section
-			|| archived_topic_list.length > max_archived_topics) {
+			|| archived_topic_list.length + archive_count > max_archived_topics) {
 		var topic_slice = archived_topic_list.shift();
 		// parser[topic_slice[0] - 1] : section title
 		for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
@@ -307,14 +311,14 @@ function for_board(page_data) {
 
 	// return;
 
-	// 移除需要存檔的議題段落。
+	CeL.debug('移除需要存檔的議題段落。');
 	if (archive_count > 0 || remove_count > 0) {
 		var summary_list = [];
 		if (remove_count > 0) {
 			// 每月首日當天存檔者不會被移除，除非當天執行第二次。
 			summary_list.push((monthly_remove_old_notice_section ? '本月首日'
-					: '已存檔' + archived_topic_list.length + '個標題，超過存檔標題數量上限'
-							+ max_archived_topics + '，')
+					: '已存檔' + archived_topic_list.total_count
+							+ '個標題，超過存檔標題數量上限' + max_archived_topics + '，')
 					+ '移除' + remove_count + '個討論串');
 		}
 		if (archive_count > 0) {
@@ -326,15 +330,26 @@ function for_board(page_data) {
 		CeL.log(CeL.wiki.title_link_of(page_data.title) + ': ' + summary_list);
 		// return;
 
-		// 將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔
+		CeL.debug('將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔: '
+				+ CeL.wiki.title_link_of(page_data));
 		wiki.page(page_data).edit(parser.toString(), {
 			bot : 1,
 			nocreate : 1,
 			tags : tags,
-			summary : '存檔討論串: ' + summary_list
-		});
+			summary : CeL.wiki.title_link_of(
+			//
+			wiki.latest_task_configuration.configuration_page_title,
+			//
+			'存檔討論串') + ': ' + summary_list
+		}, check_board_left);
 	} else {
 		CeL.log(CeL.wiki.title_link_of(page_data.title)
 				+ ': Nothing needs to change.');
+		check_board_left();
 	}
+}
+
+function check_board_left() {
+	if (--board_left === 0)
+		routine_task_done('1d');
 }
