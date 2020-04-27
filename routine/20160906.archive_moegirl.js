@@ -36,7 +36,7 @@ resolved_template_default_days = 3,
 // 最快`MIN_archive_offset`天才會存檔
 MIN_archive_offset = 1,
 
-// 已存檔標題數量上限。每當已存檔的標題數量到達`max_archived_topics`時，每新增一個存檔標題就移除一個已存檔標題。
+// 已存檔討論串數量上限。每當已存檔的討論串數量到達`max_archived_topics`時，每新增一個存檔討論串就移除一個已存檔討論串。
 max_archived_topics,
 
 /** {Object}wiki operator 操作子. */
@@ -44,8 +44,8 @@ wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
-// 討論串10日無回復，則將標題進行複製、討論內容進行剪切存檔。
-// 在「兩討論區」中，保留標題、內容存檔的討論串，其標題將於每月1日0時刪除。
+// 討論串10日無回復，則複製標題、剪切存檔討論內容。
+// 在「兩討論區」中，保留標題、內容存檔的討論串，於每月1日0時刪除討論串。
 archive_boundary_10 = Date.now() - 10 * ONE_DAY_LENGTH_VALUE,
 // NG: 申請擔任巡查員的討論串，將於提權且歡迎結束的3日（即72小時）後進行存檔。
 // NG: 申請升職管理員的討論串，將於投票結束且討論結束的3日（即72小時）後進行存檔。
@@ -141,9 +141,10 @@ function for_board(page_data) {
 
 		// 當內容過長的時候，可能是有特殊的情況，就不自動移除。已調高上限。
 		if (section_text.length < 150
-				// 跳過已存檔{{Saved}}, {{Movedto}}
-				&& /^\n*{{(?:[Ss]aved|[Mm]ovedto)\s*\|.{10,200}?}}\n+$/
-						.test(section_text)) {
+		// 跳過已存檔 {{Saved}}, {{Movedto}}, {{MovedTo}}, {{Moved to}}
+		&& /^\n*{{(?:Saved|Moved ?to)\s*\|.{5,200}?}}\n*$/i
+		// {5,200}: e.g., "討論:標題"
+		.test(section_text)) {
 			archived_topic_list.push(topic_slice);
 			return;
 		}
@@ -320,8 +321,8 @@ function for_board(page_data) {
 		if (remove_count > 0) {
 			summary_list.push((monthly_remove_old_notice_section ? '本月首日'
 					: '已存檔' + archived_topic_list.total_count
-							+ '個標題，超過存檔標題數量上限' + max_archived_topics + '，')
-					+ '移除' + remove_count + '個討論串');
+							+ '個討論串，超過存檔討論串數量上限' + max_archived_topics + '，')
+					+ '移除' + remove_count + '個已存檔討論串');
 		}
 		if (archive_count > 0) {
 			summary_list.push('存檔' + archive_count + '個過期討論串→'
@@ -332,7 +333,7 @@ function for_board(page_data) {
 		CeL.log(CeL.wiki.title_link_of(page_data.title) + ': ' + summary_list);
 		// return;
 
-		CeL.debug('將標題進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔: '
+		CeL.debug('將討論串進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔: '
 				+ CeL.wiki.title_link_of(page_data));
 		wiki.page(page_data).edit(parser.toString(), {
 			bot : 1,
