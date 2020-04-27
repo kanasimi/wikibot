@@ -81,8 +81,8 @@ function main_process() {
 				|| archive_page_postfix;
 		resolved_template_aliases = configuration.resolved_template_aliases
 				|| resolved_template_aliases;
-		if (configuration.resolved_template_default_days >= MIN_archive_offset)
-			resolved_template_default_days = configuration.resolved_template_default_days;
+		if (+configuration.resolved_template_default_days >= MIN_archive_offset)
+			resolved_template_default_days = +configuration.resolved_template_default_days;
 		if (+configuration.max_archived_topics >= 1)
 			max_archived_topics = +configuration.max_archived_topics;
 	}
@@ -90,6 +90,7 @@ function main_process() {
 	// console.log(tags);
 	// return;
 
+	// board_list = [ 'Talk:提问求助区' ];
 	board_left = board_list.length;
 	board_list.forEach(function(board) {
 		wiki.page(board, for_board);
@@ -113,7 +114,7 @@ function for_board(page_data) {
 		// 先找出所有 sections 的 index of parser。
 		sections.push(index);
 		CeL.debug('[' + index + ']	' + sections.length.pad(2) + '. '
-				+ token.title);
+				+ token.title, 1);
 	}, false, 1);
 
 	// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
@@ -137,7 +138,7 @@ function for_board(page_data) {
 			return;
 		}
 		CeL.debug('Process ' + section_title + ' (' + section_text.length
-				+ ' chars)');
+				+ ' chars)', 1);
 
 		// 當內容過長的時候，可能是有特殊的情況，就不自動移除。已調高上限。
 		if (section_text.length < 150
@@ -160,8 +161,13 @@ function for_board(page_data) {
 				var matched = token.parameters.time
 						&& token.parameters.time
 								.match(/^(\d{4})(\d{2})(\d{2})$/);
-				if (!matched)
+				if (!matched) {
+					if (token.parameters.time) {
+						CeL.error(section_title + ': 無法辨識 time 參數: '
+								+ token.parameters.time);
+					}
 					return;
+				}
 				// 機器人只讀得懂`archive-offset=數字`的情況
 				var boundary_date = +token.parameters['archive-offset'];
 				if (!(boundary_date >= MIN_archive_offset))
@@ -170,7 +176,7 @@ function for_board(page_data) {
 						+ matched[3] + ' UTC+8')
 						// +1: {{#expr:{{{archive-offset|3}}} + 1}} days}}
 						+ (boundary_date + 1) * ONE_DAY_LENGTH_VALUE;
-				// console.log([Date.now(), boundary_date]);
+				// console.log([ section_title, boundary_date, Date.now() ]);
 				needless = Date.now() < boundary_date;
 				if (false) {
 					CeL.log('[' + section_title + ']: 存檔 @ '
