@@ -242,6 +242,10 @@ _global.Wiki = function new_wiki(login, API_URL) {
 			login_options, {
 				API_URL : api
 			}));
+	if (CeL.env.arg_hash && CeL.env.arg_hash.API_URL.includes('://')) {
+		// assert: Not MediaWiki server. Is outer server.
+		session.use_SQL = false;
+	}
 	if (typeof check_section === 'string') {
 		session.check_options = {
 			section : check_section
