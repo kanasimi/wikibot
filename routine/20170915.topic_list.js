@@ -1467,7 +1467,7 @@ function generate_topic_list(page_data) {
 		}
 
 		if (page_configuration.section_filter
-		// 篩選議題。
+		// 篩選議題。亦可將此功能當作 page_configuration.section_preprocessor。
 		// this: parsed;
 		// page_configuration = this.page.page_configuration;
 		&& !page_configuration.section_filter.call(parsed, section)) {

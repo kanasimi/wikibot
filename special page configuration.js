@@ -1343,6 +1343,16 @@ function check_MarkAsResolved_status(section, section_index) {
 			// status = 'style="background-color: #efe;" | ' +
 			// token.parameters.status;
 			if (token.index_of['sign']) {
+				// 紀錄案件結案日期。
+				// 警告: column_operators:status === check_MarkAsResolved_status()
+				// 必須在 column_operators:last_user_set 前執行!
+				var close_timevalue = CeL.wiki.parse.date(
+						token.parameters['sign'], {
+							get_timevalue : true
+						});
+				if (!(section.dates.max_timevalue > close_timevalue)) {
+					section.dates.max_timevalue = close_timevalue;
+				}
 				// 簽名太過累贅，直接取代。因為改變token構造，必須放在最後一個步驟操作。
 				token[token.index_of['sign']] = status;
 			} else {
