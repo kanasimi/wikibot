@@ -878,6 +878,9 @@ function setup_list_legend_special_status(list_legend_used) {
 }
 
 function get_list_legend(page_configuration) {
+	// Must run normalize_time_style_hash() for short_to_long, long_to_short
+	// first!
+
 	var localized_list_legend = list_legend[use_language]
 	// e.g., 'zh-classical'
 	|| use_language && use_language.startsWith('zh-') && list_legend.zh

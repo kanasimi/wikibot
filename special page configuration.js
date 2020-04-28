@@ -956,6 +956,8 @@ global.special_page_configuration = {
 		// timezone : 8,
 		purge_page : '萌娘百科 talk:讨论版',
 		columns : 'NO;title;status;discussions;participants;last_user_set',
+		// "發言更新圖例"不必摺疊，因為那裡的位置很寬裕且作為參考圖例每次點開很不便
+		list_legend_class : "wikitable mw-collapsible",
 		column_to_header : {
 			// title : '討論名稱',
 			// 處理情況
