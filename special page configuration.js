@@ -33,13 +33,13 @@ var localized_column_to_header = {
 	// @see https://zh.wikipedia.org/wiki/Wikipedia:用戶介面翻譯/MessagesZh_hant.php
 	// e.g., {{int:filehist-user}} {{int:filehist-datetime}}
 	zh : {
-		// 序號 Topics主題
+		// 序號 Topics主題 討論名稱
 		title : '話題',
 		discussions : '<small title="發言數/發言人次 (實際上為計算簽名數)">發言</small>',
 		participants : '<small title="參與討論人數/發言人數">參與</small>',
 		// first_user_set: 發起人與發起時間(Created)
 
-		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於
+		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於 最後回覆時間
 		last_user_set : '最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
 
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
@@ -121,7 +121,9 @@ general_topic_page = '/topic list', general_page_configuration = {
 	columns : 'NO;title;discussions;participants;last_user_set'
 // 不應該列出管理員那兩欄，似乎暗示著管理員與其他用戶不是平等的。
 // + ';last_admin_set'
-}, localized_page_configuration = Object.assign({
+};
+// workaround. TODO: using String_to_Date.zone
+var localized_page_configuration = {
 	zh : {
 		timezone : 8,
 	// row_style : general_row_style
@@ -132,9 +134,14 @@ general_topic_page = '/topic list', general_page_configuration = {
 	ja : {
 		timezone : 9
 	}
-}[use_language] || Object.create(null), global.localized_page_configuration);
+};
+localized_page_configuration = Object.assign(
+		localized_page_configuration[use_language] || Object.create(null),
+		global.localized_page_configuration);
 
 Object.assign(general_page_configuration, localized_page_configuration);
+// console.log(general_page_configuration);
+
 // Release memory. 釋放被占用的記憶體。
 localized_page_configuration = null;
 // generate_headers(general_page_configuration);
@@ -169,7 +176,8 @@ function if_too_long(title) {
 	// remove styles
 	.replace(/'''?/g, '').display_width() >
 	// 當標題過長，大於 max_title_length 時，縮小標題字型。
-	(configuration.general.max_title_length || 40);
+	(configuration && configuration.general
+			&& configuration.general.max_title_length || 40);
 }
 
 // [[w:en:Help:Sorting#Specifying_a_sort_key_for_a_cell]]
@@ -937,9 +945,26 @@ var page_configurations = {
 		}
 	}, general_page_configuration),
 
-	'zh_classicalwiki:維基大典:會館' : general_page_configuration,
+	'zh_classicalwiki:維基大典:會館' : general_page_configuration
+};
 
-	'zhmoegirl:萌娘百科 talk:討論版/提問求助' : general_page_configuration
+global.special_page_configuration = {
+	'zhmoegirl' : Object.assign(Object.create(null),
+	//
+	general_page_configuration, {
+		// topic_page : general_topic_page,
+		// timezone : 8,
+		columns : 'NO;title;status;discussions;participants;last_user_set',
+		column_to_header : {
+			title : '討論名稱',
+			// 處理情況
+			status : '進度',
+		},
+		operators : {
+			// 議體進度狀態。
+			status : check_MarkAsResolved_status
+		}
+	})
 };
 
 // ================================================================================================
@@ -1283,6 +1308,45 @@ function check_BRFA_status(section) {
 		}
 	});
 	// TODO: 提醒申請者
+	return status || '';
+}
+
+function check_MarkAsResolved_status(section, section_index) {
+	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
+	this.each.call(section, 'template', function(token) {
+		if (token.name in {
+			Saved : true
+		}) {
+			status = 'style="color: #aaa;" | ' + '已存檔';
+			section.archived = true;
+		}
+
+		if (/^Moved ?to$/i.test(token.name)) {
+			status = 'style="color: #888;" | ' + '已移動';
+			section.moved = true;
+		}
+
+		if (token.name in {
+			// zhmoegirl: 標記已完成討論串的模板別名列表
+			MarkAsResolved : true,
+			MAR : true,
+			标记为完成 : true
+		}) {
+			// 轉換成短顯示法。
+			token.splice(1, 0, 'status_only=1');
+			status = token.toString();
+			// status = 'style="background-color: #efe;" | ' +
+			// token.parameters.status;
+
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
+			return to_exit;
+		}
+
+		// TODO: [[Template:Moved discussion to]], [[模板:移動至]]
+		// {{移動至|Namespace:Pagename#Topic}}
+
+	});
+
 	return status || '';
 }
 

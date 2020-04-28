@@ -101,21 +101,11 @@ function for_board(page_data) {
 	// 更動 counter
 	var archive_count = 0, remove_count = 0;
 
-	var parser = CeL.wiki.parser(page_data), sections = [];
-	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+	var parsed = CeL.wiki.parser(page_data), sections = [];
+	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
 		// debug 用. check parser, test if parser working properly.
 		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
 	}
-
-	parser.each('section_title', function(token, index) {
-		if (token.level !== 2) {
-			return;
-		}
-		// 先找出所有 sections 的 index of parser。
-		sections.push(index);
-		CeL.debug('[' + index + ']	' + sections.length.pad(2) + '. '
-				+ token.title, 1);
-	}, false, 1);
 
 	// 按照存檔時的月份建立、歸入存檔頁面。模板參見{{Saved/auto}}
 	var archive_title = page_data.title
@@ -124,35 +114,40 @@ function for_board(page_data) {
 	// archived_topic_list = [ topic_slice, topic_slice, ... ]
 	var archived_topic_list = [];
 
-	sections.forEach(function(parser_index, section_index) {
-		// console.log(parser[parser_index]);
-		var section_title = parser[parser_index].join('').trim(),
-		// +1: 跳過 section title 本身
-		topic_slice = [ parser_index + 1,
-				sections[section_index + 1] || parser.length ],
-		//
-		section_text = Array.prototype.slice.apply(parser, topic_slice)
-				.join('');
-		if (!section_title) {
-			CeL.error('No title: ' + section_text);
+	var to_exit = parsed.each.exit;
+
+	function for_each_topic(topic_token, section_index) {
+		if (section_index === 0) {
+			// first_section = section;
+			// Skip the first / lead section
 			return;
 		}
-		CeL.debug('Process ' + section_title + ' (' + section_text.length
+
+		var section_title = topic_token.section_title;
+		if (section_title.level !== 2) {
+			return;
+		}
+
+		var section_text = topic_token.toString().trim();
+		var section_title_text = section_title[0].toString().trim();
+
+		var section_anchor = section_title.link[1];
+		var needless = undefined;
+
+		CeL.debug('Process ' + section_title_text + ' (' + section_text.length
 				+ ' chars)', 1);
 
 		// 當內容過長的時候，可能是有特殊的情況，就不自動移除。已調高上限。
-		if (section_text.length < 150
+		if (section_text.length < 200
 		// 跳過已存檔 {{Saved}}, {{Movedto}}, {{MovedTo}}, {{Moved to}}
-		&& /^\n*{{(?:Saved|Moved ?to)\s*\|.{5,200}?}}\n*$/i
+		&& /^{{(?:Saved|Moved ?to)\s*\|.{5,200}?}}\n*$/i
 		// {5,200}: e.g., "討論:標題"
 		.test(section_text)) {
-			archived_topic_list.push(topic_slice);
+			archived_topic_list.push(topic_token.range);
 			return;
 		}
 
-		var section_anchor = parser[parser_index].link[1];
-		var needless = undefined;
-		parser.each('template', function(token, index) {
+		topic_token.each('template', function(token, index) {
 			// https://zh.moegirl.org/Template:MarkAsResolved
 			// 2020年3月3日 →
 			// 您仍可以繼續在本模板上方回覆，但這個討論串將會在本模板懸掛3日後 (於2020年3月7日凌晨) 存檔。
@@ -163,7 +158,7 @@ function for_board(page_data) {
 								.match(/^(\d{4})(\d{2})(\d{2})$/);
 				if (!matched) {
 					if (token.parameters.time) {
-						CeL.error(section_title + ': 無法辨識 time 參數: '
+						CeL.error(section_title_text + ': 無法辨識 time 參數: '
 								+ token.parameters.time);
 					}
 					return;
@@ -176,32 +171,26 @@ function for_board(page_data) {
 						+ matched[3] + ' UTC+8')
 						// +1: {{#expr:{{{archive-offset|3}}} + 1}} days}}
 						+ (boundary_date + 1) * ONE_DAY_LENGTH_VALUE;
-				// console.log([ section_title, boundary_date, Date.now() ]);
+				// console.log([ section_title_text, boundary_date, Date.now()
+				// ]);
 				needless = Date.now() < boundary_date;
 				if (false) {
-					CeL.log('[' + section_title + ']: 存檔 @ '
+					CeL.log('[' + section_title_text + ']: 存檔 @ '
 							+ new Date(boundary_date) + ' ('
 							+ (needless ? 'needless' : 'need') + ')');
 				}
 			}
-		}, {
-			slice : topic_slice
 		});
 
 		if (needless === undefined) {
 			// 所有日期戳記皆在此 archive_boundary_date 前，方進行存檔。
 			// CeL.log(index+': '+new Date(latest));
 			// 都做成10天存檔
-			var archive_boundary_date = false
-					&& section_title.includes('申请')
-					&& (section_title.includes('巡查员') || section_title
-							.includes('管理员')) ? archive_boundary_3
+			var archive_boundary_date = false && /申请|巡查员|管理员/
+					.test(section_title_text) ? archive_boundary_3
 					: archive_boundary_10;
 
-			parser.each('text', function(token, index) {
-				if (needless) {
-					return;
-				}
+			topic_token.each('text', function(token, index) {
 				var date_list = CeL.wiki.parse.date(token.toString(), {
 					get_timevalue : true,
 					get_all_list : true
@@ -217,34 +206,36 @@ function for_board(page_data) {
 				needless = date_list.some(function(date) {
 					return date > archive_boundary_date;
 				});
-			}, {
-				slice : topic_slice
+				if (needless) {
+					return to_exit;
+				}
 			});
 
 			if (needless === undefined) {
 				// 經查本對話串中沒有一般型式的一般格式的日期，造成無法辨識。下次遇到這樣的問題，可以在最後由任何一個人加上本討論串已終結、準備存檔的字樣，簽名並且'''加上一般日期格式'''即可。
-				CeL.warn('跳過一個日期文字都沒有的討論串 [' + section_title + ']，這不是正常的情況。');
+				CeL.warn('跳過一個日期文字都沒有的討論串 [' + section_title_text
+						+ ']，這不是正常的情況。');
 				return;
 			}
 		}
 
 		if (needless) {
-			CeL.info('** needless archive: [' + section_title + ']');
+			CeL.info('** needless archive: [' + section_title_text + ']');
 			return;
 		}
 
 		// console.log(needless);
-		CeL.log('need archive: [' + section_title + ']');
+		CeL.log('need archive: [' + section_title_text + ']');
 		archive_count++;
-		parser[topic_slice[0]] = '\n{{Saved|link=' + archive_title + '|title='
-				+ section_anchor + '}}\n';
-		for (var i = topic_slice[0] + 1; i < topic_slice[1]; i++) {
+		parsed[topic_token.range[0]] = '\n{{Saved|link=' + archive_title
+				+ '|title=' + section_anchor + '}}\n';
+		for (var index = topic_token.range[0] + 1; index < topic_token.range[1]; index++) {
 			// stupid way
-			parser[i] = '';
+			parsed[index] = '';
 		}
 		// return;
 
-		CeL.debug('把本需要存檔的議題段落 [' + section_title + '] 寫到存檔頁面 '
+		CeL.debug('把本需要存檔的議題段落 [' + section_title_text + '] 寫到存檔頁面 '
 				+ CeL.wiki.title_link_of(archive_title) + '。');
 		// TODO: 錯誤處理
 		wiki.page(archive_title).edit(function(page_data) {
@@ -264,9 +255,9 @@ function for_board(page_data) {
 			}
 
 			if (false) {
-				return content + '\n\n== ' + section_title
+				return content + '\n\n== ' + section_title_text
 				// append 存檔段落(討論串)內容
-				+ ' ==\n' + section_text.trim();
+				+ ' ==\n' + section_text;
 			}
 
 			return [ CeL.wiki.edit.cancel, 'skip' ];
@@ -279,13 +270,13 @@ function for_board(page_data) {
 		}).edit(function(page_data) {
 			CeL.log('archive to ' + CeL.wiki.title_link_of(archive_title)
 			//
-			+ ': "' + section_title + '"');
+			+ ': "' + section_title_text + '"');
 			if (false) {
 				CeL.log('~'.repeat(80));
-				CeL.log(parser[parser_index].toString() + section_text.trim());
+				CeL.log(section_title_text + section_text);
 			}
 			// return;
-			return section_text.trim();
+			return section_text;
 
 		}, {
 			bot : 1,
@@ -293,16 +284,18 @@ function for_board(page_data) {
 			// append 存檔段落(討論串)內容
 			section : 'new',
 			// 章節標題。
-			sectiontitle : section_title,
+			sectiontitle : section_title_text,
 			summary : CeL.wiki.title_link_of(
 			//
 			wiki.task_configuration.configuration_page_title,
 			//
-			'存檔過期討論串') + ': ' + section_title
+			'存檔過期討論串') + ': ' + section_title_text
 			//
 			+ '←' + CeL.wiki.title_link_of(page_data)
 		});
-	});
+	}
+
+	parsed.each_section(for_each_topic);
 
 	archived_topic_list.total_count = archived_topic_list.length;
 	// 每月1號：刪除所有{{Saved}}提示模板。
@@ -311,10 +304,10 @@ function for_board(page_data) {
 	// + archive_count: 移除當天存檔者
 	> max_archived_topics) {
 		var topic_slice = archived_topic_list.shift();
-		// parser[topic_slice[0] - 1] : section title
+		// parsed[topic_slice[0] - 1] : section title
 		for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
 			// stupid way
-			parser[index] = '';
+			parsed[index] = '';
 		}
 		remove_count++;
 	}
@@ -341,7 +334,7 @@ function for_board(page_data) {
 
 		CeL.debug('將討論串進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔: '
 				+ CeL.wiki.title_link_of(page_data));
-		wiki.page(page_data).edit(parser.toString(), {
+		wiki.page(page_data).edit(parsed.toString(), {
 			bot : 1,
 			nocreate : 1,
 			tags : tags,

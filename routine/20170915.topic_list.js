@@ -76,7 +76,7 @@ archive topics:
 存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
 存檔完可以直接刪除，只留下oldid
 
-已知無法解決問題：目前維基百科 link anchor, display_text 尚無法接受"�"這個字元。
+已知無法解決問題：目前 MediaWiki 之 link anchor, display_text 尚無法接受"�"這個特殊字元。
 
  */
 
@@ -115,7 +115,10 @@ global.localized_page_configuration = {
 	zh : {
 		row_style : general_row_style
 	}
-}[use_language];
+};
+global.localized_page_configuration =
+// global.localized_page_configuration[CeL.wiki.site_name(wiki)] ||
+global.localized_page_configuration[use_language];
 
 function set_update_timer(page_title, time_ms, callback) {
 	if (callback) {
@@ -249,14 +252,19 @@ var section_column_operators = {
 	},
 	// 參與討論人數 participation
 	participants : function(section) {
-		return local_number(section.users.unique().length, section.users
-				.unique().length >= 2 ? '' : 'style="background-color: #fcc;"');
+		return section.archived
+				|| section.moved
+				|| local_number(section.users.unique().length, section.users
+						.unique().length >= 2 ? ''
+						: 'style="background-color: #fcc;"');
 	},
 	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
 	replies : function(section) {
-		// 有不同的人回應才算上回應數。
-		return local_number(section.replies, section.replies >= 1 ? ''
-				: 'style="background-color: #fcc;"');
+		return section.archived
+				|| section.moved
+				// 有不同的人回應才算上回應數。
+				|| local_number(section.replies, section.replies >= 1 ? ''
+						: 'style="background-color: #fcc;"');
 	},
 	created : function(section) {
 		// TODO: the datetime the subpage created
@@ -291,7 +299,11 @@ function adapt_configuration(latest_task_configuration) {
 	adapt_configuration_to_page(configuration);
 
 	// 一般設定
-	var general = configuration.general;
+	var general = configuration.general
+			|| (configuration.general = Object.create(null));
+	if (!general) {
+		CeL.info('No configuration.');
+	}
 
 	if (general.stop_working && general.stop_working !== 'false') {
 		CeL.info('stop_working setted. exiting...');
@@ -312,7 +324,8 @@ function adapt_configuration(latest_task_configuration) {
 		delete general.max_title_display_width;
 	}
 
-	var configuration_now = configuration.list_style;
+	var configuration_now = configuration.list_style
+			|| (configuration.list_style = Object.create(null));
 	for ( var attribute_name in configuration_now) {
 		var style = configuration_now[attribute_name];
 		if (!/^#?[\da-f]{3,6}$/i.test(style)) {
@@ -326,7 +339,8 @@ function adapt_configuration(latest_task_configuration) {
 		}
 	}
 
-	configuration_now = configuration.closed_style;
+	configuration_now = configuration.closed_style
+			|| (configuration.closed_style = Object.create(null));
 	for ( var attribute_name in {
 		link_color : true,
 		link_backgroundColor : true
@@ -358,7 +372,8 @@ function adapt_configuration(latest_task_configuration) {
 	// setup_list_legend();
 
 	// 顯示主題列表之頁面。
-	configuration_now = configuration.listen_to_pages;
+	configuration_now = configuration.listen_to_pages
+			|| (configuration.listen_to_pages = Object.create(null));
 	function adapt_listen_to_page(page_title) {
 		var page_config = configuration_now[page_title];
 		if (!page_title.startsWith(CeL.wiki.site_name(wiki)))
@@ -368,20 +383,34 @@ function adapt_configuration(latest_task_configuration) {
 			return;
 		}
 
-		try {
-			page_config = page_config ? JSON.parse(page_config) : page_config;
-		} catch (e) {
-			CeL.error('adapt_configuration: Invalid page configuration for '
+		if (page_config) {
+			if (!global.special_page_configuration[page_config]) {
+				try {
+					page_config = JSON.parse(page_config);
+				} catch (e) {
+					CeL.error(
+					//
+					'adapt_configuration: Invalid page configuration for '
+					//
 					+ CeL.wiki.title_link_of(page_title) + ': ' + page_config);
-			return;
+					page_config = null;
+				}
+			}
+		} else if (CeL.wiki.site_name(wiki) in global.special_page_configuration) {
+			page_config = CeL.wiki.site_name(wiki);
 		}
 
-		CeL.info('+ Listen to page: ' + CeL.wiki.title_link_of(page_title));
-		page_configurations[page_title] = /^zh/.test(page_title)
-		// workaround. TODO: using String_to_Date.zone
-		? Object.assign({
-			timezone : 8
-		}, general_page_configuration) : general_page_configuration;
+		CeL.info('+ Listen to page: '
+				+ CeL.wiki.title_link_of(page_title)
+				+ (page_config ? ' using config plan: '
+						+ (typeof page_config === 'string' ? page_config : JSON
+								.stringify(page_config)) : ''));
+		if (global.special_page_configuration[page_config]) {
+			page_config = global.special_page_configuration[page_config];
+		}
+		// console.log(page_config);
+		page_configurations[page_title] = page_config
+				|| general_page_configuration;
 	}
 	if (configuration_now) {
 		Object.keys(configuration_now).forEach(adapt_listen_to_page);
@@ -657,7 +686,7 @@ function get_special_users(callback, options) {
 // row_style functions
 
 function general_row_style(section, section_index) {
-	var status, to_exit = this.each.exit,
+	var style, to_exit = this.each.exit,
 	// archived, move_to 兩者分開，避免{{Archive top}}中有{{Moveto}}
 	archived, move_to;
 
@@ -674,9 +703,22 @@ function general_row_style(section, section_index) {
 		})) {
 			move_to = 'moved';
 			section.adding_link = token.parameters[1];
+			return;
+		}
 
-		} else if (token.type === 'transclusion' && (token.name in {
-			// 下列討論已經關閉，請勿修改。
+		if (token.type === 'transclusion' && (token.name in {
+			// zhmoegirl: 標記已完成討論串的模板別名列表
+			MarkAsResolved : true,
+			MAR : true,
+			标记为完成 : true
+		})) {
+			// style = '';
+			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
+			return to_exit;
+		}
+
+		if (token.type === 'transclusion' && (token.name in {
+			// zhwiki: 下列討論已經關閉，請勿修改。
 			'Archive top' : true,
 			// 本框內討論文字已關閉，相關文字不再存檔。
 			TalkH : true,
@@ -686,8 +728,10 @@ function general_row_style(section, section_index) {
 		})) {
 			archived = 'start';
 			delete section.adding_link;
+			return;
+		}
 
-		} else if (archived === 'start'
+		if (archived === 'start'
 		//
 		&& token.type === 'transclusion' && (token.name in {
 			// 下列討論已經關閉，請勿修改。
@@ -700,8 +744,10 @@ function general_row_style(section, section_index) {
 		})) {
 			archived = 'end';
 			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
+			return;
+		}
 
-		} else if ((archived === 'end' || move_to === 'moved')
+		if ((archived === 'end' || move_to === 'moved')
 				&& token.toString().trim()) {
 			// console.log(token);
 			if (move_to === 'moved') {
@@ -716,7 +762,7 @@ function general_row_style(section, section_index) {
 					section.adding_link = token;
 				}
 			}
-			// 除了{{save to}}之類外，有多餘的token就應該直接跳出。
+			// 除了 {{save to}} 之類外，有多餘的 token 就應該直接跳出。
 			// return to_exit;
 		}
 
@@ -746,7 +792,7 @@ function general_row_style(section, section_index) {
 		&& 'style="opacity: .8;"';
 	}
 
-	return status || '';
+	return style || '';
 }
 
 // ----------------------------------------------
