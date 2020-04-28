@@ -954,15 +954,21 @@ global.special_page_configuration = {
 	general_page_configuration, {
 		// topic_page : general_topic_page,
 		// timezone : 8,
+		purge_page : '萌娘百科 talk:讨论版',
 		columns : 'NO;title;status;discussions;participants;last_user_set',
 		column_to_header : {
-			title : '討論名稱',
+			// title : '討論名稱',
 			// 處理情況
 			status : '進度',
 		},
 		operators : {
 			// 議體進度狀態。
 			status : check_MarkAsResolved_status
+		},
+		sort_function : function(row_1, row_2) {
+			return (row_2.section.dates.max_timevalue || -Infinity)
+			// 默認按最後更新時間倒序排序。
+			- (row_1.section.dates.max_timevalue || -Infinity);
 		}
 	})
 };
@@ -1333,10 +1339,16 @@ function check_MarkAsResolved_status(section, section_index) {
 			标记为完成 : true
 		}) {
 			// 轉換成短顯示法。
-			token.splice(1, 0, 'status_only=1');
-			status = token.toString();
+			status = 'status_only=1';
 			// status = 'style="background-color: #efe;" | ' +
 			// token.parameters.status;
+			if (token.index_of['sign']) {
+				// 簽名太過累贅，直接取代。因為改變token構造，必須放在最後一個步驟操作。
+				token[token.index_of['sign']] = status;
+			} else {
+				token.push(status);
+			}
+			status = token.toString();
 
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
@@ -1347,7 +1359,7 @@ function check_MarkAsResolved_status(section, section_index) {
 
 	});
 
-	return status || '';
+	return status || check_BOTREQ_status.call(this, section, section_index);
 }
 
 // --------------------------------------------------------------------------------------

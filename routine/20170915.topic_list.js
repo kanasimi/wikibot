@@ -245,26 +245,24 @@ var section_column_operators = {
 			sign_count = Math.max(0, sign_count - discussion_minus);
 		}
 
-		return local_number(sign_count, sign_count >= 2
+		return local_number(sign_count,
 		// 火熱的討論採用不同顏色。
-		? sign_count >= 10 ? 'style="background-color: #ffe;' : ''
+		sign_count >= 10 ? 'style="background-color: #ffe;"' : section.archived
+				|| section.moved || sign_count >= 2 ? ''
 				: 'style="background-color: #fcc;"');
 	},
 	// 參與討論人數 participation
 	participants : function(section) {
-		return section.archived
-				|| section.moved
-				|| local_number(section.users.unique().length, section.users
-						.unique().length >= 2 ? ''
-						: 'style="background-color: #fcc;"');
+		return local_number(section.users.unique().length, section.archived
+				|| section.moved || section.users.unique().length >= 2 ? ''
+				: 'style="background-color: #fcc;"');
 	},
 	// reply, <small>回應</small>, <small>返答</small>, 返信数, 覆
 	replies : function(section) {
-		return section.archived
-				|| section.moved
-				// 有不同的人回應才算上回應數。
-				|| local_number(section.replies, section.replies >= 1 ? ''
-						: 'style="background-color: #fcc;"');
+		// 有不同的人回應才算上回應數。
+		return local_number(section.replies, section.archived || section.moved
+				|| section.replies >= 1 ? ''
+				: 'style="background-color: #fcc;"');
 	},
 	created : function(section) {
 		// TODO: the datetime the subpage created
@@ -880,12 +878,6 @@ function setup_list_legend_special_status(list_legend_used) {
 }
 
 function get_list_legend(page_configuration) {
-	// setup_list_legend
-	normalize_time_style_hash(short_to_long);
-	normalize_time_style_hash(long_to_short);
-	// console.log(page_configuration);
-	// console.log(general_page_configuration);
-
 	var localized_list_legend = list_legend[use_language]
 	// e.g., 'zh-classical'
 	|| use_language && use_language.startsWith('zh-') && list_legend.zh
@@ -956,11 +948,13 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		if (true) {
 			// 採用短日期格式。
 			date = date.format({
-				format : CSS_toString(section.CSS)
-				// 已經設定整行 CSS 的情況下，就不另外表現 CSS。
-				? '%Y-%2m-%2d %2H:%2M'
+				format : (date.getFullYear() === (new Date).getFullYear()
+				// Skip year?
+				? '' || '%Y-' : '%Y-')
 				//
-				: '%Y-%2m-%2d <span style="color: blue;">%2H:%2M</span>',
+				+ '%2m-%2d ' + (CSS_toString(section.CSS)
+				// 已經設定整行 CSS 的情況下，就不另外表現 CSS。
+				? '%2H:%2M' : '<span style="color: blue;">%2H:%2M</span>'),
 				// 採用當個項目最多人所處的時區。
 				zone : parsed.page.page_configuration.timezone || 0
 			});
@@ -996,15 +990,16 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		var user_name = section.users[user_and_date_index];
 		// 16: IPv4 user
 		user_shown = user_name.length < 16 ? user_name
-				// 縮小太長的使用者名稱。
-				: '<small style="word-wrap: break-word; word-break: break-all;">'
-						+ (CeL.wiki.parse.user.is_IP(user_name, true)
-						// shorten IPv6 addresses.
-						? user_name
-								.replace(
-										/^([\da-f]{1,4}):[\da-f:]+:([\da-f]{1,4}:[\da-f]{1,4})$/i,
-										'$1...$2')
-								: user_name) + '</small>';
+		// 縮小太長的使用者名稱。
+		: '<small style="word-wrap: break-word; word-break: break-all;">'
+		//
+		+ (CeL.wiki.parse.user.is_IP(user_name, true)
+		// shorten IPv6 addresses.
+		? user_name.replace(
+		//
+		/^([\da-f]{1,4}):[\da-f:]+:([\da-f]{1,4}:[\da-f]{1,4})$/i,
+		//
+		'$1...$2') : user_name) + '</small>';
 
 		// TODO: link to diff
 		user_shown = (additional_attributes ? '| ' : '')
@@ -1431,9 +1426,15 @@ function insert_sub_pages() {
 // 生成菜單的主函數
 
 function generate_topic_list(page_data) {
+	// setup_list_legend
+	normalize_time_style_hash(short_to_long);
+	normalize_time_style_hash(long_to_short);
+	// console.log(page_configuration);
+	// console.log(general_page_configuration);
+
 	var parsed = CeL.wiki.parser(page_data),
 	//
-	page_configuration = page_data.page_configuration,
+	page_configuration = page_data.page_configuration, TOC_list = [],
 	//
 	section_table = [
 			page_configuration.page_header,
@@ -1495,7 +1496,11 @@ function generate_topic_list(page_data) {
 			}
 		});
 
-		section_table.push('|-' + row_style + '\n| ' + row.join(' || '));
+		Object.assign(row, {
+			style : row_style,
+			section : section
+		});
+		TOC_list.push(row);
 
 		// new_topics的操作放在最後，讓column_operators可以更改section.section_title.title。
 		if (Date.now() - section.dates[section.last_update_index] < CeL
@@ -1518,6 +1523,11 @@ function generate_topic_list(page_data) {
 		});
 	}
 
+	if (page_configuration.sort_function)
+		TOC_list.sort(page_configuration.sort_function);
+	TOC_list.forEach(function(row) {
+		section_table.push('|-' + row.style + '\n| ' + row.join(' || '));
+	});
 	section_table.push('|}');
 	if (page_configuration.need_time_legend) {
 		// 解説文を入れて 色違いが何を示しているのかがわかる
