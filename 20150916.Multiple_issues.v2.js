@@ -25,7 +25,10 @@
 // Load CeJS library and modules.
 require('./wiki loader.js');
 
-var
+login_options.configuration_adapter = adapt_configuration;
+
+var reget_data = true,
+
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 
@@ -275,51 +278,52 @@ function 處理須合併的條目(page_data, messages) {
 
 // ---------------------------------------------------------------------//
 
+// 讀入手動設定 manual settings。
+function adapt_configuration(latest_task_configuration) {
+	configuration = latest_task_configuration;
+	// console.log(configuration);
+	// console.log(wiki);
+
+	多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
+
+	須拆分模板數 = +configuration.須拆分模板數 || 須拆分模板數;
+	須合併模板數 = +configuration.須合併模板數 || 須合併模板數;
+	列入報表的最低模板數 = +configuration.列入報表的最低模板數 || 列入報表的最低模板數;
+	if (!(1 <= 須拆分模板數) || !(須拆分模板數 < 須合併模板數))
+		throw new Error('模板數量不合理');
+
+	其他維護模板名list = configuration.其他維護模板名 || 其他維護模板名list;
+	須排除之維護模板名list = configuration.須排除之維護模板名 || 須排除之維護模板名list;
+
+	if (configuration.報表添加維護分類) {
+		if (!Array.isArray(configuration.報表添加維護分類))
+			configuration.報表添加維護分類 = [ configuration.報表添加維護分類 ];
+		configuration.報表添加維護分類
+		//
+		= configuration.報表添加維護分類.map(function(category_name) {
+			return '[[Category:' + category_name + ']]\n';
+		}).join('');
+	} else
+		configuration.報表添加維護分類 = '';
+
+	// CeL.log('Configuration:');
+	// console.log(configuration);
+}
+
+// ---------------------------------------------------------------------//
+
 // main
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
-prepare_directory(base_directory, true);
+prepare_directory(base_directory, reget_data);
 
 // CeL.set_debug(6);
 
-CeL.wiki.cache([ {
-	type : 'page',
-	// title=(operation.title_prefix||_this.title_prefix)+operation.list
-	title_prefix : '',
-	list : configuration_page_title,
-	redirects : 1,
-	reget : true,
-	operator : function(page_data) {
-		// 讀入手動設定 manual settings。
-		configuration = CeL.wiki.parse.configuration(page_data);
-
-		多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
-
-		須拆分模板數 = +configuration.須拆分模板數 || 須拆分模板數;
-		須合併模板數 = +configuration.須合併模板數 || 須合併模板數;
-		列入報表的最低模板數 = +configuration.列入報表的最低模板數 || 列入報表的最低模板數;
-		if (!(1 <= 須拆分模板數) || !(須拆分模板數 < 須合併模板數))
-			throw 'assert: 模板數量不合理';
-
-		其他維護模板名list = configuration.其他維護模板名 || 其他維護模板名list;
-		須排除之維護模板名list = configuration.須排除之維護模板名 || 須排除之維護模板名list;
-
-		if (configuration.報表添加維護分類) {
-			if (!Array.isArray(configuration.報表添加維護分類))
-				configuration.報表添加維護分類 = [ configuration.報表添加維護分類 ];
-			configuration.報表添加維護分類
-			//
-			= configuration.報表添加維護分類.map(function(category_name) {
-				return '[[Category:' + category_name + ']]\n';
-			}).join('');
-		} else
-			configuration.報表添加維護分類 = '';
-	}
-}, {
+wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目
 	file_name : '多個問題_模板別名',
 	type : 'redirects_here',
-	reget : true,
+	reget : reget_data,
 	list : 多個問題_模板別名_list.concat(多個問題_模板名),
 	operator : function(list) {
 		// list=list.unique();
@@ -329,7 +333,7 @@ CeL.wiki.cache([ {
 	// @see [[Category:含有多个问题的条目]]
 	file_name : '含有_多個問題_模板之頁面',
 	type : 'embeddedin',
-	reget : true,
+	reget : reget_data,
 	// list : previous one: 多個問題_模板別名_list
 	each_file_name : CeL.wiki.cache.title_only,
 	retrieve : function(list) {
@@ -616,7 +620,10 @@ CeL.wiki.cache([ {
 				each : 處理須合併的條目,
 				summary : summary + ': 合併維護模板',
 				page_cache_prefix : base_directory + 'page/',
-				log_to : log_to
+				log_to : log_to,
+				last : function() {
+					routine_task_done('1 week');
+				}
 			}, 須合併的條目);
 		}
 	}, this.須拆分的條目);
