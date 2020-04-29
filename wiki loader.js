@@ -242,7 +242,7 @@ _global.Wiki = function new_wiki(login, API_URL) {
 			login_options, {
 				API_URL : api
 			}));
-	if (CeL.env.arg_hash && String(CeL.env.arg_hash.API_URL).includes('://')) {
+	if (!('use_SQL' in session) && CeL.env.arg_hash && CeL.env.arg_hash.API_URL && String(CeL.env.arg_hash.API_URL).includes('://')) {
 		// assert: Not MediaWiki server. Is outer server.
 		session.use_SQL = false;
 	}

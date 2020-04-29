@@ -1334,6 +1334,13 @@ function check_MarkAsResolved_status(section, section_index) {
 			section.moved = true;
 		}
 
+		// [[萌娘百科_talk:讨论版/权限变更]]
+		if (token.name in {
+			状态 : true
+		}) {
+			status = token.toString();
+		}
+
 		if (token.name in {
 			// zhmoegirl: 標記已完成討論串的模板別名列表
 			MarkAsResolved : true,
