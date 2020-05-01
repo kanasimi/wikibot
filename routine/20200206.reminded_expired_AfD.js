@@ -168,6 +168,18 @@ function extract_target_page_of_AfD(AfD_page_data) {
 	return target_page_title;
 }
 
+function check_recommendation(recommendation, participations) {
+	if (!recommendation)
+		return;
+
+	recommendation = recommendation[1].match(check_AfD_participations.PATTERN);
+	if (recommendation in ignore_recommendations) {
+		// Ignore the notes adding by the bot it self.
+		return;
+	}
+	participations[recommendation || check_AfD_participations.type_others].push(participations);
+}
+
 // TODO: check if there are participations.
 function check_AfD_participations(AfD_page_data) {
 	const participations = Object.create(null);
@@ -179,16 +191,15 @@ function check_AfD_participations(AfD_page_data) {
 	parsed.each('list', list_token => {
 		list_token.forEach(token => {
 			let recommendation = token.toString().match(/'''(.+?)'''/);
-			if (!recommendation)
-				return;
-			recommendation = recommendation[1].toLowerCase().match(check_AfD_participations.PATTERN);
-			if (recommendation in ignore_recommendations) {
-				// Ignore the notes adding by the bot it self.
-				return;
-			}
-			participations[recommendation || check_AfD_participations.type_others].push(participations);
+			check_recommendation(recommendation, participations);
 		});
 	}, { level_filter: 1 });
+
+	// For "\n'''Delete'''" [[Wikipedia:Articles for deletion/H. M. Khoja]]
+	for (let recommendation of AfD_page_data.wikitext.matchAll(/\n *'''(.+?)'''/g)) {
+		// console.log(recommendation);
+		check_recommendation(recommendation, participations);
+	}
 
 	check_AfD_participations.recommendation_types.forEach(type => {
 		if (participations[type].length === 0)
@@ -201,7 +212,7 @@ function check_AfD_participations(AfD_page_data) {
 // [[Wikipedia:Guide_to_deletion#Shorthands]]
 check_AfD_participations.recommendation_types = 'keep|delete|merge|redirect'.split('|');
 check_AfD_participations.type_others = 'misc';
-check_AfD_participations.PATTERN = new RegExp(check_AfD_participations.recommendation_types.join('|'));
+check_AfD_participations.PATTERN = new RegExp(check_AfD_participations.recommendation_types.join('|'), 'i');
 
 // ----------------------------------------------------------------------------
 
