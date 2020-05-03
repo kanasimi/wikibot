@@ -129,8 +129,9 @@ function for_board(page_data) {
 			return;
 		}
 
+		// section_title.toString(true): get inner
+		var section_title_text = section_title.toString(true).trim();
 		var section_text = topic_token.toString().trim();
-		var section_title_text = section_title[0].toString().trim();
 
 		var section_anchor = section_title.link[1];
 		var needless = undefined;

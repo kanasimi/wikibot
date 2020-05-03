@@ -1552,12 +1552,12 @@ function cross_out_vote(section, latest_vote, cross_out_token) {
 	}
 
 	CeL.info(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
-			+ section.section_title[0])
+	// section_title.toString(true): get inner
+	+ section.section_title.toString(true))
 			+ ': Cross out '
 			+ (latest_vote.vote_type === VOTE_SUPPORT ? 'support'
 					: latest_vote.vote_type === VOTE_OPPOSE ? 'oppose'
-							: cross_out_token ? '' : 'rule-outed')
-			+ ' vote: '
+							: cross_out_token ? '' : 'rule-outed') + ' vote: '
 			+ latest_vote);
 	// console.log(latest_vote);
 
@@ -1711,7 +1711,7 @@ function FC_section_filter(section) {
 				if (false) {
 					CeL.info(CeL.wiki
 							.title_link_of(section.section_title.link[0] + '#'
-									+ section.section_title[0])
+									+ section.section_title.toString(true))
 							+ ': Cross out '
 							+ cross_out_vote_list.length
 							+ ' vote(s)');
@@ -1757,7 +1757,7 @@ function FC_section_filter(section) {
 	}
 	if (section.vote_time_limit) {
 		CeL.debug(CeL.wiki.title_link_of(section.section_title.link[0] + '#'
-				+ section.section_title[0])
+				+ section.section_title.toString(true))
 				+ ': 投票截止時間: ' + (CeL.is_Date(section.vote_time_limit)
 				//
 				? section.vote_time_limit.format() : section.vote_time_limit),
@@ -1770,7 +1770,7 @@ function FC_section_filter(section) {
 		}
 		CeL.warn('無法判別投票截止時間: '
 				+ CeL.wiki.title_link_of(section.section_title.link[0] + '#'
-						+ section.section_title[0]));
+						+ section.section_title.toString(true)));
 	}
 
 	page_configuration.set_vote_closed.call(this, section);
