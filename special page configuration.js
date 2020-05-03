@@ -340,11 +340,11 @@ var default_FC_vote_configurations = {
 	},
 
 	// will be used in .section_filter()
-	support_templates : 'YesFA|YesFL|YesGA|YesFP'.split('|').map(
+	support_templates : 'YesFA|YesFL|YesGA|YesGa|Yesga|YesFP'.split('|').map(
 			function(title) {
 				return CeL.wiki.normalize_title(title);
 			}).to_hash(),
-	oppose_templates : 'NoFA|NoFL|NoGA|NoFP'.split('|').map(function(title) {
+	oppose_templates : 'NoFA|NoFL|NoGA|NoGa|Noga|NoFP'.split('|').map(function(title) {
 		return CeL.wiki.normalize_title(title);
 	}).to_hash(),
 	cross_out_templates_header : {},
