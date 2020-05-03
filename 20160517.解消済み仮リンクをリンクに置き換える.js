@@ -463,6 +463,7 @@ function check_final_work() {
 			+ '<onlyinclude>~~~~~</onlyinclude>\n'
 			// + '== Problematic pages ==\n'
 			);
+			this.summary += listed + '/' + all;
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}
