@@ -57,6 +57,7 @@ monthly_remove_old_notice_section = (new Date(Date.now()
 // Use UTC+8
 + 8 * 60 * 60 * 1000)).getUTCDate() === 1;
 
+// console.log(monthly_remove_old_notice_section);
 // monthly_remove_old_notice_section = true;
 // CeL.set_debug(2);
 
@@ -228,7 +229,8 @@ function for_board(page_data) {
 		CeL.log('need archive: [' + section_title_text + ']');
 		archive_count++;
 		parsed[topic_token.range[0]] = '\n{{Saved|link=' + archive_title
-				+ '|title=' + section_anchor + '}}\n';
+		// TODO: 依照目標頁面的狀態修正同名討論串的 anchor
+		+ '|title=' + section_anchor + '}}\n';
 		for (var index = topic_token.range[0] + 1; index < topic_token.range[1]; index++) {
 			// stupid way
 			parsed[index] = '';
@@ -298,11 +300,11 @@ function for_board(page_data) {
 	parsed.each_section(for_each_topic);
 
 	archived_topic_list.total_count = archived_topic_list.length;
-	// 每月1號：刪除所有{{Saved}}提示模板。
-	while (monthly_remove_old_notice_section || archived_topic_list.length
+	// monthly_remove_old_notice_section: 每月1號：刪除所有{{Saved}}提示模板。
+	while (archived_topic_list.length > (monthly_remove_old_notice_section ? 0 :
 	// 不移除當天存檔者，除非執行第二次。
 	// + archive_count: 移除當天存檔者
-	> max_archived_topics) {
+	max_archived_topics)) {
 		var topic_slice = archived_topic_list.shift();
 		// parsed[topic_slice[0] - 1] : section title
 		for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
