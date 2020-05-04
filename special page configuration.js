@@ -344,9 +344,10 @@ var default_FC_vote_configurations = {
 			function(title) {
 				return CeL.wiki.normalize_title(title);
 			}).to_hash(),
-	oppose_templates : 'NoFA|NoFL|NoGA|NoGa|Noga|NoFP'.split('|').map(function(title) {
-		return CeL.wiki.normalize_title(title);
-	}).to_hash(),
+	oppose_templates : 'NoFA|NoFL|NoGA|NoGa|Noga|NoFP'.split('|').map(
+			function(title) {
+				return CeL.wiki.normalize_title(title);
+			}).to_hash(),
 	cross_out_templates_header : {},
 	cross_out_templates_footer : {
 		// {{Votevoidh}}統合了較多模板。結尾部分分割得較多部分，例如{{Votevoidf}},{{Timeoutf}}
@@ -1319,6 +1320,7 @@ function check_BRFA_status(section) {
 	return status || '';
 }
 
+// for zhmoegirl
 function check_MarkAsResolved_status(section, section_index) {
 	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
 	this.each.call(section, 'template', function(token) {
@@ -1378,7 +1380,12 @@ function check_MarkAsResolved_status(section, section_index) {
 
 	});
 
-	return status || check_BOTREQ_status.call(this, section, section_index);
+	// {{保留}}{{刪除}}只是用於討論過程而並非結果，不應該像{{MAR}}一樣作為【進度】在討論版首頁顯示。
+	if (false && !status) {
+		status = check_BOTREQ_status.call(this, section, section_index);
+	}
+
+	return status;
 }
 
 // --------------------------------------------------------------------------------------
