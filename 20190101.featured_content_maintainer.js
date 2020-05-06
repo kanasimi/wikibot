@@ -291,9 +291,11 @@ function parse_each_FC_item_list_page(page_data) {
 	is_FFC = using_GA && /:FF?A/.test(is_FFC) && 'UP'
 			|| /:[DF][FG][AL]|已撤消的|已撤销的/.test(is_FFC);
 
-	if (is_FFC) {
-		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目
-		content = content.replace(/\n== *(?:被撤銷後|被撤销后)[\s\S]+$/, '');
+	if (is_FFC
+	// [[Wikipedia:已撤销的特色列表#撤銷後再次入選特色列表]]
+	|| is_list) {
+		// 去掉被撤銷後再次被評為典範的條目/被撤銷後再次被評為特色的列表/被撤銷後再次被評選的條目/撤銷後再次入选特色列表
+		content = content.replace(/\n== *被?(?:撤銷後|撤销后)[\s\S]+$/, '');
 	}
 
 	// 自動偵測要使用的模式。
@@ -545,10 +547,16 @@ function parse_each_FC_date_page(page_data) {
 	}
 
 	// assert: !!FC_title === false;
-	parsed.each('link', function(token) {
-		// 找到第一個連結。
-		FC_title = CeL.wiki.normalize_title(token[0].toString());
-		return parsed.each.exit;
+	parsed.each('link', function(token, index, parent) {
+		if (parent.type === 'bold' && parent.length === 1) {
+			// 找到第一個粗體連結。 e.g., [[Wikipedia:优良条目/2009年1月20日]]
+			FC_title = CeL.wiki.normalize_title(token[0].toString());
+			return parsed.each.exit;
+		}
+		if (!FC_title) {
+			// 找到第一個連結。
+			FC_title = CeL.wiki.normalize_title(token[0].toString());
+		}
 	});
 
 	if (!check_NOT_FC_title(FC_title)
