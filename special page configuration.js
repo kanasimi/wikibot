@@ -1331,7 +1331,7 @@ function check_MarkAsResolved_status(section, section_index) {
 			section.archived = true;
 		}
 
-		if (/^Moved ?to$/i.test(token.name)) {
+		if (/^Moved? ?to$/i.test(token.name)) {
 			status = 'style="color: #888;" | ' + '已移動';
 			section.moved = true;
 		}
@@ -1370,6 +1370,7 @@ function check_MarkAsResolved_status(section, section_index) {
 				token.push(status);
 			}
 			status = token.toString();
+			section.archived = true;
 
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
