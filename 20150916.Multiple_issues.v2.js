@@ -32,17 +32,20 @@ var reget_data = true,
 /** {String}編輯摘要。總結報告。 */
 summary = '規範多個問題模板',
 
-/** {String}設定頁面標題。 e.g., "User:bot/設定" */
-configuration_page_title = 'User:' + user_name + '/規範多個問題模板設定',
 /** {Object}設定頁面所獲得之手動設定 manual settings。 */
 configuration,
 
-/** {String}{{多個問題}}模板名 */
-多個問題_模板名 = '多個問題',
-/** {{多個問題}}模板初始別名 alias */
-多個問題_模板別名_list = 'Multiple issues'.split('|'),
-// assert: 須拆分模板數 < 須合併模板數
-須拆分模板數 = 1, 須合併模板數 = 3, 列入報表的最低模板數 = 須合併模板數 + 1,
+/** {String}{{Multiple issues}}/{{多個問題}}模板名 */
+Multiple_issues_template_name = 'Multiple issues',
+/** {Array}{{多個問題}}模板初始別名 alias */
+Multiple_issues_template_alias_list = [],
+// assert: template_count_to_be_split < template_count_to_be_merged
+/** {Number}須拆分模板數 */
+template_count_to_be_split = 1,
+/** {Number}須合併模板數 */
+template_count_to_be_merged = 3,
+/** {Number}列入報表的最低模板數 */
+template_count_to_be_reported = template_count_to_be_merged + 1,
 /**
  * 其他可包含在{{多個問題}}模板中之維基百科維護模板(Wikipedia maintenance templates)
  * 
@@ -51,11 +54,9 @@ configuration,
  * @type {Array}
  * 
  * @see [[維基百科:模板訊息/清理]], [[Category:維基百科維護模板]], [[Category:條目訊息模板]], {{Ambox}},
- *      [[WP:HAT#頂註模板]]
+ *      [[WP:HAT#頂註模板]], [[Category:Wikipedia maintenance templates]]
  */
-其他維護模板名list = ('Wikify|未完結|Lead section|专家|Veil|Non-free|plot|Almanac|Like-resume|Cleanup|cleanup-jargon|Untranslated-jargon|external links|Too many sections|Travel guide|real world|Directory|WP|More footnotes|third-party|名稱爭議|TotallyDisputed|copypaste|merge from|merge to|Plot style|Duplicated citations|人物|BLPsources|Link style|Update|Overly detailed|BLP unsourced|Notability Unreferenced|Globalize|Unreferenced|off-topic|Bare URLs|Cleanup-list|Refimprove|補充來源|Repetition|Proofreader needed|copyedit translation|Expert|Expert-subject|COI|coi|Primary sources|dead end|game guide|title|autobiography|overlinked|Orphan|inappropriate tone|Original research|in-universe|advert|unencyclopedic|prose|blpunsourced|fansite|trivia|pov|newsrelease'
-		+ '|Expand|Expand language|Expand English|Expand Japanese|Expand Spanish')
-		.split('|'),
+maintenance_template_list = [],
 /**
  * <q>
  那些會導致刪除的tag（比如substub、關注度、notmandarin、merge那幾個）不要合併進去。
@@ -66,8 +67,7 @@ configuration,
  * 
  * @see [[Category:刪除模板]]
  */
-須排除之維護模板名list = 'Notability|Merged|Merge|Merge from|Merge to|substub|notmandarin|OR|or|Special characters'
-		.split('|'),
+maintenance_template_list_to_be_excluded = [],
 
 // [ 維護模板名, 參數 ]
 // [\dT:+\-]{25}
@@ -85,6 +85,54 @@ normalized_count = CeL.wiki.redirects_here.count.bind(null, 維護模板本名);
 
 // ---------------------------------------------------------------------//
 
+// 讀入手動設定 manual settings。
+function adapt_configuration(latest_task_configuration) {
+	configuration = latest_task_configuration;
+	// console.log(configuration);
+	// console.log(wiki);
+
+	Multiple_issues_template_name = configuration.Multiple_issues_template_name
+			|| Multiple_issues_template_name;
+	Multiple_issues_template_alias_list = configuration.Multiple_issues_template_alias_list
+			|| Multiple_issues_template_alias_list;
+
+	template_count_to_be_split = +configuration.template_count_to_be_split
+			|| template_count_to_be_split;
+	template_count_to_be_merged = +configuration.template_count_to_be_merged
+			|| template_count_to_be_merged;
+	template_count_to_be_reported = +configuration.template_count_to_be_reported
+			|| template_count_to_be_reported;
+	if (!(1 <= template_count_to_be_split)
+			|| !(template_count_to_be_split < template_count_to_be_merged)) {
+		throw new Error('模板數量不合理');
+	}
+
+	// 維護模板名
+	maintenance_template_list = configuration['maintenance template list']
+			|| maintenance_template_list;
+	maintenance_template_list_to_be_excluded = configuration['maintenance template list to be excluded']
+			|| maintenance_template_list_to_be_excluded;
+
+	// 報表添加維護分類
+	if (configuration['Categories adding to report']) {
+		if (!Array.isArray(configuration['Categories adding to report'])) {
+			configuration['Categories adding to report'] = [ configuration['Categories adding to report'] ];
+		}
+		configuration['Categories adding to report'] = configuration['Categories adding to report']
+		//
+		.map(function(category_name) {
+			return '[[Category:' + category_name + ']]\n';
+		}).join('');
+	} else {
+		configuration['Categories adding to report'] = '';
+	}
+
+	// CeL.log('Configuration:');
+	// console.log(configuration);
+}
+
+// ---------------------------------------------------------------------//
+
 function show_模板(list) {
 	return list.map(function(page_data) {
 		return page_data.title.replace(/^Template:/i, '');
@@ -94,17 +142,18 @@ function show_模板(list) {
 // -----------------------------------------
 
 function 處理須拆分的條目(page_data, messages) {
+	if ('missing' in page_data)
+		return [ CeL.wiki.edit.cancel, '條目不存在或已被刪除' ];
 	if (page_data.ns !== 0)
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
-	if ('missing' in page_data)
-		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 
 	// TODO: 處理把維護模板放在或注解中的條目。
 	var matched,
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(page_data),
 	//
-	多個問題_模板 = CeL.wiki.parse.template(content, 多個問題_模板別名_list, true);
+	多個問題_模板 = CeL.wiki.parse.template(content,
+			Multiple_issues_template_alias_list, true);
 	if (!多個問題_模板)
 		return [ CeL.wiki.edit.cancel, '條目中未發現{{tl|多個問題}}。已變更過，資料非最新？' ];
 
@@ -172,16 +221,16 @@ function 處理須拆分的條目(page_data, messages) {
 		+ 多個問題_模板[0].replace(/{{/g, '{{tl|')
 		// + ' @ [[' + page_data.title + ']]!'
 		];
-	} else if (use_維護模板.length <= 須拆分模板數 || old_style) {
+	} else if (use_維護模板.length <= template_count_to_be_split || old_style) {
 		// 準備 modify (拆分)
-		if (old_style && use_維護模板.length >= 須合併模板數)
+		if (old_style && use_維護模板.length >= template_count_to_be_merged)
 			多個問題_模板內容 = '{{' + 多個問題_模板[1] + '|\n' + 多個問題_模板內容 + '}}';
 		content = content.slice(0, 多個問題_模板.index) + 多個問題_模板內容 + '\n'
 				+ content.slice(多個問題_模板.lastIndex).trimStart();
 		CeL.debug('→ ' + content.slice(0, 200), 2, '處理須拆分的條目');
 		return content;
 	} else {
-		// 預期應含有((須拆分模板數))以下個(i.e. 不到 2個, 0或1個)
+		// 預期應含有((template_count_to_be_split))以下個(i.e. 不到 2個, 0或1個)
 		// 維護模板_by_pageid[page_data.pageid] = [ 維護模板名, 維護模板名, ... ]
 		var list = 維護模板_by_pageid[page_data.pageid];
 		return [ CeL.wiki.edit.cancel,
@@ -197,10 +246,10 @@ function 處理須拆分的條目(page_data, messages) {
 // -----------------------------------------
 
 function 處理須合併的條目(page_data, messages) {
+	if ('missing' in page_data)
+		return [ CeL.wiki.edit.cancel, '條目不存在或已被刪除' ];
 	if (page_data.ns !== 0)
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
-	if ('missing' in page_data)
-		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 
 	// 這邊 page_data 為自 API 重新得到，非((須合併的條目))之內容。
 	var title = page_data.title,
@@ -221,7 +270,8 @@ function 處理須合併的條目(page_data, messages) {
 	/** {String}page content, maybe undefined. */
 	var content = CeL.wiki.content_of(page_data),
 	// 若本來就已經含有{{多個問題}}模板，表示已經過編輯，則放棄之。
-	matched = CeL.wiki.parse.template(content, 多個問題_模板別名_list, true);
+	matched = CeL.wiki.parse.template(content,
+			Multiple_issues_template_alias_list, true);
 
 	if (matched)
 		return [ CeL.wiki.edit.cancel, '已含有{{tl|多個問題}}模板' ];
@@ -246,7 +296,7 @@ function 處理須合併的條目(page_data, messages) {
 		content = content.slice(0, matched.index)
 				+ content.slice(matched.lastIndex).trimStart();
 	});
-	if (多個問題_模板內容.length < 須合併模板數) {
+	if (多個問題_模板內容.length < template_count_to_be_merged) {
 		return [ CeL.wiki.edit.cancel, '資料庫中含有 ' + normalized_count(條目所含維護模板)
 		//
 		+ '個未重複的維護模板: [' + show_模板(條目所含維護模板)
@@ -257,7 +307,7 @@ function 處理須合併的條目(page_data, messages) {
 		//
 		+ 章節維護模板_count + '個章節維護模板，' : '') + '不作合併。'
 		//
-		+ (章節維護模板_count + 多個問題_模板內容.length < 須合併模板數
+		+ (章節維護模板_count + 多個問題_模板內容.length < template_count_to_be_merged
 		//
 		? '或許條目已被編輯過，或維護模板尚有未登記之別名？' : '') ];
 	}
@@ -278,36 +328,36 @@ function 處理須合併的條目(page_data, messages) {
 
 // ---------------------------------------------------------------------//
 
-// 讀入手動設定 manual settings。
-function adapt_configuration(latest_task_configuration) {
-	configuration = latest_task_configuration;
-	// console.log(configuration);
-	// console.log(wiki);
+var maintenance_template_hash = Object.create(null);
+function check_maintenance_template_name(page_data) {
+	/** {Array} parsed page content 頁面解析後的結構。 */
+	var parsed = CeL.wiki.parser(page_data).parse();
+	// debug 用.
+	// check parser, test if parser working properly.
+	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
+		console.log(CeL.LCS(CeL.wiki.content_of(page_data), parsed.toString(),
+				'diff'));
+		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
+	}
 
-	多個問題_模板名 = configuration.多個問題_模板名 || 多個問題_模板名;
+	var changed;
+	// using for_each_token()
+	parsed.each('template', function(token, index) {
+		if (!Multiple_issues_template_alias_list.includes(token.name))
+			return;
 
-	須拆分模板數 = +configuration.須拆分模板數 || 須拆分模板數;
-	須合併模板數 = +configuration.須合併模板數 || 須合併模板數;
-	列入報表的最低模板數 = +configuration.列入報表的最低模板數 || 列入報表的最低模板數;
-	if (!(1 <= 須拆分模板數) || !(須拆分模板數 < 須合併模板數))
-		throw new Error('模板數量不合理');
+		parsed.each.call(token.parameters[1], 'template', function(template) {
+			if (!(template.name in maintenance_template_hash)) {
+				maintenance_template_hash[template.name] = null;
+				changed = true;
+			}
+		});
+	});
 
-	其他維護模板名list = configuration.其他維護模板名 || 其他維護模板名list;
-	須排除之維護模板名list = configuration.須排除之維護模板名 || 須排除之維護模板名list;
-
-	if (configuration.報表添加維護分類) {
-		if (!Array.isArray(configuration.報表添加維護分類))
-			configuration.報表添加維護分類 = [ configuration.報表添加維護分類 ];
-		configuration.報表添加維護分類
-		//
-		= configuration.報表添加維護分類.map(function(category_name) {
-			return '[[Category:' + category_name + ']]\n';
-		}).join('');
-	} else
-		configuration.報表添加維護分類 = '';
-
-	// CeL.log('Configuration:');
-	// console.log(configuration);
+	if (changed) {
+		maintenance_template_list = Object.keys(maintenance_template_hash);
+		CeL.log(JSON.stringify(maintenance_template_list));
+	}
 }
 
 // ---------------------------------------------------------------------//
@@ -321,35 +371,69 @@ prepare_directory(base_directory, reget_data);
 
 wiki.cache([ {
 	// part 1: 處理含有{{多個問題}}模板的條目
-	file_name : '多個問題_模板別名',
+	file_name : 'Multiple_issues_template_alias_list.'
+	//
+	+ CeL.wiki.site_name(wiki),
 	type : 'redirects_here',
 	reget : reget_data,
-	list : 多個問題_模板別名_list.concat(多個問題_模板名),
+	list : function() {
+		return Multiple_issues_template_alias_list
+		//
+		.concat(Multiple_issues_template_name);
+	},
 	operator : function(list) {
-		// list=list.unique();
-		多個問題_模板別名_list = list;
+		// list = list.unique();
+		// console.log(list);
+		Multiple_issues_template_alias_list = list.map(function(template) {
+			return template.title.replace(/^Template:/, '');
+		});
+		Multiple_issues_template_name
+		//
+		= Multiple_issues_template_alias_list[0];
 	}
 }, {
 	// @see [[Category:含有多个问题的条目]]
-	file_name : '含有_多個問題_模板之頁面',
+	file_name : 'pages_including_Multiple_issues_template.'
+	//
+	+ CeL.wiki.site_name(wiki),
 	type : 'embeddedin',
 	reget : reget_data,
-	// list : previous one: 多個問題_模板別名_list
+	// NG: list : previous one: Multiple_issues_template_alias_list
+	list : function() {
+		return [ Multiple_issues_template_name ];
+	},
+	limit : 50,
 	each_file_name : CeL.wiki.cache.title_only,
 	retrieve : function(list) {
+		return list;
 		return CeL.wiki.unique_list(list);
 	},
 	operator : function(list) {
 		CeL.log('All ' + list.length
-		//
+		// 含有_多個問題_模板之頁面
 		+ ' multiple issues template pages 含有{{多個問題}}模板.');
-		this.含有_多個問題_模板之頁面 = list;
+		if (false) {
+			// find all maintenance templates
+			wiki.work({
+				each : check_maintenance_template_name,
+				last : function() {
+					process.exit();
+				}
+			}, list);
+			list = [];
+			maintenance_template_list = [];
+			maintenance_template_list_to_be_excluded = [];
+			Multiple_issues_template_name = [];
+		}
+		this.pages_including_Multiple_issues_template = list;
 	}
 }, {
 	// part 2: 處理含有多個維護模板的條目
 	type : 'page',
-	// title: title_prefix + 多個問題_模板名
-	list : 多個問題_模板名,
+	// title: title_prefix + Multiple_issues_template_name
+	list : function() {
+		return Multiple_issues_template_name;
+	},
 	redirects : 1,
 	operator : function(page_data) {
 		// 取得 {{多個問題}} 模板以 parse page
@@ -363,8 +447,8 @@ wiki.cache([ {
 			if (!/\d$/.test(matched = matched[1]))
 				template_hash[CeL.wiki.normalize_title(matched)] = null;
 		}
-		// 處理 ((其他維護模板名list)) setup 其他維護模板名list
-		其他維護模板名list.forEach(function(name) {
+		// 處理 ((maintenance_template_list)) setup maintenance_template_list
+		maintenance_template_list.forEach(function(name) {
 			template_hash[CeL.wiki.normalize_title(name)] = null;
 		});
 		// CeL.log(template_hash);
@@ -372,9 +456,11 @@ wiki.cache([ {
 		this.維護模板名 = Object.keys(template_hash);
 	}
 }, {
-	file_name : '須排除之維護模板別名',
+	file_name : '須排除之維護模板別名.' + CeL.wiki.site_name(wiki),
 	type : 'redirects_here',
-	list : 須排除之維護模板名list,
+	list : function() {
+		return maintenance_template_list_to_be_excluded;
+	},
 	retrieve : function(list) {
 		var 須排除之維護模板名_hash = Object.create(null);
 		if (list)
@@ -388,7 +474,7 @@ wiki.cache([ {
 	}
 }, {
 	// 解析出所有維護模板別名
-	file_name : '維護模板名',
+	file_name : '維護模板名.' + CeL.wiki.site_name(wiki),
 	type : 'redirects_here',
 	list : function() {
 		return this.維護模板名;
@@ -409,13 +495,14 @@ wiki.cache([ {
 		return 維護模板名;
 	},
 	operator : function(list) {
+		list = list || [];
 		CeL.log('總共有 ' + list.length + ' 個維護模板名.');
 		// console.log(list);
 		this.維護模板名 = list;
 	}
 }, {
 	// 含有維護模板的條目
-	file_name : '含有維護模板之頁面',
+	file_name : '含有維護模板之頁面.' + CeL.wiki.site_name(wiki),
 	type : 'embeddedin',
 	// list : previous one: this.維護模板名
 	each_file_name : CeL.wiki.cache.title_only,
@@ -465,12 +552,13 @@ wiki.cache([ {
 }, {
 	// part 1+2
 	// 對含有過多個維護模板的條目作統計
-	file_name : '含有太多維護模板之頁面',
+	file_name : '含有太多維護模板之頁面.' + CeL.wiki.site_name(wiki),
 	postfix : '.txt',
 	list : function() {
 		// ** 就算被包含在{{多個問題}}模板中，只要是用"{{維護模板名}}"而非"|維護模板名="的方式，依然會登記此維護模板。
 
-		// this.含有_多個問題_模板之頁面 = [ page_data, page_data, ... ]
+		// this.pages_including_Multiple_issues_template
+		// = [ page_data, page_data, ... ]
 		var 含有_多個問題_模板之頁面_title = Object.create(null),
 		//
 		須拆分的條目 = this.須拆分的條目 = [],
@@ -478,35 +566,39 @@ wiki.cache([ {
 		須合併的條目 = this.須合併的條目 = [],
 		// 含有多個維護模板的條目_list
 		含有太多維護模板之頁面 = [];
-		this.含有_多個問題_模板之頁面.forEach(function(page_data) {
+		this.pages_including_Multiple_issues_template
+		//
+		.forEach(function(page_data) {
 			含有_多個問題_模板之頁面_title[page_data.title] = null;
 		});
 		// this.含有維護模板之頁面=[page_data,page_data,...]
 		// page_data.維護模板 = [ 維護模板名, 維護模板名, ... ]
 		this.含有維護模板之頁面.forEach(function(page_data) {
 			var 維護模板_count = normalized_count(page_data.維護模板);
-			if (維護模板_count >= 須合併模板數) {
-				// 含有((須合併模板數))個以上維護模板的條目_list
+			if (維護模板_count >= template_count_to_be_merged) {
+				// 含有((template_count_to_be_merged))個以上維護模板的條目_list
 				// 含有三個和三個以上維護模板的條目
-				// 處理須合併的條目: 維護模板_count>=須合併模板數&&不含有{{多個問題}}模板
+				// 處理須合併的條目:
+				// 維護模板_count>=template_count_to_be_merged&&不含有{{多個問題}}模板
 				// 在須合併維護模板的條目list中，卻不含有{{多個問題}}模板。
 				// 注意:這會忽略把維護模板放在{{多個問題}}模板外的條目
 				if (!(page_data.title in 含有_多個問題_模板之頁面_title))
 					// this.須合併的條目=[page_data,page_data,...]
 					須合併的條目.push(page_data);
-			} else if (維護模板_count <= 須拆分模板數) {
-				// 處理須拆分的條目: 維護模板_count<=須拆分模板數&&含有{{多個問題}}模板
+			} else if (維護模板_count <= template_count_to_be_split) {
+				// 處理須拆分的條目:
+				// 維護模板_count<=template_count_to_be_split&&含有{{多個問題}}模板
 				// 含有{{多個問題}}模板，卻不在可以忽略不處理的條目list或須合併維護模板的條目list中。
 				if (page_data.title in 含有_多個問題_模板之頁面_title)
 					// this.須拆分的條目=[page_data,page_data,...]
 					須拆分的條目.push(page_data);
 			} else {
 				// others: 可以忽略不處理的條目
-				// 含有((>須拆分模板數))–((<須合併模板數))個維護模板的條目_list
+				// 含有((>template_count_to_be_split))–((<template_count_to_be_merged))個維護模板的條目_list
 				// 含有2個維護模板的條目。不動這些條目。
 			}
 
-			if (維護模板_count >= 列入報表的最低模板數) {
+			if (維護模板_count >= template_count_to_be_reported) {
 				// 含有太多維護模板之頁面[維護模板_count]=[page_data,page_data,...]
 				if (維護模板_count in 含有太多維護模板之頁面)
 					含有太多維護模板之頁面[維護模板_count].push(page_data.title);
@@ -517,7 +609,9 @@ wiki.cache([ {
 
 		var count = 0,
 		// 掛有/含有
-		title = 'User:' + user_name + '/含有太多維護模板之條目',
+		title = configuration.report_page
+		//
+		|| 'User:' + user_name + '/含有太多維護模板之條目',
 		//
 		_summary = summary + ': 紀錄含有太多維護模板之條目',
 		//
@@ -540,7 +634,9 @@ wiki.cache([ {
 		//
 		+ '* 本條目會每周更新，毋須手動修正。您可以從'
 		//
-		+ CeL.wiki.title_link_of(configuration_page_title, '這個頁面')
+		+ CeL.wiki.title_link_of(
+		//
+		configuration.configuration_page_title, '這個頁面')
 		//
 		+ '更改設定參數。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
@@ -548,16 +644,22 @@ wiki.cache([ {
 		//
 		+ '}}\n\n{| class="wikitable"\n! 模板數 !! 含有維護模板之條目\n'
 		//
-		+ content + '\n|}\n\n' + configuration.報表添加維護分類;
+		+ content + '\n|}\n\n' + configuration['Categories adding to report'];
 
-		var postfix = ' (列入報表的最低模板數:' + 列入報表的最低模板數 + ')';
+		var postfix = ' (template_count_to_be_reported: '
+		//
+		+ template_count_to_be_reported + ')';
 
-		wiki.page(title + '/計數').edit(String(count), {
-			summary : _summary + '數: ' + count + postfix
+		wiki.page(configuration.counter_page
+		//
+		|| title + '/計數').edit(String(count), {
+			summary : _summary + '數: ' + count + postfix,
+			redirects : 1
 		});
 
 		wiki.page(title).edit(content, {
-			summary : _summary + ': ' + count + '條' + postfix
+			summary : _summary + ': ' + count + '條' + postfix,
+			redirects : 1
 		});
 
 		return 含有太多維護模板之頁面.map(function(list, index) {
@@ -565,7 +667,7 @@ wiki.cache([ {
 		}).join('\r\n').replace(/(?:\r\n){2,}/g, '\r\n').trim() + '\r\n';
 	}
 }, {
-	file_name : '須拆分的條目',
+	file_name : '須拆分的條目.' + CeL.wiki.site_name(wiki),
 	list : function() {
 		// 於 '含有太多維護模板之頁面' 中設定。
 		return this.須拆分的條目;
@@ -581,7 +683,7 @@ wiki.cache([ {
 	}
 }, {
 	// 須合併維護模板的條目
-	file_name : '須合併的條目',
+	file_name : '須合併的條目.' + CeL.wiki.site_name(wiki),
 	list : function() {
 		// 於 '含有太多維護模板之頁面' 中設定。
 		return this.須合併的條目;
