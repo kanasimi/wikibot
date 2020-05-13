@@ -22,6 +22,8 @@ require('../wiki loader.js');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+const gettext = CeL.gettext;
+
 // ----------------------------------------------------------------------------
 
 // 讀入手動設定 manual settings。
@@ -29,6 +31,17 @@ function adapt_configuration(latest_task_configuration) {
 	const configuration = latest_task_configuration;
 	// console.log(configuration);
 	// console.log(wiki);
+
+	if (CeL.is_Object(configuration.L10n)) {
+		gettext.set_text(configuration.L10n, use_language);
+		delete configuration.L10n;
+	}
+
+	if (false) {
+		console.log(gettext('規範{{%1}}模板', configuration.Multiple_issues_template_name));
+	}
+
+	// ----------------------------------------------------
 
 	/** {String}{{Multiple issues}}/{{多個問題}}模板本名 without "Template:" prefix */
 	configuration.Multiple_issues_template_name = configuration.Multiple_issues_template_name ? configuration.Multiple_issues_template_name : 'Multiple issues';
@@ -57,7 +70,7 @@ function adapt_configuration(latest_task_configuration) {
 	 *      {{Ambox}}, [[WP:HAT#頂註模板]], [[Category:Wikipedia maintenance
 	 *      templates]]
 	 */
-	configuration['maintenance template list'] = configuration['maintenance template list'] || [];
+	configuration[gettext('維護模板名稱列表')] = configuration[gettext('維護模板名稱列表')] || [];
 	/**
 	 * 須排除之維護模板別名。不可包含在{{多個問題}}模板中之維基百科維護模板名(Wikipedia maintenance templates)
 	 * 那些會導致刪除的tag（比如substub、關注度、notmandarin、merge那幾個）不要合併進去。
@@ -66,10 +79,10 @@ function adapt_configuration(latest_task_configuration) {
 	 * 
 	 * @see [[Category:刪除模板]]
 	 */
-	configuration['maintenance template list to be excluded'] = configuration['maintenance template list to be excluded'] || [];
+	configuration[gettext('須排除之維護模板名稱列表')] = configuration[gettext('須排除之維護模板名稱列表')] || [];
 
 	// 報表添加維護分類
-	let categories = configuration['Categories adding to report'];
+	let categories = configuration[gettext('報表添加維護分類')];
 	if (categories) {
 		if (!Array.isArray(categories)) {
 			categories = [categories];
@@ -78,7 +91,9 @@ function adapt_configuration(latest_task_configuration) {
 	} else {
 		categories = '';
 	}
-	configuration['Categories adding to report'] = categories;
+	configuration[gettext('報表添加維護分類')] = categories;
+
+	// ----------------------------------------------------
 
 	// CeL.log('Configuration:');
 	// console.log(configuration);
@@ -129,16 +144,20 @@ async function main_process() {
 	}
 	// free
 	delete configuration.Multiple_issues_template_alias_list;
-	delete configuration['maintenance template list'];
-	delete configuration['maintenance template list to be excluded'];
+	delete configuration[gettext('維護模板名稱列表')];
+	delete configuration[gettext('須排除之維護模板名稱列表')];
 	if (false) {
 		console.trace(configuration);
+		// for debug
 		CeL.log('總共有 ' + Object.values(configuration.maintenance_template_hash).sort().unique() + ' 個維護模板名.');
-		console.log(Object.values(configuration.maintenance_template_hash).sort().unique().map(t => '* ' + t).join('\n'));
+		console.log(Object.values(configuration.maintenance_template_hash).sort().unique().map(t => '# ' + t).join('\n'));
 	}
+
+	// ----------------------------------------------------
 
 	// configuration.count_list[4] = [ pages with 4 maintenance templates ]
 	configuration.count_list = [];
+	configuration.problematic_articles = [];
 	// (pageid in pageid_processed): have processed
 	configuration.pageid_processed = Object.create(null);
 
@@ -150,8 +169,9 @@ async function main_process() {
 	for (let maintenance_template of
 		/** 維護模板本名 without "Template:" prefix */
 		Object.values(configuration.maintenance_template_hash).unique()
-			// for debug
-			.slice(0, 70)) {
+		// for debug
+		//.slice(120, 200)
+	) {
 		await check_template(maintenance_template);
 	}
 
@@ -168,7 +188,7 @@ async function get_maintenance_template_list() {
 	const configuration = wiki.latest_task_configuration;
 
 	const maintenance_template_list_to_be_excluded = Object.create(null);
-	for (let template of configuration['maintenance template list to be excluded']) {
+	for (let template of configuration[gettext('須排除之維護模板名稱列表')]) {
 		const list = await wiki.redirects_here(wiki.to_namespace(template, 'template'));
 		// `list[0].title` is the redirect target.
 		const main_title = list[0].title;
@@ -177,22 +197,23 @@ async function get_maintenance_template_list() {
 		maintenance_template_list_to_be_excluded[main_title] = null;
 	}
 	if (false) {
-		configuration['maintenance template list to be excluded'] = maintenance_template_list_to_be_excluded;
+		configuration[gettext('須排除之維護模板名稱列表')] = maintenance_template_list_to_be_excluded;
 	}
 
 	const maintenance_template_hash = Object.create(null);
-	for (let index = 0; index < configuration['maintenance template list'].length; index++) {
-		const template = CeL.wiki.normalize_title(configuration['maintenance template list'][index]);
+	for (let index = 0; index < configuration[gettext('維護模板名稱列表')].length; index++) {
+		const template = CeL.wiki.normalize_title(configuration[gettext('維護模板名稱列表')][index]);
 		if (template in maintenance_template_hash) {
 			// 已處理過。
 			continue;
 		}
 
-		process.stdout.write(`Get maintenance template redirects ${index}/${configuration['maintenance template list'].length} {{${template}}}... \r`);
+		process.stdout.write(`Get maintenance template redirects ${index}/${configuration[gettext('維護模板名稱列表')].length} {{${template}}}... \r`);
 		// console.log(wiki.to_namespace(template, 'template'));
 		const list = await wiki.redirects_here(wiki.to_namespace(template, 'template'), {
 			redirects: 1,
-			converttitles: 1
+			// should NOT use converttitles!
+			// converttitles: 1
 		});
 		// console.log(list);
 
@@ -219,7 +240,7 @@ async function check_template(template_name) {
 	const configuration = wiki.latest_task_configuration;
 	const pages_including_maintenance_template = (await wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
 		// for debug
-		limit: 20,
+		//limit: 20,
 		// 本作業僅處理條目命名空間
 		namespace: 0,
 		page_filter: page_data => !(page_data.pageid in configuration.pageid_processed)
@@ -235,9 +256,10 @@ async function check_template(template_name) {
 		log_to: log_to,
 		// 規範多個問題模板
 		/** {String}編輯摘要。總結報告。 */
-		summary: `[[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]: [[${configuration.configuration_page_title}|Normalize {{Multiple issues}}]]`,
+		// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]: 
+		summary: `[[${configuration.configuration_page_title}|${gettext('規範{{%1}}模板', configuration.Multiple_issues_template_name)}]]`,
 		// for debug
-		tags: 'bot trial',
+		tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
 	});
 }
 
@@ -320,6 +342,45 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 		if (!this.Multiple_issues_template_token) {
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
+		const parameters = Object.keys(this.Multiple_issues_template_token.parameters);
+		if (!/^1?$/.test(parameters)) {
+			if (wiki.site_name() === 'zhwiki') {
+				//fix for "|expand=2010-10-22T16:37:55+00:00" in zhwiki
+				let changed;
+				const index = this.Multiple_issues_template_token.index_of[1];
+				parameters.forEach(parameter => {
+					const template = CeL.wiki.normalize_title(parameter);
+					if (template in configuration.maintenance_template_hash) {
+						if (!index) {
+							index = 1;
+							this.Multiple_issues_template_token.parameters[1] = ['\n'];
+							this.Multiple_issues_template_token.parameters[1].toString = function () {
+								return this.join('\n') + '\n';
+							}
+							this.Multiple_issues_template_token.splice(index, 0, this.Multiple_issues_template_token.parameters[1]);
+						}
+						this.Multiple_issues_template_token.parameters[1].push(`{{${template}|time=${this.Multiple_issues_template_token.parameters[parameters]}}}`);
+						this.Multiple_issues_template_token.index_of[parameters] = '';
+						changed = true;
+					}
+				});
+				if (changed) {
+					const token = this.Multiple_issues_template_token;
+					token.parent[token.index] = token.toString().replace(/\|{2,}/g, '|').replace(/\|}/g, '}');
+					return parsed.toString();
+				}
+			}
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: There are additional parameters, so we can not remove {{${configuration.Multiple_issues_template_name}}}: ${parameters.join(' | ')}`);
+			configuration.problematic_articles.push(page_data.title);
+			return [CeL.wiki.edit.cancel, 'skip'];
+		}
+
+		if (this.maintenance_template_inside.length === 0 && this.Multiple_issues_template_token.parameters[1].toString().trim()) {
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: There is strange parameters, so we can not remove {{${configuration.Multiple_issues_template_name}}}: ${this.Multiple_issues_template_token.parameters[1].toString()}`);
+			configuration.problematic_articles.push(page_data.title);
+			return [CeL.wiki.edit.cancel, 'skip'];
+		}
+
 		need_merge = false;
 
 	} else if (all_maintenance_template_count >= configuration.template_count_to_be_merged) {
@@ -341,6 +402,8 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 		return [CeL.wiki.edit.cancel, 'skip'];
 	}
 
+	// ----------------------------------------------------
+
 	CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Need ${need_merge ? 'merge' : 'split'}. ${this.maintenance_template_inside.length}+${this.maintenance_template_outer.length} maintenance templates: ${this.maintenance_template_inside.map(t => t.name).join(' | ')} + ${this.maintenance_template_outer.map(t => t.name).join(' | ')}`);
 
 	if (need_merge) {
@@ -359,9 +422,9 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 		let Multiple_issues_template_token = this.Multiple_issues_template_token;
 		if (Multiple_issues_template_token) {
 			// 本來就已經含有{{多個問題}}模板。
-			this.summary += `: Merge ${this.maintenance_template_outer.length} template(s) into {{Multiple issues}}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
+			this.summary += `: ${gettext('將%1個維護模板納入{{%2}}模板', this.maintenance_template_outer.length, configuration.Multiple_issues_template_name)}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
 			const tokens = Multiple_issues_template_token.parameters[1];
-			if (!/^\s*\n/.test(token.parent[0])) {
+			if (!/^\s*\n/.test(tokens[0])) {
 				// be sure .startsWith('\n')
 				tokens.unshift('\n');
 			}
@@ -376,7 +439,7 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 			// 維護模板_count>=template_count_to_be_merged&&不含有{{多個問題}}模板
 			// 須合併維護模板的條目，卻不含有{{多個問題}}模板。
 			// in-place replace
-			this.summary += `: Create {{Multiple issues}} with ${this.maintenance_template_outer.length} maintenance template(s): ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
+			this.summary += `: ${gettext('創建包含%1個維護模板的{{%2}}模板', this.maintenance_template_outer.length, configuration.Multiple_issues_template_name)}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
 			const token = this.maintenance_template_outer[0];
 			token.parent[token.index] = `{{${configuration.Multiple_issues_template_name}|\n${this.maintenance_template_outer.join('\n')}\n}}\n`;
 		}
@@ -387,8 +450,9 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 		// 含有{{多個問題}}模板，卻不在可以忽略不處理的條目list或須合併維護模板的條目list中。
 
 		// assert true === !!this.Multiple_issues_template_token
-		this.summary += `: Split {{Multiple issues}} for only ${all_maintenance_template_count} maintenance template(s): ${this.maintenance_template_inside.map(t => t.name).join(', ')}`;
-		this.Multiple_issues_template_token.parent[this.Multiple_issues_template_token.index] = this.Multiple_issues_template_token.parameters[1];
+		this.summary += `: ${gettext('拆分僅有%1個維護模板的{{%2}}模板', all_maintenance_template_count, configuration.Multiple_issues_template_name)}: ${this.maintenance_template_inside.map(t => t.name).join(', ')}`;
+		const token = this.Multiple_issues_template_token;
+		token.parent[token.index] = token.parameters[1].toString().trim();
 	}
 
 	return parsed.toString();
@@ -427,6 +491,7 @@ function check_maintenance_templates(token, index, parent) {
 		token.index = index;
 		token.parent = parent;
 		this.maintenance_template_outer.push(token);
+		// TODO: deal with {{maintenance_template}}<!-- comments -->
 		return;
 	}
 }
@@ -440,35 +505,37 @@ async function generate_report() {
 
 	configuration.count_list.forEach((list, count) => {
 		all_count += list.length;
-		content.push([count, '共' + list.length
+		content.push([count, gettext('共%1條目。', list.length)
 			// \n\n
-			+ '條目。\n[['
+			+ '\n[['
 			// 避免顯示過多。
 			+ (list.length <= 1e4 ? list : list.slice(0, 1e4))
 				//
 				.join(']], [[') + ']]']);
 	});
 	content.reverse();
-	content.unshift(['模板數', '含有維護模板之條目']);
+	content.unshift([gettext('模板數'), gettext('含有維護模板之條目')]);
 
 	content =
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
-		+ '以下列出含有太多維護模板之條目：共' + all_count + '條目。\n'
-		+ '* 本條目會每周更新，毋須手動修正。您可以從'
-		+ CeL.wiki.title_link_of(configuration.configuration_page_title, '這個頁面')
-		+ '更改設定參數。\n'
+		+ gettext('以下列出含有太多維護模板之條目：') + gettext('共%1條目。', all_count) + '\n'
+		+ '* ' + gettext('本報告會每周更新，毋須手動修正。') + gettext('您可以從%1更改設定參數。',
+			CeL.wiki.title_link_of(configuration.configuration_page_title, gettext('這個設定頁面')))
+		+ '\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n' + '{{see|' + log_to + '}}\n\n<!-- report begin -->\n'
-		+ CeL.wiki.array_to_table(content, { 'class': "wikitable" })
-		+ '\n<!-- report end -->\n' + configuration['Categories adding to report'];
+		+ '* ' + gettext('產生時間：%1', '<onlyinclude>~~~~~</onlyinclude>') + '\n\n' + '{{see|' + log_to + '}}\n\n<!-- report begin -->\n'
+		+ CeL.wiki.array_to_table(content, { 'class': "wikitable" });
+	if (configuration.problematic_articles.length > 0) {
+		content += `\n\n== ${gettext('有問題的條目')} ==\n[[` + configuration.problematic_articles.join(']], [[') + ']]';
+	}
+	content += '\n<!-- report end -->\n' + configuration[gettext('報表添加維護分類')];
 
 	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
 	await wiki.edit_page(configuration.report_page, content, {
 		bot: 1,
 		nocreate: 1,
 		redirects: 1,
-		// 規範多個問題模板
-		summary: `Normalize {{Multiple issues}}: 紀錄含有太多維護模板之條目: ${all_count}條`
+		summary: `${gettext('規範{{%1}}模板', configuration.Multiple_issues_template_name)}: ${gettext('紀錄含有太多維護模板之條目: %1條', all_count)} (${gettext('列入報表的最低模板數: %1', configuration.template_count_to_be_reported)})`
 	});
 }

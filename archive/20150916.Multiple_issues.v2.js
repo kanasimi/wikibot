@@ -405,7 +405,7 @@ wiki.cache([ {
 		return [ Multiple_issues_template_name ];
 	},
 	// for debug / test
-	limit : 50,
+	// limit : 50,
 	each_file_name : CeL.wiki.cache.title_only,
 	retrieve : function(list) {
 		return list;
@@ -457,6 +457,7 @@ wiki.cache([ {
 		// CeL.log(template_hash);
 
 		this.維護模板名 = Object.keys(template_hash);
+		// CeL.log(JSON.stringify(this.維護模板名));
 	}
 }, {
 	file_name : '須排除之維護模板別名.' + CeL.wiki.site_name(wiki),
