@@ -333,7 +333,7 @@ function for_each_page(page_data, messages) {
 			// [[タバコ#噛みタバコ|噛みタバコ]] ([[:en:Chewing tobacco|chewing tobacco]])
 			// [[スクロドフスカ石]]:
 			// {{仮リンク|ネソ珪酸塩鉱物|en|Silicate_minerals#Nesosilicates_or_orthosilicates}}
-			CeL.info('不處理名稱包含"#"者: [' + label + '], foreign_title: '
+			CeL.debug('不處理名稱包含"#"者: [' + label + '], foreign_title: '
 					+ foreign_title);
 			return;
 		}
