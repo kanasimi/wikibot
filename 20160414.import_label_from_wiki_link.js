@@ -125,7 +125,8 @@ log_limit = 1000,
 // ((Infinity)) for do all.
 test_limit = Infinity,
 
-raw_data_file_path = base_directory + 'labels.' + use_language + '.csv',
+raw_data_file_name = 'labels.' + CeL.wiki.site_name(wiki) + '.csv', raw_data_file_path = base_directory
+		+ raw_data_file_name,
 //
 raw_data_file_stream,
 
@@ -148,7 +149,7 @@ label_data_keys, label_data_index = 0, label_data_length = 0, starting_label_tim
 
 /** {revision_cacher}記錄處理過的文章。 */
 processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
-		+ use_language + '.json', {
+		+ CeL.wiki.site_name(wiki) + '.json', {
 	// preserve : true,
 	id_only : true
 }),
@@ -1653,7 +1654,7 @@ try {
 	// delete cache.
 	// cd import_label_from_wiki_link && rm all_pages* common_title* labels*
 	require('fs').unlinkSync(
-			base_directory + 'all_pages.' + use_language + '.json');
+			base_directory + 'all_pages.' + CeL.wiki.site_name(wiki) + '.json');
 } catch (e) {
 	// TODO: handle exception
 }
@@ -1691,7 +1692,7 @@ CeL.wiki.cache([ {
 	}
 
 }, {
-	file_name : 'common_title.' + use_language + '.json',
+	file_name : 'common_title.' + CeL.wiki.site_name(wiki) + '.json',
 	list : function(list) {
 		var countries = [];
 		list.forEach(function(country_data) {
@@ -1767,7 +1768,7 @@ CeL.wiki.cache([ {
 	}
 }, {
 	type : 'callback',
-	file_name : 'labels.' + use_language + '.json',
+	file_name : 'labels.' + CeL.wiki.site_name(wiki) + '.json',
 	reget : true,
 	list : create_label_data,
 	operator : function(data) {
