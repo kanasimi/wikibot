@@ -41,9 +41,9 @@ const PATTERN_AfD_page = /^Wikipedia:Articles for deletion\/([^\/]+)$/;
 })();
 
 async function main_process() {
-	//console.log(wiki.latest_task_configuration);
-	//console.log(wiki.task_configuration);
-	//process.exit(1);
+	// console.log(wiki.latest_task_configuration);
+	// console.log(wiki.task_configuration);
+	// process.exit(1);
 	if (!wiki.latest_task_configuration.general) {
 		wiki.latest_task_configuration.general = Object.create(null);
 	}
@@ -114,9 +114,11 @@ async function for_AfD_list(AfD_list_page_data) {
 
 ${all_report_lines.join('\n\n')}
 `;
-	// CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
-	// console.log(report_wikitext);
-	// await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
+	if (false) {
+		CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
+		console.log(report_wikitext);
+		await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -196,7 +198,7 @@ function check_AfD_participations(AfD_page_data) {
 	}, { level_filter: 1 });
 
 	// For "\n'''Delete'''" [[Wikipedia:Articles for deletion/H. M. Khoja]]
-	for (let recommendation of AfD_page_data.wikitext.matchAll(/\n *'''(.+?)'''/g)) {
+	for (const recommendation of AfD_page_data.wikitext.matchAll(/\n *'''(.+?)'''/g)) {
 		// console.log(recommendation);
 		check_recommendation(recommendation, participations);
 	}
@@ -222,7 +224,7 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 	// console.log(linkshere);
 
 	const discussion_page_list = [];
-	for (let discussion_page_data of linkshere) {
+	for (const discussion_page_data of linkshere) {
 		if (PATTERN_AfD_page.test(discussion_page_data.title)
 			? AfD_page_data && discussion_page_data.title === AfD_page_data.title || discussion_page_data.title.startsWith('Wikipedia:Articles for deletion/Log/')
 			: !discussion_page_data.title.startsWith('Wikipedia:Requests for undeletion')) {
@@ -231,8 +233,10 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 
 		discussion_page_list.push(discussion_page_data);
 	}
-	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: discussion_page_list`);
-	// console.log(discussion_page_list);
+	if (false) {
+		CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: discussion_page_list`);
+		console.log(discussion_page_list);
+	}
 	if (discussion_page_list.length === 0)
 		return;
 
@@ -317,7 +321,7 @@ const PATTERN_PROD = /(?:^|\W)(?:PROD|soft deletion)(?:$|\W)/i;
 
 async function get_AfD_logs(target_page_title, result_notice_data) {
 	const logs = [];
-	for (let log of (await wiki.logevents(target_page_title))) {
+	for (const log of (await wiki.logevents(target_page_title))) {
 		// console.log(log);
 		let log_text;
 		switch (log.action) {
@@ -359,7 +363,8 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				if (is_PROD) {
 					result_notice_data.PROD = note;
 				} else if (CSD_link && logs.length > 0 && logs[logs.length - 1].includes('restored')
-					//[[Wikipedia:Articles for deletion/Stella Nova]]: a restored speedy deletion does not prevent SOFTDELETE.
+					// [[Wikipedia:Articles for deletion/Stella Nova]]:
+					// a restored speedy deletion does not prevent SOFTDELETE.
 					&& logs.note && logs.note.includes('previously undeleted')) {
 					delete logs.note;
 				}
@@ -442,7 +447,7 @@ async function for_AfD(AfD_page_data) {
 	let already_noticed;
 	(AfD_page_data.wikitext + '\n').each_between(PROD_MESSAGE_PREFIX, '\n', token => {
 		const date_list = CeL.wiki.parse.date(token, { language: use_language, get_timevalue: true, get_all_list: true });
-		//console.log([AfD_page_data.title, token, date_list]);
+		// console.log([AfD_page_data.title, token, date_list]);
 		if (Date.now() - date_list.min_timevalue < CeL.to_millisecond('7D')) {
 			already_noticed = date_list.min_timevalue;
 		}
@@ -460,7 +465,7 @@ async function for_AfD(AfD_page_data) {
 
 	const target_page_data = this.page_data_hash[target_page_title] || await wiki.page(target_page_title);
 	// console.log(target_page_data);
-	if ('missing' in target_page_data)
+	if (!CeL.wiki.content_of.page_exists(target_page_data))
 		return;
 
 	const result_notice_data = Object.create(null);
@@ -547,15 +552,15 @@ ${result_notice} --~~~~`);
 
 	const report_wikitext = report_lines.join('\n: ');
 	const page_wikitext = AfD_page_data.wikitext.trimEnd() + '\n' + report_wikitext;
-	//console.log(CeL.wiki.title_link_of(AfD_page_data));
-	//CeL.info(page_wikitext);
-	//console.log(report_lines);
+	// console.log(CeL.wiki.title_link_of(AfD_page_data));
+	// CeL.info(page_wikitext);
+	// console.log(report_lines);
 	this.all_report_lines.push(report_wikitext);
 	// for debug:
 	// return;
 
 	await wiki.edit_page(AfD_page_data, page_wikitext, {
-		//tags: 'bot trial',
+		// tags: 'bot trial',
 		summary: `${task_configuration.edit_summary_prefix || ''}${summary || task_configuration.NOT_eligible_PROD_summary || 'Seems NOT eligible for PROD'}`,
 	});
 }

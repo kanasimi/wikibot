@@ -835,7 +835,7 @@ function for_each_page(page_data, messages) {
 		}
 
 		function for_foreign_page(foreign_page_data) {
-			if (!foreign_page_data || ('missing' in foreign_page_data)) {
+			if (!CeL.wiki.content_of.page_exists(foreign_page_data)) {
 				check_page(message_set.missing_foreign);
 				return;
 			}

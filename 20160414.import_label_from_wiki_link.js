@@ -1242,7 +1242,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			'Error: ' + error.messages ];
 		}
 
-		if (!entity || ('missing' in entity)) {
+		if (!CeL.wiki.content_of.page_exists(entity)) {
 			CeL.debug('跳過不存在頁面: ' + (entity && entity.id)
 			//
 			+ ': [[' + foreign_language + ':' + foreign_title + ']]');
@@ -1540,7 +1540,7 @@ function next_label_data_work() {
 		// CeL.info('next_label_data_work.check_label: page_data:');
 		// console.log(page_data);
 
-		if (!page_data || ('missing' in page_data)) {
+		if (!CeL.wiki.content_of.page_exists(page_data)) {
 			CeL.info(
 			//
 			'next_label_data_work.check_label: missing foreign page '

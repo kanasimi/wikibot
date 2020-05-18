@@ -88,7 +88,7 @@ function main_work(template_list, need_male, callback) {
 var PATTERN_Category = /(\[\[ *(?:Category|カテゴリ) *: *(?:日本|アメリカ合衆国)の)((?:(?:ロック|ポップ)?歌手|シンガーソングライター)[\|\]\]])/ig;
 
 function for_each_page(page_data, messages, config) {
-	if (!page_data || ('missing' in page_data)) {
+	if (!CeL.wiki.content_of.page_exists(page_data)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}

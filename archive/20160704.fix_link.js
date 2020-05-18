@@ -121,7 +121,7 @@ var all_pages = 0, pages_finished = 0, parse_page_left = 0;
 
 function for_each_page(page_data) {
 	all_pages++;
-	if (!page_data || ('missing' in page_data)) {
+	if (!CeL.wiki.content_of.page_exists(page_data)) {
 		finish_1_page();
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];

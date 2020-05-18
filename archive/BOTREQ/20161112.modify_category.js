@@ -192,7 +192,7 @@ function main_work(category_name, move_to, callback) {
 var PATTERN_category = /\[\[ *(?:Category|分類|分类|カテゴリ) *: *([^\[\]\|]+)\s*(?:\| *(.*?))?\]\] *\n?/ig;
 
 function for_each_page(page_data, messages, config) {
-	if (!page_data || ('missing' in page_data)) {
+	if (!CeL.wiki.content_of.page_exists(page_data)) {
 		// error?
 		return [ CeL.wiki.edit.cancel, '條目已不存在或被刪除' ];
 	}

@@ -33,7 +33,7 @@ var skip_exists = false,
 check_OK = 0, check_error = 0;
 
 function check_page(page_data) {
-	if (!page_data || ('missing' in page_data))
+	if (!CeL.wiki.content_of.page_exists(page_data))
 		return;
 
 	var title = page_data.title,

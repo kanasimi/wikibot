@@ -142,7 +142,7 @@ function show_模板(list) {
 // -----------------------------------------
 
 function 處理須拆分的條目(page_data, messages) {
-	if ('missing' in page_data)
+	if (!CeL.wiki.content_of.page_exists(page_data))
 		return [ CeL.wiki.edit.cancel, '條目不存在或已被刪除' ];
 	if (page_data.ns !== 0)
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
@@ -246,7 +246,7 @@ function 處理須拆分的條目(page_data, messages) {
 // -----------------------------------------
 
 function 處理須合併的條目(page_data, messages) {
-	if ('missing' in page_data)
+	if (!CeL.wiki.content_of.page_exists(page_data))
 		return [ CeL.wiki.edit.cancel, '條目不存在或已被刪除' ];
 	if (page_data.ns !== 0)
 		return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];

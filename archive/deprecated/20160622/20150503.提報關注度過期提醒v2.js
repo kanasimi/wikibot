@@ -175,7 +175,7 @@ wiki
 				// 或許是 title 在 wikipedia 正規化過程中被改變了。
 				// e.g., 'http://' → 'Http://'
 				CeL.error('Title altered: ' + title);
-			} else if ('missing' in page_data)
+			} else if (!CeL.wiki.content_of.page_exists(page_data))
 				page_status[title][1] = message_set.deleted;
 			else {
 				var content = CeL.wiki.content_of(page_data);

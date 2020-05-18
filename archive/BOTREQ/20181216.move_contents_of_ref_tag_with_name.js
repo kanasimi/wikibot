@@ -78,7 +78,7 @@ function move_ref_contents(value, template, page_data) {
 }
 
 function move_contents_of_ref_tag_with_name(page_data) {
-	if (!page_data || ('missing' in page_data)) {
+	if (!CeL.wiki.content_of.page_exists(page_data)) {
 		// error? 此頁面不存在/已刪除。
 		return [ CeL.wiki.edit.cancel, '條目不存在或已被刪除' ];
 	}

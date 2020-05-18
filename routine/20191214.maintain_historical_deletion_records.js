@@ -63,7 +63,7 @@ const DEBUG_PAGE = '';
 // ----------------------------------------------------------------------------
 
 (async () => {
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
@@ -458,17 +458,15 @@ const NS_User = CeL.wiki.namespace('User');
 
 async function check_deletion_page(JDN, page_data) {
 	// console.log(page_data);
-	if (!page_data
-		// Should not edit user page. 不應該編輯使用者頁面。
-		|| page_data.ns === NS_User
-	) {
+	// Check if the main page does not exist.
+	// The page is not exist now. No-need to add `notification_template`.
+	if (!CeL.wiki.content_of.page_exists(page_data)) {
+		// ignore_pages[page_data.title] = 'missing';
 		return;
 	}
 
-	// Check if the main page does not exist.
-	// The page is not exist now. No-need to add `notification_template`.
-	if ('missing' in page_data) {
-		// ignore_pages[page_data.title] = 'missing';
+	// Should not edit user page. 不應該編輯使用者頁面。
+	if (page_data.ns === NS_User) {
 		return;
 	}
 
@@ -652,7 +650,7 @@ async function check_deletion_page(JDN, page_data) {
 // ----------------------------------------------------------------------------
 
 async function modify_pages() {
-	for (let [page_title, discussions] of Object.entries(pages_to_modify)) {
+	for (const [page_title, discussions] of Object.entries(pages_to_modify)) {
 		page_title = wiki.to_talk_page(page_title);
 		if (!page_title)
 			continue;

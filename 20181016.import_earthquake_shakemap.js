@@ -172,7 +172,7 @@ function check_media(media_data, product_data, detail, index, length) {
 	// CeL.log('check_media: [[File:' + media_data.filename + ']]');
 	wiki.page('File:' + media_data.filename, function(page_data) {
 		// Skip exists file on Wikimedia Commons
-		if (('missing' in page_data) || detail.was_updated) {
+		if (!CeL.wiki.content_of.page_exists(page_data) || detail.was_updated) {
 			CeL.log((index + 1) + '/' + length + '	'
 			//
 			+ detail.id + ' ' + detail.properties.title

@@ -131,7 +131,7 @@ wiki
 				CeL.error('Title altered: ' + title);
 			} else if (CeL.wiki.parse.redirect(content))
 				page_status[title][1] = message_set.redirected;
-			else if ('missing' in page)
+			else if (!CeL.wiki.content_of.page_exists(page))
 				page_status[title][1] = message_set.deleted;
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		},

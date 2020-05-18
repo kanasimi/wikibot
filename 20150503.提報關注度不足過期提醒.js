@@ -133,7 +133,7 @@ function report_notability(page_data) {
 			// 初始化 user。
 			id_pages[user] = Object.create(null);
 			// 在 wiki.work() 前檢測完所有 user talk。
-			wiki.page('User_talk:' + user, function(page_data) {
+			wiki.page('User talk:' + user, function(page_data) {
 				/** {String}page content, maybe undefined. */
 				var content = CeL.wiki.content_of(page_data, 'header'), denied;
 				if (false) {
@@ -180,7 +180,7 @@ function report_notability(page_data) {
 				// 或許是 title 在 wikipedia 正規化過程中被改變了。
 				// e.g., 'http://' → 'Http://'
 				CeL.error('Title altered: ' + title);
-			} else if ('missing' in page_data)
+			} else if (!CeL.wiki.content_of.page_exists(page_data))
 				page_status[title][1] = message_set.deleted;
 			else {
 				/** {String}page content, maybe undefined. */
@@ -277,7 +277,7 @@ function report_notability(page_data) {
 				//
 				+ page_list.join('<span style="color:#777;">、</span>'));
 				// 提醒個別用戶，作出通知。
-				wiki.page('User_talk:' + user, {
+				wiki.page('User talk:' + user, {
 					redirects : 1
 				})
 				// {{Notability-talk}}此模板前面會自動加上分行，對非WP:Flow頁面，後面須自行加上簽名。

@@ -2342,7 +2342,7 @@ wiki.page(save_to_page, function parse_headline_page(page_data) {
 	save_to_page = page_data;
 	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 
-	if (!page_data || ('missing' in page_data)) {
+	if (!CeL.wiki.content_of.page_exists(page_data)) {
 		CeL.info('parse_headline_page: [[' + page_data.title
 				+ ']]: 此頁面不存在/已刪除。');
 		// check_queue('parse_headline_page');
