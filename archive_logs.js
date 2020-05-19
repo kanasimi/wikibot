@@ -119,10 +119,10 @@ function for_log_page(page_data) {
 	//
 	+ lastest_archive[log_title] : '無存檔過'));
 
-	var matched = content && content.match(last_preserve_mark[use_language]);
+	var matched = content && content.match(last_preserve_mark[use_language] || last_preserve_mark.en);
 	if (!matched) {
 		CeL.warn('for_log_page: Invalid log page? (未發現程式運作紀錄標記:'
-				+ last_preserve_mark[use_language] + ') [[' + log_title + ']]');
+			+ (last_preserve_mark[use_language] || last_preserve_mark.en) + ') [[' + log_title + ']]');
 		return;
 	}
 
@@ -235,7 +235,7 @@ function for_log_page(page_data) {
 			// 即使沒有內容，只要存在頁面就當作可以寫入。
 			|| (typeof log_page === 'string' ?
 			// 頁面大小系統上限 2,048 KB = 2 MB。
-			log_page.length + log_size <= Math.pow(8, 7) : !config.nocreate)) {
+			log_page.length + log_size <= /* Math.pow(8, 7) */ 2e6 : !config.nocreate)) {
 				return "'''{{font color|#54f|#ff6|存檔長度" + log_size
 				// TODO: internationalization
 				+ "字元。}}'''\n" + content.slice(matched.index).trim();
