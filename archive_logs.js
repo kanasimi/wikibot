@@ -79,7 +79,7 @@ function archive_title(log_title, archive_index) {
 	// 須配合 PATTERN_log_archive。
 	return log_title
 			+ '/'
-			+ (archive_prefix_hash[log_title] || default_archive_prefix[use_language])
+			+ (archive_prefix_hash[log_title] || default_archive_prefix[use_language] || default_archive_prefix.en)
 			+ (archive_index || lastest_archive[log_title] || archive_index_starts);
 }
 
@@ -161,7 +161,7 @@ function for_log_page(page_data) {
 					+ (needless_reason || '')
 					+ '不造出存檔子頁面。（若需要自動歸檔封存，您需要手動創建首個存檔子頁面'
 					+ CeL.wiki.title_link_of(log_title + '/'
-							+ default_archive_prefix[use_language] + '1')
+						+ (default_archive_prefix[use_language] || default_archive_prefix.en) + '1')
 					+ '。）';
 		}
 	}
