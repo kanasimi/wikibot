@@ -1661,7 +1661,7 @@ try {
 
 // 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
-	CeL.wiki.query.default_lag = 0;
+	// CeL.wiki.query.default_lag = 0;
 }
 
 CeL.wiki.cache([ {
