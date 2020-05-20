@@ -5,6 +5,8 @@
 
  @see 20160923.modify_link.リンク元修正.js	20170828.search_and_replace.js	20161112.modify_category.js
  @see https://www.mediawiki.org/wiki/Manual:Pywikibot/replace.py
+@see https://meta.wikimedia.org/wiki/Indic-TechCom/Tools/MassMove
+@see https://en.wikipedia.org/wiki/User:Plastikspork/massmove.js
 
 TODO:
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
@@ -25,11 +27,14 @@ CeL.run([
 
 // 20190913.replace.js
 log_to = log_to.replace(/\d+$/, 20190913);
-const bot_requests_page = 'WP:BOTREQ';
 
 // global variables using in move_configuration
 const DELETE_PAGE = Symbol('DELETE_PAGE');
+const REDIRECT_TARGET = Symbol('REDIRECT_TARGET');
 const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
+
+/** {String}Default requests page */
+const bot_requests_page = 'Project:BOTREQ';
 
 // ---------------------------------------------------------------------//
 
@@ -60,6 +65,23 @@ async function replace_tool(meta_configuration, move_configuration) {
 		// Set default language. 改變預設之語言。 e.g., 'zh'
 		set_language(meta_configuration.language);
 	}
+	if (meta_configuration.API_URL) {
+		login_options.API_URL = meta_configuration.API_URL;
+	}
+
+	/** {Object}wiki operator 操作子. */
+	let wiki = meta_configuration.wiki;
+	if (!wiki) {
+		wiki = meta_configuration.wiki = new Wikiapi;
+
+		await wiki.login(login_options);
+		// await wiki.login(null, null, use_language);
+	}
+
+	if (typeof move_configuration === 'function') {
+		// async function setup_move_configuration(meta_configuration) {}
+		move_configuration = await move_configuration(meta_configuration);
+	}
 
 	await prepare_operation(meta_configuration, move_configuration);
 
@@ -83,23 +105,27 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 		}
 	}
 
+	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	let section_title = meta_configuration.section_title;
 	if (!meta_configuration.diff_id) {
 		if (section_title) {
 			// TODO: get diff_id from content
-			const bot_requests_page_data = await wiki.page(bot_requests_page, {
+			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
 				// rvprop: 'ids|comment|user|content',
 				rvprop: 'ids|comment|user',
 				// rvlimit: 'max',
 				rvlimit: 80,
 			});
+			//console.log(requests_page_data);
+
 			let user, diff_to, diff_from;
-			bot_requests_page_data.revisions.forEach(revision => {
+			requests_page_data.revisions.forEach(revision => {
 				const comment = section_title === script_name
-					// 去掉檔名中不能包含的字元。
-					? revision.comment.replace(/:/g, '') : revision.comment;
+					// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
+					// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+					? revision.comment.replace(/[\\:?"<>|]/g, '') : revision.comment;
 				//console.log(section_title);
 				//console.log(comment);
 				const matched = comment.match(/^\/\*(.+)\*\//);
@@ -135,7 +161,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 				meta_configuration.diff_id = diff_from > 0 ? diff_from + '/' + diff_to : diff_to;
 				CeL.info(`Get diff_id from edit summary: [[Special:Diff/${meta_configuration.diff_id}#${section_title}]]`);
 			} else {
-				throw new Error(`Can not extract diff id from ${CeL.wiki.title_link_of(bot_requests_page)} edit summary!`);
+				throw new Error(`Can not extract diff id from ${CeL.wiki.title_link_of(requests_page)} edit summary!`);
 			}
 
 		} else {
@@ -148,9 +174,10 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 // auto-notice: start to edit
 async function note_to_edit(wiki, meta_configuration) {
-	const bot_requests_page_data = await wiki.page(bot_requests_page, { redirects: 1 });
+	const requests_page = meta_configuration.requests_page || bot_requests_page;
+	const requests_page_data = await wiki.page(requests_page, { redirects: 1 });
 	/** {Array} parsed page content 頁面解析後的結構。 */
-	const parsed = bot_requests_page_data.parse();
+	const parsed = requests_page_data.parse();
 	let need_edit;
 
 	const section_title = meta_configuration.section_title;
@@ -161,33 +188,36 @@ async function note_to_edit(wiki, meta_configuration) {
 			return;
 		}
 		// console.log(section.toString());
-		let PATTERN = /\n[:* ]*{{BOTREQ\|作業中}}/i;
+		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ? '{{BOTREQ|作業中}}' : '{{Doing}}');
+		// let PATTERN = /\n[:* ]*{{BOTREQ\|作業中}}/i;
 		// PATTERN =
 		// new RegExp(PATTERN.source + ' .+?' + user_name, PATTERN.flags);
-		if (PATTERN.test(section.toString())) {
+		if (section.toString().includes(doing_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed: ${section_title}`);
+			need_edit = false;
 			return;
 		}
 		const index = section.range[1] - 1;
 		// assert: parsed[index] ===section[section.length - 1]
-		parsed[index] = parsed[index].toString().trimEnd() + '\n* {{BOTREQ|作業中}} --~~~~\n';
+		parsed[index] = parsed[index].toString().trimEnd() + `\n* ${doing_message} --~~~~\n`;
+		// TODO: +確認用リンク
 		need_edit = true;
 	});
 
 	if (need_edit) {
-		await wiki.edit_page(bot_requests_page, parsed.toString(), {
+		// console.log(parsed.toString());
+		await wiki.edit_page(requests_page, parsed.toString(), {
 			redirects: 1,
 			summary: 'Starting bot request task: ' + section_title
 		});
+	} else if (need_edit === undefined) {
+		CeL.info('Will not auto-notice starting to edit!');
 	}
 }
 
 async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
-	const wiki = new Wikiapi;
-
-	await wiki.login(login_options);
-	// await wiki.login(null, null, use_language);
+	const wiki = meta_configuration.wiki;
 
 	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
 
@@ -206,8 +236,17 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	}
 
 	// Object.entries(move_configuration).forEach(main_move_process);
-	for (let pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
-		const [move_from_link, move_to_link] = [pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]), pair[1]];
+	for (const pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
+		const move_from_link = pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]);
+		let move_to_link = pair[1];
+		if (move_to_link === REDIRECT_TARGET) {
+			move_to_link = await wiki.redirects_root(move_from_link);
+			CeL.info(`prepare_operation: ${CeL.wiki.title_link_of(move_from_link)} redirects to → ${CeL.wiki.title_link_of(move_to_link)}`);
+			if (move_from_link === move_to_link) {
+				throw new Error('Target the same with move source!');
+			}
+		}
+
 		const task_configuration = CeL.is_Object(move_to_link)
 			? move_to_link.move_from_link ? move_to_link : { move_from_link, ...move_to_link }
 			// assert: typeof move_to_link === 'string'
@@ -274,7 +313,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			diff_id ? `Special:Diff/${diff_id}${_section_title}`
 				// Speedy renaming or speedy merging
 				: meta_configuration.speedy_criteria === 'merging' ? 'WP:CFDS'
-					: 'WP:BOTREQ',
+					: meta_configuration.requests_page || bot_requests_page,
 			// [[Wikipedia:Categories for discussion/Speedy]]
 			// Speedy renaming or speedy merging
 			meta_configuration.speedy_criteria ? 'Speedy ' + meta_configuration.speedy_criteria
@@ -285,7 +324,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		if (task_configuration.do_move_page) {
 			if (typeof move_from_link !== 'string') {
-				throw new Error('`move_from_link` should be {String}!');
+				throw new TypeError('`move_from_link` should be {String}!');
 			}
 			// 作業前先移動原頁面。
 			task_configuration.do_move_page = {
@@ -432,7 +471,8 @@ async function get_list(task_configuration, list_configuration) {
 	let list_options = {
 		// combine_pages: for list_types = 'exturlusage'
 		// combine_pages: true,
-		namespace: list_configuration.namespace || default_namespace
+		// e.g., namespace : 0,
+		namespace: 'namespace' in list_configuration ? list_configuration.namespace : default_namespace
 	};
 
 	if (list_types.join() === 'exturlusage') {
@@ -523,7 +563,7 @@ async function get_list(task_configuration, list_configuration) {
 		);
 		const list_filter = list_configuration.list_filter;
 		// Can not use `list_types.forEach(async type => ...)`
-		for (let type of list_types) {
+		for (const type of list_types) {
 			let list_segment = await wiki[type](list_configuration.move_from.page_title, list_options);
 			if (list_filter) {
 				list_segment = list_segment.filter(list_filter);
@@ -563,7 +603,7 @@ async function main_move_process(task_configuration) {
 	}
 	// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
 	if (Array.isArray(list_intersection)) {
-		for (let list_configuration of list_intersection) {
+		for (const list_configuration of list_intersection) {
 			const sub_page_id_hash = Object.create(null);
 			(await get_list(task_configuration, list_configuration)).forEach(page_data => { sub_page_id_hash[page_data.pageid] = null; });
 			page_list = page_list.filter(page_data => page_data.pageid in sub_page_id_hash);
@@ -573,16 +613,17 @@ async function main_move_process(task_configuration) {
 	//console.log(page_list.slice(0, 10));
 
 	const wiki = task_configuration.wiki;
-	await wiki.for_each_page(
-		page_list,
-		for_each_page.bind(task_configuration),
-		{
-			// for 「株式会社リクルートホールディングス」の修正
-			// for リクルートをパイプリンクにする
-			// page_options: { rvprop: 'ids|content|timestamp|user' },
-			log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
-			summary: task_configuration.summary
-		});
+	const edit_options = {
+		// for 「株式会社リクルートホールディングス」の修正
+		// for リクルートをパイプリンクにする
+		// page_options: { rvprop: 'ids|content|timestamp|user' },
+		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
+		summary: task_configuration.summary
+	};
+	if (typeof task_configuration.before_get_pages === 'function') {
+		task_configuration.before_get_pages(page_list, edit_options);
+	}
+	await wiki.for_each_page(page_list, for_each_page.bind(task_configuration), edit_options);
 }
 
 
@@ -784,7 +825,8 @@ function replace_link_parameter(task_configuration, template_token, template_has
 	if (!(template_token.name in template_hash))
 		return false;
 
-	if (!task_configuration.move_to_link || task_configuration.move_to && !task_configuration.move_to.page_name
+	if (!task_configuration.move_to_link || task_configuration.move_to_link === DELETE_PAGE
+		|| task_configuration.move_to && !task_configuration.move_to.page_name
 		|| task_configuration.page_data.ns !== task_configuration.move_from.ns) {
 		return true;
 	}
@@ -868,7 +910,7 @@ function for_each_template(page_data, token, index, parent) {
 // ---------------------------------------------------------------------//
 // export
 
-Object.assign(globalThis, { DELETE_PAGE, remove_token });
+Object.assign(globalThis, { DELETE_PAGE, REDIRECT_TARGET, remove_token });
 
 module.exports = {
 	// modify
