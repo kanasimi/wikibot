@@ -46,7 +46,9 @@ function adapt_configuration(latest_task_configuration) {
 	/** {String}{{Multiple issues}}/{{多個問題}}模板本名 without "Template:" prefix */
 	configuration.Multiple_issues_template_name = configuration.Multiple_issues_template_name ? configuration.Multiple_issues_template_name : 'Multiple issues';
 	/** {Array}{{多個問題}}模板別名 alias */
-	configuration.Multiple_issues_template_alias_list = configuration.Multiple_issues_template_alias_list;
+	if (false) {
+		configuration.Multiple_issues_template_alias_list = configuration.Multiple_issues_template_alias_list;
+	}
 
 	/** {Natural}須拆分模板數 */
 	configuration.template_count_to_be_split = +configuration.template_count_to_be_split || 1;
@@ -68,7 +70,7 @@ function adapt_configuration(latest_task_configuration) {
 	 * 
 	 * @see [[維基百科:模板訊息/清理]], [[Category:維基百科維護模板]], [[Category:條目訊息模板]],
 	 *      {{Ambox}}, [[WP:HAT#頂註模板]], [[Category:Wikipedia maintenance
-	 *      templates]]
+	 *      templates]], [[Wikipedia:AutoWikiBrowser/Template redirects]]
 	 */
 	configuration[gettext('維護模板名稱列表')] = configuration[gettext('維護模板名稱列表')] || [];
 	/**
@@ -120,16 +122,15 @@ async function main_process() {
 		console.log(await wiki.redirects_here(configuration.Multiple_issues_template_name));
 		console.log(await wiki.redirects_here('Template:Issues'));
 	}
-	if (cached_data) {
+	if (cached_data && Date.now() - cached_data.cached_date < CeL.to_millisecond('1d')) {
 		Object.assign(configuration, cached_data);
 	} else {
-		// 解析出所有維護模板別名
 		if (!configuration.Multiple_issues_template_alias_list) {
 			configuration.Multiple_issues_template_alias_list = (await wiki.redirects_here(wiki.to_namespace(configuration.Multiple_issues_template_name, 'template')))
 				// wiki.remove_namespace() /^Template:/
 				.map(template => wiki.remove_namespace(template));
 			// console.log(configuration.Multiple_issues_template_alias_list);
-			// 維護模板本名
+			// 模板本名
 			configuration.Multiple_issues_template_name = configuration.Multiple_issues_template_alias_list[0];
 		}
 		configuration.Multiple_issues_template_alias_hash = configuration.Multiple_issues_template_alias_list.to_hash();
@@ -137,21 +138,26 @@ async function main_process() {
 
 		await get_maintenance_template_list();
 		CeL.write_file(cache_file_path, {
+			cached_date: Date.now(),
 			Multiple_issues_template_name: configuration.Multiple_issues_template_name,
 			Multiple_issues_template_alias_hash: configuration.Multiple_issues_template_alias_hash,
 			maintenance_template_hash: configuration.maintenance_template_hash,
 		});
 	}
+
+	/** 維護模板本名 without "Template:" prefix */
+	let maintenance_template_list = Object.values(configuration.maintenance_template_hash).sort().unique();
+	if (maintenance_template_list.join() !== configuration[gettext('維護模板名稱列表')].join()) {
+		CeL.log('總共有 ' + maintenance_template_list + ' 個維護模板名.');
+		console.log(maintenance_template_list.map(t => '# ' + t).join('\n'));
+	}
+
 	// free
 	delete configuration.Multiple_issues_template_alias_list;
 	delete configuration[gettext('維護模板名稱列表')];
 	delete configuration[gettext('須排除之維護模板名稱列表')];
-	if (false) {
-		console.trace(configuration);
-		// for debug
-		CeL.log('總共有 ' + Object.values(configuration.maintenance_template_hash).sort().unique() + ' 個維護模板名.');
-		console.log(Object.values(configuration.maintenance_template_hash).sort().unique().map(t => '# ' + t).join('\n'));
-	}
+	// console.trace(configuration);
+	// console.trace(configuration.maintenance_template_hash);
 
 	// ----------------------------------------------------
 
@@ -161,18 +167,22 @@ async function main_process() {
 	// (pageid in pageid_processed): have processed
 	configuration.pageid_processed = Object.create(null);
 
+	// for debug
+	// check_articles_embeddedin_template(['神秘之夜']);
+	// return;
+
 	// @see [[Category:含有多个问题的条目]]
 	// 處理含有 {{Multiple issues}} 的條目
-	await check_template(configuration.Multiple_issues_template_name);
+	await check_articles_embeddedin_template(configuration.Multiple_issues_template_name);
+
+	// for debug
+	// maintenance_template_list = maintenance_template_list.slice(120, 200);
 
 	// 處理含有維護模板的條目
-	for (let maintenance_template of
-		/** 維護模板本名 without "Template:" prefix */
-		Object.values(configuration.maintenance_template_hash).unique()
-		// for debug
-		//.slice(120, 200)
-	) {
-		await check_template(maintenance_template);
+	for (let index = 0, length = maintenance_template_list.length; index < length; index++) {
+		const maintenance_template = maintenance_template_list[index];
+		CeL.info(`check_articles_embeddedin_template: ${index + 1}/${length} ${maintenance_template}`);
+		await check_articles_embeddedin_template(maintenance_template);
 	}
 
 	// ----------------------------------------------------
@@ -188,7 +198,7 @@ async function get_maintenance_template_list() {
 	const configuration = wiki.latest_task_configuration;
 
 	const maintenance_template_list_to_be_excluded = Object.create(null);
-	for (let template of configuration[gettext('須排除之維護模板名稱列表')]) {
+	for (const template of configuration[gettext('須排除之維護模板名稱列表')]) {
 		const list = await wiki.redirects_here(wiki.to_namespace(template, 'template'));
 		// `list[0].title` is the redirect target.
 		const main_title = list[0].title;
@@ -200,6 +210,8 @@ async function get_maintenance_template_list() {
 		configuration[gettext('須排除之維護模板名稱列表')] = maintenance_template_list_to_be_excluded;
 	}
 
+	// 解析出所有維護模板別名
+	// The bot will get all the redirects of maintenance template.
 	const maintenance_template_hash = Object.create(null);
 	for (let index = 0; index < configuration[gettext('維護模板名稱列表')].length; index++) {
 		const template = CeL.wiki.normalize_title(configuration[gettext('維護模板名稱列表')][index]);
@@ -211,23 +223,30 @@ async function get_maintenance_template_list() {
 		process.stdout.write(`Get maintenance template redirects ${index}/${configuration[gettext('維護模板名稱列表')].length} {{${template}}}... \r`);
 		// console.log(wiki.to_namespace(template, 'template'));
 		const list = await wiki.redirects_here(wiki.to_namespace(template, 'template'), {
-			redirects: 1,
 			// should NOT use converttitles!
 			// converttitles: 1
 		});
 		// console.log(list);
 
-		// `list[0].title` is the redirect target.
+		// 維護模板本名
+		// `list[0]` is the redirect target.
 		let main_title = list[0].title;
 		if (!main_title)
 			continue;
+		if (list[0].original_title && list[0].redirect_from && list[0].original_title !== list[0].redirect_from) {
+			// TODO: 處理 converttitles。
+			// e.g., for 'Template:專家'
+			const original_title = wiki.remove_namespace(list[0].original_title);
+			maintenance_template_hash[original_title] = original_title;
+		}
+
 		if (main_title in maintenance_template_list_to_be_excluded)
 			continue;
 		main_title = wiki.remove_namespace(main_title);
 		if (main_title in maintenance_template_hash)
 			continue;
 		maintenance_template_hash[main_title] = main_title;
-		for (let page_data of list)
+		for (const page_data of list)
 			maintenance_template_hash[wiki.remove_namespace(page_data.title)] = main_title;
 	}
 	// console.log(maintenance_template_hash);
@@ -236,11 +255,11 @@ async function get_maintenance_template_list() {
 
 // ---------------------------------------------------------------------//
 
-async function check_template(template_name) {
+async function check_articles_embeddedin_template(template_name) {
 	const configuration = wiki.latest_task_configuration;
-	const pages_including_maintenance_template = (await wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
+	const pages_including_maintenance_template = Array.isArray(template_name) ? template_name : (await wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
 		// for debug
-		//limit: 20,
+		// limit: 20,
 		// 本作業僅處理條目命名空間
 		namespace: 0,
 		page_filter: page_data => !(page_data.pageid in configuration.pageid_processed)
@@ -256,7 +275,7 @@ async function check_template(template_name) {
 		log_to: log_to,
 		// 規範多個問題模板
 		/** {String}編輯摘要。總結報告。 */
-		// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]: 
+		// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]:
 		summary: `[[${configuration.configuration_page_title}|${gettext('規範{{%1}}模板', configuration.Multiple_issues_template_name)}]]`,
 		// for debug
 		tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
@@ -339,34 +358,40 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 	let need_merge;
 	if (all_maintenance_template_count <= configuration.template_count_to_be_split) {
 		// need split
-		if (!this.Multiple_issues_template_token) {
+		const Multiple_issues_template_token = this.Multiple_issues_template_token;
+		if (!Multiple_issues_template_token) {
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
-		const parameters = Object.keys(this.Multiple_issues_template_token.parameters);
+		const parameters = Object.keys(Multiple_issues_template_token.parameters);
 		if (!/^1?$/.test(parameters)) {
 			if (wiki.site_name() === 'zhwiki') {
-				//fix for "|expand=2010-10-22T16:37:55+00:00" in zhwiki
+				// fix for "|expand=2010-10-22T16:37:55+00:00" in zhwiki
 				let changed;
-				const index = this.Multiple_issues_template_token.index_of[1];
+				let parameter_1 = Multiple_issues_template_token.parameters[1];
 				parameters.forEach(parameter => {
 					const template = CeL.wiki.normalize_title(parameter);
-					if (template in configuration.maintenance_template_hash) {
-						if (!index) {
-							index = 1;
-							this.Multiple_issues_template_token.parameters[1] = ['\n'];
-							this.Multiple_issues_template_token.parameters[1].toString = function () {
+					const time = Multiple_issues_template_token.parameters[parameter].trim();
+					const is_date = /^\d{4}年\d{1,2}月(\d{1,2}日)?$/.test(time);
+					if (false) {
+						console.log([template, template in configuration.maintenance_template_hash, Date.parse(time)]);
+					}
+					if ((template in configuration.maintenance_template_hash) && (is_date || Date.parse(time) > 0)) {
+						if (!parameter_1) {
+							parameter_1 = [''];
+							parameter_1.toString = function () {
 								return this.join('\n') + '\n';
-							}
-							this.Multiple_issues_template_token.splice(index, 0, this.Multiple_issues_template_token.parameters[1]);
+							};
+							// 不影響 index。
+							Multiple_issues_template_token.push(parameter_1);
 						}
-						this.Multiple_issues_template_token.parameters[1].push(`{{${template}|time=${this.Multiple_issues_template_token.parameters[parameters]}}}`);
-						this.Multiple_issues_template_token.index_of[parameters] = '';
+						// assert: Array.isArray(parameter_1)
+						parameter_1.push(`{{${template}|${is_date ? 'date' : 'time'}=${time}}}`);
+						Multiple_issues_template_token[Multiple_issues_template_token.index_of[parameter]] = '';
 						changed = true;
 					}
 				});
 				if (changed) {
-					const token = this.Multiple_issues_template_token;
-					token.parent[token.index] = token.toString().replace(/\|{2,}/g, '|').replace(/\|}/g, '}');
+					Multiple_issues_template_token.parent[Multiple_issues_template_token.index] = Multiple_issues_template_token.toString().replace(/\|([\s\n]*\|)+/g, '|');
 					return parsed.toString();
 				}
 			}
@@ -375,8 +400,8 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
 
-		if (this.maintenance_template_inside.length === 0 && this.Multiple_issues_template_token.parameters[1].toString().trim()) {
-			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: There is strange parameters, so we can not remove {{${configuration.Multiple_issues_template_name}}}: ${this.Multiple_issues_template_token.parameters[1].toString()}`);
+		if (this.maintenance_template_inside.length === 0 && Multiple_issues_template_token.parameters[1].toString().trim()) {
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The parameter 1 is strange, so I can not remove {{${configuration.Multiple_issues_template_name}}}: ${Multiple_issues_template_token.parameters[1].toString()}`);
 			configuration.problematic_articles.push(page_data.title);
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
@@ -419,7 +444,7 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 			if (token.parent.length > index && /^\s*\n/.test(token.parent[index]))
 				token.parent[index] = token.parent[index].toString().replace(/^\s*\n/, '');
 		});
-		let Multiple_issues_template_token = this.Multiple_issues_template_token;
+		const Multiple_issues_template_token = this.Multiple_issues_template_token;
 		if (Multiple_issues_template_token) {
 			// 本來就已經含有{{多個問題}}模板。
 			this.summary += `: ${gettext('將%1個維護模板納入{{%2}}模板', this.maintenance_template_outer.length, configuration.Multiple_issues_template_name)}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
