@@ -309,17 +309,17 @@ function parse_each_FC_item_list_page(page_data) {
 	}
 
 	var catalog,
-	// matched: [ all, link title, display, catalog ]
+	// matched: [ all, link title, display, title level, catalog ]
 	PATTERN_Featured_content = test_pattern(
 	// @see [[Template:FA number]] 被標記為粗體的條目已經在作為典範條目時在首頁展示過
 	// 典範條目, 已撤銷的典範條目, 已撤销的特色列表: '''[[title]]'''
-	/'''\[\[([^\[\]\|#]+)(?:\|([^\[\]]*))?\]\]'''|\n==([^=].*?)==\n/g)
+	/'''\[\[([^\[\]\|#]+)(?:\|([^\[\]]*))?\]\]'''|\n(===?)([^=].*?)\3\n/g)
 			// 特色列表: [[:title]]
-			|| test_pattern(/\[\[:([^\[\]\|#]+)(?:\|([^\[\]]*))?\]\]|\n==([^=].*?)==\n/g)
+			|| test_pattern(/\[\[:([^\[\]\|#]+)(?:\|([^\[\]]*))?\]\]|\n(===?)([^=].*?)\3\n/g)
 			// 優良條目轉換到子頁面模式: 警告：本頁中的所有嵌入頁面都會被機器人當作優良條目的分類列表。請勿嵌入非優良條目的分類列表。
 			|| test_pattern(/{{(Wikipedia:[^{}\|]+)}}/g, 10)
 			// 優良條目子分類列表, 已撤消的優良條目: all links NOT starting with ':'
-			|| /\[\[([^:\[\]\|#][^\[\]\|#]*)(?:\|([^\[\]]*))?\]\]|\n===([^=].*?)===\n/g;
+			|| /\[\[([^:\[\]\|#][^\[\]\|#]*)(?:\|([^\[\]]*))?\]\]|\n(===?)([^=].*?)\3\n/g;
 	CeL.log(CeL.wiki.title_link_of(title) + ': ' + (is_FFC ? 'is former'
 	//
 	+ (is_FFC === true ? '' : ' (' + is_FFC + ')') : 'NOT former') + ', '
@@ -349,9 +349,9 @@ function parse_each_FC_item_list_page(page_data) {
 
 		// assert: matched.length === 4
 
-		if (matched[3]) {
+		if (matched[4]) {
 			// 分類/類別。
-			catalog = matched[3].replace(/<!--[\s\S]*?-->/g, '').trim()
+			catalog = matched[4].replace(/<!--[\s\S]*?-->/g, '').trim()
 					.replace(/\s*（\d+）$/, '');
 			continue;
 		}
