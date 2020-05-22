@@ -70,7 +70,7 @@ function adapt_configuration(latest_task_configuration) {
 	 * 
 	 * @see [[維基百科:模板訊息/清理]], [[Category:維基百科維護模板]], [[Category:條目訊息模板]],
 	 *      {{Ambox}}, [[WP:HAT#頂註模板]], [[Category:Wikipedia maintenance
-	 *      templates]], [[Wikipedia:AutoWikiBrowser/Template redirects]]
+	 *      templates]], [[Wikipedia:AutoWikiBrowser/Template redirects#Maintenance templates]], [[en:Wikipedia:AutoWikiBrowser/Dated_templates]]
 	 */
 	configuration[gettext('維護模板名稱列表')] = configuration[gettext('維護模板名稱列表')] || [];
 	/**
@@ -271,7 +271,7 @@ async function check_articles_embeddedin_template(template_name) {
 	}
 
 	// await wiki.setup_layout_elements();
-	await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_Multiple_issues_template, {
+	await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
 		log_to: log_to,
 		// 規範多個問題模板
 		/** {String}編輯摘要。總結報告。 */
@@ -324,7 +324,7 @@ function check_maintenance_template_name(page_data) {
 
 // ---------------------------------------------------------------------//
 
-async function check_pages_including_Multiple_issues_template(page_data) {
+async function check_pages_including_maintenance_template(page_data) {
 	const configuration = wiki.latest_task_configuration;
 	configuration.pageid_processed[page_data.pageid] = null;
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -343,6 +343,7 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 	this.for_each_token = parsed.each;
 	parsed.each(check_maintenance_templates.bind(this), {
 		// 只探索第一層，探索到第一個標題為止。
+		// Only search the root elements, till the first section title.
 		max_depth: 1
 	});
 
@@ -487,6 +488,7 @@ async function check_pages_including_Multiple_issues_template(page_data) {
 function check_maintenance_templates(token, index, parent) {
 	if (token.type === 'section_title') {
 		// 只探索第一層，探索到第一個標題為止。
+		// Only search the root elements, till the first section title.
 		return this.for_each_token.exit;
 	}
 
