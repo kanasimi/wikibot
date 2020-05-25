@@ -13,7 +13,7 @@ const replace_tool = require('./replace_tool.js');
 // ----------------------------------------------------------------------------
 
 // 因為數量太多，只好增快速度。
-//CeL.wiki.query.default_lag = 0;
+// CeL.wiki.query.default_edit_time_interval = 0;
 
 const states_list = 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Alaska|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming'.split('|');
 const template_types = 'HousesArc|Arc|ArcDecade|HousesArcDecade|ChurchesArcDecade|BridgesArcDecade'.split('|');
@@ -105,7 +105,9 @@ async function setup_move_configuration(meta_configuration) {
 				continue;
 			}
 
-			continue;
+			// For start from remove_needless_templates()
+			//continue;
+
 			list_configurations[wiki.to_namespace(state + template_type, 'template')] = {
 				text_processor: replace_US_state_templates,
 				state,
@@ -135,7 +137,8 @@ async function setup_move_configuration(meta_configuration) {
 (async () => {
 	await replace_tool.replace({
 		language: 'commons',
-		family: 'commons',
+		//family: 'commons',
+		//use_project: 'commons',
 		requests_page: 'COM:BR',
 
 		// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`

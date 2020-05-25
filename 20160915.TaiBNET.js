@@ -94,7 +94,7 @@ function import_data() {
 // import each taxon
 
 // 因為數量太多，只好增快速度。
-CeL.wiki.query.default_lag = 0;
+wiki.edit_time_interval = 0;
 
 function for_taxon(line) {
 	var TaiBNET_id = line[臺灣物種名錄物種編號_index] || line[臺灣物種名錄物種編號_accepted_index],

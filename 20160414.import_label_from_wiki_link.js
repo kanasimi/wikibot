@@ -1249,7 +1249,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			// console.trace(entity);
 			return [ CeL.wiki.edit.cancel,
 			//
-			'missing [' + (entity && entity.id
+			'missing wikidata page of [' + (entity && entity.id
 			//
 			|| foreign_language + ':' + foreign_title) + ']' ];
 		}
@@ -1634,7 +1634,7 @@ function finish_work() {
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
 	// wiki = Wiki(true);
-	// need fix .lag
+	// need fix wiki_session.edit_time_interval
 
 	starting_label_time = Date.now();
 	// do next.
@@ -1661,7 +1661,7 @@ try {
 
 // 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
-	// CeL.wiki.query.default_lag = 0;
+	CeL.wiki.query.default_edit_time_interval = 0;
 }
 
 CeL.wiki.cache([ {
