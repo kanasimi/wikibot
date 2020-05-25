@@ -83,11 +83,11 @@ CeL.run([ 'interact.DOM', 'application.debug',
 // 載入不同地區語言的功能 for wiki.work()。
 'application.locale',
 // 載入操作維基百科的主要功能。
-'application.net.wiki.parser',
-//
-'application.net.wiki.edit', 'application.net.wiki.list',
-//
+'application.net.wiki',
+// Optional 可選功能
 'application.net.wiki.data', 'application.net.wiki.admin',
+// Optional 可選功能
+'application.net.wiki.cache',
 // Add color to console messages. 添加主控端報告的顏色。
 'interact.console',
 // for 'application.platform.nodejs': CeL.env.arg_hash,
@@ -160,13 +160,14 @@ if (script_name) {
 	base_directory = bot_directory + script_name + '/';
 }
 
+_global.original_directory = _global.dump_directory = undefined;
 if (bot_directory) {
 	// CeL.log('base_directory: ' + base_directory);
 	// record original working directory.
-	_global.original_directory = process.cwd().replace(/[\\\/]+$/) + '/';
+	original_directory = process.cwd().replace(/[\\\/]+$/) + '/';
 	// e.g., '/shared/cache/', '/shared/dumps/', '~/dumps/'
 	// 注意:此目錄可能因為系統整理等原因而消失。
-	_global.dump_directory = '/shared/cache/';
+	dump_directory = '/shared/cache/';
 
 	if (false) {
 		console.log('wmflabs-project: '
