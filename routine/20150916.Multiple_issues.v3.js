@@ -167,8 +167,8 @@ async function main_process() {
 	// (pageid in pageid_processed): have processed
 	configuration.pageid_processed = Object.create(null);
 
-	// for debug
-	// check_articles_embeddedin_template(['神秘之夜']);
+	// for debug specified article
+	//check_articles_embeddedin_template(['TVS Supercharger', 'John Popadiuk']);
 	// return;
 
 	// @see [[Category:含有多个问题的条目]]
@@ -176,7 +176,7 @@ async function main_process() {
 	await check_articles_embeddedin_template(configuration.Multiple_issues_template_name);
 
 	// for debug
-	// maintenance_template_list = maintenance_template_list.slice(120, 200);
+	// maintenance_template_list = maintenance_template_list.slice(0, 200);
 
 	// 處理含有維護模板的條目
 	for (let index = 0, length = maintenance_template_list.length; index < length; index++) {
@@ -278,7 +278,7 @@ async function check_articles_embeddedin_template(template_name) {
 		// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]:
 		summary: `[[${configuration.configuration_page_title}|${gettext('規範{{%1}}模板', configuration.Multiple_issues_template_name)}]]`,
 		// for debug
-		tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
+		// tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
 	});
 }
 
@@ -437,13 +437,9 @@ async function check_pages_including_maintenance_template(page_data) {
 		// 抽取出所有維護模板，再於首個維護模板出現的地方插入{{多個問題}}模板
 
 		// remove outer maintenance template
-		this.maintenance_template_outer.forEach(function (token) {
+		this.maintenance_template_outer.forEach(token => {
 			// 抽取出此維護模板
-			let index = token.index;
-			token.parent[index++] = '';
-			// @see function remove_token_from_parent()
-			if (token.parent.length > index && /^\s*\n/.test(token.parent[index]))
-				token.parent[index] = token.parent[index].toString().replace(/^\s*\n/, '');
+			CeL.wiki.parser.remove_token(token, undefined, undefined, true);
 		});
 		const Multiple_issues_template_token = this.Multiple_issues_template_token;
 		if (Multiple_issues_template_token) {
@@ -468,6 +464,7 @@ async function check_pages_including_maintenance_template(page_data) {
 			this.summary += `: ${gettext('創建包含%1個維護模板的{{%2}}模板', this.maintenance_template_outer.length, configuration.Multiple_issues_template_name)}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
 			const token = this.maintenance_template_outer[0];
 			token.parent[token.index] = `{{${configuration.Multiple_issues_template_name}|\n${this.maintenance_template_outer.join('\n')}\n}}\n`;
+			CeL.wiki.parser.remove_heading_spaces(token.parent, token.index + 1);
 		}
 	} else {
 		// need split
@@ -481,6 +478,8 @@ async function check_pages_including_maintenance_template(page_data) {
 		token.parent[token.index] = token.parameters[1].toString().trim();
 	}
 
+	//	console.log(parsed.toString());
+	//	console.log(parsed);
 	return parsed.toString();
 }
 
