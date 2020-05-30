@@ -9,6 +9,13 @@ SP="\n-----------------------------------------------------------"
 
 cd ~
 
+#printf "$SP\nnpm update..."
+
+#/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm install mysql
+#/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm install opencc
+
+# ---------------------------------------------------------
+
 printf "$SP\nClone CeJS..."
 
 # 若有更新，得自己刪除 ~/CeJS。
@@ -19,11 +26,6 @@ printf "$SP\nClone CeJS..."
 [ -d "node_modules" ] || md node_modules
 cd node_modules
 
-#/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm install mysql
-#/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm install OpenCC
-
-# ---------------------------------------------------------
-
 # method 1:
 #rm -rf cejs
 #/usr/bin/git clone https://github.com/kanasimi/CeJS.git cejs
@@ -32,7 +34,7 @@ cd node_modules
 # /usr/bin/unzip -UU : 以 jsub @crontab 執行的時候會出現亂碼
 # sh has no `time`, so we can not use `time /usr/bin/unzip` @ Debian Stretch 2019/3/15
 # bash hash `time`
-/usr/bin/wget -O CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d cejs ] && /usr/bin/diff CeJS.zip CeJS.zip.old && mv -f CeJS.zip CeJS.zip.old && echo "CeJS: No news." || ( echo "Extracting CeJS..." && /usr/bin/unzip CeJS.zip > /dev/null && mv -f CeJS.zip CeJS.zip.old && rm -rf cejs && mv CeJS-master cejs && (cp -f "cejs/_for include/_CeL.loader.nodejs.js" ~/wikibot) && ( [ -d OpenCC ] && cp -f OpenCC/* cejs/extension/zh_conversion/OpenCC/ || echo "No OpenCC." ) || echo "Failed to get CeJS" )
+/usr/bin/wget -O CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d cejs ] && /usr/bin/diff CeJS.zip CeJS.zip.old && mv -f CeJS.zip CeJS.zip.old && echo "CeJS: No news." || ( echo "Extracting CeJS..." && /usr/bin/unzip CeJS.zip > /dev/null && mv -f CeJS.zip CeJS.zip.old && rm -rf cejs && mv CeJS-master cejs && (cp -f "cejs/_for include/_CeL.loader.nodejs.js" ~/wikibot) && ( [ -d opencc/data/dictionary ] && cp -f opencc/data/dictionary/* cejs/extension/zh_conversion/OpenCC/ || echo "No OpenCC!" ) || echo "Failed to get CeJS!" )
 
 # ---------------------------------------------------------
 # 2019/9/12 18:25:17
