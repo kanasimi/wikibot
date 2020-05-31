@@ -36,7 +36,8 @@ last_preserve_mark = {
 	zh : '運作記錄',
 	// 作業結果報告
 	ja : '結果',
-	// work report, operation report, summary
+	// robot work report, operation report
+	// TODO: summary, robot work log
 	en : 'report'
 },
 /** {Natural}超過了這個長度才會被搬移。 */
@@ -79,7 +80,8 @@ function archive_title(log_title, archive_index) {
 	// 須配合 PATTERN_log_archive。
 	return log_title
 			+ '/'
-			+ (archive_prefix_hash[log_title] || default_archive_prefix[use_language] || default_archive_prefix.en)
+			+ (archive_prefix_hash[log_title]
+					|| default_archive_prefix[use_language] || default_archive_prefix.en)
 			+ (archive_index || lastest_archive[log_title] || archive_index_starts);
 }
 
@@ -119,10 +121,13 @@ function for_log_page(page_data) {
 	//
 	+ lastest_archive[log_title] : '無存檔過'));
 
-	var matched = content && content.match(last_preserve_mark[use_language] || last_preserve_mark.en);
+	var matched = content
+			&& content.match(last_preserve_mark[use_language]
+					|| last_preserve_mark.en);
 	if (!matched) {
 		CeL.warn('for_log_page: Invalid log page? (未發現程式運作紀錄標記:'
-			+ (last_preserve_mark[use_language] || last_preserve_mark.en) + ') [[' + log_title + ']]');
+				+ (last_preserve_mark[use_language] || last_preserve_mark.en)
+				+ ') [[' + log_title + ']]');
 		return;
 	}
 
@@ -160,9 +165,11 @@ function for_log_page(page_data) {
 			needless_reason = '原先不存在存檔子頁面，且已設定'
 					+ (needless_reason || '')
 					+ '不造出存檔子頁面。（若需要自動歸檔封存，您需要手動創建首個存檔子頁面'
-					+ CeL.wiki.title_link_of(log_title + '/'
-						+ (default_archive_prefix[use_language] || default_archive_prefix.en) + '1')
-					+ '。）';
+					+ CeL.wiki
+							.title_link_of(log_title
+									+ '/'
+									+ (default_archive_prefix[use_language] || default_archive_prefix.en)
+									+ '1') + '。）';
 		}
 	}
 
@@ -233,9 +240,9 @@ function for_log_page(page_data) {
 
 			if (had_failed
 			// 即使沒有內容，只要存在頁面就當作可以寫入。
-			|| (typeof log_page === 'string' ?
-			// 頁面大小系統上限 2,048 KB = 2 MB。
-			log_page.length + log_size <= /* Math.pow(8, 7) */ 2e6 : !config.nocreate)) {
+			|| (typeof log_page === 'string' ? log_page.length + log_size
+			// 頁面大小系統上限 2,048 KB = 2 MB = Math.pow(8, 7)。
+			<= 2e6 : !config.nocreate)) {
 				return "'''{{font color|#54f|#ff6|存檔長度" + log_size
 				// TODO: internationalization
 				+ "字元。}}'''\n" + content.slice(matched.index).trim();
