@@ -59,7 +59,7 @@ report_lines.skipped_records = 0;
 // ----------------------------------------------------------------------------
 
 (async () => {
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
@@ -89,8 +89,22 @@ async function main_process() {
 		// '5/Everyday life/Sports, games and recreation',
 		// '5/Mathematics',
 		'5/Geography/Cities',
-	].map(level => `${base_page_prefix}${level ? `/Level/${level}` : ''}`);
+	].map(level => level_to_page_title(level));
+
+	function to_title(page_data) {
+		const title = typeof page_data === 'string' ? page_data : page_data.title;
+		//console.log([title, title === base_page_prefix ? level_to_page_title(DEFAULT_LEVEL) : '']);
+		if (title === base_page_prefix)
+			return level_to_page_title(DEFAULT_LEVEL, true);
+		return title;
+	}
+
+	// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
+	// assert: to_title(page_data_1) !== to_title(page_data_2)
+	vital_articles_list.sort((page_data_1, page_data_2) => to_title(page_data_1) < to_title(page_data_2) ? -1 : 1);
+
 	// console.log(vital_articles_list.length);
+	//console.log(vital_articles_list.map(page_data => page_data.title));
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
@@ -102,6 +116,8 @@ async function main_process() {
 	});
 
 	// ----------------------------------------------------
+
+	await generate_all_VA_list_page();
 
 	check_page_count();
 
@@ -179,7 +195,7 @@ async function get_page_info() {
 		// ITN: 'Wikipedia In the news articles',
 		// OTD: 'Article history templates with linked otd dates',
 	});
-	for (let icon in icon_to_category) {
+	for (const icon in icon_to_category) {
 		const category_name = icon_to_category[icon];
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
@@ -205,7 +221,7 @@ async function get_page_info() {
 		GA: 'FGAN',
 	};
 
-	for (let page_title in icons_of_page) {
+	for (const page_title in icons_of_page) {
 		let icons = icons_of_page[page_title];
 		if (!icons.VA_class) {
 			// There is no VA class of the title. abnormal!
@@ -277,8 +293,12 @@ async function get_page_info() {
 
 // ----------------------------------------------------------------------------
 
+function level_to_page_title(level, add_level) {
+	return level === DEFAULT_LEVEL && !add_level ? base_page_prefix : base_page_prefix + '/Level/' + level;
+}
+
 function level_page_link(level, number_only, page_title) {
-	return `[[${page_title || (level === DEFAULT_LEVEL ? base_page_prefix : base_page_prefix + '/Level/' + level)}|${number_only ? '' : 'Level '}${level}]]`;
+	return `[[${page_title || level_to_page_title(level)}|${number_only ? '' : 'Level '}${level}]]`;
 }
 
 function level_of_page_title(page_title, number_only) {
@@ -695,7 +715,7 @@ async function for_each_list_page(list_page_data) {
 
 	// summary table / count report table for each page
 	const summary_table = [['Class', 'Articles']];
-	for (let icon in article_count_of_icon) {
+	for (const icon in article_count_of_icon) {
 		let category_name = icon_to_category[icon];
 		if (category_name) {
 			category_name = `[[:Category:${category_name}|${icon}]]`;
@@ -729,8 +749,62 @@ async function for_each_list_page(list_page_data) {
 
 // ----------------------------------------------------------------------------
 
+async function generate_all_VA_list_page() {
+	const all_articles = Object.create(null);
+	const all_level_1_to_4_articles = Object.create(null);
+	for (const page_title in listed_article_info) {
+		const article_info_list = listed_article_info[page_title];
+		const prefix = page_title.slice(0, 1);
+		if (!all_articles[prefix])
+			all_articles[prefix] = [];
+		all_articles[prefix].push(page_title);
+
+		for (const article_info of article_info_list) {
+			if (/^[1-4]/.test(article_info.level)) {
+				if (!all_level_1_to_4_articles[prefix])
+					all_level_1_to_4_articles[prefix] = [];
+				all_level_1_to_4_articles[prefix].push(page_title);
+				break;
+			}
+		}
+	}
+
+	await generate_list_page('List of all articles', all_articles);
+	await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles);
+}
+
+async function generate_list_page(page_name, article_hash) {
+	let report_wikitext = [], count = 0;
+	for (const prefix in article_hash) {
+		const article_list = article_hash[prefix].sort();
+		count += article_list.length;
+		report_wikitext.push(`== ${prefix} ==\n(${article_list.length.toLocaleString()}) ${article_list.map(title => CeL.wiki.title_link_of(title)).join(' · ')}`);
+	}
+	report_wikitext = report_wikitext.join('\n\n');
+
+	page_name = `${base_page_prefix}/${page_name}`;
+	const page_data = await wiki.page(page_name);
+	if (page_data.wikitext && page_data.wikitext.between(report_mark_start, report_mark_end) === report_wikitext) {
+		// No new change
+		return;
+	}
+
+	count = count.toLocaleString();
+	// __NOINDEX__
+	report_wikitext = `This page lists all '''[[${base_page_prefix}|Vital articles]]'''. It is used in order to show '''[[Special:RecentChangesLinked/${base_page_prefix}/List of all articles|recent changes]]'''. It is a temporary solution until [[phab:T117122]] is resolved.
+
+The list contains ${count} articles. --~~~~`
+		+ report_mark_start + report_wikitext + report_mark_end;
+	await wiki.edit_page(page_name, report_wikitext, {
+		bot: 1,
+		summary: `Update list of vital articles: ${count} articles`
+	});
+}
+
+// ----------------------------------------------------------------------------
+
 function check_page_count() {
-	for (let page_title in level_of_page) {
+	for (const page_title in level_of_page) {
 		const category_level = level_of_page[page_title];
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
@@ -780,7 +854,7 @@ function check_page_count() {
 		}
 	}
 
-	for (let page_title in listed_article_info) {
+	for (const page_title in listed_article_info) {
 		const article_info_list = listed_article_info[page_title];
 		if (article_info_list.length === 1) {
 			continue;
@@ -832,6 +906,7 @@ async function maintain_VA_template() {
 let maintain_VA_template_count = 0;
 
 function normalize_class(_class) {
+	_class = String(_class);
 	//@see [[Category:Wikipedia vital articles by class]]
 	return _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
 }
@@ -940,6 +1015,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 // ----------------------------------------------------------------------------
 
+const report_mark_start = '\n<!-- report begin -->\n';
+const report_mark_end = '\n<!-- report end -->';
+
 async function generate_report() {
 	const records_limit = 500;
 	if (report_lines.length > records_limit) {
@@ -977,15 +1055,17 @@ async function generate_report() {
 		report_wikitext = "* '''So good, no news!'''";
 	}
 
-	await wiki.edit_page(`Wikipedia:Database reports/Vital articles update report`,
-		// __NOTITLECONVERT__
-		'__NOCONTENTCONVERT__\n'
+	// __NOTITLECONVERT__
+	report_wikitext = '__NOCONTENTCONVERT__\n'
 		+ '* The report will update automatically.\n'
 		+ '* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Please modify the link manually.</ref>\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
-		+ report_wikitext + '\n<!-- report end -->'
-		+ '\n[[Category:Wikipedia vital articles]]', {
+		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n'
+		+ report_mark_start + report_wikitext + report_mark_end
+		+ '\n[[Category:Wikipedia vital articles]]'
+
+	await wiki.edit_page(`Wikipedia:Database reports/Vital articles update report`,
+		report_wikitext, {
 		bot: 1,
 		nocreate: 1,
 		summary: `Vital articles update report: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} records`
