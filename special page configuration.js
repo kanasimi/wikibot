@@ -783,7 +783,7 @@ var jawiki_week_AFD_options = {
 
 // page configurations for all supported talk pages
 var page_configurations = {
-	'commons:Commons:Bots/Work requests' : {
+	'commonswiki:Commons:Bots/Work requests' : {
 		topic_page : general_topic_page,
 		timezone : 0,
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
