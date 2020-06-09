@@ -769,8 +769,8 @@ async function generate_all_VA_list_page() {
 		}
 	}
 
-	await generate_list_page('List of all articles', all_articles);
-	await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles);
+	try { await generate_list_page('List of all articles', all_articles); } catch{ }
+	try { await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles); } catch{ }
 }
 
 async function generate_list_page(page_name, article_hash) {
