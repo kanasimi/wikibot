@@ -1,6 +1,6 @@
 ﻿/*
 
-2020/4/23 17:47:29	初版試營運
+2020/6/4 8:19:59	初版試營運
 
  */
 
@@ -27,18 +27,9 @@ const replace_tool = require('./replace_tool.js');
 		//summary: '',
 	}, {
 		//'': DELETE_PAGE,
-		'作品': {
-			list_intersection: 'Category:すべての曖昧さ回避',
-			move_to_link: DELETE_PAGE
-		},
-		// unfinished
-		'「映画」「絵画」「漫画」「ゲーム」「楽曲」「シングル」「アルバム」のいずれかを名前に含んだカテゴリが付いた記事': {
-			move_from_link: '作品',
-			list_intersection: {
-				list_types: 'allcategories',
-				list_filter: page_data => /映画|絵画|漫画|ゲーム|楽曲|シングル|アルバム/.test(page_data.title),
-			},
-			move_to_link: DELETE_PAGE
-		}
+		//'': REDIRECT_TARGET,
+		'Category:退位した人物': 'Category:退位した君主',
+		'Category:廃位された人物': 'Category:廃位された君主',
+		'Category:廃位された人物 (后妃)': 'Category:廃位された后妃',
 	});
 })();

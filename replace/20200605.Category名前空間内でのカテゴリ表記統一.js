@@ -1,6 +1,6 @@
 ﻿/*
 
-2020/4/23 17:47:29	初版試營運
+	初版試營運
 
  */
 
@@ -27,18 +27,15 @@ const replace_tool = require('./replace_tool.js');
 		//summary: '',
 	}, {
 		//'': DELETE_PAGE,
-		'作品': {
-			list_intersection: 'Category:すべての曖昧さ回避',
-			move_to_link: DELETE_PAGE
-		},
-		// unfinished
-		'「映画」「絵画」「漫画」「ゲーム」「楽曲」「シングル」「アルバム」のいずれかを名前に含んだカテゴリが付いた記事': {
-			move_from_link: '作品',
-			list_intersection: {
-				list_types: 'allcategories',
-				list_filter: page_data => /映画|絵画|漫画|ゲーム|楽曲|シングル|アルバム/.test(page_data.title),
+		//'': REDIRECT_TARGET,
+		'insource:"カテゴリー"': {
+			namespace: 'Category',
+			text_processor(wikitext, page_data) {
+				// 除外
+				if (page_data.title.includes('IUCN'))
+					return;
+				return wikitext.replace(/(^|サブ|アルバム|[^ァ-ヴー])カテゴリー([^ァ-ヴー]|$)/g, '$1カテゴリ$2');
 			},
-			move_to_link: DELETE_PAGE
-		}
+		},
 	});
 })();
