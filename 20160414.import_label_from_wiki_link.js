@@ -1426,7 +1426,9 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}, {
 		bot : 1,
 		// TODO: add [[Special:Redirect/revision/00000|版本]]
-		summary : 'bot: import label/alias from ' + summary_prefix
+		summary : '[[User:' + user_name
+		//
+		+ '#Import labels/aliases|import label/alias]] from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。
 		+ titles.unique().slice(0, 10).join(summary_sp)
 		//
@@ -1659,8 +1661,8 @@ try {
 	// TODO: handle exception
 }
 
-// 因為數量太多，只好增快速度。
 if (!modify_Wikipedia) {
+	// Only respect maxlag. 因為數量太多，只好增快速度。
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
 
@@ -1671,11 +1673,7 @@ CeL.wiki.cache([ {
 		CeL.wiki.SPARQL(
 		// SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q6256. }
 		'SELECT ?item WHERE{?item wdt:P31 wd:Q6256}', function(items) {
-			items = items.map(function(item) {
-				var matched = item.item.value.match(/Q\d+$/);
-				return matched[0];
-			});
-			wiki.data(items, callback, {
+			wiki.data(items.id_list(), callback, {
 				props : 'labels|aliases|sitelinks'
 			});
 		});
