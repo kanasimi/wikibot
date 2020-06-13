@@ -6,8 +6,8 @@
 
 'use strict';
 
-// Load CeJS library and modules.
-require('../wiki loader.js');
+// Load replace tools.
+const replace_tool = require('../replace/replace_tool.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('en');
@@ -26,33 +26,13 @@ const reason = '[[Special:Diff/960931382#Move 500 River articles per consensus o
 })();
 
 async function main_process() {
-	const move_title_pair = { 'Slate Creek (Rapid Creek)': 'Slate Creek (Rapid Creek tributary)' };
+	const move_title_pair = {};
 	const list_page_data = await wiki.page('User:Dicklyon/tributaries');
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = list_page_data.parse();
-	parsed.each('list', token => {
-		if (token.length < 20)
-			return;
-		for (let i = 0; i < token.length; i++) {
-			let from, to;
-			parsed.each.call(token[i], 'link', link => {
-				if (link[1]) {
-					CeL.error(`Link with anchor: ${token[i]}`);
-					throw new Error(`Link with anchor: ${token[i]}`);
-				}
-				link = link[0].toString();
-				if (!from)
-					from = link;
-				else if (!to)
-					to = link;
-				else
-					CeL.error(`Too many links: ${token[i]}`);
-			});
-			if (from && to)
-				move_title_pair[from] = to;
-			else
-				CeL.error(`Can not parse: ${token[i]}`);
-		}
+	parsed.each('list', list => {
+		if (list.length > 20)
+			replace_tool.parse_move_pairs_from_link(list, move_title_pair);
 	});
 	CeL.info(`${Object.keys(move_title_pair).length} pages to move...`);
 	//	console.log(move_title_pair);
