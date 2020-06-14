@@ -130,6 +130,8 @@ raw_data_file_name = 'labels.' + CeL.wiki.site_name(wiki) + '.csv', raw_data_fil
 //
 raw_data_file_stream,
 
+en_label_list = [],
+
 // 是否要使用Wikidata數據來清理跨語言連結。
 modify_Wikipedia = false;
 
@@ -929,7 +931,7 @@ function merge_label_data(callback) {
 
 	raw_data_file_stream.on('end', function() {
 		callback(label_data);
-		// finish_work();
+		// finish_wikidata_part();
 	});
 }
 
@@ -1419,8 +1421,12 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			return [ CeL.wiki.edit.cancel, 'skip' ];
 		}
 
-		// TODO: this.summary = 'bot: import '+data.language+' '+label/alias+'
-		// from '+...;
+		if (data.language === 'en') {
+			en_label_list.push(entity.id + '	' + labels);
+		}
+
+		// TODO:
+		// this.summary = 'import '+data.language+' '+label/alias+' from '+...;
 		return data;
 
 	}, {
@@ -1468,6 +1474,32 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	});
 }
 
+/**
+ * Finish up wikidata part. wikidata part 最後結束工作。
+ */
+function finish_wikidata_part() {
+	// console.log(PATTERN_common_title);
+
+	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
+	label_data_keys = Object.keys(label_data);
+	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed_data！
+	// label_data_index = 1000;
+	label_data_length = label_data_keys.length;
+	CeL.log(script_name + ': All ' + label_data_length + ' labels'
+	//
+	+ (label_data_index ? ', starts from ' + label_data_index : '.'));
+
+	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
+	// wiki = Wiki(true);
+	// need fix wiki_session.edit_time_interval
+
+	starting_label_time = Date.now();
+	// do next.
+	setImmediate(next_label_data_work);
+}
+
+// ----------------------------------------------------------------------------
+
 // 為降低 RAM 使用，不一次 push 進 queue，而是依 label_data 之 index 一個個慢慢來處理。
 function next_label_data_work() {
 	CeL.debug('Start ' + label_data_index + '/' + label_data_length, 6,
@@ -1476,18 +1508,8 @@ function next_label_data_work() {
 	if (label_data_index === label_data_length
 	// Test done.
 	|| label_data_index >= test_limit) {
-		wiki.run(function() {
-			// Finally: Write to cache file.
-			processed_data.write();
-
-			var message = script_name + ': ' + (new Date).format()
-					+ ' 已處理完畢 Wikidata 部分。'
-					+ (modify_Wikipedia ? '開始處理 ' : '已設定不') + '處理 '
-					+ use_language + ' Wikipedia 上的頁面。';
-			CeL.log(message);
-		});
-
-		// done: Wikidata 部分.
+		// Wikidata 部分: done.
+		wiki.run(finish_work);
 		return;
 	}
 
@@ -1518,7 +1540,7 @@ function next_label_data_work() {
 	foreign_title = foreign_title[2];
 
 	// 由於造出 label_data 的時間過長，可能丟失 token，
-	// 因此將 processed_data 的建置放在 finish_work() 階段。
+	// 因此將 processed_data 的建置放在 finish_wikidata_part() 階段。
 	titles.unique().forEach(function(title, index) {
 		processed_data.data_of(title, revids[index]);
 	});
@@ -1619,28 +1641,16 @@ function next_label_data_work() {
 
 }
 
-/**
- * Finish up. 最後結束工作。
- */
 function finish_work() {
-	// console.log(PATTERN_common_title);
+	// Finally: Write to cache file.
+	processed_data.write();
 
-	// initialize: 不論是否為自 labels.json 讀取，皆應有資料。
-	label_data_keys = Object.keys(label_data);
-	// 設定此初始值，可跳過之前已經處理過的。但在此設定，不能登記 processed_data！
-	// label_data_index = 1000;
-	label_data_length = label_data_keys.length;
-	CeL.log(script_name + ': All ' + label_data_length + ' labels'
-	//
-	+ (label_data_index ? ', starts from ' + label_data_index : '.'));
+	var message = script_name + ': ' + (new Date).format()
+			+ ' 已處理完畢 Wikidata 部分。' + (modify_Wikipedia ? '開始處理 ' : '已設定不')
+			+ '處理 ' + use_language + ' Wikipedia 上的頁面。';
+	CeL.log(message);
 
-	// 由於造出 label_data 的時間過長，可能丟失 token，因此 re-login。
-	// wiki = Wiki(true);
-	// need fix wiki_session.edit_time_interval
-
-	starting_label_time = Date.now();
-	// do next.
-	setImmediate(next_label_data_work);
+	CeL.write_file('en_label_list.txt', en_label_list.join('\n'));
 }
 
 // ----------------------------------------------------------------------------
@@ -1773,7 +1783,7 @@ CeL.wiki.cache([ {
 		label_data = data;
 	}
 
-} ], finish_work, {
+} ], finish_wikidata_part, {
 
 	// default options === this
 	// [SESSION_KEY]
