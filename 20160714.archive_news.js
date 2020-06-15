@@ -88,6 +88,8 @@ function main_work(template_name_redirect_to) {
 			publish_name_list = list.map(function(page_data) {
 				return page_data.title.replace(/^[^:]+:/, '');
 			});
+			// TODO: + 繁簡轉換
+			publish_name_list.push('已發布');
 			CeL.log('Alias of ' + CeL.wiki.title_link_of(
 			//
 			template_name_redirect_to.template_publish)
@@ -280,11 +282,12 @@ function for_each_old_page(page_data) {
 
 		if (first_has_published === NOT_FOUND) {
 			// 照理來說不該使用[[Category:~]]
-			PATTERN_publish = PATTERN_publish_category;
+			PATTERN_publish = new RegExp(PATTERN_publish_category.source, 'i');
 			first_has_published = contents.first_matched(PATTERN_publish, true);
 		}
 		if (first_has_published === NOT_FOUND) {
-			throw '可能存有未設定之{{publish}}別名? ' + CeL.wiki.title_link_of(page_data);
+			throw new Error('可能存有未設定之{{publish}}別名? '
+					+ CeL.wiki.title_link_of(page_data));
 		}
 
 		if (first_has_published > 0) {
@@ -299,7 +302,7 @@ function for_each_old_page(page_data) {
 				if (contents[first_has_published + 1]) {
 					CeL.log(contents[first_has_published + 1]);
 				}
-				throw '出現 {{publish}}';
+				throw new Error('出現 {{publish}}');
 			}
 
 			// assert: first_has_published >= 0
@@ -354,7 +357,7 @@ function for_each_old_page(page_data) {
 	contents = CeL.wiki.parser(current_content).parse();
 	if (current_content !== contents.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
+		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 	}
 	current_content = contents;
 
