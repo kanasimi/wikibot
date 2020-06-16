@@ -1,6 +1,6 @@
 ﻿/*
 
-2020/6/5 16:36:12	初版試營運
+2020/6/16 5:31:0	初版試營運
 
  */
 
@@ -28,14 +28,13 @@ const replace_tool = require('./replace_tool.js');
 	}, {
 		//'': DELETE_PAGE,
 		//'': REDIRECT_TARGET,
-		'insource:"カテゴリー"': {
-			namespace: 'Category',
-			text_processor(wikitext, page_data) {
-				// 除外
-				if (page_data.title.includes('IUCN'))
-					return;
-				return wikitext.replace(/(^|サブ|アルバム|[^ァ-ヴー])カテゴリー([^ァ-ヴー]|$)/g, '$1カテゴリ$2');
-			},
-		},
+		'高島屋': REDIRECT_TARGET,
+		'伊予鉄高島屋': REDIRECT_TARGET,
+		'柏高島屋ステーションモール': REDIRECT_TARGET,
+		'今治高島屋': REDIRECT_TARGET,
+		'高島屋バラ劇場': REDIRECT_TARGET,
+		'高島屋クレジット': REDIRECT_TARGET,
+		'Category:高島屋': REDIRECT_TARGET,
+		'Category:高島屋の人物': REDIRECT_TARGET,
 	});
 })();

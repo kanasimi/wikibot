@@ -1,6 +1,6 @@
 ﻿/*
 
-2020/6/5 16:36:12	初版試營運
+2020/6/16 19:56:49	初版試營運
 
  */
 
@@ -19,7 +19,7 @@ const replace_tool = require('./replace_tool.js');
 
 		// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 		// 'small_oldid/big_new_diff' or {Number}new
-		//diff_id: '',
+		diff_id: '78038949/78037039',
 
 		// 可省略 `section_title` 的條件: 檔案名稱即 section_title
 		//section_title: '',
@@ -28,14 +28,8 @@ const replace_tool = require('./replace_tool.js');
 	}, {
 		//'': DELETE_PAGE,
 		//'': REDIRECT_TARGET,
-		'insource:"カテゴリー"': {
-			namespace: 'Category',
-			text_processor(wikitext, page_data) {
-				// 除外
-				if (page_data.title.includes('IUCN'))
-					return;
-				return wikitext.replace(/(^|サブ|アルバム|[^ァ-ヴー])カテゴリー([^ァ-ヴー]|$)/g, '$1カテゴリ$2');
-			},
-		},
+		//'insource:""': '',
+		'川崎宗則': REDIRECT_TARGET,
+		'insource:"川崎宗則"': '川﨑宗則',
 	});
 })();

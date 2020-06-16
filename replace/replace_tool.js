@@ -208,7 +208,8 @@ async function note_to_edit(wiki, meta_configuration) {
 		// console.log(parsed.toString());
 		await wiki.edit_page(requests_page, parsed.toString(), {
 			redirects: 1,
-			summary: 'Starting bot request task: ' + section_title
+			sectiontitle: section_title,
+			summary: 'Starting bot request task.'
 		});
 	} else if (need_edit === undefined) {
 		CeL.info('Will not auto-notice starting to edit!');
@@ -254,6 +255,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		if (!('keep_title' in task_configuration) && typeof task_configuration.move_to_link === 'string'
 			// e.g., 20200101.ブランドとしてのXboxの記事作成に伴うリンク修正.js
+			// [[A]] → [[A (細分 type)]]
 			&& (task_configuration.move_to_link.includes(move_from_link)
 				// e.g., 20200121.「離陸決心速度」の「V速度」への統合に伴うリンク修正.js
 				|| task_configuration.move_to_link.includes('#')
@@ -298,7 +300,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				CeL.warn(`prepare_operation: Invalid diff_id: ${diff_id}`);
 			} else if (diff_id[1] > diff_id[2]) {
 				CeL.warn(`prepare_operation: Swap diff_id: ${diff_id[0]}`);
-				diff_id = `${diff_id[2]}/${diff_id[1]}/`;
+				diff_id = `${diff_id[2]}/${diff_id[1]}`;
 			} else if (diff_id[1] === diff_id[2]) {
 				CeL.warn(`prepare_operation: Using diff_id: ${diff_id[1]}`);
 				diff_id = diff_id[1];
@@ -510,7 +512,6 @@ async function get_list(task_configuration, list_configuration) {
 			}
 		} else {
 			// There is no list_configuration.move_from_link for list_types: 'allcategories'
-			list_configuration.move_from = Object.create(null);
 		}
 
 		if (task_configuration !== list_configuration) {
@@ -550,36 +551,42 @@ async function get_list(task_configuration, list_configuration) {
 		// console.log(task_configuration);
 	}
 
+	if (!list_configuration.move_from)
+		list_configuration.move_from = Object.create(null);
+
 	let page_list = list_configuration.page_list;
 	const list_title = list_configuration.move_from.page_title ? CeL.wiki.title_link_of(list_configuration.move_from.page_title) : list_types;
 	if (page_list) {
 		// assert: Array.isArray(list_configuration.page_list)
 		CeL.info(`get_list: Process ${page_list.length} pages`);
+		//Warning: Should filter 'Wikipedia|User' yourself!
 	} else {
 		page_list = [];
-		CeL.info(`get_list: Get types: ${list_types}`
+		CeL.info(`get_list: Get types: ${list_types.join(', ')}`
 			+ (list_configuration.move_from.page_title ? ` of ${use_language}: ${CeL.wiki.title_link_of(list_configuration.move_from.page_title)}` : '')
 			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_configuration.move_from.page_title ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
+			+ (` (namespace: ${list_options.namespace})`)
 		);
 		const list_filter = list_configuration.list_filter;
 		// Can not use `list_types.forEach(async type => ...)`
 		for (const type of list_types) {
-			let list_segment = await wiki[type](list_configuration.move_from.page_title, list_options);
+			let list_segment = await wiki[type](list_configuration.move_from && list_configuration.move_from.page_title || list_configuration.move_from_link, list_options);
 			if (list_filter) {
 				list_segment = list_segment.filter(list_filter);
 			}
 			page_list.append(list_segment);
 			process.stdout.write(`${list_title}: ${page_list.length} pages...\r`);
 		}
+
+		page_list = page_list.filter((page_data) => {
+			return !wiki.is_namespace(page_data, 'Wikipedia')
+				&& !wiki.is_namespace(page_data, 'User')
+				// && !page_data.title.includes('/過去ログ')
+				;
+		});
 	}
 
-	page_list = page_list.filter((page_data) => {
-		return !wiki.is_namespace(page_data, 'Wikipedia')
-			&& !wiki.is_namespace(page_data, 'User')
-			// && !page_data.title.includes('/過去ログ')
-			;
-	});
-	page_list = page_list.unique(page_data => page_data.title);
+	page_list = page_list.unique(page_data => CeL.wiki.title_of(page_data));
 	if (list_configuration.page_limit >= 1)
 		page_list = page_list.truncate(list_configuration.page_limit);
 	// manually for debug
@@ -692,7 +699,7 @@ function for_each_link(token, index, parent) {
 		if (token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main')) {
 			if (this.move_from.ns !== this.wiki.namespace('Main')) {
 				// 直接只使用 displayed_text。
-				CeL.info(`Using displayed text directly: ${CeL.wiki.title_link_of(this.page_data.title)}`);
+				CeL.info(`Using displayed text directly: ${CeL.wiki.title_link_of(this.page_data)}`);
 			}
 			// リンクを外してその文字列にして
 			parent[index] = token[2] || token[0];
@@ -908,11 +915,143 @@ function for_each_template(page_data, token, index, parent) {
 }
 
 // ---------------------------------------------------------------------//
+
+const KEY_wiki_session = 'session';
+function session_of_options(options) {
+	return options && options[KEY_wiki_session] || options;
+}
+
+async function parse_move_pairs_from_page(page_title, options) {
+	const wiki = session_of_options(options);
+	options = { ...options };
+	delete options[KEY_wiki_session];
+	const move_title_pair = {};
+
+	const list_page_data = await wiki.page(page_title, options);
+	/** {Array} parsed page content 頁面解析後的結構。 */
+	const parsed = list_page_data.parse();
+	parsed.each('list', list_token => {
+		if (list_token.length > 20)
+			parse_move_pairs_from_link(list_token, move_title_pair);
+	});
+
+	return move_title_pair;
+}
+
+//options = { ucstart: new Date('2020-05-30 09:34 UTC'), ucend: new Date('2020-05-30 09:54 UTC'), session: wiki }
+async function parse_move_pairs_from_reverse_moved_page(user_name, options) {
+	const wiki = session_of_options(options);
+	options = { ...options };
+	delete options[KEY_wiki_session];
+	const move_title_pair = {};
+
+	const list = await wiki.usercontribs(user_name, options);
+	for (const item of list) {
+		if (!item.from || !item.to)
+			continue;
+		//reverse moved page
+		move_title_pair[item.to] = item.from;
+		//break;
+	}
+	//console.log(list);
+
+	return move_title_pair;
+}
+
+function parse_move_pairs_from_link(line, move_title_pair, options) {
+	if (!line)
+		return;
+
+	if (line.type === 'table') {
+		//e.g., replace/20200607.COVID-19データ関連テンプレートの一斉改名に伴う改名提案テンプレート貼付.js
+		line.forEach(line => {
+			parse_move_pairs_from_link(line, move_title_pair);
+		});
+		return;
+	}
+
+	if (line.type === 'list') {
+		//e.g., task/20200606.Move 500 River articles per consensus on tributary disambiguator.js
+		for (let index = 0; index < line.length; index++) {
+			parse_move_pairs_from_link(line[index], move_title_pair);
+		}
+		return;
+	}
+
+	// ---------------------------------------------
+
+	let from, to;
+	CeL.wiki.parser.parser_prototype.each.call(line, 'link', link => {
+		if (link[1]) {
+			CeL.error(`Link with anchor: ${line}`);
+			throw new Error(`Link with anchor: ${line}`);
+		}
+		link = link[0].toString();
+		if (!from)
+			from = link;
+		else if (!to)
+			to = link;
+		else
+			CeL.error(`Too many links: ${line}`);
+	});
+
+	if (!from || !to) {
+		if (!(line.type === 'table_row' && (line.caption || line.is_head))) {
+			CeL.error('Can not parse:');
+			console.log(line);
+		}
+		return;
+	}
+
+	CeL.debug(CeL.wiki.title_link_of(from) + ' → ' + CeL.wiki.title_link_of(to), 2);
+	if (move_title_pair)
+		move_title_pair[from] = to;
+
+	return [from, to];
+}
+
+async function move_via_title_pair(move_title_pair, options) {
+	const wiki = session_of_options(options);
+	CeL.info(`${Object.keys(move_title_pair).length} pages to move...`);
+	//	console.log(move_title_pair);
+	options = {
+		movetalk: true,
+		//noredirect: false,
+		...options
+	};
+
+	for (const move_from_title in move_title_pair) {
+		const move_to_title = move_title_pair[move_from_title];
+		if (move_from_title === move_to_title) {
+			CeL.error('The same title: ' + CeL.wiki.title_link_of(move_from_title));
+			continue;
+		}
+
+		CeL.info(`move page: ${CeL.wiki.title_link_of(move_from_title)} → ${CeL.wiki.title_link_of(move_to_title)}`);
+		try {
+			await wiki.move_page(move_from_title, move_to_title, options);
+		} catch (e) {
+			if (e.code === 'articleexists') {
+				// Already moved?
+			} else {
+				console.error(e);
+			}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------//
 // export
 
 Object.assign(globalThis, { DELETE_PAGE, REDIRECT_TARGET, remove_token });
 
 module.exports = {
-	// modify
-	replace: replace_tool
+	// for modify
+	replace: replace_tool,
+
+	// for move
+	parse_move_pairs_from_page,
+	//	parse_move_pairs_from_link,
+	parse_move_pairs_from_reverse_moved_page,
+	move_via_title_pair,
 };

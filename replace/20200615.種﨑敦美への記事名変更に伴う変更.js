@@ -1,6 +1,6 @@
 ﻿/*
 
-2020/6/5 16:36:12	初版試營運
+2020/6/15 19:27:34	初版試營運
 
  */
 
@@ -28,14 +28,8 @@ const replace_tool = require('./replace_tool.js');
 	}, {
 		//'': DELETE_PAGE,
 		//'': REDIRECT_TARGET,
-		'insource:"カテゴリー"': {
-			namespace: 'Category',
-			text_processor(wikitext, page_data) {
-				// 除外
-				if (page_data.title.includes('IUCN'))
-					return;
-				return wikitext.replace(/(^|サブ|アルバム|[^ァ-ヴー])カテゴリー([^ァ-ヴー]|$)/g, '$1カテゴリ$2');
-			},
-		},
+		'種崎敦美': '種﨑敦美',
+		'加隈亜衣と種崎敦美のちかっぱしんけん!': '加隈亜衣と種﨑敦美のちかっぱしんけん!',
+		'insource:"種崎敦美"': '種﨑敦美',
 	});
 })();
