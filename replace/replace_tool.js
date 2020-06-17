@@ -80,7 +80,7 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 	if (typeof move_configuration === 'function') {
 		// async function setup_move_configuration(meta_configuration) {}
-		move_configuration = await move_configuration(meta_configuration);
+		move_configuration = await move_configuration(meta_configuration, { bot_requests_page });
 	}
 
 	await prepare_operation(meta_configuration, move_configuration);
@@ -628,7 +628,7 @@ async function main_move_process(task_configuration) {
 		summary: task_configuration.summary
 	};
 	if (typeof task_configuration.before_get_pages === 'function') {
-		task_configuration.before_get_pages(page_list, edit_options);
+		await task_configuration.before_get_pages(page_list, edit_options);
 	}
 	await wiki.for_each_page(page_list, for_each_page.bind(task_configuration), edit_options);
 }
@@ -670,6 +670,11 @@ function for_each_page(page_data) {
 
 
 // ---------------------------------------------------------------------//
+
+function normalize_display_text(display_text) {
+	display_text = display_text.toString().replace(/{{CP932フォント\|(.+?)}}/g, '$1');
+	return CeL.wiki.normalize_title(display_text);
+}
 
 function for_each_link(token, index, parent) {
 	// token: [ page_name, anchor / section_title, displayed_text ]
@@ -738,11 +743,11 @@ function for_each_link(token, index, parent) {
 		token[1] = this.move_to.anchor ? '#' + this.move_to.anchor : '';
 
 	// preserve [[PH|pH]]
-	if (!token[1] && token[2] && CeL.wiki.normalize_title(token[2].toString()) === this.move_to.page_title) {
+	if (!token[1] && token[2] && normalize_display_text(token[2]) === this.move_to.page_title) {
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
-		// → [[move to link]]
-		token[0] = token[2];
+		// → [[move to link]] || [[.move_to.page_title]] 預防大小寫變化。
+		token[0] = /[<>{}|]/.test(token[2].toString()) ? this.move_to.page_title : token[2];
 		// assert: token.length === 2
 		token.pop();
 	}
@@ -930,10 +935,35 @@ async function parse_move_pairs_from_page(page_title, options) {
 	const list_page_data = await wiki.page(page_title, options);
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = list_page_data.parse();
-	parsed.each('list', list_token => {
-		if (list_token.length > 20)
-			parse_move_pairs_from_link(list_token, move_title_pair);
-	});
+
+	let section;
+	if (options.section_title) {
+		const section_title = options.section_title.toString().trim();
+		parsed.each_section(section_token => {
+			if (!section_token.section_title || section_token.section_title[0].toString().trim() !== section_title) {
+				if (false && section_token.section_title)
+					console.log([section_token.section_title[0].toString().trim(), section_title.trim()]);
+				return;
+			}
+			// console.log(section.toString());
+			section = section_token;
+		});
+		if (!section) {
+			CeL.error('Can not find section title: ' + section_title);
+		}
+	}
+
+	if (options.using_table || options.caption) {
+		CeL.wiki.parser.parser_prototype.each.call(section || parsed, 'table', table => {
+			if (options.using_table || table.caption === options.caption)
+				parse_move_pairs_from_link(table, move_title_pair);
+		});
+	} else {
+		CeL.wiki.parser.parser_prototype.each.call(section || parsed, 'list', list_token => {
+			if (list_token.length > 20)
+				parse_move_pairs_from_link(list_token, move_title_pair);
+		});
+	}
 
 	return move_title_pair;
 }
@@ -983,7 +1013,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 	let from, to;
 	CeL.wiki.parser.parser_prototype.each.call(line, 'link', link => {
 		if (link[1]) {
-			CeL.error(`Link with anchor: ${line}`);
+			CeL.error(`parse_move_pairs_from_link: Link with anchor: ${line}`);
 			throw new Error(`Link with anchor: ${line}`);
 		}
 		link = link[0].toString();
@@ -992,12 +1022,25 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 		else if (!to)
 			to = link;
 		else
-			CeL.error(`Too many links: ${line}`);
+			CeL.error(`parse_move_pairs_from_link: Too many links: ${line}`);
 	});
 
+	if (!from && !to) {
+		CeL.wiki.parser.parser_prototype.each.call(line, 'url', link => {
+			link = link[0];
+			if (!from)
+				from = link;
+			else if (!to)
+				to = link;
+			else
+				CeL.error(`parse_move_pairs_from_link: Too many links: ${line}`);
+		});
+	}
+
+	//console.log([from, to]);
 	if (!from || !to) {
 		if (!(line.type === 'table_row' && (line.caption || line.is_head))) {
-			CeL.error('Can not parse:');
+			CeL.error('parse_move_pairs_from_link: Can not parse:');
 			console.log(line);
 		}
 		return;
@@ -1012,7 +1055,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 
 async function move_via_title_pair(move_title_pair, options) {
 	const wiki = session_of_options(options);
-	CeL.info(`${Object.keys(move_title_pair).length} pages to move...`);
+	CeL.info(`parse_move_pairs_from_link: ${Object.keys(move_title_pair).length} pages to move...`);
 	//	console.log(move_title_pair);
 	options = {
 		movetalk: true,
