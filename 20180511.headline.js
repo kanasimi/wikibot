@@ -1058,7 +1058,7 @@ function for_source(source_id) {
 					|| source_id;
 			add_source_data.push('* '
 					+ (source_data.flag ? '{{' + page_prefix + 'Flagicon|'
-							+ source_data.flag + '}}' : '')
+							+ source_data.flag + '}} ' : '')
 					+ '{{'
 					+ page_prefix
 					+ (is_cdo_news ? 'Cite news' : 'Source')
