@@ -34,11 +34,7 @@ const replace_tool = require('./replace_tool.js');
 		'朴ロ美': REDIRECT_TARGET,
 		'内田百間': REDIRECT_TARGET,
 		'内田百閒': {
-			for_each_link(token, index, parent) {
-				if (token[2] && token[0].toString() === token[2].toString().replace(/{{CP932フォント\|(.+?)}}/g, '$1')) {
-					token.pop();
-				}
-			}
+			for_each_link: replace_tool.remove_duplicated_display_text
 		}
 	});
 })();

@@ -20,11 +20,8 @@ replace_tool.replace({
 
 let move_title_pair;
 async function before_get_pages(page_list, edit_options, options) {
-	move_title_pair = await replace_tool.parse_move_pairs_from_page(options.meta_configuration.requests_page || options.bot_requests_page, {
-		session: this.wiki,
-		section_title: script_name,
+	move_title_pair = await replace_tool.parse_move_pairs_from_page(options.bot_requests_section, {
 		using_table: true,
-		redirects: 1,
 	});
 	//console.log(move_title_pair);
 	//return move_title_pair;

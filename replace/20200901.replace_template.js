@@ -31,8 +31,8 @@ replace_tool.replace({
 	//speedy_criteria: 'merging',
 }, {
 	'title#anchor|display_text': 'title#anchor|display_text',
-	'': DELETE_PAGE,
 	'': REDIRECT_TARGET,
+	'': DELETE_PAGE,
 	'insource:""': '',
 	'http://url': 'https://url',
 

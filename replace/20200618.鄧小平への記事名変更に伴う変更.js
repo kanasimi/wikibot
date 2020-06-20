@@ -14,4 +14,7 @@ replace_tool.replace({
 	diff_id: 78059250,
 }, {
 	'トウ小平': REDIRECT_TARGET,
+	'鄧小平': {
+		for_each_link: replace_tool.remove_duplicated_display_text
+	}
 });

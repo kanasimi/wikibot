@@ -3,10 +3,25 @@
  2019/9/13 8:59:40	初版試營運
  2019/12/21 4:12:49	模組化
 
- @see 20160923.modify_link.リンク元修正.js	20170828.search_and_replace.js	20161112.modify_category.js
- @see https://www.mediawiki.org/wiki/Manual:Pywikibot/replace.py
+To use these tool functions, you should create a command script file: "YYYYMMDD.section title.js", using templete: .replace_template.js
+
+The `replace_tool.replace()` will:
+# Get section title from task file name
+# Guess language of section title assigned in command script file.
+# Get diff_id from edit summary
+# Get task configuration from section in request page.
+# auto-notice: Starting replace task
+# main_move_process(): Starting replace task
+
+
+
+@see 20160923.modify_link.リンク元修正.js	20170828.search_and_replace.js	20161112.modify_category.js
+@see https://www.mediawiki.org/wiki/Manual:Pywikibot/replace.py
 @see https://meta.wikimedia.org/wiki/Indic-TechCom/Tools/MassMove
 @see https://en.wikipedia.org/wiki/User:Plastikspork/massmove.js
+
+@see [[Wikipedia:改名提案]], [[Wikipedia:移動依頼]]
+
 
 TODO:
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
@@ -57,6 +72,23 @@ async function replace_tool(meta_configuration, move_configuration) {
 		}
 	} else {
 		meta_configuration = CeL.setup_options(meta_configuration);
+	}
+
+	if (!meta_configuration.language) {
+		// Guess language of section title assigned in command script file.
+		CeL.run('application.locale.encoding');
+		// e.g., 'ja-JP'
+		const language = CeL.encoding.guess_text_language(script_name);
+		const matched = language && language.match(/^([a-z]+)\-/);
+		if (matched) {
+			meta_configuration.language = matched[1];
+			CeL.info(`replace_tool: Treat ${JSON.stringify(script_name)} as ${language}.`);
+		} else {
+			const message = `replace_tool: Can not detect language of ${JSON.stringify(script_name)}!`;
+			CeL.error(message);
+			if (!meta_configuration.ignore_language)
+				throw new Error(message);
+		}
 	}
 
 	let original_language;
@@ -172,7 +204,35 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	// throw new Error(section_title);
 }
 
-// auto-notice: start to edit
+// Check if there are default move configurations.
+function get_move_configuration_from_section(meta_configuration, section) {
+	//[[w:ja:Template:リンク修正依頼/改名]]
+	section.each('template', token => {
+		if (token.name !== 'リンク修正依頼/改名')
+			return;
+
+		// Get task configuration from section in request page.
+		if (!meta_configuration.discussion_link) {
+			//console.log(token.parameters.提案);
+			CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
+				if (meta_configuration.discussion_link)
+					throw new Error('get_move_configuration_from_section: Multiple discussion_link');
+				meta_configuration.discussion_link = token[0].toString();
+			});
+		}
+
+		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
+			if (!meta_configuration.default_move_configuration)
+				meta_configuration.default_move_configuration = Object.create(null);
+			meta_configuration.default_move_configuration[token.parameters[index]] = token.parameters[index + 1];
+		}
+	});
+
+	if (meta_configuration.default_move_configuration)
+		CeL.info(`get_move_configuration_from_section: Get ${Object.keys(meta_configuration.default_move_configuration).length} task(s) from request page.`);
+}
+
+// auto-notice: Starting replace task
 async function note_to_edit(wiki, meta_configuration) {
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	const requests_page_data = await wiki.page(requests_page, { redirects: 1 });
@@ -188,7 +248,14 @@ async function note_to_edit(wiki, meta_configuration) {
 			return;
 		}
 		// console.log(section.toString());
-		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ? '{{BOTREQ|作業中}}' : '{{Doing}}');
+
+		meta_configuration.bot_requests_section = section;
+
+		get_move_configuration_from_section(meta_configuration, section);
+
+		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ?
+			//{{BOTREQ|着手}}
+			'{{BOTREQ|作業中}}' : '{{Doing}}');
 		// let PATTERN = /\n[:* ]*{{BOTREQ\|作業中}}/i;
 		// PATTERN =
 		// new RegExp(PATTERN.source + ' .+?' + user_name, PATTERN.flags);
@@ -209,6 +276,7 @@ async function note_to_edit(wiki, meta_configuration) {
 		await wiki.edit_page(requests_page, parsed.toString(), {
 			redirects: 1,
 			sectiontitle: section_title,
+			//{{BOTREQ|着手}}
 			summary: 'Starting bot request task.'
 		});
 	} else if (need_edit === undefined) {
@@ -226,7 +294,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	// 解構賦值 `({ a, b, c = 3 } = { a: 1, b: 2 })`
 	const { summary, section_title } = meta_configuration;
-	const _summary = typeof summary === 'string' ? summary : section_title;
+	const _summary = typeof summary === 'string' ? summary
+		// 議論場所 Links to relevant discussions
+		: meta_configuration.discussion_link ? CeL.wiki.title_link_of(meta_configuration.discussion_link, section_title)
+			: section_title;
 	const _section_title = section_title ? '#' + section_title : '';
 
 	if (typeof move_configuration === 'function') {
@@ -235,6 +306,20 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		// console.log(Object.keys(move_configuration));
 		// throw Object.keys(move_configuration).length;
 	}
+
+	if (meta_configuration.default_move_configuration) {
+		if (Array.isArray(move_configuration)) {
+			for (const pair of Object.entries(move_configuration)) {
+				move_configuration.push(pair);
+			}
+		} else {
+			move_configuration = {
+				...meta_configuration.default_move_configuration,
+				...move_configuration
+			};
+		}
+	}
+	//console.log(move_configuration);
 
 	// Object.entries(move_configuration).forEach(main_move_process);
 	for (const pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
@@ -352,7 +437,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		}
 
 		task_configuration.wiki = wiki;
-		await main_move_process(task_configuration);
+		await main_move_process(task_configuration, meta_configuration);
 	}
 }
 
@@ -505,7 +590,10 @@ async function get_list(task_configuration, list_configuration) {
 	} else if (list_types.join() !== 'search') {
 		if (list_configuration.move_from_link) {
 			// separate namespace and page name
-			list_configuration.move_from = Object.assign(parse_move_link(list_configuration.move_from_link, wiki), list_configuration.move_from);
+			list_configuration.move_from = {
+				...parse_move_link(list_configuration.move_from_link, wiki),
+				...list_configuration.move_from
+			};
 			// console.log(task_configuration.move_from);
 			if (list_configuration.move_from.ns !== wiki.namespace('Category')) {
 				list_types = list_types.filter(type => type !== 'categorymembers');
@@ -519,7 +607,10 @@ async function get_list(task_configuration, list_configuration) {
 		} else {
 			const move_to = parse_move_link(task_configuration.move_to_link, wiki);
 			if (move_to)
-				task_configuration.move_to = Object.assign(move_to, task_configuration.move_to);
+				task_configuration.move_to = {
+					...move_to,
+					...task_configuration.move_to
+				};
 		}
 
 	} else if (task_configuration !== list_configuration) {
@@ -563,7 +654,7 @@ async function get_list(task_configuration, list_configuration) {
 	} else {
 		page_list = [];
 		CeL.info(`get_list: Get types: ${list_types.join(', ')}`
-			+ (list_configuration.move_from.page_title ? ` of ${use_language}: ${CeL.wiki.title_link_of(list_configuration.move_from.page_title)}` : '')
+			+ (list_configuration.move_from.page_title ? ` of ${wiki.site_name()}: ${CeL.wiki.title_link_of(list_configuration.move_from.page_title)}` : '')
 			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_configuration.move_from.page_title ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
 			+ (` (namespace: ${list_options.namespace})`)
 		);
@@ -599,7 +690,7 @@ async function get_list(task_configuration, list_configuration) {
 	return page_list;
 }
 
-async function main_move_process(task_configuration) {
+async function main_move_process(task_configuration, meta_configuration) {
 	let page_list = await get_list(task_configuration);
 	//console.log(page_list.length);
 	//console.log(page_list.slice(0, 10));
@@ -628,7 +719,7 @@ async function main_move_process(task_configuration) {
 		summary: task_configuration.summary
 	};
 	if (typeof task_configuration.before_get_pages === 'function') {
-		await task_configuration.before_get_pages(page_list, edit_options);
+		await task_configuration.before_get_pages(page_list, edit_options, { meta_configuration, bot_requests_page });
 	}
 	await wiki.for_each_page(page_list, for_each_page.bind(task_configuration), edit_options);
 }
@@ -671,9 +762,23 @@ function for_each_page(page_data) {
 
 // ---------------------------------------------------------------------//
 
-function normalize_display_text(display_text) {
-	display_text = display_text.toString().replace(/{{CP932フォント\|(.+?)}}/g, '$1');
-	return CeL.wiki.normalize_title(display_text);
+function normalize_display_text(display_text, options) {
+	display_text = display_text.toString()
+		//jawiki
+		.replace(/{{ *[lL]ang *\|[a-z ]{2,}\|(.+?)}}/g, '$1')
+		//jawiki
+		.replace(/{{ *(?:JIS90フォント|JIS2004フォント|CP932フォント|MacJapanese|ARIB外字フォント|絵文字フォント|補助漢字フォント|拡張漢字|変体仮名フォント|通貨フォント) *\|(.+?)}}/g, '$1');
+	display_text = CeL.HTML_to_Unicode(display_text);
+	if (options?.normalize_title)
+		display_text = CeL.wiki.normalize_title(display_text);
+	return display_text;
+}
+
+// e.g., 'title': { for_each_link: replace_tool.remove_duplicated_display_text },
+function remove_duplicated_display_text(token, index, parent) {
+	if (token[2] && token[0].toString().trim() === normalize_display_text(token[2]).trim()) {
+		token.pop();
+	}
 }
 
 function for_each_link(token, index, parent) {
@@ -743,11 +848,11 @@ function for_each_link(token, index, parent) {
 		token[1] = this.move_to.anchor ? '#' + this.move_to.anchor : '';
 
 	// preserve [[PH|pH]]
-	if (!token[1] && token[2] && normalize_display_text(token[2]) === this.move_to.page_title) {
+	if (!token[1] && token[2] && normalize_display_text(token[2], { normalize_title: true }) === this.move_to.page_title) {
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
 		// → [[move to link]] || [[.move_to.page_title]] 預防大小寫變化。
-		token[0] = /[<>{}|]/.test(token[2].toString()) ? this.move_to.page_title : token[2];
+		token[0] = /[<>{}|]|&#/.test(token[2].toString()) ? this.move_to.page_title : token[2];
 		// assert: token.length === 2
 		token.pop();
 	}
@@ -926,11 +1031,16 @@ function session_of_options(options) {
 	return options && options[KEY_wiki_session] || options;
 }
 
-async function parse_move_pairs_from_page(page_title, options) {
+async function get_move_pairs_page(page_title, options) {
+	if (page_title.type === 'section') {
+		// `page_title` is already section.
+		// e.g., meta_configuration.bot_requests_section
+		return page_title;
+	}
+
 	const wiki = session_of_options(options);
 	options = { ...options };
 	delete options[KEY_wiki_session];
-	const move_title_pair = {};
 
 	const list_page_data = await wiki.page(page_title, options);
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -953,13 +1063,21 @@ async function parse_move_pairs_from_page(page_title, options) {
 		}
 	}
 
+	return section || parsed;
+}
+
+async function parse_move_pairs_from_page(page_title, options) {
+	const section_token = await get_move_pairs_page(page_title, options);
+
+	const move_title_pair = Object.create(null);
+
 	if (options.using_table || options.caption) {
-		CeL.wiki.parser.parser_prototype.each.call(section || parsed, 'table', table => {
+		CeL.wiki.parser.parser_prototype.each.call(section_token, 'table', table => {
 			if (options.using_table || table.caption === options.caption)
 				parse_move_pairs_from_link(table, move_title_pair);
 		});
 	} else {
-		CeL.wiki.parser.parser_prototype.each.call(section || parsed, 'list', list_token => {
+		CeL.wiki.parser.parser_prototype.each.call(section_token, 'list', list_token => {
 			if (list_token.length > 20)
 				parse_move_pairs_from_link(list_token, move_title_pair);
 		});
@@ -1039,7 +1157,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 
 	//console.log([from, to]);
 	if (!from || !to) {
-		if (!(line.type === 'table_row' && (line.caption || line.is_head))) {
+		if (line.type !== 'table_style' && !(line.type === 'table_row' && (line.caption || line.is_head))) {
 			CeL.error('parse_move_pairs_from_link: Can not parse:');
 			console.log(line);
 		}
@@ -1091,6 +1209,7 @@ Object.assign(globalThis, { DELETE_PAGE, REDIRECT_TARGET, remove_token });
 module.exports = {
 	// for modify
 	replace: replace_tool,
+	remove_duplicated_display_text,
 
 	// for move
 	parse_move_pairs_from_page,
