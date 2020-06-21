@@ -11,14 +11,14 @@ jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
 jstop cron-20170915.topic_list.moegirl;
 
-/usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=zh
-/usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=zh-classical
-/usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_project=wikinews
-/usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=ja
-/usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_project=wikisource
-/usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_project=wikiversity
-/usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js use_language=commons
-/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/20170915.topic_list.js API_URL=https://zh.moegirl.org/api.php
+/usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh
+/usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh-classical
+/usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikinews
+/usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=ja
+/usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
+/usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
+/usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=commons
+/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js API_URL=https://zh.moegirl.org/api.php
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -440,6 +440,9 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
+// for manually testing only
+// delete CeL.wiki.query.default_maxlag;
+
 wiki.run(start_main_work);
 
 function start_main_work() {
@@ -542,7 +545,7 @@ function start_main_work() {
 function get_special_users(callback, options) {
 	var botop_sitelinks = options && options.botop_sitelinks;
 	if (!botop_sitelinks) {
-		TODO;
+		throw new Error('No botop_sitelinks get!');
 	}
 
 	var special_users = Object.create(null), full_group_name = {
