@@ -3,11 +3,11 @@
  2019/9/13 8:59:40	初版試營運
  2019/12/21 4:12:49	模組化
 
-To use these tool functions, you should create a command script file: "YYYYMMDD.section title.js", using templete: .replace_template.js
+To use these tool functions, you should create a task file: "YYYYMMDD.section title.js", using templete: .replace_template.js
 
 The `replace_tool.replace()` will:
-# Get section title from task file name
-# Guess language of section title assigned in command script file.
+# Get section title from task file name (command JavaScript file name)
+# Guess language of section title assigned in task file name.
 # Get diff_id from edit summary
 # Get task configuration from section in request page.
 # auto-notice: Starting replace task
@@ -75,7 +75,8 @@ async function replace_tool(meta_configuration, move_configuration) {
 	}
 
 	if (!meta_configuration.language) {
-		// Guess language of section title assigned in command script file.
+		CeL.env.ignore_COM_error = true;
+		// Guess language of section title assigned in task file name.
 		CeL.run('application.locale.encoding');
 		// e.g., 'ja-JP'
 		const language = CeL.encoding.guess_text_language(script_name);
@@ -206,12 +207,22 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 // Check if there are default move configurations.
 function get_move_configuration_from_section(meta_configuration, section) {
-	//[[w:ja:Template:リンク修正依頼/改名]]
+	if (!meta_configuration.discussion_link) {
+		section.each('link', (token, index, parent) => {
+			if (index > 0 && /議論場所[:：]/.test(parent[index - 1])) {
+				meta_configuration.discussion_link = token[0].toString();
+				// CeL.wiki.parser.parser_prototype.each.exit
+				return section.each.exit;
+			}
+		});
+	}
+
 	section.each('template', token => {
 		if (token.name !== 'リンク修正依頼/改名')
 			return;
 
 		// Get task configuration from section in request page.
+		//[[w:ja:Template:リンク修正依頼/改名]]
 		if (!meta_configuration.discussion_link) {
 			//console.log(token.parameters.提案);
 			CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
@@ -686,7 +697,7 @@ async function get_list(task_configuration, list_configuration) {
 	// page_list.truncate(2);
 	// console.log(page_list);
 
-	CeL.info(`get_list: Got ${page_list.length} page(s) from ${list_title}`);
+	CeL.info(`get_list: Get ${page_list.length} page(s) from ${list_title}`);
 	return page_list;
 }
 
@@ -763,16 +774,44 @@ function for_each_page(page_data) {
 // ---------------------------------------------------------------------//
 
 function normalize_display_text(display_text, options) {
+	if (Array.isArray(display_text)) {
+		CeL.wiki.parser.parser_prototype.each.call(display_text, 'template', (token, index, parent) => {
+			if (token.name === 'Lang') {
+				parent[index] = token.parameters[2];
+				return;
+			}
+
+			if (token.name in {
+				'JIS90フォント': true,
+				'JIS2004フォント': true,
+				'CP932フォント': true,
+				'MacJapanese': true,
+				'ARIB外字フォント': true,
+				'絵文字フォント': true,
+				'補助漢字フォント': true,
+				'変体仮名フォント': true,
+				'通貨フォント': true,
+			}) {
+				parent[index] = token.parameters[1];
+				return;
+			}
+
+		});
+	}
+
 	display_text = display_text.toString()
 		//jawiki
 		.replace(/{{ *[lL]ang *\|[a-z ]{2,}\|(.+?)}}/g, '$1')
 		//jawiki
 		.replace(/{{ *(?:JIS90フォント|JIS2004フォント|CP932フォント|MacJapanese|ARIB外字フォント|絵文字フォント|補助漢字フォント|拡張漢字|変体仮名フォント|通貨フォント) *\|(.+?)}}/g, '$1');
+
 	display_text = CeL.HTML_to_Unicode(display_text);
 	if (options?.normalize_title)
 		display_text = CeL.wiki.normalize_title(display_text);
 	return display_text;
 }
+
+CeL.assert(['深圳|森鷗外', normalize_display_text(CeL.wiki.parse('深{{lang|zh|圳}}|森&#40407;外'))], 'normalize_display_text()');
 
 // e.g., 'title': { for_each_link: replace_tool.remove_duplicated_display_text },
 function remove_duplicated_display_text(token, index, parent) {
@@ -994,7 +1033,7 @@ function for_each_template(page_data, token, index, parent) {
 		Navbox: 'name',
 	})) return;
 
-	// templates that ALL paraments are displayed as link.
+	// templates that ALL parameters are displayed as link.
 	if (replace_link_parameter(this, token, {
 		Main: 1,
 		See: 1,
@@ -1210,6 +1249,7 @@ module.exports = {
 	// for modify
 	replace: replace_tool,
 	remove_duplicated_display_text,
+	//normalize_display_text,
 
 	// for move
 	parse_move_pairs_from_page,
