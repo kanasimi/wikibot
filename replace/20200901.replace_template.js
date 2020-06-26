@@ -1,8 +1,4 @@
-﻿/*
-
-	初版試營運
-
- */
+﻿// 
 
 'use strict';
 
@@ -31,9 +27,9 @@ replace_tool.replace({
 	//speedy_criteria: 'merging',
 }, {
 	'title#anchor|display_text': 'title#anchor|display_text',
-	'': REDIRECT_TARGET,
-	'': DELETE_PAGE,
-	'insource:""': '',
+	'from_title': REDIRECT_TARGET,
+	'from_title': DELETE_PAGE,
+	'insource:"from_text"': 'to_text',
 	'http://url': 'https://url',
 
 	// no anchor
@@ -41,7 +37,7 @@ replace_tool.replace({
 	'title#': '',
 
 	'': {
-		move_to_link: '',
+		move_to_link: 'to_title',
 		move_from_link: '作品',
 
 		// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
@@ -56,7 +52,7 @@ replace_tool.replace({
 		before_get_pages(page_list, edit_options) { edit_options.summary += ''; },
 	},
 
-	'Template:': {
+	'Template:from_title': {
 		list_types: 'embeddedin',
 		for_template(token, index, parent) { CeL.wiki.parse.replace_parameter(token, config, 'parameter_name_only'); },
 	},

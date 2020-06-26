@@ -83,7 +83,7 @@ async function replace_tool(meta_configuration, move_configuration) {
 		const matched = language && language.match(/^([a-z]+)\-/);
 		if (matched) {
 			meta_configuration.language = matched[1];
-			CeL.info(`replace_tool: Treat ${JSON.stringify(script_name)} as ${language}.`);
+			CeL.info(`replace_tool: Treat ${JSON.stringify(script_name)} as language: ${CeL.gettext.get_alias(language) || language}.`);
 		} else {
 			const message = `replace_tool: Can not detect language of ${JSON.stringify(script_name)}!`;
 			CeL.error(message);
@@ -217,18 +217,25 @@ function get_move_configuration_from_section(meta_configuration, section) {
 		});
 	}
 
+	let multiple_discussion_links_exist;
 	section.each('template', token => {
 		if (token.name !== 'リンク修正依頼/改名')
 			return;
 
 		// Get task configuration from section in request page.
 		//[[w:ja:Template:リンク修正依頼/改名]]
-		if (!meta_configuration.discussion_link) {
+		if (!multiple_discussion_links_exist && !meta_configuration.discussion_link) {
 			//console.log(token.parameters.提案);
 			CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
-				if (meta_configuration.discussion_link)
-					throw new Error('get_move_configuration_from_section: Multiple discussion_link');
-				meta_configuration.discussion_link = token[0].toString();
+				if (!meta_configuration.discussion_link) {
+					meta_configuration.discussion_link = token[0].toString();
+					return;
+				}
+
+				multiple_discussion_links_exist = true;
+				delete meta_configuration.discussion_link;
+				CeL.error('get_move_configuration_from_section: Multiple discussion links exist.');
+				return section.each.exit;
 			});
 		}
 
@@ -243,24 +250,49 @@ function get_move_configuration_from_section(meta_configuration, section) {
 		CeL.info(`get_move_configuration_from_section: Get ${Object.keys(meta_configuration.default_move_configuration).length} task(s) from request page.`);
 }
 
-// auto-notice: Starting replace task
-async function note_to_edit(wiki, meta_configuration) {
+async function for_bot_requests_section(wiki, meta_configuration, for_section, options) {
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	const requests_page_data = await wiki.page(requests_page, { redirects: 1 });
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = requests_page_data.parse();
-	let need_edit;
+	CeL.assert([requests_page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
 	const section_title = meta_configuration.section_title;
-	//console.log(section_title);
-	parsed.each_section(section => {
+	parsed.each_section(function (section) {
 		//console.log(section.section_title && section.section_title.link[1]);
 		if (!section.section_title || section.section_title.link[1] !== section_title) {
 			return;
 		}
 		// console.log(section.toString());
 
+		for_section.apply(parsed, arguments);
+	}, {
+		get_users: true,
+	});
+
+	if (options.need_edit) {
+		// console.log(parsed.toString());
+		await wiki.edit_page(requests_page, parsed.toString(), {
+			redirects: 1,
+			sectiontitle: section_title,
+			//{{BOTREQ|着手}}
+			summary: options.summary
+		});
+	}
+}
+
+// auto-notice: Starting replace task
+async function note_to_edit(wiki, meta_configuration) {
+	const options = {
+		summary: 'Starting bot request task.'
+	};
+
+	await for_bot_requests_section(wiki, meta_configuration, function (section) {
+		//console.trace(section);
 		meta_configuration.bot_requests_section = section;
+		//委託人
+		meta_configuration.bot_requests_user = section.users[0];
+		//console.trace(meta_configuration.bot_requests_user);
 
 		get_move_configuration_from_section(meta_configuration, section);
 
@@ -271,27 +303,48 @@ async function note_to_edit(wiki, meta_configuration) {
 		// PATTERN =
 		// new RegExp(PATTERN.source + ' .+?' + user_name, PATTERN.flags);
 		if (section.toString().includes(doing_message) /*PATTERN.test(section.toString())*/) {
-			CeL.info(`Already noticed: ${section_title}`);
-			need_edit = false;
+			CeL.info(`Already noticed doning: ${meta_configuration.section_title}`);
+			options.need_edit = false;
 			return;
 		}
+		const parsed = this;
 		const index = section.range[1] - 1;
 		// assert: parsed[index] ===section[section.length - 1]
 		parsed[index] = parsed[index].toString().trimEnd() + `\n* ${doing_message} --~~~~\n`;
 		// TODO: +確認用リンク
-		need_edit = true;
-	});
+		options.need_edit = true;
+	}, options);
 
-	if (need_edit) {
-		// console.log(parsed.toString());
-		await wiki.edit_page(requests_page, parsed.toString(), {
-			redirects: 1,
-			sectiontitle: section_title,
-			//{{BOTREQ|着手}}
-			summary: 'Starting bot request task.'
-		});
-	} else if (need_edit === undefined) {
+	if (options.need_edit === undefined) {
 		CeL.info('Will not auto-notice starting to edit!');
+	}
+}
+
+async function note_finished(wiki, meta_configuration) {
+	const options = {
+		summary: 'Bot request task finished.'
+	};
+	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
+
+	await for_bot_requests_section(wiki, meta_configuration, function (section) {
+		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
+			//{{BOTREQ|済}}
+			`{{BOTREQ|完了}} ご確認をお願いします。${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
+		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
+			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
+			options.need_edit = false;
+			return;
+		}
+		const parsed = this;
+		const index = section.range[1] - 1;
+		// assert: parsed[index] ===section[section.length - 1]
+		parsed[index] = parsed[index].toString().trimEnd()
+			+ `\n* ${meta_configuration.bot_requests_user ? `{{ping|${meta_configuration.bot_requests_user}}}` : ''} ${finished_message} --~~~~\n`;
+		options.need_edit = true;
+	}, options);
+
+	if (options.need_edit === undefined) {
+		CeL.info('Will not auto-notice finished!');
 	}
 }
 
@@ -450,6 +503,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		task_configuration.wiki = wiki;
 		await main_move_process(task_configuration, meta_configuration);
 	}
+
+	await note_finished(wiki, meta_configuration);
+	// done.
 }
 
 
@@ -507,6 +563,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = page_data.parse();
+	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check');
 	let changed;
 	parsed.each('external_link', link_token => {
 		const link = link_token[0].toString();
@@ -1084,6 +1141,7 @@ async function get_move_pairs_page(page_title, options) {
 	const list_page_data = await wiki.page(page_title, options);
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = list_page_data.parse();
+	CeL.assert([list_page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
 	let section;
 	if (options.section_title) {
