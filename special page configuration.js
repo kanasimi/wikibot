@@ -735,6 +735,15 @@ var jawiki_week_AFD_options = {
 				return token[1] + '（履歴 / ログ / リンク元）';
 			case 'Particle4':
 				return token[1] + '（ノート / 履歴）';
+
+				// 利用者情報表示用テンプレート
+			case 'User':
+				return '利用者:' + token[1] + '（会話 / 投稿記録）';
+			case 'User2':
+				return '利用者:' + token[1] + '（会話 / 投稿記録 / 記録）';
+			case 'User3':
+				return token[1] + '（会話 / 投稿記録 / 記録）';
+
 			case 'Curid':
 				return token[2] || ('ページ番号' + token[1]);
 			case 'Oldid':

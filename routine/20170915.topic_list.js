@@ -440,8 +440,8 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-// for manually testing only
-// delete CeL.wiki.query.default_maxlag;
+// 用戶相關功能，避免延遲回應以使用戶等待。
+delete CeL.wiki.query.default_maxlag;
 
 wiki.run(start_main_work);
 
@@ -1117,6 +1117,9 @@ function get_column_operators(page_configuration) {
 function pre_fetch_sub_pages(page_data, error) {
 	CeL.debug((new Date).format() + ' 處理頁面 '
 			+ CeL.wiki.title_link_of(page_data), 1, 'pre_fetch_sub_pages');
+	if (!page_data) {
+		console.trace(page_data);
+	}
 	if (page_data.title in sub_page_to_main) {
 		CeL.debug('更改了子頁面，得要重新處理主要頁面。', 1, 'pre_fetch_sub_pages');
 		wiki.page(sub_page_to_main[page_data.title], pre_fetch_sub_pages);
