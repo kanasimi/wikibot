@@ -712,7 +712,19 @@ var jawiki_week_AFD_options = {
 	preprocess_section_link_token : function(token) {
 		if (token.type === 'transclusion') {
 			// console.log(token);
-			switch (token.name) {
+			var template_name = token.name;
+			if (template_name === 'Page') {
+				var page_name = token[1].toString().trim();
+				if (/(?:talk|ノート):/i.test(page_name))
+					template_name = 'Ptalk';
+				else if (/^(?:Wikipedia|ファイル|File|MediaWiki|Template|Help|Category|Portal)/i
+						.test(page_name))
+					template_name = 'P';
+				else
+					template_name = 'Particle';
+			}
+
+			switch (template_name) {
 			case 'Particle':
 				// console.log(token);
 				return token[1] + '（ノート / 履歴 / ログ / リンク元）';
@@ -1158,6 +1170,7 @@ function check_BOTREQ_status(section, section_index) {
 
 			Withdrawn : true,
 			撤回請求 : true,
+			撤回请求 : true,
 			撤回 : true,
 
 			Cancelled : true,
