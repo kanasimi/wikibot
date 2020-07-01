@@ -20,7 +20,7 @@ The `replace_tool.replace()` will:
 @see https://meta.wikimedia.org/wiki/Indic-TechCom/Tools/MassMove
 @see https://en.wikipedia.org/wiki/User:Plastikspork/massmove.js
 
-@see [[Wikipedia:改名提案]], [[Wikipedia:移動依頼]]
+@see [[w:ja:Wikipedia:改名提案]], [[w:ja:Wikipedia:移動依頼]]
 
 
 TODO:
@@ -328,7 +328,8 @@ async function note_finished(wiki, meta_configuration) {
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
-			//{{BOTREQ|済}}
+			//{{利用者の投稿記録リンク|Example|50|20100820121030|4}}
+			//{{BOTREQ|済}} こちらのリンクからご確認下さい
 			`{{BOTREQ|完了}} ご確認をお願いします。${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
@@ -460,7 +461,12 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		} else if (typeof diff_id !== 'number' || !(diff_id > 0) || Math.floor(diff_id) !== diff_id) {
 			CeL.warn(`prepare_operation: Invalid diff_id: ${diff_id}`);
 		}
-		task_configuration.summary = CeL.wiki.title_link_of(
+
+		task_configuration.summary = {
+			summary: String(task_configuration.summary || summary),
+			log_to: _log_to ? ' - ' + CeL.wiki.title_link_of(_log_to, 'log') : ''
+		};
+		task_configuration.summary.diff_to_add = CeL.wiki.title_link_of(
 			diff_id ? `Special:Diff/${diff_id}${_section_title}`
 				// Speedy renaming or speedy merging
 				: meta_configuration.speedy_criteria === 'merging' ? 'WP:CFDS'
@@ -469,9 +475,20 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			// Speedy renaming or speedy merging
 			meta_configuration.speedy_criteria ? 'Speedy ' + meta_configuration.speedy_criteria
 				: use_language === 'zh' ? '機器人作業請求'
-					: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request')
-			+ ': ' + (task_configuration.summary || summary)
-			+ (_log_to ? ' - ' + CeL.wiki.title_link_of(_log_to, 'log') : '');
+					: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request');
+		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
+			task_configuration.summary.title_to_add = '';
+		} else if (typeof move_from_link === 'string' && task_configuration.summary.summary.includes(move_from_link)
+			|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.includes(task_configuration.move_to_link)) {
+			task_configuration.summary.title_to_add = '';
+		} else {
+			task_configuration.summary.title_to_add = ` (${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
+		}
+		task_configuration.summary = task_configuration.summary.diff_to_add
+			+ ': ' + task_configuration.summary.summary
+			+ task_configuration.summary.title_to_add
+			+ task_configuration.summary.log_to;
+		//console.trace(task_configuration.summary);
 
 		if (task_configuration.do_move_page) {
 			if (typeof move_from_link !== 'string') {
