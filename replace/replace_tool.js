@@ -3,7 +3,12 @@
  2019/9/13 8:59:40	初版試營運
  2019/12/21 4:12:49	模組化
 
-To use these tool functions, you should create a task file: "YYYYMMDD.section title.js", using templete: .replace_template.js
+Usage:
+To use these tool functions, you should create a task file: "YYYYMMDD.section title.js", refering to templete: .replace_template.js
+> node "YYYYMMDD.section title.js"
+# or:
+> node "YYYYMMDD.section title.js" "section_title=select this section title"
+> node "YYYYMMDD.section title.js" "select this section title"
 
 The `replace_tool.replace()` will:
 # Get section title from task file name (command JavaScript file name)
@@ -78,14 +83,18 @@ async function replace_tool(meta_configuration, move_configuration) {
 		CeL.env.ignore_COM_error = true;
 		// Guess language of section title assigned in task file name.
 		CeL.run('application.locale.encoding');
+
+		set_section_title_from_command_line(meta_configuration);
+		//console.trace(meta_configuration);
+
 		// e.g., 'ja-JP'
-		const language = CeL.encoding.guess_text_language(script_name);
+		const language = CeL.encoding.guess_text_language(meta_configuration.section_title);
 		const matched = language && language.match(/^([a-z]+)\-/);
 		if (matched) {
 			meta_configuration.language = matched[1];
-			CeL.info(`replace_tool: Treat ${JSON.stringify(script_name)} as language: ${CeL.gettext.get_alias(language) || language}.`);
+			CeL.info(`replace_tool: Treat ${JSON.stringify(meta_configuration.section_title)} as language: ${CeL.gettext.get_alias(language) || language}.`);
 		} else {
-			const message = `replace_tool: Can not detect language of ${JSON.stringify(script_name)}!`;
+			const message = `replace_tool: Can not detect language of ${JSON.stringify(meta_configuration.section_title)}!`;
 			CeL.error(message);
 			if (!meta_configuration.ignore_language)
 				throw new Error(message);
@@ -126,17 +135,43 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
+function set_section_title_from_command_line(meta_configuration) {
+	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
+	if (meta_configuration.section_title) {
+		return;
+	}
+
+	let section_title = CeL.env.arg_hash && CeL.env.arg_hash.section_title;
+	if (section_title && (section_title = section_title.trim())) {
+		//> node "YYYYMMDD.section title.js" "section_title=select this section title"
+		// e.g., "20200704.「一条ぎょく子」→「一条頊子」の改名に伴うリンク修正依頼.js"
+		//console.trace(CeL.env.arg_hash);
+		CeL.info(`Get section title from command line argument: ${section_title}`);
+		meta_configuration.section_title = section_title;
+		return;
+	}
+
+	if (CeL.env.argv.length > 2 && (section_title = CeL.env.argv[2].trim())) {
+		//> node "YYYYMMDD.section title.js" "select this section title"
+		//console.trace(CeL.env.argv[2]);
+		CeL.info(`Get section title from command line argument: ${section_title}`);
+		meta_configuration.section_title = section_title;
+		return;
+	}
+
+	section_title = script_name;
+	if (section_title) {
+		CeL.info(`Get section title from task file name: ${section_title}`);
+		meta_configuration.section_title = section_title;
+		return;
+	}
+
+	throw new Error('Can not extract section title from task file name!');
+}
+
 // 從已知資訊解開並自動填寫 `meta_configuration`
 async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
-	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
-	if (!meta_configuration.section_title) {
-		if (script_name) {
-			CeL.info(`Get section title from task file name: ${script_name}`);
-			meta_configuration.section_title = script_name;
-		} else {
-			throw new Error('Can not extract section title from task file name!');
-		}
-	}
+	set_section_title_from_command_line(meta_configuration);
 
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
@@ -155,6 +190,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 			let user, diff_to, diff_from;
 			requests_page_data.revisions.forEach(revision => {
+				//for section_title set from script_name @ set_section_title_from_command_line(meta_configuration)
 				const comment = section_title === script_name
 					// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
 					// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
@@ -387,7 +423,12 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	//console.log(move_configuration);
 
 	// Object.entries(move_configuration).forEach(main_move_process);
-	for (const pair of (Array.isArray(move_configuration) ? move_configuration : Object.entries(move_configuration))) {
+	if (CeL.is_Object(move_configuration)) {
+		move_configuration = Object.entries(move_configuration);
+	} else {
+		// assert: Array.isArray(move_configuration)
+	}
+	for (const pair of move_configuration) {
 		const move_from_link = pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]);
 		let move_to_link = pair[1];
 		if (move_to_link === REDIRECT_TARGET) {
@@ -478,8 +519,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 					: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request');
 		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
 			task_configuration.summary.title_to_add = '';
-		} else if (typeof move_from_link === 'string' && task_configuration.summary.summary.includes(move_from_link)
-			|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.includes(task_configuration.move_to_link)) {
+		} else if (move_configuration.length === 1
+			&& (typeof move_from_link === 'string' && task_configuration.summary.summary.includes(move_from_link)
+				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.includes(task_configuration.move_to_link))) {
 			task_configuration.summary.title_to_add = '';
 		} else {
 			task_configuration.summary.title_to_add = ` (${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
