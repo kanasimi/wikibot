@@ -244,41 +244,54 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 // Check if there are default move configurations.
 function get_move_configuration_from_section(meta_configuration, section) {
 	if (!meta_configuration.discussion_link) {
-		section.each('link', (token, index, parent) => {
-			if (index > 0 && /議論場所[:：]/.test(parent[index - 1])) {
-				meta_configuration.discussion_link = token[0].toString();
-				// CeL.wiki.parser.parser_prototype.each.exit
+		section.each('list', token => {
+			if (!/議論場所[:：]/.test(token[0]))
+				return;
+
+			let discussion_link;
+			section.each.call(token[0], 'link', token => {
+				if (!discussion_link) {
+					discussion_link = token[0].toString();
+					return;
+				}
+
+				CeL.warn(`get_move_configuration_from_section: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+				discussion_link = null;
 				return section.each.exit;
-			}
+			});
+			if (discussion_link)
+				meta_configuration.discussion_link = discussion_link;
+			// CeL.wiki.parser.parser_prototype.each.exit
+			return section.each.exit;
 		});
 	}
 
-	let multiple_discussion_links_exist;
 	section.each('template', token => {
 		if (token.name !== 'リンク修正依頼/改名')
 			return;
 
+		let discussion_link;
 		// Get task configuration from section in request page.
 		//[[w:ja:Template:リンク修正依頼/改名]]
-		if (!multiple_discussion_links_exist && !meta_configuration.discussion_link) {
-			//console.log(token.parameters.提案);
-			CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
-				if (!meta_configuration.discussion_link) {
-					meta_configuration.discussion_link = token[0].toString();
-					return;
-				}
+		//console.log(token.parameters.提案);
+		CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
+			if (!discussion_link) {
+				discussion_link = token[0].toString();
+				return;
+			}
 
-				multiple_discussion_links_exist = true;
-				delete meta_configuration.discussion_link;
-				CeL.error('get_move_configuration_from_section: Multiple discussion links exist.');
-				return section.each.exit;
-			});
-		}
+			CeL.warn(`get_move_configuration_from_section: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+			discussion_link = null;
+			return section.each.exit;
+		});
 
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
 			if (!meta_configuration.default_move_configuration)
 				meta_configuration.default_move_configuration = Object.create(null);
-			meta_configuration.default_move_configuration[token.parameters[index]] = token.parameters[index + 1];
+			meta_configuration.default_move_configuration[token.parameters[index]] = {
+				discussion_link,
+				move_to_link: token.parameters[index + 1]
+			};
 		}
 	});
 
@@ -395,10 +408,6 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	// 解構賦值 `({ a, b, c = 3 } = { a: 1, b: 2 })`
 	const { summary, section_title } = meta_configuration;
-	const _summary = typeof summary === 'string' ? summary
-		// 議論場所 Links to relevant discussions
-		: meta_configuration.discussion_link ? CeL.wiki.title_link_of(meta_configuration.discussion_link, section_title)
-			: section_title;
 	const _section_title = section_title ? '#' + section_title : '';
 
 	if (typeof move_configuration === 'function') {
@@ -428,6 +437,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	} else {
 		// assert: Array.isArray(move_configuration)
 	}
+
 	for (const pair of move_configuration) {
 		const move_from_link = pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]);
 		let move_to_link = pair[1];
@@ -455,6 +465,11 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			task_configuration.keep_title = true;
 		}
 
+		// 議論場所 Links to relevant discussions
+		const discussion_link = task_configuration.discussion_link || meta_configuration.discussion_link;
+		const _summary = typeof summary === 'string' ? summary
+			: discussion_link ? CeL.wiki.title_link_of(discussion_link, section_title)
+				: section_title;
 		const _log_to = 'log_to' in task_configuration ? task_configuration.log_to : log_to;
 		// summary = null, undefined : using section_title as summary
 		// summary = '' : auto-fill summary with page-to-delete + '改名に伴うリンク修正'
