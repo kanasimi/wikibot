@@ -52,6 +52,9 @@ replace_tool.replace({
 		keep_title: true,
 		namespace: 'Category',
 
+		//對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
+		is_tracking_category: true,
+
 		text_processor(wikitext, page_data) { return wikitext.replace(/./g, ''); },
 		text_processor(wikitext, page_data) {
 			/** {Array} parsed page content 頁面解析後的結構。 */

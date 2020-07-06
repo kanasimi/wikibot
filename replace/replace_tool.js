@@ -664,7 +664,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
 
 /** {String}default namespace to search and replace */
-const default_namespace = 'main|file|module|template|category';
+const default_namespace = 'main|file|module|template|category|help';
 // 'talk|template_talk|category_talk'
 
 async function get_list(task_configuration, list_configuration) {
@@ -825,6 +825,18 @@ async function get_list(task_configuration, list_configuration) {
 	}
 
 	page_list = page_list.unique(page_data => CeL.wiki.title_of(page_data));
+	if (list_configuration.is_tracking_category && list_configuration.move_from.ns === wiki.namespace('Category')) {
+		page_list.forEach(page_data => {
+			if (wiki.is_namespace(page_data, 'Template') || wiki.is_namespace(page_data, 'Module')) {
+				const title = CeL.wiki.title_of(page_data);
+				if (title.endsWith('/doc'))
+					return;
+				//對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
+				page_list.push(title + '/doc');
+			}
+		});
+		//console.log(page_list);
+	}
 	if (list_configuration.page_limit >= 1)
 		page_list = page_list.truncate(list_configuration.page_limit);
 	// manually for debug
