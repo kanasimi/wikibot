@@ -6,8 +6,8 @@ const replace_tool = require('./replace_tool.js');
 if ((!CeL.env.arg_hash || !CeL.env.arg_hash.section_title) && !CeL.env.argv[2]) {
 	CeL.info(`
 Usage:
-node general_replace.js "section title"
-node general_replace.js "section_title=section title"
+node ${script_name} "section title"
+node ${script_name} "section_title=section title"
 `);
 	process.exit();
 }

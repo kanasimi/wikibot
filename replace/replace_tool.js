@@ -331,7 +331,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 }
 
 // auto-notice: Starting replace task
-async function note_to_edit(wiki, meta_configuration) {
+async function notice_to_edit(wiki, meta_configuration) {
 	const options = {
 		summary: 'Starting bot request task.'
 	};
@@ -369,7 +369,7 @@ async function note_to_edit(wiki, meta_configuration) {
 	}
 }
 
-async function note_finished(wiki, meta_configuration) {
+async function notice_finished(wiki, meta_configuration) {
 	const options = {
 		summary: 'Bot request task finished.'
 	};
@@ -404,7 +404,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
 
-	await note_to_edit(wiki, meta_configuration);
+	if (!meta_configuration.no_notice)
+		await notice_to_edit(wiki, meta_configuration);
 
 	// 解構賦值 `({ a, b, c = 3 } = { a: 1, b: 2 })`
 	const { summary, section_title } = meta_configuration;
@@ -578,7 +579,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		await main_move_process(task_configuration, meta_configuration);
 	}
 
-	await note_finished(wiki, meta_configuration);
+	if (!meta_configuration.no_notice)
+		await notice_finished(wiki, meta_configuration);
 	// done.
 }
 
@@ -788,10 +790,13 @@ async function get_list(task_configuration, list_configuration) {
 		list_configuration.move_from = Object.create(null);
 
 	let page_list = list_configuration.page_list;
+	if (typeof page_list === 'function') {
+		page_list = await page_list.call(task_configuration, list_configuration);
+	}
 	const list_title = list_configuration.move_from.page_title ? CeL.wiki.title_link_of(list_configuration.move_from.page_title) : list_types;
 	if (page_list) {
 		// assert: Array.isArray(list_configuration.page_list)
-		CeL.info(`get_list: Process ${page_list.length} pages`);
+		CeL.info(`get_list: Process ${page_list.length} pages...`);
 		//Warning: Should filter 'Wikipedia|User' yourself!
 	} else {
 		page_list = [];
