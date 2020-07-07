@@ -8,6 +8,7 @@ if ((!CeL.env.arg_hash || !CeL.env.arg_hash.section_title) && !CeL.env.argv[2]) 
 Usage:
 node ${script_name} "section title"
 node ${script_name} "section_title=section title"
+node ${script_name} "diff_id=0000" "section_title=section title" "use_language=ja" "also_replace_text"
 `);
 	process.exit();
 }

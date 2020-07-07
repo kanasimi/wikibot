@@ -79,13 +79,15 @@ async function replace_tool(meta_configuration, move_configuration) {
 		meta_configuration = CeL.setup_options(meta_configuration);
 	}
 
+	get_move_configuration_from_command_line(meta_configuration);
+	//console.trace(meta_configuration);
+	if (meta_configuration.use_language)
+		meta_configuration.language = meta_configuration.use_language;
+
 	if (!meta_configuration.language) {
 		CeL.env.ignore_COM_error = true;
 		// Guess language of section title assigned in task file name.
 		CeL.run('application.locale.encoding');
-
-		set_section_title_from_command_line(meta_configuration);
-		//console.trace(meta_configuration);
 
 		// e.g., 'ja-JP'
 		const language = CeL.encoding.guess_text_language(meta_configuration.section_title);
@@ -135,33 +137,39 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
-function set_section_title_from_command_line(meta_configuration) {
-	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
+function get_move_configuration_from_command_line(meta_configuration) {
+	if (CeL.env.arg_hash) {
+		for (const property_name of ['diff_id', 'section_title', 'also_replace_text']) {
+			let value = CeL.env.arg_hash[property_name];
+			//console.log([property_name, value]);
+			if (!value || typeof value === 'string' && !(value = value.trim()))
+				return;
+			//> node "YYYYMMDD.section title.js" "section_title=select this section title"
+			// e.g., "20200704.「一条ぎょく子」→「一条頊子」の改名に伴うリンク修正依頼.js"
+			//console.trace(CeL.env.arg_hash);
+			CeL.info(`get_move_configuration_from_command_line: Get ${property_name} from command line argument: ${value}`);
+			meta_configuration[property_name] = value;
+		}
+		return;
+	}
+
 	if (meta_configuration.section_title) {
 		return;
 	}
 
-	let section_title = CeL.env.arg_hash && CeL.env.arg_hash.section_title;
-	if (section_title && (section_title = section_title.trim())) {
-		//> node "YYYYMMDD.section title.js" "section_title=select this section title"
-		// e.g., "20200704.「一条ぎょく子」→「一条頊子」の改名に伴うリンク修正依頼.js"
-		//console.trace(CeL.env.arg_hash);
-		CeL.info(`Get section title from command line argument: ${section_title}`);
-		meta_configuration.section_title = section_title;
-		return;
-	}
-
+	let section_title;
 	if (CeL.env.argv.length > 2 && (section_title = CeL.env.argv[2].trim())) {
 		//> node "YYYYMMDD.section title.js" "select this section title"
 		//console.trace(CeL.env.argv[2]);
-		CeL.info(`Get section title from command line argument: ${section_title}`);
+		CeL.info(`get_move_configuration_from_command_line: Get section title from command line argument: ${section_title}`);
 		meta_configuration.section_title = section_title;
 		return;
 	}
 
+	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
 	section_title = script_name;
 	if (section_title) {
-		CeL.info(`Get section title from task file name: ${section_title}`);
+		CeL.info(`get_move_configuration_from_command_line: Get section title from task file name: ${section_title}`);
 		meta_configuration.section_title = section_title;
 		return;
 	}
@@ -171,8 +179,6 @@ function set_section_title_from_command_line(meta_configuration) {
 
 // 從已知資訊解開並自動填寫 `meta_configuration`
 async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
-	set_section_title_from_command_line(meta_configuration);
-
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	let section_title = meta_configuration.section_title;
@@ -190,7 +196,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 			let user, diff_to, diff_from;
 			requests_page_data.revisions.forEach(revision => {
-				//for section_title set from script_name @ set_section_title_from_command_line(meta_configuration)
+				//for section_title set from script_name @ get_move_configuration_from_command_line(meta_configuration)
 				const comment = section_title === script_name
 					// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
 					// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
@@ -266,6 +272,7 @@ function get_move_configuration_from_section(meta_configuration, section) {
 		});
 	}
 
+	let default_move_configuration;
 	section.each('template', token => {
 		if (token.name !== 'リンク修正依頼/改名')
 			return;
@@ -286,16 +293,21 @@ function get_move_configuration_from_section(meta_configuration, section) {
 		});
 
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
-			if (!meta_configuration.default_move_configuration)
-				meta_configuration.default_move_configuration = Object.create(null);
-			meta_configuration.default_move_configuration[token.parameters[index]] = {
+			if (!default_move_configuration)
+				meta_configuration.default_move_configuration = default_move_configuration = Object.create(null);
+			const title = token.parameters[index];
+			const task_configuration = {
 				discussion_link,
 				move_to_link: token.parameters[index + 1]
 			};
+			default_move_configuration[title] = task_configuration;
+			if (meta_configuration.also_replace_text) {
+				default_move_configuration[`insource:"${title}"`] = Object.clone(task_configuration);
+			}
 		}
 	});
 
-	if (meta_configuration.default_move_configuration)
+	if (default_move_configuration)
 		CeL.info(`get_move_configuration_from_section: Get ${Object.keys(meta_configuration.default_move_configuration).length} task(s) from request page.`);
 }
 
@@ -333,7 +345,8 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 // auto-notice: Starting replace task
 async function notice_to_edit(wiki, meta_configuration) {
 	const options = {
-		summary: 'Starting bot request task.'
+		// 着手します
+		summary: use_language === 'ja' ? '作業を開始します' : 'Starting bot request task.'
 	};
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
@@ -371,7 +384,8 @@ async function notice_to_edit(wiki, meta_configuration) {
 
 async function notice_finished(wiki, meta_configuration) {
 	const options = {
-		summary: 'Bot request task finished.'
+		//完了、確認待ち TODO: +{{解決済み}}
+		summary: use_language === 'ja' ? '作業を終了しました' : 'Bot request task finished.'
 	};
 	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
 

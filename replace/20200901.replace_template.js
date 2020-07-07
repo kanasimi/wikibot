@@ -46,6 +46,9 @@ replace_tool.replace({
 		// for debug
 		page_list : [],
 
+		// Also replace text in source for link
+		also_replace_text: true,
+
 		// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
 		list_intersection: 'Category:',
 
