@@ -89,8 +89,11 @@ async function replace_tool(meta_configuration, move_configuration) {
 		// Guess language of section title assigned in task file name.
 		CeL.run('application.locale.encoding');
 
+		//console.trace(meta_configuration.section_title);
+		//CeL.set_debug(9);
 		// e.g., 'ja-JP'
 		const language = CeL.encoding.guess_text_language(meta_configuration.section_title);
+		//CeL.set_debug(0);
 		const matched = language && language.match(/^([a-z]+)\-/);
 		if (matched) {
 			meta_configuration.language = matched[1];
@@ -143,14 +146,13 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			let value = CeL.env.arg_hash[property_name];
 			//console.log([property_name, value]);
 			if (!value || typeof value === 'string' && !(value = value.trim()))
-				return;
+				continue;
 			//> node "YYYYMMDD.section title.js" "section_title=select this section title"
 			// e.g., "20200704.「一条ぎょく子」→「一条頊子」の改名に伴うリンク修正依頼.js"
 			//console.trace(CeL.env.arg_hash);
 			CeL.info(`get_move_configuration_from_command_line: Get ${property_name} from command line argument: ${value}`);
 			meta_configuration[property_name] = value;
 		}
-		return;
 	}
 
 	if (meta_configuration.section_title) {
@@ -257,7 +259,7 @@ function get_move_configuration_from_section(meta_configuration, section) {
 			let discussion_link;
 			section.each.call(token[0], 'link', token => {
 				if (!discussion_link) {
-					discussion_link = token[0].toString();
+					discussion_link = token[0] + token[1];
 					return;
 				}
 
@@ -283,7 +285,7 @@ function get_move_configuration_from_section(meta_configuration, section) {
 		//console.log(token.parameters.提案);
 		CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
 			if (!discussion_link) {
-				discussion_link = token[0].toString();
+				discussion_link = token[0] + token[1];
 				return;
 			}
 
@@ -977,7 +979,7 @@ CeL.assert(['深圳|森鷗外', normalize_display_text(CeL.wiki.parse('深{{lang
 
 // e.g., 'title': { for_each_link: replace_tool.remove_duplicated_display_text },
 function remove_duplicated_display_text(token, index, parent) {
-	if (token[2] && token[0].toString().trim() === normalize_display_text(token[2]).trim()) {
+	if (token[2] && (token[0] + token[1]).trim() === normalize_display_text(token[2]).trim()) {
 		token.pop();
 	}
 }
