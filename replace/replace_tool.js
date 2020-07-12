@@ -142,6 +142,10 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 function get_move_configuration_from_command_line(meta_configuration) {
 	if (CeL.env.arg_hash) {
+		if (CeL.env.arg_hash.diff) {
+			//alias
+			CeL.env.arg_hash.diff_id = CeL.env.arg_hash.diff;
+		}
 		for (const property_name of ['diff_id', 'section_title', 'also_replace_text']) {
 			let value = CeL.env.arg_hash[property_name];
 			//console.log([property_name, value]);
