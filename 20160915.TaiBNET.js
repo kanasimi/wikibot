@@ -93,7 +93,7 @@ function import_data() {
 // ----------------------------------------------------------------------------
 // import each taxon
 
-// 因為數量太多，只好增快速度。
+// Only respect maxlag. 因為數量太多，只好增快速度。
 wiki.edit_time_interval = 0;
 
 function for_taxon(line) {
@@ -129,16 +129,25 @@ function for_taxon(line) {
 			labels : {
 				'zh-tw' : 物種中文名
 			},
-			claims : {
+			claims : [ {
 				生物俗名 : 物種中文名,
 				multi : true,
 				language : 'zh-tw',
 				references : {
+					// P248
 					載於 : '臺灣物種名錄',
 					臺灣物種名錄物種編號 : TaiBNET_id,
 					檢索日期 : now
 				}
-			}
+			}, {
+				臺灣物種名錄物種編號 : TaiBNET_id,
+				language : 'zh-tw',
+				references : {
+					// P248
+					載於 : '臺灣物種名錄',
+					檢索日期 : now
+				}
+			} ]
 		};
 
 	}, {
