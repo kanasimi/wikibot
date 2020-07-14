@@ -14,7 +14,6 @@ set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-
 // ----------------------------------------------------------------------------
 
 const reason = '[[Special:Diff/960931382#Move 500 River articles per consensus on tributary disambiguator|BOTREQ]]: Move 500 River articles per consensus on tributary disambiguator';
@@ -26,33 +25,6 @@ const reason = '[[Special:Diff/960931382#Move 500 River articles per consensus o
 })();
 
 async function main_process() {
-	const move_title_pair = {};
-	const list_page_data = await wiki.page('User:Dicklyon/tributaries');
-	/** {Array} parsed page content 頁面解析後的結構。 */
-	const parsed = list_page_data.parse();
-	parsed.each('list', list => {
-		if (list.length > 20)
-			replace_tool.parse_move_pairs_from_link(list, move_title_pair);
-	});
-	CeL.info(`${Object.keys(move_title_pair).length} pages to move...`);
-	//	console.log(move_title_pair);
-
-	for (const move_from_title in move_title_pair) {
-		const move_to_title = move_title_pair[move_from_title];
-		if (move_from_title === move_to_title) {
-			CeL.error('The same title: ' + CeL.wiki.title_link_of(move_from_title));
-			continue;
-		}
-
-		CeL.info(`move page: ${CeL.wiki.title_link_of(move_from_title)} → ${CeL.wiki.title_link_of(move_to_title)}`);
-		try {
-			await wiki.move_page(move_from_title, move_to_title, { reason, movetalk: true, noredirect: false });
-		} catch (e) {
-			if (e.code === 'articleexists') {
-				// Already moved?
-			} else {
-				console.error(e);
-			}
-		}
-	}
+	const move_title_pair = await replace_tool.parse_move_pairs_from_page('User:Dicklyon/tributaries', wiki);
+	await replace_tool.move_via_title_pair(move_title_pair, { reason, session: wiki });
 }
