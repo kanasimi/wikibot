@@ -1590,6 +1590,10 @@ function next_label_data_work() {
 			return;
 		}
 
+		// TODO: check:
+		// if the redirect page has wikidata item, then skip the label.
+		// https://www.wikidata.org/w/index.php?title=Q56063989&type=revision&diff=1215536775&oldid=1214412806
+
 		if (foreign_title !== page_data.title) {
 			if (!page_data.title) {
 				CeL.warn('next_label_data_work.check_label: Error page_data:');
@@ -1650,7 +1654,8 @@ function finish_work() {
 			+ '處理 ' + use_language + ' Wikipedia 上的頁面。';
 	CeL.log(message);
 
-	CeL.write_file('en_label_list.txt', en_label_list.join('\n'));
+	CeL.write_file('en_label_list_of_' + use_language + '.txt', en_label_list
+			.join('\n'));
 }
 
 // ----------------------------------------------------------------------------
