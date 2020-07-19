@@ -140,12 +140,19 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
+const command_line_argument_alias = {
+	diff: 'diff_id',
+	insource: 'also_replace_text',
+};
+
 function get_move_configuration_from_command_line(meta_configuration) {
 	if (CeL.env.arg_hash) {
-		if (CeL.env.arg_hash.diff) {
-			//alias
-			CeL.env.arg_hash.diff_id = CeL.env.arg_hash.diff;
+		for (const arg_name in command_line_argument_alias) {
+			if (arg_name in CeL.env.arg_hash) {
+				CeL.env.arg_hash[command_line_argument_alias[arg_name]] = CeL.env.arg_hash[arg_name];
+			}
 		}
+
 		for (const property_name of ['diff_id', 'section_title', 'also_replace_text']) {
 			let value = CeL.env.arg_hash[property_name];
 			//console.log([property_name, value]);
@@ -203,15 +210,19 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 			let user, diff_to, diff_from;
 			requests_page_data.revisions.forEach(revision => {
 				//for section_title set from script_name @ get_move_configuration_from_command_line(meta_configuration)
-				const comment = section_title === script_name
-					// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
-					// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-					? revision.comment.replace(/[\\:?"<>|]/g, '') : revision.comment;
+				let comment = revision.comment && revision.comment.match(/^\/\*(.+)\*\//);
+				if (comment) {
+					comment = comment[1];
+					if (section_title === script_name) {
+						// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
+						// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+						comment = comment.replace(/[\\\/:*?"<>|]/g, '');
+					}
+				}
 				//console.log(section_title);
 				//console.log(comment);
-				const matched = comment.match(/^\/\*(.+)\*\//);
 				// console.log(matched);
-				if (matched && matched[1].trim() === section_title.trim()) {
+				if (comment && comment.trim() === section_title.trim()) {
 					// console.log(revision);
 					if (user === revision.user && diff_to > 0) {
 						diff_from = revision.parentid;
@@ -1137,7 +1148,7 @@ function check_link_parameter(task_configuration, template_token, parameter_name
 	const attribute_text = template_token.parameters[parameter_name];
 	if (!attribute_text) {
 		if (isNaN(parameter_name) || parameter_name == 1) {
-			CeL.warn(`There is {{${template_token.name}}} without essential parameter ${parameter_name}.`);
+			CeL.warn(`check_link_parameter: There is {{${template_token.name}}} without essential parameter: ${JSON.stringify(parameter_name)}.`);
 		}
 		return;
 	}
@@ -1229,6 +1240,8 @@ function for_each_template(page_data, token, index, parent) {
 		Otheruseslist: 3,
 		Otheruses: 3,
 	}, 2)) return;
+
+	// TODO: fix {{リダイレクトの所属カテゴリ}}
 }
 
 // ---------------------------------------------------------------------//
