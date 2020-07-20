@@ -8,7 +8,7 @@
 
  手動存檔工具 快速存檔
  https://annangela.moe/JS/AnnTools/quickSave.js
- https://zh.moegirl.org/User:AnnAngela/js#quick-save
+ https://zh.moegirl.org.cn/User:AnnAngela/js#quick-save
 
  [[Help:沙盒]]
 
@@ -40,7 +40,7 @@ MIN_archive_offset = 1,
 max_archived_topics,
 
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'https://zh.moegirl.org/api.php'),
+wiki = Wiki(true, 'https://zh.moegirl.org.cn/api.php'),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；
@@ -150,7 +150,7 @@ function for_board(page_data) {
 		}
 
 		topic_token.each('template', function(token, index) {
-			// https://zh.moegirl.org/Template:MarkAsResolved
+			// https://zh.moegirl.org.cn/Template:MarkAsResolved
 			// 2020年3月3日 →
 			// 您仍可以繼續在本模板上方回覆，但這個討論串將會在本模板懸掛3日後 (於2020年3月7日凌晨) 存檔。
 			if (resolved_template_aliases.includes(token.name)) {
@@ -286,14 +286,14 @@ function for_board(page_data) {
 			tags : tags,
 			// append 存檔段落(討論串)內容
 			section : 'new',
-			// 章節標題。
+			// 章節標題。輸入空字串""的話，會用 summary 當章節標題。
 			sectiontitle : section_title_text,
 			summary : CeL.wiki.title_link_of(
 			//
 			wiki.task_configuration.configuration_page_title,
 			//
 			'存檔過期討論串') + ': ' + section_title_text
-			//
+			// TODO: 指定版本 &oldid=
 			+ '←' + CeL.wiki.title_link_of(page_data)
 		});
 	}

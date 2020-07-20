@@ -12,7 +12,7 @@ require('./wiki loader.js');
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'https://zh.moegirl.org/api.php');
+wiki = Wiki(true, 'https://zh.moegirl.org.cn/api.php');
 
 // ----------------------------------------------------------------------------
 
@@ -63,7 +63,7 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 		}
 
 		zhwiki.edit(': ' + user + ' 於 ' + revision.timestamp
-				+ ' 在萌娘百科[https://zh.moegirl.org/User_talk:' + owner_name
+				+ ' 在萌娘百科[https://zh.moegirl.org.cn/User_talk:' + owner_name
 				+ ' 發了一則新留言] ，煩請撥空前往查看。 --~~~~', {
 			section : 'new',
 			sectiontitle : '您在moegirl有一則新留言',

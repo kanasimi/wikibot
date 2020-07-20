@@ -13,7 +13,7 @@ jstop cron-20170515.signature_check.moegirl
 /usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikinews
 /usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikisource
 /usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikiversity
-/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js API_URL=https://zh.moegirl.org/api.php
+/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js API_URL=https://zh.moegirl.org.cn/api.php
 
 
  2017/5/15 21:30:19	初版試營運。
@@ -65,9 +65,9 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-// for 萌娘百科 zh.moegirl.org
+// for 萌娘百科 zh.moegirl.org.cn
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
-// API_URL=https://zh.moegirl.org/api.php
+// API_URL=https://zh.moegirl.org.cn/api.php
 && CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
 
 using_subst = !CeL.env.arg_hash.API_URL
@@ -106,10 +106,10 @@ page_allowlist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wi
 'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
 //
 '維基大典:會館', 'Wikiversity:互助客栈',
-// for 萌娘百科 zh.moegirl.org
+// for 萌娘百科 zh.moegirl.org.cn
 'Talk:讨论版', 'Talk:提问求助区' ],
 
-// blacklist denylist 黑名單直接封殺。黑名單的優先度高於白名單。
+// blacklist denylist blocklist 黑名單直接封殺。黑名單的優先度高於白名單。
 // 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這種頁面補簽名。
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
 page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',

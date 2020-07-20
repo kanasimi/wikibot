@@ -14,7 +14,7 @@ replace_tool.replace({
 	no_notice: true,
 
 	//language: 'ja',
-	//API_URL: 'https://zh.moegirl.org/api.php',
+	//API_URL: 'https://zh.moegirl.org.cn/api.php',
 
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	// 'small_oldid/big_new_diff' or {Number}new
@@ -44,10 +44,13 @@ replace_tool.replace({
 		do_move_page: true,
 
 		// for debug
-		page_list : [],
+		page_list: [],
 
 		// Also replace text in source for link
 		also_replace_text: true,
+
+		// 允許內容被清空。白紙化。
+		allow_empty: false,
 
 		// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
 		list_intersection: 'Category:',

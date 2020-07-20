@@ -204,7 +204,7 @@ _global.login_options = {
 };
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
-_global.set_language = function(language) {
+_global.set_language = function set_language(language) {
 	use_language = language;
 	login_options.API_URL = language;
 	CeL.gettext.use_domain(language, true);
@@ -243,7 +243,8 @@ _global.Wiki = function new_wiki(login, API_URL) {
 			login_options, {
 				API_URL : api
 			}));
-	if (!('use_SQL' in session) && CeL.env.arg_hash && CeL.env.arg_hash.API_URL && String(CeL.env.arg_hash.API_URL).includes('://')) {
+	if (!('use_SQL' in session) && CeL.env.arg_hash && CeL.env.arg_hash.API_URL
+			&& String(CeL.env.arg_hash.API_URL).includes('://')) {
 		// assert: Not MediaWiki server. Is outer server.
 		session.use_SQL = false;
 	}

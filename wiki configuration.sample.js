@@ -1,6 +1,6 @@
 ﻿/**
  * @name CeJS wiki configuration for node.js.
- * @fileoverview ** This file is private.
+ * @fileoverview ** This file is private. Please fill the data and rename this file to "wiki configuration.js".
  */
 
 'use strict';

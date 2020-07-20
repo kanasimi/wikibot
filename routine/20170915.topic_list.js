@@ -18,7 +18,7 @@ jstop cron-20170915.topic_list.moegirl;
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=commons
-/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js API_URL=https://zh.moegirl.org/api.php
+/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js API_URL=https://zh.moegirl.org.cn/api.php
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -29,7 +29,7 @@ jstop cron-20170915.topic_list.moegirl;
 
 @see [[w:zh:模块:沙盒/逆襲的天邪鬼/talkpage]], [[wikiversity:zh:模块:Talkpage]], [[w:zh:User:WhitePhosphorus-bot/RFBA_Status]],
  [[w:ja:Wikipedia:議論が盛んなノート]],
- https://zh.moegirl.org/Widget:TalkToc ($('#toc'))
+ https://zh.moegirl.org.cn/Widget:TalkToc ($('#toc'))
  https://meta.wikimedia.org/wiki/Tech/News/2018/13/zh	已被棄用的#toc和#toctitle CSS ID將會被移除。如果您的wiki仍在使用它們作為假目錄，那麼它們將失去應有樣式。如有需要可以替換為.toc和.toctitle CSS類。
 
 
@@ -54,7 +54,7 @@ jstop cron-20170915.topic_list.moegirl;
 TODO:
 Flow 的問題是不支援繁簡轉換，沒有在大流量頁面嘗試過。長篇內容是否合適Flow還真不清楚。排版還是不夠靈活。難以處理需要修訂版本刪除的編輯。
 https://commons.wikimedia.org/wiki/Commons:Bots/Work_requests
-https://zh.moegirl.org/Talk:%E8%AE%A8%E8%AE%BA%E7%89%88
+https://zh.moegirl.org.cn/Talk:%E8%AE%A8%E8%AE%BA%E7%89%88
 'zhwiki:Wikipedia:机器人/提议'
 https://zh.wikipedia.org/wiki/Wikipedia:%E6%9C%BA%E5%99%A8%E4%BA%BA/%E6%8F%90%E8%AE%AE
 https://en.wikipedia.org/wiki/Wikipedia:Bots/Requests_for_approval
@@ -99,7 +99,7 @@ wiki = Wiki(true),
 configuration,
 
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
-// API_URL=https://zh.moegirl.org/api.php
+// API_URL=https://zh.moegirl.org.cn/api.php
 && CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
 
 // Will get page title from wikidata
@@ -1425,7 +1425,7 @@ function insert_sub_pages() {
 			wikitext : page_data.use_wikitext = page_data.parsed.toString()
 		}).parse();
 	}
-	// console.log(page_data.use_wikitext);
+	// console.trace(page_data.use_wikitext);
 
 	generate_topic_list(page_data);
 }
@@ -1439,6 +1439,7 @@ function generate_topic_list(page_data) {
 	normalize_time_style_hash(long_to_short);
 	// console.log(page_configuration);
 	// console.log(general_page_configuration);
+	// console.trace(CeL.wiki.content_of(page_data));
 
 	var parsed = CeL.wiki.parser(page_data),
 	//
@@ -1462,6 +1463,7 @@ function generate_topic_list(page_data) {
 	//
 	topic_count = 0, new_topics = [];
 
+	// console.trace(parsed);
 	parsed.each_section(function(section, section_index) {
 		if (false) {
 			console.log('' + section.section_title);

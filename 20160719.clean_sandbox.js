@@ -163,7 +163,7 @@ if (force || JD % 2 === 0) {
 // 改2天一次試試。
 if (force || JD % 2 === 0) {
 	/** {Object}wiki operator 操作子. */
-	var moegirl = Wiki(true, 'https://zh.moegirl.org/api.php');
+	var moegirl = Wiki(true, 'https://zh.moegirl.org.cn/api.php');
 	var edit_options = {
 		summary : summary,
 		nocreate : 1,
@@ -173,7 +173,7 @@ if (force || JD % 2 === 0) {
 	};
 
 	moegirl.page('Help:沙盒‎‎')
-	// https://zh.moegirl.org/Special:滥用过滤器/17
+	// https://zh.moegirl.org.cn/Special:滥用过滤器/17
 	.edit('<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
 	+ '== 請在這行文字底下進行您的測試 ==\n', edit_options);

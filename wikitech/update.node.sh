@@ -35,3 +35,5 @@ cd $TMP
 /bin/cp $TARGET_DIR/bin/* $BIN_DIR/
 /bin/ln -f $TARGET_DIR/bin/node $NODE
 $NODE -v
+
+#/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm update
