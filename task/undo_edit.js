@@ -15,7 +15,7 @@
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
-var wiki = Wiki(true/* , 'ja' */, 'en');
+var wiki = Wiki(true, 'zh');
 
 // ---------------------------------------------------------------------//
 
@@ -23,26 +23,25 @@ user_name = CeL.wiki.normalize_title(user_name);
 
 summary = 'revert error made by bot';
 // 向前追溯筆數。
-const length = 80;
+const
+length = 80;
 
 // fix these edits.
 function filter_summary(summary) {
 	// console.log(summary);
 	// return summary === 'Robot';
-	return summary.includes('The article is listed in the level ');
-	return summary.includes('替換 cite 系列模板');
-	// return summary.includes('16: Unicode');
-	return summary.includes('2016年ロサンゼルスに復帰し');
+	return summary.includes('修复一大批外部链接');
 }
 
 // ---------------------------------------------------------------------//
 
 wiki.usercontribs(user_name, function(list) {
-	CeL.log('Get ' + list.length + ' pages');
+	CeL.log('Get ' + list.length + ' edits from ' + CeL.wiki.site_name(wiki));
 
 	var undo_page_hash = Object.create(null);
 
 	list.reverse();
+	// console.log(list);
 	list.forEach(function filter_contribs(page_data) {
 		if (Date.now() - Date.parse(page_data.timestamp) >
 		// filter by date
@@ -118,13 +117,17 @@ function for_each_page(run_next, title, index, list) {
 			return;
 		}
 
-		wiki.page(title).edit('', {
+		// console.log(page_data.revisions[1]);
+		// console.log(CeL.wiki.content_of(page_data, 1));
+		// CeL.set_debug(6);
+		wiki.page(page_data).edit('', {
 			undo : 1,
 			bot : 1,
 			minor : 1,
 			summary : summary
 		}).run(run_next);
 	}, {
+		// rvlimit : 2,
 		rvprop : 'ids|content|timestamp|user|comment'
 	});
 
