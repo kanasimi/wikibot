@@ -781,11 +781,22 @@ async function get_list(task_configuration, list_configuration) {
 			// Skip
 		} else {
 			const move_to = parse_move_link(task_configuration.move_to_link, wiki);
-			if (move_to)
+			if (move_to) {
 				task_configuration.move_to = {
 					...move_to,
 					...task_configuration.move_to
 				};
+				//console.log(task_configuration.move_from);
+				//console.log(task_configuration.move_to);
+				if (task_configuration.move_from.page_title === task_configuration.move_to.page_title && !task_configuration.move_to.display_text) {
+					if (task_configuration.move_to.display_text === '') {
+						// 應明確設定
+						CeL.error(`若您想消除特定 display_text，應將 move_to_link 設定為 ${JSON.stringify(task_configuration.move_to_link.replace(/\|$/, ''))}。`);
+					} else {
+						CeL.warn('移動前後的頁面標題相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！');
+					}
+				}
+			}
 		}
 
 	} else if (task_configuration !== list_configuration) {
@@ -901,17 +912,20 @@ async function main_move_process(task_configuration, meta_configuration) {
 	//console.log(page_list.slice(0, 10));
 
 	const wiki = task_configuration.wiki;
-	const edit_options = {
+	const work_options = {
 		// for 「株式会社リクルートホールディングス」の修正
 		// for リクルートをパイプリンクにする
 		// page_options: { rvprop: 'ids|content|timestamp|user' },
 		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
 		summary: task_configuration.summary
 	};
-	if (typeof task_configuration.before_get_pages === 'function') {
-		await task_configuration.before_get_pages(page_list, edit_options, { meta_configuration, bot_requests_page });
+	if (task_configuration.allow_empty) {
+		work_options.allow_empty = task_configuration.allow_empty;
 	}
-	await wiki.for_each_page(page_list, for_each_page.bind(task_configuration), edit_options);
+	if (typeof task_configuration.before_get_pages === 'function') {
+		await task_configuration.before_get_pages(page_list, work_options, { meta_configuration, bot_requests_page });
+	}
+	await wiki.for_each_page(page_list, for_each_page.bind(task_configuration), work_options);
 }
 
 
@@ -1053,8 +1067,9 @@ function for_each_link(token, index, parent) {
 		// keep original title
 		if (!token[2]) token[2] = token[0];
 	} else {
-		if (this.move_to.display_text || this.move_to.display_text === '')
+		if (this.move_to.display_text || this.move_to.display_text === '') {
 			token[2] = this.move_to.display_text;
+		}
 	}
 	// console.log('~~~~~~~~');
 	// console.log(token);
@@ -1065,12 +1080,18 @@ function for_each_link(token, index, parent) {
 	if (typeof this.move_to.anchor === 'string')
 		token[1] = this.move_to.anchor ? '#' + this.move_to.anchor : '';
 
-	// preserve [[PH|pH]]
-	if (!token[1] && token[2] && normalize_display_text(token[2], { normalize_title: true }) === this.move_to.page_title) {
+	if (!token[2]) {
+		;
+	} else if (!token[1] && normalize_display_text(token[2], { normalize_title: true }) === this.move_to.page_title) {
+		// preserve [[PH|pH]]
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
 		// → [[move to link]] || [[.move_to.page_title]] 預防大小寫變化。
 		token[0] = /[<>{}|]|&#/.test(token[2].toString()) ? this.move_to.page_title : token[2];
+		// assert: token.length === 2
+		token.pop();
+	} else if (!token[1] && this.move_to.display_text === undefined) {
+		// 消除特定 display_text。 e.g., [[T|d]] → [[T]]
 		// assert: token.length === 2
 		token.pop();
 	}

@@ -4,6 +4,7 @@
 const replace_tool = require('./replace_tool.js');
 
 if ((!CeL.env.arg_hash || !CeL.env.arg_hash.section_title) && !CeL.env.argv[2]) {
+	// 「」→「」の改名に伴うリンク修正依頼
 	CeL.info(`
 Usage:
 node ${script_name} "section title"
