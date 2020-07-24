@@ -13,24 +13,29 @@ const replace_tool = require('./replace_tool.js');
 replace_tool.replace({
 	no_notice: true,
 
-	//language: 'ja',
-	//API_URL: 'https://zh.moegirl.org.cn/api.php',
+	// Do not get move configuration from section.
+	no_task_configuration_from_section: true,
+
+	language: 'ja',
+	API_URL: 'https://zh.moegirl.org.cn/api.php',
 
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	// 'small_oldid/big_new_diff' or {Number}new
-	//diff_id: '',
+	diff_id: '',
 
 	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
-	//section_title: '',
+	section_title: '',
 
-	//summary: '',
+	summary: '',
 
 	// Speedy renaming or speedy merging
-	//speedy_criteria: 'merging',
+	speedy_criteria: 'merging',
 }, {
 	'title#anchor|display_text': 'title#anchor|display_text',
-	'from_title': REDIRECT_TARGET,
-	'from_title': DELETE_PAGE,
+	//'from_title': REDIRECT_TARGET,
+	'from_title': { move_to_link: REDIRECT_TARGET },
+	//'from_title': DELETE_PAGE,
+	'from_title': { move_to_link: DELETE_PAGE },
 	'insource:"from_text"': 'to_text',
 	'http://url': 'https://url',
 

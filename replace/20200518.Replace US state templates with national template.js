@@ -72,7 +72,7 @@ function remove_needless_templates(wikitext, page_data) {
 	}
 }
 
-async function setup_move_configuration(meta_configuration) {
+async function setup_move_configuration(meta_configuration, options) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration.wiki;
 

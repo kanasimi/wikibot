@@ -23,7 +23,7 @@ function add_template(wikitext, page_data) {
 	return wikitext;
 }
 
-async function setup_move_configuration(meta_configuration) {
+async function setup_move_configuration(meta_configuration, options) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration.wiki;
 
