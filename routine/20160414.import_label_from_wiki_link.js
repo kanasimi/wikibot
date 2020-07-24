@@ -102,7 +102,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 // 在非 Windows 平台上避免 fatal 錯誤。
 CeL.env.ignore_COM_error = true;
 // load module for CeL.CN_to_TW('简体')
