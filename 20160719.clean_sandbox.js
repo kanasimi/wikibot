@@ -29,6 +29,12 @@ function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
 		wiki = Wiki(true, wiki);
 	}
 
+	var protect_options = {
+		protections : 'move=sysop',
+		reason : (_summary || summary) + ': 預防公共測試區被隨意移動.'
+				+ ' Incase the public sandbox being moved.'
+	};
+
 	var edit_options = {
 		summary : _summary || summary,
 		nocreate : 1,
@@ -83,7 +89,12 @@ function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
 
 	if (page) {
 		// If page title spicified, do not redirect.
-		wiki.page(page).edit(edit_sandbox, edit_options);
+		wiki.page(page);
+		if (false) {
+			// 頂多一開始執行一次。
+			wiki.protect(protect_options);
+		}
+		wiki.edit(edit_sandbox, edit_options);
 		return;
 	}
 
@@ -94,11 +105,7 @@ function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
 		wiki.page(redirect_data);
 		if (false) {
 			// 頂多一開始執行一次。
-			wiki.protect({
-				protections : 'move=sysop',
-				reason : (_summary || summary) + ': 預防公共測試區被隨意移動.'
-						+ ' Incase the public sandbox being moved.'
-			});
+			wiki.protect(protect_options);
 		}
 		wiki.edit(edit_sandbox, edit_options);
 	});
