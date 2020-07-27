@@ -474,7 +474,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	}
 
 	for (const pair of move_configuration) {
-		const move_from_link = pair[1].move_from_link || CeL.wiki.normalize_title(pair[0]);
+		const move_from_link = pair[1].move_from_link
+			// `CeL.wiki.normalize_title(pair[0])` 可能造成URL、"insource:"出現問題。
+			|| pair[0];
 		const original_move_to_link = pair[1];
 		const task_configuration = CeL.is_Object(original_move_to_link)
 			? original_move_to_link.move_from_link ? original_move_to_link : { move_from_link, ...original_move_to_link }
@@ -493,7 +495,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		if (!('keep_title' in task_configuration) && typeof task_configuration.move_to_link === 'string'
 			// e.g., 20200101.ブランドとしてのXboxの記事作成に伴うリンク修正.js
 			// [[A]] → [[A (細分 type)]]
-			&& (task_configuration.move_to_link.includes(move_from_link)
+			&& (task_configuration.move_to_link.toLowerCase().includes(move_from_link.toLowerCase())
 				// e.g., 20200121.「離陸決心速度」の「V速度」への統合に伴うリンク修正.js
 				|| task_configuration.move_to_link.includes('#')
 			)) {
@@ -571,8 +573,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
 			task_configuration.summary.title_to_add = '';
 		} else if (move_configuration.length === 1
-			&& (typeof move_from_link === 'string' && task_configuration.summary.summary.includes(move_from_link)
-				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.includes(task_configuration.move_to_link))) {
+			&& (typeof move_from_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(move_from_link.toLowerCase())
+				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(task_configuration.move_to_link.toLowerCase()))) {
 			task_configuration.summary.title_to_add = '';
 		} else {
 			task_configuration.summary.title_to_add = ` (${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
@@ -622,7 +624,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 // separate namespace and page name
 function parse_move_link(link, session) {
 	// /^(?<namespace>[^:]+):(?<page_name>.+)$/
-	const matched = typeof link === 'string' && link.trim().match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
+	const matched = typeof link === 'string' && CeL.wiki.normalize_title(link).match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
 	if (!matched)
 		return;
 
@@ -667,8 +669,9 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 		// .all_link_pattern
 		// [\/]: 避免 https://web.archive.org/web/000000/http://www.example.com/
 		// TODO: flag: 'ig'
-		const PATTERN = new RegExp('(^|[^\w\/])' + CeL.to_RegExp_pattern(move_from_link), 'g');
-		return wikitext.replace(PATTERN, '$1' + move_to_link);
+		const PATTERN_url = new RegExp('(^|[^\w\/])' + CeL.to_RegExp_pattern(move_from_link), 'g');
+		// console.trace(PATTERN_url);
+		return wikitext.replace(PATTERN_url, '$1' + move_to_link);
 	}
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -767,6 +770,7 @@ async function get_list(task_configuration, list_configuration) {
 
 	} else if (list_types.join() !== 'search') {
 		if (list_configuration.move_from_link) {
+			list_configuration.move_from_link = CeL.wiki.normalize_title(list_configuration.move_from_link);
 			// separate namespace and page name
 			list_configuration.move_from = {
 				...parse_move_link(list_configuration.move_from_link, wiki),
@@ -796,7 +800,7 @@ async function get_list(task_configuration, list_configuration) {
 						// 應明確設定
 						CeL.error(`若您想消除特定 display_text，應將 move_to_link 設定為 ${JSON.stringify(task_configuration.move_to_link.replace(/\|$/, ''))}。`);
 					} else {
-						CeL.warn('移動前後的頁面標題相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！');
+						CeL.warn(`移動前後的頁面標題 ${JSON.stringify(list_configuration.move_from_link)} 相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！`);
 					}
 				}
 			}
