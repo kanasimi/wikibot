@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js; date) >> 解消済み仮リンクをリンクに置き換える/log &
+﻿// (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh; date) >> 解消済み仮リンクをリンクに置き換える/log &
 
 /*
 
@@ -463,7 +463,7 @@ function check_final_work() {
 			+ '<onlyinclude>~~~~~</onlyinclude>\n'
 			// + '== Problematic pages ==\n'
 			);
-			this.summary += listed + '/' + all;
+			this.summary += ' ' + listed + '/' + all;
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}
