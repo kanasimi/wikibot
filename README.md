@@ -18,10 +18,10 @@ You might also be interested in [wikiapi](https://github.com/kanasimi/wikiapi).
 
 ### Execution
 Let's try it:
-``` sh
+```bash
 $ node
 ```
-``` JavaScript
+```javascript
 // Load CeJS library.
 require('cejs');
 
@@ -75,7 +75,7 @@ wiki.categorymembers(category_title, function(page_data_list, error) {
 * [An example for CeL.wiki.query()](https://github.com/kanasimi/wikibot/blob/3913874380093eebae250442c083e74883239620/20171025.fix_LintErrors.js)
 
 Wikidata example:
-``` JavaScript
+```javascript
 // Cache the id of "性質" first. 先快取必要的屬性id值。
 CeL.wiki.data.search.use_cache('性質', function(id_list) {
 	// Get the id of property '性質' first.

@@ -392,7 +392,7 @@ function for_each_page(page_data, messages) {
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 prepare_directory(base_directory);
 
-// 因為數量太多，只好增快速度。
+// Only respect maxlag. 因為數量太多，只好增快速度。
 wiki.edit_time_interval = 0;
 
 var old_properties = 'P957,P212,P1739,P243,P143,P136,P1104,P407,P856,P577,P31,P155,P110,P495,P156,P123,P50,P655,P1814,P1476';

@@ -11,6 +11,8 @@
 
  TODO: news summary / detail
 
+@see 台灣各新聞網站新聞解析器 https://github.com/lulalala/taiwanese_news_parser https://github.com/wsmwason/taiwan-news-parser
+
  */
 
 // ----------------------------------------------------------------------------
