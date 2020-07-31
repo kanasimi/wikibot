@@ -11,7 +11,7 @@
 
  TODO: news summary / detail
 
-@see 台灣各新聞網站新聞解析器 https://github.com/lulalala/taiwanese_news_parser https://github.com/wsmwason/taiwan-news-parser
+ @see 台灣各新聞網站新聞解析器 https://github.com/lulalala/taiwanese_news_parser https://github.com/wsmwason/taiwan-news-parser
 
  */
 
@@ -46,9 +46,9 @@ wiki = Wiki(true, CeL.env.arg_hash && CeL.env.arg_hash.wikimedia || 'wikinews'),
 
 // 為閩東語維基新聞自動添加每日報章頭條
 is_cdo_news = CeL.env.arg_hash && CeL.env.arg_hash.wikimedia === 'incubator',
-//
+// 存檔頁面名稱前綴。
 page_prefix = is_cdo_news ? 'Wn/cdo/' : '',
-// 閩東語:所有「日」改爲「號」
+// 日期名稱。閩東語:所有「日」改爲「號」
 DATE_NAME = is_cdo_news ? '號' : '日',
 // 書寫系統文字參數: 羅馬拼音(l)或漢字書寫(h)
 writing_parameter = is_cdo_news ? '|lohang=h' : '',
@@ -88,7 +88,7 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.days_ago |= 0)) {
 // 手動設定前一天。
 // use_date.setDate(-1);
 
-// 报纸头条
+// 存檔頁面名稱。报纸头条
 var save_to_page = page_prefix + use_date.format('%Y年%m月%d' + DATE_NAME)
 		+ locale + '報紙頭條',
 // 前一天, the day before
@@ -2337,10 +2337,7 @@ function parser_華文西貢解放日報(html) {
 
 // ----------------------------------------------------------------------------
 
-// CeL.set_debug(2);
-
-// working_queue.parse_headline_page = true;
-wiki.page(save_to_page, function parse_headline_page(page_data) {
+function parse_headline_page(page_data) {
 	save_to_page = page_data;
 	CeL.info('採用頁面標題: [[' + page_data.title + ']]');
 
@@ -2438,4 +2435,25 @@ wiki.page(save_to_page, function parse_headline_page(page_data) {
 	delete working_queue.parse_headline_page;
 	// check_queue('parse_headline_page');
 	check_source();
-});
+}
+
+function main_process() {
+	var task_configuration = wiki.latest_task_configuration.general;
+	page_prefix = task_configuration.page_prefix || '';
+	DATE_NAME = task_configuration.DATE_NAME || '';
+	save_to_page = task_configuration.save_to_page || '';
+	save_to_page = save_to_page.replace(/%page_prefix/, page_prefix).replace(
+			/%locale/, locale).replace(/%DATE_NAME/, DATE_NAME);
+	save_to_page = use_date.format(save_to_page);
+	// console.log(task_configuration);
+	// console.log(save_to_page);
+
+	// working_queue.parse_headline_page = true;
+	wiki.page(save_to_page, parse_headline_page);
+}
+
+// ----------------------------------------------------------------------------
+
+// CeL.set_debug(2);
+
+wiki.run(main_process);
