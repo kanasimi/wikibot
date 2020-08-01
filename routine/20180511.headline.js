@@ -425,8 +425,7 @@ function write_data() {
 	}, {
 		bot : 1,
 		tags : is_cdo_news ? '' : 'import headline',
-		// 匯入每日報紙頭條新聞標題
-		summary : '匯入' + locale + '報紙頭條新聞標題'
+		summary : task_configuration.edit_summary_prefix
 	})
 	// .run(create_category)
 	.run(finish_up);
@@ -2441,7 +2440,8 @@ function parse_headline_page(page_data) {
 }
 
 function main_process() {
-	var task_configuration = wiki.latest_task_configuration.general;
+	var configuration = wiki.latest_task_configuration;
+	var task_configuration = configuration.general;
 	page_prefix = task_configuration.page_prefix || '';
 	DATE_NAME = task_configuration.DATE_NAME || '';
 	category_name = task_configuration.locale || locale;
@@ -2450,6 +2450,13 @@ function main_process() {
 	save_to_page = save_to_page.replace(/%page_prefix/, page_prefix).replace(
 			/%locale/, category_name).replace(/%DATE_NAME/, DATE_NAME);
 	save_to_page = use_date.format(save_to_page);
+
+	task_configuration.edit_summary_prefix = (task_configuration.edit_summary_prefix
+	//
+	|| CeL.wiki.title_link_of(configuration.configuration_page_title,
+	// 匯入每日報紙頭條新聞標題
+	'匯入' + locale + '報紙頭條新聞標題')).replace(/%locale/g, locale);
+
 	// console.log(task_configuration);
 	// console.log(save_to_page);
 
