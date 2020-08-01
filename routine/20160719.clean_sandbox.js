@@ -11,7 +11,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 // 其實正有點「公共測試區是從二級標題旁的編輯按鈕開始進行編輯」這樣的意思。為了使瀏覽者知道此頁之特殊性質，因此才保留{{沙盒頂部}}與編輯提示。公共測試區應該是任何編輯者想測試時都能清爽的做測試。當測試完成便告一段落。若想保留較長時間，可以在自己的測試區，或者翻閱歷史紀錄、採用草稿功能等。
 // @see [[mw:Extension:SandboxLink]] 首欄個人沙盒要裝沙盒擴展才出現
