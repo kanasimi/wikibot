@@ -74,6 +74,9 @@ parse_error_label_list,
 
 use_date = new Date,
 
+// 分類‎名稱。
+category_name = locale,
+
 // copy from data.date.
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
@@ -124,7 +127,7 @@ function create_category() {
 		summary : '自動創建/添加頭條新聞類別'
 	});
 
-	var _locale = locale === '臺灣' ? '台灣' : locale;
+	var _locale = category_name === '臺灣' ? '台灣' : category_name;
 	wiki.page(
 			'Category:' + page_prefix + use_date.format('%Y年%m月') + _locale
 					+ '報紙頭條')
@@ -203,7 +206,7 @@ function write_data() {
 		function headline_link(date, add_year) {
 			return '[[' + page_prefix
 			//
-			+ date.format('%Y年%m月%d' + DATE_NAME) + locale + '報紙頭條|'
+			+ date.format('%Y年%m月%d' + DATE_NAME) + category_name + '報紙頭條|'
 			//
 			+ date.format((add_year ? '%Y年' : '')
 			//
@@ -249,13 +252,13 @@ function write_data() {
 				return section + '{{' + page_prefix + 'Headline item/header|'
 				//
 				+ use_date.format({
-					format : locale === '臺灣'
+					format : category_name === '臺灣'
 					//
 					? '[[w:民國紀年|民國]]%R年%m月%d' + DATE_NAME
 					//
 					: '%Y年%m月%d' + DATE_NAME,
 					locale : 'cmn-Hant-TW'
-				}) + '|' + locale + writing_parameter + '}}\n{{'
+				}) + '|' + category_name + writing_parameter + '}}\n{{'
 				//
 				+ page_prefix + 'Headline item/footer}}\n';
 			});
@@ -339,7 +342,7 @@ function write_data() {
 			//
 			+ page_prefix + 'Headline navbox|'
 			// workaround...
-			+ (locale === '臺灣' ? '台灣' : locale) + '|'
+			+ (category_name === '臺灣' ? '台灣' : category_name) + '|'
 			//
 			+ use_date.format('%Y年%m月')
 			//
@@ -2441,9 +2444,11 @@ function main_process() {
 	var task_configuration = wiki.latest_task_configuration.general;
 	page_prefix = task_configuration.page_prefix || '';
 	DATE_NAME = task_configuration.DATE_NAME || '';
+	category_name = task_configuration.locale || locale;
+
 	save_to_page = task_configuration.save_to_page || '';
 	save_to_page = save_to_page.replace(/%page_prefix/, page_prefix).replace(
-			/%locale/, locale).replace(/%DATE_NAME/, DATE_NAME);
+			/%locale/, category_name).replace(/%DATE_NAME/, DATE_NAME);
 	save_to_page = use_date.format(save_to_page);
 	// console.log(task_configuration);
 	// console.log(save_to_page);
