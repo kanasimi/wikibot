@@ -425,7 +425,7 @@ function write_data() {
 	}, {
 		bot : 1,
 		tags : is_cdo_news ? '' : 'import headline',
-		summary : task_configuration.edit_summary_prefix
+		summary : wiki.latest_task_configuration.general.edit_summary_prefix
 	})
 	// .run(create_category)
 	.run(finish_up);
