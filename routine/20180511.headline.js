@@ -489,6 +489,8 @@ function add_to_headline_hash(publisher, headline_data, source, is_new) {
 	//
 	+ (source ? '|source=' + source : '')
 	//
+	+ (category_name === locale ? '' : '|locale=' + locale)
+	//
 	+ '}}';
 
 	if (Array.isArray(headline_hash[publisher])) {
