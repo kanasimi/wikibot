@@ -10,6 +10,9 @@ Usage:
 node ${script_name} "section title"
 node ${script_name} "section title" "diff_id=0000"
 node ${script_name} "section_title=section title" "diff_id=0000" "use_language=ja" "also_replace_text"
+
+Show all titles:
+node general_replace.js ${replace_tool.KEY_show_sections} use_language=${use_language}
 `);
 	process.exit();
 }

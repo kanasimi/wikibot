@@ -56,6 +56,8 @@ const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
 /** {String}Default requests page */
 const bot_requests_page = 'Project:BOTREQ';
 
+const KEY_show_sections = 'show_sections';
+
 // ---------------------------------------------------------------------//
 
 /**
@@ -148,7 +150,7 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			}
 		}
 
-		for (const property_name of ['diff_id', 'section_title', 'also_replace_text']) {
+		for (const property_name of ['diff_id', 'section_title', 'also_replace_text', 'use_language', KEY_show_sections]) {
 			let value = CeL.env.arg_hash[property_name];
 			//console.log([property_name, value]);
 			if (!value || typeof value === 'string' && !(value = value.trim()))
@@ -190,6 +192,11 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	let section_title = meta_configuration.section_title;
+
+	if (section_title === KEY_show_sections) {
+		return;
+	}
+
 	if (!meta_configuration.diff_id) {
 		if (section_title) {
 			// TODO: get diff_id from content
@@ -337,7 +344,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 	const section_title = meta_configuration.section_title;
 	parsed.each_section(function (section) {
 		//console.log(section.section_title && section.section_title.link[1]);
-		if (!section.section_title || section.section_title.link[1] !== section_title) {
+		if (!section.section_title || options && section.section_title.link[1] !== section_title) {
 			return;
 		}
 		// console.log(section.toString());
@@ -347,7 +354,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 		get_users: true,
 	});
 
-	if (options.need_edit) {
+	if (options && options.need_edit) {
 		// console.log(parsed.toString());
 		await wiki.edit_page(requests_page, parsed.toString(), {
 			redirects: 1,
@@ -356,6 +363,21 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 			summary: options.summary
 		});
 	}
+}
+
+async function show_unfinished_sections(wiki, meta_configuration) {
+	async function show_section(section) {
+		//console.log(section);
+
+		const section_wikitext = section.toString();
+		if (/{{ *(?:Doing|Done|解決済み|未解決|確認|完了|BOTREQ *\|(?:着手|作業中|済|完了)|利用者の投稿記録リンク) *[|}]/.test(section_wikitext)) {
+			return;
+		}
+
+		CeL.log(section.section_title.link[1]);
+	}
+
+	await for_bot_requests_section(wiki, meta_configuration, show_section);
 }
 
 // auto-notice: Starting replace task
@@ -433,6 +455,11 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const wiki = meta_configuration.wiki;
 
 	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
+
+	if (meta_configuration[KEY_show_sections]) {
+		await show_unfinished_sections(wiki, meta_configuration);
+		return;
+	}
 
 	if (!meta_configuration.no_notice)
 		await notice_to_edit(wiki, meta_configuration);
@@ -1465,6 +1492,8 @@ module.exports = {
 	replace: replace_tool,
 	remove_duplicated_display_text,
 	//normalize_display_text,
+
+	KEY_show_sections,
 
 	// for move
 	parse_move_pairs_from_page,
