@@ -113,7 +113,7 @@ function for_board(page_data) {
 			+ (new Date).format(archive_page_postfix);
 
 	// archived_topic_list = [ topic_slice, topic_slice, ... ]
-	var archived_topic_list = [];
+	var archived_topic_list = [], error_topics = [];
 
 	var to_exit = parsed.each.exit;
 
@@ -241,7 +241,7 @@ function for_board(page_data) {
 		CeL.debug('把本需要存檔的議題段落 [' + section_title_text + '] 寫到存檔頁面 '
 				+ CeL.wiki.title_link_of(archive_title) + '。');
 		// TODO: 錯誤處理
-		wiki.page(archive_title).edit(function(page_data) {
+		wiki.page(archive_title).edit(function(page_data, error) {
 			var content = CeL.wiki.content_of(page_data);
 			// CeL.log(content);
 			content = content && content.trim() || '';
@@ -295,63 +295,80 @@ function for_board(page_data) {
 			'存檔過期討論串') + ': ' + section_title_text
 			// TODO: 指定版本 &oldid=
 			+ '←' + CeL.wiki.title_link_of(page_data)
+		}, function(result, error) {
+			if (error)
+				error_topics.push(section_title_text);
 		});
 	}
 
 	parsed.each_section(for_each_topic);
 
-	archived_topic_list.total_count = archived_topic_list.length;
-	// monthly_remove_old_notice_section: 每月1號：刪除所有{{Saved}}提示模板。
-	while (archived_topic_list.length > (monthly_remove_old_notice_section ? 0 :
-	// 不移除當天存檔者，除非執行第二次。
-	// + archive_count: 移除當天存檔者
-	max_archived_topics)) {
-		var topic_slice = archived_topic_list.shift();
-		// parsed[topic_slice[0] - 1] : section title
-		for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
-			// stupid way
-			parsed[index] = '';
+	function remove_topics() {
+		if (error_topics.length > 0) {
+			error_topics.unshift(error_topics.length + ' 個議題存檔失敗:');
+			CeL.error(error_topics.join('\n# '));
+			check_board_left();
+			return;
 		}
-		remove_count++;
-	}
 
-	// return;
+		archived_topic_list.total_count = archived_topic_list.length;
+		// monthly_remove_old_notice_section: 每月1號：刪除所有{{Saved}}提示模板。
+		while (archived_topic_list.length > (monthly_remove_old_notice_section ? 0
+				:
+				// 不移除當天存檔者，除非執行第二次。
+				// + archive_count: 移除當天存檔者
+				max_archived_topics)) {
+			var topic_slice = archived_topic_list.shift();
+			// parsed[topic_slice[0] - 1] : section title
+			for (var index = topic_slice[0] - 1; index < topic_slice[1]; index++) {
+				// stupid way
+				parsed[index] = '';
+			}
+			remove_count++;
+		}
 
-	CeL.debug('移除需要存檔的議題段落。');
-	if (archive_count > 0 || remove_count > 0) {
-		var summary_list = [];
-		if (remove_count > 0) {
-			summary_list.push((monthly_remove_old_notice_section ? '本月首日'
-					: '已存檔' + archived_topic_list.total_count
-							+ '個討論串，超過存檔討論串數量上限' + max_archived_topics + '，')
-					+ '移除' + remove_count + '個已存檔討論串');
-		}
-		if (archive_count > 0) {
-			summary_list.push('存檔' + archive_count + '個過期討論串→'
-					+ CeL.wiki.title_link_of(archive_title));
-		}
-		summary_list = summary_list.join('，');
-		// sections need change
-		CeL.log(CeL.wiki.title_link_of(page_data.title) + ': ' + summary_list);
 		// return;
 
-		CeL.debug('將討論串進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔: '
-				+ CeL.wiki.title_link_of(page_data));
-		wiki.page(page_data).edit(parsed.toString(), {
-			bot : 1,
-			nocreate : 1,
-			tags : tags,
-			summary : CeL.wiki.title_link_of(
-			//
-			wiki.task_configuration.configuration_page_title,
-			//
-			'存檔討論串') + ': ' + summary_list
-		}, check_board_left);
-	} else {
-		CeL.log(CeL.wiki.title_link_of(page_data.title)
-				+ ': Nothing needs to change.');
-		check_board_left();
+		CeL.debug('移除需要存檔的議題段落。');
+		if (archive_count > 0 || remove_count > 0) {
+			var summary_list = [];
+			if (remove_count > 0) {
+				summary_list.push((monthly_remove_old_notice_section ? '本月首日'
+						: '已存檔' + archived_topic_list.total_count
+								+ '個討論串，超過存檔討論串數量上限' + max_archived_topics
+								+ '，')
+						+ '移除' + remove_count + '個已存檔討論串');
+			}
+			if (archive_count > 0) {
+				summary_list.push('存檔' + archive_count + '個過期討論串→'
+						+ CeL.wiki.title_link_of(archive_title));
+			}
+			summary_list = summary_list.join('，');
+			// sections need change
+			CeL.log(CeL.wiki.title_link_of(page_data.title) + ': '
+					+ summary_list);
+			// return;
+
+			CeL.debug('將討論串進行複製、討論內容進行剪切存檔。標記該段落(討論串)為已存檔: '
+					+ CeL.wiki.title_link_of(page_data));
+			wiki.page(page_data).edit(parsed.toString(), {
+				bot : 1,
+				nocreate : 1,
+				tags : tags,
+				summary : CeL.wiki.title_link_of(
+				//
+				wiki.task_configuration.configuration_page_title,
+				//
+				'存檔討論串') + ': ' + summary_list
+			}, check_board_left);
+		} else {
+			CeL.log(CeL.wiki.title_link_of(page_data.title)
+					+ ': Nothing needs to change.');
+			check_board_left();
+		}
 	}
+
+	wiki.run(remove_topics);
 }
 
 function check_board_left() {
