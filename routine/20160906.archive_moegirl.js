@@ -256,40 +256,59 @@ function for_each_topic(topic_token, section_index) {
 
 	CeL.debug('把本需要存檔的議題段落 [' + section_title_text + '] 寫到存檔頁面 '
 			+ CeL.wiki.title_link_of(archive_title) + '。');
-	// TODO: 錯誤處理
-	wiki.page(archive_title).edit(function(page_data, error) {
+
+	wiki.page(archive_title);
+
+	if (!this.archive_header_checked) {
+		this.archive_header_checked = true;
+		wiki.edit(function(page_data, error) {
+			var content = CeL.wiki.content_of(page_data);
+			// CeL.log(content);
+			content = content && content.trim() || '';
+
+			var archive_header = '{{'
+			// 去掉前綴
+			+ page_data.title.replace(/^[^:]+:/, '')
+			// 向存檔頁頂端添加檔案館模板。
+			.replace(/\/.+/, '页顶/档案馆') + '}}';
+
+			if (!content.includes(archive_header)) {
+				content = (archive_header + '\n' + content).trim();
+				return content;
+			}
+
+			if (false) {
+				return content + '\n\n== ' + section_title_text
+				// append 存檔段落(討論串)內容
+				+ ' ==\n' + section_text;
+			}
+
+			return [ CeL.wiki.edit.cancel, 'skip' ];
+
+		}, {
+			bot : 1,
+			tags : tags,
+			summary : '向存檔頁添加檔案館模板'
+		});
+	}
+
+	wiki.edit(function(page_data) {
 		var content = CeL.wiki.content_of(page_data);
 		// CeL.log(content);
 		content = content && content.trim() || '';
 
-		var archive_header = '{{'
-		// 去掉前綴
-		+ page_data.title.replace(/^[^:]+:/, '')
-		// 向存檔頁頂端添加檔案館模板。
-		.replace(/\/.+/, '页顶/档案馆') + '}}';
+		// 檢測重複存檔。
+		needless = content.includes(section_text);
 
-		if (!content.includes(archive_header)) {
-			content = (archive_header + '\n' + content).trim();
-			return content;
+		if (needless) {
+			CeL.log('已存檔過: '
+			//
+			+ CeL.wiki.title_link_of(archive_title, section_title_text));
 		}
 
-		if (false) {
-			return content + '\n\n== ' + section_title_text
-			// append 存檔段落(討論串)內容
-			+ ' ==\n' + section_text;
-		}
-
-		return [ CeL.wiki.edit.cancel, 'skip' ];
-
-	}, {
-		bot : 1,
-		tags : tags,
-		summary : '向存檔頁添加檔案館模板'
-
-	}).edit(function(page_data) {
-		CeL.log('archive to ' + CeL.wiki.title_link_of(archive_title)
+		CeL.log('archive to → '
 		//
-		+ ': "' + section_title_text + '"');
+		+ CeL.wiki.title_link_of(archive_title, section_title_text));
 		if (false) {
 			CeL.log('~'.repeat(80));
 			CeL.log(section_title_text + section_text);
@@ -312,6 +331,7 @@ function for_each_topic(topic_token, section_index) {
 		// TODO: 指定版本 &oldid=
 		+ '←' + CeL.wiki.title_link_of(this.board_page_data)
 	}, function(result, error) {
+		// 錯誤處理
 		if (error)
 			error_topics.push(section_title_text);
 	});
