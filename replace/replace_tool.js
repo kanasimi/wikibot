@@ -56,7 +56,52 @@ const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
 /** {String}Default requests page */
 const bot_requests_page = 'Project:BOTREQ';
 
-const KEY_show_sections = 'show_sections';
+// ---------------------------------------------------------------------//
+
+async function setup_wiki_session(meta_configuration) {
+	/** {Object}wiki operator 操作子. */
+	let wiki = meta_configuration.wiki;
+	if (!wiki) {
+		wiki = meta_configuration.wiki = new Wikiapi;
+
+		await wiki.login(login_options);
+		// await wiki.login(null, null, use_language);
+	}
+
+	return wiki;
+}
+
+// ---------------------------------------------------------------------//
+
+async function get_all_sections(meta_configuration) {
+	meta_configuration = CeL.setup_options(meta_configuration);
+	const wiki = await setup_wiki_session(meta_configuration);
+
+	const all_section_data = Object.create(null);
+
+	async function for_each_section(section) {
+		//console.log(section);
+		const section_title = section.section_title.link[1];
+
+		const section_wikitext = section.toString();
+		let matched = section_wikitext.match(/{{ *(Doing|Done|解決済み|未解決|確認|完了|BOTREQ *\|(?:着手|作業中|済|完了)|利用者の投稿記録リンク) *[|}]/);
+		if (matched) {
+			all_section_data[section_title] = { finished: matched[1] };
+			return;
+		}
+
+		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section, true);
+		if (task_configuration_from_section) {
+			all_section_data[section_title] = { task_configuration: task_configuration_from_section };
+		} else {
+			CeL.log(section_title);
+			all_section_data[section_title] = {};
+		}
+	}
+
+	await for_bot_requests_section(wiki, meta_configuration, for_each_section);
+	return all_section_data;
+}
 
 // ---------------------------------------------------------------------//
 
@@ -119,13 +164,7 @@ async function replace_tool(meta_configuration, move_configuration) {
 	}
 
 	/** {Object}wiki operator 操作子. */
-	let wiki = meta_configuration.wiki;
-	if (!wiki) {
-		wiki = meta_configuration.wiki = new Wikiapi;
-
-		await wiki.login(login_options);
-		// await wiki.login(null, null, use_language);
-	}
+	await setup_wiki_session(meta_configuration);
 
 	await prepare_operation(meta_configuration, move_configuration);
 
@@ -137,8 +176,10 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
-const work_option_switches = ['allow_empty', 'skip_nochange'];
-const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', KEY_show_sections].append(work_option_switches);
+const work_option_switches = ['allow_empty',
+	// Templateからのリンクのキャッシュが残ってしまっている場合
+	'skip_nochange'];
+const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -196,10 +237,6 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	let section_title = meta_configuration.section_title;
-
-	if (section_title === KEY_show_sections) {
-		return;
-	}
 
 	if (!meta_configuration.diff_id) {
 		if (section_title) {
@@ -342,6 +379,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 
 async function for_bot_requests_section(wiki, meta_configuration, for_section, options) {
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
+	//console.trace(requests_page);
 	const requests_page_data = await wiki.page(requests_page, { redirects: 1 });
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = requests_page_data.parse();
@@ -369,31 +407,6 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 			summary: options.summary
 		});
 	}
-}
-
-async function show_unfinished_sections(wiki, meta_configuration) {
-	const section_title_list = [];
-
-	async function show_section(section) {
-		//console.log(section);
-
-		const section_wikitext = section.toString();
-		if (/{{ *(?:Doing|Done|解決済み|未解決|確認|完了|BOTREQ *\|(?:着手|作業中|済|完了)|利用者の投稿記録リンク) *[|}]/.test(section_wikitext)) {
-			return;
-		}
-
-		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section, true);
-		const section_title = section.section_title.link[1];
-		if (task_configuration_from_section) {
-			section_title_list.push(section_title);
-		} else {
-			CeL.log(section_title);
-		}
-	}
-
-	await for_bot_requests_section(wiki, meta_configuration, show_section);
-	if (section_title_list.length > 0)
-		CeL.info(section_title_list.map(title => title.includes(' ') ? JSON.stringify(title) : title).join('\n'));
 }
 
 // auto-notice: Starting replace task
@@ -471,11 +484,6 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const wiki = meta_configuration.wiki;
 
 	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
-
-	if (meta_configuration[KEY_show_sections]) {
-		await show_unfinished_sections(wiki, meta_configuration);
-		return;
-	}
 
 	if (!meta_configuration.no_notice)
 		await notice_to_edit(wiki, meta_configuration);
@@ -1524,12 +1532,12 @@ async function move_via_title_pair(move_title_pair, options) {
 Object.assign(globalThis, { DELETE_PAGE, REDIRECT_TARGET, remove_token });
 
 module.exports = {
+	get_all_sections,
+
 	// for modify
 	replace: replace_tool,
 	remove_duplicated_display_text,
 	//normalize_display_text,
-
-	KEY_show_sections,
 
 	// for move
 	parse_move_pairs_from_page,

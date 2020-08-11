@@ -67,7 +67,11 @@ require('./wiki configuration.js');
 // npm: 若有 CeJS module 則用之。
 // globalThis.use_cejs_mudule = true;
 
-require('./_CeL.loader.nodejs.js');
+try {
+	require('./_CeL.loader.nodejs.js');
+} catch(e) {
+	require('cejs');
+}
 
 // for i18n: define gettext() user domain resource location.
 // gettext() will auto load (CeL.env.domain_location + language + '.js').

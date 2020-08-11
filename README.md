@@ -12,9 +12,27 @@ You might also be interested in [wikiapi](https://github.com/kanasimi/wikiapi).
 ## Node.js usage
 
 ### Installation
-1. Please see [Node.js usage section at CeJS](https://github.com/kanasimi/CeJS#nodejs-usage--nodejs-運行方式) for detail.
-2. Setup [_CeL.path.txt](https://github.com/kanasimi/CeJS/blob/master/_for%20include/_CeL.path.sample.txt) if necessary.
-3. Setup [wiki configuration.js](https://github.com/kanasimi/wikibot/blob/master/wiki%20configuration.sample.js).
+1. Please install [node.js](https://nodejs.org/) and [7-Zip](https://www.7-zip.org/) 18.01+.
+2. Run commends under Windows:
+```bash
+npm i gh-updater
+node_modules\.bin\gh-updater kanasimi/wikibot
+cd wikibot-master
+npm i cejs
+npm i wikiapi
+copy "wiki configuration.sample.js" "wiki configuration.js"
+```
+
+Or under Linux:
+```bash
+npm i gh-updater
+node_modules/.bin/gh-updater kanasimi/wikibot
+cd wikibot-master
+npm i cejs
+npm i wikiapi
+cp "wiki configuration.sample.js" "wiki configuration.js"
+```
+3. Setup [wiki configuration.js](https://github.com/kanasimi/wikibot/blob/master/wiki%20configuration.sample.js): Edit `wiki configuration.js` and fill username / password.
 
 ### Execution
 Let's try it:
