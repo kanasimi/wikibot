@@ -179,7 +179,7 @@ async function replace_tool(meta_configuration, move_configuration) {
 const work_option_switches = ['allow_empty',
 	// Templateからのリンクのキャッシュが残ってしまっている場合
 	'skip_nochange'];
-const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language'].append(work_option_switches);
+const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -191,6 +191,17 @@ function get_move_configuration_from_command_line(meta_configuration) {
 		for (const arg_name in command_line_argument_alias) {
 			if (arg_name in CeL.env.arg_hash) {
 				CeL.env.arg_hash[command_line_argument_alias[arg_name]] = CeL.env.arg_hash[arg_name];
+			}
+
+			if (CeL.env.arg_hash.task_configuration) {
+				try {
+					meta_configuration.task_configuration_from_args = JSON.parse(CeL.env.arg_hash.task_configuration);
+				} catch (e) {
+					CeL.error(`Invalid task_configuration (should be JSON): ${CeL.env.arg_hash.task_configuration}`);
+				}
+				//assert: !meta_configuration.task_configuration_from_args || CeL.is_Object(meta_configuration.task_configuration_from_args)
+				//console.log(CeL.env.arg_hash.task_configuration);
+				//console.trace(meta_configuration.task_configuration_from_args);
 			}
 		}
 
@@ -205,6 +216,10 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			//console.trace(CeL.env.arg_hash);
 			CeL.info(`get_move_configuration_from_command_line: Get ${property_name} from command line argument: ${value}`);
 			meta_configuration[property_name] = value;
+		}
+
+		if (meta_configuration.also_replace_text && typeof meta_configuration.also_replace_text === 'string') {
+			meta_configuration.also_replace_text = meta_configuration.also_replace_text.split('|');
 		}
 	}
 
@@ -363,7 +378,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 				move_to_link: token.parameters[index + 1]
 			};
 			task_configuration_from_section[title] = task_configuration;
-			if (meta_configuration.also_replace_text) {
+			if (Array.isArray(meta_configuration.also_replace_text) ? meta_configuration.also_replace_text.includes(title) : meta_configuration.also_replace_text) {
 				task_configuration_from_section[`insource:"${title}"`] = Object.clone(task_configuration);
 			}
 		}
@@ -479,6 +494,24 @@ async function notice_finished(wiki, meta_configuration) {
 	}
 }
 
+function unshift_move_configuration(move_configuration, items_to_unshift) {
+	if (!items_to_unshift)
+		return move_configuration;
+
+	//assert: CeL.is_Object(items_to_unshift)
+	if (Array.isArray(move_configuration)) {
+		return [
+			...Object.entries(items_to_unshift),
+			...move_configuration
+		];
+	}
+
+	return {
+		...items_to_unshift,
+		...move_configuration
+	};
+}
+
 async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration.wiki;
@@ -503,18 +536,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const { summary, section_title } = meta_configuration;
 	const _section_title = section_title ? '#' + section_title : '';
 
-	if (meta_configuration.task_configuration_from_section) {
-		if (Array.isArray(move_configuration)) {
-			for (const pair of Object.entries(move_configuration)) {
-				move_configuration.push(pair);
-			}
-		} else {
-			move_configuration = {
-				...meta_configuration.task_configuration_from_section,
-				...move_configuration
-			};
-		}
-	}
+	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_section);
+	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_args);
 	//console.log(move_configuration);
 
 	// Object.entries(move_configuration).forEach(main_move_process);
@@ -540,6 +563,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			if (move_from_link === task_configuration.move_to_link) {
 				CeL.error('prepare_operation: Target the same with move source! ' + CeL.wiki.title_link_of(task_configuration.move_to_link));
 			}
+		} else if (move_from_link === task_configuration.move_to_link) {
+			CeL.warn(`Target is the same as source: ${CeL.wiki.title_link_of(move_from_link)}`);
 		}
 		//console.trace(task_configuration);
 
