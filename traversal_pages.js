@@ -10,6 +10,8 @@
 
 'use strict';
 
+globalThis.no_task_date_warning = true;
+
 // Load CeJS library and modules.
 require('./wiki loader.js');
 

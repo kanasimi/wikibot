@@ -69,7 +69,7 @@ require('./wiki configuration.js');
 
 try {
 	require('./_CeL.loader.nodejs.js');
-} catch(e) {
+} catch (e) {
 	require('cejs');
 }
 
@@ -140,7 +140,7 @@ _global.summary = script_name;
 if (check_section) {
 	// 本工具將產生之記錄頁面。 log to page
 	log_to = 'User:' + user_name + '/log/' + check_section;
-} else if (script_name) {
+} else if (script_name && !_global.no_task_date_warning) {
 	CeL.warn('No task date assigned! 未指定任務日期。');
 }
 

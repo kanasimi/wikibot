@@ -1,5 +1,7 @@
 ﻿'use strict';
 
+globalThis.no_task_date_warning = true;
+
 // Load replace tools.
 const replace_tool = require('./replace_tool.js');
 
@@ -16,8 +18,9 @@ node ${script_name} "section title"
 node ${script_name} "section title" diff=0000
 node ${script_name} "section_title=section title" diff=0000 use_language=ja also_replace_text
 node ${script_name} "section title" diff=0000 allow_empty skip_nochange=false
-node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}"
 node ${script_name} "section title" "also_replace_text=title1|title2"
+node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}"
+node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
 
 Show all titles:
 node general_replace.js ${KEY_show_sections} use_language=${use_language}
