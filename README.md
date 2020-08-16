@@ -13,7 +13,7 @@ You might also be interested in [wikiapi](https://github.com/kanasimi/wikiapi).
 
 ### Installation
 1. Please install [node.js](https://nodejs.org/) and [7-Zip](https://www.7-zip.org/) 18.01+.
-2. Run commands under Windows:
+2. Chang to working directory. Run commands under Windows:
 ```bat
 npm i gh-updater
 node_modules\.bin\gh-updater kanasimi/wikibot

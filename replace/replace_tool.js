@@ -781,7 +781,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
 
 /** {String}default namespace to search and replace */
-const default_namespace = 'main|file|module|template|category|help';
+const default_namespace = 'main|file|module|template|category|help|portal';
 // 'talk|template_talk|category_talk'
 
 async function get_list(task_configuration, list_configuration) {
@@ -1320,6 +1320,27 @@ function for_each_template(page_data, token, index, parent) {
 			// 直接替換模板名稱。
 			token[0] = this.move_to.page_name;
 			return;
+		}
+	}
+
+	// ----------------------------------------------------
+
+	//for jawiki
+	if (token.name === 'Battlebox') {
+		const matched = this.move_from.page_name.match(/^[Cc]ampaignbox (.+)$/);
+		const campaign = token.parameters.campaign;
+		if (matched && campaign && campaign.toString().trim() === matched[1]) {
+			CeL.wiki.parse.replace_parameter(token, {
+				campaign: this.move_to.page_name.replace(/^[Cc]ampaignbox /, '')
+			}, { value_only: true });
+		}
+	}
+
+	//for jawiki
+	if (token.name === 'Campaignbox-bottom') {
+		const matched = this.move_from.page_name.match(/^[Cc]ampaignbox (.+)$/);
+		if (matched && token[1].toString().trim() === matched[1]) {
+			token[1] = this.move_to.page_name.replace(/^[Cc]ampaignbox /, '');
 		}
 	}
 
