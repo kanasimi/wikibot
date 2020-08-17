@@ -9,6 +9,7 @@ let section_title = CeL.env.arg_hash && CeL.env.arg_hash.section_title || CeL.en
 section_title = typeof section_title === 'string' && section_title.trim();
 
 const KEY_show_sections = 'show_sections';
+const KEY_replace_all = 'replace_all';
 
 if (!section_title) {
 	// 「」→「」の改名に伴うリンク修正依頼
@@ -23,24 +24,34 @@ node ${script_name} "section title" "task_configuration={""from|from"":""to|to""
 node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
 
 Show all titles:
-node general_replace.js ${KEY_show_sections} use_language=${use_language}
-`);
+node general_replace.js ${KEY_show_sections} use_language=${use_language && 'ja'}
+
+Auto-replace all titles:
+node general_replace.js ${KEY_replace_all} use_language=${use_language && 'ja'}
+`.trim());
 	process.exit();
 }
 
-if (section_title === KEY_show_sections) {
+check_section = '20190913';
+log_to = 'User:' + user_name + '/log/' + check_section;
+
+if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
+	const need_replace_all = section_title === KEY_replace_all;
 	(async () => {
 		const all_section_data = await replace_tool.get_all_sections();
 		for (const section_title in all_section_data) {
 			const section_data = all_section_data[section_title];
-			if (section_data.task_configuration)
+			if (section_data.task_configuration) {
 				CeL.info(`node ${script_name} ${section_title.includes(' ') ? JSON.stringify(section_title) : section_title} use_language=${use_language}`);
+				if (need_replace_all) {
+					await replace_tool.replace({
+						section_title,
+					});
+				}
+			}
 		}
 	})();
 
 } else {
-	check_section = '20190913';
-	log_to = 'User:' + user_name + '/log/' + check_section;
-
 	replace_tool.replace();
 }

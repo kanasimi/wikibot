@@ -475,7 +475,7 @@ async function notice_finished(wiki, meta_configuration) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
 			//{{利用者の投稿記録リンク|Example|50|20100820121030|4}}
 			//{{BOTREQ|済}} こちらのリンクからご確認下さい
-			`{{BOTREQ|完了}} ご確認をお願いします。${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
+			`{{BOTREQ|完了}} ご確認をお願いします。修正しなかった場合や望ましくない状況があるなら、お教えください。 ${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
 			options.need_edit = false;
