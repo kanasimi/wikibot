@@ -82,24 +82,56 @@ async function get_all_sections(meta_configuration) {
 	async function for_each_section(section) {
 		//console.log(section);
 		const section_title = section.section_title.link[1];
+		//console.log(section_title);
+		if (meta_configuration.for_section) {
+			await meta_configuration.for_section.apply(/* parsed */this, arguments);
+		}
+		if (all_section_data[section_title]) {
+			throw new Error('Duplicated section title: ' + section_title);
+		}
+		const section_data = all_section_data[section_title] = Object.create(null);
 
 		const section_wikitext = section.toString();
-		let matched = section_wikitext.match(/{{ *(Doing|Done|解決済み|未解決|確認|完了|BOTREQ *\|(?:着手|作業中|済|完了)|利用者の投稿記録リンク) *[|}]/);
+		let matched;
+		function set_process(process) {
+			section_data.process = process;
+			section_data[process] = matched[1];
+		}
+
+		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\|(?:着手|作業中)) *[|}]/);
 		if (matched) {
-			all_section_data[section_title] = { finished: matched[1] };
+			set_process('doing');
+		}
+
+		matched = section_wikitext.match(/{{ *(Done|完了|BOTREQ *\|(?:済|完了)|利用者の投稿記録リンク) *[|}]/);
+		if (matched) {
+			set_process('done');
+		}
+
+		matched = section_wikitext.match(/{{ *(確認) *[|}]/);
+		if (matched) {
+			set_process('completed');
+		}
+
+		matched = section_wikitext.match(/{{ *(解決済み?|未解決|失効|済み|スタック) *[|}]/);
+		if (matched) {
+			set_process('finished');
+		}
+
+		if (section_data.process) {
 			return;
 		}
 
 		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section, true);
 		if (task_configuration_from_section) {
-			all_section_data[section_title] = { task_configuration: task_configuration_from_section };
-		} else {
-			CeL.log(section_title);
-			all_section_data[section_title] = {};
+			section_data.task_configuration = task_configuration_from_section;
 		}
 	}
 
-	await for_bot_requests_section(wiki, meta_configuration, for_each_section);
+	//console.trace(meta_configuration);
+	await for_bot_requests_section(wiki, meta_configuration, for_each_section,
+		//await replace_tool.get_all_sections({ for_section(section, index, parent) { }, for_section_options: { need_edit: true, summary: 'Close request' } });
+		meta_configuration.for_section_options);
 	return all_section_data;
 }
 
@@ -401,9 +433,10 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 	CeL.assert([requests_page_data.wikitext, parsed.toString()], 'wikitext parser check');
 
 	const section_title = meta_configuration.section_title;
+	//console.trace(meta_configuration);
 	parsed.each_section(function (section) {
 		//console.log(section.section_title && section.section_title.link[1]);
-		if (!section.section_title || options && section.section_title.link[1] !== section_title) {
+		if (!section.section_title || section_title && section.section_title.link[1] !== section_title) {
 			return;
 		}
 		// console.log(section.toString());

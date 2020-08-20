@@ -38,7 +38,8 @@ log_to = 'User:' + user_name + '/log/' + check_section;
 if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 	const need_replace_all = section_title === KEY_replace_all;
 	(async () => {
-		const all_section_data = await replace_tool.get_all_sections();
+		const meta_configuration = Object.create(null);
+		const all_section_data = await replace_tool.get_all_sections(meta_configuration), need_close = [];
 		for (const section_title in all_section_data) {
 			const section_data = all_section_data[section_title];
 			if (section_data.task_configuration) {
@@ -47,9 +48,41 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 					await replace_tool.replace({
 						section_title,
 					});
+					need_close.modified = true;
 				}
+				continue;
 			}
+			if (section_data.finished) {
+				continue;
+			}
+			if (section_data.doing && section_data.completed) {
+				CeL.debug(section_title);
+				need_close.push(section_title);
+			} else {
+				CeL.log(section_title);
+			}
+			//console.log(section_data);
 		}
+		if (!need_replace_all || need_close.modified || need_close.length === 0) {
+			return;
+		}
+
+		//console.trace(need_close);
+		Object.assign(meta_configuration, {
+			for_section(section) {
+				const section_title = section.section_title.link[1];
+				if (need_close.includes(section_title)) {
+					const parsed = this;
+					parsed[section.range[0]] = parsed[section.range[0]].toString().replace(/^(\n*)/, '$1{{解決済み|~~~~}}\n');
+				}
+			},
+			section_title: need_close.length === 1 && need_close[0],
+			for_section_options: {
+				need_edit: true,
+				summary: need_close.length === 1 ? 'Close request' : `Close ${need_close.length} requests`
+			}
+		});
+		await replace_tool.get_all_sections(meta_configuration);
 	})();
 
 } else {
