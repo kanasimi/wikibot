@@ -650,8 +650,8 @@ async function check_deletion_page(JDN, page_data) {
 // ----------------------------------------------------------------------------
 
 async function modify_pages() {
-	for (const [page_title, discussions] of Object.entries(pages_to_modify)) {
-		page_title = wiki.to_talk_page(page_title);
+	for (const [_page_title, discussions] of Object.entries(pages_to_modify)) {
+		const page_title = wiki.to_talk_page(_page_title);
 		if (!page_title)
 			continue;
 
