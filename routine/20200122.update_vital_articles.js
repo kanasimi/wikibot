@@ -281,9 +281,10 @@ async function get_page_info() {
 		// assert: /^(?:FA|FL|GA)$/.test(VA_class)
 		if (/^(?:FA|FL|GA)$/.test(VA_class)) {
 			// e.g., FFA
-			// Move class from FA|FL|GA → A|LIST|A
+			// [[w:en:User talk:Kanashimi#Cewbot A-class]]: When removing GAs, it should default to B class, which seems the usual practice for manual downgrades.
 			need_edit_VA_template[page_title] = {
-				class: VA_class === 'FL' ? 'LIST' : 'A',
+				// Move class from FA|GA|FL → A|B|LIST
+				class: VA_class === 'FL' ? 'LIST' : VA_class === 'FA' ? 'A' : 'B',
 				reason: `The article is no more a ${VA_class}.`
 			};
 			continue;
