@@ -20,7 +20,7 @@ node ${script_name} "section title" diff=0000
 node ${script_name} "section_title=section title" diff=0000 use_language=ja also_replace_text
 node ${script_name} "section title" diff=0000 allow_empty skip_nochange=false
 node ${script_name} "section title" "also_replace_text=title1|title2"
-node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}"
+node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
 node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
 
 Show all titles:

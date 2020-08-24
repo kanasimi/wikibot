@@ -211,7 +211,7 @@ async function replace_tool(meta_configuration, move_configuration) {
 const work_option_switches = ['allow_empty',
 	// Templateからのリンクのキャッシュが残ってしまっている場合
 	'skip_nochange'];
-const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration'].append(work_option_switches);
+const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration', 'no_task_configuration_from_section'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -508,7 +508,7 @@ async function notice_finished(wiki, meta_configuration) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
 			//{{利用者の投稿記録リンク|Example|50|20100820121030|4}}
 			//{{BOTREQ|済}} こちらのリンクからご確認下さい
-			`{{BOTREQ|完了}} ご確認をお願いします。修正しなかった場合や望ましくない状況があるなら、お教えください。 ${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
+			`{{BOTREQ|完了}} ご確認をお願いします。修正しなかった場合や望ましくない状況があるなら、お教えください。今後の参考になります。 ${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
 			options.need_edit = false;
