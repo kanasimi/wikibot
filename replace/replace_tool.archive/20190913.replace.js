@@ -44,7 +44,7 @@ const DELETE_PAGE = Symbol('DELETE_PAGE');
 
 /*
  * 
- * 文章名稱的改變，應考慮上下文的影響。例如： # 是否應採用 [[new|old]]: using {keep_title : true} to
+ * 文章名稱的改變，應考慮上下文的影響。例如： # 是否應採用 [[new|old]]: using {keep_display_text : true} to
  * preserve title displayed. Default: discard title # 檢查重定向："株式会社[[リクルート]]" →
  * "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
  * 
@@ -68,7 +68,7 @@ section_title = 'リクルートの改名に伴うリンク修正';
 move_configuration = {
 	'リクルート': {
 		move_from_link: 'リクルートホールディングス',
-		keep_title: true
+		keep_display_text: true
 	}
 };
 // for 「株式会社リクルートホールディングス」の修正
@@ -435,7 +435,7 @@ summary = '2016年ロサンゼルスに復帰し、ロサンゼルス・ラム�
 move_configuration = {
 	'セントルイス・ラムズ': {
 		move_to_link: 'ロサンゼルス・ラムズ',
-		keep_title: true
+		keep_display_text: true
 	}
 };
 
@@ -503,7 +503,7 @@ function for_each_link(token, index, parent) {
 			// TODO
 		}
 
-		if (this.keep_title) {
+		if (this.keep_display_text) {
 			CeL.assert(this.move_from_ns === CeL.wiki.namespace('Main'));
 			// 將原先的頁面名稱轉成顯示名稱。
 			if (!token[1]) token[1] = '';

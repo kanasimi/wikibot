@@ -29,6 +29,6 @@ const replace_tool = require('./replace_tool.js');
 	}, {
 		//'': DELETE_PAGE,
 		//'': REDIRECT_TARGET,
-		'长鸿娘': { move_to_link: '长鸿出版社', keep_title: true },
+		'长鸿娘': { move_to_link: '长鸿出版社', keep_display_text: true },
 	});
 })();

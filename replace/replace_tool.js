@@ -28,6 +28,11 @@ The `replace_tool.replace()` will:
 @see [[w:ja:Wikipedia:改名提案]], [[w:ja:Wikipedia:移動依頼]]
 
 
+文章名稱的改變，應考慮上下文的影響。例如：
+# 是否應採用 [[new|old]]: using {keep_display_text : true} to preserve title displayed. Default: discard title
+# 檢查重定向："株式会社[[リクルート]]" → "[[株式会社リクルート]]" instead of "株式会社[[リクルートホールディングス]]"
+
+
 TODO:
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 並非所有常規修補程序都適用於所有語言。
@@ -208,7 +213,7 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
-const work_option_switches = ['allow_empty',
+const work_option_switches = ['allow_empty', 'keep_display_text',
 	// Templateからのリンクのキャッシュが残ってしまっている場合
 	'skip_nochange'];
 const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration', 'no_task_configuration_from_section'].append(work_option_switches);
@@ -279,79 +284,132 @@ function get_move_configuration_from_command_line(meta_configuration) {
 	throw new Error('Can not extract section title from task file name!');
 }
 
+function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta_configuration) {
+	//console.log(requests_page_data);
+	let section_title = meta_configuration.section_title;
+
+	let user, diff_to, diff_from;
+	function set_diff_to(revision) {
+		user = revision.user;
+		diff_to = revision.revid;
+		// diff_from = revision.parentid;
+		diff_from = null;
+	}
+
+	requests_page_data.revisions.forEach((revision, index, revisions) => {
+		//for section_title set from script_name @ get_move_configuration_from_command_line(meta_configuration)
+		let comment = revision.comment && revision.comment.match(/^\/\*(.+)\*\//);
+		if (comment) {
+			comment = comment[1];
+			if (section_title === script_name) {
+				// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
+				// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+				comment = comment.replace(/[\\\/:*?"<>|]/g, '');
+			}
+		}
+		//console.log(section_title);
+		//console.log(comment);
+		// console.log(matched);
+		if (comment && comment.trim() === section_title.trim()) {
+			// console.log(revision);
+			if (user === revision.user && diff_to > 0) {
+				diff_from = revision.parentid;
+				// At last, diff_from should starts
+				// from e.g., "→‎鈴木正人のリンク修正: 新しい節"
+			} else {
+				set_diff_to(revision);
+			}
+
+			if (section_title === script_name) {
+				// 復原檔名中不能包含的字元。
+				const _section_title = revision.comment.match(/^\/\*(.+)\*\//)[1].trim();
+				// console.log([section_title, _section_title]);
+				if (section_title !== _section_title) {
+					CeL.info(`Change section_title: ${section_title}→${_section_title}`);
+					// TODO: parse
+					section_title = meta_configuration.section_title = _section_title;
+				}
+			}
+
+			return;
+		}
+
+		if (index > 0) {
+			// get diff_id from content
+			const content = CeL.wiki.revision_content(revision, true);
+			if (typeof content === 'string') {
+				const diff_list = CeL.LCS(content, CeL.wiki.revision_content(revisions[index - 1]), 'diff');
+				if (diff_list.some(diff => {
+					const [minus, plus] = diff;
+					if (!plus || typeof plus !== 'string')
+						return;
+					const parsed = CeL.wiki.parser(plus).parse();
+					let found;
+					parsed.each('section_title', section_title_token => {
+						found = section_title === section_title_token.title;
+						if (found) {
+							return parsed.each.exit;
+						}
+					});
+					return found;
+				})) {
+					set_diff_to(revisions[index - 1]);
+					return;
+				}
+			}
+		}
+
+		user = null;
+	});
+
+	if (diff_to > 0) {
+		meta_configuration.diff_id = diff_from > 0 ? diff_from + '/' + diff_to : diff_to;
+		CeL.info(`Get diff_id from edit summary: [[Special:Diff/${meta_configuration.diff_id}#${section_title}]]`);
+	}
+}
+
 // 從已知資訊解開並自動填寫 `meta_configuration`
 async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	const requests_page = meta_configuration.requests_page || bot_requests_page;
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
-	let section_title = meta_configuration.section_title;
+	const section_title = meta_configuration.section_title;
+	//'max'
+	const rvlimit = 80;
 
-	if (!meta_configuration.diff_id) {
-		if (section_title) {
-			// TODO: get diff_id from content
+	if (meta_configuration.diff_id) {
+	} else if (section_title) {
+		process.stdout.write(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)} ...\r`);
+		const requests_page_data = await wiki.page(requests_page, {
+			redirects: 1,
+			// rvprop: 'ids|comment|user|content',
+			rvprop: 'ids|comment|user',
+			// rvlimit: 'max',
+			rvlimit,
+		});
+		//console.log(requests_page_data);
+		guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta_configuration);
+
+		if (!meta_configuration.diff_id) {
+			// get diff_id from content
+			process.stdout.write(`Get ${rvlimit} contents of ${CeL.wiki.title_link_of(requests_page)} ...\r`);
 			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
-				// rvprop: 'ids|comment|user|content',
-				rvprop: 'ids|comment|user',
+				rvprop: 'ids|comment|user|content',
 				// rvlimit: 'max',
-				rvlimit: 80,
+				rvlimit,
 			});
-			//console.log(requests_page_data);
-
-			let user, diff_to, diff_from;
-			requests_page_data.revisions.forEach(revision => {
-				//for section_title set from script_name @ get_move_configuration_from_command_line(meta_configuration)
-				let comment = revision.comment && revision.comment.match(/^\/\*(.+)\*\//);
-				if (comment) {
-					comment = comment[1];
-					if (section_title === script_name) {
-						// 去掉檔名中不能包含的字元。 [\\\/:*?"<>|] → without /\/\*/
-						// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-						comment = comment.replace(/[\\\/:*?"<>|]/g, '');
-					}
-				}
-				//console.log(section_title);
-				//console.log(comment);
-				// console.log(matched);
-				if (comment && comment.trim() === section_title.trim()) {
-					// console.log(revision);
-					if (user === revision.user && diff_to > 0) {
-						diff_from = revision.parentid;
-						// At last, diff_from should starts
-						// from e.g., "→‎鈴木正人のリンク修正: 新しい節"
-					} else {
-						user = revision.user;
-						diff_to = revision.revid;
-						// diff_from = revision.parentid;
-						diff_from = null;
-					}
-
-					if (section_title === script_name) {
-						// 復原檔名中不能包含的字元。
-						const _section_title = revision.comment.match(/^\/\*(.+)\*\//)[1].trim();
-						// console.log([section_title, _section_title]);
-						if (section_title !== _section_title) {
-							CeL.info(`Change section_title: ${section_title}→${_section_title}`);
-							// TODO: parse
-							section_title = meta_configuration.section_title = _section_title;
-						}
-					}
-				} else {
-					user = null;
-				}
-			});
-			if (diff_to > 0) {
-				meta_configuration.diff_id = diff_from > 0 ? diff_from + '/' + diff_to : diff_to;
-				CeL.info(`Get diff_id from edit summary: [[Special:Diff/${meta_configuration.diff_id}#${section_title}]]`);
-			} else {
-				throw new Error(`Can not extract diff id from ${CeL.wiki.title_link_of(requests_page)} edit summary!`);
-			}
-
-		} else {
-			CeL.error(`Did not set diff_id!`);
+			guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta_configuration);
 		}
+
+	} else {
+		CeL.error(`guess_and_fulfill_meta_configuration: Did not set section_title!`);
 	}
 
-	// throw new Error(section_title);
+	if (!meta_configuration.diff_id) {
+		throw new Error(`Can not extract diff id from ${CeL.wiki.title_link_of(requests_page)} edit summary!`);
+	}
+
+	// throw new Error(meta_configuration.section_title);
 }
 
 // Check if there are default move configurations.
@@ -403,11 +461,19 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			return section.each.exit;
 		});
 
+		let task_options = token.parameters.options;
+		if (task_options) {
+			//console.log(task_options);
+			task_options = JSON.parse(task_options);
+			//console.log(task_options);
+		}
+
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
 			const title = token.parameters[index];
 			const task_configuration = {
 				discussion_link,
-				move_to_link: token.parameters[index + 1]
+				move_to_link: token.parameters[index + 1],
+				...task_options,
 			};
 			task_configuration_from_section[title] = task_configuration;
 			if (Array.isArray(meta_configuration.also_replace_text) ? meta_configuration.also_replace_text.includes(title) : meta_configuration.also_replace_text) {
@@ -418,6 +484,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 
 	if (!CeL.is_empty_object(task_configuration_from_section)) {
 		CeL.info(`get_move_configuration_from_section: Get ${Object.keys(task_configuration_from_section).length} task(s) from ${section.section_title.link.toString()}.`);
+		//console.log(task_configuration_from_section);
 		if (!no_export)
 			meta_configuration.task_configuration_from_section = task_configuration_from_section;
 		return task_configuration_from_section;
@@ -601,15 +668,15 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		}
 		//console.trace(task_configuration);
 
-		if (!('keep_title' in task_configuration) && typeof task_configuration.move_to_link === 'string'
+		if (!('keep_display_text' in task_configuration) && typeof task_configuration.move_to_link === 'string'
 			// e.g., 20200101.ブランドとしてのXboxの記事作成に伴うリンク修正.js
 			// [[A]] → [[A (細分 type)]]
 			&& (task_configuration.move_to_link.toLowerCase().includes(move_from_link.toLowerCase())
 				// e.g., 20200121.「離陸決心速度」の「V速度」への統合に伴うリンク修正.js
 				|| task_configuration.move_to_link.includes('#')
 			)) {
-			CeL.warn('prepare_operation: Set .keep_title = true. 請注意可能有錯誤的 redirect、{{Pathnav}}、{{Main2}}、{{Navbox}} 等編輯!');
-			task_configuration.keep_title = true;
+			CeL.warn('prepare_operation: Set .keep_display_text = true. 請注意可能有錯誤的 redirect、{{Pathnav}}、{{Main2}}、{{Navbox}} 等編輯!');
+			task_configuration.keep_display_text = true;
 		}
 
 		// 議論場所 Links to relevant discussions
@@ -1182,11 +1249,11 @@ function for_each_link(token, index, parent) {
 		// TODO
 	}
 
-	if (this.keep_title) {
+	if (this.keep_display_text) {
 		// e.g., [[.move_from.page_title]] →
 		// [[move_to_link|.move_from.page_title]]
 		// [[.move_from.page_title|顯示名稱]] → [[move_to_link|顯示名稱]]
-		CeL.assert(this.move_from.ns === this.wiki.namespace('Main') || this.move_from.ns === this.wiki.namespace('Category'), 'for_each_link: keep_title: Must be article (namesapce: main) or Category');
+		CeL.assert(this.move_from.ns === this.wiki.namespace('Main') || this.move_from.ns === this.wiki.namespace('Category'), 'for_each_link: keep_display_text: Must be article (namesapce: main) or Category');
 		// 將原先的頁面名稱轉成顯示名稱。
 		// keep original title
 		if (!token[2]) token[2] = token[0];

@@ -60,7 +60,7 @@ replace_tool.replace({
 		// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
 		list_intersection: 'Category:',
 
-		keep_title: true,
+		keep_display_text: true,
 		namespace: 'Category',
 
 		//對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
