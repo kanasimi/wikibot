@@ -392,7 +392,8 @@ function for_each_old_page(page_data) {
 			// [[分類:來源模板|新聞源/資料來源引用模板]]
 			if (source_templates.includes(token.name)) {
 				has_source = true;
-				// TODO: 可跳出。
+				// 可跳出。
+				return current_content.each.exit;
 			}
 		});
 
@@ -413,6 +414,17 @@ function for_each_old_page(page_data) {
 					+ CeL.wiki.title_link_of('Category:來源模板', '來源模板') + '。');
 		}
 	}
+
+	current_content.each('template', function(token) {
+		// [[分類:來源模板|新聞源/資料來源引用模板]]
+		if (token.name in {
+			扩充 : true,
+			擴充 : true
+		}) {
+			problem_list.push('需要{{tl|' + token.name + '}}。');
+			return current_content.each.exit;
+		}
+	});
 
 	// do not need category: {{headline navbox}} 自帶 Category，不需要分類。
 	var do_not_need_category = /{{ *[Hh]eadline[ _]navbox *\|/
@@ -502,7 +514,7 @@ function for_each_old_page(page_data) {
 	if (problem_list.length > 0) {
 		CeL.debug(CeL.wiki.title_link_of(page_data) + ': 掛分類，由管理員手動操作。', 1,
 				'for_each_old_page');
-		if (write_page) {
+		if (write_page && false) {
 			wiki.page(page_data).edit(current_content.trim() + '\n'
 			//
 			+ problem_list.map(function(category_name) {
