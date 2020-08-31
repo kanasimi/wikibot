@@ -111,6 +111,7 @@ if (!_global.Wikiapi) {
 		// Load wikiapi module.
 		_global.Wikiapi = require('wikiapi');
 	} catch (e) {
+		// TODO: handle exception
 	}
 }
 
@@ -157,9 +158,8 @@ if (script_name) {
 		console.time('task');
 		// ↑ use console.timeEnd('task')
 	}
-	CeL.log('\n' + '-'.repeat(80) + '\nwiki loader: '
-			+ (new Date).toISOString() + ' Starting [' + CeL.get_script_name()
-			+ ']');
+	CeL.log('\n' + '-'.repeat(80) + '\nwiki loader: ' + (new Date).format()
+			+ ' Starting [' + CeL.get_script_name() + ']');
 
 	base_directory = bot_directory + script_name + '/';
 }
@@ -203,7 +203,7 @@ _global.login_options = {
 	password : user_password,
 	preserve_password : true,
 	// wiki.latest_task_configuration.configuration_page_title
-	task_configuration_page : log_to + '/configuration',
+	task_configuration_page : log_to && (log_to + '/configuration'),
 	configuration_adapter : null
 };
 
