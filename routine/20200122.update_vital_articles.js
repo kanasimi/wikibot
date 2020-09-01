@@ -906,10 +906,19 @@ async function maintain_VA_template() {
 
 let maintain_VA_template_count = 0;
 
+// https://en.wikipedia.org/wiki/Template:WikiProject_Rugby_league/class
+const class_alias_to_normalized = {
+	Dab: 'Disambig', Disamb: 'Disambig', Disambiguation: 'Disambig',
+};
+
 function normalize_class(_class) {
 	_class = String(_class);
 	//@see [[Category:Wikipedia vital articles by class]]
-	return _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
+	_class = _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
+	if (class_from_other_templates in class_alias_to_normalized) {
+		_class = class_alias_to_normalized[_class];
+	}
+	return _class;
 }
 
 // maintain vital articles templates: FA|FL|GA|List,
