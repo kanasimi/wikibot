@@ -24,7 +24,7 @@ var data_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'commons'  && 'test' ),
+wiki = Wiki(true, 'commons' /* && 'test' */),
 //
 cache_filename_label = '%4Y-%2m-%2d',
 // 因為每個風暴會持續好幾天，甚至跨月，因此只標注年份。
