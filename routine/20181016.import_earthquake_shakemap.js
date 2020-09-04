@@ -19,7 +19,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 var
 // isTTY: 為 nodejs: interactive 互動形式。

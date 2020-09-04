@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190629.import_hurricane_track_maps.js
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190629.import_hurricane_track_maps.js PAGASA
 
 /*
 
@@ -18,13 +18,13 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 var data_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'commons' /* && 'test' */),
+wiki = Wiki(true, 'commons'  && 'test' ),
 //
 cache_filename_label = '%4Y-%2m-%2d',
 // 因為每個風暴會持續好幾天，甚至跨月，因此只標注年份。
@@ -1124,7 +1124,7 @@ function for_each_JMA_typhoon(html) {
 	});
 
 	// https://commons.wikimedia.org/wiki/Commons:Deletion_requests/Files_in_Category:Typhoon_track_maps_by_JMA
-	media_data.test_only = true;
+	media_data.test_only = 'no message';
 
 	// for the English version.
 	upload_media(media_data);
