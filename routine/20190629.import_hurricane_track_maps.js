@@ -58,13 +58,17 @@ var category_to_parent_hash = Object.create(null);
 		'Southern Hemisphere tropical cyclone season',
 
 		// parent categories
+		'Category:University of Wisconsin CIMSS images',
 		'Category:Central Weather Bureau ROC',
-		'Category:Images from the Philippine Atmospheric, Geophysical and Astronomical Services Administration',
 		'Category:Japan Meteorological Agency',
-		'Category:Images from the Japan Meteorological Agency' ]
+		'Category:Images from the Japan Meteorological Agency',
+		'Category:Images from the Philippine Atmospheric, Geophysical and Astronomical Services Administration' ]
 //
 .run_serial(function(run_next, parent_category_name) {
-	if (!parent_category_name.startsWith('Category:')) {
+	if (parent_category_name.startsWith('Category:')) {
+		// 登記。
+		category_to_parent_hash[parent_category_name] = parent_category_name;
+	} else {
 		var date = new Date;
 		var year = String(date.getUTCFullYear());
 		if (parent_category_name.includes('South')
@@ -143,6 +147,7 @@ function main_work() {
 	var site_mapper = {
 		NHC : start_NHC,
 		JTWC : start_JTWC,
+		CIMSS : start_CIMSS,
 		// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
 		CWB : start_CWB,
 		// tagged with "All Rights Reserved"...
@@ -246,9 +251,10 @@ function upload_media(media_data) {
 	// TODO: using `.id`. e.g., "WP0719": Northwest Pacific
 	// area.includes('north indian') ? 'North Indian Ocean' :
 	area.includes('pacific') ? 'Pacific'
-			: area.includes('atlantic') ? 'Atlantic'
-			// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
-			: area === 'southern hemisphere' ? 'Southern Hemisphere' : null;
+	//
+	: area.includes('atlantic') ? 'Atlantic'
+	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
+	: area === 'southern hemisphere' ? 'Southern Hemisphere' : null;
 	if (!track_maps_category) {
 		CeL.error('Unknown area: ' + area);
 		console.log(media_data);
@@ -314,14 +320,14 @@ function start_NHC() {
 
 	fetch(NHC_menu_URL).then(function(response) {
 		// console.log(response);
+		return response.text();
+
+	}).then(function(html) {
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('NHC ' + cache_filename_label
 		//
-		+ ' menu.html'), response.body);
-		return response.text();
-
-	}).then(function(html) {
+		+ ' menu.html'), html);
 		// console.log(html);
 
 		html.each_between(
@@ -421,13 +427,15 @@ function NHC_for_each_cyclones(token, area, date) {
 // Visit all "Warnings/Cone Static Images" pages.
 function get_NHC_Static_Images(media_data) {
 	return fetch(media_data.source_url).then(function(response) {
+		return response.text();
+	}).then(function(html) {
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('NHC ' + cache_filename_label
 		//
-		+ ' cyclones.html'), response.body);
-		return response.text();
-	}).then(parse_NHC_Static_Images.bind(null, media_data));
+		+ ' cyclones.html'), html);
+		parse_NHC_Static_Images(media_data, html);
+	});
 }
 
 function parse_NHC_Static_Images(media_data, html) {
@@ -506,13 +514,13 @@ function start_JTWC() {
 	return fetch('https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?' + Date.now())
 	//
 	.then(function(response) {
+		return response.text();
+	}).then(function(xml) {
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('JTWC ' + cache_filename_label
 		//
-		+ '.rss.xml'), response.body);
-		return response.text();
-	}).then(function(xml) {
+		+ '.rss.xml'), xml);
 		xml.each_between('<item>', '</item>', for_each_JTWC_area);
 	});
 }
@@ -689,6 +697,138 @@ function for_each_JTWC_cyclone(html, media_data) {
 
 // ============================================================================
 
+function start_CIMSS() {
+	var base_URL = 'http://tropic.ssec.wisc.edu/';
+
+	var media_data = {
+		base_URL : base_URL,
+		// area : '',
+		author : '{{label|Q2996587}}',
+		license : '{{UWiscCIMSS}}',
+		categories : [ 'Category:University of Wisconsin CIMSS images' ],
+		source_url : base_URL
+	};
+
+	// http://bagong.CIMSS.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
+	fetch(media_data.source_url).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('CIMSS ' + cache_filename_label
+		//
+		+ ' menu.html'), html);
+
+		// <div class="col-md-12 article-header" id="swb">
+		var text = html.between('<MAP NAME="storms">', '</MAP>');
+		if (!text) {
+			return;
+		}
+
+		text.each_between('<AREA ', '>', function(token) {
+			// console.log(token);
+			var matched = token.match(
+			/**
+			 * <code>
+			<MAP NAME="storms">
+			<!-- STORMS LINKS HERE -->
+			<AREA SHAPE="RECT" COORDS="238,27,258,47" href="#" onclick="javascript:newStormWindow('atlantic','15L','NO')" onmouseover="doTooltip(event,'Tropical Depression OMAR',1)" onmouseout="hideTip()" alt="" >
+			<AREA SHAPE="RECT" COORDS="615,50,635,70" href="#" onclick="javascript:newStormWindow('westpac','11W','NO')" onmouseover="doTooltip(event,'Typhoon  HAISHEN',1)" onmouseout="hideTip()" alt="" >
+			<AREA SHAPE="RECT" COORDS="154,70,174,90" href="#" onclick="javascript:newStormWindow('eastpac','90E','YES')" onmouseover="doTooltip(event,'Invest Area 90E<br>20200905 0600Z',1)" onmouseout="hideTip()" alt="" >
+			<AREA SHAPE="default" alt="default" >
+			</MAP>
+			 */
+			/newStormWindow\('([^']+)','([^']+)','NO'\)/);
+			if (!matched)
+				return;
+			media_data.area = media_data._area = matched[1];
+			media_data.NO = matched[2];
+			matched = media_data.area.match(/(west|east)pac/);
+			if (matched) {
+				media_data.area = normalize_name(matched[1]) + 'ern Pacific';
+			}
+
+			matched = token.match(/doTooltip\(event,'([^']+)',/);
+			matched = matched[1].trim().replace(/\s{2,}/g, ' ');
+			matched = matched.match(/^(.+) ([^\s]+)$/);
+			media_data.type = matched[1];
+			media_data.name = normalize_name(matched[2]);
+
+			var _media_data = Object.clone(media_data);
+			_media_data.source_url += 'real-time/storm.frame.php?&basin='
+			//
+			+ media_data._area + '&sname=' + media_data.NO
+			//
+			+ '&invest=NO&zoom=4&img=7&vars=111110000000000000000&loop=1';
+			fetch_CIMSS_typhoon_frame(_media_data);
+		});
+	});
+}
+
+function fetch_CIMSS_typhoon_frame(media_data) {
+	// console.trace(media_data);
+	fetch(media_data.source_url).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('CIMSS ' + cache_filename_label
+		//
+		+ ' menu ' + media_data.NO + '.html'), html);
+		// console.trace(html);
+		for_each_CIMSS_typhoon(media_data, html);
+	});
+}
+
+function for_each_CIMSS_typhoon(media_data, token) {
+	var media_url = token.match(/ src="([^"]+\/storm\/movies\/MOV8[^"]+)"/);
+	media_url = media_data.source_url.replace(/[^\/]+$/, '') + media_url[1];
+
+	/**
+	 * <code>
+	<input type="radio" id="VSW" name="VSW" value=" Visible/Shorwave IR Image
+	    20200905/083019UTC " >VIS/SWIR&nbsp;</label>
+	</code>
+	 */
+	var date = token.between('Visible/Shorwave IR Image', '"');
+	if (false && !date) {
+		console.log(token);
+		console.log(media_data);
+	}
+	date = date.match(/(\d{4})(\d{2})(\d{2})\/(\d{2})(\d{2})(\d{2})(UTC)/);
+	date = new Date(date.slice(1, 4).join('-') + ' '
+			+ date.slice(4, 7).join(':') + ' ' + date[7]);
+
+	Object.assign(media_data, {
+		date : date,
+		media_url : media_url,
+		filename : date.format(filename_prefix) + 'CIMSS ' + media_data.NO
+				+ ' ' + media_data.name + ' visible infrared map'
+				+ media_url.match(/\.\w+$/)[0]
+	});
+	media_data.source_url += ' ' + media_url;
+
+	search_category_by_name(media_data.name, media_data);
+	var wiki_link = of_wiki_link(media_data);
+
+	var note;
+
+	Object.assign(media_data, {
+		description : '{{en|' + media_data.author + "'s visible infrared map"
+				+ wiki_link + '.}}',
+		// comment won't accept templates and external links
+		comment : 'Import CIMSS tropical cyclone visible infrared map'
+				+ wiki_link + '. ' + (note ? note + ' ' : '')
+	}, media_data);
+
+	// media_data.test_only = true;
+	upload_media(media_data);
+}
+
+// ============================================================================
+
 function start_CWB() {
 	// @see https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
 	function GetTimeNumber(Number_int) {
@@ -717,13 +857,13 @@ function start_CWB() {
 	+ DataTime + '&_=' + Date.now())
 	//
 	.then(function(response) {
+		return response.text();
+	}).then(function(PTA_IMGS_data) {
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('CWB ' + cache_filename_label
 		//
-		+ ' typhoon.js'), response.body);
-		return response.text();
-	}).then(function(PTA_IMGS_data) {
+		+ ' typhoon.js'), PTA_IMGS_data);
 		// console.log(PTA_IMGS_data);
 
 		PTA_IMGS_data = PTA_IMGS_data.replace(/(\nvar +([\w\d]+) ?=)/g,
@@ -983,14 +1123,15 @@ function start_JMA() {
 	return fetch(base_URL + 'index.html')
 	//
 	.then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('JMA ' + cache_filename_label
 		//
-		+ ' typhoon.' + language + '.html'), response.body);
-		return response.text();
+		+ ' typhoon.' + language + '.html'), html);
 
-	}).then(function(html) {
 		var typhoonList = [];
 		// <script language="javascript">
 		// <!--
@@ -1170,14 +1311,15 @@ function start_PAGASA() {
 
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 	fetch(media_data.source_url).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('PAGASA ' + cache_filename_label
 		//
-		+ ' menu.html'), response.body);
-		return response.text();
+		+ ' menu.html'), html);
 
-	}).then(function(html) {
 		// <div class="col-md-12 article-header" id="swb">
 		var text = html.between('id="swb"');
 		if (!text) {
