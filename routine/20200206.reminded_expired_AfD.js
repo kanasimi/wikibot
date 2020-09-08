@@ -175,9 +175,13 @@ function check_recommendation(recommendation, participations) {
 		return;
 
 	recommendation = recommendation[1].match(check_AfD_participations.PATTERN);
-	if (recommendation in ignore_recommendations) {
-		// Ignore the notes adding by the bot it self.
-		return;
+	recommendation = recommendation && recommendation[0].toLowerCase();
+	for (const ignore_recommendation of Object.values(ignore_recommendations)) {
+		//console.trace([recommendation, ignore_recommendation.toLowerCase()]);
+		if (recommendation === ignore_recommendation.toLowerCase()) {
+			// Ignore the notes adding by the bot it self.
+			return;
+		}
 	}
 	participations[recommendation || check_AfD_participations.type_others].push(participations);
 }
@@ -215,6 +219,7 @@ function check_AfD_participations(AfD_page_data) {
 check_AfD_participations.recommendation_types = 'keep|delete|merge|redirect'.split('|');
 check_AfD_participations.type_others = 'misc';
 check_AfD_participations.PATTERN = new RegExp(check_AfD_participations.recommendation_types.join('|'), 'i');
+//console.trace(check_AfD_participations.PATTERN);
 
 // ----------------------------------------------------------------------------
 
@@ -433,7 +438,7 @@ const PROD_MESSAGE = {
 	logs: 'Logs',
 };
 const ignore_recommendations = PROD_MESSAGE;
-const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE.recommendation}''': `;
+const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE.recommendation}''':? `;
 const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], it is '''NOT eligible for [[WP:SOFTDELETE|soft deletion]]''' because ";
 
 async function for_AfD(AfD_page_data) {
