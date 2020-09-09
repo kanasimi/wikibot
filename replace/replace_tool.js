@@ -103,7 +103,7 @@ async function get_all_sections(meta_configuration) {
 			section_data[process] = matched[1];
 		}
 
-		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\|(?:着手|作業中)) *[|}]/);
+		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\|(?:着手|準備中|作業中)) *[|}]/);
 		if (matched) {
 			set_process('doing');
 		}
@@ -336,6 +336,7 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 
 		if (index > 0) {
 			// get diff_id from content
+			// @see wiki.tracking_revisions()
 			const content = CeL.wiki.revision_content(revision, true);
 			if (typeof content === 'string') {
 				const diff_list = CeL.LCS(content, CeL.wiki.revision_content(revisions[index - 1]), 'diff');
@@ -575,7 +576,7 @@ async function notice_finished(wiki, meta_configuration) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
 			//{{利用者の投稿記録リンク|Example|50|20100820121030|4}}
 			//{{BOTREQ|済}} こちらのリンクからご確認下さい
-			`{{BOTREQ|完了}} ご確認をお願いします。修正しなかった場合や望ましくない状況があるなら、お教えください。今後の参考になります。 ${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
+			`{{BOTREQ|完了}} 修正しなかった場合や望ましくない状況があるなら、お教えください。今後の参考になります。問題が無い場合は{{tl|確認}}でご確認をお願いします。 ${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
 			options.need_edit = false;
@@ -669,6 +670,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		//console.trace(task_configuration);
 
 		if (!('keep_display_text' in task_configuration) && typeof task_configuration.move_to_link === 'string'
+			// incase → [[title|display text]]
+			&& !task_configuration.move_to_link.includes('|')
 			// e.g., 20200101.ブランドとしてのXboxの記事作成に伴うリンク修正.js
 			// [[A]] → [[A (細分 type)]]
 			&& (task_configuration.move_to_link.toLowerCase().includes(move_from_link.toLowerCase())
@@ -1324,7 +1327,7 @@ function for_each_file_link(token, index, parent) {
 		// console.log(token);
 		for (let index = 1; index < token.length; index++) {
 			if (token[index] && token[index].type === 'plain'
-				&& token[index][0] === 'link' && token[index][0] === '='
+				&& token[index][0] === 'link' && token[index][1] === '='
 				&& typeof token[index][2] === 'string' && token[index][2].trim() === this.move_from_link) {
 				// assert: token[index].length === 3
 				token[index][2] = this.move_to_link;
@@ -1388,13 +1391,16 @@ function replace_link_parameter(task_configuration, template_token, template_has
 
 	if (!task_configuration.move_to_link || task_configuration.move_to_link === DELETE_PAGE
 		|| task_configuration.move_to && !task_configuration.move_to.page_name
-		|| task_configuration.page_data.ns !== task_configuration.move_from.ns) {
+		// [[w:ja:Special:Diff/79399447|Template:Latest stable software release/Android]] should not use this
+		//|| task_configuration.page_data.ns !== task_configuration.move_from.ns
+	) {
 		return true;
 	}
 
 	// console.log(template_token);
 	// console.log(template_token.length);
 	let index = template_hash[template_token.name];
+	//console.trace(index);
 	do {
 		check_link_parameter(task_configuration, template_token, index);
 	} while (increase > 0 && (index += increase) < template_token.length);
@@ -1457,6 +1463,8 @@ function for_each_template(page_data, token, index, parent) {
 		廃止されたテンプレート: 2,
 		// [[w:ja:Template:Navbox]]
 		Navbox: 'name',
+
+		LSR: 'article',
 
 		// e.g., {{支流リンク|ラン河}}
 		支流リンク: 1,
