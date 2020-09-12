@@ -52,18 +52,22 @@ replace_tool.replace({
 		page_list: [],
 
 		// Also replace text in source for link
+		// リンクのない本文表記についても本来の修正します。
 		also_replace_text: true,
 
 		// 允許內容被清空。白紙化。
 		allow_empty: false,
+		// Templateからのリンクのキャッシュが残ってしまっている場合、cacheを処理します。
+		skip_nochange : true,
 
 		// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
 		list_intersection: 'Category:',
 
+		// リンク表記を変更しません。
 		keep_display_text: true,
 		namespace: 'Category',
 
-		//對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
+		// 對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
 		is_tracking_category: true,
 
 		text_processor(wikitext, page_data) { return wikitext.replace(/./g, ''); },
