@@ -160,8 +160,9 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 				+ MIN_COUNT + ' sitelinks. Filtering items...');
 		// item_list, items_of_count 僅包含排除了((language))這個語言連結的 item項目。
 		var items_of_count = Object.create(null), item_list = [], index_of_rows = 0, id_of_current_row = rows[index_of_rows].ips_item_id;
-		// 示意範例: rows = [ 1,3,5 ]
-		// item_count_pairs = [ [1,1], [2,1], [3,1], [4,1], [5,1], ]
+		// item_count_pairs = [ [item_id,link_count], ... ]
+		// 示意範例: rows = [ 1, 3, 7 ]
+		// item_count_pairs = [ [1,40], [3,41], [4,41], [7,40], [15,43], ]
 		options.item_count_pairs.forEach(function(pair) {
 			var item_id = pair[0];
 			if (item_id === id_of_current_row) {
@@ -183,7 +184,8 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 			}
 		});
 		if (id_of_current_row) {
-			throw '當前 rows[' + index_of_rows + '] 還有資訊尚未處理!';
+			console.trace(rows[index_of_rows]);
+			throw new Error('當前 rows[' + index_of_rows + '] 還有資訊尚未處理!');
 		}
 
 		CeL.write_file(data_filename, JSON.stringify(item_list));
@@ -211,7 +213,7 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 			+ language
 			+ 'wiki"';
 
-	SQL_get_sitelink_count = 'SELECT ips_item_id FROM wb_items_per_site WHERE ips_item_id IN (SELECT ips_item_id FROM wb_items_per_site GROUP BY ips_item_id HAVING COUNT(*) >= '
+	SQL_get_sitelink_count = 'SELECT ips_item_id FROM wb_items_per_site WHERE ips_item_id IN (SELECT ips_item_id FROM wb_items_per_site WHERE ips_site_id LIKE "%wiki" GROUP BY ips_item_id HAVING COUNT(*) >= '
 			+ MIN_COUNT
 			+ ') AND ips_site_id = "'
 			+ language
