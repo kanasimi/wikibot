@@ -24,7 +24,7 @@ write [[Template:Recent_changes_article_requests/list]]
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 CeL.run('application.storage');
 
@@ -139,7 +139,7 @@ function get_most_sitelinked_items(callback, options) {
 	// HAVING SUM(CASE WHEN ips_site_id = "jawiki" THEN 1 ELSE 0 END) = 0
 	// ORDER BY `link_count` DESC
 	// 之類的方法，將大大增加查詢的時間。
-	SQL_get_sitelink_count = 'SELECT ips_item_id, COUNT(*) AS `link_count` FROM wb_items_per_site GROUP BY ips_item_id HAVING `link_count` >= '
+	SQL_get_sitelink_count = 'SELECT ips_item_id, COUNT(*) AS `link_count` FROM wb_items_per_site WHERE ips_site_id LIKE "%wiki" GROUP BY ips_item_id HAVING `link_count` >= '
 			+ MIN_COUNT + ' ORDER BY ips_item_id';
 
 	CeL.info('get_most_sitelinked_items: Run SQL: ' + SQL_get_sitelink_count);
