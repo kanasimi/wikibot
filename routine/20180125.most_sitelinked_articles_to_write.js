@@ -159,15 +159,23 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 		CeL.info(language + ': ' + rows.length + ' items more than '
 				+ MIN_COUNT + ' sitelinks. Filtering items...');
 		// item_list, items_of_count 僅包含排除了((language))這個語言連結的 item項目。
-		var items_of_count = Object.create(null), item_list = [], index_of_rows = 0, id_of_current_row = rows[index_of_rows].ips_item_id;
+		var items_of_count = Object.create(null), item_list = [], index_of_rows = 0;
 		// item_count_pairs = [ [item_id,link_count], ... ]
-		// 示意範例: rows = [ 1, 3, 7 ]
-		// item_count_pairs = [ [1,40], [3,41], [4,41], [7,40], [15,43], ]
+		// 示意範例:
+		// rows = [ {ips_item_id:1}, {ips_item_id:3}, {ips_item_id:7}, ... ]
+		// options.item_count_pairs = [ [1,40], [3,41], [4,41], [7,40], ... ]
+		// assert: rows 之 ips_item_id 為 item_count_pairs 包含 `${language}wiki`
+		// 之子集。
 		options.item_count_pairs.forEach(function(pair) {
 			var item_id = pair[0];
-			if (item_id === id_of_current_row) {
-				id_of_current_row = rows[++index_of_rows]
-						&& rows[index_of_rows].ips_item_id;
+			while (item_id > rows[index_of_rows].ips_item_id) {
+				CeL.error('當前 rows[' + index_of_rows + '/' + rows.length
+						+ '] 還有資訊尚未處理!');
+				console.log(rows[index_of_rows]);
+				index_of_rows++;
+			}
+			if (item_id === rows[index_of_rows].ips_item_id) {
+				index_of_rows++;
 				return;
 			}
 
@@ -183,10 +191,6 @@ function get_most_sitelinked_items_exclude_language(language, callback, options)
 				items_of_count[link_count] = [ item_id ];
 			}
 		});
-		if (id_of_current_row) {
-			console.trace(rows[index_of_rows]);
-			throw new Error('當前 rows[' + index_of_rows + '] 還有資訊尚未處理!');
-		}
 
 		CeL.write_file(data_filename, JSON.stringify(item_list));
 		callback(item_list);
