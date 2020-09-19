@@ -481,6 +481,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:井戸端' ];
 	// main_talk_pages = [ 'Wikipedia:削除依頼/ログ/先週', 'Wikipedia:削除依頼/ログ/先々週' ];
 	// main_talk_pages = [ 'Wikipedia:机器人/申请' ];
+	// main_talk_pages = [ 'Wikipedia:已删除内容查询' ];
 
 	// ----------------------------------------------------
 

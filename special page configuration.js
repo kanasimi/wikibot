@@ -942,6 +942,28 @@ var page_configurations = {
 			return diff >= 8;
 		}
 	}),
+	'zhwiki:Wikipedia:已删除内容查询' : {
+		topic_page : general_topic_page,
+		timezone : 8,
+		columns : 'NO;title;status;discussions;participants;last_user_set;last_admin_set',
+		column_to_header : {
+			title : '查詢頁面',
+			// 處理情況
+			status : '進度',
+		},
+		operators : {
+			// 查詢進度狀態。
+			status : function(section) {
+				var status_token;
+				section.each('template', function(token) {
+					if (token.name === 'ARstatus') {
+						status_token = token;
+					}
+				});
+				return status_token && status_token.toString();
+			}
+		}
+	},
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
