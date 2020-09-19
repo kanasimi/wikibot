@@ -715,13 +715,14 @@ var jawiki_week_AFD_options = {
 			var template_name = token.name;
 			if (template_name === 'Page') {
 				var page_name = token[1].toString().trim();
-				if (/(?:talk|ノート):/i.test(page_name))
+				if (/(?:talk|ノート):/i.test(page_name)) {
 					template_name = 'Ptalk';
-				else if (/^(?:Wikipedia|ファイル|File|MediaWiki|Template|Help|Category|Portal)/i
-						.test(page_name))
+				} else if (false && /^(?:Wikipedia|ファイル|File|MediaWiki|Template|Help|Category|Portal)/i
+						.test(page_name)) {
 					template_name = 'P';
-				else
+				} else {
 					template_name = 'Particle';
+				}
 			}
 
 			switch (template_name) {
