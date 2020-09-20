@@ -9,7 +9,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 CeL.run('application.net.wiki.template_functions');
 
