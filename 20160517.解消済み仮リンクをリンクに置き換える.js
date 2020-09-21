@@ -75,7 +75,7 @@ template_orders = {
 		foreign_language : 2,
 		// will fallback
 		foreign_title : [ 3, 1 ],
-		WD : 'WD',
+		WD : 'wd',
 		label : 'lt',
 		preserve : [ 'preserve', 'display' ]
 	},
