@@ -17,7 +17,7 @@
 'use strict';
 
 // Load CeJS library and modules.
-require('./wiki loader.js');
+require('../wiki loader.js');
 
 login_options.configuration_adapter = adapt_configuration;
 
