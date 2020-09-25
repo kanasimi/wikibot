@@ -58,7 +58,7 @@ replace_tool.replace({
 		// 允許內容被清空。白紙化。
 		allow_empty: false,
 		// Templateからのリンクのキャッシュが残ってしまっている場合、cacheを処理します。
-		skip_nochange : true,
+		skip_nochange: false,
 
 		// 當設定 list_intersection 時，會取得 task_configuration.move_from_link 與各 list_intersection 的交集(AND)。
 		list_intersection: 'Category:',
@@ -86,6 +86,9 @@ replace_tool.replace({
 			if (changed)
 				return parsed.toString();
 		},
+
+		post_text_processor(parsed, page_data) { return parsed.toString().replace(/./g, ''); },
+
 		for_each_link(token, index, parent) { },
 
 		before_get_pages(page_list, edit_options) { edit_options.summary += ''; },

@@ -1,4 +1,11 @@
-﻿'use strict';
+﻿/*
+
+node general_replace.js 車站編號標誌 get_task_configuration_from=list namespace=Module also_replace_text
+node general_replace.js 車站編號標誌 get_task_configuration_from=list skip_nochange=false
+
+*/
+
+'use strict';
 
 globalThis.no_task_date_warning = true;
 
@@ -18,10 +25,11 @@ Usage:
 node ${script_name} "section title"
 node ${script_name} "section title" diff=0000
 node ${script_name} "section_title=section title" diff=0000 use_language=ja also_replace_text
-node ${script_name} "section title" diff=0000 allow_empty keep_display_text skip_nochange=false
+node ${script_name} "section title" keep_display_text allow_empty skip_nochange=false
 node ${script_name} "section title" "also_replace_text=title1|title2"
 node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
 node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
+node ${script_name} "section title" get_task_configuration_from=list|table
 
 Show all titles:
 node general_replace.js ${KEY_show_sections} use_language=${use_language && 'ja'}

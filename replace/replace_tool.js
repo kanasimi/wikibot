@@ -1,4 +1,4 @@
-﻿/*
+﻿3/*
 
  2019/9/13 8:59:40	初版試營運
  2019/12/21 4:12:49	模組化
@@ -34,6 +34,8 @@ The `replace_tool.replace()` will:
 
 
 TODO:
+將所有 move_from 的重定向也一起修正
+
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 並非所有常規修補程序都適用於所有語言。
 
@@ -213,10 +215,8 @@ async function replace_tool(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
-const work_option_switches = ['allow_empty', 'keep_display_text',
-	// Templateからのリンクのキャッシュが残ってしまっている場合
-	'skip_nochange'];
-const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration', 'no_task_configuration_from_section'].append(work_option_switches);
+const work_option_switches = ['keep_display_text', 'skip_nochange', 'allow_empty'];
+const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration', 'namespace', 'no_task_configuration_from_section', 'get_task_configuration_from', 'caption', 'allow_eval'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -258,6 +258,7 @@ function get_move_configuration_from_command_line(meta_configuration) {
 		if (meta_configuration.also_replace_text && typeof meta_configuration.also_replace_text === 'string') {
 			meta_configuration.also_replace_text = meta_configuration.also_replace_text.split('|');
 		}
+		//console.trace(meta_configuration);
 	}
 
 	if (meta_configuration.section_title) {
@@ -443,6 +444,21 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		return;
 
 	const task_configuration_from_section = Object.create(null);
+
+	if (meta_configuration.get_task_configuration_from === 'table') {
+		section.each('table', table => {
+			if (!meta_configuration.caption || table.caption === meta_configuration.caption)
+				parse_move_pairs_from_link(table, task_configuration_from_section, meta_configuration);
+		});
+	} else if (meta_configuration.get_task_configuration_from === 'list') {
+		section.each('list', list_token => {
+			if (list_token.length > 5)
+				parse_move_pairs_from_link(list_token, task_configuration_from_section, meta_configuration);
+		});
+	}
+	//console.trace(meta_configuration);
+	//console.trace(task_configuration_from_section);
+
 	section.each('template', token => {
 		if (token.name !== 'リンク修正依頼/改名')
 			return;
@@ -465,7 +481,19 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		let task_options = token.parameters.options;
 		if (task_options) {
 			//console.log(task_options);
-			task_options = JSON.parse(task_options);
+			try {
+				task_options = JSON.parse(task_options);
+			} catch (e) {
+				//console.trace(meta_configuration);
+				if (meta_configuration.allow_eval) {
+					CeL.error('Not JSON, try eval(): ' + task_options);
+					eval('task_options = ' + task_options);
+					//console.trace(task_options);
+				} else if (!no_export) {
+					CeL.error('Not JSON, you may want to set allow_eval=true: ' + task_options);
+					throw e;
+				}
+			}
 			//console.log(task_options);
 		}
 
@@ -479,6 +507,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			task_configuration_from_section[title] = task_configuration;
 			if (Array.isArray(meta_configuration.also_replace_text) ? meta_configuration.also_replace_text.includes(title) : meta_configuration.also_replace_text) {
 				task_configuration_from_section[`insource:"${title}"`] = Object.clone(task_configuration);
+				//console.log(task_configuration_from_section);
 			}
 		}
 	});
@@ -512,6 +541,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 		for_section.apply(parsed, arguments);
 	}, {
 		get_users: true,
+		level_filter: use_language === 'zh' ? 3 : 2,
 	});
 
 	if (options && options.need_edit) {
@@ -570,7 +600,7 @@ async function notice_finished(wiki, meta_configuration) {
 		//完了、確認待ち TODO: +{{解決済み}}
 		summary: use_language === 'ja' ? '作業が終了しました' : 'Bot request task finished.'
 	};
-	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
+	const _log_to = meta_configuration.log_to ?? log_to;
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
@@ -687,7 +717,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		const _summary = typeof summary === 'string' ? summary
 			: discussion_link ? CeL.wiki.title_link_of(discussion_link, section_title)
 				: section_title;
-		const _log_to = 'log_to' in task_configuration ? task_configuration.log_to : log_to;
+		const _log_to = task_configuration.log_to ?? log_to;
 		// summary = null, undefined : using section_title as summary
 		// summary = '' : auto-fill summary with page-to-delete + '改名に伴うリンク修正'
 		if (_summary) {
@@ -881,7 +911,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 // ----------------------------------------------
 
 // リンク 参照読み込み 転送ページ
-const default_list_types = 'backlinks|embeddedin|redirects|categorymembers'.split('|');
+const default_list_types = 'backlinks|embeddedin|redirects|categorymembers|fileusage'.split('|');
 
 /** {String}default namespace to search and replace */
 const default_namespace = 'main|file|module|template|category|help|portal';
@@ -923,7 +953,7 @@ async function get_list(task_configuration, list_configuration) {
 		// combine_pages: for list_types = 'exturlusage'
 		// combine_pages: true,
 		// e.g., namespace : 0,
-		namespace: 'namespace' in list_configuration ? list_configuration.namespace : default_namespace
+		namespace: list_configuration.namespace ?? task_configuration.namespace ?? default_namespace
 	};
 
 	if (list_types.join() === 'exturlusage') {
@@ -1082,6 +1112,15 @@ async function get_list(task_configuration, list_configuration) {
 }
 
 async function main_move_process(task_configuration, meta_configuration) {
+	//console.trace(meta_configuration);
+	//console.trace(task_configuration);
+
+	for (const option of ['namespace']) {
+		if (option in meta_configuration) {
+			task_configuration[option] = meta_configuration[option];
+		}
+	}
+
 	let page_list = await get_list(task_configuration);
 	//console.log(page_list.length);
 	//console.log(page_list.slice(0, 10));
@@ -1106,10 +1145,11 @@ async function main_move_process(task_configuration, meta_configuration) {
 		// for 「株式会社リクルートホールディングス」の修正
 		// for リクルートをパイプリンクにする
 		// page_options: { rvprop: 'ids|content|timestamp|user' },
-		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
+		log_to: task_configuration.log_to ?? log_to,
 		summary: task_configuration.summary
 	};
 	for (const option of work_option_switches) {
+		//work_options[option] = task_configuration[option] ?? meta_configuration[option];
 		if (option in task_configuration) {
 			work_options[option] = task_configuration[option];
 		} else if (option in meta_configuration) {
@@ -1127,7 +1167,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 
 function for_each_page(page_data) {
 	// console.log(page_data.revisions[0].slots.main);
-	// console.log(this);
+	//console.trace(this);
 
 	if (this.text_processor) {
 		return this.text_processor(page_data.wikitext, page_data) || Wikiapi.skip_edit;
@@ -1144,13 +1184,17 @@ function for_each_page(page_data) {
 		parsed.each('link', for_each_link.bind(this));
 	}
 	if (this.move_to_link) {
-		parsed.each('file', for_each_file_link.bind(this));
+		parsed.each('file', for_each_file.bind(this));
 	}
 	if (this.move_to_link && this.move_from.ns === CeL.wiki.namespace('Category')) {
 		parsed.each('category', for_each_category.bind(this));
 	}
 	if (!this.move_from.anchor && !this.move_from.display_text) {
 		parsed.each('template', for_each_template.bind(this, page_data));
+	}
+
+	if (this.post_text_processor) {
+		return this.post_text_processor(parsed, page_data) || Wikiapi.skip_edit;
 	}
 
 	// return wikitext modified.
@@ -1160,49 +1204,9 @@ function for_each_page(page_data) {
 
 // ---------------------------------------------------------------------//
 
-function normalize_display_text(display_text, options) {
-	if (Array.isArray(display_text)) {
-		CeL.wiki.parser.parser_prototype.each.call(display_text, 'template', (token, index, parent) => {
-			if (token.name === 'Lang') {
-				parent[index] = token.parameters[2];
-				return;
-			}
-
-			if (token.name in {
-				'JIS90フォント': true,
-				'JIS2004フォント': true,
-				'CP932フォント': true,
-				'MacJapanese': true,
-				'ARIB外字フォント': true,
-				'絵文字フォント': true,
-				'補助漢字フォント': true,
-				'変体仮名フォント': true,
-				'通貨フォント': true,
-			}) {
-				parent[index] = token.parameters[1];
-				return;
-			}
-
-		});
-	}
-
-	display_text = display_text.toString()
-		//jawiki
-		.replace(/{{ *[lL]ang *\|[a-z ]{2,}\|(.+?)}}/g, '$1')
-		//jawiki
-		.replace(/{{ *(?:JIS90フォント|JIS2004フォント|CP932フォント|MacJapanese|ARIB外字フォント|絵文字フォント|補助漢字フォント|拡張漢字|変体仮名フォント|通貨フォント) *\|(.+?)}}/g, '$1');
-
-	display_text = CeL.HTML_to_Unicode(display_text);
-	if (options?.normalize_title)
-		display_text = CeL.wiki.normalize_title(display_text);
-	return display_text;
-}
-
-CeL.assert(['深圳|森鷗外', normalize_display_text(CeL.wiki.parse('深{{lang|zh|圳}}|森&#40407;外'))], 'normalize_display_text()');
-
 // e.g., 'title': { for_each_link: replace_tool.remove_duplicated_display_text },
 function remove_duplicated_display_text(token, index, parent) {
-	if (token[2] && (token[0] + token[1]).trim() === normalize_display_text(token[2]).trim()) {
+	if (token[2] && (token[0] + token[1]).trim() === CeL.wiki.get_plain_display_text(token[2]).trim()) {
 		token.pop();
 	}
 }
@@ -1285,7 +1289,7 @@ function for_each_link(token, index, parent) {
 
 	if (!token[2]) {
 		;
-	} else if (!token[1] && normalize_display_text(token[2], { normalize_title: true }) === this.move_to.page_title) {
+	} else if (!token[1] && CeL.wiki.get_plain_display_text(token[2], { normalize_title: true }) === this.move_to.page_title) {
 		// 去掉與頁面標題相同的 display_text。 preserve [[PH|pH]]
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
@@ -1321,18 +1325,23 @@ const for_each_category = for_each_link;
 
 // --------------------------------------------------------
 
-function for_each_file_link(token, index, parent) {
-	if (this.move_to_link && this.move_to_link !== DELETE_PAGE
-		&& token.link === this.move_from_link) {
-		// console.log(token);
-		for (let index = 1; index < token.length; index++) {
-			if (token[index] && token[index].type === 'plain'
-				&& token[index][0] === 'link' && token[index][1] === '='
-				&& typeof token[index][2] === 'string' && token[index][2].trim() === this.move_from_link) {
-				// assert: token[index].length === 3
-				token[index][2] = this.move_to_link;
-			}
+function for_each_file(token, index, parent) {
+	//console.log(this.move_to);
+	//console.trace(token);
+	if (this.move_from && this.move_from.page_name
+		&& this.move_from.page_name === token.name) {
+		if (this.move_to_link === DELETE_PAGE) {
+			return remove_token;
 		}
+
+		// e.g., [[File:move to.jpg|...]]
+		token[0] = this.move_to_link;
+	}
+
+	//console.trace([this.move_from_link, token.link]);
+	if (this.move_from_link === token.link) {
+		// e.g., [[File:pic.jpg|link=move to.jpg]]
+		token[token.index_of.link] = 'link=' + this.move_to_link;
 	}
 }
 
@@ -1342,6 +1351,9 @@ const no_ns_templates = {
 	Pathnav: true,
 	Navbox: true,
 	Catlink: true,
+
+	'Infobox 鐵道路線': '標誌',
+	'Infobox rail system-route': 'logo_filename',
 };
 
 function replace_template_parameter(value, parameter_name, template_token) {
@@ -1351,7 +1363,8 @@ function replace_template_parameter(value, parameter_name, template_token) {
 
 	const link = parse_move_link(value && value.toString(), this.wiki);
 	if (!link || (template_token.name in no_ns_templates
-		? link.ns || CeL.wiki.normalize_title(link.page_name) !== this.move_from.page_name
+		? no_ns_templates[template_token.name] !== true && no_ns_templates[template_token.name] !== parameter_name
+		|| link.ns || CeL.wiki.normalize_title(link.page_name) !== this.move_from.page_name
 		: CeL.wiki.normalize_title(link.page_title) !== this.move_from.page_title)) {
 		return;
 	}
@@ -1363,6 +1376,10 @@ function replace_template_parameter(value, parameter_name, template_token) {
 		return;
 	}
 
+	const this_parameter = template_token[template_token.index_of[parameter_name]];
+	//console.trace(this_parameter);
+	//保留 comments
+	parameter_name = this_parameter[0].toString().trim();
 	return {
 		[parameter_name]: (template_token.name in no_ns_templates
 			// 特別處理模板引數不加命名空間前綴的情況。
@@ -1374,6 +1391,11 @@ function replace_template_parameter(value, parameter_name, template_token) {
 }
 
 function check_link_parameter(task_configuration, template_token, parameter_name) {
+	let options;
+	if (Array.isArray(parameter_name)) {
+		//TODO
+		[options, parameter_name] = parameter_name;
+	}
 	const attribute_text = template_token.parameters[parameter_name];
 	if (!attribute_text) {
 		if (isNaN(parameter_name) || parameter_name == 1) {
@@ -1389,6 +1411,7 @@ function replace_link_parameter(task_configuration, template_token, template_has
 	if (!(template_token.name in template_hash))
 		return false;
 
+	//console.trace(template_token);
 	if (!task_configuration.move_to_link || task_configuration.move_to_link === DELETE_PAGE
 		|| task_configuration.move_to && !task_configuration.move_to.page_name
 		// [[w:ja:Special:Diff/79399447|Template:Latest stable software release/Android]] should not use this
@@ -1468,6 +1491,10 @@ function for_each_template(page_data, token, index, parent) {
 
 		// e.g., {{支流リンク|ラン河}}
 		支流リンク: 1,
+
+		//[[Special:Diff/61197015/61197026#車站編號標誌|Bot request]]
+		'Infobox 鐵道路線': '標誌',
+		'Infobox rail system-route': 'logo_filename',
 	})) return;
 
 	// templates that ALL parameters are displayed as link.
@@ -1551,14 +1578,14 @@ async function parse_move_pairs_from_page(page_title, options) {
 	const move_title_pair = Object.create(null);
 
 	if (options.using_table || options.caption) {
-		CeL.wiki.parser.parser_prototype.each.call(section_token, 'table', table => {
+		section_token.each('table', table => {
 			if (options.using_table || table.caption === options.caption)
-				parse_move_pairs_from_link(table, move_title_pair);
+				parse_move_pairs_from_link(table, move_title_pair, options);
 		});
 	} else {
-		CeL.wiki.parser.parser_prototype.each.call(section_token, 'list', list_token => {
-			if (list_token.length > 20)
-				parse_move_pairs_from_link(list_token, move_title_pair);
+		section_token.each('list', list_token => {
+			if (list_token.length > 5)
+				parse_move_pairs_from_link(list_token, move_title_pair, options);
 		});
 	}
 
@@ -1592,7 +1619,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 	if (line.type === 'table') {
 		//e.g., replace/20200607.COVID-19データ関連テンプレートの一斉改名に伴う改名提案テンプレート貼付.js
 		line.forEach(line => {
-			parse_move_pairs_from_link(line, move_title_pair);
+			parse_move_pairs_from_link(line, move_title_pair, options);
 		});
 		return;
 	}
@@ -1600,12 +1627,19 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 	if (line.type === 'list') {
 		//e.g., task/20200606.Move 500 River articles per consensus on tributary disambiguator.js
 		for (let index = 0; index < line.length; index++) {
-			parse_move_pairs_from_link(line[index], move_title_pair);
+			parse_move_pairs_from_link(line[index], move_title_pair, options);
 		}
 		return;
 	}
 
 	// ---------------------------------------------
+
+	function preprocess_link(link) {
+		// move_to: ":File:name.jpg" → "File:name.jpg"
+		link = CeL.wiki.normalize_title(link);
+		//console.trace(link);
+		return link;
+	}
 
 	let from, to;
 	CeL.wiki.parser.parser_prototype.each.call(line, 'link', link => {
@@ -1613,24 +1647,26 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 			CeL.error(`parse_move_pairs_from_link: Link with anchor: ${line}`);
 			throw new Error(`Link with anchor: ${line}`);
 		}
-		link = link[0].toString();
-		if (!from)
+		link = preprocess_link(link[0].toString());
+		if (!from) {
 			from = link;
-		else if (!to)
+		} else if (!to) {
 			to = link;
-		else
+		} else {
 			CeL.error(`parse_move_pairs_from_link: Too many links: ${line}`);
+		}
 	});
 
 	if (!from && !to) {
 		CeL.wiki.parser.parser_prototype.each.call(line, 'url', link => {
-			link = link[0];
-			if (!from)
+			link = preprocess_link(link[0]);
+			if (!from) {
 				from = link;
-			else if (!to)
+			} else if (!to) {
 				to = link;
-			else
+			} else {
 				CeL.error(`parse_move_pairs_from_link: Too many links: ${line}`);
+			}
 		});
 	}
 
@@ -1643,9 +1679,19 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 		return;
 	}
 
+	if (CeL.wiki.PATTERN_BOT_NAME.test(CeL.wiki.remove_namespace(from))
+		|| CeL.wiki.PATTERN_BOT_NAME.test(CeL.wiki.remove_namespace(to)))
+		return;
+
 	CeL.debug(CeL.wiki.title_link_of(from) + ' → ' + CeL.wiki.title_link_of(to), 2);
-	if (move_title_pair)
+	if (move_title_pair) {
+		//task_configuration_from_section[from] = to;
 		move_title_pair[from] = to;
+		if (Array.isArray(options.also_replace_text) ? options.also_replace_text.includes(from) : options.also_replace_text) {
+			move_title_pair[`insource:"${from}"`] = to;
+			//console.log(move_title_pair);
+		}
+	}
 
 	return [from, to];
 }
@@ -1691,7 +1737,6 @@ module.exports = {
 	// for modify
 	replace: replace_tool,
 	remove_duplicated_display_text,
-	//normalize_display_text,
 
 	// for move
 	parse_move_pairs_from_page,
