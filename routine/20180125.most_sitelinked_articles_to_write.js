@@ -46,6 +46,10 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
+setTimeout(main_process);
+
+// ----------------------------------------------------------------------------
+
 var items_without = Object.create(null),
 //
 SQL_session = new CeL.wiki.SQL(function(error) {
@@ -54,42 +58,46 @@ SQL_session = new CeL.wiki.SQL(function(error) {
 	}
 }, 'wikidata');
 
-get_most_sitelinked_items(function(item_count_pairs) {
+function main_process() {
+	get_most_sitelinked_items(function(item_count_pairs) {
 
-	var language = 'zh';
+		var language = 'zh';
 
-	get_most_sitelinked_items_exclude_language(language, function(item_list) {
-		exclude_non_article(item_list, for_item_list_passed, {
-			language : language,
-			reget : reget,
-			item_count_pairs : item_count_pairs
-		});
-		return;
+		get_most_sitelinked_items_exclude_language(language,
+		//
+		function(item_list) {
+			exclude_non_article(item_list, for_item_list_passed, {
+				language : language,
+				reget : reget,
+				item_count_pairs : item_count_pairs
+			});
+			return;
 
-		get_most_sitelinked_items_exclude_language('ja', function(
-				items_of_count, item_list) {
-			SQL_session.connection.destroy();
-			if (false) {
-				console.log(Object.keys(items_of_count.map(function(count) {
-					return +count;
-				}).sort(function(a, b) {
-					return a - b;
-				})));
-			}
-			CeL.info('Done.');
+			get_most_sitelinked_items_exclude_language('ja', function(
+					items_of_count, item_list) {
+				SQL_session.connection.destroy();
+				if (false) {
+					console.log(Object.keys(items_of_count.map(function(count) {
+						return +count;
+					}).sort(function(a, b) {
+						return a - b;
+					})));
+				}
+				CeL.info('Done.');
+			}, {
+				reget : reget,
+				item_count_pairs : item_count_pairs
+			});
+
 		}, {
 			reget : reget,
 			item_count_pairs : item_count_pairs
 		});
 
 	}, {
-		reget : reget,
-		item_count_pairs : item_count_pairs
+		reget : reget
 	});
-
-}, {
-	reget : reget
-});
+}
 
 // ----------------------------------------------------------------------------
 
