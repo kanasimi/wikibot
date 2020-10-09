@@ -1,7 +1,14 @@
 ﻿/*
-node 20201008.fix_anchor.js
+node 20201008.fix_anchor.js use_language=en
+node 20201008.fix_anchor.js use_language=zh
 
-	初版試營運
+2020/10/9 19:0:26	初版試營運
+
+# Listen to edits modified section title in ARTICLE.
+# Cheching all pages linking to the ARTICLE.
+# If there are links with old anchor, modift it to the newer one.
+# If need, the bot will search reversions to find previous renamed section title.
+# The bot may notice in the talk page for lost anchors.
 
 TODO:
 
@@ -18,7 +25,7 @@ CeL.run([
 	'application.debug.log']);
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('zh');
+//set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
@@ -43,14 +50,15 @@ async function main_process() {
 
 		try {
 			//await check_page('臺灣話');
+
+			//await check_page('民族布尔什维克主义');
+			// [[w:zh:Special:Diff/37559912]]
+			await check_page('香港特別行政區區旗');
+			return;
 		} catch (e) {
 			console.error(e);
 		}
 	}
-
-	//await check_page('民族布尔什维克主义');
-	await check_page('香港特別行政區區旗');
-	return;
 
 	wiki.listen(for_each_row, {
 		with_diff: { LCS: true, line: true },
@@ -58,17 +66,22 @@ async function main_process() {
 	});
 
 	routine_task_done('1d');
+
+	CeL.log('Listening...');
+	CeL.log('-'.repeat(60));
 }
 
 function filter_row(row) {
 	// [[Wikipedia:優良條目評選/提名區]]
 	// [[Wikipedia:優良條目重審/提名區]]
 	// [[Wikipedia:優良條目候選/提名區]]
-	if (/評選|提名區/.test(row.title))
+	// [[Wikipedia:典范条目评选/提名区]]
+	// [[User:Cewbot/log/20150916]]
+	if (/提名區|提名区|\/log\//.test(row.title) || /(\/Sandbox|\/沙盒)$/.test(row.title))
 		return;
 
-	if (wiki.is_namespace(row, 'Draft')) {
-		// ignore all link to [[Draft:]]
+	if (wiki.is_namespace(row, 'Draft') || wiki.is_namespace(row, 'User talk')) {
+		// ignore all link to [[Draft:]], [[User talk:]]
 		return;
 	}
 
@@ -87,26 +100,29 @@ async function for_each_row(row) {
 	if (removed_section_titles.length > 3) {
 		if (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Wikipedia talk')) {
 			// 去除剪貼移動式 archive 的情況。
-			CeL.info(`for_each_row: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just archived?`);
+			CeL.info(`${for_each_row.name}: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just archived?`);
 			return;
 		}
 		// TODO: check {{Archives}}, {{Archive box}}, {{Easy Archive}}
 	}
 
 	if (removed_section_titles.length > 0) {
-		CeL.log('-'.repeat(60));
-		CeL.info(`for_each_row: ${
+		CeL.info(`${for_each_row.name}: ${
 			CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])}${
-			removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section titles (${removed_section_titles.slice(1).join(', ')})` : ''} is ${
-			removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'} by ${CeL.wiki.title_link_of('user:' + row.revisions[0].user)}.`);
+			removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''} is ${
+			removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'} by ${CeL.wiki.title_link_of('user:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
 		try {
 			//console.trace(row.revisions[0].slots);
 			const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
 			// pages_modified maybe undefined
-			CeL.info(`for_each_row: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
+			CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
+			if (pages_modified > 0) {
+				CeL.error(`${for_each_row.name}: Modify ${CeL.wiki.title_link_of(row.title)}`);
+			}
 		} catch (e) {
 			console.error(e);
 		}
+		CeL.log('-'.repeat(60));
 	}
 }
 
@@ -119,7 +135,8 @@ function get_all_plain_text_section_title_of_wikitext(wikitext) {
 		const parsed = CeL.wiki.parser(wikitext).parse();
 		parsed.each('section_title', token => {
 			//console.log(token);
-			if (token.length === 1 && typeof token[0] === 'string') {
+			// TODO: == A [[L]] B ==
+			if (token.every(t => typeof t === 'string' || t.type === 'link')) {
 				// exclude "=={{T}}=="
 				section_title_list.push(token.title);
 			}
@@ -136,7 +153,12 @@ const KEY_got_full_revisions = Symbol('got full revisions');
 async function tracking_section_title_history(page_data, options) {
 	options = CeL.setup_options(options);
 	//section_title_history[section_title]={appear:{revid:0},disappear:{revid:0},rename_to:''}
-	const section_title_history = options.section_title_history || Object.create(null);
+	const section_title_history = options.section_title_history || {
+		// 所有頁面必然皆有的 default anchors
+		top: {
+			present: true
+		}
+	};
 
 	function set_recent_section_title(wikitext, revision) {
 		get_all_plain_text_section_title_of_wikitext(wikitext)
@@ -156,15 +178,15 @@ async function tracking_section_title_history(page_data, options) {
 	}
 
 	function check_and_set(section_title, type, revision) {
-		// TODO: 字詞轉換 section_title
 		if (!section_title_history[section_title]) {
 			section_title_history[section_title] = {
 				title: section_title,
 				appear: null,
 			};
 		} else if (section_title_history[section_title][type]) {
-			if (CeL.is_debug(0)) {
-				CeL.warn(`${wiki.normalize_title(page_data)}#${section_title} is existed! ${JSON.stringify(section_title_history[section_title])}`);
+			// 已經有比較新的資料。
+			if (CeL.is_debug()) {
+				CeL.warn(`${tracking_section_title_history.name}: ${wiki.normalize_title(page_data)}#${section_title} is existed! ${JSON.stringify(section_title_history[section_title])}`);
 				CeL.log(`Older to set ${type}: ${JSON.stringify(revision)}`);
 			}
 			return true;
@@ -182,7 +204,7 @@ async function tracking_section_title_history(page_data, options) {
 			to = section_title_history[to].rename_to;
 			if (rename_to_chain.includes(to)) {
 				rename_to_chain.push(to);
-				CeL.warn(`Looped rename chain @ ${CeL.wiki.title_link_of(page_data)}: ${rename_to_chain.join('→')}`);
+				CeL.warn(`${tracking_section_title_history.name}: Looped rename chain @ ${CeL.wiki.title_link_of(page_data)}: ${rename_to_chain.join('→')}`);
 				return;
 			}
 		}
@@ -197,7 +219,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	//if (section_title_history[KEY_got_full_revisions]) return section_title_history;
 
-	CeL.info(`Trying to traversal all revisions of ${CeL.wiki.title_link_of(page_data)}...`);
+	CeL.info(`${tracking_section_title_history.name}: Trying to traversal all revisions of ${CeL.wiki.title_link_of(page_data)}...`);
 
 	await wiki.tracking_revisions(page_data, (diff, revision) => {
 		if (!section_title_history[KEY_latest_page_data]) {
@@ -205,22 +227,14 @@ async function tracking_section_title_history(page_data, options) {
 		}
 
 		let [removed_text, added_text] = diff;
-		removed_text = get_all_plain_text_section_title_of_wikitext(removed_text);
-		added_text = get_all_plain_text_section_title_of_wikitext(added_text).filter(title => {
-			// 警告：在 line_mode，"A \n"→"A\n" 的情況下，
-			// "A" 會同時出現在增加與刪除的項目中，此時必須自行檢測排除。
-			const index = removed_text.indexOf(title);
-			if (index >= 0) {
-				removed_text.splice(index, 1);
-			} else {
-				return true;
-			}
-		});
-		if (!added_text.length && !removed_text.length)
-			return;
-
 		if (false)
 			console.trace([diff, removed_text, added_text, revision]);
+
+		removed_text = get_all_plain_text_section_title_of_wikitext(removed_text);
+		added_text = get_all_plain_text_section_title_of_wikitext(added_text);
+
+		if (removed_text.length === 0 && added_text.length === 0)
+			return;
 
 		if (!revision.removed_section_titles) {
 			revision.removed_section_titles = [];
@@ -229,32 +243,54 @@ async function tracking_section_title_history(page_data, options) {
 		revision.removed_section_titles.append(removed_text);
 		revision.added_section_titles.append(added_text);
 
-		removed_text.forEach(section_title => {
-			check_and_set(section_title, 'disappear', revision);
-		});
-		added_text.forEach(section_title => {
-			check_and_set(section_title, 'appear', revision);
-		});
-
-		if (added_text.length === 1 && removed_text.length === 1 && !section_title_history[removed_text[0]]?.rename_to) {
-			if (section_title_history[added_text[0]]) {
-				set_rename_to(removed_text[0], added_text[0]);
-			} else {
-				console.trace([diff, removed_text, added_text, revision, section_title_history[removed_text[0]]]);
-				throw new Error('Should not go to here! ' + removed_text[0] + '→' + added_text[0]);
-			}
-		}
 	}, {
 		revision_post_processor(revision) {
-			//save memory
+			// save memory
 			delete revision.slots;
-			// 整個編輯幅度不大，且一增一減時，才當作是改變章節名稱。
-			if (revision.removed_section_titles?.length === 1
-				&& revision.added_section_titles?.length === 1
-				&& section_title_history[revision.added_section_titles[0]].appear === revision) {
-				// Using the newer one as .rename_to
-				set_rename_to(revision.removed_section_titles[0], revision.added_section_titles[0]);
+			delete revision.diff_list;
+
+			if (!revision.removed_section_titles) {
+				// No new section title modified
+				return;
 			}
+
+			revision.removed_section_titles = revision.removed_section_titles.filter(section_title => {
+				// TODO: 字詞轉換 繁簡轉換 section_title
+
+				// 警告：在 line_mode，"A \n"→"A\n" 的情況下，
+				// "A" 會同時出現在增加與刪除的項目中，此時必須自行檢測排除。
+				// 亦可能是搬到較遠地方。
+				const index = revision.added_section_titles.indexOf(section_title);
+				if (index >= 0) {
+					revision.added_section_titles.splice(index, 1);
+				} else {
+					return true;
+				}
+			});
+
+			let has_newer_data;
+			revision.removed_section_titles.forEach(section_title => {
+				if (check_and_set(section_title, 'disappear', revision))
+					has_newer_data = true;
+			});
+			revision.added_section_titles.forEach(section_title => {
+				if (check_and_set(section_title, 'appear', revision))
+					has_newer_data = true;
+			});
+
+			// TODO: 整次編輯幅度不大，且一增一減時，才當作是改變章節名稱。
+			if (!has_newer_data && revision.removed_section_titles.length === 1 && revision.added_section_titles.length === 1) {
+				const from = revision.removed_section_titles[0], to = revision.added_section_titles[0];
+				// assert: section_title_history[from].disappear === revision && section_title_history[to].appear === revision
+				if (section_title_history[from].rename_to) {
+					// 這個時間點之後，`from` 有再次出現並且重新命名過。
+					// TODO: ignore reverted edit
+				} else {
+					// from → to
+					set_rename_to(from, to);
+				}
+			}
+
 		},
 		search_diff: true,
 		rvlimit: 'max',
@@ -280,16 +316,21 @@ async function check_page(target_page_data, options) {
 	const section_title_history = await tracking_section_title_history(target_page_data, { set_recent_section_only: true });
 	//console.trace(section_title_history);
 
-	link_from.append(await wiki.backlinks(target_page_data, {
+	link_from.append((await wiki.backlinks(target_page_data, {
 		//namespace: 'main|file|module|template|category|help|portal'
-	}));
+	})).filter(page_data =>
+		!/\/(Sandbox|沙盒|Archive|存檔|存档)( ?\d+)?$/.test(page_data.title)
+		// [[User:Cewbot/log/20151002/存檔5]]
+		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
+		&& !/\/(Archive|存檔|存档|log)\//.test(page_data.title)
+	));
 
 	if (link_from.length > 500 && !(options.removed_section_titles.length === 1 && options.added_section_titles.length === 1)) {
-		CeL.warn(`check_page: Too many pages (${link_from.length}) linking to ${CeL.wiki.title_link_of(target_page_data)}. Skip this page.`);
+		CeL.warn(`${check_page.name}: Too many pages (${link_from.length}) linking to ${CeL.wiki.title_link_of(target_page_data)}. Skip this page.`);
 		return;
 	}
 
-	CeL.info(`check_page: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
+	CeL.info(`${check_page.name}: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
 
 	let working_queue;
 	const summary = 'Fix broken anchor of ' + CeL.wiki.title_link_of(target_page_data);
@@ -320,7 +361,7 @@ async function check_page(target_page_data, options) {
 				if (working_queue) {
 					working_queue.list.push(linking_page);
 				} else {
-					CeL.info(`Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page)}.`);
+					CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page)}.`);
 					// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 					working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 						.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
@@ -336,15 +377,15 @@ async function check_page(target_page_data, options) {
 			if (rename_to && section_title_history[rename_to]?.present) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
-				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}]])`;
+				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]])`;
 				token[1] = rename_to;
 				changed = true;
 			} else {
-				CeL.warn(`Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(section_title_history[token.anchor])}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''})`);
+				CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(section_title_history[token.anchor])}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''})`);
 			}
 		});
 
-		if (!changed)
+		if (true || !changed)
 			return Wikiapi.skip_edit;
 
 		pages_modified++;
