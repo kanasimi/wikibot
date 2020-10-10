@@ -8,9 +8,10 @@ node 20201008.fix_anchor.js use_language=zh
 # Checking all pages linking to the ARTICLE.
 # If there are links with old anchor, modify it to the newer one.
 # If need, the bot will search revisions to find previous renamed section title.
-# The bot may notice in the talk page for lost anchors.
 
 TODO:
+# The bot may notice in the talk page for lost anchors.
+字詞轉換 繁簡轉換
 
  */
 
@@ -44,7 +45,8 @@ const wiki = new Wikiapi;
 async function main_process() {
 
 	if (false) {
-		const revision = await wiki.tracking_revisions('安定门 (北京)', '拆除安定门前', { rvlimit: 'max' });
+		// for debug only
+		const revision = await wiki.tracking_revisions('安定门 (北京)', '拆除安定门前');
 		console.trace(revision);
 		return;
 
@@ -61,7 +63,8 @@ async function main_process() {
 
 	wiki.listen(for_each_row, {
 		with_diff: { LCS: true, line: true },
-		filter: filter_row
+		filter: filter_row,
+		namespace: 0,
 	});
 
 	routine_task_done('1d');
@@ -95,8 +98,8 @@ async function for_each_row(row) {
 	const removed_section_titles = [], added_section_titles = [];
 	diff_list.forEach(diff => {
 		//const [removed_text, added_text] = diff;
-		removed_section_titles.append(get_all_plain_text_section_title_of_wikitext(diff[0]));
-		added_section_titles.append(get_all_plain_text_section_title_of_wikitext(diff[1]));
+		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0]));
+		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1]));
 	});
 
 	if (removed_section_titles.length > 3) {
@@ -130,7 +133,7 @@ async function for_each_row(row) {
 
 // ----------------------------------------------------------------------------
 
-function get_all_plain_text_section_title_of_wikitext(wikitext) {
+function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 	const section_title_list = [];
 
 	if (wikitext) {
@@ -163,7 +166,7 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		get_all_plain_text_section_title_of_wikitext(wikitext)
+		get_all_plain_text_section_titles_of_wikitext(wikitext)
 			.forEach(section_title => section_title_history[section_title] = {
 				title: section_title,
 				// is present section title
@@ -232,8 +235,8 @@ async function tracking_section_title_history(page_data, options) {
 		if (false)
 			console.trace([diff, removed_text, added_text, revision]);
 
-		removed_text = get_all_plain_text_section_title_of_wikitext(removed_text);
-		added_text = get_all_plain_text_section_title_of_wikitext(added_text);
+		removed_text = get_all_plain_text_section_titles_of_wikitext(removed_text);
+		added_text = get_all_plain_text_section_titles_of_wikitext(added_text);
 
 		if (removed_text.length === 0 && added_text.length === 0)
 			return;
@@ -344,7 +347,8 @@ async function check_page(target_page_data, options) {
 	CeL.info(`${check_page.name}: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
 
 	let working_queue;
-	const summary = 'Fix broken anchor of ' + CeL.wiki.title_link_of(target_page_data);
+	let summary = wiki.site_name() === 'zhwiki' ? '修正失效的章節標題：' : 'Fix broken anchor of ';
+	summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
 		summary,
@@ -379,7 +383,7 @@ async function check_page(target_page_data, options) {
 					// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 					working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 						.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
-						.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page)}: Get ${Object.keys(section_title_history).length} section title records.`))
+						.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
 						// free
 						.then(() => working_queue = null);
 					working_queue.list = [linking_page];
@@ -391,8 +395,8 @@ async function check_page(target_page_data, options) {
 			if (rename_to && section_title_history[rename_to]?.present) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
-				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: ${token.anchor}→${rename_to}`);
-				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${rename_to})`;
+				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
+				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${CeL.wiki.title_link_of(linking_page.title + rename_to)})`;
 				token[1] = rename_to;
 				changed = true;
 			} else {
@@ -400,7 +404,7 @@ async function check_page(target_page_data, options) {
 			}
 		});
 
-		if (true && !changed)
+		if (!changed)
 			return Wikiapi.skip_edit;
 
 		pages_modified++;
