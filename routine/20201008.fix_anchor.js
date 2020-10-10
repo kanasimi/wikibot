@@ -4,9 +4,9 @@ node 20201008.fix_anchor.js use_language=zh
 
 2020/10/9 19:0:26	初版試營運
 
-# Listen to edits modified section title in ARTICLE.
-# Cheching all pages linking to the ARTICLE.
-# If there are links with old anchor, modift it to the newer one.
+# Listen to edits modifying section title in ARTICLE.
+# Checking all pages linking to the ARTICLE.
+# If there are links with old anchor, modify it to the newer one.
 # If need, the bot will search revisions to find previous renamed section title.
 # The bot may notice in the talk page for lost anchors.
 
@@ -48,18 +48,15 @@ async function main_process() {
 		console.trace(revision);
 		return;
 
-		try {
-			await check_page('臺灣話', { force_check: true });
+		await check_page('臺灣話', { force_check: true });
 
-			await check_page('民族布尔什维克主义', { force_check: true });
-			// [[w:zh:Special:Diff/37559912]]
-			await check_page('香港特別行政區區旗', { force_check: true });
-			await check_page('新黨', { force_check: true });
-			return;
+		await check_page('民族布尔什维克主义', { force_check: true });
+		// [[w:zh:Special:Diff/37559912]]
+		await check_page('香港特別行政區區旗', { force_check: true });
+		await check_page('新黨', { force_check: true });
 
-		} catch (e) {
-			console.error(e);
-		}
+		await check_page('Species', { force_check: true });
+		return;
 	}
 
 	wiki.listen(for_each_row, {
@@ -122,7 +119,7 @@ async function for_each_row(row) {
 			// pages_modified maybe undefined
 			CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
 			if (pages_modified > 0) {
-				CeL.error(`${for_each_row.name}: Modify ${CeL.wiki.title_link_of(row.title)}`);
+				CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) link ${CeL.wiki.title_link_of(row.title)}`);
 			}
 		} catch (e) {
 			console.error(e);
@@ -382,7 +379,7 @@ async function check_page(target_page_data, options) {
 					// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 					working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 						.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
-						//.then(() => console.trace(section_title_history))
+						.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page)}: Get ${Object.keys(section_title_history).length} section title records.`))
 						// free
 						.then(() => working_queue = null);
 					working_queue.list = [linking_page];
@@ -394,8 +391,8 @@ async function check_page(target_page_data, options) {
 			if (rename_to && section_title_history[rename_to]?.present) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
-				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to}`);
-				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token}→${rename_to})`;
+				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: ${token.anchor}→${rename_to}`);
+				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${rename_to})`;
 				token[1] = rename_to;
 				changed = true;
 			} else {
