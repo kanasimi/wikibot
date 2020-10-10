@@ -7,7 +7,7 @@ node 20201008.fix_anchor.js use_language=zh
 # Listen to edits modified section title in ARTICLE.
 # Cheching all pages linking to the ARTICLE.
 # If there are links with old anchor, modift it to the newer one.
-# If need, the bot will search reversions to find previous renamed section title.
+# If need, the bot will search revisions to find previous renamed section title.
 # The bot may notice in the talk page for lost anchors.
 
 TODO:
@@ -49,12 +49,14 @@ async function main_process() {
 		return;
 
 		try {
-			//await check_page('臺灣話');
+			await check_page('臺灣話', { force_check: true });
 
-			//await check_page('民族布尔什维克主义');
+			await check_page('民族布尔什维克主义', { force_check: true });
 			// [[w:zh:Special:Diff/37559912]]
-			await check_page('香港特別行政區區旗');
+			await check_page('香港特別行政區區旗', { force_check: true });
+			await check_page('新黨', { force_check: true });
 			return;
+
 		} catch (e) {
 			console.error(e);
 		}
@@ -77,8 +79,11 @@ function filter_row(row) {
 	// [[Wikipedia:優良條目候選/提名區]]
 	// [[Wikipedia:典范条目评选/提名区]]
 	// [[User:Cewbot/log/20150916]]
-	if (/提名區|提名区|\/log\//.test(row.title) || /(\/Sandbox|\/沙盒)$/.test(row.title))
+	if (/提名區|提名区|\/log\//.test(row.title)
+		// [[Wikipedia:新条目推荐/候选]]
+		|| /(\/Sandbox|\/沙盒|\/候选)$/.test(row.title)) {
 		return;
+	}
 
 	if (wiki.is_namespace(row, 'Draft') || wiki.is_namespace(row, 'User talk')) {
 		// ignore all link to [[Draft:]], [[User talk:]]
@@ -186,7 +191,7 @@ async function tracking_section_title_history(page_data, options) {
 		} else if (section_title_history[section_title][type]) {
 			// 已經有比較新的資料。
 			if (CeL.is_debug()) {
-				CeL.warn(`${tracking_section_title_history.name}: ${wiki.normalize_title(page_data)}#${section_title} is existed! ${JSON.stringify(section_title_history[section_title])}`);
+				CeL.warn(`${tracking_section_title_history.name}: ${type} of ${wiki.normalize_title(page_data)}#${section_title} is existed! ${JSON.stringify(section_title_history[section_title])}`);
 				CeL.log(`Older to set ${type}: ${JSON.stringify(revision)}`);
 			}
 			return true;
@@ -270,24 +275,27 @@ async function tracking_section_title_history(page_data, options) {
 
 			let has_newer_data;
 			revision.removed_section_titles.forEach(section_title => {
-				if (check_and_set(section_title, 'disappear', revision))
+				if (check_and_set(section_title, 'disappear', revision)) {
 					has_newer_data = true;
+				}
 			});
 			revision.added_section_titles.forEach(section_title => {
-				if (check_and_set(section_title, 'appear', revision))
-					has_newer_data = true;
+				if (check_and_set(section_title, 'appear', revision)) {
+					//has_newer_data = true;
+				}
 			});
 
 			// TODO: 整次編輯幅度不大，且一增一減時，才當作是改變章節名稱。
 			if (!has_newer_data && revision.removed_section_titles.length === 1 && revision.added_section_titles.length === 1) {
 				const from = revision.removed_section_titles[0], to = revision.added_section_titles[0];
 				// assert: section_title_history[from].disappear === revision && section_title_history[to].appear === revision
-				if (section_title_history[from].rename_to) {
-					// 這個時間點之後，`from` 有再次出現並且重新命名過。
-					// TODO: ignore reverted edit
-				} else {
+				if (!section_title_history[from].rename_to) {
 					// from → to
 					set_rename_to(from, to);
+				} else if (to !== section_title_history[from].rename_to) {
+					// 這個時間點之後，`from` 有再次出現並且重新命名過。
+					CeL.warn(`#${from} is renamed to #${section_title_history[from].rename_to} in newer revision, but also renamed to #${to} in older revision`);
+					// TODO: ignore reverted edit
 				}
 			}
 
@@ -319,13 +327,19 @@ async function check_page(target_page_data, options) {
 	link_from.append((await wiki.backlinks(target_page_data, {
 		//namespace: 'main|file|module|template|category|help|portal'
 	})).filter(page_data =>
-		!/\/(Sandbox|沙盒|Archive|存檔|存档)( ?\d+)?$/.test(page_data.title)
+		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
 		// [[User:Cewbot/log/20151002/存檔5]]
 		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
-		&& !/\/(Archive|存檔|存档|log)\//.test(page_data.title)
+		// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
+		&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
+		// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
+		// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
+		&& !/^(Wikipedia:(Articles for creation|Database reports))\//.test(page_data.title)
 	));
 
-	if (link_from.length > 500 && !(options.removed_section_titles.length === 1 && options.added_section_titles.length === 1)) {
+	if (link_from.length > 500 && !options.force_check
+		// 連結的頁面太多時，只挑選較確定是改變章節名稱的。
+		&& !(options.removed_section_titles && options.removed_section_titles.length === 1 && options.added_section_titles.length === 1)) {
 		CeL.warn(`${check_page.name}: Too many pages (${link_from.length}) linking to ${CeL.wiki.title_link_of(target_page_data)}. Skip this page.`);
 		return;
 	}
@@ -348,6 +362,9 @@ async function check_page(target_page_data, options) {
 		const parsed = linking_page.parse();
 		// console.log(parsed);
 		CeL.assert([linking_page.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page));
+		if (linking_page.ns !== 0 && linking_page.wikitext.length > /* 10_000_000 / 500 */ 500000) {
+			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page)}: ${linking_page.wikitext.length} chars`);
+		}
 
 		let changed;
 		parsed.each('link', token => {
@@ -377,7 +394,8 @@ async function check_page(target_page_data, options) {
 			if (rename_to && section_title_history[rename_to]?.present) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
-				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]])`;
+				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to}`);
+				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token}→${rename_to})`;
 				token[1] = rename_to;
 				changed = true;
 			} else {
@@ -385,7 +403,7 @@ async function check_page(target_page_data, options) {
 			}
 		});
 
-		if (true || !changed)
+		if (true && !changed)
 			return Wikiapi.skip_edit;
 
 		pages_modified++;
