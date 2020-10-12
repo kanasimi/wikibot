@@ -203,6 +203,14 @@ async function tracking_section_title_history(page_data, options) {
 		if (from === to || section_title_history[from]?.present)
 			return;
 
+		// 當差異過大時，不視為相同的意涵。
+		// TODO: CeL.edit_distance()
+		if (!from.includes(to) && to.includes(from) &&
+			2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0) > from.length + to.length
+		) {
+			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning: ${from}→${to}`);
+		}
+
 		const rename_to_chain = [from];
 		while (!section_title_history[to]?.present && section_title_history[to]?.rename_to) {
 			rename_to_chain.push(to);
