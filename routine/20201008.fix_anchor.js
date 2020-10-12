@@ -404,7 +404,7 @@ async function check_page(target_page_data, options) {
 			}
 		});
 
-		if (!changed)
+		if (true && !changed)
 			return Wikiapi.skip_edit;
 
 		pages_modified++;
