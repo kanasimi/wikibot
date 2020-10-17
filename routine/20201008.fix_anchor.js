@@ -61,6 +61,7 @@ async function main_process() {
 		return;
 	}
 
+
 	wiki.listen(for_each_row, {
 		with_diff: { LCS: true, line: true },
 		filter: filter_row,
@@ -112,10 +113,7 @@ async function for_each_row(row) {
 	}
 
 	if (removed_section_titles.length > 0) {
-		CeL.info(`${for_each_row.name}: ${
-			CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])}${
-			removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''} is ${
-			removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'} by ${CeL.wiki.title_link_of('user:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
+		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])}${removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'} by ${CeL.wiki.title_link_of('user:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
 		try {
 			//console.trace(row.revisions[0].slots);
 			const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
@@ -154,6 +152,40 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 const KEY_latest_page_data = Symbol('latest page_data');
 const KEY_got_full_revisions = Symbol('got full revisions');
 
+function mark_language_variants(recent_section_title_list, section_title_history, revision) {
+	function mark_list(converted_list) {
+		const variant = this;
+		//console.trace(variant + ': ' + converted_list);
+		recent_section_title_list.forEach((section_title, index) => {
+			const converted = converted_list[index];
+			if (section_title === converted)
+				return;
+			let record = section_title_history[converted];
+			if (!record) {
+				section_title_history[converted] = record = {
+					title: converted,
+				};
+			}
+			if (!record.present) {
+				if (record.rename_to && record.rename_to !== section_title) {
+					CeL.error(`${mark_language_variants.name}: rename_to: ${record.rename_to}→${section_title}`);
+				}
+				record.rename_to = section_title;
+			}
+			CeL.debug(`${mark_language_variants.name}: ${converted}→${section_title}`);
+			let variant_of = record.variant_of;
+			if (!variant_of)
+				record.variant_of = variant_of = [];
+			variant_of.push([variant, section_title]);
+		});
+		//console.log(section_title_history);
+	}
+
+	for (const variant of ['zh-hant', 'zh-hans']) {
+		wiki.convert_Chinese(recent_section_title_list, variant).then(mark_list.bind(variant));
+	}
+}
+
 // get section title history
 async function tracking_section_title_history(page_data, options) {
 	options = CeL.setup_options(options);
@@ -166,13 +198,14 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		get_all_plain_text_section_titles_of_wikitext(wikitext)
-			.forEach(section_title => section_title_history[section_title] = {
-				title: section_title,
-				// is present section title
-				present: revision || true,
-				appear: null,
-			});
+		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext);
+		mark_language_variants(section_title_list, section_title_history, revision);
+		section_title_list.forEach(section_title => section_title_history[section_title] = {
+			title: section_title,
+			// is present section title
+			present: revision || true,
+			appear: null,
+		});
 		section_title_history[KEY_latest_page_data] = page_data;
 	}
 
@@ -371,8 +404,8 @@ async function check_page(target_page_data, options) {
 		const parsed = linking_page.parse();
 		// console.log(parsed);
 		CeL.assert([linking_page.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page));
-		if (linking_page.ns !== 0 && linking_page.wikitext.length > /* 10_000_000 / 500 */ 500000) {
-			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page)}: ${linking_page.wikitext.length} chars`);
+		if (linking_page.ns !== 0 && linking_page.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
+			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page)}: ${CeL.show_KiB(linking_page.wikitext.length)} chars`);
 		}
 
 		let changed;
