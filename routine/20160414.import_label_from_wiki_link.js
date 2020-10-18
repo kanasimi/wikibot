@@ -190,7 +190,9 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 // CJK 用 外國語言版本指示器。
 // 注意: 採取寧缺勿濫原則。
 // TODO: [[:en:List of ISO 639-2 codes]]
-PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](?:文|[語语國国]文?)[名字]?$|(?:国|フランス|ドイツ|ロシア)語$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+// TODO: \p{Katakana}
+// @see https://www.tactsystem.co.jp/blog/post-94/
+PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](?:文|[語语國国]文?)[名字]?$|(?:国|[ァ-ヴ][ァ-ヴー]*(?:[・＝][ァ-ヴ][ァ-ヴー]*)*)語$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
 
 '著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語|ケベック英語|法律英語'
 // TODO: should be OK: |英語版の有名人のリスト
@@ -198,7 +200,7 @@ PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓�
 	if (PATTERN_CJK_foreign_language_indicator.test(title))
 		throw title;
 });
-"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|イタリア語版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版|英語版該当ページ|フランス語版|伊語版|アラビア語版|スペイン語版|英語版のサイト"
+"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|イタリア語版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版|英語版該当ページ|フランス語版|伊語版|アラビア語|アラビア語版|スペイン語|スペイン語版|英語版のサイト"
 // should be NG:
 .split('|').forEach(function(title) {
 	if (!PATTERN_CJK_foreign_language_indicator.test(title))
