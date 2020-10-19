@@ -436,9 +436,21 @@ function for_each_old_page(page_data) {
 			// TODO: 檢查非站務與維護分類
 			&& !publish_name_list.includes(token.name)) {
 				has_category = true;
-				// TODO: 可跳出。
+				return current_content.each.exit;
 			}
 		});
+		if (!has_category) {
+			// 將已加入[[Template:分類]]視為有效分類，並執行保護。
+			current_content.each('template', function(token) {
+				if (token.name in {
+					分類 : true,
+					分类 : true
+				}) {
+					has_category = true;
+					return current_content.each.exit;
+				}
+			});
+		}
 	}
 
 	if (!do_not_need_category && !has_category) {
