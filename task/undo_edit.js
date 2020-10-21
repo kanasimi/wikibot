@@ -89,13 +89,13 @@ wiki.usercontribs(user_name, function(list) {
 
 var check_diff = false;
 function filter_diff(diff) {
-	var plus = diff[0], minus = diff[1];
+	var removed_text = diff[0], added_text = diff[1];
 	// console.log(diff);
-	var need_fix = plus
-			&& minus
-			&& plus.length < minus.length
+	var need_fix = added_text
+			&& removed_text
+			&& added_text.length < removed_text.length
 			&& /\[\[ *(?:File|Fichier|檔案|档案|文件|ファイル|Image|圖像|图像|画像|Media|媒[體体](?:文件)?)/i
-					.test(plus);
+					.test(added_text);
 	if (false && need_fix)
 		console.log(diff);
 	return need_fix;
@@ -131,8 +131,8 @@ function for_each_page(run_next, title, index, list) {
 		}
 
 		if (check_diff && page_data.revisions[1]) {
-			var diff_list = CeL.LCS(CeL.wiki.revision_content(revision),
-					CeL.wiki.revision_content(page_data.revisions[1]), 'diff');
+			var diff_list = CeL.LCS(CeL.wiki.revision_content(page_data.revisions[1]),
+					CeL.wiki.revision_content(revision), 'diff');
 			if (!diff_list.some(filter_diff)) {
 				run_next();
 				return;
