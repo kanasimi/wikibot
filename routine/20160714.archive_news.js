@@ -206,7 +206,7 @@ function archive_page() {
 	CeL.log('archive_page: 可存檔 ' + page_list.length + ' 文章。');
 	CeL.debug('archive_page: {{publish}} pattern: ' + PATTERN_publish_template,
 			1, 'archive_page');
-	// console.log(page_list.slice(0, 9));
+	// console.trace(page_list.slice(0, 9));
 	var left = page_list.length;
 	page_list.forEach(function(page_data) {
 		CeL.debug('Get max revisions of ' + CeL.wiki.title_link_of(page_data)
@@ -244,6 +244,16 @@ function archive_page() {
 }
 
 function for_each_old_page(page_data) {
+	function replace_simulated_category_token() {
+		if (has_category && has_category.token) {
+			if (has_category.parent[has_category.index].type !== 'category')
+				throw new Error('Not a category token!');
+			// 刪掉模擬用的分類 node。
+			has_category.parent[has_category.index] = has_category.token;
+			has_category = true;
+		}
+	}
+
 	// problem categories: 需請管理員檢查的可存檔新聞/文章
 	var problem_list = [],
 	/**
@@ -441,12 +451,18 @@ function for_each_old_page(page_data) {
 		});
 		if (!has_category) {
 			// 將已加入[[Template:分類]]視為有效分類，並執行保護。
-			current_content.each('template', function(token) {
+			current_content.each('template', function(token, index, parent) {
 				if (token.name in {
 					分類 : true,
 					分类 : true
 				}) {
-					has_category = true;
+					has_category = {
+						parent : parent,
+						index : index,
+						token : token
+					};
+					// 模擬出一個分類 node，方便作業。
+					parent[index] = CeL.wiki.parse('[[Category:category]]');
 					return current_content.each.exit;
 				}
 			});
@@ -473,7 +489,7 @@ function for_each_old_page(page_data) {
 			var order = CeL.wiki.parser.footer_order(current_content[index],
 					order_list);
 			// CeL.log('> ' + order + ': ' + current_content[index]);
-			// console.log(current_content[index]);
+			// console.trace(current_content[index]);
 			if (order > publish_order) {
 				last_pointer = index;
 			} else if (order === publish_order) {
@@ -483,14 +499,10 @@ function for_each_old_page(page_data) {
 			}
 		}
 
+		replace_simulated_category_token();
 		if (false && publish_pointer >= 0) {
 			console.log('[' + publish_pointer + '] publish: '
 					+ current_content[publish_pointer]);
-		}
-
-		if (!(last_pointer > 0) && do_not_need_category) {
-			// TODO
-			;
 		}
 
 		if (last_pointer > 0) {
@@ -522,6 +534,8 @@ function for_each_old_page(page_data) {
 			problem_list.push('分類似乎沒依規範掛在文章最後，在其之後尚有其他元件？也請注意其前後不可有空白。');
 		}
 	}
+
+	replace_simulated_category_token();
 
 	if (problem_list.length > 0) {
 		CeL.debug(CeL.wiki.title_link_of(page_data) + ': 掛分類，由管理員手動操作。', 1,
