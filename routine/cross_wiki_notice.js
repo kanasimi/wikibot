@@ -68,7 +68,7 @@ wiki.page('User talk:' + owner_name, function(page_data) {
 				+ ' 在萌娘百科[https://zh.moegirl.org.cn/User_talk:' + owner_name
 				+ ' 發了一則新留言] ，煩請撥空前往查看。 --~~~~', {
 			section : 'new',
-			sectiontitle : '您在moegirl有一則新留言',
+			sectiontitle : '您在moegirl有一則新留言 ' + (new Date).format('%Y-%2m-%2d'),
 			// cross-wiki notification 通知
 			summary : '跨wiki新留言提醒',
 			nocreate : 1,

@@ -1,4 +1,4 @@
-﻿3/*
+﻿/*
 
  2019/9/13 8:59:40	初版試營運
  2019/12/21 4:12:49	模組化
@@ -342,10 +342,10 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 			if (typeof content === 'string') {
 				const diff_list = CeL.LCS(content, CeL.wiki.revision_content(revisions[index - 1]), 'diff');
 				if (diff_list.some(diff => {
-					const [minus, plus] = diff;
-					if (!plus || typeof plus !== 'string')
+					const [removed_text, added_text] = diff;
+					if (!added_text || typeof added_text !== 'string')
 						return;
-					const parsed = CeL.wiki.parser(plus).parse();
+					const parsed = CeL.wiki.parser(added_text).parse();
 					let found;
 					parsed.each('section_title', section_title_token => {
 						found = section_title === section_title_token.title;
@@ -393,7 +393,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 		if (!meta_configuration.diff_id) {
 			// get diff_id from content
-			process.stdout.write(`Get ${rvlimit} contents of ${CeL.wiki.title_link_of(requests_page)} ...\r`);
+			process.stdout.write(`Get ${rvlimit} revisions of ${CeL.wiki.title_link_of(requests_page)} ...\r`);
 			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
 				rvprop: 'ids|comment|user|content',
@@ -1028,7 +1028,7 @@ async function get_list(task_configuration, list_configuration) {
 				CeL.warn(`get_list: Should set text_processor() with list_types=${list_types}!`);
 			} else {
 				move_from_string = move_from_string[1];
-				let replace_from = move_from_string.match(/^\/(.+)\/([ig]*)$/);
+				let replace_from = move_from_string.match(CeL.PATTERN_RegExp);
 				if (replace_from) {
 					// Should use {'note':{move_from_link:/move from
 					// string/,move_to_link:'move to string'}}
