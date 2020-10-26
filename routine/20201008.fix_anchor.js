@@ -236,7 +236,7 @@ async function tracking_section_title_history(page_data, options) {
 		if (from === to || section_title_history[from]?.present)
 			return;
 
-		// 當差異過大時，不視為相同的意涵。
+		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
 		// TODO: CeL.edit_distance()
 		if (!from.includes(to) && to.includes(from) &&
 			2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0) > from.length + to.length
@@ -326,6 +326,7 @@ async function tracking_section_title_history(page_data, options) {
 				}
 			});
 
+			// 檢查變更紀錄可以找出變更章節名稱的情況。一增一減時，才當作是改變章節名稱。
 			// TODO: 整次編輯幅度不大，且一增一減時，才當作是改變章節名稱。
 			if (!has_newer_data && revision.removed_section_titles.length === 1 && revision.added_section_titles.length === 1) {
 				const from = revision.removed_section_titles[0], to = revision.added_section_titles[0];
@@ -445,7 +446,7 @@ async function check_page(target_page_data, options) {
 			}
 		});
 
-		if (true && !changed)
+		if (!changed)
 			return Wikiapi.skip_edit;
 
 		pages_modified++;
