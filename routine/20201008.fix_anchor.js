@@ -389,8 +389,8 @@ async function check_page(target_page_data, options) {
 	CeL.info(`${check_page.name}: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
 
 	let working_queue;
-	let summary = wiki.site_name() === 'zhwiki' ? '修正失效的章節標題：' : 'Fix broken anchor of ';
-	summary = summary + CeL.wiki.title_link_of(target_page_data);
+	let summary = wiki.site_name() === 'zhwiki' ? '修正失效的章節標題：' : 'Fix broken anchor: ';
+	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
 		summary,
@@ -438,7 +438,7 @@ async function check_page(target_page_data, options) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
 				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
-				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)})`;
+				this.summary = `${summary}[[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
 				token[1] = rename_to;
 				changed = true;
 			} else {
