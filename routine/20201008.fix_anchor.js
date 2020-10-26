@@ -438,7 +438,7 @@ async function check_page(target_page_data, options) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
 				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
-				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${CeL.wiki.title_link_of(linking_page.title + rename_to)})`;
+				this.summary = `${summary} ([[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)})`;
 				token[1] = rename_to;
 				changed = true;
 			} else {
