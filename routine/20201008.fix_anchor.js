@@ -396,7 +396,7 @@ async function check_page(target_page_data, options) {
 		summary,
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
-		//tags: 'test',
+		tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
 	};
 
 	let pages_modified = 0;
