@@ -11,7 +11,6 @@ node 20201008.fix_anchor.js use_language=zh
 
 TODO:
 # The bot may notice in the talk page for lost anchors.
-字詞轉換 繁簡轉換
 
  */
 
@@ -152,9 +151,10 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 const KEY_latest_page_data = Symbol('latest page_data');
 const KEY_got_full_revisions = Symbol('got full revisions');
 
+// 偵測繁簡轉換 字詞轉換 section_title
 function mark_language_variants(recent_section_title_list, section_title_history, revision) {
 	function mark_list(converted_list) {
-		const variant = this;
+		const language_variant = this;
 		//console.trace(variant + ': ' + converted_list);
 		recent_section_title_list.forEach((section_title, index) => {
 			const converted = converted_list[index];
@@ -173,16 +173,16 @@ function mark_language_variants(recent_section_title_list, section_title_history
 				record.rename_to = section_title;
 			}
 			CeL.debug(`${mark_language_variants.name}: ${converted}→${section_title}`);
-			let variant_of = record.variant_of;
-			if (!variant_of)
-				record.variant_of = variant_of = [];
-			variant_of.push([variant, section_title]);
+			if (!record.variant_of)
+				record.variant_of = [];
+			record.variant_of.push([language_variant, section_title]);
 		});
 		//console.log(section_title_history);
 	}
 
-	for (const variant of ['zh-hant', 'zh-hans']) {
-		wiki.convert_Chinese(recent_section_title_list, variant).then(mark_list.bind(variant));
+	for (const language_variant of ['zh-hant', 'zh-hans']) {
+		//await
+		wiki.convert_Chinese(recent_section_title_list, language_variant).then(mark_list.bind(language_variant));
 	}
 }
 
@@ -301,8 +301,6 @@ async function tracking_section_title_history(page_data, options) {
 			}
 
 			revision.removed_section_titles = revision.removed_section_titles.filter(section_title => {
-				// TODO: 字詞轉換 繁簡轉換 section_title
-
 				// 警告：在 line_mode，"A \n"→"A\n" 的情況下，
 				// "A" 會同時出現在增加與刪除的項目中，此時必須自行檢測排除。
 				// 亦可能是搬到較遠地方。
@@ -433,16 +431,22 @@ async function check_page(target_page_data, options) {
 				return;
 			}
 
-			let rename_to = section_title_history[token.anchor]?.rename_to;
+			const record = section_title_history[token.anchor];
+			let rename_to = record?.rename_to;
 			if (rename_to && section_title_history[rename_to]?.present) {
+				let type;
+				if (record.variant_of?.some(variant => variant[1] === rename_to)) {
+					type = '修正繁簡不符匹配而失效的章節標題';
+				}
 				rename_to = '#' + rename_to;
-				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(section_title_history[token.anchor])})`);
-				CeL.error(`${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
-				this.summary = `${summary}[[Special:Diff/${section_title_history[token.anchor].disappear.revid}|${section_title_history[token.anchor].disappear.timestamp}]] ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
+				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(record)})`);
+				CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
+				this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`} ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
+
 				token[1] = rename_to;
 				changed = true;
 			} else {
-				CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(section_title_history[token.anchor])}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''})`);
+				CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''})`);
 			}
 		});
 
