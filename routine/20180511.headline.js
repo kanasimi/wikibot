@@ -619,20 +619,21 @@ var source_configurations = {
 		// 中時電子報 焦點要聞 可以得到完整標題
 		中國時報 : {
 			flag : 'Taiwan',
-			// url : 'http://www.chinatimes.com/newspapers/',
-			url : 'http://www.chinatimes.com/newspapers/260102',
+			// http://www.chinatimes.com/newspapers/
+			// https://www.chinatimes.com/newspapers/260102?chdtv
+			url : 'https://www.chinatimes.com/newspapers/2601?chdtv',
 			parser : parser_中國時報
 		},
 		// 財經要聞
 		工商時報 : {
 			flag : 'Taiwan',
-			url : 'http://www.chinatimes.com/newspapers/260202',
+			url : 'https://www.chinatimes.com/newspapers/260202?chdtv',
 			parser : parser_中國時報
 		},
 		// 焦點新聞
 		旺報 : {
 			flag : 'Taiwan',
-			url : 'http://www.chinatimes.com/newspapers/260301',
+			url : 'https://www.chinatimes.com/newspapers/260301?chdtv',
 			parser : parser_中國時報
 		},
 
@@ -1251,25 +1252,17 @@ function parser_中國時報(html) {
 	title_list = title_list.split(';');
 	// console.log(title_list);
 
-	var list = html.between('<div class="listRight">',
-			'<div class="pagination clear-fix">'), headline_list = [],
+	var list = html.between('<section class="article-list">', '</section>'), headline_list = [],
 	//
-	PATTERN_headline = /<h2>[\s\n]*<a href="([^"<>]+)"[^<>]*>([\s\S]+?)<\/a><\/h2>[\s\n]*<div class="kindOf">([\s\S]+?)<\/div>/g, matched;
+	PATTERN_headline = /<h3 class="title"><a href="([^"<>]+)"[^<>]*>([\s\S]+?)<\/a><\/h3>[\s\n]*<div class="meta-info">([\s\S]+?)<\/div>/g, matched;
 	while (matched = PATTERN_headline.exec(list)) {
 		var headline = {
-			url : 'http://www.chinatimes.com' + matched[1],
+			url : 'https://www.chinatimes.com' + matched[1],
 			headline : get_label(matched[2]),
-			type : get_label(matched[3])
+			date : matched[3].between('<time datetime="', '"'),
+			type : get_label(matched[3].between('<div class="category">',
+					'</div>'))
 		};
-
-		// 由網址判斷新聞日期。
-		matched = headline.url.match(/\/(20\d{2})([01]\d)([0-3]\d)/);
-		if (matched) {
-			matched = matched[1] + '-' + matched[2] + '-' + matched[3];
-			headline.date = new Date(matched);
-			if (!is_today(headline))
-				continue;
-		}
 
 		// 當頭條標題被截斷的時候，以完整的標題取代之。
 		if (headline.headline.endsWith('...')) {
