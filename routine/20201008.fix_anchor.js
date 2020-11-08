@@ -237,7 +237,7 @@ async function tracking_section_title_history(page_data, options) {
 		top: {
 			is_present: true
 		},
-		[KEY_lower_cased_section_titles]: Object.cre(null),
+		[KEY_lower_cased_section_titles]: Object.create(null),
 	};
 
 	function set_recent_section_title(wikitext, revision) {
