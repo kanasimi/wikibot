@@ -12,7 +12,8 @@ node 20201008.fix_anchor.js use_language=zh
 TODO:
 # The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
 
-處理 {{Anchor}}, {{Section link}}
+處理 {{Anchor}}
+handle outdated {{Section link}}
 
  */
 
@@ -104,8 +105,9 @@ async function for_each_row(row) {
 	const removed_section_titles = [], added_section_titles = [];
 	diff_list.forEach(diff => {
 		//const [removed_text, added_text] = diff;
-		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0]));
-		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1]));
+		// all_converted: 避免遺漏。 e.g., [[w:en:Special:Diff/812844088]]
+		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0], { all_converted: true }));
+		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1], { all_converted: true }));
 	});
 
 	if (removed_section_titles.length > 3) {
@@ -140,17 +142,17 @@ async function for_each_row(row) {
 
 // ----------------------------------------------------------------------------
 
-function get_all_plain_text_section_titles_of_wikitext(wikitext) {
+function get_all_plain_text_section_titles_of_wikitext(wikitext, options) {
 	const section_title_list = [];
 
 	if (wikitext) {
 		const parsed = CeL.wiki.parser(wikitext).parse();
-		parsed.each('section_title', token => {
-			//console.log(token);
+		parsed.each('section_title', section_title_token => {
+			//console.log(section_title_token);
 			// TODO: == A [[L]] B ==
-			if (token.every(t => typeof t === 'string' || t.type === 'link')) {
+			if (options?.all_converted || section_title_token.every(t => typeof t === 'string' || t.type === 'link')) {
 				// exclude "=={{T}}=="
-				section_title_list.push(token.title);
+				section_title_list.push(section_title_token.title);
 			}
 		});
 	}
@@ -245,7 +247,7 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext);
+		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext, { all_converted: true });
 		mark_language_variants(section_title_list, section_title_history, revision);
 		section_title_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
@@ -328,8 +330,8 @@ async function tracking_section_title_history(page_data, options) {
 		if (false)
 			console.trace([diff, removed_text, added_text, revision]);
 
-		removed_text = get_all_plain_text_section_titles_of_wikitext(removed_text);
-		added_text = get_all_plain_text_section_titles_of_wikitext(added_text);
+		removed_text = get_all_plain_text_section_titles_of_wikitext(removed_text, { all_converted: true });
+		added_text = get_all_plain_text_section_titles_of_wikitext(added_text, { all_converted: true });
 
 		if (removed_text.length === 0 && added_text.length === 0)
 			return;
