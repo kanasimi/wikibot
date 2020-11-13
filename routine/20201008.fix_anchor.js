@@ -12,6 +12,8 @@ node 20201008.fix_anchor.js use_language=zh
 TODO:
 # The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
 
+處理 {{Anchor}}, {{Section link}}
+
  */
 
 'use strict';
@@ -65,8 +67,9 @@ async function main_process() {
 		// 檢查的延遲時間。
 		delay: '2m',
 		filter: filter_row,
+		// also get diff
 		with_diff: { LCS: true, line: true },
-		// 只檢查壞掉的文章章節標題。
+		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章章節標題。
 		namespace: 0,
 	});
 
@@ -115,12 +118,9 @@ async function for_each_row(row) {
 	}
 
 	if (removed_section_titles.length > 0) {
-		CeL.info(`${for_each_row.name}: ${
-			CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])
-			}${
-			removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''
-			} is ${
-			removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'
+		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])
+			}${removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''
+			} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'
 			} by ${CeL.wiki.title_link_of('user:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
 
 		try {
@@ -163,15 +163,19 @@ const KEY_got_full_revisions = Symbol('got full revisions');
 const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
+function reduce_section_title(section_title) {
+	return section_title.replace(/\s/g, '').toLowerCase();
+}
+
 function get_section_title_data(section_title_history, section_title) {
 	if (section_title in section_title_history)
 		return section_title_history[section_title];
 
 	// get possible section name variants: lowcased
-	const lower_cased_section = section_title.toLowerCase(), original_section_title = section_title_history[KEY_lower_cased_section_titles][lower_cased_section];
+	const reduced_section = reduce_section_title(section_title), original_section_title = section_title_history[KEY_lower_cased_section_titles][reduced_section];
 	if (original_section_title) {
 		return {
-			title: lower_cased_section,
+			title: reduced_section,
 			rename_to: section_title_history[original_section_title].rename_to || original_section_title,
 			variant_of: [[MARK_case_change, original_section_title]],
 		};
@@ -183,11 +187,11 @@ function get_section_title_data(section_title_history, section_title) {
 function set_section_title(section_title_history, section_title, data) {
 	section_title_history[section_title] = data;
 
-	const lower_cased_section = section_title.toLowerCase();
-	if (lower_cased_section !== section_title && !(lower_cased_section in section_title_history)) {
+	const reduced_section = reduce_section_title(section_title);
+	if (reduced_section !== section_title && !(reduced_section in section_title_history)) {
 		//assert: (section_title in section_title_history)
-		if (!(lower_cased_section in section_title_history[KEY_lower_cased_section_titles]) || data.is_present)
-			section_title_history[KEY_lower_cased_section_titles][lower_cased_section] = section_title;
+		if (!(reduced_section in section_title_history[KEY_lower_cased_section_titles]) || data.is_present)
+			section_title_history[KEY_lower_cased_section_titles][reduced_section] = section_title;
 	}
 
 	return data;
@@ -269,8 +273,7 @@ async function tracking_section_title_history(page_data, options) {
 		} else if (section_title_history[section_title][type]) {
 			// 已經有比較新的資料。
 			if (CeL.is_debug()) {
-				CeL.warn(`${tracking_section_title_history.name}: ${type} of ${wiki.normalize_title(page_data)}#${section_title} is existed! ${
-					JSON.stringify(section_title_history[section_title])
+				CeL.warn(`${tracking_section_title_history.name}: ${type} of ${wiki.normalize_title(page_data)}#${section_title} is existed! ${JSON.stringify(section_title_history[section_title])
 					}`);
 				CeL.log(`Older to set ${type}: ${JSON.stringify(revision)}`);
 			}
@@ -414,7 +417,8 @@ async function check_page(target_page_data, options) {
 	//console.trace(section_title_history);
 
 	link_from.append((await wiki.backlinks(target_page_data, {
-		//namespace: 'main|file|module|template|category|help|portal'
+		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
+		namespace: wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal'
 	})).filter(page_data =>
 		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
 		// [[User:Cewbot/log/20151002/存檔5]]
@@ -423,7 +427,8 @@ async function check_page(target_page_data, options) {
 		&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
 		// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
 		// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
-		&& !/^(Wikipedia:(Articles for creation|Database reports))\//.test(page_data.title)
+		// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
+		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
 	));
 
 	if (link_from.length > 500 && !options.force_check
@@ -487,9 +492,9 @@ async function check_page(target_page_data, options) {
 				record.variant_of?.some(variant => {
 					if (variant[1] === rename_to) {
 						if (variant[0] === MARK_case_change) {
-							type = wiki.site_name() === 'zhwiki' ? '修正大小寫錯誤的章節標題' : 'Fix wrong capitalization section title';
+							type = wiki.site_name() === 'zhwiki' ? '大小寫或空白錯誤的章節標題' : 'Wrong capitalization / spaced section title';
 						} else {
-							type = '修正繁簡不符匹配而失效的章節標題';
+							type = '繁簡不符匹配而失效的章節標題';
 						}
 						return true;
 					}
@@ -497,15 +502,13 @@ async function check_page(target_page_data, options) {
 				rename_to = '#' + rename_to;
 				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(record)})`);
 				CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
-				this.summary = `${summary}${
-					type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
+				this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
 					} ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
 
 				token[1] = rename_to;
 				changed = true;
 			} else {
-				CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${
-					rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+				CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 					})`);
 			}
 		});
