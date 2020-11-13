@@ -83,6 +83,8 @@ KEY_LATEST_JDN = 4,
 KEY_CATEGORY = 5,
 // 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
 KEY_TITLES_TO_MOVE = 6,
+//
+KEY_DISPLAY_TEXT = 7,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
 FC_data_hash = Object.create(null), new_FC_pages,
@@ -402,6 +404,8 @@ function parse_each_FC_item_list_page(page_data) {
 		FC_data[KEY_IS_LIST] = is_list;
 		FC_data[KEY_ISFFC] = is_FFC;
 		FC_data[KEY_JDN] = [];
+		if (matched[2] && FC_title !== (matched[2] = matched[2].trim()))
+			FC_data[KEY_DISPLAY_TEXT] = matched[2];
 		if (catalog)
 			FC_data[KEY_CATEGORY] = catalog;
 		FC_data[KEY_LIST_PAGE] = [ title, original_FC_title ];
@@ -1000,7 +1004,9 @@ function check_date_page() {
 		//
 		JDN = FC_data[KEY_LATEST_JDN],
 		//
-		fields = [ ++index, CeL.wiki.title_link_of(FC_title) ];
+		fields = [ ++index,
+		// FC_data[KEY_DISPLAY_TEXT]: 處理字詞轉換
+		CeL.wiki.title_link_of(FC_title, FC_data[KEY_DISPLAY_TEXT]) ];
 
 		if (!JDN)
 			never_shown_pages.push(FC_title);
@@ -1011,6 +1017,15 @@ function check_date_page() {
 			'data-sort-value="' + (FC_data[KEY_IS_LIST] ? 1e8 + JDN : JDN)
 			//
 			+ '" | ' + (FC_data[KEY_IS_LIST] ? '✓' : ' '));
+		}
+
+		var transcluding_page = FC_data[KEY_TRANSCLUDING_PAGE]
+		//
+		|| get_FC_title_to_transclude(FC_title), transcluding_display;
+		if (FC_data[KEY_DISPLAY_TEXT]) {
+			transcluding_display = transcluding_page
+			//
+			.replace(transcluding_page, FC_data[KEY_DISPLAY_TEXT]);
 		}
 
 		fields.push(FC_data[KEY_CATEGORY] || '',
@@ -1025,9 +1040,7 @@ function check_date_page() {
 		// 沒有展示過
 		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
-		CeL.wiki.title_link_of(FC_data[KEY_TRANSCLUDING_PAGE]
-		//
-		|| get_FC_title_to_transclude(FC_title)));
+		CeL.wiki.title_link_of(transcluding_page, transcluding_display));
 
 		return '|-\n| ' + fields.join(' || ');
 	}).join('\n') + '\n|}';
