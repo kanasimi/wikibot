@@ -153,17 +153,9 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		const parsed = CeL.wiki.parser(wikitext).parse();
 		parsed.each('section_title', section_title_token => {
 			//console.log(section_title_token);
-			if (section_title_token.every(t => typeof t === 'string' || t.type in {
-				//  == A [[L]] B ==
-				link: true,
-				external_link: true,
-				bold: true,
-				italic: true,
-				comment: true,
-			})) {
+			if (!section_title_token.imprecise_tokens) {
 				section_title_list.push(section_title_token.title);
-			} else if (!section_title_token.title.includes('{{')
-				&& !/<ref[\s>]/.test(section_title_token)) {
+			} else if (section_title_token.some_tokens_maybe_handlable) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
 				console.log(section_title_token);
@@ -305,12 +297,13 @@ async function tracking_section_title_history(page_data, options) {
 		let very_different;
 		// only fixes similar section names (to prevent errors)
 		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
-		if (!from.includes(to) && !to.includes(from) &&
+		if (!reduce_section_title(from).includes(reduce_section_title(to)) && !reduce_section_title(to).includes(reduce_section_title(from))
 			// @see CeL.edit_distance()
-			2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0) > from.length + to.length
+			&& (very_different = 2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > from.length + to.length
 		) {
-			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning: ${from}→${to}`);
-			very_different = true;
+			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning (${very_different}): ${from}→${to}`);
+		} else {
+			very_different = false;
 		}
 
 		const rename_to_chain = [from], is_directly_rename_to = section_title_history[to]?.is_present;
@@ -516,13 +509,14 @@ async function check_page(target_page_data, options) {
 					return true;
 				}
 			});
+			const ARROW_SIGN = record?.is_directly_rename_to || type ? '→' : '⇝';
+
 			rename_to = '#' + rename_to;
-			const ARROW_SIGN = record?.is_directly_rename_to ? '→' : '⇝';
 			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${rename_to} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${rename_to}`);
 			this.summary = `${summary}${
-				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
-				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}${record?.very_different ? ' (very different)' : ''}`;
+				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (very different ${record.very_different})` : ''}`
+				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
 
 			if (token.anchor_index)
 				token[token.anchor_index] = rename_to;
