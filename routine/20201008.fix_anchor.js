@@ -163,6 +163,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 			} else if (!section_title_token.title.includes('{{')) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
+				console.log(section_title_token);
 			}
 		});
 	}
