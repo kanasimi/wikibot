@@ -154,11 +154,12 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		parsed.each('section_title', section_title_token => {
 			//console.log(section_title_token);
 			if (!section_title_token.imprecise_tokens) {
-				section_title_list.push(section_title_token.title);
+				// section_title_token.title will not transfer "[", "]"
+				section_title_list.push(section_title_token.link[1]);
 			} else if (section_title_token.some_tokens_maybe_handlable) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
-				console.log(section_title_token);
+				console.trace(section_title_token);
 			}
 		});
 	}
@@ -172,7 +173,7 @@ const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
 function reduce_section_title(section_title) {
-	return section_title.replace(/\s/g, '').toLowerCase();
+	return section_title.replace(/\s/g, '').replace(/–/g, '-').toLowerCase();
 }
 
 function get_section_title_data(section_title_history, section_title) {
@@ -301,6 +302,7 @@ async function tracking_section_title_history(page_data, options) {
 			// @see CeL.edit_distance()
 			&& (very_different = 2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > from.length + to.length
 		) {
+			very_different += `/${from.length + to.length}`;
 			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning (${very_different}): ${from}→${to}`);
 		} else {
 			very_different = false;
@@ -515,7 +517,7 @@ async function check_page(target_page_data, options) {
 			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${rename_to} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${rename_to}`);
 			this.summary = `${summary}${
-				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (very different ${record.very_different})` : ''}`
+				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'very different'} ${record.very_different})` : ''}`
 				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
 
 			if (token.anchor_index)
@@ -546,7 +548,7 @@ async function check_page(target_page_data, options) {
 		}
 
 		let changed;
-		// handle [[link#anchor|]]
+		// handle [[link#anchor|display text]]
 		parsed.each('link', token => {
 			if (check_token.call(this, token, linking_page))
 				changed = true;
