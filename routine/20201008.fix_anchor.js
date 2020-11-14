@@ -298,6 +298,7 @@ async function tracking_section_title_history(page_data, options) {
 		if (from === to || section_title_history[from]?.is_present)
 			return;
 
+		let very_different;
 		// only fixes similar section names (to prevent errors)
 		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
 		if (!from.includes(to) && !to.includes(from) &&
@@ -305,7 +306,7 @@ async function tracking_section_title_history(page_data, options) {
 			2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0) > from.length + to.length
 		) {
 			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning: ${from}→${to}`);
-			return;
+			very_different = true;
 		}
 
 		const rename_to_chain = [from], is_directly_rename_to = section_title_history[to]?.is_present;
@@ -324,10 +325,11 @@ async function tracking_section_title_history(page_data, options) {
 				title: from
 			});
 		}
-		if (is_directly_rename_to)
-			section_title_history[from].is_directly_rename_to = is_directly_rename_to;
-		// 警告: 需要自行檢查 section_title_history[to]?.is_present
-		section_title_history[from].rename_to = to;
+		Object.assign(section_title_history[from], {
+			is_directly_rename_to, very_different,
+			// 警告: 需要自行檢查 section_title_history[to]?.is_present
+			rename_to: to
+		});
 	}
 
 	//if (section_title_history[KEY_got_full_revisions]) return section_title_history;
@@ -514,8 +516,9 @@ async function check_page(target_page_data, options) {
 			const ARROW_SIGN = record?.is_directly_rename_to ? '→' : '⇝';
 			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${rename_to} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${rename_to}`);
-			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
-				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
+			this.summary = `${summary}${
+				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
+				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}${very_different ? ' (very different)' : ''}`;
 
 			if (token.anchor_index)
 				token[token.anchor_index] = rename_to;
