@@ -110,8 +110,8 @@ async function for_each_row(row) {
 	diff_list.forEach(diff => {
 		//const [removed_text, added_text] = diff;
 		// all_converted: 避免遺漏。 e.g., [[w:en:Special:Diff/812844088]]
-		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0], { all_converted: true }));
-		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1], { all_converted: true }));
+		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0]));
+		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1]));
 	});
 
 	if (removed_section_titles.length > 3) {
@@ -146,18 +146,23 @@ async function for_each_row(row) {
 
 // ----------------------------------------------------------------------------
 
-function get_all_plain_text_section_titles_of_wikitext(wikitext, options) {
+function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 	const section_title_list = [];
 
 	if (wikitext) {
 		const parsed = CeL.wiki.parser(wikitext).parse();
 		parsed.each('section_title', section_title_token => {
 			//console.log(section_title_token);
-			// TODO: == A [[L]] B ==
-			if (options?.all_converted && !section_title_token.title.includes('{{')
-				|| section_title_token.every(t => typeof t === 'string' || t.type === 'link')) {
-				// exclude "=={{T}}=="
+			if (section_title_token.every(t => typeof t === 'string' || t.type in {
+				//  == A [[L]] B ==
+				link: true,
+				bold: true,
+				italic: true,
+			})) {
 				section_title_list.push(section_title_token.title);
+			} else if (!section_title_token.title.includes('{{')) {
+				// exclude "=={{T}}=="
+				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
 			}
 		});
 	}
@@ -252,7 +257,7 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext, { all_converted: true });
+		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext);
 		mark_language_variants(section_title_list, section_title_history, revision);
 		section_title_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
@@ -295,11 +300,12 @@ async function tracking_section_title_history(page_data, options) {
 
 		// only fixes similar section names (to prevent errors)
 		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
-		if (!from.includes(to) && to.includes(from) &&
+		if (!from.includes(to) && !to.includes(from) &&
 			// @see CeL.edit_distance()
 			2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0) > from.length + to.length
 		) {
 			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning: ${from}→${to}`);
+			return;
 		}
 
 		const rename_to_chain = [from];
@@ -335,8 +341,8 @@ async function tracking_section_title_history(page_data, options) {
 		if (false)
 			console.trace([diff, removed_text, added_text, revision]);
 
-		removed_text = get_all_plain_text_section_titles_of_wikitext(removed_text, { all_converted: true });
-		added_text = get_all_plain_text_section_titles_of_wikitext(added_text, { all_converted: true });
+		removed_text = get_all_plain_text_section_titles_of_wikitext(removed_text);
+		added_text = get_all_plain_text_section_titles_of_wikitext(added_text);
 
 		if (removed_text.length === 0 && added_text.length === 0)
 			return;
