@@ -154,7 +154,8 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext, options) {
 		parsed.each('section_title', section_title_token => {
 			//console.log(section_title_token);
 			// TODO: == A [[L]] B ==
-			if (options?.all_converted || section_title_token.every(t => typeof t === 'string' || t.type === 'link')) {
+			if (options?.all_converted && !section_title_token.title.includes('{{')
+				|| section_title_token.every(t => typeof t === 'string' || t.type === 'link')) {
 				// exclude "=={{T}}=="
 				section_title_list.push(section_title_token.title);
 			}
