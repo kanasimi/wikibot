@@ -156,11 +156,14 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 			if (section_title_token.every(t => typeof t === 'string' || t.type in {
 				//  == A [[L]] B ==
 				link: true,
+				external_link: true,
 				bold: true,
 				italic: true,
+				comment: true,
 			})) {
 				section_title_list.push(section_title_token.title);
-			} else if (!section_title_token.title.includes('{{')) {
+			} else if (!section_title_token.title.includes('{{')
+				&& !/<ref[\s>]/.test(section_title_token)) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
 				console.log(section_title_token);
