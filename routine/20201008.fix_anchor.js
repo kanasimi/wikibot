@@ -153,10 +153,12 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		const parsed = CeL.wiki.parser(wikitext).parse();
 		parsed.each('section_title', section_title_token => {
 			//console.log(section_title_token);
-			if (!section_title_token.imprecise_tokens) {
-				// section_title_token.title will not transfer "[", "]"
-				section_title_list.push(section_title_token.link[1]);
-			} else if (section_title_token.some_tokens_maybe_handlable) {
+			const link = section_title_token.link;
+			if (!link.imprecise_tokens) {
+				// `section_title_token.title` will not transfer "[", "]"
+				section_title_list.push(link[1]);
+
+			} else if (link.some_tokens_maybe_handlable) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
 				console.trace(section_title_token);
