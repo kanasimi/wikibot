@@ -13,7 +13,6 @@ TODO:
 # The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
 
 處理 {{Anchor}}
-handle outdated {{Section link}}
 
  */
 
@@ -63,6 +62,11 @@ async function main_process() {
 		return;
 	}
 
+	wiki.latest_task_configuration.Section_link_name_alias
+		= (await wiki.redirects_here('Template:Section link'))
+			.map(page_data => page_data.title
+				// remove "Template:" prefix
+				.replace(/^[^:]+:/, ''));
 
 	wiki.listen(for_each_row, {
 		// 檢查的延遲時間。
@@ -453,6 +457,73 @@ async function check_page(target_page_data, options) {
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
 	};
 
+	// ----------------------------------------------------
+
+	function check_token(token) {
+		const page_title = (
+			// assert: {{Section link}}
+			token.page_title
+			// assert: token.type === 'link'
+			|| token[0]).toString();
+		if (!(wiki.normalize_title(page_title) in target_page_redirects) || !token.anchor
+			|| section_title_history[token.anchor]?.is_present
+		) {
+			return;
+		}
+
+		if (!section_title_history[KEY_got_full_revisions]) {
+			if (working_queue) {
+				working_queue.list.push(linking_page);
+			} else {
+				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page)}.`);
+				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
+				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
+					.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
+					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
+					// free
+					.then(() => working_queue = null);
+				working_queue.list = [linking_page];
+			}
+			return;
+		}
+
+		const record = get_section_title_data(section_title_history, token.anchor);
+		let rename_to = record?.rename_to;
+		if (rename_to && section_title_history[rename_to]?.is_present) {
+			let type;
+			record.variant_of?.some(variant => {
+				if (variant[1] === rename_to) {
+					if (variant[0] === MARK_case_change) {
+						type = wiki.site_name() === 'zhwiki' ? '大小寫或空白錯誤的章節標題' : 'Wrong capitalization / spaced section title';
+					} else {
+						type = '繁簡不符匹配而失效的章節標題';
+					}
+					return true;
+				}
+			});
+			rename_to = '#' + rename_to;
+			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(record)})`);
+			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
+			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
+				} ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
+
+			if (token.anchor_index)
+				token[token.anchor_index] = rename_to;
+			else
+				token[1] = rename_to;
+			//changed = true;
+			return true;
+		} else {
+			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${
+				rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+				})`);
+		}
+	}
+
+	// ------------------------------------------
+
+	const Section_link_name_alias = wiki.latest_task_configuration.Section_link_name_alias;
+
 	let pages_modified = 0;
 	function resolve_linking_page(linking_page) {
 		/** {Array} parsed page content 頁面解析後的結構。 */
@@ -464,54 +535,21 @@ async function check_page(target_page_data, options) {
 		}
 
 		let changed;
+		// handle [[link#anchor|]]
 		parsed.each('link', token => {
-			if (!(wiki.normalize_title(token[0].toString()) in target_page_redirects) || !token.anchor
-				|| section_title_history[token.anchor]?.is_present
-			) {
-				return;
-			}
-
-			if (!section_title_history[KEY_got_full_revisions]) {
-				if (working_queue) {
-					working_queue.list.push(linking_page);
-				} else {
-					CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page)}.`);
-					// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
-					working_queue = tracking_section_title_history(target_page_data, { section_title_history })
-						.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
-						.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
-						// free
-						.then(() => working_queue = null);
-					working_queue.list = [linking_page];
-				}
-				return;
-			}
-
-			const record = get_section_title_data(section_title_history, token.anchor);
-			let rename_to = record?.rename_to;
-			if (rename_to && section_title_history[rename_to]?.is_present) {
-				let type;
-				record.variant_of?.some(variant => {
-					if (variant[1] === rename_to) {
-						if (variant[0] === MARK_case_change) {
-							type = wiki.site_name() === 'zhwiki' ? '大小寫或空白錯誤的章節標題' : 'Wrong capitalization / spaced section title';
-						} else {
-							type = '繁簡不符匹配而失效的章節標題';
-						}
-						return true;
-					}
-				});
-				rename_to = '#' + rename_to;
-				CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(record)})`);
-				CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
-				this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
-					} ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
-
-				token[1] = rename_to;
+			if (check_token(token))
 				changed = true;
-			} else {
-				CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
-					})`);
+		});
+		// handle {{Section link}}
+		parsed.each('template', token => {
+			if (!Section_link_name_alias.includes(token.name))
+				return;
+			token.page_title = token[1];
+			for (let index = 2; index < token.length; index++) {
+				token.anchor_index = index;
+				token.anchor = token[index].toString();
+				if (check_token(token))
+					changed = true;
 			}
 		});
 
