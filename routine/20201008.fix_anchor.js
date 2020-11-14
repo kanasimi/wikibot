@@ -459,7 +459,7 @@ async function check_page(target_page_data, options) {
 
 	// ----------------------------------------------------
 
-	function check_token(token) {
+	function check_token(token, linking_page) {
 		const page_title = (
 			// assert: {{Section link}}
 			token.page_title
@@ -537,18 +537,18 @@ async function check_page(target_page_data, options) {
 		let changed;
 		// handle [[link#anchor|]]
 		parsed.each('link', token => {
-			if (check_token(token))
+			if (check_token(token, linking_page))
 				changed = true;
 		});
 		// handle {{Section link}}
 		parsed.each('template', token => {
 			if (!Section_link_name_alias.includes(token.name))
 				return;
-			token.page_title = token[1];
+			token.page_title = token[1] || linking_page.title;
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = index;
 				token.anchor = token[index].toString();
-				if (check_token(token))
+				if (check_token(token, linking_page))
 					changed = true;
 			}
 		});
