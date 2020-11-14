@@ -158,7 +158,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 				// `section_title_token.title` will not transfer "[", "]"
 				section_title_list.push(link[1]);
 
-			} else if (link.some_tokens_maybe_handlable) {
+			} else if (link.tokens_maybe_handlable) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
 				console.trace(section_title_token);
@@ -298,9 +298,10 @@ async function tracking_section_title_history(page_data, options) {
 			return;
 
 		let very_different;
+		const reduced_from = reduce_section_title(from), reduced_to = reduce_section_title(to);
 		// only fixes similar section names (to prevent errors)
 		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
-		if (!reduce_section_title(from).includes(reduce_section_title(to)) && !reduce_section_title(to).includes(reduce_section_title(from))
+		if ((reduced_to.length < 2 || !reduced_from.includes(reduced_to)) && (reduced_from.length < 2 || !reduced_to.includes(reduced_from))
 			// @see CeL.edit_distance()
 			&& (very_different = 2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > from.length + to.length
 		) {
@@ -560,6 +561,7 @@ async function check_page(target_page_data, options) {
 			if (!Section_link_name_alias.includes(token.name))
 				return;
 			token.page_title = token[1] || linking_page.title;
+			console.trace(token);
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = index;
 				token.anchor = token[index].toString();
