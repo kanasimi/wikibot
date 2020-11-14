@@ -537,7 +537,7 @@ async function check_page(target_page_data, options) {
 		let changed;
 		// handle [[link#anchor|]]
 		parsed.each('link', token => {
-			if (check_token(token, linking_page))
+			if (check_token.call(this, token, linking_page))
 				changed = true;
 		});
 		// handle {{Section link}}
@@ -548,7 +548,7 @@ async function check_page(target_page_data, options) {
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = index;
 				token.anchor = token[index].toString();
-				if (check_token(token, linking_page))
+				if (check_token.call(this, token, linking_page))
 					changed = true;
 			}
 		});
