@@ -518,7 +518,7 @@ async function check_page(target_page_data, options) {
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${rename_to}`);
 			this.summary = `${summary}${
 				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
-				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}${very_different ? ' (very different)' : ''}`;
+				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}${record?.very_different ? ' (very different)' : ''}`;
 
 			if (token.anchor_index)
 				token[token.anchor_index] = rename_to;
