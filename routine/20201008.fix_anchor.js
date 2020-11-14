@@ -308,7 +308,7 @@ async function tracking_section_title_history(page_data, options) {
 			return;
 		}
 
-		const rename_to_chain = [from];
+		const rename_to_chain = [from], is_directly_rename_to = section_title_history[to]?.is_present;
 		while (!section_title_history[to]?.is_present && section_title_history[to]?.rename_to) {
 			rename_to_chain.push(to);
 			to = section_title_history[to].rename_to;
@@ -324,6 +324,8 @@ async function tracking_section_title_history(page_data, options) {
 				title: from
 			});
 		}
+		if (is_directly_rename_to)
+			section_title_history[from].is_directly_rename_to = is_directly_rename_to;
 		// 警告: 需要自行檢查 section_title_history[to]?.is_present
 		section_title_history[from].rename_to = to;
 	}
@@ -509,10 +511,11 @@ async function check_page(target_page_data, options) {
 				}
 			});
 			rename_to = '#' + rename_to;
-			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}→${rename_to} (${JSON.stringify(record)})`);
-			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}→${rename_to}`);
+			const ARROW_SIGN = record?.is_directly_rename_to ? '→' : '⇝';
+			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${rename_to} (${JSON.stringify(record)})`);
+			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${rename_to}`);
 			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]`
-				} ${token[1]}→${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
+				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
 
 			if (token.anchor_index)
 				token[token.anchor_index] = rename_to;
