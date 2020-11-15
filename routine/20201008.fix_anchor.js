@@ -12,7 +12,7 @@ node 20201008.fix_anchor.js use_language=zh
 TODO:
 # The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
 
-處理 {{Anchor}}
+處理 {{Anchor}}, <span class="anchor" id="..."></span>
 
  */
 
@@ -160,6 +160,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 			} else if (link.tokens_maybe_handlable) {
 				// exclude "=={{T}}=="
 				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
+				console.log(link.tokens_maybe_handlable);
 				console.trace(section_title_token);
 			}
 		});
@@ -530,7 +531,7 @@ async function check_page(target_page_data, options) {
 			return true;
 		} else {
 			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${
-				rename_to && section_title_history[rename_to] ? `, ${hash}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+				rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 				})`);
 		}
 	}
@@ -556,9 +557,17 @@ async function check_page(target_page_data, options) {
 				changed = true;
 		});
 		// handle {{Section link}}
-		parsed.each('template', token => {
+		parsed.each('template', (token, index, parent) => {
 			if (!Section_link_name_alias.includes(token.name))
 				return;
+			if (token.parameters[1]) {
+				const matched = token.parameters[1].toString().includes('#');
+				if (matched) {
+					token[token.index_of[1]] = token.parameters[1].replace('#', '|');
+					parent[index] = token = CeL.wiki.parse(token.toString());
+				}
+			}
+
 			token.page_title = token.parameters[1] || linking_page.title;
 			//console.trace(token);
 			for (let index = 2; index < token.length; index++) {
