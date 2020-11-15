@@ -80,8 +80,7 @@ async function main_process() {
 
 	routine_task_done('1d');
 
-	CeL.log('Listening...');
-	CeL.log('-'.repeat(60));
+	CeL.log('Listening...\n' + '-'.repeat(60));
 }
 
 function filter_row(row) {
@@ -305,7 +304,7 @@ async function tracking_section_title_history(page_data, options) {
 			// @see CeL.edit_distance()
 			&& (very_different = 2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > from.length + to.length
 		) {
-			very_different += `/${from.length + to.length}`;
+			very_different += `>${from.length + to.length}`;
 			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning (${very_different}): ${from}→${to}`);
 		} else {
 			very_different = false;
@@ -515,23 +514,23 @@ async function check_page(target_page_data, options) {
 				}
 			});
 			const ARROW_SIGN = record?.is_directly_rename_to || type ? '→' : '⇝';
+			const hash = '#' + rename_to;
 
-			rename_to = '#' + rename_to;
-			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${rename_to} (${JSON.stringify(record)})`);
-			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${rename_to}`);
+			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
+			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${hash}`);
 			this.summary = `${summary}${
 				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'very different'} ${record.very_different})` : ''}`
-				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + rename_to)}`;
+				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			if (token.anchor_index)
 				token[token.anchor_index] = rename_to;
 			else
-				token[1] = rename_to;
+				token[1] = hash;
 			//changed = true;
 			return true;
 		} else {
 			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${
-				rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+				rename_to && section_title_history[rename_to] ? `, ${hash}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 				})`);
 		}
 	}
@@ -560,11 +559,13 @@ async function check_page(target_page_data, options) {
 		parsed.each('template', token => {
 			if (!Section_link_name_alias.includes(token.name))
 				return;
-			token.page_title = token[1] || linking_page.title;
-			console.trace(token);
+			token.page_title = token.parameters[1] || linking_page.title;
+			//console.trace(token);
 			for (let index = 2; index < token.length; index++) {
-				token.anchor_index = index;
-				token.anchor = token[index].toString();
+				token.anchor_index = token.index_of[index];
+				if (!token.anchor_index)
+					continue;
+				token.anchor = token.parameters[index].toString();
 				if (check_token.call(this, token, linking_page))
 					changed = true;
 			}
