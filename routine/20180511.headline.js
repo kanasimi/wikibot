@@ -30,10 +30,10 @@ var locale = CeL.env.arg_hash && CeL.env.arg_hash.locale || '臺灣';
 
 // 視需要載入字元集。
 // @see source_configurations
-if (locale === '香港')
-	CeL.character.load('big5');
-else if (locale === '國際')
-	CeL.character.load('gb2312');
+// if (locale === '香港')
+CeL.character.load('big5');
+// else if (locale === '國際')
+CeL.character.load('gb2312');
 
 // ------------------------------------
 
@@ -598,8 +598,14 @@ var source_configurations = {
 		},
 		蘋果日報 : {
 			flag : 'Taiwan',
-			url : 'https://tw.news.appledaily.com/headline/daily',
-			parser : parser_蘋果日報_臺灣
+			// url : 'https://tw.news.appledaily.com/headline/daily',
+			url : 'https://tw.appledaily.com/daily/headline/',
+			data_url : function() {
+				url = new URL(
+						'https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed?query=%7B%22feedOffset%22%3A0%2C%22feedQuery%22%3A%22taxonomy.primary_section._id%3A%5C%22%2Fdaily%2Fheadline%5C%22%2BAND%2Btype%3Astory%2BAND%2Beditor_note%3A%5C%2220201116%5C%22%2BAND%2BNOT%2Btaxonomy.tags.text.raw%3A_no_show_for_web%2BAND%2BNOT%2Btaxonomy.tags.text.raw%3A_nohkad%22%2C%22feedSize%22%3A100%2C%22sort%22%3A%22location%3Aasc%22%7D&d=159&_website=tw-appledaily');
+				return url;
+			},
+			parser : parser_蘋果日報_臺灣_2019
 		},
 		聯合報 : {
 			flag : 'Taiwan',
@@ -1273,7 +1279,7 @@ function parser_自由時報_2020(json) {
 	return headline_list;
 }
 
-function parser_蘋果日報_臺灣(html) {
+function parser_蘋果日報_臺灣_2019(html) {
 	var list = html.between('<header class="schh">', '<header class="schh">'), headline_list = [],
 	//
 	PATTERN_headline = /<h1><a href="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
@@ -1325,6 +1331,39 @@ function parser_聯合電子報(html) {
 				break;
 		}
 	}
+
+	// console.trace(headline_list);
+	if (headline_list.length === 1) {
+		// e.g., https://paper.udn.com/udnpaper/PID0001/359134/web/
+		this.data_url = headline_list[0].url;
+		this.parser = parser_聯合電子報_內容;
+		this.charset = 'big5';
+		headline_list.get_next = true;
+	}
+
+	return headline_list;
+}
+
+function parser_聯合電子報_內容(html) {
+	var headline_list = [], data_url = this.data_url,
+	// e.g., "<td align="left" valign="middle" class="book" ><font
+	// color="#000000" size="2">2020/11/16&nbsp;第7273期</font><font size="2"
+	// color="#000000">"...
+	date = html.between('<font color="#000000" size="2">', '</font>');
+	date = new Date(date.between(null, '&nbsp;') || date);
+
+	html.between('<!--索引區 start -->', '<!--索引區 end-->')
+	//
+	.each_between('<a href="', '</a>', function(token) {
+		var headline = {
+			url : data_url + token.between(null, '"'),
+			'KEY headline title' : get_label(token.between('>')),
+			date : date
+		};
+
+		headline_list.push(headline);
+	});
+
 	return headline_list;
 }
 
