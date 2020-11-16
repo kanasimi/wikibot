@@ -460,11 +460,16 @@ async function check_page(target_page_data, options) {
 	CeL.info(`${check_page.name}: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
 
 	let working_queue;
-	let summary = wiki.site_name() === 'zhwiki' ? '修正失效的章節標題：' : 'Fix broken anchor: ';
+	// [[w:zh:Wikipedia:格式手册/链接#章節]]
+	let summary = wiki.language === 'zh' ? '修正失效的章節標題：'
+		// [[w:ja:Help:セクション#セクションへのリンク]]
+		: wiki.language === 'ja' ? 'セクションへのリンクを修復する：'
+			// [[w:en:MOS:BROKENSECTIONLINKS]]
+			: 'Fix broken anchor: ';
 	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
-		summary,
+		summary: summary + ': ' + CeL.wiki.title_link_of(target_page_data),
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
