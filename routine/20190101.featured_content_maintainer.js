@@ -404,7 +404,9 @@ function parse_each_FC_item_list_page(page_data) {
 		FC_data[KEY_IS_LIST] = is_list;
 		FC_data[KEY_ISFFC] = is_FFC;
 		FC_data[KEY_JDN] = [];
-		if (matched[2] && FC_title !== (matched[2] = matched[2].trim()))
+		if (matched[2]
+				&& ((matched[2] = matched[2].trim()).includes('-{') || !matched[2]
+						.includes(FC_title)))
 			FC_data[KEY_DISPLAY_TEXT] = matched[2];
 		if (catalog)
 			FC_data[KEY_CATEGORY] = catalog;
@@ -1025,7 +1027,7 @@ function check_date_page() {
 		if (FC_data[KEY_DISPLAY_TEXT]) {
 			transcluding_display = transcluding_page
 			//
-			.replace(transcluding_page, FC_data[KEY_DISPLAY_TEXT]);
+			.replace(FC_title, FC_data[KEY_DISPLAY_TEXT]);
 		}
 
 		fields.push(FC_data[KEY_CATEGORY] || '',
