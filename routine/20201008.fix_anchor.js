@@ -1,8 +1,10 @@
 ﻿/*
 node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
+node 20201008.fix_anchor.js use_language=ja
 
 2020/10/9 19:0:26	初版試營運
+2020/11/17 6:48:13	仮運用を行って。ウィキペディア日本語版における試験運転。
 
 # Listen to edits modifying section title in ARTICLE.
 # Checking all pages linking to the ARTICLE.
@@ -12,7 +14,8 @@ node 20201008.fix_anchor.js use_language=zh
 TODO:
 # The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
 
-處理 {{Anchor}}, <span class="anchor" id="..."></span>
+檢核頁面移動的情況。
+檢核/去除重複或無效的 anchor。
 
  */
 
@@ -148,25 +151,46 @@ async function for_each_row(row) {
 function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 	const section_title_list = [];
 
-	if (wikitext) {
-		const parsed = CeL.wiki.parser(wikitext).parse();
-		parsed.each('section_title', section_title_token => {
-			//console.log(section_title_token);
-			const link = section_title_token.link;
-			if (!link.imprecise_tokens) {
-				// `section_title_token.title` will not transfer "[", "]"
-				section_title_list.push(link[1]);
-
-			} else if (link.tokens_maybe_handlable) {
-				// exclude "=={{T}}=="
-				CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
-				console.log(link.tokens_maybe_handlable);
-				console.trace(section_title_token);
-			}
-		});
+	if (!wikitext) {
+		return section_title_list;
 	}
 
-	return section_title_list;
+	const parsed = CeL.wiki.parser(wikitext).parse();
+	parsed.each('section_title', section_title_token => {
+		//console.log(section_title_token);
+		const link = section_title_token.link;
+		if (!link.imprecise_tokens) {
+			// `section_title_token.title` will not transfer "[", "]"
+			section_title_list.push(link[1]);
+
+		} else if (link.tokens_maybe_handlable) {
+			// exclude "=={{T}}=="
+			CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
+			console.log(link.tokens_maybe_handlable);
+			console.trace(section_title_token);
+		}
+	});
+
+	// 處理 {{Anchor|anchor}}
+	parsed.each('template', template_token => {
+		if (template_token.name !== 'Anchor')
+			return;
+
+		for (let index = 1; index < template_token.length; index++) {
+			const anchor = template_token.parameters[index];
+			if (anchor)
+				section_title_list.push(anchor.replace(/_/g, ' '));
+		}
+	});
+
+	// 處理 <span class="anchor" id="anchor"></span>
+	parsed.each('tag', tag_token => {
+		const anchor = tag_token.attributes.id;
+		if (anchor)
+			section_title_list.push(anchor.replace(/_/g, ' '));
+	});
+
+	return section_title_list.unique();
 }
 
 const KEY_latest_page_data = Symbol('latest page_data');
@@ -524,8 +548,7 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${hash}`);
-			this.summary = `${summary}${
-				type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'very different'} ${record.very_different})` : ''}`
+			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'very different'} ${record.very_different})` : ''}`
 				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			if (token.anchor_index)
@@ -535,8 +558,7 @@ async function check_page(target_page_data, options) {
 			//changed = true;
 			return true;
 		} else {
-			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${
-				rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 				})`);
 		}
 	}
@@ -573,13 +595,13 @@ async function check_page(target_page_data, options) {
 				}
 			}
 
-			token.page_title = token.parameters[1] || linking_page.title;
+			token.page_title = wiki.normalize_title(token.parameters[1]) || linking_page.title;
 			//console.trace(token);
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = token.index_of[index];
 				if (!token.anchor_index)
 					continue;
-				token.anchor = token.parameters[index].toString();
+				token.anchor = token.parameters[index].toString().replace(/_/g, ' ');
 				if (check_token.call(this, token, linking_page))
 					changed = true;
 			}
