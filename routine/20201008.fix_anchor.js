@@ -179,7 +179,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		for (let index = 1; index < template_token.length; index++) {
 			const anchor = template_token.parameters[index];
 			if (anchor)
-				section_title_list.push(anchor.replace(/_/g, ' '));
+				section_title_list.push(anchor.toString().replace(/_/g, ' '));
 		}
 	});
 
@@ -590,12 +590,12 @@ async function check_page(target_page_data, options) {
 			if (token.parameters[1]) {
 				const matched = token.parameters[1].toString().includes('#');
 				if (matched) {
-					token[token.index_of[1]] = token.parameters[1].replace('#', '|');
+					token[token.index_of[1]] = token.parameters[1].toString().replace('#', '|');
 					parent[index] = token = CeL.wiki.parse(token.toString());
 				}
 			}
 
-			token.page_title = wiki.normalize_title(token.parameters[1]) || linking_page.title;
+			token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page.title;
 			//console.trace(token);
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = token.index_of[index];
