@@ -584,7 +584,7 @@ var source_configurations = {
 	臺灣 : {
 		自由時報 : {
 			flag : 'Taiwan',
-			// url : 'http://news.ltn.com.tw/list/newspaper/focus/' +
+			// url_2019 : 'http://news.ltn.com.tw/list/newspaper/focus/' +
 			// use_date.format('%Y%2m%2d'),
 			// parser : parser_自由時報_頭版新聞_2019
 
@@ -598,14 +598,26 @@ var source_configurations = {
 		},
 		蘋果日報 : {
 			flag : 'Taiwan',
-			// url : 'https://tw.news.appledaily.com/headline/daily',
+			// url_2019 : 'https://tw.news.appledaily.com/headline/daily',
+			//parser : parser_蘋果日報_臺灣_2019
 			url : 'https://tw.appledaily.com/daily/headline/',
 			data_url : function() {
-				url = new URL(
-						'https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed?query=%7B%22feedOffset%22%3A0%2C%22feedQuery%22%3A%22taxonomy.primary_section._id%3A%5C%22%2Fdaily%2Fheadline%5C%22%2BAND%2Btype%3Astory%2BAND%2Beditor_note%3A%5C%2220201116%5C%22%2BAND%2BNOT%2Btaxonomy.tags.text.raw%3A_no_show_for_web%2BAND%2BNOT%2Btaxonomy.tags.text.raw%3A_nohkad%22%2C%22feedSize%22%3A100%2C%22sort%22%3A%22location%3Aasc%22%7D&d=159&_website=tw-appledaily');
+				var url = new URL('https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed');
+				var query = {
+					"feedOffset": 0,
+					"feedQuery": "taxonomy.primary_section._id:\"/daily/headline\"+AND+type:story+AND+editor_note:\""
+					+use_date.format('%Y%2m%2d')
+					+"\"+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
+					"feedSize": 100,
+					"sort": "location:asc"
+				};
+				url.searchParams.set('query',JSON.stringify(query));
+				url.searchParams.set('d',159);
+				url.searchParams.set('_website','tw-appledaily');
+				//console.trace(url.toString());
 				return url;
 			},
-			parser : parser_蘋果日報_臺灣_2019
+			parser : parser_蘋果日報_2020
 		},
 		聯合報 : {
 			flag : 'Taiwan',
@@ -707,8 +719,24 @@ var source_configurations = {
 		},
 		蘋果日報 : {
 			flag : 'Hong Kong',
-			url : 'https://hk.appledaily.com/catalog/index/',
-			parser : parser_蘋果日報_香港
+			//url_2019 : 'https://hk.appledaily.com/catalog/index/',
+			//parser : parser_蘋果日報_香港_2019
+			url : 'https://hk.appledaily.com/realtime/local/',
+			data_url : function() {
+				var url = new URL('https://hk.appledaily.com/pf/api/v3/content/fetch/query-feed');
+				var query = {
+					"feedOffset": 0,
+					"feedQuery": "taxonomy.primary_section._id:\"/realtime/local\"+AND+type:story+AND+display_date:[now-24h/h+TO+now]+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
+					"feedSize": 100,
+					"sort": "display_date:desc"
+				};
+				url.searchParams.set('query',JSON.stringify(query));
+				url.searchParams.set('d',159);
+				url.searchParams.set('_website','hk-appledaily');
+				//console.trace(url.toString());
+				return url;
+			},
+			parser : parser_蘋果日報_2020
 		},
 		香港經濟日報 : {
 			flag : 'Hong Kong',
@@ -915,6 +943,28 @@ var source_configurations = {
 			parser : parser_自由時報_2020
 		},
 
+		蘋果日報 : {
+			flag : 'Taiwan',
+			url : 'https://tw.appledaily.com/daily/international/',
+			data_url : function() {
+				var url = new URL('https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed');
+				var query = {
+					"feedOffset": 0,
+					"feedQuery": "taxonomy.primary_section._id:\"/daily/international\"+AND+type:story+AND+editor_note:\""
+					+use_date.format('%Y%2m%2d')
+					+"\"+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
+					"feedSize": 100,
+					"sort": "location:asc"
+				};
+				url.searchParams.set('query',JSON.stringify(query));
+				url.searchParams.set('d',159);
+				url.searchParams.set('_website','tw-appledaily');
+				//console.trace(url.toString());
+				return url;
+			},
+			parser : parser_蘋果日報_2020
+		},
+
 		// 國際 - 20181110 - 每日明報 - 明報新聞網
 		明報 : {
 			flag : 'Hong Kong',
@@ -1076,7 +1126,7 @@ function get_data_url(source_id, source_data) {
 		}
 
 		if (!headline_list || !headline_list.length) {
-			if (headline_list.get_next) {
+			if (headline_list&&headline_list.get_next) {
 				get_data_url(source_id, source_data);
 				return;
 			}
@@ -1290,6 +1340,27 @@ function parser_蘋果日報_臺灣_2019(html) {
 		};
 		headline_list.push(headline);
 	}
+	return headline_list;
+}
+
+function parser_蘋果日報_2020(json){
+	json=JSON.parse(json);
+	//console.trace(json);
+
+	var headline_list = json.content_elements.filter(function(headline){
+		return is_today(new Date(headline.first_publish_date));
+	});
+
+	headline_list.forEach(function(headline){
+		Object.assign(headline,{
+			url:'https://tw.appledaily.com'+headline.canonical_url,
+			'KEY headline title':headline.headlines.basic,
+			//date : headline.last_updated_date
+			date : headline.first_publish_date
+		});
+	});
+
+	//console.trace(headline_list);
 	return headline_list;
 }
 
@@ -1574,7 +1645,7 @@ function parser_東方日報(html) {
 	return headline_list;
 }
 
-function parser_蘋果日報_香港(html) {
+function parser_蘋果日報_香港_2019(html) {
 	var list = html.between('<div class="title">頭條</div>', '</ul>'), headline_list = [],
 	//
 	PATTERN_headline = /<a href="([^"<>]+)">([\s\S]+?)<\/a>/g, matched;
