@@ -199,7 +199,7 @@ const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
 function reduce_section_title(section_title) {
-	return section_title.replace(/\s/g, '').replace(/–/g, '-').toLowerCase();
+	return section_title.replace(/[\s_\-–()]/g, '').toLowerCase();
 }
 
 function get_section_title_data(section_title_history, section_title) {
@@ -493,7 +493,7 @@ async function check_page(target_page_data, options) {
 	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
-		summary: summary + ': ' + CeL.wiki.title_link_of(target_page_data),
+		summary: summary + CeL.wiki.title_link_of(target_page_data),
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',

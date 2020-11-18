@@ -599,22 +599,23 @@ var source_configurations = {
 		蘋果日報 : {
 			flag : 'Taiwan',
 			// url_2019 : 'https://tw.news.appledaily.com/headline/daily',
-			//parser : parser_蘋果日報_臺灣_2019
+			// parser : parser_蘋果日報_臺灣_2019
 			url : 'https://tw.appledaily.com/daily/headline/',
 			data_url : function() {
-				var url = new URL('https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed');
+				var url = new URL(
+						'https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed');
 				var query = {
-					"feedOffset": 0,
-					"feedQuery": "taxonomy.primary_section._id:\"/daily/headline\"+AND+type:story+AND+editor_note:\""
-					+use_date.format('%Y%2m%2d')
-					+"\"+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
-					"feedSize": 100,
-					"sort": "location:asc"
+					"feedOffset" : 0,
+					"feedQuery" : "taxonomy.primary_section._id:\"/daily/headline\"+AND+type:story+AND+editor_note:\""
+							+ use_date.format('%Y%2m%2d')
+							+ "\"+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
+					"feedSize" : 100,
+					"sort" : "location:asc"
 				};
-				url.searchParams.set('query',JSON.stringify(query));
-				url.searchParams.set('d',159);
-				url.searchParams.set('_website','tw-appledaily');
-				//console.trace(url.toString());
+				url.searchParams.set('query', JSON.stringify(query));
+				url.searchParams.set('d', 159);
+				url.searchParams.set('_website', 'tw-appledaily');
+				// console.trace(url.toString());
 				return url;
 			},
 			parser : parser_蘋果日報_2020
@@ -719,21 +720,22 @@ var source_configurations = {
 		},
 		蘋果日報 : {
 			flag : 'Hong Kong',
-			//url_2019 : 'https://hk.appledaily.com/catalog/index/',
-			//parser : parser_蘋果日報_香港_2019
+			// url_2019 : 'https://hk.appledaily.com/catalog/index/',
+			// parser : parser_蘋果日報_香港_2019
 			url : 'https://hk.appledaily.com/realtime/local/',
 			data_url : function() {
-				var url = new URL('https://hk.appledaily.com/pf/api/v3/content/fetch/query-feed');
+				var url = new URL(
+						'https://hk.appledaily.com/pf/api/v3/content/fetch/query-feed');
 				var query = {
-					"feedOffset": 0,
-					"feedQuery": "taxonomy.primary_section._id:\"/realtime/local\"+AND+type:story+AND+display_date:[now-24h/h+TO+now]+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
-					"feedSize": 100,
-					"sort": "display_date:desc"
+					"feedOffset" : 0,
+					"feedQuery" : "taxonomy.primary_section._id:\"/realtime/local\"+AND+type:story+AND+display_date:[now-24h/h+TO+now]+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
+					"feedSize" : 100,
+					"sort" : "display_date:desc"
 				};
-				url.searchParams.set('query',JSON.stringify(query));
-				url.searchParams.set('d',159);
-				url.searchParams.set('_website','hk-appledaily');
-				//console.trace(url.toString());
+				url.searchParams.set('query', JSON.stringify(query));
+				url.searchParams.set('d', 159);
+				url.searchParams.set('_website', 'hk-appledaily');
+				// console.trace(url.toString());
 				return url;
 			},
 			parser : parser_蘋果日報_2020
@@ -947,19 +949,20 @@ var source_configurations = {
 			flag : 'Taiwan',
 			url : 'https://tw.appledaily.com/daily/international/',
 			data_url : function() {
-				var url = new URL('https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed');
+				var url = new URL(
+						'https://tw.appledaily.com/pf/api/v3/content/fetch/query-feed');
 				var query = {
-					"feedOffset": 0,
-					"feedQuery": "taxonomy.primary_section._id:\"/daily/international\"+AND+type:story+AND+editor_note:\""
-					+use_date.format('%Y%2m%2d')
-					+"\"+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
-					"feedSize": 100,
-					"sort": "location:asc"
+					"feedOffset" : 0,
+					"feedQuery" : "taxonomy.primary_section._id:\"/daily/international\"+AND+type:story+AND+editor_note:\""
+							+ use_date.format('%Y%2m%2d')
+							+ "\"+AND+NOT+taxonomy.tags.text.raw:_no_show_for_web+AND+NOT+taxonomy.tags.text.raw:_nohkad",
+					"feedSize" : 100,
+					"sort" : "location:asc"
 				};
-				url.searchParams.set('query',JSON.stringify(query));
-				url.searchParams.set('d',159);
-				url.searchParams.set('_website','tw-appledaily');
-				//console.trace(url.toString());
+				url.searchParams.set('query', JSON.stringify(query));
+				url.searchParams.set('d', 159);
+				url.searchParams.set('_website', 'tw-appledaily');
+				// console.trace(url.toString());
 				return url;
 			},
 			parser : parser_蘋果日報_2020
@@ -1126,7 +1129,7 @@ function get_data_url(source_id, source_data) {
 		}
 
 		if (!headline_list || !headline_list.length) {
-			if (headline_list&&headline_list.get_next) {
+			if (headline_list && headline_list.get_next) {
 				get_data_url(source_id, source_data);
 				return;
 			}
@@ -1343,24 +1346,24 @@ function parser_蘋果日報_臺灣_2019(html) {
 	return headline_list;
 }
 
-function parser_蘋果日報_2020(json){
-	json=JSON.parse(json);
-	//console.trace(json);
+function parser_蘋果日報_2020(json) {
+	json = JSON.parse(json);
+	// console.trace(json);
 
-	var headline_list = json.content_elements.filter(function(headline){
+	var headline_list = json.content_elements.filter(function(headline) {
 		return is_today(new Date(headline.first_publish_date));
 	});
 
-	headline_list.forEach(function(headline){
-		Object.assign(headline,{
-			url:'https://tw.appledaily.com'+headline.canonical_url,
-			'KEY headline title':headline.headlines.basic,
-			//date : headline.last_updated_date
+	headline_list.forEach(function(headline) {
+		Object.assign(headline, {
+			url : 'https://tw.appledaily.com' + headline.canonical_url,
+			'KEY headline title' : headline.headlines.basic,
+			// date : headline.last_updated_date
 			date : headline.first_publish_date
 		});
 	});
 
-	//console.trace(headline_list);
+	// console.trace(headline_list);
 	return headline_list;
 }
 
