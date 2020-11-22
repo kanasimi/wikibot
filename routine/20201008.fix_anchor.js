@@ -79,6 +79,14 @@ async function main_process() {
 		with_diff: { LCS: true, line: true },
 		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章章節標題。
 		namespace: 0,
+		parameters: {
+			// 跳過機器人所做的編輯。
+			// You need the "patrol" or "patrolmarks" right to request the
+			// patrolled flag.
+			// rcshow : '!bot',
+			rcprop: 'title|ids|sizes|flags|user'
+		},
+		interval: '5s',
 	});
 
 	routine_task_done('1d');
@@ -87,6 +95,14 @@ async function main_process() {
 }
 
 function filter_row(row) {
+	//console.trace(row);
+
+	// There are too many vandalism by IP users...
+	// [[w:en:User talk:Kanashimi#Bot is now erroneously changing links and anchors]]
+	if (CeL.wiki.parse.user.is_IP(row.user)) {
+		return;
+	}
+
 	// [[Wikipedia:優良條目評選/提名區]]
 	// [[Wikipedia:優良條目重審/提名區]]
 	// [[Wikipedia:優良條目候選/提名區]]
