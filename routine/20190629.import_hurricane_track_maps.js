@@ -11,6 +11,7 @@
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
+ [[Category:375m-resolution VIIRS images of tropical cyclones]]
 
  */
 
@@ -208,7 +209,9 @@ function of_wiki_link(media_data) {
 	if (media_data.NO >= 1)
 		wiki_link += ' #' + media_data.NO;
 
-	return wiki_link;
+	return '<span class="TD_link">'
+			+ wiki_link
+			+ '<!-- text inside class="TD_link" will be auto-updated by bot --></span>';
 }
 
 function fill_type_name(media_data) {
@@ -315,7 +318,7 @@ var NHC_base_URL;
 // Visit tropical cyclone index page and get the recent tropical cyclones data.
 function start_NHC() {
 	var NHC_menu_URL = 'https://www.nhc.noaa.gov/cyclones/';
-	var parsed_NHC_menu_URL = CeL.parse_URI(NHC_menu_URL);
+	var parsed_NHC_menu_URL = new URL(NHC_menu_URL);
 	NHC_base_URL = parsed_NHC_menu_URL.origin;
 
 	fetch(NHC_menu_URL).then(function(response) {
@@ -687,7 +690,28 @@ function for_each_JTWC_cyclone(html, media_data) {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
 		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link
-				+ '. ' + (note ? note + ' ' : '')
+				+ '. ' + (note ? note + ' ' : ''),
+		file_text_updater : function(page_data) {
+			/** {String}page title = page_data.title */
+			var title = CeL.wiki.title_of(page_data),
+			/**
+			 * {String}page content, maybe undefined. 條目/頁面內容 =
+			 * CeL.wiki.revision_content(revision)
+			 */
+			content = CeL.wiki.content_of(page_data);
+
+			// typeof content !== 'string'
+			if (!content) {
+				content = 'No contents: ' + CeL.wiki.title_link_of(page_data)
+				// or: 此頁面不存在/已刪除。
+				+ '! 沒有頁面內容！';
+				// CeL.log(content);
+				return [ CeL.wiki.edit.cancel, content ];
+			}
+
+			return content.replace(/<span class="TD_link">[\s\S]+?<\/span>/g,
+					wiki_link);
+		}
 	// JTWC using the same media_url for specific tropical cyclone
 	// + media_url
 	});
