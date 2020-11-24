@@ -24,6 +24,7 @@
 	},
 	"dependencies" : {
 		"gh-updater" : "latest",
+		"wikiapi" : "latest",
 		"cejs" : "latest"
 	}
 }

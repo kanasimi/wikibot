@@ -14,6 +14,9 @@ node 20201008.fix_anchor.js use_language=ja
 TODO:
 # The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
 
+因為有延遲，可檢查當前版本是否為最新版本。
+忽略包含不合理元素的編輯，例如 url。
+
 檢核頁面移動的情況。
 檢核/去除重複或無效的 anchor。
 
@@ -65,7 +68,7 @@ async function main_process() {
 		return;
 	}
 
-	wiki.latest_task_configuration.Section_link_name_alias
+	wiki.latest_task_configuration.Section_link_alias
 		= (await wiki.redirects_here('Template:Section link'))
 			.map(page_data => page_data.title
 				// remove "Template:" prefix
@@ -564,7 +567,7 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${hash}`);
-			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'very different'} ${record.very_different})` : ''}`
+			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'VERY DIFFERENT'} ${record.very_different})` : ''}`
 				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			if (token.anchor_index)
@@ -581,7 +584,7 @@ async function check_page(target_page_data, options) {
 
 	// ------------------------------------------
 
-	const Section_link_name_alias = wiki.latest_task_configuration.Section_link_name_alias;
+	const Section_link_alias = wiki.latest_task_configuration.Section_link_alias;
 
 	let pages_modified = 0;
 	function resolve_linking_page(linking_page) {
@@ -601,7 +604,7 @@ async function check_page(target_page_data, options) {
 		});
 		// handle {{Section link}}
 		parsed.each('template', (token, index, parent) => {
-			if (!Section_link_name_alias.includes(token.name))
+			if (!Section_link_alias.includes(token.name))
 				return;
 			if (token.parameters[1]) {
 				const matched = token.parameters[1].toString().includes('#');
