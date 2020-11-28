@@ -35,9 +35,13 @@ The `replace_tool.replace()` will:
 
 TODO:
 將所有 move_from 的重定向也一起修正
+檢查是否為討論頁。 e.g., [[w:ja:Special:Diff/80384825]]
+
 
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 並非所有常規修補程序都適用於所有語言。
+
+: {{コメント}} {{tl|リンク修正依頼/改名}}を使ってみた。 --~~~~
 
  */
 
@@ -1380,7 +1384,7 @@ function replace_template_parameter(value, parameter_name, template_token) {
 	//console.trace(this_parameter);
 	//保留 comments
 	parameter_name = this_parameter[0].toString().trim();
-	return {
+	const factor = {
 		[parameter_name]: (template_token.name in no_ns_templates
 			// 特別處理模板引數不加命名空間前綴的情況。
 			? this.move_to.page_name : this.move_to.page_title)
@@ -1388,6 +1392,8 @@ function replace_template_parameter(value, parameter_name, template_token) {
 			+ (this.move_to.anchor ? '#' + this.move_to.anchor
 				: link.anchor ? '#' + link.anchor : '')
 	};
+	console.trace([this_parameter, factor]);
+	return factor;
 }
 
 function check_link_parameter(task_configuration, template_token, parameter_name) {
@@ -1405,6 +1411,7 @@ function check_link_parameter(task_configuration, template_token, parameter_name
 	}
 
 	CeL.wiki.parse.replace_parameter(template_token, parameter_name, replace_template_parameter.bind(task_configuration));
+	console.trace(template_token.toString());
 }
 
 function replace_link_parameter(task_configuration, template_token, template_hash, increase) {
@@ -1531,7 +1538,7 @@ function for_each_template(page_data, token, index, parent) {
 
 // ---------------------------------------------------------------------//
 
-const KEY_wiki_session = 'session';
+const KEY_wiki_session = CeL.wiki.KEY_SESSION;
 function session_of_options(options) {
 	return options && options[KEY_wiki_session] || options;
 }

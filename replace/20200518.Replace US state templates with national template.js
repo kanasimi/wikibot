@@ -15,7 +15,7 @@ const replace_tool = require('./replace_tool.js');
 // Only respect maxlag. 因為數量太多，只好增快速度。
 // CeL.wiki.query.default_edit_time_interval = 0;
 
-const states_list = 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Alaska|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming'.split('|');
+const US_states_list = 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Alaska|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming'.split('|');
 const template_types = 'HousesArc|Arc|ArcDecade|HousesArcDecade|ChurchesArcDecade|BridgesArcDecade'.split('|');
 
 function replace_US_state_templates(wikitext, page_data) {
@@ -84,7 +84,7 @@ async function setup_move_configuration(meta_configuration, options) {
 	const replace_to_template_existence = Object.create(null);
 	const states_mapper = Object.create(null);
 	const list_configurations = Object.create(null);
-	for (let state of states_list) {
+	for (let state of US_states_list) {
 		if (state.includes(' ')) {
 			const _state = state.replace(/\s/g, '');
 			states_mapper[_state] = state;

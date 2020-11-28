@@ -215,6 +215,7 @@ _global.set_language = function set_language(language) {
 	// 因為 CeL.wiki.set_language() 會用到 gettext()，
 	// 因此得置於 CeL.gettext.use_domain() 後。
 	CeL.wiki.set_language(language);
+	// console.trace(language);
 };
 
 set_language(CeL.env.arg_hash && CeL.env.arg_hash.use_language || 'zh');
