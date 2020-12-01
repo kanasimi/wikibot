@@ -706,6 +706,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		if (!('keep_display_text' in task_configuration) && typeof task_configuration.move_to_link === 'string'
 			// incase → [[title|display text]]
 			&& !task_configuration.move_to_link.includes('|')
+			// 不包含 [[Category:立憲民主党の衆議院議員]]→[[Category:立憲民主党の衆議院議員 (日本 2017)]]
+			&& wiki.is_namespace(move_from_link, 'Main')
 			// e.g., 20200101.ブランドとしてのXboxの記事作成に伴うリンク修正.js
 			// [[A]] → [[A (細分 type)]]
 			&& (task_configuration.move_to_link.toLowerCase().includes(move_from_link.toLowerCase())
@@ -1010,6 +1012,24 @@ async function get_list(task_configuration, list_configuration) {
 					...move_to,
 					...task_configuration.move_to
 				};
+
+				if (move_to.page_name && task_configuration.move_from.page_name
+					&& !move_to.display_text && !task_configuration.move_from.display_text) {
+					const matched = task_configuration.move_from.page_name.match(/^(.+) \([^()]+\)$/);
+					if (matched) {
+						// e.g., [[A (C)]] → [[B (C)]]
+						// display_text_replacer 表記の変更
+						const replace_to = move_to.page_name.replace(/ \([^()]+\)$/, '');
+						if (matched[1] !== replace_to) {
+							const also_replace_display_text = new RegExp(CeL.to_RegExp_pattern(matched[1]), 'g');
+							also_replace_display_text.replace_to = replace_to;
+							//console.trace(also_replace_display_text);
+							CeL.info(`Auto-replace display text: ${also_replace_display_text}→${replace_to}`);
+							task_configuration.also_replace_display_text = also_replace_display_text;
+						}
+					}
+				}
+
 				//console.log(task_configuration.move_from);
 				//console.log(task_configuration.move_to);
 				if (task_configuration.move_from.page_title === task_configuration.move_to.page_title && !task_configuration.move_to.display_text) {
@@ -1273,6 +1293,8 @@ function for_each_link(token, index, parent) {
 			token[2] = this.move_to.display_text;
 		}
 	}
+	if (token[2] && this.also_replace_display_text)
+		token[2] = token[2].toString().replace(this.also_replace_display_text, this.also_replace_display_text.replace_to);
 	// console.log('~~~~~~~~');
 	// console.log(token);
 
@@ -1380,10 +1402,11 @@ function replace_template_parameter(value, parameter_name, template_token) {
 		return;
 	}
 
+	//console.trace(template_token);
 	const this_parameter = template_token[template_token.index_of[parameter_name]];
 	//console.trace(this_parameter);
 	//保留 comments
-	parameter_name = this_parameter[0].toString().trim();
+	parameter_name = this_parameter[0].toString().trim() || parameter_name;
 	const factor = {
 		[parameter_name]: (template_token.name in no_ns_templates
 			// 特別處理模板引數不加命名空間前綴的情況。
@@ -1392,7 +1415,7 @@ function replace_template_parameter(value, parameter_name, template_token) {
 			+ (this.move_to.anchor ? '#' + this.move_to.anchor
 				: link.anchor ? '#' + link.anchor : '')
 	};
-	console.trace([this_parameter, factor]);
+	//console.trace([this_parameter, factor]);
 	return factor;
 }
 
@@ -1411,7 +1434,11 @@ function check_link_parameter(task_configuration, template_token, parameter_name
 	}
 
 	CeL.wiki.parse.replace_parameter(template_token, parameter_name, replace_template_parameter.bind(task_configuration));
-	console.trace(template_token.toString());
+	if (template_token.toString().includes('|=')) {
+		console.log([template_token, parameter_name, task_configuration.move_to_link]);
+		console.trace(template_token.toString());
+		throw new Error(`includes('|=')`);
+	}
 }
 
 function replace_link_parameter(task_configuration, template_token, template_hash, increase) {
