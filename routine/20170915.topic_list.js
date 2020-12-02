@@ -1466,10 +1466,13 @@ function generate_topic_list(page_data) {
 
 	// console.trace(parsed);
 	parsed.each_section(function(section, section_index) {
-		if (false) {
-			console.log('' + section.section_title);
-			if (section_index >= 12)
-				console.log(section);
+		// console.log('' + section.section_title);
+		if (section_index >= 12) {
+			// console.log(section);
+		}
+		if (section.section_title
+				&& section.section_title.toString().includes('中文Vocaloid编辑团队')) {
+			console.log(section);
 		}
 
 		if (section_index === 0) {
