@@ -665,9 +665,11 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 				'Satellite Imagery'.toLowerCase());
 		// "05B 020600sair.jpg", "05B 021200sair.jpg", "05B 021800sair.jpg"
 		// 之類，後面的序號似乎會隨時間改變。
-		var matched = filename.match(/^(.+?) \d{6}sair(\.[\w]+)$/);
-		if (matched)
-			filename = matched[1] + matched[2];
+		var matched = filename.match(/^(.+?) \d{6}sair\.([\w]+)$/);
+		if (matched) {
+			filename = id.includes(matched[1]) ? matched[2] : matched[1] + '.'
+					+ matched[2];
+		}
 	}
 
 	// e.g., "2019 JTWC 07W forecast map.gif"
