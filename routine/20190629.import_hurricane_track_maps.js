@@ -209,9 +209,8 @@ function of_wiki_link(media_data) {
 	if (media_data.NO >= 1)
 		wiki_link += ' #' + media_data.NO;
 
-	return '<span class="TD_link">'
-			+ wiki_link
-			+ '<!-- text inside class="TD_link" will be auto-updated by bot --></span>';
+	return '<!-- TD_link start: Text inside TD_link comments will be auto-updated by bot -->'
+			+ wiki_link + '<!-- TD_link end -->';
 }
 
 function fill_type_name(media_data) {
@@ -561,10 +560,22 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// "TC Warning Graphic", "TCFA Graphic"
 	// TCFA: Tropical Cyclone Formation Alert 熱帯低気圧形成警報
 	.match(/<a href='([^<>']+)'[^<>]*>TC[^<>]* Graphic<\/a>/);
-	if (!media_url) {
-		return;
+	if (media_url) {
+		for_each_JTWC_cyclone_image(html, media_data, media_url);
 	}
 
+	media_url = html
+	// <li><a href='https://www.metoc.navy.mil/jtwc/products/05B_020000sair.jpg'
+	// target='newwin'>IR Satellite Imagery</a></li>
+	.match(/<a href='([^<>']+)'[^<>]*>([^<>]* Imagery)<\/a>/);
+	if (media_url) {
+		media_url.image_type = media_url[2].trim();
+		for_each_JTWC_cyclone_image(html, media_data, media_url);
+	}
+}
+
+function for_each_JTWC_cyclone_image(html, media_data, media_url) {
+	var image_type = media_url.image_type || 'forecast map';
 	/**
 	 * <code>
 	
@@ -637,7 +648,7 @@ function for_each_JTWC_cyclone(html, media_data) {
 	// e.g., "2019 JTWC 07W forecast map.gif"
 	var filename = media_data.date.format(filename_prefix) + 'JTWC ' + id
 	// + ' warning map'
-	+ ' forecast map.' + media_url.match(
+	+ ' ' + image_type + '.' + media_url.match(
 	// For "Tropical Cyclone Formation Alert WTPN21",
 	// different alerts using the same id (WTPN21),
 	// so we should add more note to distinguish one from the other.
@@ -689,9 +700,11 @@ function for_each_JTWC_cyclone(html, media_data) {
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ wiki_link + '.}}',
-		comment : 'Import JTWC tropical cyclone forecast map' + wiki_link
-				+ '. ' + (note ? note + ' ' : ''),
+		comment : 'Import JTWC tropical cyclone ' + image_type
+				+ wiki_link.replace(/<!--[\s\S]*?-->/g, '') + '. '
+				+ (note ? note + ' ' : ''),
 		file_text_updater : function(page_data) {
+			console.trace(page_data);
 			/** {String}page title = page_data.title */
 			var title = CeL.wiki.title_of(page_data),
 			/**
@@ -709,10 +722,14 @@ function for_each_JTWC_cyclone(html, media_data) {
 				return [ CeL.wiki.edit.cancel, content ];
 			}
 
-			return content.replace(/<span class="TD_link">[\s\S]+?<\/span>/g,
-					wiki_link);
+			return content.replace(
+			//
+			/<!--\s*TD_link start[\s\S]*?-->[\s\S]+?<!--\s*TD_link end[\s\S]*?-->/g
+			//
+			, wiki_link);
 		}
-	// JTWC using the same media_url for specific tropical cyclone
+	// JTWC using the same media_url for specific tropical
+	// cyclone
 	// + media_url
 	});
 
