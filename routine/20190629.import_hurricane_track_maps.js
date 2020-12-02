@@ -650,10 +650,8 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 	var name = id[2] || id[1];
 	id = id[1];
 
-	// e.g., "2019 JTWC 07W forecast map.gif"
-	var filename = media_data.date.format(filename_prefix) + 'JTWC ' + id
-	// + ' warning map'
-	+ ' ' + image_type + '.' + media_url.match(
+	// using original file name
+	var filename = media_url.match(
 	// For "Tropical Cyclone Formation Alert WTPN21",
 	// different alerts using the same id (WTPN21),
 	// so we should add more note to distinguish one from the other.
@@ -661,6 +659,21 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 
 	// get full file name now
 	/[^\/]+$/)[0];
+
+	if (image_type && image_type.includes('Satellite Imagery')) {
+		image_type = image_type.replace('Satellite Imagery',
+				'Satellite Imagery'.toLowerCase());
+		// "05B 020600sair.jpg", "05B 021200sair.jpg", "05B 021800sair.jpg"
+		// 之類，後面的序號似乎會隨時間改變。
+		var matched = filename.match(/^(.+?) \d{6}sair(\.[\w]+)$/);
+		if (matched)
+			filename = matched[1] + matched[2];
+	}
+
+	// e.g., "2019 JTWC 07W forecast map.gif"
+	filename = media_data.date.format(filename_prefix) + 'JTWC ' + id
+	// + ' warning map'
+	+ ' ' + image_type + '.' + filename;
 
 	if (!name) {
 		CeL.error('for_each_JTWC_cyclone: No name got for area '
@@ -679,7 +692,7 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 		filename : filename,
 		media_url : media_url,
 	}, media_data);
-	media_data.source_url += ' ' + media_url;
+	media_data.source_url += '\n' + media_url;
 
 	// <b>Issued at 07/2200Z<b>
 	// <b>Issued at 06/1600Z<b>
@@ -853,7 +866,7 @@ function for_each_CIMSS_typhoon(media_data, token) {
 				+ ' ' + media_data.name + ' visible infrared map'
 				+ media_url.match(/\.\w+$/)[0]
 	});
-	media_data.source_url += ' ' + media_url;
+	media_data.source_url += '\n' + media_url;
 
 	search_category_by_name(media_data.name, media_data);
 	var wiki_link = of_wiki_link(media_data);
@@ -1431,7 +1444,7 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 		filename : date.format(filename_prefix) + 'PAGASA ' + name
 				+ ' forecast map' + media_url.match(/\.\w+$/)[0]
 	}, this);
-	media_data.source_url += ' ' + media_url;
+	media_data.source_url += '\n' + media_url;
 
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
