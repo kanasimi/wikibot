@@ -209,8 +209,11 @@ function of_wiki_link(media_data) {
 	if (media_data.NO >= 1)
 		wiki_link += ' #' + media_data.NO;
 
-	return '<!-- TD_link start: Text inside TD_link comments will be auto-updated by bot -->'
-			+ wiki_link + '<!-- TD_link end -->';
+	if (!media_data.variable_Map)
+		media_data.variable_Map = new CeL.wiki.Variable_Map();
+	media_data.variable_Map.set('wiki_link', wiki_link);
+
+	return wiki_link;
 }
 
 function plain_wiki_link(wiki_link) {
@@ -503,10 +506,10 @@ function parse_NHC_Static_Images(media_data, html) {
 		license : '{{PD-USGov-NOAA}}',
 		description : '{{en|' + author
 		//
-		+ "'s 5-day track and intensity forecast cone" + wiki_link + '.}}',
+		+ "'s 5-day track and intensity forecast cone"
+				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
-		comment : 'Import NHC tropical cyclone forecast map'
-				+ plain_wiki_link(wiki_link) + ' '
+		comment : 'Import NHC tropical cyclone forecast map' + wiki_link + ' '
 				+ (media_data.note ? media_data.note + ' ' : '') + media_url
 	// of the 2019 Pacific hurricane season
 	});
@@ -720,34 +723,10 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 	var wiki_link = of_wiki_link(media_data);
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s tropical warning"
-				+ wiki_link + '.}}',
-		comment : 'Import JTWC tropical cyclone ' + image_type
-				+ plain_wiki_link(wiki_link) + '. ' + (note ? note + ' ' : ''),
-		file_text_updater : function(page_data) {
-			console.trace(page_data);
-			/** {String}page title = page_data.title */
-			var title = CeL.wiki.title_of(page_data),
-			/**
-			 * {String}page content, maybe undefined. 條目/頁面內容 =
-			 * CeL.wiki.revision_content(revision)
-			 */
-			content = CeL.wiki.content_of(page_data);
-
-			// typeof content !== 'string'
-			if (!content) {
-				content = 'No contents: ' + CeL.wiki.title_link_of(page_data)
-				// or: 此頁面不存在/已刪除。
-				+ '! 沒有頁面內容！';
-				// CeL.log(content);
-				return [ CeL.wiki.edit.cancel, content ];
-			}
-
-			return content.replace(
-			//
-			/<!--\s*TD_link start[\s\S]*?-->[\s\S]+?<!--\s*TD_link end[\s\S]*?-->/g
-			//
-			, wiki_link);
-		}
+				+ media_data.variable_Map.format('wiki_link') + '.}}',
+		comment : 'Import JTWC tropical cyclone ' + image_type + wiki_link
+				+ '. ' + (note ? note + ' ' : ''),
+		file_text_updater : media_data.variable_Map
 	// JTWC using the same media_url for specific tropical
 	// cyclone
 	// + media_url
@@ -878,10 +857,10 @@ function for_each_CIMSS_typhoon(media_data, token) {
 
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s visible infrared map"
-				+ wiki_link + '.}}',
+				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
 		comment : 'Import CIMSS tropical cyclone visible infrared map'
-				+ plain_wiki_link(wiki_link) + '. ' + (note ? note + ' ' : '')
+				+ wiki_link + '. ' + (note ? note + ' ' : '')
 	}, media_data);
 
 	// media_data.test_only = true;
@@ -1121,8 +1100,9 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 				source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 				area : media_data.area
 			});
-			language_media_data.comment += plain_wiki_link(wiki_link);
-			language_media_data.wiki_link = wiki_link;
+			language_media_data.comment += wiki_link;
+			language_media_data.wiki_link = media_data.variable_Map
+					.format('wiki_link');
 			// CeL.info('add_description: language_media_data:');
 			// console.log(language_media_data);
 
@@ -1314,11 +1294,11 @@ function for_each_JMA_typhoon(html) {
 	media_data.source_url = source_url + ' ' + media_data.media_url;
 	search_category_by_name(name, media_data);
 	var wiki_link = of_wiki_link(media_data);
-	var comment = 'Import JMA tropical cyclone forecast map'
-			+ plain_wiki_link(wiki_link) + '. ' + (note ? note + '. ' : '');
+	var comment = 'Import JMA tropical cyclone forecast map' + wiki_link + '. '
+			+ (note ? note + '. ' : '');
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
-				+ wiki_link + '.}}',
+				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
 		comment : comment
 	// JMA 註解說明太長，加上 media_url 也無法完全顯現。
@@ -1461,10 +1441,10 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 
 	Object.assign(media_data, {
 		description : '{{en|' + media_data.author + "'s forecast map"
-				+ wiki_link + '.}}',
+				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
-		comment : 'Import PAGASA tropical cyclone forecast map'
-				+ plain_wiki_link(wiki_link) + '. ' + (note ? note + ' ' : '')
+		comment : 'Import PAGASA tropical cyclone forecast map' + wiki_link
+				+ '. ' + (note ? note + ' ' : '')
 	// PAGASA using the same media_url for specific tropical cyclone
 	// + media_url
 	}, media_data);
