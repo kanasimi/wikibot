@@ -236,6 +236,8 @@ function fill_type_name(media_data) {
 	|| area.includes('pacific')
 	// [[Category:2019 Pacific hurricane season]]
 	&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
+	// [[File:2020 CIMSS 05B Burevi visible infrared map.GIF]]
+	: area === 'indian' ? 'cyclone'
 	// [[Category:2019 North Indian Ocean cyclone season]]
 	// But JTWC using "Northwest Pacific/North Indian Ocean*"
 	// : area.includes('north indian') ? 'cyclone'
@@ -258,6 +260,8 @@ function upload_media(media_data) {
 	area.includes('pacific') ? 'Pacific'
 	//
 	: area.includes('atlantic') ? 'Atlantic'
+	// [[File:2020 CIMSS 05B Burevi visible infrared map.GIF]]
+	: area === 'indian' ? 'North Indian Ocean'
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
 	: area === 'southern hemisphere' ? 'Southern Hemisphere' : null;
 	if (!track_maps_category) {
