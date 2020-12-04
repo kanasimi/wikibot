@@ -1093,14 +1093,16 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 						+ (/^[\w\d]/.test(name) || language_code !== 'zh' ? ' '
 								: '') + name;
 			}
-			var wiki_link = of_wiki_link({
+			var _media_data = {
 				name : name,
 				link : language_media_data.link || media_data.link,
 				source_url : base_URL + 'V8/C/P/Typhoon/TY_NEWS.html',
 				area : media_data.area
-			});
+			};
+			var wiki_link = of_wiki_link(_media_data);
+			language_media_data.variable_Map = _media_data.variable_Map;
 			language_media_data.comment += wiki_link;
-			language_media_data.wiki_link = media_data.variable_Map
+			language_media_data.wiki_link = language_media_data.variable_Map
 					.format('wiki_link');
 			// CeL.info('add_description: language_media_data:');
 			// console.log(language_media_data);
@@ -1142,13 +1144,14 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		Object.assign(media_data, media_data.en, {
 			other_versions : '{{F|' + media_data.zh.filename
 					+ '|{{language|zh-Hant}}|80}}',
-			file_text_updater : media_data.variable_Map
+			file_text_updater : media_data.en.variable_Map
 		});
 		upload_media(media_data);
 
 		Object.assign(media_data, media_data.zh, {
 			other_versions : '{{F|' + media_data.en.filename
-					+ '|{{language|en}}|80}}'
+					+ '|{{language|en}}|80}}',
+			file_text_updater : media_data.zh.variable_Map
 		});
 		upload_media(media_data);
 	});
