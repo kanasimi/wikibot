@@ -216,10 +216,6 @@ function of_wiki_link(media_data) {
 	return wiki_link;
 }
 
-function plain_wiki_link(wiki_link) {
-	return wiki_link.replace(/<!--[\s\S]*?-->/g, '');
-}
-
 function fill_type_name(media_data) {
 	if (media_data.type_name)
 		return media_data.type_name;
@@ -510,7 +506,8 @@ function parse_NHC_Static_Images(media_data, html) {
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
 		comment : 'Import NHC tropical cyclone forecast map' + wiki_link + ' '
-				+ (media_data.note ? media_data.note + ' ' : '') + media_url
+				+ (media_data.note ? media_data.note + ' ' : '') + media_url,
+		file_text_updater : media_data.variable_Map
 	// of the 2019 Pacific hurricane season
 	});
 
@@ -666,10 +663,11 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 	if (image_type && image_type.includes('Satellite Imagery')) {
 		image_type = image_type.replace('Satellite Imagery',
 				'Satellite Imagery'.toLowerCase());
-		// "05B 020600sair.jpg", "05B 021200sair.jpg", "05B 021800sair.jpg"
+		// "05B_020600sair.jpg", "05B_021200sair.jpg", "05B_021800sair.jpg",
+		// "05B_04000sair.jpg"
 		// 之類，後面的序號似乎會隨時間改變。
 		var matched = filename.replace(/_/g, ' ').match(
-				/^(.+?) \d{6}sair\.([\w]+)$/);
+				/^(.+?) \d{5,6}sair\.([\w]+)$/);
 		if (matched) {
 			filename = id.includes(matched[1]) ? matched[2] : matched[1] + '.'
 					+ matched[2];
@@ -860,7 +858,8 @@ function for_each_CIMSS_typhoon(media_data, token) {
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
 		comment : 'Import CIMSS tropical cyclone visible infrared map'
-				+ wiki_link + '. ' + (note ? note + ' ' : '')
+				+ wiki_link + '. ' + (note ? note + ' ' : ''),
+		file_text_updater : media_data.variable_Map
 	}, media_data);
 
 	// media_data.test_only = true;
@@ -1142,7 +1141,8 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 
 		Object.assign(media_data, media_data.en, {
 			other_versions : '{{F|' + media_data.zh.filename
-					+ '|{{language|zh-Hant}}|80}}'
+					+ '|{{language|zh-Hant}}|80}}',
+			file_text_updater : media_data.variable_Map
 		});
 		upload_media(media_data);
 
@@ -1300,7 +1300,8 @@ function for_each_JMA_typhoon(html) {
 		description : '{{en|' + media_data.author + "'s forecast map"
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
-		comment : comment
+		comment : comment,
+		file_text_updater : media_data.variable_Map
 	// JMA 註解說明太長，加上 media_url 也無法完全顯現。
 	// + media_data.media_url
 	});
@@ -1444,7 +1445,8 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
 		comment : 'Import PAGASA tropical cyclone forecast map' + wiki_link
-				+ '. ' + (note ? note + ' ' : '')
+				+ '. ' + (note ? note + ' ' : ''),
+		file_text_updater : media_data.variable_Map
 	// PAGASA using the same media_url for specific tropical cyclone
 	// + media_url
 	}, media_data);
