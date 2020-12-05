@@ -40,6 +40,31 @@ if (data_directory || media_directory) {
 	media_directory && prepare_directory(media_directory);
 }
 
+function area_is_Southern_Hemisphere(area) {
+	return /South|Australian|India/i.test(area);
+}
+
+function get_year_range(is_Southern_Hemisphere, date) {
+	if (!date)
+		date = new Date;
+	if (typeof is_Southern_Hemisphere === 'string')
+		is_Southern_Hemisphere = area_is_Southern_Hemisphere(is_Southern_Hemisphere);
+
+	var year_range = date.getUTCFullYear();
+	if (is_Southern_Hemisphere) {
+		// 由公元7月1日至翌年6月31日，UTC
+		if (date.getUTCMonth() < 7 - 1) {
+			// 從前1年算起。
+			year_range--;
+		}
+		year_range = String(year_range) + '-' + ((year_range + 1) % 100);
+	} else {
+		year_range = String(year_range);
+	}
+
+	return year_range;
+}
+
 // category_to_parent_hash[category_name] = parent_category_name
 // category_to_parent_hash['Category:2019 Pacific typhoon season track maps'] =
 // 'Category:2019 Pacific typhoon season'
@@ -70,16 +95,10 @@ var category_to_parent_hash = Object.create(null);
 		// 登記。
 		category_to_parent_hash[parent_category_name] = parent_category_name;
 	} else {
-		var date = new Date;
-		var year = String(date.getUTCFullYear());
-		if (parent_category_name.includes('South')
-				|| parent_category_name.includes('Australian')) {
-			year += '-'
-			// 由公元7月1日至翌年6月31日，UTC
-			+ ((year / 100 | 0) + (date.getUTCMonth() < 7 - 1 ? 1 : -1));
-		}
-		parent_category_name = year + ' ' + parent_category_name;
+		parent_category_name = get_year_range(parent_category_name) + ' '
+				+ parent_category_name;
 	}
+	// console.log(parent_category_name);
 
 	wiki.categorymembers(parent_category_name, function(pages, error) {
 		pages.forEach(function(page_data) {
@@ -261,6 +280,7 @@ function upload_media(media_data) {
 	//
 	: area.includes('atlantic') ? 'Atlantic'
 	// [[File:2020 CIMSS 05B Burevi visible infrared map.GIF]]
+	// TODO: 'South-West Indian Ocean'
 	: area === 'indian' ? 'North Indian Ocean'
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
 	: area === 'southern hemisphere' ? 'Southern Hemisphere' : null;
@@ -270,7 +290,9 @@ function upload_media(media_data) {
 		return;
 	}
 
-	track_maps_category = 'Category:' + media_data.date.getUTCFullYear() + ' '
+	track_maps_category = 'Category:'
+	//
+	+ get_year_range(track_maps_category, media_data.date) + ' '
 	//
 	+ track_maps_category
 	// Category:2019 Pacific hurricane season track maps
