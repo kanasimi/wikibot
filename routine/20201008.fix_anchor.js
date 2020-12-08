@@ -77,6 +77,7 @@ async function main_process() {
 	wiki.listen(for_each_row, {
 		// 檢查的延遲時間。
 		delay: '2m',
+		//start: '30D',
 		filter: filter_row,
 		// also get diff
 		with_diff: { LCS: true, line: true },
@@ -117,15 +118,18 @@ function filter_row(row) {
 		return;
 	}
 
+	//console.log([wiki.is_namespace(row, 'Draft'), wiki.is_namespace(row, 'User talk')]);
 	if (wiki.is_namespace(row, 'Draft') || wiki.is_namespace(row, 'User talk')) {
 		// ignore all link to [[Draft:]], [[User talk:]]
 		return;
 	}
 
+	//CeL.info(`${filter_row.name}: ${row.title}`);
 	return true;
 }
 
 async function for_each_row(row) {
+	//CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}`);
 	const diff_list = row.diff;
 	const removed_section_titles = [], added_section_titles = [];
 	diff_list.forEach(diff => {
@@ -520,6 +524,63 @@ async function check_page(target_page_data, options) {
 
 	// ----------------------------------------------------
 
+	// TODO: remove existing anchors
+	async function add_note_for_broken_anchors(linking_page, anchor_token, record) {
+		function add_note_for_broken_anchors(talk_page_data) {
+			//console.trace(talk_page_data);
+			/** {Array} parsed page content 頁面解析後的結構。 */
+			const parsed = CeL.wiki.parser(talk_page_data).parse();
+
+			let has_broken_anchors_template;
+			parsed.each('template', template_token => {
+				if (template_token.name !== 'Broken anchors')
+					return;
+				has_broken_anchors_template = true;
+				const index = template_token.index_of['links'];
+				if (!index) {
+					template_token.push('links=' + text_to_add);
+					return parsed.each.exit;
+				}
+
+				const original_text = template_token[index].toString();
+				if (original_text.includes(anchor_token)) {
+					// have already noticed
+					return parsed.each.exit;
+				}
+
+				template_token[index] = original_text + text_to_add;
+			});
+
+			if (has_broken_anchors_template) {
+				return parsed.toString();
+			}
+
+			// 添加在首個 section_title 前，最後一個 template 後。
+			text_to_add = `{{Broken anchors|links=${text_to_add}}}\n`;
+			parsed.each((token, index, parent) => {
+				if (typeof token !== 'string' && token.type !== 'transclusion') {
+					parent.splice(index, 0, text_to_add);
+					return parsed.each.exit;
+				}
+			}, {
+				depth: 1
+			});
+			return parsed.toString();
+		}
+
+		const talk_page_title = wiki.to_talk_page(linking_page);
+		anchor_token = anchor_token.toString();
+		let text_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record ? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
+		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
+			summary: 'Notification of broken anchor ' + anchor_token,
+			bot: 1,
+			minor: 1,
+			nocreate: false
+		});
+	}
+
+	// ----------------------------------------------------
+
 	function check_token(token, linking_page) {
 		const page_title = (
 			// assert: {{Section link}}
@@ -579,6 +640,9 @@ async function check_page(target_page_data, options) {
 		} else {
 			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 				})`);
+			if (wiki.site_name() === 'jawiki') {
+				add_note_for_broken_anchors(linking_page, token, rename_to && section_title_history[rename_to]);
+			}
 		}
 	}
 
@@ -593,7 +657,7 @@ async function check_page(target_page_data, options) {
 		// console.log(parsed);
 		CeL.assert([linking_page.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page));
 		if (linking_page.ns !== 0 && linking_page.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
-			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page)}: ${CeL.show_KiB(linking_page.wikitext.length)} chars`);
+			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page)}: ${CeL.to_KB(linking_page.wikitext.length)} chars`);
 		}
 
 		let changed;
