@@ -497,7 +497,7 @@ async function check_page(target_page_data, options) {
 		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
 	));
 
-	if (link_from.length > 500 && !options.force_check
+	if (link_from.length > 800 && !options.force_check
 		// 連結的頁面太多時，只挑選較確定是改變章節名稱的。
 		&& !(options.removed_section_titles && options.removed_section_titles.length === 1 && options.added_section_titles.length === 1)) {
 		CeL.warn(`${check_page.name}: Too many pages (${link_from.length}) linking to ${CeL.wiki.title_link_of(target_page_data)}. Skip this page.`);
@@ -542,9 +542,16 @@ async function check_page(target_page_data, options) {
 					return parsed.each.exit;
 				}
 
-				// TODO: remove existing anchors
-				parsed.each.call(template_token[index], 'list', item_token => {
-					console.log(item_token);
+				// remove unknown anchors
+				parsed.each.call(template_token[index], 'list', list_token => {
+					for (let index = 0; index < list_token.length; index++) {
+						const first_taken = list_token[index][0];
+						if (first_taken.type === 'tag' && first_taken.tag === 'nowiki' && !main_page_wikitext.includes(first_taken[1].toString())) {
+							// remove item that is not in main article.
+							list_token.splice(index--, 1);
+							removed_anchors++;
+						}
+					}
 				});
 
 				const original_text = template_token[index].toString();
@@ -573,6 +580,8 @@ async function check_page(target_page_data, options) {
 			return parsed.toString();
 		}
 
+		const main_page_wikitext = linking_page_data.wikitext;
+		let removed_anchors = 0;
 		const talk_page_title = wiki.to_talk_page(linking_page_data);
 		anchor_token = anchor_token.toString();
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
@@ -580,7 +589,7 @@ async function check_page(target_page_data, options) {
 		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
-			summary: 'Notify broken anchor ' + anchor_token,
+			summary: 'Notify broken anchor ' + anchor_token + (removed_anchors > 0 ? `, remove ${removed_anchors} anchor(s)` : ''),
 			bot: 1,
 			minor: 1,
 			nocreate: false
