@@ -942,7 +942,7 @@ async function get_list(task_configuration, list_configuration) {
 		throw new Error(`Invalid move_from_link: ${JSON.stringify(list_configuration.move_from_link)}`);
 	} else if (/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(list_configuration.move_from_link)) {
 		list_types = 'search';
-	} else if (/^https?:\/\//.test(list_configuration.move_from_link)) {
+	} else if (/^(https?:)\/\//.test(list_configuration.move_from_link)) {
 		// should have task_configuration.text_processor()
 		list_types = 'exturlusage';
 	} else if (!task_configuration.move_to_link && task_configuration.for_template) {
