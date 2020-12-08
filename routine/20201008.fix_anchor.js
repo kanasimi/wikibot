@@ -596,7 +596,7 @@ async function check_page(target_page_data, options) {
 			summary: 'Notify broken anchor ' + anchor_token + (removed_anchors > 0 ? `, remove ${removed_anchors} anchor(s)` : ''),
 			bot: 1,
 			minor: 1,
-			nocreate: false
+			//nocreate: false,
 		});
 	}
 
