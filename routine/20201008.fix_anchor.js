@@ -563,7 +563,7 @@ async function check_page(target_page_data, options) {
 					return parsed.each.exit;
 				}
 			}, {
-				depth: 1
+				depth: 0
 			});
 			return parsed.toString();
 		}
