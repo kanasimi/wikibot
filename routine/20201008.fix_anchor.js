@@ -555,7 +555,7 @@ async function check_page(target_page_data, options) {
 				return parsed.toString();
 			}
 
-			// 添加在首個 section_title 前，最後一個 template 後。
+			// 添加在首段或首個 section_title 前，最後一個 template 後。
 			text_to_add = `{{Broken anchors|links=${text_to_add}}}\n`;
 			parsed.each((token, index, parent) => {
 				if (typeof token !== 'string' && token.type !== 'transclusion') {
@@ -570,9 +570,12 @@ async function check_page(target_page_data, options) {
 
 		const talk_page_title = wiki.to_talk_page(linking_page);
 		anchor_token = anchor_token.toString();
+		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
 		let text_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record ? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
+		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
-			summary: 'Notification of broken anchor ' + anchor_token,
+			//Notification of broken anchor
+			summary: 'Notify broken anchor ' + anchor_token,
 			bot: 1,
 			minor: 1,
 			nocreate: false
