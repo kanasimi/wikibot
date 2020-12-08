@@ -545,8 +545,9 @@ async function check_page(target_page_data, options) {
 				// remove unknown anchors
 				parsed.each.call(template_token[index], 'list', list_token => {
 					for (let index = 0; index < list_token.length; index++) {
-						const first_taken = list_token[index][0];
-						if (first_taken.type === 'tag' && first_taken.tag === 'nowiki' && !main_page_wikitext.includes(first_taken[1].toString())) {
+						const first_token = list_token[index][0];
+						if (first_token && first_token.type === 'tag' && first_token.tag === 'nowiki'
+							&& !main_page_wikitext.includes(first_token[1].toString())) {
 							// remove item that is not in main article.
 							list_token.splice(index--, 1);
 							removed_anchors++;
@@ -569,6 +570,8 @@ async function check_page(target_page_data, options) {
 
 			// 添加在首段或首個 section_title 前，最後一個 template 後。
 			text_to_add = `{{Broken anchors|links=${text_to_add}}}\n`;
+			if (!parsed[0])
+				console.trace(parsed);
 			parsed.each((token, index, parent) => {
 				if (typeof token !== 'string' && token.type !== 'transclusion') {
 					parent.splice(index, 0, text_to_add);
