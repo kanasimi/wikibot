@@ -568,18 +568,19 @@ async function check_page(target_page_data, options) {
 				return parsed.toString();
 			}
 
-			// 添加在首段或首個 section_title 前，最後一個 template 後。
+			// 添加在首段文字或首個 section_title 前，最後一個 template 後。
 			text_to_add = `{{Broken anchors|links=${text_to_add}}}\n`;
-			if (!parsed[0])
-				console.trace(parsed);
 			parsed.each((token, index, parent) => {
-				if (typeof token !== 'string' && token.type !== 'transclusion') {
+				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
 					parent.splice(index, 0, text_to_add);
+					text_to_add = null;
 					return parsed.each.exit;
 				}
 			}, {
 				max_depth: 1
 			});
+			if (text_to_add)
+				parsed.unshift(text_to_add);
 			return parsed.toString();
 		}
 
