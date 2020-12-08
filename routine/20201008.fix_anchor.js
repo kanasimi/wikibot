@@ -524,8 +524,7 @@ async function check_page(target_page_data, options) {
 
 	// ----------------------------------------------------
 
-	// TODO: remove existing anchors
-	async function add_note_for_broken_anchors(linking_page, anchor_token, record) {
+	async function add_note_for_broken_anchors(linking_page_data, anchor_token, record) {
 		function add_note_for_broken_anchors(talk_page_data) {
 			//console.trace(talk_page_data);
 			/** {Array} parsed page content 頁面解析後的結構。 */
@@ -535,12 +534,18 @@ async function check_page(target_page_data, options) {
 			parsed.each('template', template_token => {
 				if (template_token.name !== 'Broken anchors')
 					return;
+
 				has_broken_anchors_template = true;
 				const index = template_token.index_of['links'];
 				if (!index) {
 					template_token.push('links=' + text_to_add);
 					return parsed.each.exit;
 				}
+
+				// TODO: remove existing anchors
+				parsed.each.call(template_token[index], 'list', item_token => {
+					console.log(item_token);
+				});
 
 				const original_text = template_token[index].toString();
 				if (original_text.includes(anchor_token)) {
@@ -568,7 +573,7 @@ async function check_page(target_page_data, options) {
 			return parsed.toString();
 		}
 
-		const talk_page_title = wiki.to_talk_page(linking_page);
+		const talk_page_title = wiki.to_talk_page(linking_page_data);
 		anchor_token = anchor_token.toString();
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
 		let text_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record ? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
@@ -584,7 +589,7 @@ async function check_page(target_page_data, options) {
 
 	// ----------------------------------------------------
 
-	function check_token(token, linking_page) {
+	function check_token(token, linking_page_data) {
 		const page_title = (
 			// assert: {{Section link}}
 			token.page_title
@@ -598,16 +603,16 @@ async function check_page(target_page_data, options) {
 
 		if (!section_title_history[KEY_got_full_revisions]) {
 			if (working_queue) {
-				working_queue.list.push(linking_page);
+				working_queue.list.push(linking_page_data);
 			} else {
-				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page)}.`);
+				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page_data)}.`);
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 					.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
-					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
+					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
 					// free
 					.then(() => working_queue = null);
-				working_queue.list = [linking_page];
+				working_queue.list = [linking_page_data];
 			}
 			return;
 		}
@@ -629,8 +634,8 @@ async function check_page(target_page_data, options) {
 			const ARROW_SIGN = record?.is_directly_rename_to || type ? '→' : '⇝';
 			const hash = '#' + rename_to;
 
-			CeL.info(`${CeL.wiki.title_link_of(linking_page)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
-			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page)}: #${token.anchor}${ARROW_SIGN}${hash}`);
+			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
+			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: #${token.anchor}${ARROW_SIGN}${hash}`);
 			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'VERY DIFFERENT'} ${record.very_different})` : ''}`
 				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
@@ -641,10 +646,10 @@ async function check_page(target_page_data, options) {
 			//changed = true;
 			return true;
 		} else {
-			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 				})`);
 			if (wiki.site_name() === 'jawiki') {
-				add_note_for_broken_anchors(linking_page, token, rename_to && section_title_history[rename_to]);
+				add_note_for_broken_anchors(linking_page_data, token, rename_to && section_title_history[rename_to]);
 			}
 		}
 	}
@@ -654,19 +659,19 @@ async function check_page(target_page_data, options) {
 	const Section_link_alias = wiki.latest_task_configuration.Section_link_alias;
 
 	let pages_modified = 0;
-	function resolve_linking_page(linking_page) {
+	function resolve_linking_page(linking_page_data) {
 		/** {Array} parsed page content 頁面解析後的結構。 */
-		const parsed = linking_page.parse();
+		const parsed = linking_page_data.parse();
 		// console.log(parsed);
-		CeL.assert([linking_page.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page));
-		if (linking_page.ns !== 0 && linking_page.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
-			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page)}: ${CeL.to_KB(linking_page.wikitext.length)} chars`);
+		CeL.assert([linking_page_data.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page_data));
+		if (linking_page_data.ns !== 0 && linking_page_data.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
+			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_KB(linking_page_data.wikitext.length)} chars`);
 		}
 
 		let changed;
 		// handle [[link#anchor|display text]]
 		parsed.each('link', token => {
-			if (check_token.call(this, token, linking_page))
+			if (check_token.call(this, token, linking_page_data))
 				changed = true;
 		});
 		// handle {{Section link}}
@@ -681,14 +686,14 @@ async function check_page(target_page_data, options) {
 				}
 			}
 
-			token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page.title;
+			token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
 			//console.trace(token);
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = token.index_of[index];
 				if (!token.anchor_index)
 					continue;
 				token.anchor = token.parameters[index].toString().replace(/_/g, ' ');
-				if (check_token.call(this, token, linking_page))
+				if (check_token.call(this, token, linking_page_data))
 					changed = true;
 			}
 		});
