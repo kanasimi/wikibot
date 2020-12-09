@@ -51,6 +51,12 @@ const wiki = new Wikiapi;
 
 async function main_process() {
 
+	wiki.latest_task_configuration.Section_link_alias
+		= (await wiki.redirects_here('Template:Section link'))
+			.map(page_data => page_data.title
+				// remove "Template:" prefix
+				.replace(/^[^:]+:/, ''));
+
 	if (false) {
 		// for debug only
 		const revision = await wiki.tracking_revisions('安定门 (北京)', '拆除安定门前');
@@ -65,14 +71,10 @@ async function main_process() {
 		await check_page('新黨', { force_check: true });
 
 		await check_page('Species', { force_check: true });
+
+		await check_page('メイズ・ランナー', { force_check: true, namespace: '*' });
 		return;
 	}
-
-	wiki.latest_task_configuration.Section_link_alias
-		= (await wiki.redirects_here('Template:Section link'))
-			.map(page_data => page_data.title
-				// remove "Template:" prefix
-				.replace(/^[^:]+:/, ''));
 
 	wiki.listen(for_each_row, {
 		// 檢查的延遲時間。
@@ -128,6 +130,49 @@ function filter_row(row) {
 	return true;
 }
 
+async function get_sections_moved_to(page_data) {
+	/** {Array} parsed page content 頁面解析後的結構。 */
+	const parsed = CeL.wiki.parser(page_data).parse();
+	// console.log(parsed);
+	/**
+	 * {String}page content, maybe undefined. 條目/頁面內容 =
+	 * CeL.wiki.revision_content(revision)
+	 */
+	const content = CeL.wiki.content_of(page_data);
+	CeL.assert([content, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
+
+	let has_archives;
+	parsed.each('template', template_token => {
+		if (template_token.name in {
+			Archives: true,
+			'Archive box': true,
+			'Easy Archive': true,
+			'Auto archiving notice': true,
+		}) {
+			has_archives = true;
+		}
+	});
+
+	if (!has_archives)
+		return;
+
+	CeL.info(`${get_sections_moved_to.name}: Pages with archives: ${CeL.wiki.title_link_of(page_data)}`);
+
+	// TODO: check {{Archives}}, {{Archive box}}, {{Easy Archive}}
+}
+
+async function is_bad_edit(page_data) {
+	/**
+	 * {String}page content, maybe undefined. 條目/頁面內容 =
+	 * CeL.wiki.revision_content(revision)
+	 */
+	const content = CeL.wiki.content_of(page_data);
+	if (!content || content.length < 100) {
+		//ページの白紙化 or rediects?
+		return true;
+	}
+}
+
 async function for_each_row(row) {
 	//CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}`);
 	const diff_list = row.diff;
@@ -139,13 +184,21 @@ async function for_each_row(row) {
 		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1]));
 	});
 
+	if (await is_bad_edit(row)) {
+		return;
+	}
+
+	const sections_moved_to = await get_sections_moved_to(row);
+	if (sections_moved_to) {
+		;
+	}
+
 	if (removed_section_titles.length > 3) {
 		if (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Wikipedia talk')) {
 			// 去除剪貼移動式 archive 的情況。
 			CeL.info(`${for_each_row.name}: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just archived?`);
 			return;
 		}
-		// TODO: check {{Archives}}, {{Archive box}}, {{Easy Archive}}
 	}
 
 	if (removed_section_titles.length > 0) {
@@ -178,7 +231,9 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		return section_title_list;
 	}
 
+	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = CeL.wiki.parser(wikitext).parse();
+	// console.log(parsed);
 	parsed.each('section_title', section_title_token => {
 		//console.log(section_title_token);
 		const link = section_title_token.link;
@@ -484,7 +539,7 @@ async function check_page(target_page_data, options) {
 
 	link_from.append((await wiki.backlinks(target_page_data, {
 		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
-		namespace: wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal'
+		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
 	})).filter(page_data =>
 		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
 		// [[User:Cewbot/log/20151002/存檔5]]
@@ -607,7 +662,9 @@ async function check_page(target_page_data, options) {
 			// assert: {{Section link}}
 			token.page_title
 			// assert: token.type === 'link'
-			|| token[0]).toString();
+			|| token[0]
+			// for [[#anchor]]
+			|| linking_page_data.title).toString();
 		if (!(wiki.normalize_title(page_title) in target_page_redirects) || !token.anchor
 			|| section_title_history[token.anchor]?.is_present
 		) {
@@ -652,10 +709,18 @@ async function check_page(target_page_data, options) {
 			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'VERY DIFFERENT'} ${record.very_different})` : ''}`
 				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
-			if (token.anchor_index)
+			if (token.anchor_index) {
 				token[token.anchor_index] = rename_to;
-			else
+			} else {
 				token[1] = hash;
+			}
+			// https://meta.wikimedia.org/wiki/Community_Wishlist_Survey_2021/Bots_and_gadgets#Talk_page_archiving_bot_updating_incoming_links
+			if (record?.move_to_page_title) {
+				if (token.article_index)
+					token[token.article_index] = record.move_to_page_title;
+				else
+					token[0] = record.move_to_page_title;
+			}
 			//changed = true;
 			return true;
 		} else {
@@ -691,16 +756,18 @@ async function check_page(target_page_data, options) {
 		parsed.each('template', (token, index, parent) => {
 			if (!Section_link_alias.includes(token.name))
 				return;
-			if (token.parameters[1]) {
-				const matched = token.parameters[1].toString().includes('#');
+			const ARTICLE_INDEX = 1;
+			if (token.parameters[ARTICLE_INDEX]) {
+				const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');
 				if (matched) {
-					token[token.index_of[1]] = token.parameters[1].toString().replace('#', '|');
+					token[token.index_of[ARTICLE_INDEX]] = token.parameters[ARTICLE_INDEX].toString().replace('#', '|');
 					parent[index] = token = CeL.wiki.parse(token.toString());
 				}
 			}
 
 			token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
 			//console.trace(token);
+			token.article_index = ARTICLE_INDEX;
 			for (let index = 2; index < token.length; index++) {
 				token.anchor_index = token.index_of[index];
 				if (!token.anchor_index)
