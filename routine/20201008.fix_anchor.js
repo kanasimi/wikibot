@@ -130,6 +130,18 @@ function filter_row(row) {
 	return true;
 }
 
+async function is_bad_edit(page_data) {
+	/**
+	 * {String}page content, maybe undefined. 條目/頁面內容 =
+	 * CeL.wiki.revision_content(revision)
+	 */
+	const content = CeL.wiki.content_of(page_data, 0);
+	if (!content || content.length < 100) {
+		//console.trace(`ページの白紙化 or rediects? (${content.length}) ` + JSON.stringify(content).slice(0, 200));
+		return true;
+	}
+}
+
 async function get_sections_moved_to(page_data) {
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = CeL.wiki.parser(page_data).parse();
@@ -138,7 +150,7 @@ async function get_sections_moved_to(page_data) {
 	 * {String}page content, maybe undefined. 條目/頁面內容 =
 	 * CeL.wiki.revision_content(revision)
 	 */
-	const content = CeL.wiki.content_of(page_data);
+	const content = CeL.wiki.content_of(page_data, 0);
 	CeL.assert([content, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
 
 	let has_archives;
@@ -159,18 +171,6 @@ async function get_sections_moved_to(page_data) {
 	CeL.info(`${get_sections_moved_to.name}: Pages with archives: ${CeL.wiki.title_link_of(page_data)}`);
 
 	// TODO: check {{Archives}}, {{Archive box}}, {{Easy Archive}}
-}
-
-async function is_bad_edit(page_data) {
-	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 =
-	 * CeL.wiki.revision_content(revision)
-	 */
-	const content = CeL.wiki.content_of(page_data);
-	if (!content || content.length < 100) {
-		//ページの白紙化 or rediects?
-		return true;
-	}
 }
 
 async function for_each_row(row) {
@@ -648,7 +648,7 @@ async function check_page(target_page_data, options) {
 		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
-			summary: 'Notify broken anchor ' + anchor_token + (removed_anchors > 0 ? `, remove ${removed_anchors} anchor(s)` : ''),
+			summary: 'Notify broken anchor: ' + anchor_token + (removed_anchors > 0 ? `, remove ${removed_anchors} anchor(s)` : ''),
 			bot: 1,
 			minor: 1,
 			//nocreate: false,
