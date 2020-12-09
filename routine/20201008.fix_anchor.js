@@ -724,10 +724,11 @@ async function check_page(target_page_data, options) {
 			//changed = true;
 			return true;
 		} else {
-			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)}${rename_to && section_title_history[rename_to] ? `, ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
-				})`);
+			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
+				})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+				}`);
 			if (wiki.site_name() === 'jawiki') {
-				add_note_for_broken_anchors(linking_page_data, token, rename_to && section_title_history[rename_to]);
+				add_note_for_broken_anchors(linking_page_data, token, record);
 			}
 		}
 	}
