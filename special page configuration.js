@@ -913,7 +913,10 @@ var page_configurations = {
 		timezone : 8,
 		need_time_legend : false,
 		// 初次延長期（基礎評選期＋14日）及最後延長期（初次延長期＋28日）
-		extend_intervals : [ '14D', '28D' ]
+		// extend_intervals : [ '14D', '28D' ]
+		// 2020/12/2 特色列表評選（包括重審）和特色圖片評選（包括除名）現已統一為14+14天
+		// 評選延長期（基礎評選期＋14日）
+		extend_intervals : [ '14D' ]
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:優良條目評選/提名區' : Object.assign({
 		timezone : 8,
@@ -940,7 +943,10 @@ var page_configurations = {
 		pass_vote : function(diff, section) {
 			// 候選圖片獲得'''8張'''或以上的「符合特色圖片標準」票；「不符合特色圖片標準」票與「符合特色圖片標準」票1:1抵消。
 			return diff >= 8;
-		}
+		},
+		// 2020/12/2 特色列表評選（包括重審）和特色圖片評選（包括除名）現已統一為14+14天
+		// 評選延長期（基礎評選期＋14日）
+		extend_intervals : [ '14D' ]
 	}),
 	'zhwiki:Wikipedia:已删除内容查询' : {
 		topic_page : general_topic_page,
@@ -1372,6 +1378,7 @@ function check_MarkAsResolved_status(section, section_index) {
 		if (token.name in {
 			Saved : true
 		}) {
+			// console.trace(token);
 			status = 'style="color: #aaa;" | ' + '已存檔';
 			section.archived = true;
 		}
