@@ -10,12 +10,10 @@ node 20201008.fix_anchor.js use_language=ja
 # Checking all pages linking to the ARTICLE.
 # If there are links with old anchor, modify it to the newer one.
 # If need, the bot will search revisions to find previous renamed section title.
+# The bot also notify broken anchors in the talk page via {{tl|Broken anchors}}.
 
 TODO:
-# The bot may notice in the talk page for lost anchors. Or {{R from incorrect name}}, [[Category:Pages containing links with bad anchors]]
-
 因為有延遲，可檢查當前版本是否為最新版本。
-忽略包含不合理元素的編輯，例如 url。
 
 檢核頁面移動的情況。
 檢核/去除重複或無效的 anchor。
@@ -49,6 +47,8 @@ const wiki = new Wikiapi;
 	await main_process();
 })();
 
+const archive_template_list = ["Archive", "Archives", "Archive box", "Easy Archive", "Auto archiving notice"];
+
 async function main_process() {
 
 	wiki.latest_task_configuration.Section_link_alias
@@ -72,19 +72,42 @@ async function main_process() {
 
 		await check_page('Species', { force_check: true });
 
-		await check_page('メイズ・ランナー', { force_check: true, namespace: '*' });
+		await check_page('Wikipedia:互助客栈/技术‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
+		return;
+	}
+
+	if (CeL.env.arg_hash.archives) {
+		// fix archived: `node 20201008.fix_anchor.js use_language=zh archives`
+		const page_list_with_archives = [];
+		for (let template_name of archive_template_list) {
+			page_list_with_archives
+				.append((await wiki.embeddedin('Template:' + template_name))
+					.filter(page_data => !/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
+						&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)));
+		}
+		//console.trace(page_list_with_archives);
+		for (let index = 0; index < page_list_with_archives.length; index++) {
+			const page_title = page_list_with_archives[index];
+			try {
+				await check_page(page_title, { force_check: true, namespace: '*' });
+			} catch (e) {
+				CeL.error(`Error process ${page_title}`);
+				console.error(e);
+			}
+		}
 		return;
 	}
 
 	wiki.listen(for_each_row, {
 		// 檢查的延遲時間。
+		// 時間必須長到機器人存檔作業完成後，因此最起碼應該有1分鐘。
 		delay: '2m',
 		//start: '30D',
 		filter: filter_row,
 		// also get diff
 		with_diff: { LCS: true, line: true },
 		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章章節標題。
-		namespace: 0,
+		//namespace: 0,
 		parameters: {
 			// 跳過機器人所做的編輯。
 			// You need the "patrol" or "patrolmarks" right to request the
@@ -109,6 +132,13 @@ function filter_row(row) {
 		return;
 	}
 
+	// 處理有存檔的頁面。
+	if (get_sections_moved_to(row, { check_has_subpage_archives_only: true }))
+		return true;
+
+	// 處理 articles。
+	return wiki.is_namespace(row, 0);
+
 	// [[Wikipedia:優良條目評選/提名區]]
 	// [[Wikipedia:優良條目重審/提名區]]
 	// [[Wikipedia:優良條目候選/提名區]]
@@ -121,7 +151,9 @@ function filter_row(row) {
 	}
 
 	//console.log([wiki.is_namespace(row, 'Draft'), wiki.is_namespace(row, 'User talk')]);
-	if (wiki.is_namespace(row, 'Draft') || wiki.is_namespace(row, 'User talk')) {
+	if (wiki.is_namespace(row, 'Draft')
+		//|| wiki.is_namespace(row, 'User talk')
+	) {
 		// ignore all link to [[Draft:]], [[User talk:]]
 		return;
 	}
@@ -142,7 +174,8 @@ async function is_bad_edit(page_data) {
 	}
 }
 
-async function get_sections_moved_to(page_data) {
+async function get_sections_moved_to(page_data, options) {
+	page_data = await wiki.page(page_data);
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = CeL.wiki.parser(page_data).parse();
 	// console.log(parsed);
@@ -153,27 +186,36 @@ async function get_sections_moved_to(page_data) {
 	const content = CeL.wiki.content_of(page_data, 0);
 	CeL.assert([content, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
 
-	let has_archives;
-	parsed.each('template', template_token => {
-		if (template_token.name in {
-			Archives: true,
-			'Archive box': true,
-			'Easy Archive': true,
-			'Auto archiving notice': true,
-		}) {
-			has_archives = true;
-		}
-	});
+	let { has_subpage_archives } = options;
+	if (!has_subpage_archives) {
+		// check {{Archives}}, {{Archive box}}, {{Easy Archive}}
+		parsed.each('template', template_token => {
+			if (archive_template_list.includes(template_token.name)) {
+				has_subpage_archives = true;
+			}
+		});
+	}
 
-	if (!has_archives)
+	if (!has_subpage_archives)
 		return;
+
+	if (options?.check_has_subpage_archives_only)
+		return true;
 
 	CeL.info(`${get_sections_moved_to.name}: Pages with archives: ${CeL.wiki.title_link_of(page_data)}`);
 
-	// TODO: check {{Archives}}, {{Archive box}}, {{Easy Archive}}
+	const subpage_list = await wiki.prefixsearch(page_data.title + '/');
+	//console.trace(subpage_list);
+	await wiki.for_each_page(subpage_list, async subpage_data => {
+		await tracking_section_title_history(subpage_data, { ...options, set_recent_section_only: true, move_to_page_title: subpage_data.title });
+	});
 }
 
 async function for_each_row(row) {
+	if (await is_bad_edit(row)) {
+		return;
+	}
+
 	//CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}`);
 	const diff_list = row.diff;
 	const removed_section_titles = [], added_section_titles = [];
@@ -183,15 +225,6 @@ async function for_each_row(row) {
 		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0]));
 		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1]));
 	});
-
-	if (await is_bad_edit(row)) {
-		return;
-	}
-
-	const sections_moved_to = await get_sections_moved_to(row);
-	if (sections_moved_to) {
-		;
-	}
 
 	if (removed_section_titles.length > 3) {
 		if (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Wikipedia talk')) {
@@ -237,6 +270,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 	parsed.each('section_title', section_title_token => {
 		//console.log(section_title_token);
 		const link = section_title_token.link;
+		// TODO: 忽略包含不合理元素的編輯，例如 url。
 		if (!link.imprecise_tokens) {
 			// `section_title_token.title` will not transfer "[", "]"
 			section_title_list.push(link[1]);
@@ -249,9 +283,9 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		}
 	});
 
-	// 處理 {{Anchor|anchor}}
+	// 處理 {{Anchor|anchor|別名1|別名2}}
 	parsed.each('template', template_token => {
-		if (template_token.name !== 'Anchor')
+		if (!['Anchor', 'Anchors', 'Visible anchor'].includes(template_token.name))
 			return;
 
 		for (let index = 1; index < template_token.length; index++) {
@@ -261,9 +295,9 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		}
 	});
 
-	// 處理 <span class="anchor" id="anchor"></span>
+	// 處理 <span class="anchor" id="anchor"></span>, <ref name="anchor">
 	parsed.each('tag', tag_token => {
-		const anchor = tag_token.attributes.id;
+		const anchor = tag_token.attributes.id || tag_token.attributes.name;
 		if (anchor)
 			section_title_list.push(anchor.replace(/_/g, ' '));
 	});
@@ -297,8 +331,12 @@ function get_section_title_data(section_title_history, section_title) {
 	// TODO: get possible section name variants: 以文字相似程度猜測
 }
 
-function set_section_title(section_title_history, section_title, data) {
+function set_section_title(section_title_history, section_title, data, options) {
 	section_title_history[section_title] = data;
+	if (options?.move_to_page_title) {
+		delete data.is_present;
+		data.move_to_page_title = options.move_to_page_title;
+	}
 
 	const reduced_section = reduce_section_title(section_title);
 	if (reduced_section !== section_title && !(reduced_section in section_title_history)) {
@@ -366,7 +404,7 @@ async function tracking_section_title_history(page_data, options) {
 				// is present section title
 				is_present: revision || true,
 				appear: null,
-			})
+			}, options)
 		);
 		section_title_history[KEY_latest_page_data] = page_data;
 	}
@@ -427,7 +465,7 @@ async function tracking_section_title_history(page_data, options) {
 		if (!section_title_history[from]) {
 			set_section_title(section_title_history, from, {
 				title: from
-			});
+			}, options);
 		}
 		Object.assign(section_title_history[from], {
 			is_directly_rename_to, very_different,
@@ -535,22 +573,26 @@ async function check_page(target_page_data, options) {
 	if (target_page_data.convert_from)
 		target_page_redirects[target_page_data.convert_from] = true;
 	const section_title_history = await tracking_section_title_history(target_page_data, { set_recent_section_only: true });
+
+	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
 	//console.trace(section_title_history);
 
-	link_from.append((await wiki.backlinks(target_page_data, {
-		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
-		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
-	})).filter(page_data =>
-		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
-		// [[User:Cewbot/log/20151002/存檔5]]
-		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
-		// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
-		&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
-		// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
-		// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
-		// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
-		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
-	));
+	link_from.append(['Wikipedia:沙盒']);
+	if (0)
+		link_from.append((await wiki.backlinks(target_page_data, {
+			// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
+			namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
+		})).filter(page_data =>
+			!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
+			// [[User:Cewbot/log/20151002/存檔5]]
+			// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
+			// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
+			&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
+			// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
+			// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
+			// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
+			&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
+		));
 
 	if (link_from.length > 800 && !options.force_check
 		// 連結的頁面太多時，只挑選較確定是改變章節名稱的。
@@ -560,6 +602,7 @@ async function check_page(target_page_data, options) {
 	}
 
 	CeL.info(`${check_page.name}: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
+	//console.log(link_from);
 
 	let working_queue;
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
@@ -644,7 +687,9 @@ async function check_page(target_page_data, options) {
 		const talk_page_title = wiki.to_talk_page(linking_page_data);
 		anchor_token = anchor_token.toString();
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
-		let text_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record ? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
+		let text_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
+			//<syntaxhighlight lang="json">...</syntaxhighlight>
+			? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
 		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
@@ -670,6 +715,20 @@ async function check_page(target_page_data, options) {
 		) {
 			return;
 		}
+		//console.trace(token);
+
+		const move_to_page_title = section_title_history[token.anchor]?.move_to_page_title;
+		// https://meta.wikimedia.org/wiki/Community_Wishlist_Survey_2021/Bots_and_gadgets#Talk_page_archiving_bot_updating_incoming_links
+		if (move_to_page_title) {
+			if (token.article_index) {
+				token[token.article_index] = move_to_page_title;
+			} else {
+				token[0] = move_to_page_title;
+			}
+			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: Update link to archived section: ${token}`);
+			this.summary = `${summary}Update link to archived section: ${token}`;
+			return true;
+		}
 
 		if (!section_title_history[KEY_got_full_revisions]) {
 			if (working_queue) {
@@ -688,6 +747,7 @@ async function check_page(target_page_data, options) {
 		}
 
 		const record = get_section_title_data(section_title_history, token.anchor);
+		//console.trace(record);
 		let rename_to = record?.rename_to;
 		if (rename_to && section_title_history[rename_to]?.is_present) {
 			let type;
@@ -714,22 +774,15 @@ async function check_page(target_page_data, options) {
 			} else {
 				token[1] = hash;
 			}
-			// https://meta.wikimedia.org/wiki/Community_Wishlist_Survey_2021/Bots_and_gadgets#Talk_page_archiving_bot_updating_incoming_links
-			if (record?.move_to_page_title) {
-				if (token.article_index)
-					token[token.article_index] = record.move_to_page_title;
-				else
-					token[0] = record.move_to_page_title;
-			}
 			//changed = true;
 			return true;
-		} else {
-			CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
-				})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
-				}`);
-			if (wiki.site_name() === 'jawiki') {
-				add_note_for_broken_anchors(linking_page_data, token, record);
-			}
+		}
+
+		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
+			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
+			}`);
+		if (wiki.site_name() === 'jawiki') {
+			add_note_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
 
@@ -743,7 +796,7 @@ async function check_page(target_page_data, options) {
 		const parsed = linking_page_data.parse();
 		// console.log(parsed);
 		CeL.assert([linking_page_data.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page_data));
-		if (linking_page_data.ns !== 0 && linking_page_data.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
+		if (!wiki.is_namespace(linking_page_data, 0) && linking_page_data.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
 			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_KB(linking_page_data.wikitext.length)} chars`);
 		}
 
