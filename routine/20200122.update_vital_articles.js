@@ -920,13 +920,14 @@ const class_alias_to_normalized = {
 function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	const article_info = need_edit_VA_template[main_page_title];
 
+	// There are copies @ 20201008.fix_anchor.js
 	// TODO: fix disambiguation
 
 	if (CeL.wiki.parse.redirect(talk_page_data)) {
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
 		// this kind of redirects will be skipped and listed in [[Wikipedia:Database reports/Vital articles update report]] for manually fixing.
 		// Warning: Should not go to here!
-		CeL.warn(`maintain_VA_template_each_talk_page: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
+		CeL.warn(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		//console.log(talk_page_data.wikitext);
 		report_lines.push([main_page_title, article_info.level,
 			`${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`]);
@@ -936,7 +937,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// the bot only fix namespace=talk.
 	if (!wiki.is_namespace(talk_page_data, 'talk')) {
 		// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
-		CeL.warn(`maintain_VA_template_each_talk_page: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
+		CeL.warn(`${maintain_VA_template_each_talk_page.name}: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
 		//console.log(article_info);
 		return Wikiapi.skip_edit;
 	}
@@ -970,7 +971,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		if (token.name === VA_template_name) {
 			// get the first one
 			if (VA_template) {
-				CeL.error(`maintain_VA_template_each_talk_page: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				VA_template = token;
 			}
@@ -1003,17 +1004,30 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 	}
 	// console.log(VA_template_object);
-	let wikitext;
+	let wikitext_to_add;
 	if (VA_template) {
 		CeL.wiki.parse.replace_parameter(VA_template, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
-		wikitext = parsed.toString();
 	} else {
-		wikitext = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
-		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext}`);
-		wikitext += '\n' + talk_page_data.wikitext;
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext_to_add}`);
+		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
+		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n';
+		parsed.each((token, index, parent) => {
+			if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
+				parent.splice(index, 0, wikitext_to_add);
+				wikitext_to_add = null;
+				return parsed.each.exit;
+			}
+		}, {
+			max_depth: 1
+		});
+		if (wikitext_to_add) {
+			// 添加在頁面最前面。
+			parsed.unshift(wikitext_to_add);
+		}
 	}
 
+	const wikitext = parsed.toString();
 	if (false) {
 		// for debug
 		if (wikitext === talk_page_data.wikitext)

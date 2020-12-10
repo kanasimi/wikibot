@@ -76,6 +76,9 @@ async function main_process() {
 		return;
 	}
 
+	await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
+	return;
+
 	if (CeL.env.arg_hash.archives) {
 		// fix archived: `node 20201008.fix_anchor.js use_language=zh archives`
 		const page_list_with_archives = [];
@@ -624,6 +627,26 @@ async function check_page(target_page_data, options) {
 
 	async function add_note_for_broken_anchors(linking_page_data, anchor_token, record) {
 		function add_note_for_broken_anchors(talk_page_data) {
+			// Modify from 20200122.update_vital_articles.js
+			// TODO: fix disambiguation
+
+			if (CeL.wiki.parse.redirect(talk_page_data)) {
+				// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+				// this kind of redirects will be skipped and listed in [[Wikipedia:Database reports/Vital articles update report]] for manually fixing.
+				// Warning: Should not go to here!
+				CeL.warn(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
+				//console.log(talk_page_data.wikitext);
+				return Wikiapi.skip_edit;
+			}
+
+			// the bot only fix namespace=talk.
+			if (!wiki.is_namespace(talk_page_data, 'talk')) {
+				// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
+				CeL.warn(`${add_note_for_broken_anchors.name}: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
+				//console.log(article_info);
+				return Wikiapi.skip_edit;
+			}
+
 			//console.trace(talk_page_data);
 			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = CeL.wiki.parser(talk_page_data).parse();
@@ -636,7 +659,7 @@ async function check_page(target_page_data, options) {
 				has_broken_anchors_template = true;
 				const index = template_token.index_of['links'];
 				if (!index) {
-					template_token.push('links=' + text_to_add);
+					template_token.push('links=' + wikitext_to_add);
 					return parsed.each.exit;
 				}
 
@@ -659,7 +682,7 @@ async function check_page(target_page_data, options) {
 					return parsed.each.exit;
 				}
 
-				template_token[index] = original_text + text_to_add;
+				template_token[index] = original_text + wikitext_to_add;
 			});
 
 			if (has_broken_anchors_template) {
@@ -667,18 +690,20 @@ async function check_page(target_page_data, options) {
 			}
 
 			// 添加在首段文字或首個 section_title 前，最後一個 template 後。
-			text_to_add = `{{Broken anchors|links=${text_to_add}}}\n`;
+			wikitext_to_add = `{{Broken anchors|links=${wikitext_to_add}}}\n`;
 			parsed.each((token, index, parent) => {
 				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
-					parent.splice(index, 0, text_to_add);
-					text_to_add = null;
+					parent.splice(index, 0, wikitext_to_add);
+					wikitext_to_add = null;
 					return parsed.each.exit;
 				}
 			}, {
 				max_depth: 1
 			});
-			if (text_to_add)
-				parsed.unshift(text_to_add);
+			if (wikitext_to_add) {
+				// 添加在頁面最前面。
+				parsed.unshift(wikitext_to_add);
+			}
 			return parsed.toString();
 		}
 
@@ -687,7 +712,7 @@ async function check_page(target_page_data, options) {
 		const talk_page_title = wiki.to_talk_page(linking_page_data);
 		anchor_token = anchor_token.toString();
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
-		let text_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
+		let wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
 			//<syntaxhighlight lang="json">...</syntaxhighlight>
 			? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
 		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
