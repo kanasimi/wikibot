@@ -401,6 +401,9 @@ async function for_each_list_page(list_page_data) {
 
 		let item_replace_to, icons = [];
 		function for_item_token(token, index, _item) {
+			if (_item.toString().includes('[[Russian Empire]]')) {
+				//console.trace([_item, index]);
+			}
 			let parent_of_link;
 			if (!item_replace_to && token.type !== 'link') {
 				// For token.type 'bold', 'italic', finding the first link
@@ -770,8 +773,8 @@ async function generate_all_VA_list_page() {
 		}
 	}
 
-	try { await generate_list_page('List of all articles', all_articles); } catch{ }
-	try { await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles); } catch{ }
+	try { await generate_list_page('List of all articles', all_articles); } catch { }
+	try { await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles); } catch { }
 }
 
 async function generate_list_page(page_name, article_hash) {
@@ -911,16 +914,6 @@ const class_alias_to_normalized = {
 	Dab: 'Disambig', Disamb: 'Disambig', Disambiguation: 'Disambig',
 };
 
-function normalize_class(_class) {
-	_class = String(_class);
-	//@see [[Category:Wikipedia vital articles by class]]
-	_class = _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
-	if (class_from_other_templates in class_alias_to_normalized) {
-		_class = class_alias_to_normalized[_class];
-	}
-	return _class;
-}
-
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
@@ -951,6 +944,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
 	let VA_template, class_from_other_templates;
+
+	function normalize_class(_class) {
+		_class = String(_class);
+		//@see [[Category:Wikipedia vital articles by class]]
+		_class = _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
+		if (class_from_other_templates in class_alias_to_normalized) {
+			_class = class_alias_to_normalized[_class];
+		}
+		return _class;
+	}
 
 	/**
 	 * scan for existing informations <code>
