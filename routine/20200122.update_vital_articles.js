@@ -552,9 +552,9 @@ async function for_each_list_page(list_page_data) {
 				if (false && token.toString().includes('Russian Empire')) {
 					console.trace(_item);
 				}
-				if (_item[index] === token && _item.set_category_level) {
+				if (_item[index] === token && _item.set_category_level && level - category_level > 0) {
 					// All articles from higher levels are also included in lower levels. For example, all 100 subjects on the Level 2 list (shown on this page in bold font) are included here in Level 3. And the Level 2 list also includes the 10 subjects on Level 1 (shown on this page in bold italics).
-					_item[index] = level - category_level > 1 ? `'''''${token}'''''` : `'''${token}'''`;
+					_item[index] = level - category_level === 1 ? `'''${token}'''` : `'''''${token}'''''`;
 					//console.trace(_item[index]);
 				}
 				// Using token will preserve link display text.
