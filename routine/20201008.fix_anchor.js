@@ -3,6 +3,11 @@ node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
 
+fix archived:
+node 20201008.fix_anchor.js use_language=zh archives
+node 20201008.fix_anchor.js use_language=en archives
+
+
 2020/10/9 19:0:26	初版試營運
 2020/11/17 6:48:13	仮運用を行って。ウィキペディア日本語版における試験運転。
 
@@ -73,14 +78,12 @@ async function main_process() {
 		await check_page('Species', { force_check: true });
 
 		await check_page('Wikipedia:互助客栈/技术‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
+		await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
 		return;
 	}
 
-	await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
-	return;
-
+	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
-		// fix archived: `node 20201008.fix_anchor.js use_language=zh archives`
 		const page_list_with_archives = [];
 		for (let template_name of archive_template_list) {
 			page_list_with_archives
@@ -89,12 +92,15 @@ async function main_process() {
 						&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)));
 		}
 		//console.trace(page_list_with_archives);
-		for (let index = 0; index < page_list_with_archives.length; index++) {
-			const page_title = page_list_with_archives[index];
+		const length = page_list_with_archives.length;
+		while (page_list_with_archives.length > 0) {
+			const page_data = page_list_with_archives.shift();
+			const NO = length - page_list_with_archives.length;
+			process.title = `${NO}/${length} ${(1000 * NO / length | 0) / 10}% ${page_data.title}`;
 			try {
-				await check_page(page_title, { force_check: true, namespace: '*' });
+				await check_page(page_data, { force_check: true, namespace: '*', progress: NO / length });
 			} catch (e) {
-				CeL.error(`Error process ${page_title}`);
+				CeL.error(`Error process ${page_data.title}`);
 				console.error(e);
 			}
 		}
@@ -269,6 +275,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = CeL.wiki.parser(wikitext).parse();
+	//CeL.assert([wikitext, parsed.toString()], 'wikitext parser check for wikitext');
 	// console.log(parsed);
 	parsed.each('section_title', section_title_token => {
 		//console.log(section_title_token);
@@ -650,6 +657,7 @@ async function check_page(target_page_data, options) {
 			//console.trace(talk_page_data);
 			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = CeL.wiki.parser(talk_page_data).parse();
+			CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
 
 			let has_broken_anchors_template;
 			parsed.each('template', template_token => {
@@ -666,7 +674,7 @@ async function check_page(target_page_data, options) {
 				// remove unknown anchors
 				parsed.each.call(template_token[index], 'list', list_token => {
 					for (let index = 0; index < list_token.length; index++) {
-						const first_token = list_token[index][0];
+						const first_token = list_token[index][0]?.type && list_token[index][0];
 						if (first_token && first_token.type === 'tag' && first_token.tag === 'nowiki'
 							&& !main_page_wikitext.includes(first_token[1].toString())) {
 							// remove item that is not in main article.
@@ -689,10 +697,16 @@ async function check_page(target_page_data, options) {
 				return parsed.toString();
 			}
 
+			// Modify from 20200122.update_vital_articles.js
 			// 添加在首段文字或首個 section_title 前，最後一個 template 後。
-			wikitext_to_add = `{{Broken anchors|links=${wikitext_to_add}}}\n`;
+			wikitext_to_add = `{{Broken anchors|links=${wikitext_to_add}}}` + '\n\n';
 			parsed.each((token, index, parent) => {
 				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
+					const previous_node = index > 0 && parent[index - 1];
+					// 避免多個換行。
+					if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
+						parent[index - 1] = previous_node.replace(/\n$/, '');
+					}
 					parent.splice(index, 0, wikitext_to_add);
 					wikitext_to_add = null;
 					return parsed.each.exit;
@@ -746,12 +760,24 @@ async function check_page(target_page_data, options) {
 		// https://meta.wikimedia.org/wiki/Community_Wishlist_Survey_2021/Bots_and_gadgets#Talk_page_archiving_bot_updating_incoming_links
 		if (move_to_page_title) {
 			if (token.article_index) {
+				if (wiki.normalize_title(token[token.article_index]) === move_to_page_title)
+					return;
 				token[token.article_index] = move_to_page_title;
 			} else {
+				if (wiki.normalize_title(token[0]) === move_to_page_title)
+					return;
 				token[0] = move_to_page_title;
 			}
-			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: Update link to archived section: ${token}`);
-			this.summary = `${summary}Update link to archived section: ${token}`;
+			// [[#A_B]] → [[#A B]]
+			const section_title = section_title_history[token.anchor]?.title;
+			if (token.anchor_index) {
+				token[token.anchor_index] = section_title;
+			} else {
+				token[1] = '#' + section_title;
+			}
+			const message = `Update link to archived section${options.progress > 0 && options.progress < 1 ? ` (${1000 * options.progress / 10}%)` : ''}: ${token}`;
+			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: message`);
+			this.summary = `${summary}${message}`;
 			return true;
 		}
 
@@ -762,6 +788,7 @@ async function check_page(target_page_data, options) {
 				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page_data)}.`);
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
+					.catch(error => console.error(error))
 					.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
 					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
 					// free
