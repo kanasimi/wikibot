@@ -14,7 +14,10 @@ report articles with {{`VA_template_name`}} but is not listing in the list page.
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-CeL.run('application.net.wiki.featured_content');
+// Load modules.
+CeL.run(['application.net.wiki.featured_content',
+	// for CeL.assert()
+	'application.debug.log']);
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('en');
@@ -23,7 +26,7 @@ const wiki = new Wikiapi;
 
 const using_cache = false;
 if (using_cache)
-	prepare_directory(base_directory, true);
+	prepare_directory(base_directory);
 
 // ----------------------------------------------
 
@@ -80,7 +83,7 @@ async function main_process() {
 		// 3 && '',
 		// '4/Removed',
 		// '4/People',
-		// '4/History',
+		'4/History',
 		// '4/Physical sciences',
 		// '5/People/Writers and journalists',
 		// '5/People/Artists, musicians, and composers',
@@ -88,7 +91,7 @@ async function main_process() {
 		// '5/Technology',
 		// '5/Everyday life/Sports, games and recreation',
 		// '5/Mathematics',
-		'5/Geography/Cities',
+		// '5/Geography/Cities',
 	].map(level => level_to_page_title(level));
 
 	function to_title(page_data) {
@@ -313,7 +316,7 @@ function level_of_page_title(page_title, number_only) {
 }
 
 function replace_level_note(item, index, category_level, new_wikitext) {
-	if (item.type !== 'plain')
+	if (item.type !== 'list_item' && item.type !== 'plain')
 		return;
 
 	const rest_wikitext = item.slice(index + 1).join('').trim();
@@ -321,6 +324,7 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 	const matched = rest_wikitext && rest_wikitext.match(PATTERN_level);
 
 	if (new_wikitext === undefined) {
+		// auto-generated
 		new_wikitext = ` (${level_page_link(category_level, false, matched &&
 			// preserve level page. e.g.,
 			// " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
@@ -329,10 +333,15 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 	// assert: typeof new_wikitext === 'string'
 	// || typeof new_wikitext === 'number'
 
+	if (new_wikitext) {
+		item.set_category_level = category_level;
+	}
+
 	// Decide whether we need to replace or not.
 	if (new_wikitext ? rest_wikitext.includes(new_wikitext)
 		// new_wikitext === '': Remove level note.
 		: !matched) {
+		// No need to change
 		return;
 	}
 
@@ -368,6 +377,7 @@ async function for_each_list_page(list_page_data) {
 	const level = level_of_page_title(list_page_data, true) || DEFAULT_LEVEL;
 	// console.log([list_page_data.title, level]);
 	const parsed = list_page_data.parse();
+	CeL.assert([CeL.wiki.content_of(list_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(list_page_data));
 	// console.log(parsed);
 	parsed.each_section();
 	// console.log(parsed.subsections);
@@ -395,37 +405,40 @@ async function for_each_list_page(list_page_data) {
 
 	function for_item(item, index, list) {
 		if (item.type === 'list') {
-			item.forEach(for_item);
+			item.forEach((list_item, index, list) => {
+				if (list_item.length === 1 && list_item[0].type === 'list')
+					for_item(list_item[0], index, list);
+				else
+					for_item(list_item, index, list);
+			});
 			return;
 		}
 
 		let item_replace_to, icons = [];
 		function for_item_token(token, index, _item) {
-			if (_item.toString().includes('[[Russian Empire]]')) {
-				//console.trace([_item, index]);
-			}
-			let parent_of_link;
 			if (!item_replace_to && token.type !== 'link') {
-				// For token.type 'bold', 'italic', finding the first link
-				// children.
+				// e.g., token.type === 'list_item'
+
+				// For token.type === 'bold', 'italic', finding the first link children.
 				// e.g., `'' [[title]] ''`, `''' [[title]] '''`,
 				// `''''' [[title]] '''''`
 				parsed.each.call(token, (_token, index, parent) => {
-					if (_token.type === 'link') {
-						// assert: token.type === 'link'
-						token = _token;
-						token.index = index;
-						parent_of_link = parent;
-						return parsed.each.exit;
-					}
 					if (typeof _token === 'string'
 						// e.g., "{{Icon|A}} ''[[title]]''"
 						&& !/^['\s]*$/.test(_token)) {
 						// Skip links with non-space prefix.
 						return parsed.each.exit;
 					}
+
+					if (_token.type === 'link') {
+						// assert: token.type === 'link'
+						token = _token;
+						return parsed.each.exit;
+					}
 				});
+				//console.trace(token);
 			}
+
 			if (token.type === 'link' && !item_replace_to) {
 				// e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
@@ -505,14 +518,47 @@ async function for_each_list_page(list_page_data) {
 					return `{{Icon|${icon}}}`;
 				});
 
-				// This will preserve link display text.
-				if (parent_of_link) {
-					// replace the [[link]]
-					parent_of_link[token.index] = token;
-					icons.push(_item[index]);
-				} else {
-					icons.push(token);
+				parsed.each.call(_item[index], (_token, index, parent) => {
+					//console.log(_token);
+				}, { add_index: true });
+
+				Object.assign(_item[index], { index, parent: _item });
+				function move_up() {
+					const parent = token.parent;
+					//assert: token.index === 0 && token.parent[0] === token
+
+					// '''[[link]]''' → [[link]]
+					parent.parent[parent.index] = token;
+					token.index = parent.index;
+					token.parent = parent.parent;
 				}
+				if (false) {
+					// Clear all style
+					while (_item[index] !== token && token.parent?.length === 1) {
+						move_up();
+					}
+				}
+				// Only clear '''bold font''' and '''''bold italics'''''
+				// This will keep ''work title''
+				// For work titles or scientific names needing to be italicized, please using <nowiki><i></nowiki> instead.
+				if (token.parent.type === 'bold' && token.parent.length === 1) {
+					move_up();
+					if (token.parent.type === 'italic' && token.parent.length === 1) {
+						move_up();
+					}
+					//should be: _item[index] === token
+				}
+
+				if (false && token.toString().includes('Russian Empire')) {
+					console.trace(_item);
+				}
+				if (_item[index] === token && _item.set_category_level) {
+					// All articles from higher levels are also included in lower levels. For example, all 100 subjects on the Level 2 list (shown on this page in bold font) are included here in Level 3. And the Level 2 list also includes the 10 subjects on Level 1 (shown on this page in bold italics).
+					_item[index] = level - category_level > 1 ? `'''''${token}'''''` : `'''${token}'''`;
+					//console.trace(_item[index]);
+				}
+				// Using token will preserve link display text.
+				icons.push(_item[index]);
 
 				// 為避免替換後 `Check redirects` 無效，依然保留 token。
 				//item_replace_to = icons.join(' ');
@@ -544,7 +590,8 @@ async function for_each_list_page(list_page_data) {
 				// CeL.error('for_item: Invalid item: ' + _item);
 				console.log(item_replace_to);
 				console.log(token);
-				throw new Error('for_item: Invalid item: ' + _item);
+				CeL.error(`${for_item.name}: Invalid item: ` + _item)
+				throw new Error(`${for_item.name}: Invalid item: ` + _item);
 			} else {
 				if (_item.length !== 1 || typeof token !== 'string') {
 					console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
@@ -555,7 +602,7 @@ async function for_each_list_page(list_page_data) {
 					if (false) report_lines.push([normalized_page_title, list_page_data, `Invalid item: ${_item}`]);
 
 					// Fix invalid pattern.
-					const wikitext = _item.type === 'plain' && _item.toString();
+					const wikitext = (_item.type === 'list_item' || _item.type === 'plain') && _item.toString();
 					let PATTERN;
 					if (!wikitext) {
 					} else if ((PATTERN = /('{2,5})((?:{{Icon\|\w+}}\s*)+)/i).test(wikitext)) {
@@ -594,7 +641,8 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (!item_replace_to) {
-			throw new Error('No link! ' + list_page_data.title);
+			CeL.error('No link! ' + list_page_data.title);
+			console.trace(item);
 		}
 	}
 
@@ -639,7 +687,7 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (token.type === 'list') {
-			token.forEach(for_item);
+			for_item(token, index, root);
 			return;
 		}
 
@@ -698,7 +746,7 @@ async function for_each_list_page(list_page_data) {
 			// Fix redirect in the list page.
 			const link_token = need_check_redirected[page_data.title];
 			if (!link_token) {
-				CeL.error(`for_each_list_page: No need_check_redirected[${page_data.title}]!`);
+				CeL.error(`${for_each_list_page.name}: No need_check_redirected[${page_data.title}]!`);
 				console.log(page_data.wikitext);
 				console.log(page_data);
 			}
@@ -706,7 +754,7 @@ async function for_each_list_page(list_page_data) {
 			link_token[0] = normalized_redirect_to;
 			simplify_link(link_token, normalized_redirect_to);
 		}, { no_edit: true, no_warning: true, redirects: false });
-		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed_list.length} link(s) fixed.`, 0, 'for_each_list_page');
+		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed_list.length} link(s) fixed.`, 0, for_each_list_page.name);
 		if (fixed_list.length > 0 && fixed_list.length < 9) {
 			CeL.log(fixed_list.join('\n'));
 		}
@@ -714,7 +762,7 @@ async function for_each_list_page(list_page_data) {
 
 	let wikitext = parsed.toString();
 	if (wikitext !== list_page_data.wikitext) {
-		// CeL.info(`for_each_list_page: Modify ${CeL.wiki.title_link_of(list_page_data)}`);
+		// CeL.info(`${for_each_list_page.name}: Modify ${CeL.wiki.title_link_of(list_page_data)}`);
 	}
 
 	// summary table / count report table for each page
@@ -745,7 +793,7 @@ async function for_each_list_page(list_page_data) {
 		'class': "wikitable sortable"
 	}) + '\n$2');
 
-	// console.trace(`for_each_list_page: return ${wikitext.length} chars`);
+	// console.trace(`${for_each_list_page.name}: return ${wikitext.length} chars`);
 	// console.log(wikitext);
 	// return Wikiapi.skip_edit;
 	return wikitext;
@@ -944,6 +992,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
+	CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
 	let VA_template, class_from_other_templates;
 
 	function normalize_class(_class) {
@@ -1009,11 +1058,17 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		CeL.wiki.parse.replace_parameter(VA_template, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
 	} else {
-		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext_to_add}`);
+		// There are copies @ 20201008.fix_anchor.js
 		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
-		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n';
+		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n\n';
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext_to_add.trim()}`);
 		parsed.each((token, index, parent) => {
 			if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
+				const previous_node = index > 0 && parent[index - 1];
+				// 避免多個換行。
+				if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
+					parent[index - 1] = previous_node.replace(/\n$/, '');
+				}
 				parent.splice(index, 0, wikitext_to_add);
 				wikitext_to_add = null;
 				return parsed.each.exit;
