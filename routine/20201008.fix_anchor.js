@@ -57,7 +57,7 @@ const archive_template_list = ["Archive", "Archives", "Archive box", "Easy Archi
 
 function progress_to_percent(progress, add_brackets) {
 	if (0 < progress && progress < 1) {
-		const percent = `${1000 * progress / 10}%`;
+		const percent = `${(1000 * progress | 0) / 10}%`;
 		return add_brackets ? ` (${percent})` : percent;
 	}
 	return '';
@@ -785,7 +785,7 @@ async function check_page(target_page_data, options) {
 				token[1] = '#' + section_title;
 			}
 			const message = `Update link to archived section${progress_to_percent(options.progress, true)}: ${token}`;
-			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: message`);
+			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			this.summary = `${summary}${message}`;
 			return true;
 		}
