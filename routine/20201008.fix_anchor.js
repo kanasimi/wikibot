@@ -107,7 +107,7 @@ async function main_process() {
 			const NO = length - page_list_with_archives.length;
 			process.title = `${NO}/${length}${progress_to_percent(NO / length, true)} ${page_data.title}`;
 			try {
-				await check_page(page_data, { force_check: true, namespace: '*', progress: NO / length });
+				await check_page(page_data, { is_archive: true, force_check: true, namespace: '*', progress: NO / length });
 			} catch (e) {
 				CeL.error(`Error process ${page_data.title}`);
 				console.error(e);
@@ -842,7 +842,7 @@ async function check_page(target_page_data, options) {
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
-		if (wiki.site_name() === 'jawiki') {
+		if (wiki.site_name() === 'jawiki' && !options.is_archive) {
 			add_note_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
