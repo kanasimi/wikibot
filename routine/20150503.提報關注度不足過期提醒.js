@@ -283,7 +283,7 @@ function report_notability(page_data) {
 				// {{Notability-talk}}此模板前面會自動加上分行，對非WP:Flow頁面，後面須自行加上簽名。
 				.edit(user_messages.join('\n') + ' --~~~~', {
 					// 若您不想接受關注度提醒，請利用{{bots|optout=afd}}模板。
-					notification : 'afd',
+					notification_name : 'afd',
 					section : 'new',
 					sectiontitle : summary + ':' + page_list.join('、'),
 					summary : 'bot: ' + summary,

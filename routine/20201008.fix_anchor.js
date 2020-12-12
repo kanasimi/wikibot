@@ -53,7 +53,9 @@ const wiki = new Wikiapi;
 	await main_process();
 })();
 
-const archive_template_list = ["Archive", "Archives", "Archive box", "Easy Archive", "Auto archiving notice"];
+const archive_template_list = ["Archive", "Archives", "Archive box", "Easy Archive", "Auto archiving notice",
+	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config"
+];
 
 function progress_to_percent(progress, add_brackets) {
 	if (0 < progress && progress < 1) {
@@ -741,6 +743,7 @@ async function check_page(target_page_data, options) {
 		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
+			notification_name: 'anchor-fixing',
 			summary: 'Notify broken anchor: ' + anchor_token + (removed_anchors > 0 ? `, remove ${removed_anchors} anchor(s)` : ''),
 			bot: 1,
 			minor: 1,
@@ -842,7 +845,7 @@ async function check_page(target_page_data, options) {
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
-		if (wiki.site_name() === 'jawiki' && !options.is_archive) {
+		if (!options.is_archive && wiki.site_name() === 'jawiki') {
 			add_note_for_broken_anchors(linking_page_data, token, record);
 		}
 	}

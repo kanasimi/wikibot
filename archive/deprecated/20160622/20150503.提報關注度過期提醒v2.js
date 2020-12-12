@@ -257,7 +257,7 @@ wiki
 				wiki.page('User_talk:' + user)
 				// {{Notability-talk}}此模板前面會自動加上分行，後面須自行加上簽名。參數2將視作對提刪條目之簡單說明，如「條目已重定向」。
 				.edit(user_messages.join('\n') + ' --~~~~', {
-					notification : 'afd',
+					notification_name : 'afd',
 					section : 'new',
 					sectiontitle : summary + ':' + page_list.join('、'),
 					summary : 'bot: ' + summary,

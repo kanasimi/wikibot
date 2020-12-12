@@ -7,6 +7,8 @@ TODO:
 {{Multidel}}
 Wikipedia:存廢覆核請求/存檔/*
 using [[Special:Log]]
+{{Drv-kept}} @ [[討論:2019冠狀病毒病知名去世患者列表]]
+
 
  */
 
@@ -719,7 +721,7 @@ async function modify_pages() {
 				return modified_notice_page.call(this, page_data, discussions);
 			}, {
 				// will using cache
-				// notification: 'VFD',
+				// notification_name: 'VFD',
 				bot: 1,
 				summary: '[[Wikipedia:机器人/申请/Cewbot/21|維護討論頁之存廢討論紀錄與模板]] '
 					+ CeL.wiki.title_link_of(notification_template)
