@@ -4,8 +4,9 @@ node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
 
 fix archived:
-node 20201008.fix_anchor.js use_language=zh archives
 node 20201008.fix_anchor.js use_language=en archives
+node 20201008.fix_anchor.js use_language=zh archives
+node 20201008.fix_anchor.js use_language=ja archives
 
 
 2020/10/9 19:0:26	初版試營運
@@ -54,6 +55,14 @@ const wiki = new Wikiapi;
 
 const archive_template_list = ["Archive", "Archives", "Archive box", "Easy Archive", "Auto archiving notice"];
 
+function progress_to_percent(progress, add_brackets) {
+	if (0 < progress && progress < 1) {
+		const percent = `${1000 * progress / 10}%`;
+		return add_brackets ? ` (${percent})` : percent;
+	}
+	return '';
+}
+
 async function main_process() {
 
 	wiki.latest_task_configuration.Section_link_alias
@@ -96,7 +105,7 @@ async function main_process() {
 		while (page_list_with_archives.length > 0) {
 			const page_data = page_list_with_archives.shift();
 			const NO = length - page_list_with_archives.length;
-			process.title = `${NO}/${length} ${(1000 * NO / length | 0) / 10}% ${page_data.title}`;
+			process.title = `${NO}/${length}${progress_to_percent(NO / length, true)} ${page_data.title}`;
 			try {
 				await check_page(page_data, { force_check: true, namespace: '*', progress: NO / length });
 			} catch (e) {
@@ -611,7 +620,7 @@ async function check_page(target_page_data, options) {
 		return;
 	}
 
-	CeL.info(`${check_page.name}: Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
+	CeL.info(`${check_page.name}: ${progress_to_percent(options.progress)} Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
 	//console.log(link_from);
 
 	let working_queue;
@@ -775,7 +784,7 @@ async function check_page(target_page_data, options) {
 			} else {
 				token[1] = '#' + section_title;
 			}
-			const message = `Update link to archived section${options.progress > 0 && options.progress < 1 ? ` (${1000 * options.progress / 10}%)` : ''}: ${token}`;
+			const message = `Update link to archived section${progress_to_percent(options.progress, true)}: ${token}`;
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: message`);
 			this.summary = `${summary}${message}`;
 			return true;
