@@ -482,6 +482,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:削除依頼/ログ/先週', 'Wikipedia:削除依頼/ログ/先々週' ];
 	// main_talk_pages = [ 'Wikipedia:机器人/申请' ];
 	// main_talk_pages = [ 'Wikipedia:已删除内容查询' ];
+	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
 
 	// ----------------------------------------------------
 
@@ -1464,14 +1465,21 @@ function generate_topic_list(page_data) {
 	//
 	topic_count = 0, new_topics = [];
 
-	// console.trace(parsed);
+	if (false) {
+		console.trace(parsed);
+		console.trace(parsed.each_section());
+		parsed.each_section(function(section, section_index) {
+			CeL.info('generate_topic_list: ' + section.section_title);
+		});
+	}
 	parsed.each_section(function(section, section_index) {
-		// console.log('' + section.section_title);
+		// CeL.info('generate_topic_list: ' + section.section_title);
 		if (section_index >= 12) {
 			// console.log(section);
 		}
-		if (section.section_title
-				&& section.section_title.toString().includes('中文Vocaloid编辑团队')) {
+		if (false && section.section_title
+		//
+		&& section.section_title.toString().includes('中文Vocaloid编辑团队')) {
 			console.log(section);
 		}
 

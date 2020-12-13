@@ -978,7 +978,7 @@ function for_each_row(row) {
 		}).edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
 		//
 		+ pages_to_notify.join(', ') + '。謝謝您參與討論。 --~~~~}}', {
-			notification_name : 'signature-checking',
+			// notification_name : 'SIGN',
 			section : 'new',
 			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
 			tags : edit_tags,
@@ -1021,8 +1021,8 @@ function for_each_row(row) {
 		}).edit('{{subst:Uw-tilde||可能需要簽名的頁面例如 '
 		// [[MediaWiki:Talkpagetext/zh]]
 		+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
-			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=signature-checking}}模板。
-			notification_name : 'signature-checking',
+			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
+			// notification_name : 'SIGN',
 			section : 'new',
 			sectiontitle : '請記得在留言時署名',
 			tags : edit_tags,
