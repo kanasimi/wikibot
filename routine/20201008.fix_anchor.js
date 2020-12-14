@@ -375,6 +375,11 @@ function get_section_title_data(section_title_history, section_title) {
 }
 
 function set_section_title(section_title_history, section_title, data, options) {
+	if (section_title_history[section_title] && section_title_history[section_title].is_present) {
+		// Do not overwrite existed present section titles. 先到先得。
+		return section_title_history[section_title];
+	}
+
 	section_title_history[section_title] = data;
 	if (options?.move_to_page_title) {
 		delete data.is_present;
