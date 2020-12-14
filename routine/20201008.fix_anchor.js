@@ -43,28 +43,36 @@ const wiki = new Wikiapi;
 
 // ----------------------------------------------
 
-// 讀入手動設定 manual settings。
-async function adapt_configuration(latest_task_configuration) {
-	const configuration = latest_task_configuration;
-	//console.log(configuration);
-	// console.log(wiki);
-
-	// ----------------------------------------------------
-
-	const { general } = configuration;
-	general.archive_template_list = general.archive_template_list.map(name => wiki.remove_namespace(name));
-	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config",
-	//[[Category:有存档的讨论页]]
-	//console.log(wiki.latest_task_configuration.general.archive_template_list);
-
-	// ----------------------------------------------------
-
+async function setup_Section_link_alias() {
 	wiki.latest_task_configuration.Section_link_alias
 		= (await wiki.redirects_here('Template:Section link'))
 			.map(page_data => page_data.title
 				// remove "Template:" prefix
 				.replace(/^[^:]+:/, ''));
+	//console.log(wiki.latest_task_configuration.Section_link_alias);
+	//console.log(wiki);
+}
 
+// 讀入手動設定 manual settings。
+async function adapt_configuration(latest_task_configuration, options) {
+	//console.log(latest_task_configuration);
+	// console.log(wiki);
+
+	// ----------------------------------------------------
+
+	const { general } = latest_task_configuration;
+	general.archive_template_list = (general.archive_template_list || ['Template:Archive'])
+		// remove "Template:" prefix
+		.map(name => wiki.remove_namespace(name));
+	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config",
+	//[[Category:有存档的讨论页]]
+	//console.log(wiki.latest_task_configuration.general.archive_template_list);
+
+	// 不知為何，有些作業放在 adapt_configuration() 會造成登入不成功。
+	// 需要利用 options.initialization 來判別是否為初始登入之前。
+	if (!options.initialization) {
+		await setup_Section_link_alias();
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -85,6 +93,7 @@ function progress_to_percent(progress, add_brackets) {
 }
 
 async function main_process() {
+	await setup_Section_link_alias();
 
 	if (false) {
 		// for debug only
