@@ -41,25 +41,29 @@ CeL.run([
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-
 // ----------------------------------------------
 
-let Section_link_alias, archive_template_list, configuration_page_title;
-
 // 讀入手動設定 manual settings。
-function adapt_configuration(latest_task_configuration) {
+async function adapt_configuration(latest_task_configuration) {
 	const configuration = latest_task_configuration;
 	//console.log(configuration);
 	// console.log(wiki);
-	configuration_page_title = configuration.configuration_page_title;
 
 	// ----------------------------------------------------
 
 	const { general } = configuration;
-	archive_template_list = general.archive_template_list.map(name => wiki.remove_namespace(name));
+	general.archive_template_list = general.archive_template_list.map(name => wiki.remove_namespace(name));
 	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config",
 	//[[Category:有存档的讨论页]]
-	//console.log(archive_template_list);
+	//console.log(wiki.latest_task_configuration.general.archive_template_list);
+
+	// ----------------------------------------------------
+
+	wiki.latest_task_configuration.Section_link_alias
+		= (await wiki.redirects_here('Template:Section link'))
+			.map(page_data => page_data.title
+				// remove "Template:" prefix
+				.replace(/^[^:]+:/, ''));
 
 }
 
@@ -81,12 +85,6 @@ function progress_to_percent(progress, add_brackets) {
 }
 
 async function main_process() {
-
-	Section_link_alias
-		= (await wiki.redirects_here('Template:Section link'))
-			.map(page_data => page_data.title
-				// remove "Template:" prefix
-				.replace(/^[^:]+:/, ''));
 
 	if (false) {
 		// for debug only
@@ -111,7 +109,7 @@ async function main_process() {
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
 		const page_list_with_archives = [];
-		for (let template_name of archive_template_list) {
+		for (let template_name of wiki.latest_task_configuration.general.archive_template_list) {
 			page_list_with_archives
 				.append((await wiki.embeddedin('Template:' + template_name))
 					.filter(page_data => !/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
@@ -225,7 +223,7 @@ async function get_sections_moved_to(page_data, options) {
 	if (!has_subpage_archives) {
 		// check {{Archives}}, {{Archive box}}, {{Easy Archive}}
 		parsed.each('template', template_token => {
-			if (archive_template_list.includes(template_token.name)) {
+			if (wiki.latest_task_configuration.general.archive_template_list.includes(template_token.name)) {
 				has_subpage_archives = true;
 			}
 		});
@@ -642,7 +640,7 @@ async function check_page(target_page_data, options) {
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
-	let summary = `${CeL.wiki.title_link_of(configuration_page_title, CeL.gettext('修正失效的章節標題'))}: `;
+	let summary = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的章節標題'))}: `;
 	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
@@ -755,7 +753,7 @@ async function check_page(target_page_data, options) {
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
 			notification_name: 'anchor-fixing',
-			summary: `${CeL.wiki.title_link_of(configuration_page_title, CeL.gettext('提醒失效的章節標題'))}: ${anchor_token.toString()}`
+			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的章節標題'))}: ${anchor_token.toString()}`
 				+ (removed_anchors > 0 ? ', ' + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors) : ''),
 			bot: 1,
 			minor: 1,
@@ -882,7 +880,7 @@ async function check_page(target_page_data, options) {
 		});
 		// handle {{Section link}}
 		parsed.each('template', (token, index, parent) => {
-			if (!Section_link_alias.includes(token.name))
+			if (!wiki.latest_task_configuration.Section_link_alias.includes(token.name))
 				return;
 			const ARTICLE_INDEX = 1;
 			if (token.parameters[ARTICLE_INDEX]) {
