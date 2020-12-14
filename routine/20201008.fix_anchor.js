@@ -44,18 +44,33 @@ const wiki = new Wikiapi;
 
 // ----------------------------------------------
 
+let Section_link_alias, archive_template_list, configuration_page_title;
+
+// 讀入手動設定 manual settings。
+function adapt_configuration(latest_task_configuration) {
+	const configuration = latest_task_configuration;
+	//console.log(configuration);
+	// console.log(wiki);
+	configuration_page_title = configuration.configuration_page_title;
+
+	// ----------------------------------------------------
+
+	const { general } = configuration;
+	archive_template_list = general.archive_template_list.map(name => wiki.remove_namespace(name));
+	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config",
+	//[[Category:有存档的讨论页]]
+	//console.log(archive_template_list);
+
+}
 
 // ----------------------------------------------------------------------------
 
 (async () => {
+	login_options.configuration_adapter = adapt_configuration;
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
-
-const archive_template_list = ["Archive", "Archives", "Archive box", "Easy Archive", "Auto archiving notice",
-	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config"
-];
 
 function progress_to_percent(progress, add_brackets) {
 	if (0 < progress && progress < 1) {
@@ -67,7 +82,7 @@ function progress_to_percent(progress, add_brackets) {
 
 async function main_process() {
 
-	wiki.latest_task_configuration.Section_link_alias
+	Section_link_alias
 		= (await wiki.redirects_here('Template:Section link'))
 			.map(page_data => page_data.title
 				// remove "Template:" prefix
@@ -598,22 +613,20 @@ async function check_page(target_page_data, options) {
 	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
 	//console.trace(section_title_history);
 
-	link_from.append(['Wikipedia:沙盒']);
-	if (0)
-		link_from.append((await wiki.backlinks(target_page_data, {
-			// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
-			namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
-		})).filter(page_data =>
-			!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
-			// [[User:Cewbot/log/20151002/存檔5]]
-			// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
-			// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
-			&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
-			// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
-			// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
-			// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
-			&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
-		));
+	link_from.append((await wiki.backlinks(target_page_data, {
+		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
+		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
+	})).filter(page_data =>
+		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
+		// [[User:Cewbot/log/20151002/存檔5]]
+		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
+		// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
+		&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
+		// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
+		// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
+		// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
+		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
+	));
 
 	if (link_from.length > 800 && !options.force_check
 		// 連結的頁面太多時，只挑選較確定是改變章節名稱的。
@@ -627,11 +640,9 @@ async function check_page(target_page_data, options) {
 
 	let working_queue;
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
-	let summary = wiki.language === 'zh' ? '修正失效的章節標題：'
-		// [[w:ja:Help:セクション#セクションへのリンク]]
-		: wiki.language === 'ja' ? 'セクションへのリンクを修復する：'
-			// [[w:en:MOS:BROKENSECTIONLINKS]]
-			: 'Fix broken anchor: ';
+	// [[w:ja:Help:セクション#セクションへのリンク]]
+	// [[w:en:MOS:BROKENSECTIONLINKS]]
+	let summary = `${CeL.wiki.title_link_of(configuration_page_title, CeL.gettext('修正失效的章節標題'))}: `;
 	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
@@ -740,11 +751,12 @@ async function check_page(target_page_data, options) {
 		let wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
 			//<syntaxhighlight lang="json">...</syntaxhighlight>
 			? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
-		CeL.error(`${add_note_for_broken_anchors.name}: Notify broken anchor ${CeL.wiki.title_link_of(talk_page_title)}`)
+		CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.gettext('提醒失效的章節標題')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
 			notification_name: 'anchor-fixing',
-			summary: 'Notify broken anchor: ' + anchor_token + (removed_anchors > 0 ? `, remove ${removed_anchors} anchor(s)` : ''),
+			summary: `${CeL.wiki.title_link_of(configuration_page_title, CeL.gettext('提醒失效的章節標題'))}: ${anchor_token.toString()}`
+				+ (removed_anchors > 0 ? ', ' + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors) : ''),
 			bot: 1,
 			minor: 1,
 			//nocreate: false,
@@ -787,7 +799,7 @@ async function check_page(target_page_data, options) {
 			} else {
 				token[1] = '#' + section_title;
 			}
-			const message = `Update link to archived section${progress_to_percent(options.progress, true)}: ${token}`;
+			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			this.summary = `${summary}${message}`;
 			return true;
@@ -818,9 +830,9 @@ async function check_page(target_page_data, options) {
 			record.variant_of?.some(variant => {
 				if (variant[1] === rename_to) {
 					if (variant[0] === MARK_case_change) {
-						type = wiki.site_name() === 'zhwiki' ? '大小寫或空白錯誤的章節標題' : 'Wrong capitalization / spaced section title';
+						type = CeL.gettext('大小寫或空白錯誤的章節標題');
 					} else {
-						type = '繁簡不符匹配而失效的章節標題';
+						type = CeL.gettext('繁簡不符匹配而失效的章節標題');
 					}
 					return true;
 				}
@@ -830,7 +842,7 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: #${token.anchor}${ARROW_SIGN}${hash}`);
-			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${wiki.site_name() === 'zhwiki' ? '差異極大' : 'VERY DIFFERENT'} ${record.very_different})` : ''}`
+			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
 				} ${token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			if (token.anchor_index) {
@@ -851,8 +863,6 @@ async function check_page(target_page_data, options) {
 	}
 
 	// ------------------------------------------
-
-	const Section_link_alias = wiki.latest_task_configuration.Section_link_alias;
 
 	let pages_modified = 0;
 	function resolve_linking_page(linking_page_data) {

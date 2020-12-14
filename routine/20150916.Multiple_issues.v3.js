@@ -32,11 +32,6 @@ function adapt_configuration(latest_task_configuration) {
 	// console.log(configuration);
 	// console.log(wiki);
 
-	if (CeL.is_Object(configuration.L10n)) {
-		gettext.set_text(configuration.L10n, use_language);
-		delete configuration.L10n;
-	}
-
 	if (false) {
 		console.log(gettext('規範{{%1}}模板', configuration.Multiple_issues_template_name));
 	}
