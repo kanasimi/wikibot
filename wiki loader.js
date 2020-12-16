@@ -384,8 +384,7 @@ function check_routine_task(session) {
 }
 
 function routine_task_done(interval) {
-	CeL.info((task_name || script_name) + ': '
-	//
+	CeL.info('routine_task_done: ' + (task_name || script_name) + ': '
 	+ (new Date).format() + '	done.');
 	var all_task_log = get_task_log();
 	if (!all_task_log)

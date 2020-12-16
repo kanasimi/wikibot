@@ -43,18 +43,8 @@ const wiki = new Wikiapi;
 
 // ----------------------------------------------
 
-async function setup_Section_link_alias() {
-	wiki.latest_task_configuration.Section_link_alias
-		= (await wiki.redirects_here('Template:Section link'))
-			.map(page_data => page_data.title
-				// remove "Template:" prefix
-				.replace(/^[^:]+:/, ''));
-	//console.log(wiki.latest_task_configuration.Section_link_alias);
-	//console.log(wiki);
-}
-
 // 讀入手動設定 manual settings。
-async function adapt_configuration(latest_task_configuration, options) {
+async function adapt_configuration(latest_task_configuration) {
 	//console.log(latest_task_configuration);
 	// console.log(wiki);
 
@@ -68,11 +58,12 @@ async function adapt_configuration(latest_task_configuration, options) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
-	// 不知為何，有些作業放在 adapt_configuration() 會造成登入不成功。
-	// 需要利用 options.initialization 來判別是否為初始登入之前。
-	if (!options.initialization) {
-		await setup_Section_link_alias();
-	}
+	wiki.latest_task_configuration.Section_link_alias
+		= (await wiki.redirects_here('Template:Section link'))
+			.map(page_data => page_data.title
+				// remove "Template:" prefix
+				.replace(/^[^:]+:/, ''));
+	//console.log(wiki.latest_task_configuration.Section_link_alias);
 }
 
 // ----------------------------------------------------------------------------
@@ -93,7 +84,6 @@ function progress_to_percent(progress, add_brackets) {
 }
 
 async function main_process() {
-	await setup_Section_link_alias();
 
 	if (false) {
 		// for debug only
@@ -161,8 +151,6 @@ async function main_process() {
 	});
 
 	routine_task_done('1d');
-
-	CeL.log('Listening...\n' + '-'.repeat(60));
 }
 
 function filter_row(row) {
@@ -375,7 +363,7 @@ function get_section_title_data(section_title_history, section_title) {
 }
 
 function set_section_title(section_title_history, section_title, data, options) {
-	if (section_title_history[section_title] && section_title_history[section_title].is_present) {
+	if (section_title_history[section_title]?.is_present) {
 		// Do not overwrite existed present section titles. 先到先得。
 		return section_title_history[section_title];
 	}
