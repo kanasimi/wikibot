@@ -1770,12 +1770,12 @@ CeL.wiki.cache([ {
 			});
 		}
 
+		countries = countries.sort().unique_sorted().filter(function(country) {
+			return country !== '*';
+		});
+		console.trace(countries);
 		return {
-			source : '^(?:'
-			//
-			+ countries.sort().unique_sorted().filter(function(country) {
-				return country !== '*';
-			}).join('|') + ')$',
+			source : '^(?:' + countries.join('|') + ')$',
 			flags : ''
 		};
 	},
