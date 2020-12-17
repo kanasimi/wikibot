@@ -1773,7 +1773,8 @@ CeL.wiki.cache([ {
 		countries = countries.sort().unique_sorted().filter(function(country) {
 			return country !== '*';
 		});
-		console.trace(countries);
+		 console.trace(countries);
+		 
 		return {
 			source : '^(?:' + countries.join('|') + ')$',
 			flags : ''
