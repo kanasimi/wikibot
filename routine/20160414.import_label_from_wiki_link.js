@@ -1773,7 +1773,9 @@ CeL.wiki.cache([ {
 		return {
 			source : '^(?:'
 			//
-			+ countries.sort().unique_sorted().join('|') + ')$',
+			+ countries.sort().unique_sorted().filter(function(country) {
+				return country !== '*';
+			}).join('|') + ')$',
 			flags : ''
 		};
 	},
