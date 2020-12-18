@@ -191,7 +191,7 @@ wiki.edit_data(function(entity) {
 
 
 ## Screenshot
-Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151002.WPCHECK.js) (fix_16 only):
+Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/routine/20151002.WPCHECK.js) (fix_16 only):
 
 * Output on console:
 ![On console](https://upload.wikimedia.org/wikipedia/commons/7/7c/20151002.WPCHECK.console.c.png)
@@ -209,7 +209,7 @@ Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/20151
 * Support [Flow](https://www.mediawiki.org/wiki/Flow) page: Using the same way adding section to normal page and Flow page.
 * Detection of edit conflicts and <code>{{[bots](https://meta.wikimedia.org/wiki/Template:Bots)}}</code>.
 * Query [list](https://www.mediawiki.org/wiki/API:Lists) of backlinks, embeddedin, imageusage, linkshere, fileusage, et al.
-* Parse [wikitext](https://www.mediawiki.org/wiki/Wikitext) and modify wikitext inplace.
+* [Parse wikitext](https://kanasimi.github.io/CeJS/_test%20suite/wikitext_parser.html) and modify [wikitext](https://www.mediawiki.org/wiki/Wikitext) inplace.
 * Listen to recent changes with diff function supported.
 
 * Parse XML file of [Wikimedia database backup dumps](http://dumps.wikimedia.org/backup-index.html).
