@@ -112,7 +112,7 @@ async function main_process() {
 	let cached_data;
 	try {
 		cached_data = JSON.parse(CeL.read_file(cache_file_path));
-	} catch{ }
+	} catch { }
 	if (false) {
 		console.log(await wiki.redirects_here(configuration.Multiple_issues_template_name));
 		console.log(await wiki.redirects_here('Template:Issues'));
@@ -143,7 +143,7 @@ async function main_process() {
 	/** 維護模板本名 without "Template:" prefix */
 	let maintenance_template_list = Object.values(configuration.maintenance_template_hash).sort().unique();
 	if (maintenance_template_list.join() !== configuration[gettext('維護模板名稱列表')].join()) {
-		CeL.log('總共有 ' + maintenance_template_list + ' 個維護模板名.');
+		CeL.log('總共有 ' + maintenance_template_list.length + ' 個維護模板名.');
 		console.log(maintenance_template_list.map(t => '# ' + t).join('\n'));
 	}
 

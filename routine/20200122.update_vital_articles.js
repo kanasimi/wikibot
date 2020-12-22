@@ -250,13 +250,37 @@ async function get_page_info() {
 			continue;
 		}
 
+		function fallback() {
+			if (/^(?:FA|FL|GA)$/.test(VA_class)) {
+				// fallback. e.g., FFA
+				// [[w:en:User talk:Kanashimi#Cewbot A-class]]: When removing GAs, it should default to B class, which seems the usual practice for manual downgrades.
+				need_edit_VA_template[page_title] = {
+					// NG: Move class from FA|GA|FL → A|B|LIST
+					//class: VA_class === 'FL' ? 'LIST' : VA_class === 'FA' ? 'A' : 'B',
+					// We really have no choice, since every de-featured article is different, although most are C-class.
+
+					// Plenty of unclassified articles out there, perhaps it may prompt someone to take a closer look at an article.
+					class: VA_class === 'FL' ? 'LIST' : VA_class === 'FA' ? '' : '',
+					reason: `The article is no more a ${VA_class}.`
+				};
+				return true;
+			}
+		}
+
 		const FC_type = wiki.FC_data_hash[page_title] && wiki.FC_data_hash[page_title].type;
 		if (FC_type) {
 			if (FC_type !== VA_class) {
-				need_edit_VA_template[page_title] = {
-					class: FC_type,
-					reason: `The article is listed in featured content type: [[Category:${wiki.get_featured_content_configurations()[FC_type]}]]`
-				};
+				let category = wiki.get_featured_content_configurations()[FC_type];
+				if (category) {
+					need_edit_VA_template[page_title] = {
+						class: FC_type,
+						reason: `The article is listed in featured content type: [[Category:${category}]]`
+					};
+				} else {
+					// prevent FC_type===FFA. e.g., [[Talk:China]] @ 2020/12/22
+					//console.trace([page_title, VA_class, FC_type]);
+					fallback();
+				}
 			}
 			continue;
 		}
@@ -282,14 +306,7 @@ async function get_page_info() {
 		}
 
 		// assert: /^(?:FA|FL|GA)$/.test(VA_class)
-		if (/^(?:FA|FL|GA)$/.test(VA_class)) {
-			// e.g., FFA
-			// [[w:en:User talk:Kanashimi#Cewbot A-class]]: When removing GAs, it should default to B class, which seems the usual practice for manual downgrades.
-			need_edit_VA_template[page_title] = {
-				// Move class from FA|GA|FL → A|B|LIST
-				class: VA_class === 'FL' ? 'LIST' : VA_class === 'FA' ? 'A' : 'B',
-				reason: `The article is no more a ${VA_class}.`
-			};
+		if (fallback()) {
 			continue;
 		}
 	}
@@ -998,6 +1015,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	function normalize_class(_class) {
 		_class = String(_class);
 		//@see [[Category:Wikipedia vital articles by class]]
+		// There is no class named "FFA"!
 		_class = _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
 		if (class_from_other_templates in class_alias_to_normalized) {
 			_class = class_alias_to_normalized[_class];
@@ -1038,7 +1056,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	let VA_template_object = {
 		// normalize_class(): e.g., for [[Talk:Goosebumps]]
-		class: normalize_class(article_info.class || VA_template && VA_template.parameters.class || class_from_other_templates || '')
+		class: normalize_class(article_info.class ?? (VA_template && VA_template.parameters.class) ?? class_from_other_templates ?? '')
 	};
 	if ('level' in article_info) {
 		VA_template_object.level = article_info.level;
@@ -1057,6 +1075,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	if (VA_template) {
 		CeL.wiki.parse.replace_parameter(VA_template, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
+		//console.trace([VA_template_object, VA_template]);
 	} else {
 		// There are copies @ 20201008.fix_anchor.js
 		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
