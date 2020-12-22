@@ -34,10 +34,12 @@ if (using_cache)
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = using_cache && CeL.get_JSON(page_info_cache_file);
 
+let WikiProject_banner_shell_alias = page_info_cache?.WikiProject_banner_shell_alias;
+
 /** {Object}icons_of_page[title]=[icons] */
-const icons_of_page = page_info_cache && page_info_cache.icons_of_page || Object.create(null);
+const icons_of_page = page_info_cache?.icons_of_page || Object.create(null);
 /** {Object}level of page get from category. icons_of_page[title]=1–5 */
-const level_of_page = page_info_cache && page_info_cache.level_of_page || Object.create(null);
+const level_of_page = page_info_cache?.level_of_page || Object.create(null);
 /** {Object}listed_article_info[title]=[{level,topic},{level,topic},...] */
 const listed_article_info = Object.create(null);
 /**
@@ -68,11 +70,11 @@ report_lines.skipped_records = 0;
 })();
 
 async function main_process() {
-	wiki.FC_data_hash = page_info_cache && page_info_cache.FC_data_hash;
+	wiki.FC_data_hash = page_info_cache?.FC_data_hash;
 	if (!wiki.FC_data_hash) {
 		await get_page_info();
 		if (using_cache)
-			CeL.write_file(page_info_cache_file, { level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
+			CeL.write_file(page_info_cache_file, { WikiProject_banner_shell_alias, level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
 	}
 
 	// ----------------------------------------------------
@@ -139,6 +141,15 @@ const icon_to_category = Object.create(null);
 
 // All attributes of articles get from corresponding categories.
 async function get_page_info() {
+	WikiProject_banner_shell_alias
+		= (await wiki.redirects_here('Template:WikiProject banner shell'))
+			.map(page_data => page_data.title
+				// remove "Template:" prefix
+				.replace(/^[^:]+:/, ''));
+	//console.trace(WikiProject_banner_shell_alias);
+
+	// ---------------------------------------------
+
 	await wiki.get_featured_content({
 		on_conflict(FC_title, data) {
 			report_lines.push([FC_title, , `Category conflict: ${data.from}→${CeL.wiki.title_link_of('Category:' + data.category, data.to)}`]);
@@ -1010,7 +1021,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
 	CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
-	let VA_template, class_from_other_templates;
+	let VA_template_token, class_from_other_templates;
 
 	function normalize_class(_class) {
 		_class = String(_class);
@@ -1023,28 +1034,21 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		return _class;
 	}
 
-	/**
-	 * scan for existing informations <code>
-
-{{WikiProjectBannerShell|1=
-{{WikiProject Video games|class=C|importance=High}}
-{{WikiProject Apple Inc.|class=C|ios=yes|ios-importance=High}}
-{{WikiProject Apps |class=C|importance=High}}
-}}
-
-	 * </code>
-	 */
+	let WikiProject_banner_shell_token;
 	parsed.each('template', token => {
 		if (token.name === VA_template_name) {
 			// get the first one
-			if (VA_template) {
+			if (VA_template_token) {
 				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
-				VA_template = token;
+				VA_template_token = token;
 			}
 			if (article_info.remove) {
 				return parsed.each.remove_token;
 			}
+		} else if (WikiProject_banner_shell_alias.includes(token.name)) {
+			WikiProject_banner_shell_token = token;
+			// {{WikiProject banner shell}} has no .class
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			&& /project|rating/i.test(token.name)) {
@@ -1052,11 +1056,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			class_from_other_templates = token.parameters.class;
 		}
 	});
-	// console.log([class_from_other_templates, VA_template]);
+	// console.log([class_from_other_templates, VA_template_token]);
 
 	let VA_template_object = {
 		// normalize_class(): e.g., for [[Talk:Goosebumps]]
-		class: normalize_class(article_info.class ?? (VA_template && VA_template.parameters.class) ?? class_from_other_templates ?? '')
+		class: normalize_class(article_info.class ?? (VA_template_token && VA_template_token.parameters.class) ?? class_from_other_templates ?? '')
 	};
 	if ('level' in article_info) {
 		VA_template_object.level = article_info.level;
@@ -1072,10 +1076,18 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	}
 	// console.log(VA_template_object);
 	let wikitext_to_add;
-	if (VA_template) {
-		CeL.wiki.parse.replace_parameter(VA_template, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
-		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template.toString()}`);
-		//console.trace([VA_template_object, VA_template]);
+	if (VA_template_token) {
+		CeL.wiki.parse.replace_parameter(VA_template_token, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
+		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template_token.toString()}`);
+		//console.trace([VA_template_object, VA_template_token]);
+	} else if (WikiProject_banner_shell_token) {
+		// uses the {{WikiProject banner shell}}
+		// adding the Vital article template to the bottom of the banner shell
+		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
+		if (WikiProject_banner_shell_token.index_of[1] > 0)
+			WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] = WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] + '\n' + wikitext_to_add;
+		else
+			WikiProject_banner_shell_token.push(wikitext_to_add);
 	} else {
 		// There are copies @ 20201008.fix_anchor.js
 		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
