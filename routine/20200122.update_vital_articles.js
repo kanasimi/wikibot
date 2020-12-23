@@ -1034,7 +1034,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		return _class;
 	}
 
-	let WikiProject_banner_shell_token;
+	let WikiProject_banner_shell_token, is_DAB;
 	parsed.each('template', token => {
 		if (token.name === VA_template_name) {
 			// get the first one
@@ -1049,6 +1049,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		} else if (WikiProject_banner_shell_alias.includes(token.name)) {
 			WikiProject_banner_shell_token = token;
 			// {{WikiProject banner shell}} has no .class
+		} else if (token.name === 'WikiProject Disambiguation') {
+			is_DAB = true;
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			&& /project|rating/i.test(token.name)) {
@@ -1057,6 +1059,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 	});
 	// console.log([class_from_other_templates, VA_template_token]);
+
+	if (is_DAB) {
+		return Wikiapi.skip_edit;
+	}
 
 	let VA_template_object = {
 		// normalize_class(): e.g., for [[Talk:Goosebumps]]
