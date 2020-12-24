@@ -34,8 +34,6 @@ if (using_cache)
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = using_cache && CeL.get_JSON(page_info_cache_file);
 
-let WikiProject_banner_shell_alias = page_info_cache?.WikiProject_banner_shell_alias;
-
 /** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache?.icons_of_page || Object.create(null);
 /** {Object}level of page get from category. icons_of_page[title]=1–5 */
@@ -74,8 +72,10 @@ async function main_process() {
 	if (!wiki.FC_data_hash) {
 		await get_page_info();
 		if (using_cache)
-			CeL.write_file(page_info_cache_file, { WikiProject_banner_shell_alias, level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
+			CeL.write_file(page_info_cache_file, { level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
 	}
+
+	await wiki.register_template_alias([VA_template_name, 'WikiProject banner shell', 'WikiProject Disambiguation']);
 
 	// ----------------------------------------------------
 
@@ -141,14 +141,6 @@ const icon_to_category = Object.create(null);
 
 // All attributes of articles get from corresponding categories.
 async function get_page_info() {
-	WikiProject_banner_shell_alias
-		= (await wiki.redirects_here('Template:WikiProject banner shell'))
-			.map(page_data => page_data.title
-				// remove "Template:" prefix
-				.replace(/^[^:]+:/, ''));
-	//console.trace(WikiProject_banner_shell_alias);
-
-	// ---------------------------------------------
 
 	await wiki.get_featured_content({
 		on_conflict(FC_title, data) {
@@ -1021,7 +1013,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
 	CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
-	let VA_template_token, class_from_other_templates;
+	let VA_template_token, class_from_other_templates, WikiProject_banner_shell_token, is_DAB;
 
 	function normalize_class(_class) {
 		_class = String(_class);
@@ -1034,9 +1026,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		return _class;
 	}
 
-	let WikiProject_banner_shell_token, is_DAB;
 	parsed.each('template', token => {
-		if (token.name === VA_template_name) {
+		if (wiki.is_template(VA_template_name, token)) {
 			// get the first one
 			if (VA_template_token) {
 				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
@@ -1046,11 +1037,15 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (article_info.remove) {
 				return parsed.each.remove_token;
 			}
-		} else if (WikiProject_banner_shell_alias.includes(token.name)) {
+
+		} else if (wiki.is_template('WikiProject banner shell', token)) {
 			WikiProject_banner_shell_token = token;
 			// {{WikiProject banner shell}} has no .class
-		} else if (token.name === 'WikiProject Disambiguation') {
+
+		} else if (wiki.is_template('WikiProject Disambiguation', token)) {
+			// TODO: should test main article
 			is_DAB = true;
+
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			&& /project|rating/i.test(token.name)) {
@@ -1061,6 +1056,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// console.log([class_from_other_templates, VA_template_token]);
 
 	if (is_DAB) {
+		CeL.warn(`${maintain_VA_template_each_talk_page.name}: Skip DAB article: ${CeL.wiki.title_link_of(talk_page_data)}`);
 		return Wikiapi.skip_edit;
 	}
 
