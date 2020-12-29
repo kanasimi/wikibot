@@ -73,10 +73,10 @@ try {
 	require('cejs');
 }
 
-// for i18n: define gettext() user domain resource location.
+// for i18n: define gettext() user domain resources location.
 // gettext() will auto load (CeL.env.domain_location + language + '.js').
-// e.g., resource/cmn-Hant-TW.js, resource/ja-JP.js
-CeL.env.domain_location = CeL.env.resource_directory_name + '/';
+// e.g., resources/cmn-Hant-TW.js, resources/ja-JP.js
+CeL.env.domain_location = CeL.env.resources_directory_name + '/';
 
 // ----------------------------------------------------------------------------
 // Load modules.
