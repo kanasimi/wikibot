@@ -704,9 +704,12 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		}
 		//console.trace(task_configuration);
 
+		// TODO: keep_letter_case
+
 		if (!('keep_initial_case' in task_configuration) && typeof task_configuration.move_to_link === 'string') {
-			const initial_char_from = move_from_link.charAt(0);
-			const initial_char_to = task_configuration.move_to_link.charAt(0);
+			// keep_initial_case for Category. e.g., [[Category:eスポーツ]]
+			const initial_char_from = wiki.remove_namespace(move_from_link).charAt(0);
+			const initial_char_to = wiki.remove_namespace(task_configuration.move_to_link).charAt(0);
 			task_configuration.keep_initial_case
 				= initial_char_from.toLowerCase() !== initial_char_from.toUpperCase()
 				&& initial_char_to.toLowerCase() !== initial_char_to.toUpperCase();
@@ -1323,11 +1326,13 @@ function for_each_link(token, index, parent) {
 	} else {
 		// TODO: [[wikinews:File:f1]] will → [[File:f2]], NOT [[:File:f2]]
 
-		// assert: this.move_to.page_title.charAt(0) is upper cased
-		if (this.keep_initial_case && token[0].toString().charAt(0) !== token[0].toString().charAt(0).toUpperCase()) {
+		let initial_char_original = this.keep_initial_case && wiki.remove_namespace(token[0].toString()).charAt(0);
+		if (initial_char_original && initial_char_original !== initial_char_original.toUpperCase()) {
 			// 對於一些原先就希望是小寫開頭連結文字的處理。
 			// e.g., [[the best (髙橋真梨子のアルバム)]] ({{小文字|title=the best}})
-			token[0] = this.move_to.page_title.charAt(0).toLowerCase() + this.move_to.page_title.slice(1);
+			const matched = this.move_to.page_title.match(/^([^:]+:)([^:])(.*)$/);
+			// assert: matched[2] is upper cased
+			token[0] = matched[1] + matched[2].toLowerCase() + matched[3];
 		} else {
 			token[0] = this.move_to.page_title;
 		}
@@ -1694,7 +1699,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 
 	function preprocess_link(link) {
 		// move_to: ":File:name.jpg" → "File:name.jpg"
-		link = CeL.wiki.normalize_title(link);
+		link = wiki.normalize_title(link);
 		//console.trace(link);
 		return link;
 	}
@@ -1737,8 +1742,8 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 		return;
 	}
 
-	if (CeL.wiki.PATTERN_BOT_NAME.test(CeL.wiki.remove_namespace(from))
-		|| CeL.wiki.PATTERN_BOT_NAME.test(CeL.wiki.remove_namespace(to)))
+	if (CeL.wiki.PATTERN_BOT_NAME.test(wiki.remove_namespace(from))
+		|| CeL.wiki.PATTERN_BOT_NAME.test(wiki.remove_namespace(to)))
 		return;
 
 	CeL.debug(CeL.wiki.title_link_of(from) + ' → ' + CeL.wiki.title_link_of(to), 2);
