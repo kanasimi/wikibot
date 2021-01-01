@@ -1085,11 +1085,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	} else if (WikiProject_banner_shell_token) {
 		// uses the {{WikiProject banner shell}}
 		// adding the Vital article template to the bottom of the banner shell
-		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
+		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n';
 		if (WikiProject_banner_shell_token.index_of[1] > 0)
-			WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] = WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] + '\n' + wikitext_to_add;
+			WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] = WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] + wikitext_to_add;
 		else
-			WikiProject_banner_shell_token.push(wikitext_to_add);
+			WikiProject_banner_shell_token.push('\n' + wikitext_to_add);
 	} else {
 		// There are copies @ 20201008.fix_anchor.js
 		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
