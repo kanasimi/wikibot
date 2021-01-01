@@ -1082,17 +1082,21 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		CeL.wiki.parse.replace_parameter(VA_template_token, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template_token.toString()}`);
 		//console.trace([VA_template_object, VA_template_token]);
+
 	} else if (WikiProject_banner_shell_token) {
 		// uses the {{WikiProject banner shell}}
 		// adding the Vital article template to the bottom of the banner shell
-		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n';
-		if (WikiProject_banner_shell_token.index_of[1] > 0) {
-			let original_text = WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]];
-			if (!/^\n/.test(original_text))
-				original_text = '\n' + original_text;
-			WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]] = original_text + wikitext_to_add;
+		wikitext_to_add = '\n' + CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n';
+		// TODO: using CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, ...)
+		const parameter_name = 1;
+		const index = WikiProject_banner_shell_token.index_of[parameter_name];
+		if (index > 0) {
+			const original_text = WikiProject_banner_shell_token.parameters[parameter_name].toString().trimStart();
+			// put {{Vital article}} at the front of the parameter
+			WikiProject_banner_shell_token[index] = wikitext_to_add + original_text;
 		} else
-			WikiProject_banner_shell_token.push('\n' + wikitext_to_add);
+			WikiProject_banner_shell_token.push(wikitext_to_add);
+
 	} else {
 		// There are copies @ 20201008.fix_anchor.js
 		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
