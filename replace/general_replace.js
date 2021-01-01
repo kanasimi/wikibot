@@ -29,7 +29,8 @@ node ${script_name} "section title" keep_display_text allow_empty skip_nochange=
 node ${script_name} "section title" "also_replace_text=title1|title2"
 node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
 node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
-node ${script_name} "section title" "task_configuration={""insource:\\""[[T|T]]\\"""":""T""}"
+node ${script_name} "section title" "task_configuration={""insource:\\\\""[[T|T]]\\\\"""":""T""}"
+node ${script_name} "section title" "task_configuration={""insource:\\\\""從文字\\\\"""":""改成文字""}"
 node ${script_name} "section title" get_task_configuration_from=list|table
 
 Show all titles:
