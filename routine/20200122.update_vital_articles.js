@@ -1091,7 +1091,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		const parameter_name = 1;
 		const index = WikiProject_banner_shell_token.index_of[parameter_name];
 		if (index > 0) {
-			const original_text = WikiProject_banner_shell_token.parameters[parameter_name].toString().trimStart();
+			const original_text = WikiProject_banner_shell_token.parameters[parameter_name].toString().trim() + '\n';
 			// put {{Vital article}} at the front of the parameter
 			WikiProject_banner_shell_token[index] = wikitext_to_add + original_text;
 		} else
