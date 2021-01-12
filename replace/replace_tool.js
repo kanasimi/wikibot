@@ -1011,7 +1011,7 @@ async function get_list(task_configuration, list_configuration) {
 			if (list_configuration.move_from.ns !== wiki.namespace('Category')) {
 				list_types = list_types.filter(type => type !== 'categorymembers');
 				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
-					await wiki.register_template_alias(list_configuration.move_from_link);
+					await wiki.register_redirects(list_configuration.move_from_link);
 				}
 			}
 		} else {

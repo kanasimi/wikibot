@@ -20,6 +20,13 @@ node 20201008.fix_anchor.js use_language=ja archives
 
 TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
+fix [[Special:PermanentLink]]
+
+
+fix for [[ココロ@ファンクション!]]
+
+
+duplicated section title [[w:en:Special:Diff/997653871]]
 
 檢核頁面移動的情況。
 檢核/去除重複或無效的 anchor。
@@ -58,12 +65,9 @@ async function adapt_configuration(latest_task_configuration) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
-	wiki.latest_task_configuration.Section_link_alias
-		= (await wiki.redirects_here('Template:Section link'))
-			.map(page_data => page_data.title
-				// remove "Template:" prefix
-				.replace(/^[^:]+:/, ''));
-	//console.log(wiki.latest_task_configuration.Section_link_alias);
+	await wiki.register_redirects(['Section link', 'Broken anchors'], {
+		namespace: 'Template'
+	});
 }
 
 // ----------------------------------------------------------------------------
@@ -267,8 +271,8 @@ async function for_each_row(row) {
 	if (removed_section_titles.length > 0) {
 		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])
 			}${removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''
-			} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])} ` : 'removed'
-			} by ${CeL.wiki.title_link_of('user:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
+			} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])}` : 'removed'
+			} by ${CeL.wiki.title_link_of('User:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
 
 		try {
 			//console.trace(row.revisions[0].slots);
@@ -316,13 +320,22 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 
 	// 處理 {{Anchor|anchor|別名1|別名2}}
 	parsed.each('template', template_token => {
-		if (!['Anchor', 'Anchors', 'Visible anchor'].includes(template_token.name))
+		if (['Anchor', 'Anchors', 'Visible anchor'].includes(template_token.name)) {
+			for (let index = 1; index < template_token.length; index++) {
+				const anchor = template_token.parameters[index];
+				if (anchor)
+					section_title_list.push(anchor.toString().replace(/_/g, ' '));
+			}
 			return;
+		}
 
-		for (let index = 1; index < template_token.length; index++) {
-			const anchor = template_token.parameters[index];
+		// e.g., {{Cite book|和書|author=[[戸高一成]]|coauthors=|year=2013|month=9|title=[証言録]　海軍反省会5|publisher=株式会社PHP研究所|isbn=978-4-569-81339-4|ref=海軍反省会五}} @ [[日本の原子爆弾開発]]
+		// {{Cite journal |和書 |journal=[[BugBug]] |volume=<!-- 23 -->|issue=<!-- 1 -->2014年1月号 |publisher=[[マガジン・マガジン]] |date=2013-12-03 |ref=bugbug_201401 }}
+		if (/^Cite [a-z]+/.test(template_token.name)) {
+			const anchor = template_token.parameters.ref;
 			if (anchor)
 				section_title_list.push(anchor.toString().replace(/_/g, ' '));
+			return;
 		}
 	});
 
@@ -333,6 +346,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 			section_title_list.push(anchor.replace(/_/g, ' '));
 	});
 
+	//console.trace(section_title_list);
 	return section_title_list.unique();
 }
 
@@ -683,7 +697,7 @@ async function check_page(target_page_data, options) {
 
 			let has_broken_anchors_template;
 			parsed.each('template', template_token => {
-				if (template_token.name !== 'Broken anchors')
+				if (!wiki.is_template('Broken anchors', template_token))
 					return;
 
 				has_broken_anchors_template = true;
@@ -721,7 +735,7 @@ async function check_page(target_page_data, options) {
 
 			// Modify from 20200122.update_vital_articles.js
 			// 添加在首段文字或首個 section_title 前，最後一個 template 後。
-			wikitext_to_add = `{{Broken anchors|links=${wikitext_to_add}}}` + '\n\n';
+			wikitext_to_add = `{{Broken anchors|links=${wikitext_to_add}\n}}` + '\n\n';
 			parsed.each((token, index, parent) => {
 				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
 					const previous_node = index > 0 && parent[index - 1];
@@ -778,6 +792,8 @@ async function check_page(target_page_data, options) {
 		) {
 			return;
 		}
+		//console.log(section_title_history);
+		//console.log([!(wiki.normalize_title(page_title) in target_page_redirects),!token.anchor,section_title_history[token.anchor]?.is_present]);
 		//console.trace(token);
 
 		const move_to_page_title = section_title_history[token.anchor]?.move_to_page_title;
@@ -880,10 +896,12 @@ async function check_page(target_page_data, options) {
 			if (check_token.call(this, token, linking_page_data))
 				changed = true;
 		});
+
 		// handle {{Section link}}
 		parsed.each('template', (token, index, parent) => {
-			if (!wiki.latest_task_configuration.Section_link_alias.includes(token.name))
+			if (!wiki.is_template('Section link', token))
 				return;
+
 			const ARTICLE_INDEX = 1;
 			if (token.parameters[ARTICLE_INDEX]) {
 				const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');

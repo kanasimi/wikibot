@@ -75,7 +75,7 @@ async function main_process() {
 			CeL.write_file(page_info_cache_file, { level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
 	}
 
-	await wiki.register_template_alias([VA_template_name, 'WikiProject banner shell', 'WikiProject Disambiguation']);
+	await wiki.register_redirects([VA_template_name, 'WikiProject banner shell', 'WikiProject Disambiguation'], { namespace: 'Template' });
 
 	// ----------------------------------------------------
 
@@ -176,7 +176,7 @@ async function get_page_info() {
 	// they're what the vital article project is most concerned about.
 	// [[Category:Wikipedia vital articles by class]]
 	//
-	// [[Wikipedia:Content_assessment#Grades]]
+	// [[Wikipedia:Content assessment#Grades]]
 	// FA|FL|GA|List|
 	('A|B|C|Start|Stub|Unassessed'.split('|')).append(synchronize_icons)
 		.forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);

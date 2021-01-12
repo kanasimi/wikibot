@@ -453,12 +453,7 @@ function for_each_old_page(page_data) {
 			// 將已加入[[Template:分類]]視為有效分類，並執行保護。
 			// 將{{cat}}及{{category}}視作有加分類。
 			current_content.each('template', function(token, index, parent) {
-				if (token.name in {
-					分類 : true,
-					分类 : true,
-					Cat : true,
-					Category : true
-				}) {
+				if (wiki.is_template('分類', token)) {
 					has_category = {
 						parent : parent,
 						index : index,
@@ -602,6 +597,8 @@ function for_each_old_page(page_data) {
 prepare_directory(base_directory);
 
 // CeL.set_debug(2);
+
+wiki.register_redirects('Template:分類');
 
 check_redirect_to({
 	published : 'Category:published',
