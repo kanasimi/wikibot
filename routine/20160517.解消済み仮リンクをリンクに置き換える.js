@@ -4,7 +4,7 @@
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
  [[:ja:Wikipedia:井戸端/subj/仮リンクの解消の作業手順について]]
- 2016/5/20 22:22:41	仮運用を行って
+ 2016/5/20 22:22:41	仮運用を行って。ウィキペディア日本語版における試験運転。
 
  Workflow 工作流程:
  # 自維基百科 message_set.Category_has_local_page 取得所有包含本地連結的頁面標題文字/條目名稱。
@@ -291,7 +291,7 @@ message_set = {
 		different_local_title : 'The local title is different from title gets form wikidata.',
 		local_title_too_new : 'The local page is too new. Will test later.',
 		not_exist : 'Not exist',
-		from_parameter : 'From the parameter',
+		from_parameter : 'From the parameter of template',
 		translated_from_foreign_title : 'Translated from foreign title',
 
 		// always display
@@ -498,6 +498,10 @@ function for_each_page(page_data, messages) {
 	// 記錄確認已經有改變的文字連結。
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
+	if (false) {
+		process.stdout.write('' + CeL.wiki.title_link_of(title) + ': '
+				+ ' ...\r');
+	}
 
 	if (!ignore_ns && page_data.ns !== 0
 	// file / image
@@ -653,7 +657,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			// for debug
-			if (0) {
+			if (false) {
 				CeL.log('modify ' + CeL.wiki.title_link_of(title) + ': ');
 				// CeL.log(last_content);
 				check_final_work();
@@ -773,7 +777,7 @@ function for_each_page(page_data, messages) {
 					if (Array.isArray(redirect_data)) {
 						// TODO: Array.isArray(redirect_data)
 						console.log(redirect_data);
-						throw 'Array.isArray(redirect_data)';
+						throw new Error('Array.isArray(redirect_data)');
 					}
 					if (redirect_data && redirect_data.to_link) {
 						// is #REDIRECT [[title#section]]
@@ -911,6 +915,9 @@ function for_each_page(page_data, messages) {
 			for_local_page(CeL.wiki.data.title_of(entity, use_language));
 		}
 
+		// ----------------------------
+		// main work for each link
+
 		if (normalized_param) {
 			template_count++;
 			token.page_data = page_data;
@@ -992,7 +999,7 @@ function for_each_page(page_data, messages) {
 					if (Array.isArray(redirect_data)) {
 						// TODO: Array.isArray(redirect_data)
 						console.log(redirect_data);
-						throw 'Array.isArray(redirect_data)';
+						throw new Error('Array.isArray(redirect_data)');
 					}
 					if (!redirect_data) {
 						check_page(message_set.invalid_template);
@@ -1009,13 +1016,14 @@ function for_each_page(page_data, messages) {
 				});
 			}
 		}
+
 	}
 
 	// 這一步頗耗時間。
 	var parser = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
 		// debug 用. check parser, test if parser working properly.
-		throw 'Parser error: ' + CeL.wiki.title_link_of(page_data);
+		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 	}
 	parser.each('template', for_each_template);
 	template_parsed = true;
@@ -1053,7 +1061,7 @@ CeL.wiki.cache([ {
 	// list = [ '' ];
 	// list = [ 'Wikipedia:Sandbox' ];
 	CeL.log('Get ' + list.length + ' pages.');
-	if (0) {
+	if (false) {
 		ignore_ns = true;
 		CeL.log(list.slice(0, 8).map(function(page_data, index) {
 			return index + ': ' + CeL.wiki.title_of(page_data);
