@@ -106,8 +106,11 @@ async function main_process() {
 
 		await check_page('Wikipedia:互助客栈/技术‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
 		await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
+
+		await check_page('三井E&Sホールディングス', { force_check: true });
 		return;
 	}
+
 
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
@@ -308,7 +311,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		// TODO: 忽略包含不合理元素的編輯，例如 url。
 		if (!link.imprecise_tokens) {
 			// `section_title_token.title` will not transfer "[", "]"
-			section_title_list.push(link[1]);
+			section_title_list.push(link.id);
 
 		} else if (link.tokens_maybe_handlable) {
 			// exclude "=={{T}}=="
