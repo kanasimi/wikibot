@@ -107,10 +107,12 @@ async function main_process() {
 		await check_page('Wikipedia:互助客栈/技术‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
 		await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
 
+		// "&amp;"
 		await check_page('三井E&Sホールディングス', { force_check: true });
+		//同じ名前の節
+		await check_page('桜木町駅', { force_check: true });
 		return;
 	}
-
 
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
@@ -305,6 +307,8 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 	const parsed = CeL.wiki.parser(wikitext).parse();
 	//CeL.assert([wikitext, parsed.toString()], 'wikitext parser check for wikitext');
 	// console.log(parsed);
+
+	parsed.each_section();
 	parsed.each('section_title', section_title_token => {
 		//console.log(section_title_token);
 		const link = section_title_token.link;
