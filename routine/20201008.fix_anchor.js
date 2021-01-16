@@ -110,9 +110,9 @@ async function main_process() {
 		await check_page('桜木町駅', { force_check: true });
 
 		await check_page('醒井宿', { force_check: true, force_check_talk_page: '醒井宿' });
+		await check_page('法隆寺', { force_check: true, force_check_talk_page: true });
 		return;
 	}
-
 
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
@@ -766,7 +766,10 @@ async function check_page(target_page_data, options) {
 			if (removed_anchors > 0) {
 				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors);
 				if (!anchor_token)
-					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.gettext('移除%1個失效章節標題提醒', removed_anchors)}`);
+					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效章節標題提醒', removed_anchors)}`);
+			} else if (!wikitext_to_add) {
+				// assert: removed_anchors === 0
+				return Wikiapi.skip_edit;
 			}
 
 			if (has_broken_anchors_template || !wikitext_to_add) {
@@ -805,7 +808,7 @@ async function check_page(target_page_data, options) {
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
 				//<syntaxhighlight lang="json">...</syntaxhighlight>
 				? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
-			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.gettext('提醒失效的章節標題')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的章節標題')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		}
 
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
