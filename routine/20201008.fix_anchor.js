@@ -23,13 +23,7 @@ TODO:
 fix [[Special:PermanentLink]]
 
 
-fix for [[ココロ@ファンクション!]]
-
-
-duplicated section title [[w:en:Special:Diff/997653871]]
-
 檢核頁面移動的情況。
-檢核/去除重複或無效的 anchor。
 
  */
 
@@ -48,6 +42,8 @@ CeL.run([
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+const LINKS_PARAMETER = 'links';
+
 // ----------------------------------------------
 
 // 讀入手動設定 manual settings。
@@ -65,7 +61,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
-	await wiki.register_redirects(['Section link', 'Broken anchors'], {
+	await wiki.register_redirects(['Section link', 'Broken anchors', 'Citation'], {
 		namespace: 'Template'
 	});
 }
@@ -109,10 +105,14 @@ async function main_process() {
 
 		// "&amp;"
 		await check_page('三井E&Sホールディングス', { force_check: true });
-		//同じ名前の節
+		// 檢核/去除重複或無效的 anchor。
+		// 同じ名前の節 duplicated section title [[w:en:Special:Diff/997653871]]
 		await check_page('桜木町駅', { force_check: true });
+
+		await check_page('醒井宿', { force_check: true, force_check_talk_page: '醒井宿' });
 		return;
 	}
+
 
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
@@ -311,16 +311,16 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 	parsed.each_section();
 	parsed.each('section_title', section_title_token => {
 		//console.log(section_title_token);
-		const link = section_title_token.link;
+		const section_title_link = section_title_token.link;
 		// TODO: 忽略包含不合理元素的編輯，例如 url。
-		if (!link.imprecise_tokens) {
+		if (!section_title_link.imprecise_tokens) {
 			// `section_title_token.title` will not transfer "[", "]"
-			section_title_list.push(link.id);
+			section_title_list.push(section_title_link.id);
 
-		} else if (link.tokens_maybe_handlable) {
+		} else if (section_title_link.tokens_maybe_handlable) {
 			// exclude "=={{T}}=="
 			CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
-			console.log(link.tokens_maybe_handlable);
+			console.log(section_title_link.tokens_maybe_handlable);
 			console.trace(section_title_token);
 		}
 	});
@@ -338,7 +338,8 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 
 		// e.g., {{Cite book|和書|author=[[戸高一成]]|coauthors=|year=2013|month=9|title=[証言録]　海軍反省会5|publisher=株式会社PHP研究所|isbn=978-4-569-81339-4|ref=海軍反省会五}} @ [[日本の原子爆弾開発]]
 		// {{Cite journal |和書 |journal=[[BugBug]] |volume=<!-- 23 -->|issue=<!-- 1 -->2014年1月号 |publisher=[[マガジン・マガジン]] |date=2013-12-03 |ref=bugbug_201401 }}
-		if (/^Cite [a-z]+/.test(template_token.name)) {
+		// {{Citation |和書 |url=https://www.city.maibara.lg.jp/soshiki/keizai_kankyo/kankyo/shizen/mizu/1836.html |format=PDF |accessdate=2020-11-29 |editor=仁連孝昭 |title=スローウォーターなくらし - 未来へ受け継ぐ水源の里まいばらの水文化 |date=2012-07-13 |publisher=[[米原市]]経済環境部環境保全課 |ref=Niren}}
+		if (/^Cite [a-z]+/.test(template_token.name) || wiki.is_template('Citation', template_token)) {
 			const anchor = template_token.parameters.ref;
 			if (anchor)
 				section_title_list.push(anchor.toString().replace(/_/g, ' '));
@@ -353,7 +354,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 			section_title_list.push(anchor.replace(/_/g, ' '));
 	});
 
-	//console.trace(section_title_list);
+	//console.trace(section_title_list.length > 100 ? JSON.stringify(section_title_list) : section_title_list);
 	return section_title_list.unique();
 }
 
@@ -363,7 +364,7 @@ const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
 function reduce_section_title(section_title) {
-	return section_title.replace(/[\s_\-–()]/g, '').toLowerCase();
+	return section_title.replace(/[\s_\-–()]/g, '').replace(/（/g, '(').replace(/）/g, ')').toLowerCase();
 }
 
 function get_section_title_data(section_title_history, section_title) {
@@ -703,14 +704,16 @@ async function check_page(target_page_data, options) {
 			CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
 
 			let has_broken_anchors_template;
+			let removed_anchors = 0;
 			parsed.each('template', template_token => {
 				if (!wiki.is_template('Broken anchors', template_token))
 					return;
 
 				has_broken_anchors_template = true;
-				const index = template_token.index_of['links'];
+				const index = template_token.index_of[LINKS_PARAMETER];
 				if (!index) {
-					template_token.push('links=' + wikitext_to_add);
+					if (wikitext_to_add)
+						template_token.push(LINKS_PARAMETER + '=' + wikitext_to_add);
 					return parsed.each.exit;
 				}
 
@@ -723,26 +726,56 @@ async function check_page(target_page_data, options) {
 							// remove item that is not in main article.
 							list_token.splice(index--, 1);
 							removed_anchors++;
+							continue;
 						}
+
+						const link_token = CeL.wiki.parse(first_token[1].toString());
+						//console.log([link_token, section_title_history[link_token.anchor]?.is_present]);
+						if (section_title_history[link_token.anchor]?.is_present) {
+							list_token.splice(index--, 1);
+							removed_anchors++;
+							continue;
+						}
+					}
+
+					if (list_token.length === 0) {
+						// 移除掉本 list。
+						return parsed.each.remove_token;
 					}
 				});
 
 				const original_text = template_token[index].toString();
-				if (original_text.includes(anchor_token)) {
+				if (!anchor_token
 					// have already noticed
+					|| original_text.includes(anchor_token)) {
 					return parsed.each.exit;
 				}
 
 				template_token[index] = original_text + wikitext_to_add;
 			});
 
-			if (has_broken_anchors_template) {
+			parsed.each('template', template_token => {
+				if (!wiki.is_template('Broken anchors', template_token))
+					return;
+				if (template_token.parameters[LINKS_PARAMETER]?.toString()?.trim() === '') {
+					// 移除掉整個 {{Broken anchors}}。
+					return parsed.each.remove_token;
+				}
+			});
+
+			if (removed_anchors > 0) {
+				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors);
+				if (!anchor_token)
+					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.gettext('移除%1個失效章節標題提醒', removed_anchors)}`);
+			}
+
+			if (has_broken_anchors_template || !wikitext_to_add) {
 				return parsed.toString();
 			}
 
 			// Modify from 20200122.update_vital_articles.js
 			// 添加在首段文字或首個 section_title 前，最後一個 template 後。
-			wikitext_to_add = `{{Broken anchors|links=${wikitext_to_add}\n}}` + '\n\n';
+			wikitext_to_add = `{{Broken anchors|${LINKS_PARAMETER}=${wikitext_to_add}\n}}` + '\n\n';
 			parsed.each((token, index, parent) => {
 				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
 					const previous_node = index > 0 && parent[index - 1];
@@ -765,19 +798,20 @@ async function check_page(target_page_data, options) {
 		}
 
 		const main_page_wikitext = linking_page_data.wikitext;
-		let removed_anchors = 0;
 		const talk_page_title = wiki.to_talk_page(linking_page_data);
-		anchor_token = anchor_token.toString();
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
-		let wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
-			//<syntaxhighlight lang="json">...</syntaxhighlight>
-			? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
-		CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.gettext('提醒失效的章節標題')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+		let wikitext_to_add;
+		if (anchor_token) {
+			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
+				//<syntaxhighlight lang="json">...</syntaxhighlight>
+				? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
+			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.gettext('提醒失效的章節標題')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+		}
+
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
 			notification_name: 'anchor-fixing',
-			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的章節標題'))}: ${anchor_token.toString()}`
-				+ (removed_anchors > 0 ? ', ' + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors) : ''),
+			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的章節標題'))}: ${anchor_token || ''}`,
 			bot: 1,
 			minor: 1,
 			//nocreate: false,
@@ -794,8 +828,8 @@ async function check_page(target_page_data, options) {
 			|| token[0]
 			// for [[#anchor]]
 			|| linking_page_data.title).toString();
-		if (!(wiki.normalize_title(page_title) in target_page_redirects) || !token.anchor
-			|| section_title_history[token.anchor]?.is_present
+		if (!(wiki.normalize_title(page_title) in target_page_redirects)
+			|| !token.anchor || section_title_history[token.anchor]?.is_present
 		) {
 			return;
 		}
@@ -930,6 +964,10 @@ async function check_page(target_page_data, options) {
 					changed = true;
 			}
 		});
+
+		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
+			add_note_for_broken_anchors(linking_page_data);
+		}
 
 		if (!changed)
 			return Wikiapi.skip_edit;
