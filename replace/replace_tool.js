@@ -34,7 +34,7 @@ The `replace_tool.replace()` will:
 
 
 TODO:
-將所有 move_from 的重定向也一起修正
+除重定向頁為 (曖昧さ回避)外，將所有 move_from 的重定向也一起修正
 檢查是否為討論頁。 e.g., [[w:ja:Special:Diff/80384825]]
 
 
@@ -1033,9 +1033,11 @@ async function get_list(task_configuration, list_configuration) {
 					const matched = task_configuration.move_from.page_name.match(/^(.+) \([^()]+\)$/);
 					if (matched) {
 						// e.g., [[A (C)]] → [[B (C)]]
+						// [[A (C)]] → [[B (C)]] 則同時把 [[A (C)|A]] → [[B (C)|B]], [[A (C)|A君]] → [[B (C)|B君]]
 						// display_text_replacer 表記の変更
 						const replace_to = move_to.page_name.replace(/ \([^()]+\)$/, '');
-						if (matched[1] !== replace_to) {
+						// 須避免 [[出雲 (列車)]] → [[サンライズ出雲]] 產生 /出雲/サンライズ出雲/g
+						if (!replace_to.includes(matched[1])) {
 							const also_replace_display_text = new RegExp(CeL.to_RegExp_pattern(matched[1]), 'g');
 							also_replace_display_text.replace_to = replace_to;
 							//console.trace(also_replace_display_text);
