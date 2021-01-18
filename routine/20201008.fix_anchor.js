@@ -22,8 +22,9 @@ TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
 fix [[Special:PermanentLink]]
 
+move function get_all_plain_text_section_titles_of_wikitext(wikitext) into CeL
 
-檢核頁面移動的情況。
+檢核頁面分割、剪貼移動的情況。
 
  */
 
@@ -42,6 +43,7 @@ CeL.run([
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+// @see {{Broken anchors|links=}}
 const LINKS_PARAMETER = 'links';
 
 // ----------------------------------------------
@@ -61,7 +63,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
-	await wiki.register_redirects(['Section link', 'Broken anchors', 'Citation'], {
+	await wiki.register_redirects(['Section link', 'Broken anchors', 'Citation', 'RFD'], {
 		namespace: 'Template'
 	});
 }
@@ -91,14 +93,8 @@ async function main_process() {
 		console.trace(revision);
 		return;
 
-		await check_page('臺灣話', { force_check: true });
-
-		await check_page('民族布尔什维克主义', { force_check: true });
 		// [[w:zh:Special:Diff/37559912]]
 		await check_page('香港特別行政區區旗', { force_check: true });
-		await check_page('新黨', { force_check: true });
-
-		await check_page('Species', { force_check: true });
 
 		await check_page('Wikipedia:互助客栈/技术‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
 		await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
@@ -108,9 +104,17 @@ async function main_process() {
 		// 檢核/去除重複或無效的 anchor。
 		// 同じ名前の節 duplicated section title [[w:en:Special:Diff/997653871]]
 		await check_page('桜木町駅', { force_check: true });
+	}
 
-		await check_page('醒井宿', { force_check: true, force_check_talk_page: '醒井宿' });
-		await check_page('法隆寺', { force_check: true, force_check_talk_page: true });
+	if (CeL.env.arg_hash.check_page) {
+		// node 20201008.fix_anchor.js use_language=ja check_page=醒井宿 check_talk_page=醒井宿
+		// node 20201008.fix_anchor.js use_language=ja check_page=Wikipedia:リダイレクトの削除依頼/受付
+		await check_page(CeL.env.arg_hash.check_page, {
+			force_check: true,
+			// .recheck_talk_page
+			force_check_talk_page: CeL.env.check_talk_page || true,
+			print_all_plain_text_section_titles: true,
+		});
 		return;
 	}
 
@@ -296,7 +300,7 @@ async function for_each_row(row) {
 
 // ----------------------------------------------------------------------------
 
-function get_all_plain_text_section_titles_of_wikitext(wikitext) {
+function get_all_plain_text_section_titles_of_wikitext(wikitext, options) {
 	const section_title_list = [];
 
 	if (!wikitext) {
@@ -325,8 +329,9 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 		}
 	});
 
-	// 處理 {{Anchor|anchor|別名1|別名2}}
+	// 處理包含於 template 中之 anchor (section title / id="" / name="")
 	parsed.each('template', template_token => {
+		// {{Anchor|anchor|別名1|別名2}}
 		if (['Anchor', 'Anchors', 'Visible anchor'].includes(template_token.name)) {
 			for (let index = 1; index < template_token.length; index++) {
 				const anchor = template_token.parameters[index];
@@ -345,6 +350,14 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 				section_title_list.push(anchor.toString().replace(/_/g, ' '));
 			return;
 		}
+
+		// 転送先のアンカーはTemplate:RFDの中に納まっている
+		// e.g., {{RFD notice|'''対象リダイレクト:'''[[Wikipedia:リダイレクトの削除依頼/受付#RFD長崎市電|長崎市電（受付依頼）]]|...}}
+		if (wiki.site_name() === 'jawiki' && wiki.is_template('RFD', template_token)) {
+			const anchor = 'RFD' + template_token.parameters[1];
+			section_title_list.push(anchor.replace(/_/g, ' '));
+			return;
+		}
 	});
 
 	// 處理 <span class="anchor" id="anchor"></span>, <ref name="anchor">
@@ -354,7 +367,9 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext) {
 			section_title_list.push(anchor.replace(/_/g, ' '));
 	});
 
-	//console.trace(section_title_list.length > 100 ? JSON.stringify(section_title_list) : section_title_list);
+	if (options?.print_all_plain_text_section_titles) {
+		console.trace(section_title_list.length > 100 ? JSON.stringify(section_title_list) : section_title_list);
+	}
 	return section_title_list.unique();
 }
 
@@ -446,15 +461,14 @@ async function tracking_section_title_history(page_data, options) {
 	options = CeL.setup_options(options);
 	//section_title_history[section_title]={appear:{revid:0},disappear:{revid:0},rename_to:''}
 	const section_title_history = options.section_title_history || {
-		// 所有頁面必然皆有的 default anchors
-		top: {
-			is_present: true
-		},
+		// 所有頁面必然皆有的 default anchors [[w:en:Help:Link#Table row linking]]
+		top: { is_present: true },
+		toc: { is_present: true },
 		[KEY_lower_cased_section_titles]: Object.create(null),
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext);
+		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext, options);
 		mark_language_variants(section_title_list, section_title_history, revision);
 		section_title_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
@@ -630,7 +644,10 @@ async function check_page(target_page_data, options) {
 	target_page_data = link_from[0];
 	if (target_page_data.convert_from)
 		target_page_redirects[target_page_data.convert_from] = true;
-	const section_title_history = await tracking_section_title_history(target_page_data, { set_recent_section_only: true });
+	const section_title_history = await tracking_section_title_history(target_page_data, {
+		set_recent_section_only: true,
+		print_all_plain_text_section_titles: options.print_all_plain_text_section_titles
+	});
 
 	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
 	//console.trace(section_title_history);
@@ -765,8 +782,11 @@ async function check_page(target_page_data, options) {
 
 			if (removed_anchors > 0) {
 				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors);
-				if (!anchor_token)
+				//this.summary += '（全部です）';
+				if (!anchor_token) {
+					//this.allow_empty = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效章節標題提醒', removed_anchors)}`);
+				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
 				return Wikiapi.skip_edit;
@@ -818,6 +838,7 @@ async function check_page(target_page_data, options) {
 			bot: 1,
 			minor: 1,
 			//nocreate: false,
+			allow_empty: 1,
 		});
 	}
 
