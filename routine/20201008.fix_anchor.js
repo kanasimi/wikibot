@@ -101,7 +101,7 @@ async function main_process() {
 
 		// "&amp;"
 		await check_page('三井E&Sホールディングス', { force_check: true });
-		// 檢核/去除重複或無效的 anchor。
+		// 檢核/去除重複或無效的 anchor 網頁錨點。
 		// 同じ名前の節 duplicated section title [[w:en:Special:Diff/997653871]]
 		await check_page('桜木町駅', { force_check: true });
 	}
@@ -151,7 +151,7 @@ async function main_process() {
 		filter: filter_row,
 		// also get diff
 		with_diff: { LCS: true, line: true },
-		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章章節標題。
+		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章 anchor 網頁錨點。
 		//namespace: 0,
 		parameters: {
 			// 跳過機器人所做的編輯。
@@ -329,7 +329,7 @@ function get_all_plain_text_section_titles_of_wikitext(wikitext, options) {
 		}
 	});
 
-	// 處理包含於 template 中之 anchor (section title / id="" / name="")
+	// 處理包含於 template 中之 anchor 網頁錨點 (section title / id="" / name="")
 	parsed.each('template', template_token => {
 		// {{Anchor|anchor|別名1|別名2}}
 		if (['Anchor', 'Anchors', 'Visible anchor'].includes(template_token.name)) {
@@ -484,6 +484,9 @@ async function tracking_section_title_history(page_data, options) {
 	if (options.set_recent_section_only) {
 		page_data = await wiki.page(page_data);
 		set_recent_section_title(page_data.wikitext);
+		if (options?.print_all_plain_text_section_titles) {
+			console.trace(section_title_history[KEY_lower_cased_section_titles]);
+		}
 		return section_title_history;
 	}
 
@@ -653,7 +656,7 @@ async function check_page(target_page_data, options) {
 	//console.trace(section_title_history);
 
 	link_from.append((await wiki.backlinks(target_page_data, {
-		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章章節標題。
+		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章 anchor 網頁錨點。
 		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
 	})).filter(page_data =>
 		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
@@ -681,7 +684,7 @@ async function check_page(target_page_data, options) {
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
-	let summary = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的章節標題'))}: `;
+	let summary = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}: `;
 	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
@@ -781,11 +784,11 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效章節標題提醒', removed_anchors);
+				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors);
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
-					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效章節標題提醒', removed_anchors)}`);
+					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors)}`);
 				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
@@ -826,15 +829,17 @@ async function check_page(target_page_data, options) {
 		let wikitext_to_add;
 		if (anchor_token) {
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
-				//<syntaxhighlight lang="json">...</syntaxhighlight>
-				? ` <!-- ${JSON.stringify(record)} -->` : ''}`;
-			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的章節標題')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
+				? `${record.disappear ? CeL.gettext('此網頁錨點[[Special:Diff/%1|曾被刪除過]]。', record.disappear.revid) : ''
+				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
+				} <!-- ${JSON.stringify(record)} -->` : ''}`;
+			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		}
 
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
 			notification_name: 'anchor-fixing',
-			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的章節標題'))}: ${anchor_token || ''}`,
+			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
 			bot: 1,
 			minor: 1,
 			//nocreate: false,
@@ -911,9 +916,9 @@ async function check_page(target_page_data, options) {
 			record.variant_of?.some(variant => {
 				if (variant[1] === rename_to) {
 					if (variant[0] === MARK_case_change) {
-						type = CeL.gettext('大小寫或空白錯誤的章節標題');
+						type = CeL.gettext('大小寫或空白相異的網頁錨點');
 					} else {
-						type = CeL.gettext('繁簡不符匹配而失效的章節標題');
+						type = CeL.gettext('繁簡不符匹配而失效的網頁錨點');
 					}
 					return true;
 				}
