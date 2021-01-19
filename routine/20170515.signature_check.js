@@ -320,12 +320,14 @@ if (test_the_page_only) {
 // @see CeL.wiki.plain_text(wikitext)
 function exclude_style(token_list) {
 	var list_without_style = [];
-	token_list.forEach(function(token) {
-		token = token.toString().replace(
-		// HTML tags 標籤通常不能夠代表意義。
-		/<\/?[a-z]+(\s[^<>]*)?>/g, '').split('\n');
-		list_without_style.append(token);
-	});
+	if (token_list) {
+		token_list.forEach(function(token) {
+			token = token.toString().replace(
+			// HTML tags 標籤通常不能夠代表意義。
+			/<\/?[a-z]+(\s[^<>]*)?>/g, '').split('\n');
+			list_without_style.append(token);
+		});
+	}
 	return list_without_style;
 }
 
@@ -795,7 +797,7 @@ function for_each_row(row) {
 				return;
 			}
 
-			var from_user_hash = diff_pair[0].join('');
+			var from_user_hash = diff_pair[0] ? diff_pair[0].join('') : '';
 			if (to_diff_end_index < last_diff_index_before_next_section) {
 				// 加上到下一個段落之前相同的部分。但是請注意，這可能造成漏報。
 				from_user_hash += row.diff.to.slice(to_next_diff_start_index,
@@ -811,7 +813,8 @@ function for_each_row(row) {
 			// console.log([ from_user_hash, user_list ]);
 			if (user_list.length > 0) {
 				check_log.push([ row.user
-				// e.g., "{{Ping|Name}}注意[[User:Name]]的此一編輯 --~~~~"
+				// [[mw:Extension:Echo#Usage]] e.g.,
+				// "{{Ping|Name}}注意[[User:Name]]的此一編輯 --~~~~"
 				// {{Ping}}模板通知必須搭配簽名（~~~~）
 				+ ' 可能編輯了 ' + user_list.join(', ')
 				// e.g., 您創建的條目~~可能侵犯版權
