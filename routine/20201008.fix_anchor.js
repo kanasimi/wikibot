@@ -1,4 +1,8 @@
 ﻿/*
+
+node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)"
+node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
+
 node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
@@ -7,6 +11,17 @@ fix archived:
 node 20201008.fix_anchor.js use_language=en archives
 node 20201008.fix_anchor.js use_language=zh archives
 node 20201008.fix_anchor.js use_language=ja archives
+
+
+
+jstop cron-tools.cewbot-20201008.fix_anchor.en
+jstop cron-tools.cewbot-20201008.fix_anchor.zh
+jstop cron-tools.cewbot-20201008.fix_anchor.ja
+
+/usr/bin/jstart -N cron-tools.cewbot-20201008.fix_anchor.en -mem 6g -once -quiet /shared/bin/node /data/project/cewbot/wikibot/routine/20201008.fix_anchor.js use_language=en
+/usr/bin/jstart -N cron-tools.cewbot-20201008.fix_anchor.zh -mem 6g -once -quiet /shared/bin/node /data/project/cewbot/wikibot/routine/20201008.fix_anchor.js use_language=zh
+/usr/bin/jstart -N cron-tools.cewbot-20201008.fix_anchor.ja -mem 6g -once -quiet /shared/bin/node /data/project/cewbot/wikibot/routine/20201008.fix_anchor.js use_language=ja
+
 
 
 2020/10/9 19:0:26	初版試營運
@@ -21,8 +36,6 @@ node 20201008.fix_anchor.js use_language=ja archives
 TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
 fix [[Special:PermanentLink]]
-
-move function get_all_plain_text_section_titles_of_wikitext(wikitext) into CeL
 
 檢核頁面分割、剪貼移動的情況。
 
@@ -42,6 +55,8 @@ CeL.run([
 //set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
+
+const KEY_SESSION = CeL.wiki.KEY_SESSION;
 
 // @see {{Broken anchors|links=}}
 const LINKS_PARAMETER = 'links';
@@ -63,7 +78,8 @@ async function adapt_configuration(latest_task_configuration) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
-	await wiki.register_redirects(['Section link', 'Broken anchors', 'Citation', 'RFD'], {
+	await wiki.register_redirects(['Section link', 'Broken anchors',
+		'Anchor', 'Anchors', 'Visible anchor', 'Citation', 'RFD'], {
 		namespace: 'Template'
 	});
 }
@@ -107,13 +123,11 @@ async function main_process() {
 	}
 
 	if (CeL.env.arg_hash.check_page) {
-		// node 20201008.fix_anchor.js use_language=ja check_page=醒井宿 check_talk_page=醒井宿
-		// node 20201008.fix_anchor.js use_language=ja check_page=Wikipedia:リダイレクトの削除依頼/受付
 		await check_page(CeL.env.arg_hash.check_page, {
 			force_check: true,
 			// .recheck_talk_page
 			force_check_talk_page: CeL.env.check_talk_page || true,
-			print_all_plain_text_section_titles: true,
+			print_anchors: true,
 		});
 		return;
 	}
@@ -265,8 +279,8 @@ async function for_each_row(row) {
 	diff_list.forEach(diff => {
 		//const [removed_text, added_text] = diff;
 		// all_converted: 避免遺漏。 e.g., [[w:en:Special:Diff/812844088]]
-		removed_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[0]));
-		added_section_titles.append(get_all_plain_text_section_titles_of_wikitext(diff[1]));
+		removed_section_titles.append(CeL.wiki.parse.anchor(diff[0], { [KEY_SESSION]: wiki.get_wiki_session() }));
+		added_section_titles.append(CeL.wiki.parse.anchor(diff[1], { [KEY_SESSION]: wiki.get_wiki_session() }));
 	});
 
 	if (removed_section_titles.length > 3) {
@@ -300,79 +314,6 @@ async function for_each_row(row) {
 
 // ----------------------------------------------------------------------------
 
-function get_all_plain_text_section_titles_of_wikitext(wikitext, options) {
-	const section_title_list = [];
-
-	if (!wikitext) {
-		return section_title_list;
-	}
-
-	/** {Array} parsed page content 頁面解析後的結構。 */
-	const parsed = CeL.wiki.parser(wikitext).parse();
-	//CeL.assert([wikitext, parsed.toString()], 'wikitext parser check for wikitext');
-	// console.log(parsed);
-
-	parsed.each_section();
-	parsed.each('section_title', section_title_token => {
-		//console.log(section_title_token);
-		const section_title_link = section_title_token.link;
-		// TODO: 忽略包含不合理元素的編輯，例如 url。
-		if (!section_title_link.imprecise_tokens) {
-			// `section_title_token.title` will not transfer "[", "]"
-			section_title_list.push(section_title_link.id);
-
-		} else if (section_title_link.tokens_maybe_handlable) {
-			// exclude "=={{T}}=="
-			CeL.warn(`Title maybe handlable 請檢查是否可處理此標題: ${section_title_token.title}`);
-			console.log(section_title_link.tokens_maybe_handlable);
-			console.trace(section_title_token);
-		}
-	});
-
-	// 處理包含於 template 中之 anchor 網頁錨點 (section title / id="" / name="")
-	parsed.each('template', template_token => {
-		// {{Anchor|anchor|別名1|別名2}}
-		if (['Anchor', 'Anchors', 'Visible anchor'].includes(template_token.name)) {
-			for (let index = 1; index < template_token.length; index++) {
-				const anchor = template_token.parameters[index];
-				if (anchor)
-					section_title_list.push(anchor.toString().replace(/_/g, ' '));
-			}
-			return;
-		}
-
-		// e.g., {{Cite book|和書|author=[[戸高一成]]|coauthors=|year=2013|month=9|title=[証言録]　海軍反省会5|publisher=株式会社PHP研究所|isbn=978-4-569-81339-4|ref=海軍反省会五}} @ [[日本の原子爆弾開発]]
-		// {{Cite journal |和書 |journal=[[BugBug]] |volume=<!-- 23 -->|issue=<!-- 1 -->2014年1月号 |publisher=[[マガジン・マガジン]] |date=2013-12-03 |ref=bugbug_201401 }}
-		// {{Citation |和書 |url=https://www.city.maibara.lg.jp/soshiki/keizai_kankyo/kankyo/shizen/mizu/1836.html |format=PDF |accessdate=2020-11-29 |editor=仁連孝昭 |title=スローウォーターなくらし - 未来へ受け継ぐ水源の里まいばらの水文化 |date=2012-07-13 |publisher=[[米原市]]経済環境部環境保全課 |ref=Niren}}
-		if (/^Cite [a-z]+/.test(template_token.name) || wiki.is_template('Citation', template_token)) {
-			const anchor = template_token.parameters.ref;
-			if (anchor)
-				section_title_list.push(anchor.toString().replace(/_/g, ' '));
-			return;
-		}
-
-		// 転送先のアンカーはTemplate:RFDの中に納まっている
-		// e.g., {{RFD notice|'''対象リダイレクト:'''[[Wikipedia:リダイレクトの削除依頼/受付#RFD長崎市電|長崎市電（受付依頼）]]|...}}
-		if (wiki.site_name() === 'jawiki' && wiki.is_template('RFD', template_token)) {
-			const anchor = 'RFD' + template_token.parameters[1];
-			section_title_list.push(anchor.replace(/_/g, ' '));
-			return;
-		}
-	});
-
-	// 處理 <span class="anchor" id="anchor"></span>, <ref name="anchor">
-	parsed.each('tag', tag_token => {
-		const anchor = tag_token.attributes.id || tag_token.attributes.name;
-		if (anchor)
-			section_title_list.push(anchor.replace(/_/g, ' '));
-	});
-
-	if (options?.print_all_plain_text_section_titles) {
-		console.trace(section_title_list.length > 100 ? JSON.stringify(section_title_list) : section_title_list);
-	}
-	return section_title_list.unique();
-}
-
 const KEY_latest_page_data = Symbol('latest page_data');
 const KEY_got_full_revisions = Symbol('got full revisions');
 const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
@@ -386,7 +327,7 @@ function get_section_title_data(section_title_history, section_title) {
 	if (section_title in section_title_history)
 		return section_title_history[section_title];
 
-	// get possible section name variants: lowcased
+	// get possible section name variants: lowercased
 	const reduced_section = reduce_section_title(section_title), original_section_title = section_title_history[KEY_lower_cased_section_titles][reduced_section];
 	if (original_section_title) {
 		return {
@@ -468,9 +409,9 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		const section_title_list = get_all_plain_text_section_titles_of_wikitext(wikitext, options);
-		mark_language_variants(section_title_list, section_title_history, revision);
-		section_title_list.forEach(section_title =>
+		const anchor_list = CeL.wiki.parse.anchor(wikitext, { ...options, [KEY_SESSION]: wiki.get_wiki_session() });
+		mark_language_variants(anchor_list, section_title_history, revision);
+		anchor_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
 				title: section_title,
 				// is present section title
@@ -484,7 +425,7 @@ async function tracking_section_title_history(page_data, options) {
 	if (options.set_recent_section_only) {
 		page_data = await wiki.page(page_data);
 		set_recent_section_title(page_data.wikitext);
-		if (options?.print_all_plain_text_section_titles) {
+		if (options?.print_anchors) {
 			console.trace(section_title_history[KEY_lower_cased_section_titles]);
 		}
 		return section_title_history;
@@ -562,8 +503,8 @@ async function tracking_section_title_history(page_data, options) {
 		if (false)
 			console.trace([diff, removed_text, added_text, revision]);
 
-		removed_text = get_all_plain_text_section_titles_of_wikitext(removed_text);
-		added_text = get_all_plain_text_section_titles_of_wikitext(added_text);
+		removed_text = CeL.wiki.parse.anchor(removed_text, { [KEY_SESSION]: wiki.get_wiki_session() });
+		added_text = CeL.wiki.parse.anchor(added_text, { [KEY_SESSION]: wiki.get_wiki_session() });
 
 		if (removed_text.length === 0 && added_text.length === 0)
 			return;
@@ -649,7 +590,7 @@ async function check_page(target_page_data, options) {
 		target_page_redirects[target_page_data.convert_from] = true;
 	const section_title_history = await tracking_section_title_history(target_page_data, {
 		set_recent_section_only: true,
-		print_all_plain_text_section_titles: options.print_all_plain_text_section_titles
+		print_anchors: options.print_anchors
 	});
 
 	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
@@ -830,7 +771,7 @@ async function check_page(target_page_data, options) {
 		if (anchor_token) {
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
 				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
-				? `${record.disappear ? CeL.gettext('此網頁錨點[[Special:Diff/%1|曾被刪除過]]。', record.disappear.revid) : ''
+				? `${record.disappear ? ' ' + CeL.gettext('此網頁錨點[[Special:Diff/%1|曾被刪除過]]。', record.disappear.revid) : ''
 				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 				} <!-- ${JSON.stringify(record)} -->` : ''}`;
 			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
