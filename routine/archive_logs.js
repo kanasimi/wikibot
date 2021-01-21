@@ -208,7 +208,7 @@ function for_log_page(page_data) {
 	/** 寫入記錄頁面的存檔 */
 	function write_archive() {
 		var archive_page = archive_title(log_title);
-		summary = CeL.wiki.title_link_of('WP:ARCHIVE',
+		summary = CeL.wiki.title_link_of('Project:ARCHIVE',
 				use_language === 'zh' ? '歸檔封存作業'
 						: use_language === 'ja' ? '記録保存' : 'Archiving')
 				+ ': [['
