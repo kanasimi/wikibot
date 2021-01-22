@@ -401,11 +401,12 @@ function for_item_list_passed(item_list, options) {
 
 	content.push('|}');
 	content = content.join('\n');
+	// console.log(content);
 
 	wiki.page('Wikipedia:最多語言版本的待撰條目/自動更新').edit(content, {
 		nocreate : 1,
 		summary : '自動更新' + MIN_COUNT + '種語言以上，中文維基百科欠缺的條目: 共'
-
+		//
 		+ item_counter + '條目。'
 	});
 }

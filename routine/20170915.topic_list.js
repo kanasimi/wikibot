@@ -466,9 +466,6 @@ function start_main_work() {
 	get_special_users.log_file_prefix = base_directory + 'special_users.';
 
 	// for debug: 僅處理此頁面
-	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
-	// main_talk_pages = [ 'Wikipedia:互助客栈/其他' ];
-	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 	if (false) {
 		main_talk_pages = [ 'Wikipedia:新条目推荐/候选', 'Wikipedia:典范条目评选/提名区',
 				'Wikipedia:特色列表评选/提名区', 'Wikipedia:優良條目評選/提名區' ];
@@ -482,7 +479,9 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:削除依頼/ログ/先週', 'Wikipedia:削除依頼/ログ/先々週' ];
 	// main_talk_pages = [ 'Wikipedia:机器人/申请' ];
 	// main_talk_pages = [ 'Wikipedia:已删除内容查询' ];
+	// main_talk_pages = [ 'Wikipedia:互助客栈/其他' ];
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 
 	// ----------------------------------------------------
 
@@ -972,7 +971,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		}
 		var date_too_long = if_too_long(date);
 		date = data_sort_attributes(section.dates[user_and_date_index]) + '| '
-		//
+		// TODO: linking date to [[Special:Diff/]]
 		+ (date_too_long ? '<small>' + date + '</small>' : date);
 
 		// 討論議題列表依狀態表現不同的背景顏色。
@@ -1474,6 +1473,9 @@ function generate_topic_list(page_data) {
 	}
 	parsed.each_section(function(section, section_index) {
 		// CeL.info('generate_topic_list: ' + section.section_title);
+		// console.log(section.users);
+		// console.log(section.dates);
+		// console.log(section);
 		if (section_index >= 12) {
 			// console.log(section);
 		}

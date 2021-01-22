@@ -195,8 +195,8 @@ function check_AfD_participations(AfD_page_data) {
 	const parsed = AfD_page_data.parse();
 
 	parsed.each('list', list_token => {
-		list_token.forEach(token => {
-			let recommendation = token.toString().match(/'''(.+?)'''/);
+		list_token.forEach(list_item_token => {
+			let recommendation = list_item_token.toString().match(/'''(.+?)'''/);
 			check_recommendation(recommendation, participations);
 		});
 	}, { level_filter: 1 });

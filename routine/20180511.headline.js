@@ -1473,7 +1473,7 @@ function parser_中國時報(html) {
 		}
 
 		headline_list.push(headline);
-		if (headline_list.length >= 4)
+		if (headline_list.length > 10)
 			break;
 	}
 	return headline_list;

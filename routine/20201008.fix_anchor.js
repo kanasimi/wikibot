@@ -1,5 +1,6 @@
 ﻿/*
 
+node 20201008.fix_anchor.js use_language=ja check_page=JR東日本209系電車
 node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)"
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 
@@ -79,7 +80,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
 	await wiki.register_redirects(['Section link', 'Broken anchors',
-		'Anchor', 'Anchors', 'Visible anchor', 'Citation', 'RFD'], {
+		'Anchor', 'Anchors', 'Visible anchor', 'Citation', 'RFD','tttta'], {
 		namespace: 'Template'
 	});
 }
@@ -279,8 +280,8 @@ async function for_each_row(row) {
 	diff_list.forEach(diff => {
 		//const [removed_text, added_text] = diff;
 		// all_converted: 避免遺漏。 e.g., [[w:en:Special:Diff/812844088]]
-		removed_section_titles.append(CeL.wiki.parse.anchor(diff[0], { [KEY_SESSION]: wiki.get_wiki_session() }));
-		added_section_titles.append(CeL.wiki.parse.anchor(diff[1], { [KEY_SESSION]: wiki.get_wiki_session() }));
+		removed_section_titles.append(CeL.wiki.parse.anchor(diff[0], wiki.append_session_to_options()));
+		added_section_titles.append(CeL.wiki.parse.anchor(diff[1], wiki.append_session_to_options()));
 	});
 
 	if (removed_section_titles.length > 3) {
@@ -409,7 +410,7 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	function set_recent_section_title(wikitext, revision) {
-		const anchor_list = CeL.wiki.parse.anchor(wikitext, { ...options, [KEY_SESSION]: wiki.get_wiki_session() });
+		const anchor_list = CeL.wiki.parse.anchor(wikitext, wiki.append_session_to_options(options));
 		mark_language_variants(anchor_list, section_title_history, revision);
 		anchor_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
@@ -503,8 +504,8 @@ async function tracking_section_title_history(page_data, options) {
 		if (false)
 			console.trace([diff, removed_text, added_text, revision]);
 
-		removed_text = CeL.wiki.parse.anchor(removed_text, { [KEY_SESSION]: wiki.get_wiki_session() });
-		added_text = CeL.wiki.parse.anchor(added_text, { [KEY_SESSION]: wiki.get_wiki_session() });
+		removed_text = CeL.wiki.parse.anchor(removed_text, wiki.append_session_to_options());
+		added_text = CeL.wiki.parse.anchor(added_text, wiki.append_session_to_options());
 
 		if (removed_text.length === 0 && added_text.length === 0)
 			return;

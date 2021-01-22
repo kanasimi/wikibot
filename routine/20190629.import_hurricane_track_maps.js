@@ -283,7 +283,11 @@ function upload_media(media_data) {
 	// TODO: 'South-West Indian Ocean'
 	: area === 'indian' ? 'North Indian Ocean'
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
-	: area === 'southern hemisphere' ? 'Southern Hemisphere' : null;
+	: area === 'southern hemisphere' ? 'Southern Hemisphere'
+	// West Australian, Southern Indian Ocean?
+	// : area === 'austeast' ? 'Indian Ocean'
+	//
+	: null;
 	if (!track_maps_category) {
 		CeL.error('Unknown area: ' + area);
 		console.log(media_data);

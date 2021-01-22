@@ -1050,6 +1050,8 @@ CeL.wiki.cache([ {
 	reget : true,
 	operator : function(list) {
 		this.list = list;
+		// only for debug
+		// this.list = [ 'Template:鍛冶屋原線' ];
 	}
 
 }, false && {

@@ -2,7 +2,7 @@
 
 /*
 
- 2015/10/2 20:19:48	see [[維基百科:錯誤檢查專題]], https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project=enwiki&view=high
+ 2015/10/2 20:19:48	see [[維基百科:錯誤檢查專題]], https://checkwiki.toolforge.org/checkwiki.cgi?project=enwiki&view=high
  2015/10/3 0:45:25	初版試營運
  2016/2/2 20:4:48 上路前修正
  完善
@@ -69,7 +69,7 @@ only_check = [ 1, 2, 10, 16, 26, 38, 65, 69, 80, 86, 93, 98, 99, 102, 104 ];
 // ---------------------------------------------------------------------//
 // main
 
-var checkwiki_api_URL = 'https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project='
+var checkwiki_api_URL = 'https://checkwiki.toolforge.org/checkwiki.cgi?project='
 		+ use_language + 'wiki&',
 //
 checkwiki_api_URL_id = checkwiki_api_URL + 'view=bots&offset=0&id=',
