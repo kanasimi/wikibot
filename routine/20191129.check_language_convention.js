@@ -257,7 +257,7 @@ async function for_each_conversion_group_page(page_data, index, conversion_group
 	// console.log(page_data);
 
 	const conversion_item_list = CeL.wiki.template_functions.parse_conversion_item(page_data);
-	conversion_item_list.forEach((item) => add_conversion(item, page_data));
+	conversion_item_list.forEach(item => add_conversion(item, page_data));
 	CeL.info((index + 1) + '/' + conversion_group_list.length
 		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + conversion_item_list.length + ' items.');
 }

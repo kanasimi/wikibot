@@ -1737,7 +1737,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 
 	//console.log([from, to]);
 	if (!from || !to) {
-		if (line.type !== 'table_style' && !(line.type === 'table_row' && (line.caption || line.is_head))) {
+		if (line.type !== 'table_attributes' && !line.type === 'caption' && !(line.type === 'table_row' && line.header_count)) {
 			CeL.error('parse_move_pairs_from_link: Can not parse:');
 			console.log(line);
 		}

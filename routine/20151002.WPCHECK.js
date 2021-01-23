@@ -1215,11 +1215,9 @@ function fix_98(content, page_data, messages, config) {
 	content = CeL.wiki.parser(content).parse()
 	//
 	.each('plain', function(token, index, parent) {
-		if (parent.table_type
-		//
-		? parent.table_type !== 'td' && parent.table_type !== 'th'
+		if (parent.type === "table_cell"
 		// 此 token 不為最後一個。
-		|| index < parent.length - 1
+		? index < parent.length - 1
 		//
 		: parent.type !== 'transclusion')
 			return;
@@ -1228,7 +1226,7 @@ function fix_98(content, page_data, messages, config) {
 		if (replaced !== undefined)
 			return replaced;
 
-		if ((parent.table_type === 'td' || parent.table_type === 'th')
+		if (parent.type === "table_cell"
 		// 確認整個 cell 有首尾對應。
 		&& (replaced = check_tag(token, parent)) !== undefined) {
 			return replaced;

@@ -57,8 +57,6 @@ CeL.run([
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-const KEY_SESSION = CeL.wiki.KEY_SESSION;
-
 // @see {{Broken anchors|links=}}
 const LINKS_PARAMETER = 'links';
 
@@ -80,7 +78,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
 	await wiki.register_redirects(['Section link', 'Broken anchors',
-		'Anchor', 'Anchors', 'Visible anchor', 'Citation', 'RFD','tttta'], {
+		'Anchor', 'Anchors', 'Visible anchor', 'Citation', 'RFD'], {
 		namespace: 'Template'
 	});
 }
