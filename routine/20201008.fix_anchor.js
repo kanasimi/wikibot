@@ -189,10 +189,12 @@ function filter_row(row) {
 	}
 
 	// 處理有存檔的頁面。
-	if (get_sections_moved_to(row, { check_has_subpage_archives_only: true }))
-		return true;
+	if (get_sections_moved_to(row, { check_has_subpage_archives_only: true })) {
+		//RFDのBotはTemplate:RFD noticeを操作するBotとTemplate:RFDを操作するBotが別体で、通常連続稼働させていますが数分間のタイムラグが生じます。「Wikipedia:リダイレクトの削除依頼/受付#RFD」は触れぬようお願いいたします。
+		return !page_data.title.startsWith('Wikipedia:リダイレクトの削除依頼/受付');
+	}
 
-	// 處理 articles。
+	// 僅處理 articles。
 	return wiki.is_namespace(row, 0);
 
 	// [[Wikipedia:優良條目評選/提名區]]
@@ -585,6 +587,7 @@ async function check_page(target_page_data, options) {
 	//console.log(Object.keys(target_page_redirects));
 
 	target_page_data = link_from[0];
+	//console.trace(wiki.is_namespace(target_page_data, 0));
 	if (target_page_data.convert_from)
 		target_page_redirects[target_page_data.convert_from] = true;
 	const section_title_history = await tracking_section_title_history(target_page_data, {
