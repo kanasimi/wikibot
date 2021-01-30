@@ -1040,7 +1040,7 @@ function for_each_page(page_data, messages) {
 // ----------------------------------------------------------------------------
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
-prepare_directory(base_directory);
+prepare_directory(base_directory, true);
 
 // CeL.set_debug(2);
 
