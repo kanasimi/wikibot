@@ -321,7 +321,7 @@ const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
 function reduce_section_title(section_title) {
-	return section_title.replace(/[\s_\-–()]/g, '').replace(/（/g, '(').replace(/）/g, ')').toLowerCase();
+	return section_title.replace(/[\s_\-–()#]/g, '').replace(/（/g, '(').replace(/）/g, ')').toLowerCase();
 }
 
 function get_section_title_data(section_title_history, section_title) {

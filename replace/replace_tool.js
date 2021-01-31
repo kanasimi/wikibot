@@ -109,12 +109,12 @@ async function get_all_sections(meta_configuration) {
 			section_data[process] = matched[1];
 		}
 
-		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\|(?:着手|準備中|作業中)) *[|}]/);
+		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\| *(?:着手|準備中|作業中)) *[|}]/);
 		if (matched) {
 			set_process('doing');
 		}
 
-		matched = section_wikitext.match(/{{ *(Done|完了|BOTREQ *\|(?:済|完了)|利用者の投稿記録リンク) *[|}]/);
+		matched = section_wikitext.match(/{{ *(Done|完了|BOTREQ *\| *(?:済|完了)|利用者の投稿記録リンク) *[|}]/);
 		if (matched) {
 			set_process('done');
 		}
@@ -236,13 +236,26 @@ function get_move_configuration_from_command_line(meta_configuration) {
 
 			if (CeL.env.arg_hash.task_configuration) {
 				try {
-					meta_configuration.task_configuration_from_args = JSON.parse(CeL.env.arg_hash.task_configuration);
+					const task_configuration_from_args = JSON.parse(CeL.env.arg_hash.task_configuration);
+					for (const move_from_link in task_configuration_from_args) {
+						switch (task_configuration_from_args[move_from_link]) {
+							case 'DELETE_PAGE':
+								task_configuration_from_args[move_from_link] = DELETE_PAGE;
+								break;
+							case 'REDIRECT_TARGET':
+								task_configuration_from_args[move_from_link] = REDIRECT_TARGET;
+								break;
+							default:
+						}
+
+					}
+					//console.log(CeL.env.arg_hash.task_configuration);
+					//console.trace(task_configuration_from_args);
+					meta_configuration.task_configuration_from_args = task_configuration_from_args;
 				} catch (e) {
 					CeL.error(`Invalid task_configuration (should be JSON): ${CeL.env.arg_hash.task_configuration}`);
 				}
 				//assert: !meta_configuration.task_configuration_from_args || CeL.is_Object(meta_configuration.task_configuration_from_args)
-				//console.log(CeL.env.arg_hash.task_configuration);
-				//console.trace(meta_configuration.task_configuration_from_args);
 			}
 		}
 
@@ -823,14 +836,15 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			};
 			try {
 				const page_data = await wiki.page(move_from_link);
-				if (!page_data.missing) {
+				if (!page_data.missing && CeL.wiki.parse.redirect(page_data) !== task_configuration.move_to_link) {
 					// カテゴリの改名も依頼に含まれている
 					await wiki.move_to(task_configuration.move_to_link, task_configuration.do_move_page);
 				}
 			} catch (e) {
 				if (e.code !== 'missingtitle' && e.code !== 'articleexists') {
 					if (e.code) {
-						CeL.error(`[${e.code}] ${e.info}`);
+						CeL.error(`Failed to move ${CeL.wiki.title_link_of(move_from_link)} → ${CeL.wiki.title_link_of(task_configuration.move_to_link)
+							}: [${e.code}] ${e.info}`);
 					} else {
 						console.error(e);
 					}

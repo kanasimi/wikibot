@@ -852,7 +852,8 @@ function fix_26(content, page_data, messages, config) {
 		return add_quote(inner) + " " + tail;
 	})
 	// <b>...<b>
-	.replace(/<b>([^<>\n]*)<b>(.*\n)/gi, function(all, inner, tail) {
+	// /.*[\r\n]+/: /./.test('\r') === false
+	.replace(/<b>([^<>\n]*)<b>(.*[\r\n]+)/gi, function(all, inner, tail) {
 		if (/<\/b/i.test(tail))
 			return all;
 		return add_quote(inner) + tail;

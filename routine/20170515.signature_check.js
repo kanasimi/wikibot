@@ -8,12 +8,12 @@ jstop cron-20170515.signature_check.wikisource
 jstop cron-20170515.signature_check.wikiversity
 jstop cron-20170515.signature_check.moegirl
 
-/usr/bin/jstart -N cron-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_language=zh
-/usr/bin/jstart -N cron-20170515.signature_check.zh-classical -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_language=zh-classical
-/usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikinews
-/usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikisource
-/usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js use_project=wikiversity
-/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/20170515.signature_check.js API_URL=https://zh.moegirl.org.cn/api.php
+/usr/bin/jstart -N cron-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_language=zh
+/usr/bin/jstart -N cron-20170515.signature_check.zh-classical -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_language=zh-classical
+/usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikinews
+/usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikisource
+/usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikiversity
+/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js API_URL=https://zh.moegirl.org.cn/api.php
 
 
  2017/5/15 21:30:19	初版試營運。
