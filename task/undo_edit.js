@@ -19,21 +19,29 @@ globalThis.no_task_date_warning = true;
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
-var wiki = Wiki(true);
+var wiki = Wiki(true, 'ja');
 
 // ---------------------------------------------------------------------//
 
 user_name = CeL.wiki.normalize_title(user_name);
 
-summary = 'revert error made by bot';
+var edit_summary = 'revert error made by bot';
 // 向前追溯筆數。
-var length = 'max';
+var trace_forward_length = 'max';
 
-// fix these edits.
-function filter_summary(summary) {
+// fix only these edits.
+function filter_summary(summary, page_data) {
 	// console.log(summary);
-	// return summary === 'Robot';
-	return summary.includes('繡蔣を含む記事の改名に伴うリンク修正依頼');
+	var fix_this_edit = summary.includes('Template:Interwikicatのリンク元解消')
+			&& summary.includes('Bot作業依頼')
+			// [[User:cewbot/log/20190913]]
+			&& !page_data.title.includes(20190913);
+	// fix_this_edit = summary === 'Robot';
+	if (false && fix_this_edit) {
+		CeL.info(filter_summary.name + ': ' + CeL.wiki.title_link_of(page_data)
+				+ ': ' + summary);
+	}
+	return fix_this_edit;
 }
 
 // ---------------------------------------------------------------------//
@@ -43,12 +51,13 @@ wiki.usercontribs(user_name, function(list) {
 
 	var undo_page_hash = Object.create(null);
 
+	// old → new
 	list.reverse();
 	// console.log(list);
 	list.forEach(function filter_contribs(page_data) {
-		if (Date.now() - Date.parse(page_data.timestamp) >
+		if (false && Date.now() - Date.parse(page_data.timestamp)
 		// filter by date
-		1 * 24 * 60 * 60 * 1000) {
+		> CeL.date.to_millisecond('1D')) {
 			// too old
 			return;
 		}
@@ -60,14 +69,14 @@ wiki.usercontribs(user_name, function(list) {
 		}
 
 		if (page_data.comment) {
-			if (page_data.comment.includes(summary)) {
+			if (page_data.comment.includes(edit_summary)) {
 				// Already fixed.
 				delete undo_page_hash[title];
 				return;
 			}
 
 			// filter by summary
-			if (!filter_summary(page_data.comment)) {
+			if (!filter_summary(page_data.comment, page_data)) {
 				return;
 			}
 		}
@@ -84,7 +93,7 @@ wiki.usercontribs(user_name, function(list) {
 	list.run_serial(for_each_page);
 
 }, {
-	limit : length
+	limit : trace_forward_length
 });
 
 var check_diff = false;
@@ -111,7 +120,7 @@ function for_each_page(run_next, title, index, list) {
 		var revision = page_data && page_data.revisions
 				&& page_data.revisions[0];
 
-		if (revision.comment && revision.comment.includes(summary)) {
+		if (revision.comment && revision.comment.includes(edit_summary)) {
 			// Already fixed.
 			run_next();
 			return;
@@ -131,8 +140,9 @@ function for_each_page(run_next, title, index, list) {
 		}
 
 		if (check_diff && page_data.revisions[1]) {
-			var diff_list = CeL.LCS(CeL.wiki.revision_content(page_data.revisions[1]),
-					CeL.wiki.revision_content(revision), 'diff');
+			var diff_list = CeL.LCS(CeL.wiki
+					.revision_content(page_data.revisions[1]), CeL.wiki
+					.revision_content(revision), 'diff');
 			if (!diff_list.some(filter_diff)) {
 				run_next();
 				return;
@@ -154,7 +164,7 @@ function for_each_page(run_next, title, index, list) {
 			undo : 1,
 			bot : 1,
 			minor : 1,
-			summary : summary
+			summary : edit_summary
 		}).run(run_next);
 	}, {
 		rvlimit : check_diff ? 2 : 1,

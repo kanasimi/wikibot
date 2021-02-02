@@ -945,6 +945,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 // リンク 参照読み込み 転送ページ
 const default_list_types = 'backlinks|embeddedin|redirects|categorymembers|fileusage'.split('|');
 
+// |プロジェクト
 /** {String}default namespace to search and replace */
 const default_namespace = 'main|file|module|template|category|help|portal';
 // 'talk|template_talk|category_talk'

@@ -1348,6 +1348,8 @@ function check_BRFA_status(section) {
 		}) {
 			status = 'style="background-color: #fcc;" | ' + token;
 		} else if (token.name in {
+			終了 : true,
+
 			'On hold' : true,
 			// 以下是指向本頁面的重定向頁：
 			OnHold : true,
