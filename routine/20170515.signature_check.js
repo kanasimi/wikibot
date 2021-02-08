@@ -345,6 +345,7 @@ function get_parsed_time(row) {
 var latest_revid = 0;
 function for_each_row(row) {
 	// console.trace(row.revid + ' ￩ ' + latest_revid);
+	// console.log([ row.timestamp, get_parsed_time(row) ]);
 	CeL.debug('revid = ' + row.revid, 1, 'for_each_row');
 	if (!(row.revid > latest_revid)) {
 		throw new Error('for_each_row: revid error: ' + row.revid + ' ￩ '

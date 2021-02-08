@@ -43,6 +43,8 @@ https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 
 : {{コメント}} {{tl|リンク修正依頼/改名}}を使ってみた。 --~~~~
 
+read {{cbignore}}?
+
  */
 
 'use strict';

@@ -40,6 +40,8 @@ fix [[Special:PermanentLink]]
 
 檢核頁面分割、剪貼移動的情況。
 
+read {{cbignore}}?
+
  */
 
 'use strict';
