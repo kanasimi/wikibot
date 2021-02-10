@@ -16,6 +16,8 @@ jstop cron-20170515.signature_check.moegirl
 /usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js API_URL=https://zh.moegirl.org.cn/api.php
 
 
+node 20170515.signature_check.js use_language=simple
+
  2017/5/15 21:30:19	初版試營運。
  2017/8/18 23:50:52 完成。正式運用。
 
@@ -65,6 +67,8 @@ require('../wiki loader.js');
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
+
+gettext = CeL.gettext,
 
 // for 萌娘百科 zh.moegirl.org.cn
 edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
@@ -547,7 +551,7 @@ function for_each_row(row) {
 					return;
 				}
 				check_log.push([
-						'這一段編輯只添加、修改了模板、章節標題、格式排版或者沒有具體意義的文字',
+						gettext('這一段編輯只添加、修改了模板、章節標題、格式排版或者沒有具體意義的文字'),
 						row.diff.to.slice(to_diff_start_index,
 								to_diff_end_index + 1).join('') ]);
 				return;
@@ -722,13 +726,13 @@ function for_each_row(row) {
 						section_wikitext.trim())) {
 			// 可能需要人工手動檢查。可能是 diff 操作仍有可改善之處。寧可跳過漏報，不可錯殺。
 			// e.g., [[Special:Diff/45311637]]
-			check_log.push([ '此筆編輯之前就已經有這一段文字', section_wikitext ]);
+			check_log.push([ gettext('此筆編輯之前就已經有這一段文字'), section_wikitext ]);
 			return;
 		}
 
 		if (PATTERN_symbol_only.test(section_wikitext)) {
 			// @see [[Special:Diff/45254729]]
-			check_log.push([ '此筆編輯僅僅添加了符號', section_wikitext ]);
+			check_log.push([ gettext('此筆編輯僅僅添加了符號'), section_wikitext ]);
 			return;
 		}
 
@@ -750,9 +754,11 @@ function for_each_row(row) {
 						+ '></code>，但是因為有發現簽名，因此不跳過。', 2);
 			} else {
 				// 但是既然加了，還是得提醒一下。
-				check_log.push([
-						'這段修改中有[[WP:TRANS|嵌入包含]]宣告<code>&lt;' + matched[1]
-								+ '></code>，因此跳過不處理', section_wikitext ]);
+				check_log
+						.push([
+								gettext(
+										'這段修改中有[[WP:TRANS|嵌入包含]]宣告<code>&lt;%1&gt;</code>，因此跳過不處理',
+										matched[1]), section_wikitext ]);
 				return;
 			}
 		}
@@ -813,15 +819,22 @@ function for_each_row(row) {
 			});
 			// console.log([ from_user_hash, user_list ]);
 			if (user_list.length > 0) {
-				check_log.push([ row.user
+				'%1'
 				// [[mw:Extension:Echo#Usage]] e.g.,
 				// "{{Ping|Name}}注意[[User:Name]]的此一編輯 --~~~~"
 				// {{Ping}}模板通知必須搭配簽名（~~~~）
-				+ ' 可能編輯了 ' + user_list.join(', ')
+				+ ' 可能編輯了 %2'
 				// e.g., 您創建的條目~~可能侵犯版權
-				+ ' 署名的文字（也可能是用戶' + row.user
+				+ ' 署名的文字（也可能是用戶 %1'
 				//
-				+ '代簽名、幫忙修正錯誤格式、特意提及、搬移條目討論，或是還原/撤銷編輯）', section_wikitext ]);
+				+ ' 代簽名、幫忙修正錯誤格式、特意提及、搬移條目討論，或是還原/撤銷編輯）';
+
+				check_log
+						.push([
+								gettext(
+										'%1 可能編輯了 %2 署名的文字（也可能是用戶 %1代簽名、幫忙修正錯誤格式、特意提及、搬移條目討論，或是還原/撤銷編輯）',
+										row.user, user_list.join(', ')),
+								section_wikitext ]);
 			} else {
 				CeL.debug('在舊版的文字中並沒有發現簽名。或許是因為整段搬移貼上？', 2);
 			}
@@ -844,10 +857,9 @@ function for_each_row(row) {
 			// 但是若僅僅在文字中提及時，可能會被漏掉，因此加個警告做紀錄。
 			check_log
 					.push([
-							'用戶 '
-									+ row.user
-									+ ' 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期（請注意，只寫日期也會被跳過不補簽名），但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
-							section_wikitext ]);
+							gettext(
+									'用戶 %1 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期（請注意，只寫日期也會被跳過不補簽名），但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
+									row.user), section_wikitext ]);
 			is_no_link_user = true;
 			added_signs_or_notice++;
 			return;
@@ -864,9 +876,11 @@ function for_each_row(row) {
 		//
 		? '編輯者或許已經加上日期與簽名，但是並不明確。仍然' : '')
 		// 會有編輯動作時，特別加強色彩。可以只看著色的部分，這些才是真正會補簽名的。
-		+ '<b style="color:orange">需要在最後補上' + (is_IP_user ? 'IP用戶' : '用戶')
+		+ '<b style="color:orange">' + gettext(
+		//
+		'需要在最後補上%1 %2 的簽名', gettext(is_IP_user ? 'IP用戶' : '用戶'),
 		// <b>中不容許有另一個<b>，只能改成<span>。
-		+ ' <span style="color:blue">' + row.user + '</span> 的簽名</b>',
+		'<span style="color:blue">' + row.user + '</span>') + '</b>',
 		// 一整段的文字。
 		row.diff.to.slice(to_diff_start_index,
 		//
@@ -906,7 +920,8 @@ function for_each_row(row) {
 				return log;
 			}
 			// 維基語法元素與包含換行的字串長
-			log[0] += ' (本段修改共 ' + log[1].length + ' 字元):\n<pre><nowiki>';
+			log[0] += ' ' + gettext('(本段修改共 %1 字元)', log[1].length)
+					+ ':\n<pre><nowiki>';
 			// 不需要顯示太多換行。
 			log[1] = log[1].trim();
 			var more = '';
@@ -923,15 +938,17 @@ function for_each_row(row) {
 		// show diff link
 		? '; [[Special:Diff/' + row.revid + '|' + row.title + ']]'
 		// 新頁面
-		: '; [[Special:Permalink/' + row.revid + '|' + row.title + ']] (新頁面)'
+		: '; [[Special:Permalink/' + row.revid + '|' + row.title + ']] '
+				+ gettext('(新頁面)')
 		//
-		) + ': '
-		// add [[Help:編輯摘要]]。
-		+ (row.comment ? '<code><nowiki>' + row.comment
-		//
-		+ '</nowiki></code> ' : '')
-		// add timestamp
-		+ '--' + row.user + ' ' + get_parsed_time(row)
+		)
+				+ ': '
+				// add [[Help:編輯摘要]]。
+				+ (row.comment ? '<code><nowiki>' + row.comment
+				//
+				+ '</nowiki></code> ' : '')
+				// add timestamp
+				+ '--' + row.user + ' ' + get_parsed_time(row)
 		//
 		);
 
@@ -945,7 +962,7 @@ function for_each_row(row) {
 				nocreate : 1,
 				bot : 1,
 				tags : edit_tags,
-				summary : 'bot: Signature check report of '
+				summary : 'Signature check report of '
 				// 在編輯摘要中加上使用者連結，似乎還不至於驚擾到使用者。
 				+ '[[User:' + row.user + "]]'s edit in "
 				//
@@ -977,18 +994,21 @@ function for_each_row(row) {
 		CeL.debug('用戶討論頁提示：如果留言者簽名沒有連結 ' + notification_limit_count
 				+ ' 次以上，通知使用者記得要改變簽名。', 1);
 		var pages_to_notify = get_pages_to_notify(row, no_link_user_hash);
+		var message = gettext('{{%1|%2}}', gettext('subst:Uw-signlink'),
+				gettext('2=簽名沒有連結的頁面例如 %1。謝謝您參與討論。 --~~~~', pages_to_notify
+						.join(', ')));
 		wiki.page('User talk:' + row.user, {
 			redirects : 1
-		}).edit('{{subst:Uw-signlink||簽名沒有連結的頁面例如 '
-		//
-		+ pages_to_notify.join(', ') + '。謝謝您參與討論。 --~~~~}}', {
+		}).edit(message, {
 			// notification_name : 'SIGN',
 			section : 'new',
-			sectiontitle : '您好，可能需要麻煩改變一下您的留言簽名格式',
+			sectiontitle : gettext('您好，可能需要麻煩改變一下您的留言簽名格式'),
 			tags : edit_tags,
-			summary : 'bot: [[' + log_to + '|提醒簽名記得加上連結]]，例如在文中所列的 '
+			summary : gettext('[[%1|提醒簽名時要加上連結]]，例如在文中所列的 %2 個頁面。',
 			//
-			+ pages_to_notify.length + ' 個頁面。若是您更新了過去的留言，也請您在最後加上個簽名的連結'
+			log_to, pages_to_notify.length)
+			//
+			+ gettext('若是您更新了過去的留言，也請您在最後加上個簽名的連結。')
 		});
 	}
 
@@ -1009,30 +1029,30 @@ function for_each_row(row) {
 		// 補簽名的編輯加上bot flag，這樣可以不顯示討論頁面中次要編輯的新訊息提示 (nominornewtalk)。
 		bot : 1,
 		// TODO: add section_title
-		summary : 'bot: 為[[Special:Diff/' + row.revid + '|' + row.user
-		// Signing comment by
-		+ '的編輯]][[' + log_to + '|補簽名]]。本工具僅為紀錄用。'
+		summary : gettext('為[[Special:Diff/%1|%2的編輯]][[%3|補簽名]]。',
 		//
-		+ '若您只是暫存，請在編輯註解加上"暫存"字樣即可避免補簽名。若您希望自行手動補簽名，請逕行修改即可。'
+		row.revid, row.user, log_to) + gettext('本工具僅為紀錄用。')
+		//
+		+ gettext('若您只是暫存，請在編輯註解加上"暫存"字樣即可避免補簽名。若您希望自行手動補簽名，請逕行修改即可。')
 	});
 
 	if (add_count(row, unsigned_user_hash) >= notification_limit_count) {
 		CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + notification_limit_count
 				+ ' 次，通知使用者記得簽名。', 1);
 		var pages_to_notify = get_pages_to_notify(row, unsigned_user_hash);
+		var message = gettext('{{%1|%2}}', gettext('subst:Uw-tilde'), gettext(
+				'2=可能需要簽名的頁面例如 %1。謝謝您的參與。 --~~~~', pages_to_notify.join(', ')));
 		wiki.page('User talk:' + row.user, {
 			redirects : 1
-		}).edit('{{subst:Uw-tilde||可能需要簽名的頁面例如 '
-		// [[MediaWiki:Talkpagetext/zh]]
-		+ pages_to_notify.join(', ') + '。謝謝您的參與。 --~~~~}}', {
+		}).edit(message, {
 			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
 			// notification_name : 'SIGN',
 			section : 'new',
-			sectiontitle : '請記得在留言時署名',
+			sectiontitle : gettext('請記得在留言時署名'),
 			tags : edit_tags,
-			summary : 'bot: [[' + log_to + '|提醒記得簽名]]，例如在文中所列的 '
+			summary : gettext('[[%1|提醒記得簽名]]，例如在文中所列的 %2 個頁面。',
 			//
-			+ pages_to_notify.length + ' 個頁面'
+			log_to, pages_to_notify.length)
 		});
 	}
 

@@ -211,7 +211,7 @@ _global.login_options = {
 _global.set_language = function set_language(language) {
 	use_language = language;
 	login_options.API_URL = language;
-	CeL.gettext.use_domain(language, true);
+	CeL.gettext.use_domain(language === 'simple' ? 'en' : language, true);
 	// 因為 CeL.wiki.set_language() 會用到 gettext()，
 	// 因此得置於 CeL.gettext.use_domain() 後。
 	CeL.wiki.set_language(language);
@@ -385,7 +385,7 @@ function check_routine_task(session) {
 
 function routine_task_done(interval) {
 	CeL.info('routine_task_done: ' + (task_name || script_name) + ': '
-	+ (new Date).format() + '	done.');
+			+ (new Date).format() + '	done.');
 	var all_task_log = get_task_log();
 	if (!all_task_log)
 		return;
