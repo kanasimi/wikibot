@@ -443,6 +443,9 @@ prepare_directory(base_directory);
 // 用戶相關功能，避免延遲回應以使用戶等待。
 delete CeL.wiki.query.default_maxlag;
 
+// 設定 `session.max_badtoken_count = 0` ，那麼只要登入一出問題就直接跳出。
+wiki.max_badtoken_count = 0;
+
 wiki.run(start_main_work);
 
 function start_main_work() {
