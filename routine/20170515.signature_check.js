@@ -146,6 +146,9 @@ PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来
 // "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
 // @see [[Wikipedia:Twinkle]] ([[WP:TW]])
 PATTERN_revert_or_bot_summary = /還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
+//
+ignore_tags = [ 'mw-rollback', 'mw-reverted', 'mw-undo', 'mw-manual-revert',
+		'mw-blank', 'mw-blank', 'mw-new-redirect' ],
 // 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
 // 請機器人注意: 本頁面不採用補簽名
 PATTERN_ignore = /本頁面不.{0,3}補簽名/,
@@ -184,44 +187,58 @@ function show_page(row) {
 
 // 從頁面資訊做初步的篩選。
 function filter_row(row) {
+	// console.log(row);
 	if (CeL.is_debug(2)) {
 		show_page(row);
 	}
 
 	// passed === true: 要繼續處理這個頁面。
-	var passed = test_the_page_only
-	// for test
-	? row.title === test_the_page_only
+	var passed;
+
+	if (test_the_page_only) {
+		// for test
+		passed = row.title === test_the_page_only;
+
+	} else if (ignore_tags.some(function(tag) {
+		return row.tags.includes(tag);
+	})) {
+		// Ignore these tags
+
+	} else if (row.user === user_name
 	// 跳過機器人的編輯。為了某些編輯不加 bot flag 的 bot。
-	: !CeL.wiki.PATTERN_BOT_NAME.test(row.user) && row.user !== user_name
-	//
-	&& row.user !== 'MediaWiki message delivery'
-	// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
-	// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
-	&& !/\/Editnotice(\/|$)/i.test(row.title)
-	// 迴避 [[Wikipedia:Preload]]
-	&& !/\/Preload$/i.test(row.title)
-	// 篩選頁面標題。跳過封存/存檔頁面。
-	&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
-	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
-	&& !/存檔|存档/i.test(row.title)
-	// 參考過去幾年的慣例，只要投票者有列明身分、對話頁和貢獻，不用四個波浪號並沒有問題。
-	// e.g., [[Wikipedia_talk:動員令/第十六次動員令/投票]]
-	&& !/^Wikipedia(?:[ _]talk)?:動員令\/.+?\/投票$/i.test(row.title)
-	// 只標示日期的存檔
-	&& !PATTERN_date_archive.test(row.title)
-	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
-	// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
-
-	// 必須是白名單頁面，
-	&& (page_allowlist.includes(row.title)
-	// 或者討論頁面，
-	|| CeL.wiki.is_talk_namespace(row.ns)
-	// 或者只有維基百科的有額外的頁面、需要測試[[Wikipedia:]]。
-	|| row.title.startsWith('Wikipedia:'))
-
+	|| CeL.wiki.PATTERN_BOT_NAME.test(row.user)
 	// 篩選編輯摘要。
-	&& !PATTERN_revert_or_bot_summary.test(row.comment);
+	|| PATTERN_revert_or_bot_summary.test(row.comment)) {
+		;
+
+	} else {
+		passed = row.user !== 'MediaWiki message delivery'
+		// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
+		// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
+		&& !/\/Editnotice(\/|$)/i.test(row.title)
+		// 迴避 [[Wikipedia:Preload]]
+		&& !/\/Preload$/i.test(row.title)
+		// 篩選頁面標題。跳過封存/存檔頁面。
+		&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
+		// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
+		&& !/存檔|存档/i.test(row.title)
+		// 參考過去幾年的慣例，只要投票者有列明身分、對話頁和貢獻，不用四個波浪號並沒有問題。
+		// e.g., [[Wikipedia_talk:動員令/第十六次動員令/投票]]
+		&& !/^Wikipedia(?:[ _]talk)?:動員令\/.+?\/投票$/i.test(row.title)
+		// 只標示日期的存檔
+		&& !PATTERN_date_archive.test(row.title)
+		// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
+		// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
+
+		// 必須是白名單頁面，
+		&& (page_allowlist.includes(row.title)
+		// 或者討論頁面，
+		|| CeL.wiki.is_talk_namespace(row.ns)
+		// 或者只有維基百科的有額外的頁面、需要測試[[Wikipedia:]]。
+		|| row.title.startsWith('Wikipedia:'))
+
+		;
+	}
 
 	if (!passed) {
 		CeL.debug('從頁面資訊做初步的篩選: 直接跳過這個編輯', 2, 'filter_row');
@@ -312,7 +329,7 @@ if (test_the_page_only) {
 			// to request the patrolled flag.
 			rcshow : '!bot',
 			// 擷取資料的時候要加上filter_row()需要的資料，例如編輯摘要。
-			rcprop : 'title|ids|sizes|flags|user|comment'
+			rcprop : 'title|ids|sizes|flags|user|comment|tags'
 		},
 		interval : test_mode || time_back_to ? 500 : 60 * 1000
 	});
