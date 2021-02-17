@@ -779,7 +779,7 @@ async function check_page(target_page_data, options) {
 				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 				? `${record.disappear ? ' '
 					// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
-					+ CeL.gettext('此網頁錨點[[Special:Diff/%1|曾被刪除過]]。', record.disappear.revid) : ''
+					+ CeL.gettext('此網頁錨點（%2）之前[[Special:Diff/%1|曾被其他用戶刪除過]]。', record.disappear.revid, anchor_token[1]) : ''
 				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 				} <!-- ${JSON.stringify(record)} -->` : ''}`;
 			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
