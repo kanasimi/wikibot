@@ -163,6 +163,7 @@ message_set = {
 		// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
 		// TODO: Q6099744
 		different_local_title : '日本語版項目名が違う記事です。',
+		redirect_back_to_page_itself : '[[WP:SELF|自己言及]]リンク。',
 		not_exist : '存在しません',
 		from_parameter : '引数から',
 		translated_from_foreign_title : '他言語版項目リンク先から',
@@ -253,6 +254,7 @@ message_set = {
 		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到正確的Wikidata項目。',
 		// 由於一些重定向不是常用的名稱，因此由機器人直接重定向可能不太妥當。這時仍需人工判別。
 		different_local_title : '所對應的中文條目標題與模板參數所列出的不相符。',
+		redirect_back_to_page_itself : '所對應的中文條目重定向到了頁面本身。[[WP:CIRCULAR]]或可擴充重定向？',
 		local_title_too_new : '中文條目過新，將過幾天再測試。',
 		not_exist : '不存在',
 		from_parameter : '從模板參數',
@@ -289,6 +291,7 @@ message_set = {
 		missing_converted_local : 'Missing converted local page, or the foreign / local page is not link to wikidata.',
 		// gets form langlinks
 		different_local_title : 'The local title is different from title gets form wikidata.',
+		redirect_back_to_page_itself : 'The local link target links back to the page itself. [[MOS:CIRCULAR]]?',
 		local_title_too_new : 'The local page is too new. Will test later.',
 		not_exist : 'Not exist',
 		from_parameter : 'From the parameter of template',
@@ -714,7 +717,7 @@ function for_each_page(page_data, messages) {
 			link += ']]';
 
 			if (!changed.includes(link)) {
-				// 記錄確認已經有改變的文字連結。
+				console.trace('記錄確認已經有改變的文字連結。');
 				changed.push(link);
 				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
 						+ ': ' + token.toString() + ' → ' + link);
@@ -729,19 +732,38 @@ function for_each_page(page_data, messages) {
 		// 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
 		// TODO: 並且檢查沒掛上刪除模板。
 		// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
-		function check_local_creation(converted_local_title) {
+		function check_local_creation_date(converted_local_title) {
+			if (false) {
+				console.trace([ converted_local_title, title, foreign_language,
+						foreign_title ]);
+			}
 			wiki.page(converted_local_title, function(page_data) {
-				if (Date.now() - page_data.creation_Date > 7 * 24 * 60 * 60
-						* 1000) {
+				// console.trace(page_data);
+				// console.trace(page_data.response.query.redirects);
+				// console.trace(CeL.wiki.content_of(page_data));
+				if (page_data.title === title) {
+					// @see [[w:en:MOS:CIRCULAR]]
+					CeL.info('Skip '
+							+ CeL.wiki.title_link_of(converted_local_title)
+							+ ': ' + message_set.redirect_back_to_page_itself);
+					check_page(message_set.redirect_back_to_page_itself);
+
+				} else if (Date.now() - page_data.creation_Date > 7 * 24 * 60
+						* 60 * 1000) {
 					modify_link();
+
 				} else {
 					CeL.info('Skip '
 							+ CeL.wiki.title_link_of(converted_local_title)
-							//
 							+ ': ' + message_set.local_title_too_new);
 					check_page(message_set.local_title_too_new, true);
 				}
 			}, {
+				// 順便取得頁面內容。
+				// prop : 'revisions',
+				prop : '',
+				redirects : 1,
+				// save_response : true,
 				get_creation_Date : true
 			});
 		}
@@ -758,9 +780,11 @@ function for_each_page(page_data, messages) {
 				// converted_local_title。
 				function(redirect_data, page_data) {
 					if (false) {
+						console.trace(converted_local_title);
 						console.log('redirect_data of ' + local_title + ': '
 								+ JSON.stringify(redirect_data));
 					}
+
 					if (!converted_local_title) {
 						// 從外語言條目連結無法取得本地頁面的情況。
 						if (redirect_data) {
@@ -793,7 +817,7 @@ function for_each_page(page_data, messages) {
 						// 盡可能讓表現/顯示出的文字與原先相同。
 						// e.g., [[Special:Diff/59964828]]
 						// TODO: [[Special:Diff/59964827]]
-						check_local_creation(converted_local_title);
+						check_local_creation_date(converted_local_title);
 						return;
 
 						// ↓ deprecated
@@ -836,7 +860,7 @@ function for_each_page(page_data, messages) {
 
 			// TODO: {{enlink}}
 
-			check_local_creation(converted_local_title);
+			check_local_creation_date(converted_local_title);
 		}
 
 		function for_foreign_page(foreign_page_data) {
@@ -893,6 +917,10 @@ function for_each_page(page_data, messages) {
 				foreign_title = foreign_page_data.title;
 			}
 
+			if (false) {
+				console.trace([ foreign_language, foreign_title,
+						foreign_page_data ]);
+			}
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
 			foreign_title ], for_local_page, use_language, {
@@ -1007,7 +1035,7 @@ function for_each_page(page_data, messages) {
 					}
 
 					// e.g., {{仮リンク|存在する記事}}, {{仮リンク|存在する記事|en}}
-					check_local_creation(local_title);
+					check_local_creation_date(local_title);
 				});
 
 			} else {
@@ -1050,7 +1078,7 @@ CeL.wiki.cache([ {
 	reget : true,
 	operator : function(list) {
 		this.list = list;
-		// only for debug
+		// only for debug {{ill}}s on specified page
 		// this.list = [ 'Template:鍛冶屋原線' ];
 	}
 
