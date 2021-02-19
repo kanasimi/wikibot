@@ -139,7 +139,7 @@ async function main_process() {
 	});
 
 	// for debug specified article
-	if (1 || false) {
+	if (false) {
 		check_articles_embeddedin_template(['東南季風']);
 		return;
 	}
