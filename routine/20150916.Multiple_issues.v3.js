@@ -1,7 +1,9 @@
-﻿// node 20150916.Multiple_issues.v3.js use_language=en
-// 合併/拆分{{多個問題}}模板
+﻿/*
+合併/拆分{{多個問題}}模板
 
-/*
+node 20150916.Multiple_issues.v3.js use_language=zh
+node 20150916.Multiple_issues.v3.js use_language=en
+node 20150916.Multiple_issues.v3.js use_language=simple
 
 2020/5/13 6:44:35	初版試營運 因為 enwiki 量大，不得不採用 inplace 處理法。
 
@@ -141,10 +143,16 @@ async function main_process() {
 	}
 
 	/** 維護模板本名 without "Template:" prefix */
-	let maintenance_template_list = Object.values(configuration.maintenance_template_hash).sort().unique();
+	const maintenance_template_list = Object.values(configuration.maintenance_template_hash).sort().unique();
+	const maintenance_template_alias_list = Object.keys(configuration.maintenance_template_hash);
+	//console.log(configuration.maintenance_template_hash);
 	if (maintenance_template_list.join() !== configuration[gettext('維護模板名稱列表')].join()) {
-		CeL.log('總共有 ' + maintenance_template_list.length + ' 個維護模板名.');
-		console.log(maintenance_template_list.map(t => '# ' + t).join('\n'));
+		CeL.log(`總共有 ${maintenance_template_list.length} 個維護模板名，${maintenance_template_alias_list.length} 個 alias。`);
+		console.log(maintenance_template_list.map(template_name => {
+			const template_alias = maintenance_template_alias_list.filter(t => t !== template_name && configuration.maintenance_template_hash[t] === template_name);
+			//console.log([template_name, template_alias]);
+			return `# ${template_name}${template_alias.length > 0 ? ` (${template_alias.join(', ')})` : ''}`;
+		}).join('\n'));
 	}
 
 	// free
@@ -152,7 +160,6 @@ async function main_process() {
 	delete configuration[gettext('維護模板名稱列表')];
 	delete configuration[gettext('須排除之維護模板名稱列表')];
 	// console.trace(configuration);
-	// console.trace(configuration.maintenance_template_hash);
 
 	// ----------------------------------------------------
 
@@ -163,8 +170,10 @@ async function main_process() {
 	configuration.pageid_processed = Object.create(null);
 
 	// for debug specified article
-	//check_articles_embeddedin_template(['TVS Supercharger', 'John Popadiuk']);
-	// return;
+	if (1 || false) {
+		check_articles_embeddedin_template(['東南季風']);
+		return;
+	}
 
 	// @see [[Category:含有多个问题的条目]]
 	// 處理含有 {{Multiple issues}} 的條目
@@ -189,6 +198,11 @@ async function main_process() {
 
 // ----------------------------------------------------------------------------
 
+function is_maintenance_template(template_name) {
+	return template_name in wiki.latest_task_configuration.maintenance_template_hash;
+}
+
+// TODO: using wiki.is_template()
 async function get_maintenance_template_list() {
 	const configuration = wiki.latest_task_configuration;
 
@@ -279,7 +293,7 @@ async function check_articles_embeddedin_template(template_name) {
 
 // ---------------------------------------------------------------------//
 
-const maintenance_template_hash = Object.create(null);
+check_maintenance_template_name.maintenance_template_hash = Object.create(null);
 function check_maintenance_template_name(page_data) {
 	const configuration = wiki.latest_task_configuration;
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -298,8 +312,8 @@ function check_maintenance_template_name(page_data) {
 			return;
 
 		parsed.each.call(token.parameters[1], 'template', template => {
-			if (!(template.name in maintenance_template_hash)) {
-				maintenance_template_hash[template.name] = null;
+			if (!(template.name in check_maintenance_template_name.maintenance_template_hash)) {
+				check_maintenance_template_name.maintenance_template_hash[template.name] = null;
 				changed = true;
 			}
 		}, {
@@ -312,7 +326,7 @@ function check_maintenance_template_name(page_data) {
 	});
 
 	if (changed) {
-		const maintenance_template_list = Object.keys(maintenance_template_hash).sort();
+		const maintenance_template_list = Object.keys(check_maintenance_template_name.maintenance_template_hash).sort();
 		CeL.log(JSON.stringify(maintenance_template_list));
 	}
 }
@@ -341,6 +355,7 @@ async function check_pages_including_maintenance_template(page_data) {
 		// Only search the root elements, till the first section title.
 		max_depth: 1
 	});
+	//console.trace([this.maintenance_template_inside, this.maintenance_template_outer]);
 
 	/** {Number}解析出維護模板數。 */
 	const all_maintenance_template_count = this.maintenance_template_inside.length + this.maintenance_template_outer.length;
@@ -369,9 +384,9 @@ async function check_pages_including_maintenance_template(page_data) {
 					const time = Multiple_issues_template_token.parameters[parameter].trim();
 					const is_date = /^\d{4}年\d{1,2}月(\d{1,2}日)?$/.test(time);
 					if (false) {
-						console.log([template, template in configuration.maintenance_template_hash, Date.parse(time)]);
+						console.log([template, is_maintenance_template(template), Date.parse(time)]);
 					}
-					if ((template in configuration.maintenance_template_hash) && (is_date || Date.parse(time) > 0)) {
+					if (is_maintenance_template(template) && (is_date || Date.parse(time) > 0)) {
 						if (!parameter_1) {
 							parameter_1 = [''];
 							parameter_1.toString = function () {
@@ -501,14 +516,14 @@ function check_maintenance_templates(token, index, parent) {
 		this.Multiple_issues_template_token = token;
 		// console.log(token.parameters[1]);
 		this.for_each_token.call(token.parameters[1], 'template', token => {
-			if (token.name in configuration.maintenance_template_hash) {
+			if (is_maintenance_template(token.name)) {
 				this.maintenance_template_inside.push(token);
 			}
 		});
 		return;
 	}
 
-	if (token.name in configuration.maintenance_template_hash) {
+	if (is_maintenance_template(token.name)) {
 		token.index = index;
 		token.parent = parent;
 		this.maintenance_template_outer.push(token);
