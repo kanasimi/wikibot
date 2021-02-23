@@ -502,7 +502,7 @@ async function for_each_list_page(list_page_data) {
 						const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
 					}
 					// reduce size
-					const message = category_level ? `Category level ${category_level}.{{r|c}}` : 'No VA template?{{r|e}}';
+					const message = `${CeL.wiki.title_link_of(wiki.to_talk_page(normalized_page_title))}: ${category_level ? `Category level ${category_level}.{{r|c}}` : 'No VA template?{{r|e}}'}`;
 					if (!category_level) {
 						need_edit_VA_template[normalized_page_title] = {
 							...article_info,

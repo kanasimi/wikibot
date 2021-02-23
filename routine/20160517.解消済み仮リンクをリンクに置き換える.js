@@ -717,7 +717,7 @@ function for_each_page(page_data, messages) {
 			link += ']]';
 
 			if (!changed.includes(link)) {
-				console.trace('記錄確認已經有改變的文字連結。');
+				// console.trace('記錄確認已經有改變的文字連結。');
 				changed.push(link);
 				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
 						+ ': ' + token.toString() + ' → ' + link);
@@ -784,7 +784,6 @@ function for_each_page(page_data, messages) {
 						console.log('redirect_data of ' + local_title + ': '
 								+ JSON.stringify(redirect_data));
 					}
-
 					if (!converted_local_title) {
 						// 從外語言條目連結無法取得本地頁面的情況。
 						if (redirect_data) {

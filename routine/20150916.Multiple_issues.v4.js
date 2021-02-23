@@ -57,6 +57,7 @@ async function adapt_configuration(latest_task_configuration) {
 	/** {Natural}列入報表的最低模板數 */
 	configuration.template_count_to_be_reported = +configuration.template_count_to_be_reported || configuration.template_count_to_be_merged + 1;
 
+	let maintenance_template__category_list = [/* 'Category:Cleanup templates' */];
 	/**
 	 * 可包含在{{多個問題}}模板中之維基百科維護模板名(Wikipedia maintenance templates)
 	 * [[Category:Cleanup templates]]
@@ -67,7 +68,26 @@ async function adapt_configuration(latest_task_configuration) {
 	 *      {{Ambox}}, [[WP:HAT#頂註模板]], [[Category:Wikipedia maintenance
 	 *      templates]], [[Wikipedia:AutoWikiBrowser/Template redirects#Maintenance templates]], [[en:Wikipedia:AutoWikiBrowser/Dated_templates]]
 	 */
-	configuration[gettext('維護模板名稱列表')] = wiki.to_namespace(configuration[gettext('維護模板名稱列表')] || [], 'template');
+	let maintenance_template_list = (configuration[gettext('維護模板名稱列表')] || []).filter(template_name => {
+		if (wiki.is_namespace(template_name, 'Category')) {
+			maintenance_template__category_list.push(template_name);
+		} else {
+			return true;
+		}
+	});
+	maintenance_template_list = wiki.to_namespace(maintenance_template_list, 'template');
+
+	await wiki.register_redirects(maintenance_template__category_list);
+	maintenance_template__category_list = await Promise.all(wiki.redirect_target_of(maintenance_template__category_list).map(category_name => wiki.category_tree(category_name, { namespace: 'Template' })));
+	function append_maintenance_templates(list) {
+		//console.trace(list);
+		maintenance_template_list.append(list.map(page_data => page_data.title));
+		if (list.subcategories)
+			Object.values(list.subcategories).forEach(append_maintenance_templates);
+	}
+	maintenance_template__category_list.forEach(append_maintenance_templates);
+	//console.log(JSON.stringify(maintenance_template_list));
+
 	/**
 	 * 須排除之維護模板別名。不可包含在{{多個問題}}模板中之維基百科維護模板名(Wikipedia maintenance templates)
 	 * 那些會導致刪除的tag（比如substub、關注度、notmandarin、merge那幾個）不要合併進去。
@@ -81,10 +101,10 @@ async function adapt_configuration(latest_task_configuration) {
 	// get_maintenance_template_list()
 	// 解析出所有維護模板別名
 	// The bot will get all the redirects of maintenance template.
-	await wiki.register_redirects((configuration[gettext('維護模板名稱列表')]).append(configuration[gettext('須排除之維護模板名稱列表')]), { namespace: 'Template', no_message: true });
+	await wiki.register_redirects(maintenance_template_list.append(configuration[gettext('須排除之維護模板名稱列表')]), { namespace: 'Template', no_message: true });
 	configuration[gettext('須排除之維護模板名稱列表')] = wiki.redirect_target_of(configuration[gettext('須排除之維護模板名稱列表')]);
 	/** 維護模板本名 without "Template:" prefix */
-	configuration.maintenance_template_list = wiki.redirect_target_of(configuration[gettext('維護模板名稱列表')]).filter(template_name => !configuration[gettext('須排除之維護模板名稱列表')].includes(template_name)).sort().unique();
+	configuration.maintenance_template_list = wiki.redirect_target_of(maintenance_template_list).filter(template_name => !configuration[gettext('須排除之維護模板名稱列表')].includes(template_name)).sort().unique();
 	const maintenance_template_alias_list = wiki.aliases_of_page(configuration.maintenance_template_list, { alias_only: true });
 	CeL.log(`總共有 ${configuration.maintenance_template_list.length} 個維護模板名，${maintenance_template_alias_list.length} 個 alias。`);
 	console.log(configuration.maintenance_template_list.map(template_name => {

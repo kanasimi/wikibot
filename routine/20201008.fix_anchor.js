@@ -677,15 +677,15 @@ async function check_page(target_page_data, options) {
 					return;
 
 				has_broken_anchors_template = true;
-				const index = template_token.index_of[LINKS_PARAMETER];
-				if (!index) {
+				const link_index = template_token.index_of[LINKS_PARAMETER];
+				if (!link_index) {
 					if (wikitext_to_add)
 						template_token.push(LINKS_PARAMETER + '=' + wikitext_to_add);
 					return parsed.each.exit;
 				}
 
 				// remove unknown anchors
-				parsed.each.call(template_token[index], 'list', list_token => {
+				parsed.each.call(template_token[link_index], 'list', list_token => {
 					for (let index = 0; index < list_token.length; index++) {
 						const first_token = list_token[index][0]?.type && list_token[index][0];
 						if (first_token && first_token.type === 'tag' && first_token.tag === 'nowiki'
@@ -711,14 +711,15 @@ async function check_page(target_page_data, options) {
 					}
 				});
 
-				const original_text = template_token[index].toString();
+				const original_text = template_token[link_index].toString();
 				if (!anchor_token
 					// have already noticed
 					|| original_text.includes(anchor_token)) {
 					return parsed.each.exit;
 				}
 
-				template_token[index] = original_text + wikitext_to_add;
+				// wikitext_to_add startsWith('\n')
+				template_token[link_index] = original_text.trim() + wikitext_to_add + '\n';
 			});
 
 			parsed.each('template', template_token => {
