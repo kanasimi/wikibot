@@ -103,6 +103,7 @@ async function adapt_configuration(latest_task_configuration) {
 	// The bot will get all the redirects of maintenance template.
 	await wiki.register_redirects(maintenance_template_list.append(configuration[gettext('須排除之維護模板名稱列表')]), { namespace: 'Template', no_message: true });
 	configuration[gettext('須排除之維護模板名稱列表')] = wiki.redirect_target_of(configuration[gettext('須排除之維護模板名稱列表')]);
+	//console.trace(wiki.redirect_target_of(maintenance_template_list));
 	/** 維護模板本名 without "Template:" prefix */
 	configuration.maintenance_template_list = wiki.redirect_target_of(maintenance_template_list).filter(template_name => !configuration[gettext('須排除之維護模板名稱列表')].includes(template_name)).sort().unique();
 	const maintenance_template_alias_list = wiki.aliases_of_page(configuration.maintenance_template_list, { alias_only: true });
@@ -172,8 +173,8 @@ async function main_process() {
 	// maintenance_template_list = maintenance_template_list.slice(0, 200);
 
 	// 處理含有維護模板的條目
-	for (let index = 0, length = maintenance_template_list.length; index < length; index++) {
-		const maintenance_template = maintenance_template_list[index];
+	for (let index = 0, length = configuration.maintenance_template_list.length; index < length; index++) {
+		const maintenance_template = configuration.maintenance_template_list[index];
 		CeL.info(`check_articles_embeddedin_template: ${index + 1}/${length} ${maintenance_template}`);
 		await check_articles_embeddedin_template(maintenance_template);
 	}
