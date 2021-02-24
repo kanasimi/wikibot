@@ -4,7 +4,7 @@
 
  test if parser working properly
 
- 2015/10/2 20:19:48	see [[維基百科:錯誤檢查專題]], https://tools.wmflabs.org/checkwiki/cgi-bin/checkwiki.cgi?project=enwiki&view=high
+ 2015/10/2 20:19:48	see [[w:zh:WikiProject:错误检查]], https://checkwiki.toolforge.org/checkwiki.cgi?project=enwiki&view=high
  2015/10/11 17:54:33	初版試營運
 
  */

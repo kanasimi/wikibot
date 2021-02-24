@@ -126,7 +126,12 @@ async function get_all_sections(meta_configuration) {
 			set_process('completed');
 		}
 
-		matched = section_wikitext.match(/{{ *(解決済み?|未解決|失効|済み|スタック) *[|}]/);
+		matched = section_wikitext.match(/{{ *(失効|未解決|取り下げ) *[|}]/);
+		if (matched) {
+			set_process('withdrawed');
+		}
+
+		matched = section_wikitext.match(/{{ *(解決済み?|済み|スタック) *[|}]/);
 		if (matched) {
 			set_process('finished');
 		}
@@ -1345,7 +1350,7 @@ function for_each_link(token, index, parent) {
 	} else {
 		// TODO: [[wikinews:File:f1]] will → [[File:f2]], NOT [[:File:f2]]
 
-		let initial_char_original = this.keep_initial_case && wiki.remove_namespace(token[0].toString()).charAt(0);
+		let initial_char_original = this.keep_initial_case && this.wiki.remove_namespace(token[0].toString()).charAt(0);
 		if (initial_char_original && initial_char_original !== initial_char_original.toUpperCase()) {
 			// 對於一些原先就希望是小寫開頭連結文字的處理。
 			// e.g., [[the best (髙橋真梨子のアルバム)]] ({{小文字|title=the best}})
@@ -1371,9 +1376,27 @@ function for_each_link(token, index, parent) {
 		token.pop();
 	} else if (!token[1] && this.move_from.page_title === this.move_to.page_title && this.move_from.display_text && this.move_to.display_text === undefined) {
 		// 移動前後的頁面標題相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！
-		// 消除特定 display_text。 e.g., [[T|d]] → [[T]]
+		// 消除特定 display_text。 e.g., 設定 [[T|d]] → [[T]]
 		// assert: token.length === 2
 		token.pop();
+	} else if (!token[1] && this.move_to.ns === 0
+		&& typeof token[2] === 'string' && token[2] && token[0].length > token[2].length
+		&& token[0].includes(token[2])) {
+		//	[[AB|A]]B → [[AB]]
+		//	A[[AB|B]] → [[AB]]
+		//	A[[ABC|B]]C → [[ABC]]
+		const index = token[0].indexOf(token[2]);
+		const header = index > 0 && token[0].slice(0, index), tail = token[0].slice(index + token[2].length);
+		// assert: index >= 0 && (header || tail)
+		if ((!header || typeof parent[index - 1] === 'string' && parent[index - 1].endsWith(header))
+			&& (!tail || typeof parent[index + 1] === 'string' && parent[index + 1].startsWith(tail))) {
+			if (header)
+				parent[index - 1] = parent[index - 1].slice(0, -header.length);
+			if (tail)
+				parent[index + 1] = parent[index + 1].slice(tail.length);
+			// assert: token.length === 2
+			token.pop();
+		}
 	}
 
 	if (this.move_from.ns === this.wiki.namespace('Category')) {

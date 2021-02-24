@@ -2,7 +2,7 @@
 
 /*
 
- 2015/10/2 20:19:48	see [[維基百科:錯誤檢查專題]], https://checkwiki.toolforge.org/checkwiki.cgi?project=enwiki&view=high
+ 2015/10/2 20:19:48	see [[w:zh:WikiProject:错误检查]], https://checkwiki.toolforge.org/checkwiki.cgi?project=enwiki&view=high
  2015/10/3 0:45:25	初版試營運
  2016/2/2 20:4:48 上路前修正
  完善
