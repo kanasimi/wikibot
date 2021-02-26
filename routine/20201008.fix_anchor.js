@@ -80,8 +80,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
-	await wiki.register_redirects(['Section link', 'Broken anchors',
-		'Anchor', 'Anchors', 'Visible anchor', 'Citation', 'RFD'], {
+	await wiki.register_redirects(['Section link', 'Broken anchors'].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
 }
@@ -325,7 +324,8 @@ const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
 function reduce_section_title(section_title) {
-	return section_title.replace(/[\s_\-–()#]/g, '').replace(/（/g, '(').replace(/）/g, ')').toLowerCase();
+	// ＝: e.g., パリからポン＝タヴァン
+	return section_title.replace(/[\s_\-–()#＝]/g, '').replace(/（/g, '(').replace(/）/g, ')').toLowerCase();
 }
 
 function get_section_title_data(section_title_history, section_title) {
@@ -431,6 +431,7 @@ async function tracking_section_title_history(page_data, options) {
 		page_data = await wiki.page(page_data);
 		set_recent_section_title(page_data.wikitext);
 		if (options?.print_anchors) {
+			console.log(`reduced anchors:`);
 			console.trace(section_title_history[KEY_lower_cased_section_titles]);
 		}
 		return section_title_history;
@@ -917,31 +918,39 @@ async function check_page(target_page_data, options) {
 				changed = true;
 		});
 
-		// handle {{Section link}}
 		parsed.each('template', (token, index, parent) => {
-			if (!wiki.is_template('Section link', token))
-				return;
-
-			const ARTICLE_INDEX = 1;
-			if (token.parameters[ARTICLE_INDEX]) {
-				const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');
-				if (matched) {
-					token[token.index_of[ARTICLE_INDEX]] = token.parameters[ARTICLE_INDEX].toString().replace('#', '|');
-					parent[index] = token = CeL.wiki.parse(token.toString());
+			// handle {{Section link}}
+			if (wiki.is_template('Section link', token)) {
+				const ARTICLE_INDEX = 1;
+				if (token.parameters[ARTICLE_INDEX]) {
+					const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');
+					if (matched) {
+						token[token.index_of[ARTICLE_INDEX]] = token.parameters[ARTICLE_INDEX].toString().replace('#', '|');
+						parent[index] = token = CeL.wiki.parse(token.toString());
+					}
 				}
+
+				token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
+				//console.trace(token);
+				token.article_index = ARTICLE_INDEX;
+				for (let index = 2; index < token.length; index++) {
+					token.anchor_index = token.index_of[index];
+					if (!token.anchor_index)
+						continue;
+					token.anchor = CeL.wiki.parse.anchor.normalize_anchor(token.parameters[index]);
+					if (check_token.call(this, token, linking_page_data))
+						changed = true;
+				}
+
+				return;
 			}
 
-			token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
-			//console.trace(token);
-			token.article_index = ARTICLE_INDEX;
-			for (let index = 2; index < token.length; index++) {
-				token.anchor_index = token.index_of[index];
-				if (!token.anchor_index)
-					continue;
-				token.anchor = token.parameters[index].toString().replace(/_/g, ' ');
-				if (check_token.call(this, token, linking_page_data))
-					changed = true;
+			// handle {{Sfn}}
+			if (wiki.is_template('Sfn', token)) {
+				// TODO: 太過複雜 跳過
+				return;
 			}
+
 		});
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
