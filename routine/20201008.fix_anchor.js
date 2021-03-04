@@ -644,7 +644,7 @@ async function check_page(target_page_data, options) {
 
 	// ----------------------------------------------------
 
-	async function add_note_for_broken_anchors(linking_page_data, anchor_token, record) {
+	async function add_note_to_talk_page_for_broken_anchors(linking_page_data, anchor_token, record) {
 		function add_note_for_broken_anchors(talk_page_data) {
 			// Modify from 20200122.update_vital_articles.js
 			// TODO: fix disambiguation
@@ -784,15 +784,15 @@ async function check_page(target_page_data, options) {
 					+ CeL.gettext('此網頁錨點（%2）之前[[Special:Diff/%1|曾被其他用戶刪除過]]。', record.disappear.revid, anchor_token[1]) : ''
 				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 				} <!-- ${JSON.stringify(record)} -->` : ''}`;
-			CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		}
 
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
 			notification_name: 'anchor-fixing',
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
-			bot: 1,
-			minor: 1,
+			//bot: 1,
+			//minor: 1,
 			//nocreate: false,
 			allow_empty: 1,
 		});
@@ -895,7 +895,7 @@ async function check_page(target_page_data, options) {
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
 		if (!options.is_archive && wiki.site_name() === 'jawiki') {
-			add_note_for_broken_anchors(linking_page_data, token, record);
+			add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
 
@@ -954,7 +954,7 @@ async function check_page(target_page_data, options) {
 		});
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
-			add_note_for_broken_anchors(linking_page_data);
+			add_note_to_talk_page_for_broken_anchors(linking_page_data);
 		}
 
 		if (!changed)

@@ -264,7 +264,7 @@ async function check_pages_including_maintenance_template(page_data) {
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
 		const parameters = Object.keys(Multiple_issues_template_token.parameters);
-		if (!/^1?$/.test(parameters)) {
+		if (parameters.length > 0 && !/^1?$/.test(parameters)) {
 			if (wiki.site_name() === 'zhwiki') {
 				// fix for "|expand=2010-10-22T16:37:55+00:00" in zhwiki
 				let changed;
@@ -301,7 +301,7 @@ async function check_pages_including_maintenance_template(page_data) {
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
 
-		if (this.maintenance_template_inside.length === 0 && Multiple_issues_template_token.parameters[1].toString().trim()) {
+		if (this.maintenance_template_inside.length === 0 && Multiple_issues_template_token.parameters[1] && Multiple_issues_template_token.parameters[1].toString().trim()) {
 			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The parameter 1 is strange, so I can not remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${Multiple_issues_template_token.parameters[1].toString()}`);
 			configuration.problematic_articles.push(page_data.title);
 			return [CeL.wiki.edit.cancel, 'skip'];
@@ -375,7 +375,7 @@ async function check_pages_including_maintenance_template(page_data) {
 		// assert true === !!this.Multiple_issues_template_token
 		this.summary += `: ${gettext('拆分僅有%1個維護模板的{{%2}}模板', all_maintenance_template_count, configuration.Multiple_issues_template_name_without_namespace)}: ${this.maintenance_template_inside.map(t => t.name).join(', ')}`;
 		const token = this.Multiple_issues_template_token;
-		token.parent[token.index] = token.parameters[1].toString().trim();
+		token.parent[token.index] = token.parameters[1] && token.parameters[1].toString().trim();
 	}
 
 	//	console.log(parsed.toString());
