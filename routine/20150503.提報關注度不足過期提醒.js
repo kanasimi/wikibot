@@ -146,7 +146,7 @@ function report_notability(page_data) {
 				//
 				? message_set.do_not_notify + ': ' + denied[0]
 				// [[WP:AFD]]
-				: (denied = CeL.wiki.edit.denied(content, wiki.token.lgname,
+				: (denied = CeL.wiki.edit.denied(content, wiki.token.login_user_name,
 						'AFD'))
 						&& (message_set.bots_denied + ': ' + denied)
 						: message_set.no_user_talk;
