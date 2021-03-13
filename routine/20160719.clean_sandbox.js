@@ -116,7 +116,7 @@ function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
 clean_wiki_sandbox(
 		'test',
 		'<noinclude>{{Sandbox}}</noinclude>\n== Please start your testing below this line ==\n',
-		'Clearing the sandbox. If you want to keep a longer time, please tasting in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.',
+		'Clearing the sandbox. If you want to keep a longer time, please test in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.',
 		// Specify page title to prevent redirecting to important page.
 		'Wikipedia:Sandbox');
 
