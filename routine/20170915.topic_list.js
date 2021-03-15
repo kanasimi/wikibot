@@ -488,6 +488,7 @@ function start_main_work() {
 
 	// ----------------------------------------------------
 
+	// console.trace(main_talk_pages);
 	if (main_talk_pages.length > 0) {
 		CeL.info(main_talk_pages.length + ' page(s) to listen for '
 				+ CeL.wiki.site_name(wiki) + ': '
@@ -1593,7 +1594,9 @@ function generate_topic_list(page_data) {
 		bot : 1,
 		nocreate : 1,
 		tags : edit_tags,
-		summary : 'generate topic list: '
+		summary : CeL.wiki.title_link_of(
+		//
+		configuration.configuration_page_title, 'generate topic list') + ': '
 		// -1: 跳過頁首設定與公告區。
 		+ topic_count + ' topics'
 		//
