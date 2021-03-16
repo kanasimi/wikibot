@@ -44,9 +44,10 @@ async function main_process() {
 
 	CeL.write_file(conversion_table_file, conversion_table);
 	CeL.info(pages + ' pages, ' + items + ' items.');
-	console.log(conversion_of_group.IT);
+	// Array.isArray(conversion_of_group.Popes);
+	// console.log(conversion_of_group.Popes);
 
-	// await wiki.embeddedin('NoteTA').each(for_NoteTA_article);
+	//await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA'), for_NoteTA_article);
 
 	routine_task_done('1 week');
 }
@@ -60,7 +61,7 @@ async function check_system_pages() {
 	const conversion_group_list = await wiki.prefixsearch('Mediawiki:Conversiontable/');
 	CeL.info('Traversal ' + conversion_group_list.length + ' system pages...');
 	// console.log(conversion_group);
-	await Promise.all(conversion_group_list.map(for_each_conversion_group_page));
+	await wiki.for_each_page(conversion_group_list, for_each_conversion_group_page, { index: 0, conversion_group_list });
 }
 
 function get_group_name_of_page(page_data) {
@@ -121,10 +122,13 @@ async function check_CGroup_pages() {
 	// free
 	// deprecated_pages = null;
 
-	const conversion_group_list = Object.values(conversion_group);
+	const conversion_group_list = Object.values(conversion_group)
+		.filter(page_data => page_data.ns === NS_MediaWiki
+			|| page_data.ns === NS_Module
+			|| page_data.ns === NS_Template);
 	CeL.info('Traversal ' + conversion_group_list.length + ' CGroup pages...');
 	// console.log(conversion_group);
-	await Promise.all(conversion_group_list.map(for_each_conversion_group_page));
+	await wiki.for_each_page(conversion_group_list, for_each_conversion_group_page, { index: 0, conversion_group_list });
 }
 
 // ----------------------------------------------------------------------------
@@ -240,25 +244,13 @@ const NS_MediaWiki = CeL.wiki.namespace('MediaWiki');
 const NS_Module = CeL.wiki.namespace('Module');
 const NS_Template = CeL.wiki.namespace('Template');
 
-async function for_each_conversion_group_page(page_data, index, conversion_group_list) {
-	// console.log(page_data);
-	if (page_data.ns !== NS_MediaWiki
-		&& page_data.ns !== NS_Module
-		&& page_data.ns !== NS_Template
-		// || !page_data.title.includes('')
-	) {
-		return;
-	}
-
+async function for_each_conversion_group_page(page_data) {
 	// assert: page_data.ns === NS_MediaWiki || page_data.ns === NS_Module ||
 	// page_data.ns === NS_Template
 
-	page_data = await wiki.page(page_data);
-	// console.log(page_data);
-
 	const conversion_item_list = CeL.wiki.template_functions.parse_conversion_item(page_data);
 	conversion_item_list.forEach(item => add_conversion(item, page_data));
-	CeL.info((index + 1) + '/' + conversion_group_list.length
+	CeL.info(++this.index + '/' + this.conversion_group_list.length
 		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + conversion_item_list.length + ' items.');
 }
 
@@ -337,7 +329,14 @@ async function write_duplicated_report() {
 
 // ----------------------------------------------------------------------------
 
+// 去除與公共轉換組重複的轉換規則
+// 去除與全文轉換重複的內文轉換
 async function for_NoteTA_article(page_data) {
+	const conversion_item_list = CeL.wiki.template_functions.parse_conversion_item(page_data);
+	console.log([page_data.title, conversion_item_list]);
+
 	const parsed = page_data.parse();
-	;
+	parsed.each('Template:NoteTA', token => {
+		token.convertion_list;
+	});
 }
