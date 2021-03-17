@@ -47,7 +47,7 @@ async function main_process() {
 	// Array.isArray(conversion_of_group.Popes);
 	// console.log(conversion_of_group.Popes);
 
-	//await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA'), for_NoteTA_article);
+	// await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA'), for_NoteTA_article);
 
 	routine_task_done('1 week');
 }
@@ -332,11 +332,13 @@ async function write_duplicated_report() {
 // 去除與公共轉換組重複的轉換規則
 // 去除與全文轉換重複的內文轉換
 async function for_NoteTA_article(page_data) {
+	// conversion_hash[conversion] = [ token ];
+	const conversion_hash = Object.create(null);
 	const conversion_item_list = CeL.wiki.template_functions.parse_conversion_item(page_data);
-	console.log([page_data.title, conversion_item_list]);
+	//console.log([page_data.title, conversion_item_list]);
 
 	const parsed = page_data.parse();
 	parsed.each('Template:NoteTA', token => {
-		token.convertion_list;
+		console.log([page_data.title, conversion_item_list, token.convertion_list]);
 	});
 }

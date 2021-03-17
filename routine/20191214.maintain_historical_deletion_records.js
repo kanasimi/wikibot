@@ -359,7 +359,8 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		function for_template(title_token) {
-			const page_title_list = CeL.wiki.template_functions.zhwiki.Al.parse(title_token);
+			// from template_functions.zhwiki
+			const page_title_list = title_token.page_title_list;
 			if (page_title_list && page_title_list.length > 0) {
 				page_title_list.forEach((title) => add_page(title, section, flags));
 				return true;
