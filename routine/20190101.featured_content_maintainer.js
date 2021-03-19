@@ -121,74 +121,78 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(6);
 
-wiki.cache([ {
-	type : 'page',
-	// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
-	// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
-	// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
-	// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
-	list : Former_FC_list_pages.concat(FC_list_pages),
-	redirects : 1,
-	reget : true,
-	each : parse_each_FC_item_list_page
-}, {
-	type : 'page',
-	list : sub_FC_list_pages,
-	redirects : 1,
-	reget : true,
-	each : parse_each_FC_item_list_page
-}, {
-	type : 'redirects_here',
-	// TODO: 一次取得大量頁面。
-	list : function() {
-		CeL.debug('redirects_to_hash = '
+function main_work() {
+	wiki.cache([ {
+		type : 'page',
+		// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
+		// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
+		// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
+		// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
+		list : Former_FC_list_pages.concat(FC_list_pages),
+		redirects : 1,
+		reget : true,
+		each : parse_each_FC_item_list_page
+	}, {
+		type : 'page',
+		list : sub_FC_list_pages,
+		redirects : 1,
+		reget : true,
+		each : parse_each_FC_item_list_page
+	}, {
+		type : 'redirects_here',
+		// TODO: 一次取得大量頁面。
+		list : function() {
+			CeL.debug('redirects_to_hash = '
+			//
+			+ JSON.stringify(redirects_to_hash));
+			CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
+			new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
+				delete FC_data_hash[FC_title][KEY_LIST_PAGE];
+				return !(FC_title in redirects_to_hash);
+			});
+			return new_FC_pages;
+		},
+		reget : true,
+		// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
+		each : check_FC_redirects
+	}, {
+		type : 'page',
+		// TODO: 一次取得大量頁面。
+		list : generate_FC_date_page_list,
+		redirects : 1,
+		// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
+		each : parse_each_FC_date_page
+	}, {
+		type : 'redirects_here',
+		// TODO: 一次取得大量頁面。
+		list : redirects_list_to_check,
+		reget : true,
+		// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
+		each : check_redirects
+	}, {
+		// 檢查含有特色內容、優良條目模板之頁面是否與登記項目頁面相符合。
+		type : 'embeddedin',
+		reget : true,
+		list : (using_GA ? 'Template:Good article'
 		//
-		+ JSON.stringify(redirects_to_hash));
-		CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
-		new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
-			delete FC_data_hash[FC_title][KEY_LIST_PAGE];
-			return !(FC_title in redirects_to_hash);
-		});
-		return new_FC_pages;
-	},
-	reget : true,
-	// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
-	each : check_FC_redirects
-}, {
-	type : 'page',
-	// TODO: 一次取得大量頁面。
-	list : generate_FC_date_page_list,
-	redirects : 1,
-	// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
-	each : parse_each_FC_date_page
-}, {
-	type : 'redirects_here',
-	// TODO: 一次取得大量頁面。
-	list : redirects_list_to_check,
-	reget : true,
-	// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
-	each : check_redirects
-}, {
-	// 檢查含有特色內容、優良條目模板之頁面是否與登記項目頁面相符合。
-	type : 'embeddedin',
-	reget : true,
-	list : (using_GA ? 'Template:Good article'
-	//
-	: 'Template:Featured article|Template:Featured list').split('|'),
-	each : check_FC_template,
-	operator : summary_FC_template
-} ], check_date_page, {
-	// JDN index in parse_each_FC_date_page()
-	JDN : JDN_start,
-	// index in check_redirects()
-	redirects_index : 0,
+		: 'Template:Featured article|Template:Featured list').split('|'),
+		each : check_FC_template,
+		operator : summary_FC_template
+	} ], check_date_page, {
+		// JDN index in parse_each_FC_date_page()
+		JDN : JDN_start,
+		// index in check_redirects()
+		redirects_index : 0,
 
-	// default options === this
-	// [SESSION_KEY]
-	// session : wiki,
-	// cache path prefix
-	prefix : base_directory
-});
+		// default options === this
+		// [SESSION_KEY]
+		// session : wiki,
+		// cache path prefix
+		prefix : base_directory
+	});
+}
+
+wiki.run(main_work);
 
 // ---------------------------------------------------------------------//
 
