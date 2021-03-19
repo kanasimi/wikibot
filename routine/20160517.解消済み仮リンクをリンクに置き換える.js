@@ -1071,53 +1071,57 @@ prepare_directory(base_directory, true);
 
 // CeL.set_debug(2);
 
-CeL.wiki.cache([ {
-	type : 'categorymembers',
-	list : message_set.Category_has_local_page,
-	reget : true,
-	operator : function(list) {
-		this.list = list;
-		// only for debug {{ill}}s on specified page
-		// this.list = [ 'Template:鍛冶屋原線' ];
-	}
-
-}, false && {
-	// 使用 cache page 的方法速度過慢！
-	type : 'page'
-
-} ], function() {
-	var list = this.list;
-	// list = [ '' ];
-	// list = [ 'Wikipedia:Sandbox' ];
-	CeL.log('Get ' + list.length + ' pages.');
-	if (false) {
-		ignore_ns = true;
-		CeL.log(list.slice(0, 8).map(function(page_data, index) {
-			return index + ': ' + CeL.wiki.title_of(page_data);
-		}).join('\n') + '\n...');
-		// 設定此初始值，可跳過之前已經處理過的。
-		list = list.slice(0 * test_limit, 1 * test_limit);
-	}
-
-	// CeL.set_debug(6);
-	// setup ((page_remains))
-	page_remains = list.length;
-	wiki.work({
-		no_edit : true,
-		each : for_each_page,
-		page_options : {
-			rvprop : 'ids|content|timestamp'
+function main_work() {
+	CeL.wiki.cache([ {
+		type : 'categorymembers',
+		list : message_set.Category_has_local_page,
+		reget : true,
+		operator : function(list) {
+			this.list = list;
+			// only for debug {{ill}}s on specified page
+			// this.list = [ 'Template:鍛冶屋原線' ];
 		}
 
-	}, list);
+	}, false && {
+		// 使用 cache page 的方法速度過慢！
+		type : 'page'
 
-}, {
-	// default options === this
-	// TODO: add Wikipedia:優良條目/存檔
-	// namespace : '0|10|14',
-	// [SESSION_KEY]
-	session : wiki,
-	// title_prefix : 'Template:',
-	// cache path prefix
-	prefix : base_directory
-});
+	} ], function() {
+		var list = this.list;
+		// list = [ '' ];
+		// list = [ 'Wikipedia:Sandbox' ];
+		CeL.log('Get ' + list.length + ' pages.');
+		if (false) {
+			ignore_ns = true;
+			CeL.log(list.slice(0, 8).map(function(page_data, index) {
+				return index + ': ' + CeL.wiki.title_of(page_data);
+			}).join('\n') + '\n...');
+			// 設定此初始值，可跳過之前已經處理過的。
+			list = list.slice(0 * test_limit, 1 * test_limit);
+		}
+
+		// CeL.set_debug(6);
+		// setup ((page_remains))
+		page_remains = list.length;
+		wiki.work({
+			no_edit : true,
+			each : for_each_page,
+			page_options : {
+				rvprop : 'ids|content|timestamp'
+			}
+
+		}, list);
+
+	}, {
+		// default options === this
+		// TODO: add Wikipedia:優良條目/存檔
+		// namespace : '0|10|14',
+		// [SESSION_KEY]
+		session : wiki,
+		// title_prefix : 'Template:',
+		// cache path prefix
+		prefix : base_directory
+	});
+}
+
+wiki.run(main_work);

@@ -153,7 +153,7 @@ function main_work(template_name_redirect_to) {
 		// var list = this.list;
 		// list = [ '' ];
 		CeL.log('Get ' + list.length + ' pages.');
-		if (0) {
+		if (false) {
 			ignore_date = true;
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
 				return index + ': ' + CeL.wiki.title_of(page_data);
@@ -172,7 +172,7 @@ function main_work(template_name_redirect_to) {
 				// https://www.mediawiki.org/wiki/API:Info#inprop.3Dprotection
 				additional : 'inprop=protection'
 			},
-			last : archive_page
+			last : archive_pages
 
 		}, list);
 
@@ -202,10 +202,10 @@ function for_each_page_not_archived(page_data) {
 	}
 }
 
-function archive_page() {
-	CeL.log('archive_page: 可存檔 ' + page_list.length + ' 文章。');
-	CeL.debug('archive_page: {{publish}} pattern: ' + PATTERN_publish_template,
-			1, 'archive_page');
+function archive_pages() {
+	CeL.log('archive_pages: 可存檔 ' + page_list.length + ' 文章。');
+	CeL.debug('{{publish}} pattern: ' + PATTERN_publish_template, 1,
+			'archive_pages');
 	// console.trace(page_list.slice(0, 9));
 	var left = page_list.length;
 	page_list.forEach(function(page_data) {
@@ -600,10 +600,12 @@ prepare_directory(base_directory);
 
 wiki.register_redirects('Template:分類');
 
-check_redirect_to({
-	published : 'Category:published',
-	archived : 'Category:archived',
-	// [[分類:來源模板|新聞源/資料來源引用模板]]
-	source : 'Category:來源模板',
-	template_publish : 'Template:publish'
-}, main_work);
+wiki.run(function() {
+	check_redirect_to({
+		published : 'Category:published',
+		archived : 'Category:archived',
+		// [[分類:來源模板|新聞源/資料來源引用模板]]
+		source : 'Category:來源模板',
+		template_publish : 'Template:publish'
+	}, main_work);
+});

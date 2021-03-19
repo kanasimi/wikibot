@@ -25,17 +25,17 @@ var wiki = Wiki(true, 'ja');
 
 user_name = CeL.wiki.normalize_title(user_name);
 
-var edit_summary = 'revert error made by bot';
+var edit_summary = 'Sorry, revert error made by bot';
 // 向前追溯筆數。
 var trace_forward_length = 'max';
 
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	var fix_this_edit = summary.includes('Template:Interwikicatのリンク元解消')
+	var fix_this_edit = summary.includes('毎日放送2 (MBSラジオ送信所)')
 			&& summary.includes('Bot作業依頼')
 			// [[User:cewbot/log/20190913]]
-			&& !page_data.title.includes(20190913);
+			&& (!page_data || !page_data.title.includes(20190913));
 	// fix_this_edit = summary === 'Robot';
 	if (false && fix_this_edit) {
 		CeL.info(filter_summary.name + ': ' + CeL.wiki.title_link_of(page_data)

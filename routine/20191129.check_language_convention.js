@@ -11,7 +11,9 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-CeL.run('application.net.wiki.template_functions');
+CeL.run('application.net.wiki.template_functions',
+	// for CeL.assert()
+	'application.debug.log');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('zh');
@@ -56,7 +58,10 @@ async function main_process() {
 		).unique();
 	}
 	//console.log(conversion_of_group.Popes);
-	//await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA', { namespace: 0 }), for_NoteTA_article, { summary: '去除重複的轉換規則' });
+	await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA', { namespace: 0 }), for_NoteTA_article, {
+		no_message: true,
+		summary: '[[Wikipedia:机器人/申请/Cewbot/24|去除重複的轉換規則]]:'
+	});
 
 	routine_task_done('1 week');
 }
@@ -273,22 +278,6 @@ function ascending(a, b) {
 	return a < b ? -1 : a > b ? 1 : 0;
 }
 
-const MARK_report_begin = '<!-- report begin -->', MARK_report_end = '<!-- report end -->';
-// @see generate_report()
-async function edit_report(report_page, report_wikitext, options) {
-	await wiki.edit_page(report_page, page_data => {
-		report_wikitext = report_wikitext.trim();
-		const original_report_wikitext = page_data.wikitext.between(MARK_report_begin, MARK_report_end).trim();
-		if (original_report_wikitext === report_wikitext)
-			return Wikiapi.skip_edit;
-
-		report_wikitext = MARK_report_begin + '\n' + report_wikitext + '\n' + MARK_report_end;
-		if (options.report_header)
-			report_wikitext = options.report_header.trim() + '\n\n' + report_wikitext;
-		return report_wikitext;
-	}, options);
-}
-
 async function write_conversion_list() {
 	CeL.info('Writing report to ' + CeL.wiki.title_link_of(conversion_list_page) + '...');
 	const report_lines = [];
@@ -305,18 +294,8 @@ async function write_conversion_list() {
 	const report_wikitext = CeL.wiki.array_to_table(report_lines, {
 		'class': "wikitable sortable"
 	});
-	await edit_report(conversion_list_page, report_wikitext, {
-		report_header:
-			// __NOTITLECONVERT__
-			'__NOCONTENTCONVERT__\n'
-			+ '總共' + report_count + '個公共轉換組頁面。\n'
-			+ '* 本條目會定期更新，毋須手動修正。\n'
-			// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-			+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>',
-		bot: 1,
-		nocreate: 1,
-		summary: report_count + '個公共轉換組頁面'
-	});
+
+	await update_report(conversion_list_page, report_wikitext, `總共${report_count}個公共轉換組頁面。`, report_count + '個公共轉換組頁面');
 	return report_count;
 }
 
@@ -340,19 +319,38 @@ async function write_duplicated_report() {
 		report_wikitext = "* '''太好了！無特殊頁面。'''";
 	}
 
-	await edit_report(duplicated_report_page, report_wikitext, {
-		report_header:
-			// __NOTITLECONVERT__
-			'__NOCONTENTCONVERT__\n'
-			+ `出現在多個不同的公共轉換組中的詞彙：${report_count}個詞彙。\n`
-			+ '* 本條目會定期更新，毋須手動修正。\n'
-			// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-			+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>',
+	await update_report(duplicated_report_page, report_wikitext, `出現在多個不同的公共轉換組中的詞彙：總共${report_count}個詞彙。`, report_count + '個重複詞彙');
+	return report_count;
+}
+
+async function update_report(report_page, report_wikitext, introduction, summary) {
+	const update_Variable_Map = new CeL.wiki.Variable_Map();
+	update_Variable_Map.set('report', '\n' + report_wikitext + '\n');
+	update_Variable_Map.set('timestamp', {
+		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+		wikitext: '<onlyinclude>~~~~~</onlyinclude>',
+		// .may_not_update: 可以不更新。 e.g., timestamp
+		may_not_update: true
+	});
+	update_Variable_Map.set('introduction', {
+		wikitext: introduction,
+		may_not_update: true
+	});
+	update_Variable_Map.template =
+		// __NOTITLECONVERT__
+		`__NOCONTENTCONVERT__
+${update_Variable_Map.format('introduction')}
+* 本條目會定期更新，毋須手動修正。
+* 產生時間：${update_Variable_Map.format('timestamp')}
+
+${update_Variable_Map.format('report')}
+`;
+
+	await wiki.edit_page(report_page, update_Variable_Map, {
 		bot: 1,
 		nocreate: 1,
-		summary: report_count + '個重複詞彙'
+		summary
 	});
-	return report_count;
 }
 
 // ----------------------------------------------------------------------------
@@ -365,6 +363,8 @@ async function for_NoteTA_article(page_data) {
 	//console.log([page_data.title, conversion_list]);
 
 	const parsed = page_data.parse();
+	CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
+
 	parsed.each('Template:NoteTA', token => {
 		if (false) {
 			console.log([page_data.title,
@@ -395,32 +395,45 @@ async function for_NoteTA_article(page_data) {
 	});
 
 	let changed;
-	/** 與公共轉換組重複的轉換規則 */
-	const duplicate_with_CGroup = [];
-	/** 與{{NoteTA}}重複的內文轉換 */
-	const duplicate_with_NoteTA = [];
-	/** 與內文轉換重複的字詞轉換 */
-	const duplicate_with_context = [];
+	const duplicate_list = {
+		與公共轉換組重複的轉換規則: [],
+		'與{{NoteTA}}重複的內文轉換': [],
+		與內文轉換重複的字詞轉換: []
+	};
 	parsed.each('Template:NoteTA', token => {
 		let _changed;
 		for (let index = 0; index < token.conversion_list.length; index++) {
 			const conversion = token.conversion_list[index];
 			const rule = conversion.toString('rule');
-			if (!(rule in conversion_hash)) {
+			// assert: (rule in conversion_hash)
+			// rule 已於前面的 "登記{{NoteTA}}中的轉換規則" 登記。
+			if (typeof conversion_hash[rule] !== 'string') {
 				return;
 			}
 
-			duplicate_with_CGroup.push(rule);
+			duplicate_list.與公共轉換組重複的轉換規則.push(rule);
 			_changed = true;
 			token[conversion.index] = '';
 		}
-		if (_changed) {
-			changed = true;
-			return token.toString().replace(/;(\s*;)+/g, ';');
+		if (!_changed) {
+			return;
+		}
+		changed = true;
+		for (let index = token.length; index > 1;) {
+			if (!token[--index])
+				token.splice(index, 1);
+		}
+		if (token.length === 1) {
+			return parsed.each.remove_token;
 		}
 	}, true);
 
-	parsed.each('convert', token => {
+	parsed.each('convert', (token, index, parent) => {
+		if (token.flag === 'A') {
+			// TODO: move -{A|...}- to {{NoteTA}}
+			return;
+		}
+
 		const rule = token.toString('rule');
 		if (!(rule in conversion_hash)) {
 			return;
@@ -428,25 +441,34 @@ async function for_NoteTA_article(page_data) {
 
 		const source = conversion_hash[rule];
 		if (typeof source === 'string') {
-			duplicate_with_CGroup.push(rule);
+			duplicate_list.與公共轉換組重複的轉換規則.push(rule);
 		} else if (source.type === 'convert') {
-			duplicate_with_context.push(rule);
+			duplicate_list.與內文轉換重複的字詞轉換.push(rule);
 		} else {
 			// assert: source.type === 'transclusion'
-			duplicate_with_NoteTA.push(rule);
+			duplicate_list['與{{NoteTA}}重複的內文轉換'].push(rule);
 		}
 		changed = true;
-		return token.toString('zh-tw') || token.toString('zh-hant') || token.toString('zh-hk') || token.toString('zh');
+		// TODO: parent.type === 'link' [[P|-{...}-]]
+		let convert_to = token.conversion['zh-tw'] || token.conversion['zh-hant'] || token.conversion['zh-hk']
+			|| typeof token.converted === 'string' && token.converted;
+		for (const language_code in token.conversion) {
+			convert_to = token.conversion[language_code];
+		}
+		return convert_to;
 	}, true);
 
-	if (changed) {
-		if (duplicate_with_CGroup.length > 0)
-			this.summary += ` 去除與公共轉換組重複的轉換規則(${duplicate_with_CGroup.length})${duplicate_with_CGroup.length === 1 ? ': ' + duplicate_with_CGroup[0] : ''}`;
-		if (duplicate_with_NoteTA.length > 0)
-			this.summary += ` 去除與{{NoteTA}}重複的內文轉換(${duplicate_with_NoteTA.length})${duplicate_with_NoteTA.length === 1 ? ': ' + duplicate_with_NoteTA[0] : ''}`;
-		if (duplicate_with_context.length > 0)
-			this.summary += ` 去除與內文轉換重複的字詞轉換(${duplicate_with_context.length})${duplicate_with_context.length === 1 ? ': ' + duplicate_with_context[0] : ''}`;
-		return parsed.toString();
+	if (!changed) {
+		return Wikiapi.skip_edit;
 	}
-	return Wikiapi.skip_edit;
+
+	for (let [type, list] of Object.entries(duplicate_list)) {
+		if (list.length === 0) continue;
+		this.summary += ` 去除${type} (${list.length})`;
+		list = list.unique();
+		if (list.length === 1)
+			this.summary += ': ' + list[0];
+		//else: list.length > 1
+	}
+	return parsed.toString();
 }

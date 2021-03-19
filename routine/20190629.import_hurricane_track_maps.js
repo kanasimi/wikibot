@@ -537,7 +537,7 @@ function parse_NHC_Static_Images(media_data, html) {
 		// categories : [ '[[Category:Tropical Depression One-E (2018)]]' ],
 		comment : 'Import NHC tropical cyclone forecast map' + wiki_link + ' '
 				+ (media_data.note ? media_data.note + ' ' : '') + media_url,
-		file_text_updater : media_data.variable_Map
+		page_text_updater : media_data.variable_Map
 	// of the 2019 Pacific hurricane season
 	});
 
@@ -754,7 +754,7 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		comment : 'Import JTWC tropical cyclone ' + image_type + wiki_link
 				+ '. ' + (note ? note + ' ' : ''),
-		file_text_updater : media_data.variable_Map
+		page_text_updater : media_data.variable_Map
 	// JTWC using the same media_url for specific tropical
 	// cyclone
 	// + media_url
@@ -889,7 +889,7 @@ function for_each_CIMSS_typhoon(media_data, token) {
 		// comment won't accept templates and external links
 		comment : 'Import CIMSS tropical cyclone visible infrared map'
 				+ wiki_link + '. ' + (note ? note + ' ' : ''),
-		file_text_updater : media_data.variable_Map
+		page_text_updater : media_data.variable_Map
 	}, media_data);
 
 	// media_data.test_only = true;
@@ -1174,14 +1174,14 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		Object.assign(media_data, media_data.en, {
 			other_versions : '{{F|' + media_data.zh.filename
 					+ '|{{language|zh-Hant}}|80}}',
-			file_text_updater : media_data.en.variable_Map
+			page_text_updater : media_data.en.variable_Map
 		});
 		upload_media(media_data);
 
 		Object.assign(media_data, media_data.zh, {
 			other_versions : '{{F|' + media_data.en.filename
 					+ '|{{language|en}}|80}}',
-			file_text_updater : media_data.zh.variable_Map
+			page_text_updater : media_data.zh.variable_Map
 		});
 		upload_media(media_data);
 	});
@@ -1334,7 +1334,7 @@ function for_each_JMA_typhoon(html) {
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		// comment won't accept templates and external links
 		comment : comment,
-		file_text_updater : media_data.variable_Map
+		page_text_updater : media_data.variable_Map
 	// JMA 註解說明太長，加上 media_url 也無法完全顯現。
 	// + media_data.media_url
 	});
@@ -1479,7 +1479,7 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 		// comment won't accept templates and external links
 		comment : 'Import PAGASA tropical cyclone forecast map' + wiki_link
 				+ '. ' + (note ? note + ' ' : ''),
-		file_text_updater : media_data.variable_Map
+		page_text_updater : media_data.variable_Map
 	// PAGASA using the same media_url for specific tropical cyclone
 	// + media_url
 	}, media_data);

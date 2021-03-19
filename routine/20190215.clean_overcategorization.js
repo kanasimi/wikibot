@@ -25,25 +25,30 @@ wiki = Wiki(true, 'commons');
 
 // CeL.set_debug(6);
 
-wiki.cache({
-	// 檢查含有{{Template:Categorise}}之 Category: 頁面。
-	type : 'embeddedin',
-	reget : true,
-	list : 'Template:Categorise',
-	namespace : 'Category',
-	cache : false
-}, function(base_category_list) {
-	// 指定 category
-	// base_category_list = [ 'Category:Cultural heritage monuments in Italy' ];
+function main_work() {
+	wiki.cache({
+		// 檢查含有{{Template:Categorise}}之 Category: 頁面。
+		type : 'embeddedin',
+		reget : true,
+		list : 'Template:Categorise',
+		namespace : 'Category',
+		cache : false
+	}, function(base_category_list) {
+		// 指定 category
+		// base_category_list = [ 'Category:Cultural heritage monuments in
+		// Italy' ];
 
-	// 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
-	base_category_list.run_serial(for_each_base_category, finish);
+		// 因為每一個包含入{{Categorise}}基礎模板的處理量太大，只好採用序列方式執行。
+		base_category_list.run_serial(for_each_base_category, finish);
 
-}, {
-	// default options === this
-	// cache path prefix
-	prefix : base_directory
-});
+	}, {
+		// default options === this
+		// cache path prefix
+		prefix : base_directory
+	});
+}
+
+wiki.run(main_work);
 
 // ---------------------------------------------------------------------//
 

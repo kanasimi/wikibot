@@ -1690,7 +1690,7 @@ if (!modify_Wikipedia) {
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
 
-CeL.wiki.cache([ {
+var work_queue = [ {
 	type : 'callback',
 	file_name : 'common_title',
 	list : function(callback) {
@@ -1799,12 +1799,18 @@ CeL.wiki.cache([ {
 		label_data = data;
 	}
 
-} ], finish_wikidata_part, {
+} ];
 
-	// default options === this
-	// [SESSION_KEY]
-	session : wiki,
-	// title_prefix : 'Template:',
-	// cache path prefix
-	prefix : base_directory
-});
+function main_work() {
+	CeL.wiki.cache(work_queue, finish_wikidata_part, {
+
+		// default options === this
+		// [SESSION_KEY]
+		session : wiki,
+		// title_prefix : 'Template:',
+		// cache path prefix
+		prefix : base_directory
+	});
+}
+
+wiki.run(main_work);
