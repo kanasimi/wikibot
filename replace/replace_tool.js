@@ -1075,7 +1075,7 @@ async function get_list(task_configuration, list_configuration) {
 					if (task_configuration.move_to.display_text === '') {
 						// 應明確設定
 						CeL.error(`若您想消除特定 display_text，應將 move_to_link 設定為 ${JSON.stringify(task_configuration.move_to_link.replace(/\|$/, ''))}。`);
-					} else {
+					} else if (task_configuration.move_from.display_text) {
 						CeL.warn(`移動前後的頁面標題 ${JSON.stringify(list_configuration.move_from_link)} 相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！`);
 					}
 				}
@@ -1271,7 +1271,7 @@ function for_each_page(page_data) {
 
 // e.g., 'title': { for_each_link: replace_tool.remove_duplicated_display_text },
 function remove_duplicated_display_text(token, index, parent) {
-	if (token[2] && (token[0] + token[1]).trim() === CeL.wiki.get_plain_display_text(token[2]).trim()) {
+	if (token[2] && (token[0] + token[1]).trim() === CeL.wiki.wikitext_to_plain_text(token[2]).trim()) {
 		token.pop();
 	}
 }
@@ -1366,7 +1366,7 @@ function for_each_link(token, index, parent) {
 
 	if (!token[2]) {
 		;
-	} else if (!token[1] && CeL.wiki.get_plain_display_text(token[2], { normalize_title: true }) === this.move_to.page_title) {
+	} else if (!token[1] && CeL.wiki.normalize_title(CeL.wiki.wikitext_to_plain_text(token[2])) === this.move_to.page_title) {
 		// 去掉與頁面標題相同的 display_text。 preserve [[PH|pH]]
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
@@ -1540,18 +1540,24 @@ function for_each_template(page_data, token, index, parent) {
 		if (this.for_template) {
 			this.for_template.call(page_data, token, index, parent);
 		}
-		if (this.replace_parameters) {
-			if (CeL.is_Object(this.replace_parameters))
-				CeL.wiki.parse.replace_parameter(token, this.replace_parameters);
-			else
-				throw new TypeError('.replace_parameters is not a Object');
-		}
 		if (this.move_to_link === DELETE_PAGE) {
 			return remove_token;
 		}
-		if (this.move_to?.page_name && this.move_from.ns === this.wiki.namespace('Template')) {
+		if (this.replace_parameters) {
+			if (CeL.is_Object(this.replace_parameters)) {
+				// e.g., `{{リンク修正依頼/改名|options={"replace_parameters":{"from_parameter":"to_parameter"},"parameter_name_only":true} }}`
+				CeL.wiki.parse.replace_parameter(token, this.replace_parameters, this.parameter_name_only ? { parameter_name_only: this.parameter_name_only } : null);
+			} else {
+				throw new TypeError('.replace_parameters is not a Object');
+			}
+		}
+		if (this.move_to?.page_name
+			&& this.move_from.ns === this.move_to.ns
+			&& this.move_from.ns === this.wiki.namespace('Template')) {
 			// 直接替換模板名稱。
-			token[0] = this.move_to.page_name;
+			token[0] = this.move_to.page_name
+				// 保留模板名最後的換行。
+				+ token[0].toString().match(/\n?[ \t]*$/)[0];
 			return;
 		}
 	}

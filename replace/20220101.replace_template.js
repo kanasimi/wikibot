@@ -13,7 +13,7 @@ const replace_tool = require('./replace_tool.js');
 replace_tool.replace({
 	no_notice: true,
 
-	// Do not get move configuration from section.
+	// Do not use move configuration from section.
 	no_task_configuration_from_section: true,
 
 	language: 'ja',
