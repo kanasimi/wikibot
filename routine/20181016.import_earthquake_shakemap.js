@@ -213,6 +213,8 @@ function upload_media(media_data, product_data, detail) {
 		return;
 	}
 
+	media_data.variable_Map = new CeL.wiki.Variable_Map();
+
 	var place = product_data.properties['event-description'];
 	// e.g., "Northwest of the Kuril Islands",
 	// "Vancouver Island, Canada Region", "Fiji Region"
@@ -246,6 +248,8 @@ function upload_media(media_data, product_data, detail) {
 			+ product_data.properties.depth + ' km '
 			+ CeL.wiki.title_link_of(':en:depth of focus (tectonics)', 'depth')
 			+ '.' + '}}';
+
+	media_data.variable_Map.set('description', description);
 
 	var categories = [ (product_data.type === 'dyfi'
 	// also: [[Category:United States Geological Survey maps]]
