@@ -1003,7 +1003,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		// 縮小太長的使用者名稱。
 		: '<small style="word-wrap: break-word; word-break: break-all;">'
 		//
-		+ (CeL.wiki.parse.user.is_IP(user_name, true)
+		+ (CeL.is_IP(user_name, true)
 		// shorten IPv6 addresses.
 		? user_name.replace(
 		//
@@ -1014,15 +1014,15 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		// TODO: link to diff
 		user_shown = (additional_attributes ? '| ' : '')
 		// 對於匿名IP用戶則顯示編輯紀錄。
-		+ (CeL.wiki.parse.user.is_IP(user_name)
+		+ (CeL.is_IP(user_name)
 		//
 		? '[[Special:Contributions/' : '[[User:') + user_name + '|'
 		//
-		+ (CSS_toString(section.CSS) || CeL.wiki.parse.user.is_IP(user_name)
+		+ (CSS_toString(section.CSS) || CeL.is_IP(user_name)
 		//
 		? '<span style="'
 		//
-		+ (CeL.wiki.parse.user.is_IP(user_name) ? 'color: #f82;' : '')
+		+ (CeL.is_IP(user_name) ? 'color: #f82;' : '')
 		//
 		+ CSS_toString(section.CSS) + '">' + user_shown + '</span>'
 		//

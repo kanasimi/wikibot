@@ -887,7 +887,10 @@ function for_each_row(row) {
 
 		added_signs_or_notice++;
 
-		var is_IP_user = CeL.wiki.parse.user.is_IP(row.user);
+		// 由使用者名稱來檢測匿名使用者/未註冊用戶 [[WP:IP]]
+		// [[m:Special:MyLanguage/Tech/News/2021/05]]
+		// 在diffs中，IPv6位址被寫成了小寫字母。這導致了死連結，因為Special:使用者貢獻只接受大寫的IP。這個問題已經被修正。
+		var is_IP_user = CeL.is_IP(row.user);
 
 		check_log.push([ (/([12]\d{3})年(1?\d)月([1-3]?\d)日 /.test(last_token)
 		//
