@@ -787,11 +787,12 @@ async function check_page(target_page_data, options) {
 			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		}
 
+		//console.trace(anchor_token);
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			//Notification of broken anchor
 			notification_name: 'anchor-fixing',
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
-			//bot: 1,
+			bot: 1,
 			//minor: 1,
 			//nocreate: false,
 			allow_empty: 1,
