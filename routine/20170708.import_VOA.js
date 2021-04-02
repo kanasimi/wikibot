@@ -22,6 +22,9 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'wikinews');
 
+// The user is waiting online.
+wiki.edit_time_interval = 0;
+
 // ----------------------------------------------------------------------------
 
 var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*#:]?\s*(https?:\/\/[^\s]+)(\s[^\n]*)?/g;
