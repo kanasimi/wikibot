@@ -24,7 +24,7 @@ const main_category = 'Category:公共轉換組模板';
 const report_base = 'Wikipedia:字詞轉換處理/公共轉換組/';
 const conversion_list_page = report_base + '各頁面包含字詞';
 const duplicated_report_page = report_base + '重複字詞報告';
-const conversion_table_file = 'conversion_table.' + use_language + '.json';
+const conversion_table_file = `conversion_table.${use_language}.json`;
 
 // ----------------------------------------------------------------------------
 
@@ -58,6 +58,9 @@ async function main_process() {
 		).unique();
 	}
 	//console.log(conversion_of_group.Popes);
+	await wiki.register_redirects('NoteTA', {
+		namespace: 'Template'
+	});
 	await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA', { namespace: 0 }), for_NoteTA_article, {
 		no_message: true,
 		summary: '[[Wikipedia:机器人/申请/Cewbot/24|去除重複的轉換規則]]:'
@@ -140,7 +143,7 @@ async function check_CGroup_pages() {
 		.filter(page_data => page_data.ns === NS_MediaWiki
 			|| page_data.ns === NS_Module
 			|| page_data.ns === NS_Template);
-	CeL.info('Traversal ' + conversion_group_list.length + ' CGroup pages...');
+	CeL.info(`Traversal ${conversion_group_list.length} CGroup pages...`);
 	// console.log(conversion_group);
 	await wiki.for_each_page(conversion_group_list, for_each_conversion_group_page, { index: 0, conversion_group_list });
 }
@@ -201,7 +204,7 @@ function add_conversion(item, from_page) {
 	if (!item || item.type !== 'item')
 		return;
 
-	const parsed = CeL.wiki.parse('-{H|' + item.rule + '}-',
+	const parsed = CeL.wiki.parse(`-{H|${item.rule}}-`,
 		// 當作 page，取得 .conversion_table。
 		'with_properties');
 	let table = parsed.conversion_table;
@@ -267,7 +270,7 @@ async function for_each_conversion_group_page(page_data) {
 	const conversion_list = CeL.wiki.template_functions.parse_conversions(page_data);
 	conversion_list.forEach(conversion => add_conversion(conversion.item, page_data));
 	CeL.info(++this.index + '/' + this.conversion_group_list.length
-		+ ': ' + CeL.wiki.title_link_of(page_data) + ': ' + conversion_list.length + ' items.');
+		+ ' ' + CeL.wiki.title_link_of(page_data) + ': ' + conversion_list.length + ' items.');
 }
 
 // ----------------------------------------------------------------------------
@@ -279,14 +282,14 @@ function ascending(a, b) {
 }
 
 async function write_conversion_list() {
-	CeL.info('Writing report to ' + CeL.wiki.title_link_of(conversion_list_page) + '...');
+	CeL.info(`Writing report to ${CeL.wiki.title_link_of(conversion_list_page)}...`);
 	const report_lines = [];
 	for (let [page_title, conversion_list] of Object.entries(conversion_of_page)) {
 		conversion_list = Object.keys(conversion_list).sort()
 			// needless: .unique()
 			;
-		report_lines.push([CeL.wiki.title_link_of(page_title) + ' (' + conversion_list.length + ')',
-		'data-sort-value="' + conversion_list.length + '"|' + conversion_list.join('; ')]);
+		report_lines.push([CeL.wiki.title_link_of(page_title) + ` (${conversion_list.length})`,
+		`data-sort-value="${conversion_list.length}"|` + conversion_list.join('; ')]);
 	}
 	const report_count = report_lines.length;
 	report_lines.sort(ascending);
@@ -300,11 +303,11 @@ async function write_conversion_list() {
 }
 
 async function write_duplicated_report() {
-	CeL.info('Writing report to ' + CeL.wiki.title_link_of(duplicated_report_page) + '...');
+	CeL.info(`Writing report to ${CeL.wiki.title_link_of(duplicated_report_page)}...`);
 	const report_lines = [];
 	for (let [vocabulary, page_list] of Object.entries(duplicated_items)) {
 		page_list = page_list.sort().unique();
-		report_lines.push([vocabulary, 'data-sort-value="' + page_list.length + '"|' + page_list.length + ': ' + page_list.join(', ')]);
+		report_lines.push([vocabulary, `data-sort-value="${page_list.length}"|${page_list.length}: ` + page_list.join(', ')]);
 	}
 
 	const report_count = report_lines.length;
@@ -325,7 +328,7 @@ async function write_duplicated_report() {
 
 async function update_report(report_page, report_wikitext, introduction, summary) {
 	const update_Variable_Map = new CeL.wiki.Variable_Map();
-	update_Variable_Map.set('report', '\n' + report_wikitext + '\n');
+	update_Variable_Map.set('report', `\n${report_wikitext}\n`);
 	update_Variable_Map.set('timestamp', {
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		wikitext: '<onlyinclude>~~~~~</onlyinclude>',
@@ -356,7 +359,7 @@ ${update_Variable_Map.format('report')}
 // ----------------------------------------------------------------------------
 
 async function for_NoteTA_article(page_data) {
-	// conversion_hash[conversion rule] = [ token ];
+	// conversion_hash[conversion rule] = {Array}token || {String}group || {Array}conversion token;
 	const conversion_hash = Object.create(null);
 	// page 本身的 -{A|}, -{H|}
 	const conversion_list = CeL.wiki.template_functions.parse_conversions(page_data);
@@ -378,6 +381,7 @@ async function for_NoteTA_article(page_data) {
 		token.conversion_list.forEach(
 			conversion => conversion_hash[conversion.toString('rule')] = token
 		);
+		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
 		token.conversion_list.groups.forEach(
 			// assert: {String}group
 			group => conversion_of_group[group].forEach(
@@ -428,6 +432,30 @@ async function for_NoteTA_article(page_data) {
 		}
 	}, true);
 
+	const conversion_rule_list = Object.keys(conversion_hash);
+	function test_convert_to(_convert_to, index, parent) {
+		let test_piece;
+		// 測試與前一段文字合起來時，會不會被轉換。
+		test_piece = parent[index - 1]
+		if (test_piece && typeof test_piece === 'string') {
+			test_piece = test_piece.slice(-1) + _convert_to.slice(0, 1);
+			if (conversion_rule_list.some(rule => rule.includes(test_piece)))
+				return;
+		}
+		// 測試與後一段文字合起來時，會不會被轉換。
+		test_piece = parent[index + 1];
+		if (test_piece && typeof test_piece === 'string') {
+			test_piece = _convert_to.slice(-1) + test_piece.slice(0, 1);
+			if (conversion_rule_list.some(rule => rule.includes(test_piece)))
+				return;
+		}
+		// 有合適的才做轉換，否則放棄轉換。
+		if (_convert_to) {
+			convert_to = _convert_to;
+			return true;
+		}
+	}
+
 	parsed.each('convert', (token, index, parent) => {
 		if (token.flag === 'A') {
 			// TODO: move -{A|...}- to {{NoteTA}}
@@ -436,6 +464,28 @@ async function for_NoteTA_article(page_data) {
 
 		const rule = token.toString('rule');
 		if (!(rule in conversion_hash)) {
+			return;
+		}
+
+		// TODO: parent.type === 'link' [[P|-{...}-]]
+		if (typeof token.converted === 'string') {
+			test_convert_to(token.converted, index, parent);
+
+		} else if (CeL.is_Object(token.converted)) {
+			function test_language_code(language_code) {
+				return test_convert_to(token.conversion[language_code], index, parent);
+			}
+
+			// 先採用繁體以減少產生歧義的機會。
+			if (!['zh-tw', 'zh-hant', 'zh-hk'].some(test_language_code)) {
+				for (const language_code in token.conversion) {
+					if (test_language_code(language_code))
+						break;
+				}
+			}
+		}
+
+		if (!convert_to) {
 			return;
 		}
 
@@ -449,12 +499,6 @@ async function for_NoteTA_article(page_data) {
 			duplicate_list['與{{NoteTA}}重複的內文轉換'].push(rule);
 		}
 		changed = true;
-		// TODO: parent.type === 'link' [[P|-{...}-]]
-		let convert_to = token.conversion['zh-tw'] || token.conversion['zh-hant'] || token.conversion['zh-hk']
-			|| typeof token.converted === 'string' && token.converted;
-		for (const language_code in token.conversion) {
-			convert_to = token.conversion[language_code];
-		}
 		return convert_to;
 	}, true);
 
