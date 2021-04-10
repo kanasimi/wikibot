@@ -359,14 +359,15 @@ ${update_Variable_Map.format('report')}
 // ----------------------------------------------------------------------------
 
 async function for_NoteTA_article(page_data) {
+	const parsed = page_data.parse();
+	CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
+
 	// conversion_hash[conversion rule] = {Array}token || {String}group || {Array}conversion token;
 	const conversion_hash = Object.create(null);
 	// page 本身的 -{A|}, -{H|}
 	const conversion_list = CeL.wiki.template_functions.parse_conversions(page_data);
 	//console.log([page_data.title, conversion_list]);
-
-	const parsed = page_data.parse();
-	CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
+	//OK: return Wikiapi.skip_edit;
 
 	parsed.each('Template:NoteTA', token => {
 		if (false) {
@@ -383,12 +384,15 @@ async function for_NoteTA_article(page_data) {
 		);
 		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
 		token.conversion_list.groups.forEach(
-			// assert: {String}group
+			// assert: {String}group && {Array}conversion_of_group[group]
 			group => conversion_of_group[group].forEach(
 				rule => conversion_hash[rule] = group
 			)
 		);
 	});
+	//無用 一樣會記憶體洩漏
+	//Object.clean(conversion_hash);
+	//Object.clean(conversion_list);
 
 	conversion_list.forEach(conversion => {
 		const rule = conversion.toString('rule');
@@ -402,7 +406,7 @@ async function for_NoteTA_article(page_data) {
 	const duplicate_list = {
 		與公共轉換組重複的轉換規則: [],
 		'與{{NoteTA}}重複的內文轉換': [],
-		與內文轉換重複的字詞轉換: []
+		與內文之全文轉換重複的字詞轉換: []
 	};
 	parsed.each('Template:NoteTA', token => {
 		let _changed;
@@ -433,10 +437,15 @@ async function for_NoteTA_article(page_data) {
 	}, true);
 
 	const conversion_rule_list = Object.keys(conversion_hash);
+	// 有合適的才轉換，否則放棄轉換。
 	function test_convert_to(_convert_to, index, parent) {
+		if (!_convert_to || convert_to) {
+			return;
+		}
+
 		let test_piece;
 		// 測試與前一段文字合起來時，會不會被轉換。
-		test_piece = parent[index - 1]
+		test_piece = parent[index - 1];
 		if (test_piece && typeof test_piece === 'string') {
 			test_piece = test_piece.slice(-1) + _convert_to.slice(0, 1);
 			if (conversion_rule_list.some(rule => rule.includes(test_piece)))
@@ -449,11 +458,9 @@ async function for_NoteTA_article(page_data) {
 			if (conversion_rule_list.some(rule => rule.includes(test_piece)))
 				return;
 		}
-		// 有合適的才做轉換，否則放棄轉換。
-		if (_convert_to) {
-			convert_to = _convert_to;
-			return true;
-		}
+
+		convert_to = _convert_to;
+		return true;
 	}
 
 	parsed.each('convert', (token, index, parent) => {
@@ -493,7 +500,7 @@ async function for_NoteTA_article(page_data) {
 		if (typeof source === 'string') {
 			duplicate_list.與公共轉換組重複的轉換規則.push(rule);
 		} else if (source.type === 'convert') {
-			duplicate_list.與內文轉換重複的字詞轉換.push(rule);
+			duplicate_list.與內文之全文轉換重複的字詞轉換.push(rule);
 		} else {
 			// assert: source.type === 'transclusion'
 			duplicate_list['與{{NoteTA}}重複的內文轉換'].push(rule);
@@ -502,7 +509,19 @@ async function for_NoteTA_article(page_data) {
 		return convert_to;
 	}, true);
 
+	//free
+	//無用 一樣會記憶體洩漏
+	function clean_memory() {
+		Object.clean(conversion_hash);
+		Object.clean(conversion_list);
+		Object.clean(duplicate_list, 2);
+
+		Object.clean(parsed);
+		parsed = conversion_hash = conversion_list = duplicate_list = null;
+		delete page_data.parsed;
+	}
 	if (!changed) {
+		//clean_memory();
 		return Wikiapi.skip_edit;
 	}
 
@@ -514,5 +533,9 @@ async function for_NoteTA_article(page_data) {
 			this.summary += ': ' + list[0];
 		//else: list.length > 1
 	}
+
 	return parsed.toString();
+	const wikitext = parsed.toString();
+	clean_memory();
+	return wikitext;
 }
