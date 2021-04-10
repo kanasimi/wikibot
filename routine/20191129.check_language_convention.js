@@ -390,9 +390,6 @@ async function for_NoteTA_article(page_data) {
 			)
 		);
 	});
-	//無用 一樣會記憶體洩漏
-	//Object.clean(conversion_hash);
-	//Object.clean(conversion_list);
 
 	conversion_list.forEach(conversion => {
 		const rule = conversion.toString('rule');
@@ -509,19 +506,7 @@ async function for_NoteTA_article(page_data) {
 		return convert_to;
 	}, true);
 
-	//free
-	//無用 一樣會記憶體洩漏
-	function clean_memory() {
-		Object.clean(conversion_hash);
-		Object.clean(conversion_list);
-		Object.clean(duplicate_list, 2);
-
-		Object.clean(parsed);
-		parsed = conversion_hash = conversion_list = duplicate_list = null;
-		delete page_data.parsed;
-	}
 	if (!changed) {
-		//clean_memory();
 		return Wikiapi.skip_edit;
 	}
 
@@ -535,7 +520,4 @@ async function for_NoteTA_article(page_data) {
 	}
 
 	return parsed.toString();
-	const wikitext = parsed.toString();
-	clean_memory();
-	return wikitext;
 }
