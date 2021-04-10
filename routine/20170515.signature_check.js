@@ -148,7 +148,7 @@ PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来
 PATTERN_revert_or_bot_summary = /還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
 //
 ignore_tags = [ 'mw-rollback', 'mw-reverted', 'mw-undo', 'mw-manual-revert',
-		'mw-blank', 'mw-blank', 'mw-new-redirect' ],
+		'mw-blank', 'mw-blank', 'mw-new-redirect', 'mw-replace' ],
 // 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
 // 請機器人注意: 本頁面不採用補簽名
 PATTERN_ignore = /本頁面不.{0,3}補簽名/,
