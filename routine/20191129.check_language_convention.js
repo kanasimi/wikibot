@@ -37,6 +37,7 @@ const conversion_table_file = `conversion_table.${use_language}.json`;
 async function main_process() {
 	// TODO: add 內置轉換列表
 	// https://doc.wikimedia.org/mediawiki-core/master/php/ZhConversion_8php_source.html
+	// [[Help:高级字词转换语法#基本语法]]
 	await check_system_pages();
 	await check_CGroup_pages();
 
@@ -46,18 +47,28 @@ async function main_process() {
 
 	CeL.write_file(conversion_table_file, conversion_table);
 	CeL.info(pages + ' pages, ' + items + ' items.');
-	// Array.isArray(conversion_of_group.Popes);
-	// console.log(conversion_of_group.Popes);
 
+	// ---------------------------------------------
+
+	//console.log(JSON.stringify(conversion_of_group.Movie));
+	// Array.isArray(conversion_of_group[group_name])
+	// → conversion_of_group[group_name] = [ normalized rule, normalized rule, ... ]
 	for (const group_name in conversion_of_group) {
 		conversion_of_group[group_name] = Object.values(conversion_of_group[group_name]).map(
-			item => Object.entries(item)
-				.map(([language_code, words]) => language_code + ':' + words)
+			item => (
+				item[KEY_rule]
+					// 指定僅轉換某些特殊詞彙。
+					? item[KEY_rule].split(';')
+						.map(conversion => conversion.trim())
+					: Object.entries(item)
+						.map(([language_code, words]) => language_code + ':' + words)
+			)
 				.filter(conversion => !!conversion)
 				.sort().join(';')
 		).unique();
 	}
-	//console.log(conversion_of_group.Popes);
+	//console.log(conversion_of_group.Movie);
+
 	await wiki.register_redirects('NoteTA', {
 		namespace: 'Template'
 	});
@@ -131,9 +142,9 @@ async function check_CGroup_pages() {
 	}
 	add_page(category_tree);
 
-	for (const [name, page_data] of Object.entries(deprecated_pages)) {
-		if (conversion_group[name] && conversion_group[name].title === page_data.title)
-			delete conversion_group[name];
+	for (const [group_name, page_data] of Object.entries(deprecated_pages)) {
+		if (conversion_group[group_name] && conversion_group[group_name].title === page_data.title)
+			delete conversion_group[group_name];
 	}
 	// console.log(deprecated_pages);
 	// free
@@ -151,6 +162,7 @@ async function check_CGroup_pages() {
 // ----------------------------------------------------------------------------
 
 const KEY_page = Symbol('page');
+const KEY_rule = Symbol('rule');
 
 // conversion_table[vocabulary] = {'zh-tw':'vocabulary', ...}
 const conversion_table = Object.create(null);
@@ -158,6 +170,7 @@ const conversion_table = Object.create(null);
 // conversion_of_page[page_title][vocabulary] = {'zh-tw':'vocabulary', ...};
 const conversion_of_page = Object.create(null);
 // conversion_of_group[group_name][vocabulary] = {'zh-tw':'vocabulary', ...};
+// → conversion_of_group[group_name] = [ normalized rule, normalized rule, ... ]
 const conversion_of_group = Object.create(null);
 
 // duplicated_items[vocabulary] = [ pages ]
@@ -196,6 +209,10 @@ function add_duplicated(vocabulary, from_conversion, to_conversion) {
 			CeL.wiki.title_link_of(to_conversion[KEY_page])
 		];
 	}
+	if (!from_conversion[KEY_page])
+		console.trace(from_conversion)
+	if (!to_conversion[KEY_page])
+		console.trace(to_conversion)
 }
 
 function add_conversion(item, from_page) {
@@ -207,8 +224,8 @@ function add_conversion(item, from_page) {
 	const parsed = CeL.wiki.parse(`-{H|${item.rule}}-`,
 		// 當作 page，取得 .conversion_table。
 		'with_properties');
-	let table = parsed.conversion_table;
-	if (!table) {
+	let page_conversion_table = parsed.conversion_table;
+	if (!page_conversion_table) {
 		const converted = parsed.converted;
 		if (typeof converted === 'string') {
 			/**
@@ -219,7 +236,7 @@ function add_conversion(item, from_page) {
 
 			</code>
 			 */
-			table = { [converted]: { converted } };
+			page_conversion_table = { [converted]: { converted } };
 		} else {
 			/**
 			 * e.g.,<code>
@@ -234,22 +251,26 @@ function add_conversion(item, from_page) {
 			return;
 		}
 	}
-	// console.log(table);
+	// console.log(page_conversion_table);
 
-	for (let [vocabulary, conv] of Object.entries(table)) {
+	for (let [vocabulary, conv] of Object.entries(page_conversion_table)) {
 		if (conv.conversion)
 			conv = conv.conversion;
 		// console.log([vocabulary, conv]);
 
 		if (!conversion_of_page[from_page.title]) {
 			conversion_of_group[get_group_name_of_page(from_page)]
-				//
-				= conversion_of_page[from_page.title] = [];
+				= conversion_of_page[from_page.title]
+				= Object.create(null);
 		}
 		// 後出現者為準。
 		conversion_of_page[from_page.title][vocabulary] = conv;
 
 		conv[KEY_page] = from_page.title;
+		if (parsed.unidirectional) {
+			// 指定僅轉換某些特殊詞彙。
+			conv[KEY_rule] = item.rule.toString();
+		}
 		if ((vocabulary in conversion_table)
 			&& conversion_table[vocabulary][KEY_page] !== conv[KEY_page]) {
 			add_duplicated(vocabulary, conversion_table[vocabulary], conv);
@@ -384,9 +405,9 @@ async function for_NoteTA_article(page_data) {
 		);
 		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
 		token.conversion_list.groups.forEach(
-			// assert: {String}group && {Array}conversion_of_group[group]
-			group => conversion_of_group[group].forEach(
-				rule => conversion_hash[rule] = group
+			// assert: {String}group && {Array}conversion_of_group[group_name]
+			group_name => conversion_of_group[group_name].forEach(
+				rule => conversion_hash[rule] = group_name
 			)
 		);
 	});
