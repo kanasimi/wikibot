@@ -98,11 +98,10 @@ notification_limit_count = 3,
 project_name = CeL.wiki.site_name(wiki),
 //
 project_page_prefix = {
-	zhwiki : 'Wikipedia:',
 	zh_classicalwiki : '維基大典:',
 	zhwikinews : 'Wikinews:',
 	zhwikisource : 'Wikisource:'
-}[project_name],
+}[project_name] || 'Wikipedia:',
 
 // 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
 // whitelist e.g., [[Wikipedia:頁面存廢討論/*]]
@@ -467,7 +466,7 @@ function for_each_row(row) {
 
 	// -----------------------------------------------------
 
-	var check_log = [], added_signs_or_notice = 0, last_processed_index, queued_start, is_no_link_user, is_unsigned_user;
+	var check_log = [], added_signs_or_notice = 0, write_to_log = project_name !== 'simplewiki', last_processed_index, queued_start, is_no_link_user, is_unsigned_user;
 
 	// 對於頁面每個修改的部分，比較頁面修訂差異。
 	// 有些可能只是搬移，只要任何一行有簽名即可。
@@ -972,7 +971,7 @@ function for_each_row(row) {
 		//
 		);
 
-		if (added_signs_or_notice || test_mode) {
+		if (write_to_log && added_signs_or_notice || test_mode) {
 			// 有做動作的時候才記錄，避免記錄過於繁雜。
 			wiki.page(log_to, {
 				redirects : 1
