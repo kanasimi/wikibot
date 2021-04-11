@@ -404,7 +404,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 	if (meta_configuration.diff_id) {
 	} else if (section_title) {
-		process.stdout.write(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)} ...\r`);
+		CeL.log_temporary(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)}`);
 		const requests_page_data = await wiki.page(requests_page, {
 			redirects: 1,
 			// rvprop: 'ids|comment|user|content',
@@ -417,7 +417,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 		if (!meta_configuration.diff_id) {
 			// get diff_id from content
-			process.stdout.write(`Get ${rvlimit} revisions of ${CeL.wiki.title_link_of(requests_page)} ...\r`);
+			CeL.log_temporary(`Get ${rvlimit} revisions of ${CeL.wiki.title_link_of(requests_page)}`);
 			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
 				rvprop: 'ids|comment|user|content',
@@ -735,6 +735,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				&& initial_char_to.toLowerCase() !== initial_char_to.toUpperCase();
 		}
 
+		// TODO: [[ジェイソン・チャンドラー・ウィリアムス]]→[[ジェイソン・ウィリアムス (1975年生のバスケットボール選手)|ジェイソン・ウィリアムス]]
 		if (!('keep_display_text' in task_configuration) && typeof task_configuration.move_to_link === 'string'
 			// incase → [[title|display text]]
 			&& !task_configuration.move_to_link.includes('|')
@@ -964,6 +965,15 @@ async function get_list(task_configuration, list_configuration) {
 		list_configuration = { move_from_link: list_configuration };
 	}
 
+	// 利用 `list_configuration.list` 可以直接指定要使用的頁面列表 `page_list`。
+	if (typeof list_configuration.list === 'function') {
+		list_configuration.list = await list_configuration.list(task_configuration);
+	}
+
+	if (Array.isArray(list_configuration.list)) {
+		return list_configuration.list;
+	}
+
 	const wiki = task_configuration.wiki;
 
 	let list_types;
@@ -1138,7 +1148,7 @@ async function get_list(task_configuration, list_configuration) {
 				list_segment = list_segment.filter(list_filter);
 			}
 			page_list.append(list_segment);
-			process.stdout.write(`${list_title}: ${page_list.length} pages...\r`);
+			CeL.log_temporary(`${list_title}: ${page_list.length} pages`);
 		}
 
 		if (false) {
@@ -1304,13 +1314,13 @@ function for_each_link(token, index, parent) {
 		if (token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main')) {
 			if (this.move_from.ns !== this.wiki.namespace('Main')) {
 				// 直接只使用 displayed_text。
-				CeL.info(`Using displayed text directly: ${CeL.wiki.title_link_of(this.page_data)}`);
+				CeL.info(`${for_each_link.name}: Using displayed text directly: ${CeL.wiki.title_link_of(this.page_data)}`);
 			}
 			// リンクを外してその文字列にして
 			parent[index] = token[2] || token[0];
 		} else {
 			// e.g., リダイレクト解消
-			CeL.assert(token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main'), 'for_each_link: namesapce must be main when delete page');
+			CeL.assert(token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main'), `${for_each_link.name}: namesapce must be main when delete page`);
 		}
 		return;
 	}
@@ -1325,7 +1335,7 @@ function for_each_link(token, index, parent) {
 		// e.g., [[.move_from.page_title]] →
 		// [[move_to_link|.move_from.page_title]]
 		// [[.move_from.page_title|顯示名稱]] → [[move_to_link|顯示名稱]]
-		CeL.assert(this.move_from.ns === this.wiki.namespace('Main') || this.move_from.ns === this.wiki.namespace('Category'), 'for_each_link: keep_display_text: Must be article (namesapce: main) or Category');
+		CeL.assert(this.move_from.ns === this.wiki.namespace('Main') || this.move_from.ns === this.wiki.namespace('Category'), `${for_each_link.name}: keep_display_text: Must be article (namesapce: main) or Category`);
 		// 將原先的頁面名稱轉成顯示名稱。
 		// keep original title
 		if (!token[2]) token[2] = token[0];
@@ -1534,12 +1544,20 @@ function replace_link_parameter(task_configuration, template_token, template_has
 }
 
 function for_each_template(page_data, token, index, parent) {
-
-	if (this.wiki.is_template(this.move_from.page_name, token)) {
-		// for target template
-		if (this.for_template) {
-			this.for_template.call(page_data, token, index, parent);
+	const is_move_from = this.move_from && this.wiki.is_template(this.move_from.page_name, token);
+	if ((!this.move_from || is_move_from) && this.for_template
+		// this.for_template() return: 改變內容，之後會做善後處理。
+		&& true === this.for_template.call(page_data, token, index, parent)) {
+		// 刪除掉所有空白參數。
+		for (let index = token.length; index > 1;) {
+			if (!token[--index])
+				token.splice(index, 1);
 		}
+		parent[index] = token = CeL.wiki.parse(token.toString());
+	}
+
+	if (is_move_from) {
+		// options for target template
 		if (this.move_to_link === DELETE_PAGE) {
 			return remove_token;
 		}

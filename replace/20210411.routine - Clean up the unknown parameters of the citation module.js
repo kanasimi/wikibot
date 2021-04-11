@@ -4,7 +4,8 @@
 const replace_tool = require('./replace_tool.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
-//set_language('zh');
+set_language('zh');
+
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
@@ -51,18 +52,12 @@ function for_template(token, index, parent) {
 
 	let changed;
 	['df'].forEach(parameter => {
-		if (parameter in token.index_of) {
-			token[token.index_of[parameter]] = '';
+		const index = token.index_of[parameter];
+		if (index) {
+			token[index] = '';
 			changed = true;
 		}
 	});
 
-	if (!changed) {
-		return;
-	}
-
-	for (let index = token.length; index > 1;) {
-		if (!token[--index])
-			token.splice(index, 1);
-	}
+	return changed;
 }
