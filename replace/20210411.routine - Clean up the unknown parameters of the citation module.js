@@ -9,7 +9,8 @@ set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-let citation_template_list = [];
+/** {Array}引文格式1模板 */
+let citation_template_list;
 
 // ----------------------------------------------
 
@@ -21,33 +22,51 @@ async function adapt_configuration(latest_task_configuration) {
 	// ----------------------------------------------------
 
 	const { general } = latest_task_configuration;
-
-	citation_template_list = await wiki.embeddedin('Module:Citation/CS1');
 }
 
 // ----------------------------------------------------------------------------
 
 (async () => {
-	login_options.configuration_adapter = adapt_configuration;
-	//console.log(login_options);
+	//login_options.configuration_adapter = adapt_configuration;
 	await wiki.login(login_options);
-	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
 
 // ----------------------------------------------------------------------------
 
+async function setup_citation_template_list() {
+	// get from [[Category:引用模板]]
+	let citation_templates = Object.create(null);
+	(await wiki.categorymembers('Category:引用模板', { namespace: 'Template' }))
+		.forEach(page_data => citation_templates[page_data.title] = null);
+	// 取交集。
+	citation_templates = (await wiki.embeddedin('Module:Citation/CS1', { namespace: 'Template' }))
+		.filter(page_data => page_data.title in citation_templates).map(page_data => page_data.title);
+
+	await wiki.register_redirects(citation_templates);
+
+	citation_template_list = wiki.redirect_target_of(citation_templates);
+	//console.trace(citation_template_list);
+}
+
 async function main_process() {
-	await replace_tool.replace(null, {
+	await setup_citation_template_list();
+
+	await replace_tool.replace({
+		use_language,
+		not_bot_requests: true,
+		summary: '[[Wikipedia:机器人/申请/Cewbot/25|清理引文模組未知參數]]',
+	}, {
 		'Category:含有未知参数的引用的页面': {
 			namespace: 0,
-			for_template
+			for_template,
+			list_types: 'categorymembers',
 		}
 	});
 }
 
 function for_template(token, index, parent) {
-	if (!wiki.is_template(token, citation_template_list))
+	if (!wiki.is_template(citation_template_list, token))
 		return;
 
 	let changed;

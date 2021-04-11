@@ -672,7 +672,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration.wiki;
 
-	await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
+	if (!meta_configuration.not_bot_requests)
+		await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
 
 	if (!meta_configuration.no_notice)
 		await notice_to_edit(wiki, meta_configuration);
@@ -989,7 +990,9 @@ async function get_list(task_configuration, list_configuration) {
 	} else if (/^(https?:)\/\//.test(list_configuration.move_from_link)) {
 		// should have task_configuration.text_processor()
 		list_types = 'exturlusage';
-	} else if (!task_configuration.move_to_link && task_configuration.for_template) {
+	} else if (!task_configuration.move_to_link && task_configuration.for_template
+		//&& wiki.is_namespace(task_configuration.move_from_link, 'Template')
+	) {
 		// replace template only.
 		list_types = 'embeddedin';
 	} else {
@@ -1039,7 +1042,7 @@ async function get_list(task_configuration, list_configuration) {
 				...parse_move_link(list_configuration.move_from_link, wiki),
 				...list_configuration.move_from
 			};
-			// console.log(task_configuration.move_from);
+			// console.trace(task_configuration.move_from);
 			if (list_configuration.move_from.ns !== wiki.namespace('Category')) {
 				list_types = list_types.filter(type => type !== 'categorymembers');
 				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
@@ -1544,8 +1547,9 @@ function replace_link_parameter(task_configuration, template_token, template_has
 }
 
 function for_each_template(page_data, token, index, parent) {
-	const is_move_from = this.move_from && this.wiki.is_template(this.move_from.page_name, token);
-	if ((!this.move_from || is_move_from) && this.for_template
+	const move_from_is_not_template = !this.move_from || this.move_from.ns && this.move_from.ns !== this.wiki.namespace('Template');
+	const is_move_from = !move_from_is_not_template && this.wiki.is_template(this.move_from.page_name, token);
+	if ((move_from_is_not_template || is_move_from) && this.for_template
 		// this.for_template() return: 改變內容，之後會做善後處理。
 		&& true === this.for_template.call(page_data, token, index, parent)) {
 		// 刪除掉所有空白參數。
