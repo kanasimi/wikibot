@@ -787,7 +787,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		} else if (Array.isArray(diff_id) && diff_id.length === 2) {
 			diff_id = diff_id.sort().join('/');
 		}
-		if (typeof diff_id === 'string') {
+		if (meta_configuration.not_bot_requests) {
+			// Skip check
+		} else if (typeof diff_id === 'string') {
 			diff_id = diff_id.match(/^(\d+)\/(\d+)$/);
 			if (!diff_id) {
 				CeL.warn(`prepare_operation: Invalid diff_id: ${diff_id}`);
@@ -809,16 +811,18 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			summary: String(task_configuration.summary || summary),
 			log_to: _log_to ? ' - ' + CeL.wiki.title_link_of(_log_to, 'log') : ''
 		};
-		task_configuration.summary.diff_to_add = CeL.wiki.title_link_of(
-			diff_id ? `Special:Diff/${diff_id}${_section_title}`
+		if (!meta_configuration.not_bot_requests) {
+			task_configuration.summary.diff_to_add = CeL.wiki.title_link_of(
+				diff_id ? `Special:Diff/${diff_id}${_section_title}`
+					// Speedy renaming or speedy merging
+					: meta_configuration.speedy_criteria === 'merging' ? 'WP:CFDS'
+						: meta_configuration.requests_page || bot_requests_page,
+				// [[Wikipedia:Categories for discussion/Speedy]]
 				// Speedy renaming or speedy merging
-				: meta_configuration.speedy_criteria === 'merging' ? 'WP:CFDS'
-					: meta_configuration.requests_page || bot_requests_page,
-			// [[Wikipedia:Categories for discussion/Speedy]]
-			// Speedy renaming or speedy merging
-			meta_configuration.speedy_criteria ? 'Speedy ' + meta_configuration.speedy_criteria
-				: use_language === 'zh' ? '機器人作業請求'
-					: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request');
+				meta_configuration.speedy_criteria ? 'Speedy ' + meta_configuration.speedy_criteria
+					: use_language === 'zh' ? '機器人作業請求'
+						: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request');
+		}
 		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
 			task_configuration.summary.title_to_add = '';
 		} else if (move_configuration.length === 1
@@ -828,8 +832,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		} else {
 			task_configuration.summary.title_to_add = ` (${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
 		}
-		task_configuration.summary = task_configuration.summary.diff_to_add
-			+ ': ' + task_configuration.summary.summary
+		task_configuration.summary = (task_configuration.summary.diff_to_add
+			? task_configuration.summary.diff_to_add + ': ' : '')
+			+ task_configuration.summary.summary
 			+ task_configuration.summary.title_to_add
 			+ task_configuration.summary.log_to;
 		//console.trace(task_configuration.summary);
@@ -1219,7 +1224,8 @@ async function main_move_process(task_configuration, meta_configuration) {
 	//console.log(page_list.slice(0, 10));
 
 	const wiki = task_configuration.wiki;
-	const work_options = {
+	const work_config = {
+		task_configuration,
 		// for 「株式会社リクルートホールディングス」の修正
 		// for リクルートをパイプリンクにする
 		// page_options: { rvprop: 'ids|content|timestamp|user' },
@@ -1227,18 +1233,24 @@ async function main_move_process(task_configuration, meta_configuration) {
 		summary: task_configuration.summary
 	};
 	for (const option of work_option_switches) {
-		//work_options[option] = task_configuration[option] ?? meta_configuration[option];
+		//work_config[option] = task_configuration[option] ?? meta_configuration[option];
 		if (option in task_configuration) {
-			work_options[option] = task_configuration[option];
+			work_config[option] = task_configuration[option];
 		} else if (option in meta_configuration) {
-			work_options[option] = meta_configuration[option];
+			work_config[option] = meta_configuration[option];
 		}
 	}
-	//console.trace(work_options);
+	//console.trace(work_config);
 	if (typeof task_configuration.before_get_pages === 'function') {
-		await task_configuration.before_get_pages(page_list, work_options, { meta_configuration, bot_requests_page });
+		await task_configuration.before_get_pages(page_list, work_config, { meta_configuration, bot_requests_page });
 	}
-	await wiki.for_each_page(page_list, for_each_page.bind(task_configuration), work_options);
+	await wiki.for_each_page(page_list, function () {
+		// 注意: this !== work_config === `config`
+
+		this.task_configuration = task_configuration;
+		//Object.assign(this, { task_configuration });
+		return for_each_page.apply(this, arguments);
+	}, work_config);
 }
 
 // ---------------------------------------------------------------------//
@@ -1246,9 +1258,11 @@ async function main_move_process(task_configuration, meta_configuration) {
 function for_each_page(page_data) {
 	// console.log(page_data.revisions[0].slots.main);
 	//console.trace(this);
+	const { task_configuration } = this;
+	//console.trace(task_configuration);
 
-	if (this.text_processor) {
-		return this.text_processor(page_data.wikitext, page_data) || Wikiapi.skip_edit;
+	if (task_configuration.text_processor) {
+		return task_configuration.text_processor(page_data.wikitext, page_data) || Wikiapi.skip_edit;
 	}
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -1256,23 +1270,23 @@ function for_each_page(page_data) {
 	// console.log(parsed);
 	CeL.assert([page_data.wikitext, parsed.toString()], 'wikitext parser check: ' + CeL.wiki.title_link_of(page_data));
 
-	this.page_data = page_data;
+	task_configuration.page_data = page_data;
 
-	if (this.move_to_link || this.for_each_link) {
-		parsed.each('link', for_each_link.bind(this));
+	if (task_configuration.move_to_link || task_configuration.for_each_link) {
+		parsed.each('link', for_each_link.bind(task_configuration));
 	}
-	if (this.move_to_link) {
-		parsed.each('file', for_each_file.bind(this));
+	if (task_configuration.move_to_link) {
+		parsed.each('file', for_each_file.bind(task_configuration));
 	}
-	if (this.move_to_link && this.move_from.ns === CeL.wiki.namespace('Category')) {
-		parsed.each('category', for_each_category.bind(this));
+	if (task_configuration.move_to_link && task_configuration.move_from.ns === CeL.wiki.namespace('Category')) {
+		parsed.each('category', for_each_category.bind(task_configuration));
 	}
-	if (!this.move_from.anchor && !this.move_from.display_text) {
+	if (!task_configuration.move_from.anchor && !task_configuration.move_from.display_text) {
 		parsed.each('template', for_each_template.bind(this, page_data));
 	}
 
-	if (this.post_text_processor) {
-		return this.post_text_processor(parsed, page_data) || Wikiapi.skip_edit;
+	if (task_configuration.post_text_processor) {
+		return task_configuration.post_text_processor(parsed, page_data) || Wikiapi.skip_edit;
 	}
 
 	// return wikitext modified.
@@ -1547,11 +1561,12 @@ function replace_link_parameter(task_configuration, template_token, template_has
 }
 
 function for_each_template(page_data, token, index, parent) {
-	const move_from_is_not_template = !this.move_from || this.move_from.ns && this.move_from.ns !== this.wiki.namespace('Template');
-	const is_move_from = !move_from_is_not_template && this.wiki.is_template(this.move_from.page_name, token);
-	if ((move_from_is_not_template || is_move_from) && this.for_template
-		// this.for_template() return: 改變內容，之後會做善後處理。
-		&& true === this.for_template.call(page_data, token, index, parent)) {
+	const { task_configuration } = this;
+	const move_from_is_not_template = !task_configuration.move_from || task_configuration.move_from.ns && task_configuration.move_from.ns !== task_configuration.wiki.namespace('Template');
+	const is_move_from = !move_from_is_not_template && task_configuration.wiki.is_template(task_configuration.move_from.page_name, token);
+	if ((move_from_is_not_template || is_move_from) && task_configuration.for_template
+		// task_configuration.for_template() return: 改變內容，之後會做善後處理。
+		&& true === task_configuration.for_template.call(this, token, index, parent)) {
 		// 刪除掉所有空白參數。
 		for (let index = token.length; index > 1;) {
 			if (!token[--index])
@@ -1562,22 +1577,22 @@ function for_each_template(page_data, token, index, parent) {
 
 	if (is_move_from) {
 		// options for target template
-		if (this.move_to_link === DELETE_PAGE) {
+		if (task_configuration.move_to_link === DELETE_PAGE) {
 			return remove_token;
 		}
-		if (this.replace_parameters) {
-			if (CeL.is_Object(this.replace_parameters)) {
+		if (task_configuration.replace_parameters) {
+			if (CeL.is_Object(task_configuration.replace_parameters)) {
 				// e.g., `{{リンク修正依頼/改名|options={"replace_parameters":{"from_parameter":"to_parameter"},"parameter_name_only":true} }}`
-				CeL.wiki.parse.replace_parameter(token, this.replace_parameters, this.parameter_name_only ? { parameter_name_only: this.parameter_name_only } : null);
+				CeL.wiki.parse.replace_parameter(token, task_configuration.replace_parameters, task_configuration.parameter_name_only ? { parameter_name_only: task_configuration.parameter_name_only } : null);
 			} else {
 				throw new TypeError('.replace_parameters is not a Object');
 			}
 		}
-		if (this.move_to?.page_name
-			&& this.move_from.ns === this.move_to.ns
-			&& this.move_from.ns === this.wiki.namespace('Template')) {
+		if (task_configuration.move_to?.page_name
+			&& task_configuration.move_from.ns === task_configuration.move_to.ns
+			&& task_configuration.move_from.ns === task_configuration.wiki.namespace('Template')) {
 			// 直接替換模板名稱。
-			token[0] = this.move_to.page_name
+			token[0] = task_configuration.move_to.page_name
 				// 保留模板名最後的換行。
 				+ token[0].toString().match(/\n?[ \t]*$/)[0];
 			return;
@@ -1588,20 +1603,20 @@ function for_each_template(page_data, token, index, parent) {
 
 	//for jawiki
 	if (token.name === 'Battlebox') {
-		const matched = this.move_from.page_name.match(/^[Cc]ampaignbox (.+)$/);
+		const matched = task_configuration.move_from.page_name.match(/^[Cc]ampaignbox (.+)$/);
 		const campaign = token.parameters.campaign;
 		if (matched && campaign && campaign.toString().trim() === matched[1]) {
 			CeL.wiki.parse.replace_parameter(token, {
-				campaign: this.move_to.page_name.replace(/^[Cc]ampaignbox /, '')
+				campaign: task_configuration.move_to.page_name.replace(/^[Cc]ampaignbox /, '')
 			}, { value_only: true });
 		}
 	}
 
 	//for jawiki
 	if (token.name === 'Campaignbox-bottom') {
-		const matched = this.move_from.page_name.match(/^[Cc]ampaignbox (.+)$/);
+		const matched = task_configuration.move_from.page_name.match(/^[Cc]ampaignbox (.+)$/);
 		if (matched && token[1].toString().trim() === matched[1]) {
-			token[1] = this.move_to.page_name.replace(/^[Cc]ampaignbox /, '');
+			token[1] = task_configuration.move_to.page_name.replace(/^[Cc]ampaignbox /, '');
 		}
 	}
 
@@ -1611,7 +1626,7 @@ function for_each_template(page_data, token, index, parent) {
 	// TODO: {{仮リンク|鉄原郡 (南)|ko|철원군 (남)|label=鉄原郡|redirect=1}}
 
 	// templates that ONLY ONE parament is displayed as link.
-	if (replace_link_parameter(this, token, {
+	if (replace_link_parameter(task_configuration, token, {
 		// templates that the first parament is displayed as link.
 		// e.g., {{tl|.move_from.page_title}}
 		Tl: 1,
@@ -1631,7 +1646,7 @@ function for_each_template(page_data, token, index, parent) {
 	})) return;
 
 	// templates that ALL parameters are displayed as link.
-	if (replace_link_parameter(this, token, {
+	if (replace_link_parameter(task_configuration, token, {
 		Main: 1,
 		See: 1,
 		Seealso: 1,
@@ -1643,7 +1658,7 @@ function for_each_template(page_data, token, index, parent) {
 		Pathnav: 1,
 	}, 1)) return;
 
-	if (replace_link_parameter(this, token, {
+	if (replace_link_parameter(task_configuration, token, {
 		// [1], [3], ...
 		// [[w:ja:Template:Redirect]]
 		Redirect: 1,
