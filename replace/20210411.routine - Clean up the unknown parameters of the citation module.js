@@ -37,16 +37,19 @@ async function adapt_configuration(latest_task_configuration) {
 
 // ----------------------------------------------------------------------------
 
+/**
+ * 取得所有要檢查的模板名稱。
+ */
 async function setup_citation_template_list() {
 	// get from [[Category:引用模板]]
 	let citation_templates = Object.create(null);
 	(await wiki.categorymembers('Category:引用模板', { namespace: 'Template' }))
 		.forEach(page_data => citation_templates[page_data.title] = null);
-	// 取交集。
 	citation_templates = (await wiki.embeddedin('Module:Citation/CS1', { namespace: 'Template' }))
+		// 取交集。
 		.filter(page_data => page_data.title in citation_templates).map(page_data => page_data.title)
-		.append(['Template:Cite_iucn'
-			//, 'Template:Speciesbox'
+		.append(['Template:Cite iucn',
+			//'Template:Speciesbox',
 		]);
 
 	await wiki.register_redirects(citation_templates);
@@ -88,9 +91,9 @@ function for_template(token, index, parent) {
 		// 會先檢查所有日期參數，判斷日期格式是否正確。若有錯誤日期格式，嘗試修正之。仍無法改正，則不清除 df參數。
 		const value = token.parameters[parameter_name].toString();
 		// @see function check_date (date_string, tCOinS_date) @ [[w:zh:Module:Citation/CS1/Date_validation|日期格式驗證函數]]
-		// e.g., 2021-04-12
+		// e.g., 2021-04, 2021-04-12
 		if (/^[12]\d{3}(?:-[01]\d(?:-[0-3]\d)?)?$/.test(value)
-			// e.g., '2018年3月'
+			// e.g., '2018年3月', '2018年3月6日'
 			|| /^[12]\d{3}年(?:[01]?\d月(?:[0-3]?\d日)?)?$/.test(value)) {
 			// is valid date
 			continue;
@@ -124,7 +127,9 @@ function for_template(token, index, parent) {
 		parameters_changed.push(parameter_name);
 	}
 
-	const parameters_to_remove = [];
+	const parameters_to_remove = [
+		//'doi-access',
+	];
 	if (!not_valid_date)
 		parameters_to_remove.push('df');
 
