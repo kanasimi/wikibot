@@ -88,7 +88,8 @@ function for_template(token, index, parent) {
 		if (!parameter_name.includes('date'))
 			continue;
 
-		// 會先檢查所有日期參數，判斷日期格式是否正確。若有錯誤日期格式，嘗試修正之。仍無法改正，則不清除 df參數。
+		// <s>會先檢查所有日期參數，判斷日期格式是否正確。若有錯誤日期格式，嘗試修正之。仍無法改正，則不清除 df參數。</s>
+		// 現在會先檢查所有日期參數，判斷日期格式是否正確。若有無法判別的錯誤日期格式，則不清除 df參數。
 		const value = token.parameters[parameter_name].toString();
 		// @see function check_date (date_string, tCOinS_date) @ [[w:zh:Module:Citation/CS1/Date_validation|日期格式驗證函數]]
 		// e.g., 2021-04, 2021-04-12
@@ -121,15 +122,18 @@ function for_template(token, index, parent) {
 			continue;
 		}
 
+		// ** 請勿修正不會引起CS1模塊報錯的日期參數，該種修正[[Special:Diff/55077510|沒有共識且為另一名BAG所反對]]；
 		// 由於要刪除 df參數必須判別日期格式，因此順便修正可讀得懂，但是格式錯誤的日期。
 		// Convert to ISO 8601
-		CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, 'value_only');
-		parameters_changed.push(parameter_name);
+		//CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, 'value_only');
+		//parameters_changed.push(parameter_name);
 	}
 
 	const parameters_to_remove = [
+		// doi-access參數與df參數有所不同，其包含了本站條目所需的有用信息，應通過修改模塊使之發揮作用，而非刪除；
 		//'doi-access',
 	];
+	// 仍無法改正，則不清除 df參數。
 	if (!not_valid_date)
 		parameters_to_remove.push('df');
 
