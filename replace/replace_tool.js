@@ -1289,6 +1289,10 @@ function for_each_page(page_data) {
 		return task_configuration.post_text_processor(parsed, page_data) || Wikiapi.skip_edit;
 	}
 
+	if (this.discard_changes) {
+		// 放棄修改
+		return Wikiapi.skip_edit;
+	}
 	// return wikitext modified.
 	return parsed.toString();
 }

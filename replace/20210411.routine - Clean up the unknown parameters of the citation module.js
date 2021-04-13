@@ -81,20 +81,20 @@ function for_template(token, index, parent) {
 	}
 
 	let not_valid_date;
-	const parameters_changed = [];
+	const date_parameters_changed = [];
 
 	// check the date format if it is not valid.
 	for (const parameter_name in token.parameters) {
 		if (!parameter_name.includes('date'))
 			continue;
 
-		// <s>會先檢查所有日期參數，判斷日期格式是否正確。若有錯誤日期格式，嘗試修正之。仍無法改正，則不清除 df參數。</s>
-		// 現在會先檢查所有日期參數，判斷日期格式是否正確。若有無法判別的錯誤日期格式，則不清除 df參數。
-		const value = token.parameters[parameter_name].toString();
+		// 先檢查所有日期參數，判斷日期格式是否正確。若有錯誤日期格式，嘗試修正之。仍無法改正，則不清除 df參數。但這種日期格式修正只在要去除參數的前提下，才當作一種 [[Wikipedia:AutoWikiBrowser/General fixes]] 順便修改。
+		const value = token.parameters[parameter_name].toString()
+			.replace(/\s*<!--DASHBot-->\s*/, '');
 		// @see function check_date (date_string, tCOinS_date) @ [[w:zh:Module:Citation/CS1/Date_validation|日期格式驗證函數]]
-		// e.g., 2021-04, 2021-04-12
+		// e.g., 2021, 2021-04, 2021-04-12
 		if (/^[12]\d{3}(?:-[01]\d(?:-[0-3]\d)?)?$/.test(value)
-			// e.g., '2018年3月', '2018年3月6日'
+			// e.g., '2018年', '2018年3月', '2018年3月6日'
 			|| /^[12]\d{3}年(?:[01]?\d月(?:[0-3]?\d日)?)?$/.test(value)) {
 			// is valid date
 			continue;
@@ -113,7 +113,10 @@ function for_template(token, index, parent) {
 
 		if (value && !PATTERN_EN_MONTH_YEAR.test(value)
 			// e.g., '9 January 2014'
-			&& !/^[0-3]?\d\s+[a-z]+\s+[12]\d{3}$/i.test(value)) {
+			&& !/^[0-3]?\d\s+[a-z]+\s+[12]\d{3}$/i.test(value)
+			// e.g., 'July 14, 2020'
+			&& !/^[a-z]+\s+[0-3]?\d\s*,\s*[12]\d{3}$/i.test(value)
+		) {
 			CeL.debug(`Invalid date format: |${parameter_name}=${value}|`, 0);
 		}
 		const date = value.to_Date();
@@ -122,11 +125,10 @@ function for_template(token, index, parent) {
 			continue;
 		}
 
-		// ** 請勿修正不會引起CS1模塊報錯的日期參數，該種修正[[Special:Diff/55077510|沒有共識且為另一名BAG所反對]]；
 		// 由於要刪除 df參數必須判別日期格式，因此順便修正可讀得懂，但是格式錯誤的日期。
 		// Convert to ISO 8601
-		//CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, 'value_only');
-		//parameters_changed.push(parameter_name);
+		CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, 'value_only');
+		date_parameters_changed.push(parameter_name);
 	}
 
 	const parameters_to_remove = [
@@ -137,6 +139,7 @@ function for_template(token, index, parent) {
 	if (!not_valid_date)
 		parameters_to_remove.push('df');
 
+	const parameters_changed = [];
 	parameters_to_remove.forEach(parameter_name => {
 		const index = token.index_of[parameter_name];
 		if (index) {
@@ -146,7 +149,14 @@ function for_template(token, index, parent) {
 	});
 
 	if (parameters_changed.length > 0) {
+		this.discard_changes = false;
+		// 日期格式修正只在要去除參數的前提下，才當作一種 [[Wikipedia:AutoWikiBrowser/General fixes]] 順便修改。
+		if (date_parameters_changed.length > 0)
+			parameters_changed.append(date_parameters_changed);
 		this.summary += '; ' + parameters_changed.join(', ');
 		return true;
 	}
+
+	if (this.discard_changes !== false)
+		this.discard_changes = true;
 }
