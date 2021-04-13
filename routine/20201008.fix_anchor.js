@@ -8,6 +8,7 @@ node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
 node 20201008.fix_anchor.js use_language=simple
+node 20201008.fix_anchor.js API_URL=https://zh.moegirl.org.cn/api.php
 
 fix archived:
 node 20201008.fix_anchor.js use_language=en archives
@@ -431,7 +432,7 @@ async function tracking_section_title_history(page_data, options) {
 		page_data = await wiki.page(page_data);
 		set_recent_section_title(page_data.wikitext);
 		if (options?.print_anchors) {
-			console.log(`reduced anchors:`);
+			CeL.info(`${tracking_section_title_history.name}: reduced anchors:`);
 			console.trace(section_title_history[KEY_lower_cased_section_titles]);
 		}
 		return section_title_history;
@@ -640,6 +641,7 @@ async function check_page(target_page_data, options) {
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
+		tags: wiki.latest_task_configuration.general.tags,
 	};
 
 	// ----------------------------------------------------
@@ -795,6 +797,7 @@ async function check_page(target_page_data, options) {
 			bot: 1,
 			//minor: 1,
 			//nocreate: false,
+			tags: wiki.latest_task_configuration.general.tags,
 			allow_empty: 1,
 		});
 	}

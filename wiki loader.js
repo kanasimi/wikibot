@@ -210,7 +210,7 @@ _global.login_options = {
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function set_language(language) {
 	use_language = language;
-	login_options.API_URL = language;
+	login_options.API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || language;
 	CeL.gettext.use_domain(language === 'simple' ? 'en' : language, true);
 	// 因為 CeL.wiki.set_language() 會用到 gettext()，
 	// 因此得置於 CeL.gettext.use_domain() 後。
@@ -297,7 +297,7 @@ _global.prepare_directory = function prepare_directory(directory, clean) {
 
 _global.fetch = _global.fetch || function fetch(url) {
 	if (CeL.platform.is_interactive) {
-		process.stdout.write('fetch ' + url + '\r');
+		CeL.log_temporary('fetch ' + url);
 	}
 	return CeL.fetch(url);
 };
