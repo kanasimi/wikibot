@@ -80,7 +80,7 @@ function for_template(token, index, parent) {
 		return;
 	}
 
-	let not_valid_date;
+	let invalid_date;
 	const date_parameters_changed = [];
 
 	// check the date format if it is not valid.
@@ -100,21 +100,37 @@ function for_template(token, index, parent) {
 			continue;
 		}
 
-		// 預防可 new Date()，但實際上有問題的日期。
+		// --------------------------------------------
+		// 排除可 new Date()，但實際上有問題的日期，將之改為無法判別。
+
 		if (/^\d+$/.test(value)
 			// e.g., '20060306103740'
 			//|| /^[12]\d{3}[01]\d[0-3]\d{6}$/.test(value)
-			// e.g., '10.12', '10/12'
-			|| /^\d{1,2}[^\d]\d{1,2}$/.test(value)
 			// e.g., '18-15 July 2010'
 			//|| /^[0-3]?\d[\-–－—─~～〜﹣][0-3]?\d\s+[a-z]+\s+[12]\d{3}$/i.test(value)
 			|| /^\d+[\-–－—─~～〜﹣]\d+\s+[a-z]+\s+\d+$/i.test(value)
-			// e.g., 'July 18-15, 2010'
+			// e.g., 'May 1-5, 2010'
 			|| /^[a-z]+\s+\d+[\-–－—─~～〜﹣]\d+\s*,\s*\d+$/i.test(value)
+			// e.g., '10 12, 2001'
+			// e.g., '10 12 2001'
+			|| /\d+\s+\d+\s+(?:,\s*)?\d+/.test(value)
+			// e.g., '2001, 10 12'
+			// e.g., '2001 10 12'
+			|| /\d+\s+(?:,\s*)?\d+\s+\d+/.test(value)
 		) {
-			not_valid_date = true;
+			invalid_date = true;
 			continue;
 		}
+
+		let matched = value.match(/\d\s*([./])\s*\d/);
+		if (matched && (matched = date_string.split(matched[1])).length === 2) {
+			// e.g., '10.12', '10/12'
+			// e.g., '1/5, 2010'
+			invalid_date = true;
+			continue;
+		}
+
+		// --------------------------------------------
 
 		if (value && !PATTERN_EN_MONTH_YEAR.test(value)
 			// e.g., '9 January 2014'
@@ -126,7 +142,7 @@ function for_template(token, index, parent) {
 		}
 		const date = value.to_Date();
 		if (!date || date.precision && date.precision !== 'day') {
-			not_valid_date = true;
+			invalid_date = true;
 			continue;
 		}
 
@@ -141,7 +157,7 @@ function for_template(token, index, parent) {
 		//'doi-access',
 	];
 	// 仍無法改正，則不清除 df參數。
-	if (!not_valid_date)
+	if (!invalid_date)
 		parameters_to_remove.push('df');
 
 	const parameters_changed = [];
