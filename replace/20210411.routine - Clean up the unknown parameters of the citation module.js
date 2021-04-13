@@ -13,7 +13,7 @@ const wiki = new Wikiapi;
 let citation_template_list;
 
 // @see CeL.data.date
-const PATTERN_EN_MONTH_YEAR = /^(?:([a-z]+)[–\-])?([a-z]+)\s+(\d{1,4})$/i;
+const PATTERN_EN_MONTH_YEAR = /^(?:([a-z]+)\s*[\-–－—─~～〜﹣])?\s*([a-z]+)\s+(\d{1,4})$/i;
 
 // ----------------------------------------------
 
@@ -106,6 +106,11 @@ function for_template(token, index, parent) {
 			//|| /^[12]\d{3}[01]\d[0-3]\d{6}$/.test(value)
 			// e.g., '10.12', '10/12'
 			|| /^\d{1,2}[^\d]\d{1,2}$/.test(value)
+			// e.g., '18-15 July 2010'
+			//|| /^[0-3]?\d[\-–－—─~～〜﹣][0-3]?\d\s+[a-z]+\s+[12]\d{3}$/i.test(value)
+			|| /^\d+[\-–－—─~～〜﹣]\d+\s+[a-z]+\s+\d+$/i.test(value)
+			// e.g., 'July 18-15, 2010'
+			|| /^[a-z]+\s+\d+[\-–－—─~～〜﹣]\d+\s*,\s*\d+$/i.test(value)
 		) {
 			not_valid_date = true;
 			continue;
