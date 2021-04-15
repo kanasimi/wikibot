@@ -3,6 +3,8 @@
 node 20201008.fix_anchor.js use_language=ja check_page=JR東日本209系電車
 node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)"
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
+// 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
+node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 
 node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
@@ -125,11 +127,14 @@ async function main_process() {
 		await check_page('桜木町駅', { force_check: true });
 	}
 
+	// CeL.env.arg_hash.check_page: check anchors located in what page
 	if (CeL.env.arg_hash.check_page) {
 		await check_page(CeL.env.arg_hash.check_page, {
 			force_check: true,
-			// .recheck_talk_page
-			force_check_talk_page: CeL.env.check_talk_page || true,
+			// .recheck_talk_page 不論有無修正 anchors，皆強制檢查 talk page。
+			force_check_talk_page: 'check_talk_page' in CeL.env.arg_hash ? CeL.env.arg_hash.check_talk_page : true,
+			// 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。這會檢查並刪除已不存在的 check_page 連結報告。
+			backlink_of: CeL.env.arg_hash.backlink_of,
 			print_anchors: true,
 		});
 		return;
@@ -604,7 +609,7 @@ async function check_page(target_page_data, options) {
 	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
 	//console.trace(section_title_history);
 
-	link_from.append((await wiki.backlinks(target_page_data, {
+	link_from.append((await wiki.backlinks(options.backlink_of || target_page_data, {
 		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章 anchor 網頁錨點。
 		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
 	})).filter(page_data =>
@@ -898,7 +903,7 @@ async function check_page(target_page_data, options) {
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
-		if (!options.is_archive && wiki.site_name() === 'jawiki') {
+		if (!options.is_archive && wiki.latest_task_configuration.general.add_note_to_talk_page_for_broken_anchors) {
 			add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
