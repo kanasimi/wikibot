@@ -54,7 +54,7 @@ read {{cbignore}}?
 require('../wiki loader.js');
 
 // Load modules.
-CeL.run([
+CeL.run(['application.net.wiki.template_functions',
 	// for CeL.assert()
 	'application.debug.log']);
 
@@ -92,7 +92,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 (async () => {
 	login_options.configuration_adapter = adapt_configuration;
-	//console.log(login_options);
+	//console.trace(login_options);
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
@@ -244,7 +244,7 @@ async function is_bad_edit(page_data) {
 async function get_sections_moved_to(page_data, options) {
 	page_data = await wiki.page(page_data);
 	/** {Array} parsed page content 頁面解析後的結構。 */
-	const parsed = CeL.wiki.parser(page_data).parse();
+	const parsed = CeL.wiki.parser(page_data, wiki.append_session_to_options()).parse();
 	// console.log(parsed);
 	/**
 	 * {String}page content, maybe undefined. 條目/頁面內容 =
