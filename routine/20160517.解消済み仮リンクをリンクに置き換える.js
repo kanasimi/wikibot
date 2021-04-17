@@ -108,10 +108,13 @@ template_orders = {
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
 	ja : {
+		// [[Wikipedia:井戸端/subj/Template:仮リンクに関連する提案#4月10日（合意形成）]]
+
 		// 不知為何，有時會有 Template 明明有解消済み仮リンク、頁面本身具[[Category:解消済み仮リンクを含むページ]]，
 		// 卻沒被列於[[Category:解消済み仮リンクを含むページ]]。
 		// Category_has_local_page : 'Category:解消済み仮リンクを含むページ',
-		Category_has_local_page : 'Category:解消済み仮リンクを含む記事',
+		Category_has_local_page : [ 'Category:解消済み仮リンクを含む記事',
+				'Category:解消済み仮リンクを含むページ' ],
 		report_page : '修正が必要な仮リンク',
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
 		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
@@ -385,11 +388,11 @@ function normalize_parameter(token) {
 // ----------------------------------------------------------------------------
 
 function check_final_work() {
-	if (CeL.is_debug(2)) {
-		CeL.debug('page_remains: ' + page_remains, 0, 'check_final_work');
-	}
+	--page_remains;
+	// CeL.debug('page_remains: ' + page_remains, 0, 'check_final_work');
+	// console.trace('page_remains: ' + page_remains);
 
-	if (--page_remains > 0) {
+	if (page_remains > 0) {
 		return;
 	}
 
@@ -402,6 +405,7 @@ function check_final_work() {
 	wiki.page('User:' + user_name + '/' + message_set.report_page, {
 		redirects : 1
 	}).edit(function() {
+		// console.trace(wiki);
 		var messages = [], listed = 0, all = 0,
 		//
 		data = processed_data[processed_data.KEY_DATA];
@@ -471,6 +475,8 @@ function check_final_work() {
 			if (message_set.fix_category) {
 				messages.push('[[' + message_set.fix_category + ']]');
 			}
+		} else {
+			// Nothing to report.
 		}
 		return messages.join('\n');
 
@@ -502,8 +508,7 @@ function for_each_page(page_data, messages) {
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
 	if (false) {
-		process.stdout.write('' + CeL.wiki.title_link_of(title) + ': '
-				+ ' ...\r');
+		CeL.log_temporary('' + CeL.wiki.title_link_of(title) + ': ');
 	}
 
 	if (!ignore_ns && page_data.ns !== 0
@@ -529,6 +534,16 @@ function for_each_page(page_data, messages) {
 	if (processed_data.had(page_data)) {
 		check_final_work();
 		return;
+	}
+
+	var overall_resolve, overall_reject;
+	function denote_page_processed() {
+		// console.trace('denote_page_processed');
+		overall_resolve();
+		// check_final_work() 得要放在本函數 return 之前執行。
+		// setTimeout(): 您不能在 callback 中呼叫 .edit() 之類的 wiki 函數！
+		// 請在 callback 執行完畢後再執行新的 wiki 函數！
+		setTimeout(check_final_work, 0);
 	}
 
 	function for_each_template(token, token_index, token_parent) {
@@ -647,15 +662,15 @@ function for_each_page(page_data, messages) {
 					+ ' / ' + page_remains, 2, 'check_page');
 
 			if (changed.length === 0) {
-				// check_final_work() 得要放在本函數 return 之前執行。
-				check_final_work();
+				denote_page_processed();
 				return;
 			}
 
+			// console.trace(parser);
 			var last_content = parser.toString();
 			if (CeL.wiki.content_of(page_data) === last_content) {
 				CeL.warn('The contents are the same.');
-				check_final_work();
+				denote_page_processed();
 				return;
 			}
 
@@ -663,10 +678,11 @@ function for_each_page(page_data, messages) {
 			if (false) {
 				CeL.log('modify ' + CeL.wiki.title_link_of(title) + ': ');
 				// CeL.log(last_content);
-				check_final_work();
+				denote_page_processed();
 				return;
 			}
 
+			// console.trace(page_data);
 			// console.log(last_content);
 			wiki.page(page_data
 			// && 'Wikipedia:サンドボックス'
@@ -681,9 +697,7 @@ function for_each_page(page_data, messages) {
 				nocreate : 1,
 				minor : 1,
 				bot : 1
-			});
-
-			check_final_work();
+			}, denote_page_processed);
 		}
 
 		function modify_link(link_target) {
@@ -1061,7 +1075,13 @@ function for_each_page(page_data, messages) {
 				+ '也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？');
 		// check_page(message_set.no_template);
 		check_final_work();
+		return;
 	}
+
+	return new Promise(function(resolve, reject) {
+		overall_resolve = resolve;
+		overall_reject = reject;
+	});
 }
 
 // ----------------------------------------------------------------------------
@@ -1078,8 +1098,10 @@ function main_work() {
 		reget : true,
 		operator : function(list) {
 			this.list = list;
+			// console.log(list);
+
 			// only for debug {{ill}}s on specified page
-			// this.list = [ 'Template:鍛冶屋原線' ];
+			// this.list = [ 'Wikipedia:沙盒' ];
 		}
 
 	}, false && {
