@@ -11,6 +11,9 @@
  # 以函數 for_each_page() + for_each_template() 檢查每一個頁面，找出所有跨語言模板。
  # 以函數 for_foreign_page() 檢查跨語言模板模板所指引的外語言條目連結是否合適。
  # 以函數 for_local_page() 檢查外語言條目連結所指向的本地條目連結是否合適。
+ # 以函數 check_local_creation_date() 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
+ # 以函數 exclude_talk_page() 排除使用者發言。
+ # 對於通過測試的跨語言模板連結，以函數 modify_link() 修改跨語言模板。
  # 以函數 check_page() 收尾每一個頁面的工作。
  # 以函數 check_final_work()寫入報告。
 
@@ -170,6 +173,7 @@ message_set = {
 		not_exist : '存在しません',
 		from_parameter : '引数から',
 		translated_from_foreign_title : '他言語版項目リンク先から',
+		skip_talk_pages : '個人の発言が含まれているため修正しない',
 
 		preserved : '強制表示引数(preserve)を指定するなので、修正の必要がありません。',
 		retrive_foreign_error : '他言語版項目を取得できず、次回実行する時に再試行します。'
@@ -262,6 +266,7 @@ message_set = {
 		not_exist : '不存在',
 		from_parameter : '從模板參數',
 		translated_from_foreign_title : '從外語頁面對應的中文條目',
+		skip_talk_pages : '本作業不處理使用者發言',
 
 		preserved : '指定了強制顯示參數，不做修改。',
 		retrive_foreign_error : '無法取得所對應的外語條目。將於下次執行時再做嘗試。'
@@ -299,6 +304,7 @@ message_set = {
 		not_exist : 'Not exist',
 		from_parameter : 'From the parameter of template',
 		translated_from_foreign_title : 'Translated from foreign title',
+		skip_talk_pages : 'This task does not process user talk',
 
 		// always display
 		preserved : 'Preserve interlanguage links for the "preserve" parameter is set.',
@@ -743,6 +749,17 @@ function for_each_page(page_data, messages) {
 			check_page();
 		}
 
+		function exclude_talk_page(page_data) {
+			if (wiki.is_talk_namespace(page_data)
+			// [[利用者‐会話:Kanashimi#Wikipedia空間の投票コメントの書き換え]]
+			// Wikipedia空間には投票コメントなど個人の発言が含まれているため修正しないほうがよいでしょう（例えば今回の仮リンクには「当時、記事は存在していなかった」という記号の役割もあります）。もし個人の発言ページを区別するのが困難なのであれば、Wikipedia空間全体をノート同様に書き換え禁止としたほうが安全です。
+			|| page_data.title.startsWith('Wikipedia:削除依頼/')) {
+				check_page(message_set.skip_talk_pages);
+				return;
+			}
+			modify_link();
+		}
+
 		// 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
 		// TODO: 並且檢查沒掛上刪除模板。
 		// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
@@ -764,7 +781,7 @@ function for_each_page(page_data, messages) {
 
 				} else if (Date.now() - page_data.creation_Date > 7 * 24 * 60
 						* 60 * 1000) {
-					modify_link();
+					exclude_talk_page(page_data);
 
 				} else {
 					CeL.info('Skip '
@@ -1098,7 +1115,7 @@ function main_work() {
 		reget : true,
 		operator : function(list) {
 			this.list = list;
-			// console.log(list);
+			// console.log(this.list);
 
 			// only for debug {{ill}}s on specified page
 			// this.list = [ 'Wikipedia:沙盒' ];
