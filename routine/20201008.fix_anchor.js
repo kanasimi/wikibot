@@ -199,7 +199,7 @@ function filter_row(row) {
 
 	// 處理有存檔的頁面。
 	if (get_sections_moved_to(row, { check_has_subpage_archives_only: true })) {
-		//RFDのBotはTemplate:RFD noticeを操作するBotとTemplate:RFDを操作するBotが別体で、通常連続稼働させていますが数分間のタイムラグが生じます。「Wikipedia:リダイレクトの削除依頼/受付#RFD」は触れぬようお願いいたします。
+		// RFDのBotはTemplate:RFD noticeを操作するBotとTemplate:RFDを操作するBotが別体で、通常連続稼働させていますが数分間のタイムラグが生じます。「Wikipedia:リダイレクトの削除依頼/受付#RFD」は触れぬようお願いいたします。
 		return !row.title.startsWith('Wikipedia:リダイレクトの削除依頼/受付');
 	}
 
@@ -533,6 +533,10 @@ async function tracking_section_title_history(page_data, options) {
 			// save memory
 			delete revision.slots;
 			delete revision.diff_list;
+			// for old MediaWiki. e.g., moegirl
+			delete revision.contentformat;
+			delete revision.contentmodel;
+			delete revision['*'];
 
 			if (!revision.removed_section_titles) {
 				// No new section title modified
