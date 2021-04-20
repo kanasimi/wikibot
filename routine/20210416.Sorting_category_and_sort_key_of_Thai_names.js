@@ -64,8 +64,9 @@ function split_English_Thai_name(English_Thai_name) {
 	await main_process();
 })();
 
+const summary_prefix = '[[Wikipedia:Bots/Requests for approval/Cewbot 7|Maintain sort key of Thai peoples]]: ';
 const do_not_check_redirects = true;
-let Thai_CATEGORY_LIST;
+let Thai_name_CATEGORY_LIST;
 const pages_without_people_data = [];
 const non_biographical_pages = [];
 let biographical_templates = [
@@ -82,16 +83,26 @@ async function main_process() {
 	await wiki.register_redirects(biographical_templates);
 	biographical_templates = wiki.redirect_target_of(biographical_templates);
 
-	Thai_CATEGORY_LIST = await wiki.embeddedin('Template:' + Thai_people_category__template_name);
-	//console.log(Thai_CATEGORY_LIST);
+	Thai_name_CATEGORY_LIST = await wiki.embeddedin('Template:' + Thai_people_category__template_name);
+	//console.log(Thai_name_CATEGORY_LIST);
 	const Thai_people_page_list = new Set;
-	await wiki.for_each_page(Thai_CATEGORY_LIST.slice(20, 21) && ['Category:Knights Grand Cordon of the Order of Chula Chom Klao', 'Category:Thai people of American descent', 'Category:Thai female Phra Ong Chao'], for_each_Thai_people_category, { Thai_people_page_list });
+	// Get all pages of Thai_name_CATEGORY_LIST (categories transcluding {{Thai people category}}).
+	await wiki.for_each_page(Thai_name_CATEGORY_LIST.slice(20, 21), for_each_Thai_people_category, { Thai_people_page_list });
 	//console.log(Thai_people_page_list);
-	Thai_CATEGORY_LIST = new Set(Thai_CATEGORY_LIST.map(page_data => wiki.remove_namespace(page_data)));
-	//console.log(Thai_CATEGORY_LIST);
+	Thai_name_CATEGORY_LIST = new Set(Thai_name_CATEGORY_LIST.map(page_data => wiki.remove_namespace(page_data)));
+	//console.log(Thai_name_CATEGORY_LIST);
+
+	// run through all pages of Thai_name_categories
 	await wiki.for_each_page(Thai_people_page_list, for_each_Thai_people_page, {
-		//page_options: { prop: 'wbentityusage|revisions', wbeuentities: 'Q5' },
-		summary: '[[Wikipedia:Bots/Requests for approval/Cewbot 7|Maintain sort key of Thai peoples]]: '
+		//page_options: { prop: 'revisions|wbentityusage', wbeuentities: 'Q5' },
+		//page_options: { prop: 'revisions|info|pageviews' },
+		summary: summary_prefix
+	});
+
+	await wiki.edit_page('Wikipedia:WikiProject Thailand/Nonbiographical pages transcluding Thai name categories',
+		'The pages below are pages transcluding Thai name categories but detect as non-biographical articles.\n'
+		+ CeL.wiki.array_to_table(non_biographical_pages.map(page_title => CeL.wiki.title_link_of(page_title)), 'no_header'), {
+		summary: summary_prefix + `Report ${non_biographical_pages.length} non-biographical articles.`
 	});
 
 	routine_task_done('1 week');
@@ -102,17 +113,17 @@ async function main_process() {
 async function insert__Thai_people_category__template() {
 	const page_data = await wiki.page('Wikipedia:WikiProject Thailand/Thai name categories');
 	const parsed = page_data.parse();
-	const Thai_CATEGORY_LIST = [];
+	const Thai_name_CATEGORY_LIST = [];
 	parsed.each('list',
 		list_token => parsed.each.call(list_token, 'link', link_token => {
-			Thai_CATEGORY_LIST.push(link_token[0].toString().replace(/^:+/, ''));
+			Thai_name_CATEGORY_LIST.push(link_token[0].toString().replace(/^:+/, ''));
 		}),
 		{ depth: 0 }
 	);
-	//console.log(Thai_CATEGORY_LIST);
+	//console.log(Thai_name_CATEGORY_LIST);
 
 	// insert {{Thai people category}}
-	await wiki.for_each_page(Thai_CATEGORY_LIST, page_data => {
+	await wiki.for_each_page(Thai_name_CATEGORY_LIST, page_data => {
 		const parsed = page_data.parse();
 		if (parsed.find_template(Thai_people_category__template_name)) {
 			let index = page_data.wikitext.indexOf('{{Thai people category}}');
@@ -297,10 +308,6 @@ async function read_Thai_name_table() {
 	Thai_name_table.forEach((line, index) => {
 		if (!line[5] || index === 0)
 			return;
-		if (line[3].toString().includes("don't change")) {
-			CeL.debug(`${read_Thai_name_table.name}: Skip page ${line[0]} being tald not to change.`);
-			return;
-		}
 		line[0] = line[0].replace(/^\[\[|\]\]$/g, '');
 		if (line[5] === 'yes') {
 			if (line[4] === line[3])
@@ -362,10 +369,11 @@ async function for_each_Thai_people_category(page_data) {
 	function append_page_list(page_list) {
 		page_list.forEach(page_data =>
 			page_data.ns === 0
+			// As with the current set-up, pages with single-word titles should also be skipped
 			// Skip [[singleWordTitle]], [[singleWordTitle (disambiguator)]]
 			// [[Abbhantripaja]] is a single word, so no sort key is necessary, and it should be skipped.
 			// Similarly, [[Aguinaldo (footballer)]] is one word (excluding the disambiguator) and should be likewise skipped.
-			&& /^\w+\s+\w/.test(page_data.title)
+			&& !/^\w+$/.test(page_title_to_sort_key(page_data.title))
 			&& Thai_people_page_list.add(page_data.title)
 		);
 		if (page_list.subcategories)
@@ -387,6 +395,16 @@ function page_is_biography(page_data) {
 			return parsed.each.exit;
 		}
 	});
+
+	parsed.each('category', token => {
+		if (['Living people'].includes(token.name)
+			//e.g., [[Category:2000 births]] [[Category:2000 deaths]]
+			|| /^\d+ (?:births|deaths)$/.test(token.name)) {
+			is_biography = true;
+			return parsed.each.exit;
+		}
+	});
+
 	if (is_biography)
 		return true;
 
@@ -432,7 +450,11 @@ function for_each_Thai_people_page(page_data) {
 				return `${Thai_sort_key_not_needed}{{DEFAULTSORT:${Thai_people_data.DEFAULTSORT}}}`;
 			}
 
-			if (token[1] !== Thai_people_data.DEFAULTSORT) {
+			if (Thai_people_data.DEFAULTSORT.toString().includes("don't change")) {
+				CeL.debug(`${for_each_Thai_people_page.name}: Skip page ${CeL.wiki.title_link_of(page_data)} being tald not to change.`);
+			} else if (Thai_people_data.DEFAULTSORT
+				// ... also be skipped, as well as pages with empty DEFAULTSORTs or DEFAULTSORTs that are identical to the PAGENAME or differ only in capitalisation (e.g. Abu Samah Mohd Kassim and Alef Vieira Santos above).
+				&& token[1] && token[1].toString().toLowerCase() !== Thai_people_data.DEFAULTSORT.toString().toLowerCase()) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The default sort key of <code><nowiki>${token}</nowiki></code> will be set to ${JSON.stringify(Thai_people_data.DEFAULTSORT)}!`);
 				token.truncate(2);
 				token[1] = Thai_people_data.DEFAULTSORT;
@@ -454,7 +476,7 @@ function for_each_Thai_people_page(page_data) {
 
 	if (Thai_sort_key) {
 		parsed.each('category', category_token => {
-			if (!Thai_CATEGORY_LIST.has(category_token.name))
+			if (!Thai_name_CATEGORY_LIST.has(category_token.name))
 				return;
 
 			set_sort_key_of_category(Thai_sort_key, category_token);
