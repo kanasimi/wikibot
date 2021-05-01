@@ -364,7 +364,8 @@ function for_each_old_page(page_data) {
 		}
 	}
 
-	contents = CeL.wiki.parser(current_content).parse();
+	contents = CeL.wiki.parser(current_content,
+			CeL.wiki.add_session_to_options(wiki)).parse();
 	if (current_content !== contents.toString()) {
 		// debug 用. check parser, test if parser working properly.
 		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
@@ -450,19 +451,19 @@ function for_each_old_page(page_data) {
 			}
 		});
 		if (!has_category) {
-			// 將已加入[[Template:分類]]視為有效分類，並執行保護。
-			// 將{{cat}}及{{category}}視作有加分類。
-			current_content.each('template', function(token, index, parent) {
-				if (wiki.is_template('分類', token)) {
-					has_category = {
-						parent : parent,
-						index : index,
-						token : token
-					};
-					// 模擬出一個分類 node，方便作業。
-					parent[index] = CeL.wiki.parse('[[Category:category]]');
-					return current_content.each.exit;
-				}
+			CeL.debug('將已加入[[Template:分類]]視為有效分類，並執行保護。'
+					+ '將{{cat}}及{{category}}視作有加分類。');
+			// console.trace(current_content);
+			current_content.each('Template:分類', function(token, index, parent) {
+				// CeL.log('{{分類}}: ' + token);
+				has_category = {
+					parent : parent,
+					index : index,
+					token : token
+				};
+				// 模擬出一個分類 node，方便作業。
+				parent[index] = CeL.wiki.parse('[[Category:category]]');
+				return current_content.each.exit;
 			});
 		}
 	}
@@ -598,9 +599,8 @@ prepare_directory(base_directory);
 
 // CeL.set_debug(2);
 
-wiki.register_redirects('Template:分類');
-
 wiki.run(function() {
+	wiki.register_redirects('Template:分類');
 	check_redirect_to({
 		published : 'Category:published',
 		archived : 'Category:archived',
