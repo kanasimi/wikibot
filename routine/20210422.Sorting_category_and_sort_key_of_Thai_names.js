@@ -59,26 +59,35 @@ async function main_process() {
 		// for debug
 		.slice(20, 21)
 		//&& ['Category:Chiangrai United F.C. players']
-		, for_each_Thai_people_category, { Thai_people_page_list });
+		, [for_each_Thai_people_category, { Thai_people_page_list }]);
 	//console.log(Thai_people_page_list);
 	Thai_name_CATEGORY_LIST = new Set(Thai_name_CATEGORY_LIST.map(page_data => wiki.remove_namespace(page_data)));
 	//console.log(Thai_name_CATEGORY_LIST);
-	if (false) {
+	if (1 || false) {
 		// for debug
 		Thai_people_page_list.clear();
-		["Adenilson Martins do Carmo"].forEach(t => Thai_people_page_list.add(t));
+		`Rama II
+Asdang Dejavudh
+Therdsak Chaiman
+Adenilson Martins do Carmo
+Ong-ard Satrabhandhu
+Abbas Sarkhab
+Aed Carabao
+Bernard Trink
+Ajaan Suwat Suvaco`.split('\n').forEach(t => Thai_people_page_list.add(t));
 	}
 
-	// run through all pages of Thai_name_categories
-	await wiki.for_each_page(Thai_people_page_list, for_each_Thai_people_page, {
-		summary: summary_prefix
-	});
-
 	const non_biographical_pages = [];
+	// run through all pages of Thai_name_categories
+	await wiki.for_each_page(Thai_people_page_list,
+		[for_each_Thai_people_page, {
+			Thai_name_CATEGORY_LIST, non_biographical_pages,
+		}],
+		{ summary: summary_prefix });
+
 	await wiki.edit_page('Wikipedia:WikiProject Thailand/Nonbiographical pages transcluding Thai name categories',
 		'The pages below are pages transcluding Thai name categories but detect as non-biographical articles.\n'
 		+ CeL.wiki.array_to_table(non_biographical_pages.map(page_title => CeL.wiki.title_link_of(page_title)), 'no_header'), {
-		non_biographical_pages,
 		summary: summary_prefix + `Report ${non_biographical_pages.length} non-biographical articles.`
 	});
 
@@ -88,6 +97,7 @@ async function main_process() {
 // ----------------------------------------------------------------------------
 
 async function for_each_Thai_people_category(page_data) {
+	//console.trace(page_data);
 	const page_list = await wiki.category_tree(page_data);
 	//console.log(page_list);
 

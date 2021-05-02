@@ -42,9 +42,9 @@ last_preserve_mark = {
 	// TODO: summary, robot work log
 	en : 'report'
 },
-/** {Natural}超過了這個長度才會被搬移。 */
+/** {Natural}紀錄/討論頁面字元數超過此大小才會被搬移存檔。 */
 min_length = 5000,
-/** {Natural}超過了這個長度，才會造出首個存檔。 */
+/** {Natural}字元數超過了這個長度，才會造出首個存檔。 */
 min_length_create = 100000,
 /**
  * {Boolean|String}會自動造出首個存檔的最早日期界限。

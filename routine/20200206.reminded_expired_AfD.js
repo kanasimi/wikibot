@@ -367,7 +367,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				const note = `${PROD_ineligible_MESSAGE_PREFIX}it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
 				if (is_PROD) {
 					result_notice_data.PROD = note;
-				} else if (CSD_link && logs.length > 0 && logs[logs.length - 1].includes('restored')
+				} else if (CSD_link && logs.length > 0 && logs.at(-1).includes('restored')
 					// [[Wikipedia:Articles for deletion/Stella Nova]]:
 					// a restored speedy deletion does not prevent SOFTDELETE.
 					&& logs.note && logs.note.includes('previously undeleted')) {

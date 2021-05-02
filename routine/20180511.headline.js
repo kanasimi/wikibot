@@ -10,6 +10,7 @@
  注意: 本檔將 UTC 當作本的時間操作！ Wikimedia Toolforge 採用UTC，對 UTC+8 的新聞資料來源只能在 0時到 16時之間截取。
 
  TODO: news summary / detail
+ https://www.cdns.com.tw/index/taiwan_tc
 
  @see 台灣各新聞網站新聞解析器 https://github.com/lulalala/taiwanese_news_parser https://github.com/wsmwason/taiwan-news-parser
 
@@ -99,7 +100,7 @@ day_before = new Date(use_date.getTime() - ONE_DAY_LENGTH_VALUE),
 // 後一天, 隔天 the day after
 day_after = new Date(use_date.getTime() + ONE_DAY_LENGTH_VALUE),
 
-to_remind = owner_name;
+to_remind = login_options.owner_name;
 
 // ---------------------------------------------------------------------//
 

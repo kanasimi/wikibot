@@ -229,7 +229,7 @@ async function get_maintenance_template_list() {
 			continue;
 		}
 
-		process.stdout.write(`Get maintenance template redirects ${index}/${configuration[gettext('維護模板名稱列表')].length} {{${template}}}... \r`);
+		CeL.log_temporary(`Get maintenance template redirects ${index}/${configuration[gettext('維護模板名稱列表')].length} {{${template}}}`);
 		// console.log(wiki.to_namespace(template, 'template'));
 		const list = await wiki.redirects_here(wiki.to_namespace(template, 'template'), {
 			// should NOT use converttitles!
@@ -460,7 +460,7 @@ async function check_pages_including_maintenance_template(page_data) {
 				// be sure .startsWith('\n')
 				tokens.unshift('\n');
 			}
-			if (!/\n/.test(tokens[tokens.length - 1])) {
+			if (!/\n/.test(tokens.at(-1))) {
 				// be sure .endsWith('\n')
 				tokens.push('\n');
 			}

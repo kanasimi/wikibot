@@ -751,7 +751,7 @@ async function prepare_operation() {
 	const _summary = typeof summary === 'string' ? summary : section_title;
 	section_title = section_title ? '#' + section_title : '';
 
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
 
 	if (typeof move_configuration === 'function') {
 		move_configuration = await move_configuration(wiki);

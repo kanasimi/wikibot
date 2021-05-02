@@ -29,7 +29,7 @@ const conversion_table_file = `conversion_table.${use_language}.json`;
 // ----------------------------------------------------------------------------
 
 (async () => {
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
@@ -49,6 +49,7 @@ async function main_process() {
 	CeL.info(pages + ' pages, ' + items + ' items.');
 
 	// ---------------------------------------------
+	// 只會消除正規化後完全相同的轉換規則。
 
 	//console.log(JSON.stringify(conversion_of_group.Movie));
 	// Array.isArray(conversion_of_group[group_name])
@@ -57,9 +58,11 @@ async function main_process() {
 		conversion_of_group[group_name] = Object.values(conversion_of_group[group_name]).map(
 			item => (
 				item[KEY_rule]
-					// 指定僅轉換某些特殊詞彙。
-					? item[KEY_rule].split(';')
+					// 正規化單向轉換規則。
+					? item[KEY_rule].toString()
+						.split(';')
 						.map(conversion => conversion.trim())
+					// 正規化雙向轉換規則。
 					: Object.entries(item)
 						.map(([language_code, words]) => language_code + ':' + words)
 			)
@@ -269,7 +272,7 @@ function add_conversion(item, from_page) {
 		conv[KEY_page] = from_page.title;
 		if (parsed.unidirectional) {
 			// 指定僅轉換某些特殊詞彙。
-			conv[KEY_rule] = item.rule.toString();
+			conv[KEY_rule] = item.rule;
 		}
 		if ((vocabulary in conversion_table)
 			&& conversion_table[vocabulary][KEY_page] !== conv[KEY_page]) {
@@ -535,7 +538,7 @@ async function for_NoteTA_article(page_data) {
 		if (list.length === 0) continue;
 		this.summary += ` 去除${type} (${list.length})`;
 		list = list.unique();
-		if (list.length === 1)
+		if (list.length < 4)
 			this.summary += ': ' + list[0];
 		//else: list.length > 1
 	}

@@ -62,6 +62,7 @@ async function main_process() {
 	await setup_citation_template_list();
 
 	await replace_tool.replace({
+		wiki,
 		use_language,
 		not_bot_requests: true,
 		summary: '[[Wikipedia:机器人/申请/Cewbot/25|正規化日期格式、清理引文模組未知參數]]',
@@ -140,6 +141,7 @@ function for_template(token, index, parent) {
 		) {
 			CeL.debug(`Invalid date format: |${parameter_name}=${value}|`, 0);
 		}
+
 		const date = value.to_Date();
 		if (!date || date.precision && date.precision !== 'day') {
 			invalid_date = true;

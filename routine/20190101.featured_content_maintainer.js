@@ -942,7 +942,7 @@ function check_date_page() {
 			//
 			JDN = FC_data[KEY_LATEST_JDN] = FC_data[KEY_JDN].length > 0
 			//
-			? FC_data[KEY_JDN][FC_data[KEY_JDN].length - 1]
+			? FC_data[KEY_JDN].at(-1)
 			// : Infinity: 沒上過首頁的頁面因為不存在簡介/摘要頁面，所以必須要排在最後，不能夠列入顯示。
 			: 0;
 			if (FC_data[KEY_JDN].length > 0)

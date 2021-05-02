@@ -5,8 +5,11 @@ const replace_tool = require('./replace_tool.js');
 
 const task_configuration = Object.create(null);
 [
+	// Template:Internetquelle（Cite web/Germanへのリダイレクト）
+	'Internetquelle',
 	'Cite web/German',
 	'Cite web/French',
+	'Webbref',
 	'Cite web/Swedish',
 	'Cita libro',
 	'Книга',
@@ -14,9 +17,11 @@ const task_configuration = Object.create(null);
 	'Literatur'
 ].forEach(
 	template_name => task_configuration['Template:' + template_name] = {
-		namespace: 0, for_template, for_each_template_options: {
+		namespace: 0,
+		for_template, for_each_template_options: {
 			add_index: 'all'
-		}, page_limit: 1
+		},
+		//page_limit: 1
 	}
 );
 
@@ -24,9 +29,12 @@ replace_tool.replace(null, task_configuration);
 
 // ----------------------------------------------------------------------------
 
+function parse_compared_HTML(HTML) {
+	var lines = [];
+}
+
 // subst展開 [[mw:Help:Substitution]]
 async function for_template(token, index, parent) {
-	//this.discard_changes = true;
 	token[0] = 'subst:' + token[0];
 	const page_title = this.page_to_edit.title;
 	//this.task_configuration.wiki.append_session_to_options().session;
@@ -54,9 +62,10 @@ async function for_template(token, index, parent) {
 		//console.log(wikitext);
 		wikitext = wikitext.compare['*']
 			// TODO: shoulld use HTML parser
-			.between('<td class="diff-addedline">', '</td>').replace(/^<div>/, '').replace(/<\/div>$/, '');
+			.all_between('<td class="diff-addedline">', '</td>').map(token => token.replace(/^<div>/, '').replace(/<\/div>$/, '')).join('\n');
 		wikitext = CeL.HTML_to_Unicode(wikitext);
 		//console.trace([page_title, token.toString(), wikitext]);
 		parent[index] = wikitext;
 	}
+	//this.discard_changes = true;
 }

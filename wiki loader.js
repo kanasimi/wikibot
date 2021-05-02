@@ -41,22 +41,22 @@ var _global = typeof globalThis === 'object' && globalThis
 // 但 process 為同一個。
 // @see https://github.com/es-shims/es7-shim/blob/master/es7-shim.js
 
-// only for node.js.
-/** {String}user/bot name */
-_global.user_name = 'bot_name';
-/** {String}user/bot owner name */
-_global.owner_name = 'bot_owner_name';
-_global.user_password = '';
+// login_options_for_project[DEFAULT_PROJECT_KEY] = { default project
+// configuration }
+_global.DEFAULT_PROJECT_KEY = '*';
+
+// Should setup in `wiki configuration.js`
+_global.login_options_for_project = Object.create(null);
 
 var process_env = _global.process && process.env;
 if (process_env) {
 	// e.g., "cron-20170915.topic_list.zh"
 	_global.task_name = process_env.JOB_NAME;
-	owner_name = process_env.SUDO_USER;
-	user_name = process_env.USER;
-	if (user_name) {
-		user_name = user_name.replace(/^tools\./, '');
-	}
+	login_options_for_project[DEFAULT_PROJECT_KEY] = {
+		owner_name : process_env.SUDO_USER,
+		user_name : process_env.USER
+				&& process_env.USER.replace(/^tools\./, '')
+	};
 }
 
 require('./wiki configuration.js');
@@ -101,8 +101,12 @@ CeL.run([ 'interact.DOM', 'application.debug',
 // ----------------------------------------------------------------------------
 
 if (_global.on_load_CeL) {
-	// e.g., in `./wiki configuration.js`
-	_global.on_load_CeL();
+	try {
+		// e.g., in `./wiki configuration.js`
+		_global.on_load_CeL();
+	} catch (e) {
+		// TODO: handle exception
+	}
 	delete _global.on_load_CeL;
 }
 
@@ -121,8 +125,6 @@ if (!_global.Wikiapi) {
 
 /** {String}task date. 預設之緊急停止作業 (Stop Task) 將檢測之章節標題/開始寫任務原始碼的日期/任務開始的日期。 */
 _global.check_section = '';
-/** {String}預設之運作記錄存放頁面。 */
-_global.log_to = '';
 
 /** {String}script name */
 _global.script_name = CeL.get_script_name()
@@ -135,24 +137,6 @@ _global.script_name = CeL.get_script_name()
 .replace(/[. ]v[\d.]+$/g, '');
 // CeL.log('script_name: ' + CeL.get_script_name());
 
-/** {String}預設之編輯摘要/reason。總結報告。編集内容の要約。 */
-_global.summary = script_name;
-
-if (check_section) {
-	// 本工具將產生之記錄頁面。 log to page
-	log_to = 'User:' + user_name + '/log/' + check_section;
-} else if (script_name && !_global.no_task_date_warning) {
-	CeL.warn('No task date assigned! 未指定任務日期。');
-}
-
-/** {String}home directory */
-_global.home_directory = CeL.env.home || CeL.wiki.wmflabs && '/data/project/'
-		+ user_name + '/' || '';
-/** {String}bot base directory */
-_global.bot_directory = CeL.wiki.wmflabs ? home_directory + 'wikibot/' : '';
-/** {String}預設之本任務獨有的 base directory。衍生檔案如記錄檔、cache 等將置放此目錄下。 */
-_global.base_directory = '';
-
 if (script_name) {
 	if (typeof console === 'object') {
 		console.time('task');
@@ -160,35 +144,10 @@ if (script_name) {
 	}
 	CeL.log('\n' + '-'.repeat(80) + '\nwiki loader: ' + (new Date).format()
 			+ ' Starting [' + CeL.get_script_name() + ']');
-
-	base_directory = bot_directory + script_name + '/';
 }
 
-_global.original_directory = _global.dump_directory = undefined;
-if (bot_directory) {
-	// CeL.log('base_directory: ' + base_directory);
-	// record original working directory.
-	original_directory = process.cwd().replace(/[\\\/]+$/) + '/';
-	// e.g., '/shared/cache/', '/shared/dumps/', '~/dumps/'
-	// 注意:此目錄可能因為系統整理等原因而消失。
-	dump_directory = '/shared/cache/';
-
-	if (false) {
-		console.log('wmflabs-project: '
-				+ require('fs').existsSync('/etc/wmflabs-project')
-				+ ', INSTANCENAME: ' + process.env.INSTANCENAME);
-		console.log('wmflabs: ' + CeL.wiki.wmflabs + ', bot directory: '
-				+ bot_directory);
-		console.log(process.env);
-	}
-
-	try {
-		// change to the bot directory.
-		process.chdir(bot_directory);
-	} catch (e) {
-		// TODO: handle exception
-	}
-}
+/** {String}預設之編輯摘要/reason。總結報告。編集内容の要約。 */
+_global.summary = script_name;
 
 // ----------------------------------------------------------------------------
 
@@ -198,27 +157,101 @@ _global.use_language = '';
 // project = language_code.family
 _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 
-_global.login_options = {
-	user_name : user_name,
-	password : user_password,
-	preserve_password : true,
-	// wiki.latest_task_configuration.configuration_page_title
-	task_configuration_page : log_to && (log_to + '/configuration'),
-	configuration_adapter : null
-};
+function login_options_of_API_URL(API_URL) {
+	var login_options = Object.assign({
+		API_URL : API_URL,
+		preserve_password : true,
+		configuration_adapter : null
+	}, login_options_for_project[DEFAULT_PROJECT_KEY]);
+
+	if (!login_options.task_configuration_page) {
+		/** {String}預設之運作記錄存放頁面。 */
+		var log_to = '';
+		if (check_section) {
+			// 本工具將產生之記錄頁面。 log to page
+			log_to = 'User:'
+			// "owner_name@user_name" → "user_name"
+			+ login_options.user_name.replace(/^[^@]+@/, '') + '/log/'
+					+ check_section;
+			login_options.log_to = log_to;
+			// wiki.latest_task_configuration.configuration_page_title
+			login_options.task_configuration_page = log_to + '/configuration';
+		} else if (script_name && !_global.no_task_date_warning) {
+			CeL.warn('No task date assigned! 未指定任務日期。');
+		}
+	}
+
+	var matched = API_URL.match(new RegExp(Object.keys(
+			login_options_for_project).filter(function(key) {
+		return key !== DEFAULT_PROJECT_KEY;
+	}).join('|'), 'i'));
+	if (matched) {
+		Object.assign(login_options, login_options_for_project[matched[0]]);
+	}
+
+	return login_options;
+}
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function set_language(language) {
 	use_language = language;
-	login_options.API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || language;
+	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || language;
+	// export
+	_global.login_options = login_options_of_API_URL(API_URL);
+	if (login_options.API_URL && /\Wzh\.moegirl\./.test(login_options.API_URL)) {
+		// e.g., zhmoegirl 設定 .template_functions_site_name = 'zhwiki'，
+		// 採用 zhwiki 的模板特設功能設定。
+		login_options.template_functions_site_name = 'zhwiki';
+	} else {
+		delete login_options.template_functions_site_name;
+	}
 	CeL.gettext.use_domain(language === 'simple' ? 'en' : language, true);
 	// 因為 CeL.wiki.set_language() 會用到 gettext()，
 	// 因此得置於 CeL.gettext.use_domain() 後。
 	CeL.wiki.set_language(language);
 	// console.trace(language);
+
+	_global.user_name = login_options.user_name;
+	_global.log_to = login_options.log_to || '';
+	/** {String}home directory */
+	var home_directory = CeL.env.home || CeL.wiki.wmflabs && '/data/project/'
+			+ user_name + '/' || '';
+	/** {String}bot base directory */
+	_global.bot_directory = CeL.wiki.wmflabs ? home_directory + 'wikibot/' : '';
+	/** {String}預設之本任務獨有的 base directory。衍生檔案如記錄檔、cache 等將置放此目錄下。 */
+	_global.base_directory = script_name ? bot_directory + script_name + '/'
+			: '';
+
+	var original_directory;
+	_global.dump_directory = undefined;
+	if (bot_directory) {
+		// CeL.log('base_directory: ' + base_directory);
+		// record original working directory.
+		original_directory = process.cwd().replace(/[\\\/]+$/) + '/';
+		// e.g., '/shared/cache/', '/shared/dumps/', '~/dumps/'
+		// 注意:此目錄可能因為系統整理等原因而消失。
+		dump_directory = '/shared/cache/';
+
+		if (false) {
+			console.log('wmflabs-project: '
+					+ require('fs').existsSync('/etc/wmflabs-project')
+					+ ', INSTANCENAME: ' + process.env.INSTANCENAME);
+			console.log('wmflabs: ' + CeL.wiki.wmflabs + ', bot directory: '
+					+ bot_directory);
+			console.log(process.env);
+		}
+
+		try {
+			// change to the bot directory.
+			process.chdir(bot_directory);
+		} catch (e) {
+			// TODO: handle exception
+		}
+	}
 };
 
 set_language(CeL.env.arg_hash && CeL.env.arg_hash.use_language || 'zh');
+// console.trace(login_options);
 
 // e.g., # node task.js debug=2
 if (CeL.env.arg_hash && (CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug)) {
@@ -241,7 +274,7 @@ _global.Wiki = function new_wiki(login, API_URL) {
 		return new CeL.wiki(null, null, api);
 	}
 
-	var un = user_name, pw = user_password;
+	var un = login_options.user_name, pw = login_options.password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
 	var session = CeL.wiki.login(un, pw, Object.assign(Object.create(null),

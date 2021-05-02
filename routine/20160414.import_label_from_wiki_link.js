@@ -674,7 +674,7 @@ function for_each_page(page_data, messages) {
 				// e.g., 分不清會不會有包括逗號","和分號";"才算是完整別名(label)的情況，因此放棄。
 			} else if (Array.isArray(title)) {
 				// e.g., "Electronic waste, e-waste or e-scrap"
-				if (/或| or | and /i.test(title[title.length - 1])) {
+				if (/或| or | and /i.test(title.at(-1))) {
 					matched = title.pop().split(/或| or | and /i);
 					title.append(matched);
 				}

@@ -82,6 +82,7 @@ localized_column_to_header = localized_column_to_header[use_language]
 // e.g., unknown language or 'commons' in CeL.wiki.api_URL.wikimedia
 || localized_column_to_header.en;
 var column_to_header = Object.assign({
+	// № No 序號 '#' [[w:en:ordinal indicator|º]]
 	NO : 'data-sort-type="number" | #'
 }, localized_column_to_header);
 // Release memory. 釋放被占用的記憶體。
@@ -1293,6 +1294,8 @@ function check_BRFA_status(section) {
 
 		if (token.name in {
 			'Rfp/status' : true,
+			// [[Template:Status]]
+			Status : true,
 			Status2 : true,
 			Donestatus : true
 		}) {
@@ -1635,7 +1638,7 @@ function cross_out_vote(section, latest_vote, cross_out_token) {
 					+ section.vote_list[vote_type].length, 2, 'cross_out_vote');
 			// console.log(section.vote_list[vote_type]);
 			// assert: the last one of {Array} is `latest_vote`
-			if (latest_vote === section.vote_list[vote_type][section.vote_list[vote_type].length - 1])
+			if (latest_vote === section.vote_list[vote_type].at(-1))
 				section.vote_list[vote_type].pop();
 			CeL.debug(vote_type + ': → ' + section.vote_list[vote_type].length,
 					2, 'cross_out_vote');

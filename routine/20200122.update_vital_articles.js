@@ -147,7 +147,7 @@ async function get_page_info() {
 			report_lines.push([FC_title, , `Category conflict: ${data.from}→${CeL.wiki.title_link_of('Category:' + data.category, data.to)}`]);
 		}
 	});
-	// console.log(wiki.FC_data_hash);
+	//console.log(wiki.FC_data_hash['Windows 10']);
 
 	// ---------------------------------------------
 

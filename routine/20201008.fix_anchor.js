@@ -530,7 +530,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	}, {
 		revision_post_processor(revision) {
-			// save memory
+			// save memory 刪除不需要的提醒內容
 			delete revision.slots;
 			delete revision.diff_list;
 			// for old MediaWiki. e.g., moegirl
@@ -739,6 +739,7 @@ async function check_page(target_page_data, options) {
 					return;
 				if (template_token.parameters[LINKS_PARAMETER]?.toString()?.trim() === '') {
 					// 移除掉整個 {{Broken anchors}}。
+					// bot在巡查時，基本上會把修正過、沒有問題的通知刪掉，也就是說只要修正後就會自動清除告知，這樣應可以減少人力消耗。假如有必要順便連空白頁面都刪掉，或許得加上刪除的權限。
 					return parsed.each.remove_token;
 				}
 			});
@@ -788,6 +789,7 @@ async function check_page(target_page_data, options) {
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
 		let wikitext_to_add;
 		if (anchor_token) {
+			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${record
 				// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 				? `${record.disappear ? ' '
@@ -878,6 +880,7 @@ async function check_page(target_page_data, options) {
 		if (rename_to && section_title_history[rename_to]?.is_present) {
 			let type;
 			record.variant_of?.some(variant => {
+				// 請注意: 網頁錨點有區分大小寫與繁簡體。
 				if (variant[1] === rename_to) {
 					if (variant[0] === MARK_case_change) {
 						type = CeL.gettext('大小寫或空白相異的網頁錨點');

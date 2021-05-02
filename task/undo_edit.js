@@ -32,16 +32,18 @@ var trace_forward_length = 'max';
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	var fix_this_edit = summary.includes('毎日放送2 (MBSラジオ送信所)')
-			&& summary.includes('Bot作業依頼')
-			// [[User:cewbot/log/20190913]]
-			&& (!page_data || !page_data.title.includes(20190913));
-	// fix_this_edit = summary === 'Robot';
-	if (false && fix_this_edit) {
+	var revert_this_edit = summary.includes('内部リンクに置き換えます')
+	//
+	//&& summary.includes('Bot作業依頼')
+	// Do not revert [[User:cewbot/log/20190913]]
+	&& (!page_data || !page_data.title.includes(20190913))
+	;
+	// revert_this_edit = summary === 'Robot';
+	if (false && revert_this_edit) {
 		CeL.info(filter_summary.name + ': ' + CeL.wiki.title_link_of(page_data)
 				+ ': ' + summary);
 	}
-	return fix_this_edit;
+	return revert_this_edit;
 }
 
 // ---------------------------------------------------------------------//

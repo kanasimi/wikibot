@@ -492,7 +492,6 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		// Get task configuration from section in request page.
 		//[[w:ja:Template:リンク修正依頼/改名]]
 		// 警告: 必須確保範圍較狹隘的放在前面!
-		//console.log(token.parameters.提案);
 		CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
 			if (!discussion_link) {
 				discussion_link = token[0] + token[1];
@@ -503,6 +502,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			discussion_link = null;
 			return section.each.exit;
 		});
+		console.trace([token.parameters.提案, discussion_link]);
 
 		let task_options = token.parameters.options;
 		if (task_options) {
@@ -1053,7 +1053,8 @@ async function get_list(task_configuration, list_configuration) {
 				...list_configuration.move_from
 			};
 			// console.trace(task_configuration.move_from);
-			if (list_configuration.move_from.ns !== wiki.namespace('Category')) {
+			// 手動設定另當別論。
+			if (!list_configuration.list_types && list_configuration.move_from.ns !== wiki.namespace('Category')) {
 				list_types = list_types.filter(type => type !== 'categorymembers');
 				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
 					const redirect_list = (await wiki.register_redirects(list_configuration.move_from_link))?.redirect_list;
@@ -1114,7 +1115,7 @@ async function get_list(task_configuration, list_configuration) {
 		if (!task_configuration.replace_from) {
 			let move_from_string = list_configuration.move_from_link.match(/^insource:(.+)$/);
 			if (!move_from_string) {
-				CeL.warn(`get_list: Should set text_processor() with list_types=${list_types}!`);
+				CeL.warn(`${get_list.name}: Should set text_processor() with list_types=${list_types}!`);
 			} else {
 				move_from_string = move_from_string[1];
 				let replace_from = move_from_string.match(CeL.PATTERN_RegExp);
@@ -1146,30 +1147,36 @@ async function get_list(task_configuration, list_configuration) {
 	if (typeof page_list === 'function') {
 		page_list = await page_list.call(list_configuration, task_configuration);
 	}
-	const list_title = list_configuration.move_from.page_title ? CeL.wiki.title_link_of(list_configuration.move_from.page_title) : list_types;
+
+	/** {String|Array} page title (list) to get pages to process. */
+	const list_title_list = list_configuration.list_title || list_configuration.move_from?.page_title || list_configuration.move_from_link;
+	// TODO: fix if list_title_list !== list_configuration.move_from_link
+
+	const list_label = list_title_list ? CeL.wiki.title_link_of(list_title_list) : list_types;
 	if (Array.isArray(page_list)) {
 		// Only for get .pageid & .ns
 		//page_list = await wiki.page(page_list, { rvprop: 'ids' });
 		//console.trace(page_list);
 		//console.trace(page_list[0]);
-		CeL.info(`get_list: Process ${page_list.length} pages...`);
+		CeL.info(`${get_list.name}: Process ${page_list.length} pages...`);
 		// Warning: Should filter 'Wikipedia|User' yourself!
 	} else {
 		page_list = [];
-		CeL.info(`get_list: Get types: ${list_types.join(', ')}`
-			+ (list_configuration.move_from.page_title ? ` of ${wiki.site_name()}: ${CeL.wiki.title_link_of(list_configuration.move_from.page_title)}` : '')
-			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_configuration.move_from.page_title ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
+		CeL.info(`${get_list.name}: Get types: ${list_types.join(', ')}`
+			+ (list_title_list ? ` of ${wiki.site_name()}: ${CeL.wiki.title_link_of(list_title_list)}` : '')
+			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_title_list ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
 			+ (` (namespace: ${list_options.namespace})`)
 		);
 		const list_filter = list_configuration.list_filter;
-		// Can not use `list_types.forEach(async type => ...)`
-		for (const type of list_types) {
-			let list_segment = await wiki[type](list_configuration.move_from && list_configuration.move_from.page_title || list_configuration.move_from_link, list_options);
-			if (list_filter) {
-				list_segment = list_segment.filter(list_filter);
+		for (const list_title of (Array.isArray(list_title_list) ? list_title_list : [list_title_list])) {
+			for (const type of list_types) {
+				let list_segment = await wiki[type](list_title, list_options);
+				if (list_filter) {
+					list_segment = list_segment.filter(list_filter);
+				}
+				page_list.append(list_segment);
+				CeL.log_temporary(`${list_label}: ${page_list.length} pages`);
 			}
-			page_list.append(list_segment);
-			CeL.log_temporary(`${list_title}: ${page_list.length} pages`);
 		}
 
 		if (false) {
@@ -1196,11 +1203,11 @@ async function get_list(task_configuration, list_configuration) {
 		//console.log(page_list);
 	}
 	if (list_configuration.page_limit >= 1) {
-		CeL.info(`get_list: Limit to ${list_configuration.page_limit}/${page_list.length} page(s) got from ${list_title}`);
+		CeL.info(`${get_list.name}: Limit to ${list_configuration.page_limit}/${page_list.length} page(s) got from ${list_label}`);
 		page_list = page_list.truncate(list_configuration.page_limit);
 		//page_list = page_list.slice(1, 2);
 	} else {
-		CeL.info(`get_list: Get ${page_list.length} page(s) from ${list_title}`);
+		CeL.info(`${get_list.name}: Get ${page_list.length} page(s) from ${list_label}`);
 	}
 	// console.log(page_list);
 

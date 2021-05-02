@@ -1,7 +1,7 @@
 ﻿/*
 
 2021/4/20 5:45:20	初版試營運。
-	  完成。正式運用。
+2021/4/22 9:19:6	  完成。正式運用。
 
  */
 
@@ -64,8 +64,8 @@ function split_English_Thai_name(English_Thai_name) {
 	await main_process();
 })();
 
-const summary_prefix = '[[Wikipedia:Bots/Requests for approval/Cewbot 7|Maintain sort key of Thai peoples]]: ';
-const do_not_check_redirects = true;
+const summary_prefix = '[[Wikipedia:Bots/Requests for approval/Cewbot 7|Maintaining sort keys in Thai-people categories]]: ';
+const do_not_check_redirects = false;
 let Thai_name_CATEGORY_LIST;
 const pages_without_people_data = [];
 const non_biographical_pages = [];
@@ -87,8 +87,9 @@ async function main_process() {
 	//console.log(Thai_name_CATEGORY_LIST);
 	const Thai_people_page_list = new Set;
 	// Get all pages of Thai_name_CATEGORY_LIST (categories transcluding {{Thai people category}}).
-	await wiki.for_each_page(Thai_name_CATEGORY_LIST.slice(20, 21)
+	await wiki.for_each_page(Thai_name_CATEGORY_LIST
 		// for debug
+		//.slice(20, 21)
 		//&& ['Category:Chiangrai United F.C. players']
 		, for_each_Thai_people_category, { Thai_people_page_list });
 	//console.log(Thai_people_page_list);
@@ -97,7 +98,8 @@ async function main_process() {
 	if (false) {
 		// for debug
 		Thai_people_page_list.clear();
-		["Adenilson Martins do Carmo", "Alex Henrique José", "Brinner Henrique Santos Souza", "Cristiano da Silva Santos", "Danilo Cirino de Oliveira", "Jerri Ariel Farias Hahn"].forEach(t => Thai_people_page_list.add(t));
+		["Adenilson Martins do Carmo", "Alex Henrique José", "Brinner Henrique Santos Souza", "Cristiano da Silva Santos", "Danilo Cirino de Oliveira", "Jerri Ariel Farias Hahn",
+			"Eaktwan BTU Ruaviking", "Pajonsuk SuperPro Samui", "Samson Dutch Boy Gym", "Yodsanan Sor Nanthachai"].forEach(t => Thai_people_page_list.add(t));
 	}
 
 	// run through all pages of Thai_name_categories
@@ -113,7 +115,6 @@ async function main_process() {
 		summary: summary_prefix + `Report ${non_biographical_pages.length} non-biographical articles.`
 	});
 
-	routine_task_done('1 week');
 }
 
 // ----------------------------------------------------------------------------
@@ -305,7 +306,7 @@ const Thai_name_data = Object.create(null);
 // (excluding the disambiguator)
 function page_title_to_sort_key(page_title) {
 	// e.g., [[Abdoul Karim Sylla (footballer, born 1981)]] → "Abdoul Karim Sylla"
-	return page_title.replace(/ \([^()]+\)$/, '')
+	return page_title.toString().replace(/ \([^()]+\)$/, '')
 		// diacritics to alphabet
 		// https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
 		.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -454,7 +455,7 @@ function for_each_Thai_people_page(page_data) {
 
 		parsed.insert_layout_token(token => {
 			//console.log([page_data.title, Thai_people_data.DEFAULTSORT, token]);
-			this.summary += 'Follow the instructions of [[Wikipedia:WikiProject Thailand/Thai name sort keys]]';
+			this.summary += 'Per values in [[Wikipedia:WikiProject Thailand/Thai name sort keys]]';
 			const Thai_sort_key_not_needed = Thai_sort_key ? '' : '{{Thai sort key not needed}}\n';
 
 			if (!token) {
@@ -466,7 +467,7 @@ function for_each_Thai_people_page(page_data) {
 				CeL.debug(`${for_each_Thai_people_page.name}: Skip page ${CeL.wiki.title_link_of(page_data)} being tald not to change.`);
 			} else if (Thai_people_data.DEFAULTSORT
 				// ... also be skipped, as well as pages with empty DEFAULTSORTs or DEFAULTSORTs that are identical to the PAGENAME or differ only in capitalisation (e.g. Abu Samah Mohd Kassim and Alef Vieira Santos above).
-				&& token[1] && token[1].toString().toLowerCase() !== Thai_people_data.DEFAULTSORT.toString().toLowerCase()) {
+				&& token[1] && page_title_to_sort_key(token[1]).toLowerCase() !== Thai_people_data.DEFAULTSORT.toString().toLowerCase()) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The default sort key of <code><nowiki>${token}</nowiki></code> will be set to ${JSON.stringify(Thai_people_data.DEFAULTSORT)}!`);
 				token.truncate(2);
 				token[1] = Thai_people_data.DEFAULTSORT;
@@ -485,7 +486,8 @@ function for_each_Thai_people_page(page_data) {
 		parsed.each('function', token => {
 			if (token.name === 'DEFAULTSORT') {
 				DEFAULTSORT_token = token;
-				if (page_title_to_sort_key(token[1]).toLowerCase() === page_title_to_sort_key(page_data.title).toLowerCase()) {
+				if (token[1] && page_title_to_sort_key(token[1]).toLowerCase()
+					=== page_title_to_sort_key(page_data.title).toLowerCase()) {
 					DEFAULTSORT_is_equivalent_to_page_title = true;
 					return parsed.each.exit;
 				}
@@ -494,7 +496,7 @@ function for_each_Thai_people_page(page_data) {
 		if (!DEFAULTSORT_token || DEFAULTSORT_is_equivalent_to_page_title)
 			return Wikiapi.skip_edit;
 
-		this.summary += 'Modify sort key of Thai categories, as page name.';
+		this.summary += 'Adding page title as sort keys.';
 		pages_without_people_data.push(page_data.title);
 		Thai_sort_key = page_title_to_sort_key(page_data.title);
 	}

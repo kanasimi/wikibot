@@ -66,7 +66,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 			if (section_data.finished) {
 				continue;
 			}
-			if (section_data.doing && section_data.completed) {
+			if (section_data.completed && (section_data.doing || section_data.done)) {
 				CeL.debug(section_title);
 				need_close.push(section_title);
 			} else {

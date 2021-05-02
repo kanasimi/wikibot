@@ -48,12 +48,15 @@ replace_tool.replace({
 		move_from_link: '作品',
 		do_move_page: true,
 
-		// for debug
+		// for debug or 直接指定頁面列表。
 		page_list: [],
 
 		// Also replace text in source for link
 		// リンクのない本文表記についても本来の修正します。
 		also_replace_text: true,
+
+		// also run 20201008.fix_anchor.js after maving anchors. 切れたアンカーの修正 + 「切れたアンカーの告知」のテンプレートを除去。
+		"fix_anchor": true,
 
 		// 允許內容被清空。白紙化。
 		allow_empty: false,
@@ -95,6 +98,8 @@ replace_tool.replace({
 	},
 
 	'Template:from_title': {
+		//use this page(s) as list title list
+		list_title_list: '',
 		list_types: 'embeddedin',
 		for_template(token, index, parent) { CeL.wiki.parse.replace_parameter(token, config, 'parameter_name_only'); },
 	},

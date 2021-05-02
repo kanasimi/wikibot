@@ -17,7 +17,7 @@ set_language('zh');
 // ----------------------------------------------------------------------------
 
 (async () => {
-	await wiki.login(user_name, user_password, use_language);
+	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();

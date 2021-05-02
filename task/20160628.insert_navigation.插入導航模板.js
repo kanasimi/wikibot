@@ -131,7 +131,7 @@ function for_each_pages(page_data) {
 // 若有必要，此時得用 config.first 自行處理！
 function arrange_page(messages, pages) {
 	// console.log(pages);
-	if (template_with_ns === CeL.wiki.title_of(pages[pages.length - 1])) {
+	if (template_with_ns === CeL.wiki.title_of(pages.at(-1))) {
 		return;
 	}
 

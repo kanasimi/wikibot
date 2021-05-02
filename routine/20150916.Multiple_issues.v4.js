@@ -350,7 +350,7 @@ async function check_pages_including_maintenance_template(page_data) {
 				// be sure .startsWith('\n')
 				tokens.unshift('\n');
 			}
-			if (!/\n/.test(tokens[tokens.length - 1])) {
+			if (!/\n/.test(tokens.at(-1))) {
 				// be sure .endsWith('\n')
 				tokens.push('\n');
 			}
