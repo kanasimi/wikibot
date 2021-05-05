@@ -625,6 +625,7 @@ async function tracking_section_title_history(page_data, options) {
 		rvlimit: 'max',
 	});
 
+	//console.trace(section_title_history)
 	section_title_history[KEY_got_full_revisions] = true;
 	return section_title_history;
 }
@@ -898,6 +899,7 @@ async function check_page(target_page_data, options) {
 		if (!(wiki.normalize_title(page_title) in target_page_redirects)
 			|| !token.anchor || section_title_history[token.anchor]?.is_present
 		) {
+			// 當前有此 anchor。
 			return;
 		}
 		//console.log(section_title_history);
@@ -1005,6 +1007,24 @@ async function check_page(target_page_data, options) {
 			return true;
 		}
 
+		// 檢測當前 anchors 是否有包含 token.anchor 的。
+		function filter_reduced_section(reduced_section) {
+			return reduced_section.includes(token.anchor) || token.anchor.includes(reduced_section)
+				// 選出接近之 anchor
+				|| 4 * CeL.edit_distance(token.anchor, reduced_section) / (token.anchor.length + reduced_section.length) < 1;
+		}
+		const reduced_section_includes_anchor = token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1)
+			&& Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
+				.append(Object.keys(section_title_history).filter(section_title => section_title_history[section_title].is_present && section_title_history[section_title].title === section_title).filter(filter_reduced_section));
+		if (reduced_section_includes_anchor?.length === 1) {
+			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
+			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
+			change_to_anchor(rename_to);
+			this.summary = `${summary}${CeL.gettext('%1→當前最近似的網頁錨點 %2', token.anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))}`;
+			return true;
+		}
+		//console.trace(reduced_section_includes_anchor);
+
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
@@ -1060,7 +1080,7 @@ async function check_page(target_page_data, options) {
 			}
 
 			// handle {{Sfn}}
-			if (wiki.is_template('Sfn', token)) {
+			if (wiki.is_template(['Sfn', 'Sfnp'], token)) {
 				// TODO: 太過複雜 跳過
 				return;
 			}
@@ -1068,6 +1088,7 @@ async function check_page(target_page_data, options) {
 		});
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
+			// check talk page, 刪掉已有沒問題之 anchors。
 			add_note_to_talk_page_for_broken_anchors(linking_page_data);
 		}
 
