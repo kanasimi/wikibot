@@ -267,13 +267,14 @@ if (false) {
 }
 
 /** Wiki() return {Object}wiki operator 操作子. */
-_global.Wiki = function new_wiki(login, API_URL) {
+_global.Wiki = function new_wiki(do_login, API_URL) {
 	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 			|| use_project;
-	if (!login) {
+	if (!do_login) {
 		return new CeL.wiki(null, null, api);
 	}
 
+	var login_options = login_options_of_API_URL(api);
 	var un = login_options.user_name, pw = login_options.password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
