@@ -985,9 +985,9 @@ async function check_page(target_page_data, options) {
 			const hash = '#' + rename_to;
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
-			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: #${original_anchor}${ARROW_SIGN}${hash}`);
+			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: ${original_anchor}${ARROW_SIGN}${hash}`);
 			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
-				} #${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
+				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			change_to_anchor(rename_to);
 			//changed = true;
@@ -1001,7 +1001,7 @@ async function check_page(target_page_data, options) {
 			if (change_to_page_title(move_to_page_title_via_link[0]))
 				return;
 			const target_link = move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : '');
-			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + original_anchor), CeL.wiki.title_link_of(target_link));
+			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
 			this.summary = `${summary}${message}`;
@@ -1022,8 +1022,8 @@ async function check_page(target_page_data, options) {
 			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
 			this.summary = `${summary
-				}${CeL.gettext('%1→當前最近似的網頁錨點%2。', '#' + original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
-				}${token.anchor.replace(/[^\d]/g, '') === rename_to.replace(/[^\d]/g, '') ? '' : '請幫忙檢核此次編輯。'}`;
+				}${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
+				}${token.anchor.replace(/[^\d]/g, '') === rename_to.replace(/[^\d]/g, '') ? '' : CeL.gettext('請幫忙檢核此次編輯。')}`;
 			change_to_anchor(rename_to);
 			return true;
 		}
