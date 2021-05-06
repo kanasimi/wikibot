@@ -860,14 +860,14 @@ async function check_page(target_page_data, options) {
 			const move_to_page_title_via_link = anchor_to_page[reduce_section_title(anchor_token.anchor)];
 			const target_link = move_to_page_title_via_link && (move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : ''));
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
-			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki>${move_to_page_title_via_link
+			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki> ${move_to_page_title_via_link
 				? CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((anchor_token.article_index ? anchor_token[anchor_token.anchor_index] : anchor_token[0]) + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
 				: ''
-				}${record
+				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
-					? `${record.disappear ? ' '
+					? `${record.disappear ?
 						// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
-						+ CeL.gettext('此網頁錨點（%2）之前[[Special:Diff/%1|曾被其他用戶刪除過]]。', record.disappear.revid, anchor_token[1]) : ''
+						CeL.gettext('此網頁錨點（%2）之前[[Special:Diff/%1|曾被其他用戶刪除過]]。', record.disappear.revid, anchor_token[1]) : ''
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 					} <!-- ${JSON.stringify(record)} -->` : ''}`;
 			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
@@ -1020,7 +1020,7 @@ async function check_page(target_page_data, options) {
 			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
 			change_to_anchor(rename_to);
-			this.summary = `${summary}${CeL.gettext('%1→當前最近似的網頁錨點 %2', token.anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))}`;
+			this.summary = `${summary}${CeL.gettext('%1→當前最近似的網頁錨點%2', token.anchor_index ? token[token.anchor_index] : token[1], CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))}`;
 			return true;
 		}
 		//console.trace(reduced_section_includes_anchor);
