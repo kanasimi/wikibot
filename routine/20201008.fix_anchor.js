@@ -1015,15 +1015,17 @@ async function check_page(target_page_data, options) {
 				// 選出接近之 anchor
 				|| 4 * CeL.edit_distance(token.anchor, reduced_section) / (token.anchor.length + reduced_section.length) < 1;
 		}
-		const reduced_section_includes_anchor = token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1)
-			&& Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
+		const reduced_section_includes_anchor =//token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1) &&
+			Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
 				.append(Object.keys(section_title_history).filter(section_title => section_title_history[section_title].is_present && section_title_history[section_title].title === section_title).filter(filter_reduced_section));
 		if (reduced_section_includes_anchor?.length === 1) {
 			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
 			this.summary = `${summary
 				}${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
-				}${token.anchor.replace(/[^\d]/g, '') === rename_to.replace(/[^\d]/g, '') ? '' : CeL.gettext('請幫忙檢核此次編輯。')}`;
+				}${token.anchor.replace(/[^\d]/g, '').includes(rename_to.replace(/[^\d]/g, '')) || rename_to.replace(/[^\d]/g, '').includes(token.anchor.replace(/[^\d]/g, '')) ? ''
+					// 當阿拉伯數字都變更時較容易出問題。
+					: CeL.gettext('請幫忙檢核此次編輯。')}`;
 			change_to_anchor(rename_to);
 			return true;
 		}
