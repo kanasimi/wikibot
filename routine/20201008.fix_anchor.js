@@ -963,6 +963,8 @@ async function check_page(target_page_data, options) {
 			return;
 		}
 
+		const original_anchor = token.anchor_index ? token[token.anchor_index] : token[1];
+		// assert: token.anchor === CeL.wiki.parse.anchor.normalize_anchor(original_anchor)
 		const record = get_section_title_data(section_title_history, token.anchor);
 		//console.trace(record);
 		let rename_to = record?.rename_to;
@@ -983,9 +985,9 @@ async function check_page(target_page_data, options) {
 			const hash = '#' + rename_to;
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
-			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: #${token.anchor}${ARROW_SIGN}${hash}`);
+			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: #${original_anchor}${ARROW_SIGN}${hash}`);
 			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
-				} ${token.anchor_index ? token[token.anchor_index] : token[1]}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
+				} #${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			change_to_anchor(rename_to);
 			//changed = true;
@@ -999,9 +1001,9 @@ async function check_page(target_page_data, options) {
 			if (change_to_page_title(move_to_page_title_via_link[0]))
 				return;
 			const target_link = move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : '');
-			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
+			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + original_anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			//console.trace(`${token.anchor} → ${move_to_page_title_via_link.join('#')}`);
+			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
 			this.summary = `${summary}${message}`;
 			change_to_anchor(move_to_page_title_via_link[1]);
 			return true;
@@ -1019,13 +1021,15 @@ async function check_page(target_page_data, options) {
 		if (reduced_section_includes_anchor?.length === 1) {
 			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
-			this.summary = `${summary}${CeL.gettext('%1→當前最近似的網頁錨點%2', token.anchor_index ? token[token.anchor_index] : token[1], CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))}`;
+			this.summary = `${summary
+				}${CeL.gettext('%1→當前最近似的網頁錨點%2。', '#' + original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
+				}${token.anchor.replace(/[^\d]/g, '') === rename_to.replace(/[^\d]/g, '') ? '' : '請幫忙檢核此次編輯。'}`;
 			change_to_anchor(rename_to);
 			return true;
 		}
 		//console.trace(reduced_section_includes_anchor);
 
-		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${token.anchor}: ${JSON.stringify(record)
+		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${original_anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
 		if (!options.is_archive && wiki.latest_task_configuration.general.add_note_to_talk_page_for_broken_anchors) {
