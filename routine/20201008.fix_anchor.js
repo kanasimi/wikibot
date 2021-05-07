@@ -1012,7 +1012,7 @@ async function check_page(target_page_data, options) {
 		function filter_reduced_section(reduced_section) {
 			return reduced_section.includes(token.anchor) || token.anchor.includes(reduced_section)
 				// 選出接近之 anchor。
-				|| 2 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length + reduced_section.length) < 1;
+				|| 2 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length) < 1;
 		}
 		const reduced_section_includes_anchor =//token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1) &&
 			Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
@@ -1021,7 +1021,7 @@ async function check_page(target_page_data, options) {
 			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
 			const num_token = token.anchor.replace(/[^\d]/g, '');
-			const num_rename_to = token.anchor.replace(/[^\d]/g, '');
+			const num_rename_to = rename_to.replace(/[^\d]/g, '');
 			this.summary = `${summary
 				}${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
 				}${!num_token || !num_rename_to || num_token.includes(num_rename_to) || num_rename_to.includes(num_token) ? ''
