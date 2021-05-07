@@ -473,11 +473,10 @@ async function tracking_section_title_history(page_data, options) {
 		// only fixes similar section names (to prevent errors)
 		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
 		if ((reduced_to.length < 2 || !reduced_from.includes(reduced_to)) && (reduced_from.length < 2 || !reduced_to.includes(reduced_from))
-			// @see CeL.edit_distance(), CeL.LCS()
-			&& (very_different = 2 * CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > from.length + to.length
-			//(very_different = 3 * CeL.edit_distance(from, to)) > from.length + to.length
+			//(very_different = 2 * CeL.edit_distance(from, to)) > Math.min(from.length , to.length)
+			&& (very_different = CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > Math.min(from.length, to.length)
 		) {
-			very_different += `>${from.length + to.length}`;
+			very_different += `>${Math.min(from.length, to.length)}`;
 			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning (${very_different}): ${from}→${to}`);
 		} else {
 			very_different = false;
@@ -597,9 +596,9 @@ async function tracking_section_title_history(page_data, options) {
 				// 找出變更低於限度的，全部填入 edit_distance_lsit。
 				revision.removed_section_titles.forEach(from => {
 					revision.added_section_titles.forEach(to => {
-						const length = from.length + to.length;
-						// 2: NG. e.g., CeL.edit_distance('植松竜司郎','小田切敏郎'); CeL.edit_distance('赤井家・羽田家','赤井秀一');
-						const edit_distance_score = 3 * CeL.edit_distance(from, to) / length;
+						const length = Math.min(from.length, to.length);
+						// 不可使之通過: CeL.edit_distance('植松竜司郎','小田切敏郎'); CeL.edit_distance('赤井家・羽田家','赤井秀一');
+						const edit_distance_score = 2 * CeL.edit_distance(from, to) / length;
 						if (edit_distance_score < 1) {
 							edit_distance_lsit.push([edit_distance_score, from, to]);
 						}
@@ -1012,8 +1011,8 @@ async function check_page(target_page_data, options) {
 		// 檢測當前 anchors 是否有包含 token.anchor 的。
 		function filter_reduced_section(reduced_section) {
 			return reduced_section.includes(token.anchor) || token.anchor.includes(reduced_section)
-				// 選出接近之 anchor
-				|| 4 * CeL.edit_distance(token.anchor, reduced_section) / (token.anchor.length + reduced_section.length) < 1;
+				// 選出接近之 anchor。
+				|| 2 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length + reduced_section.length) < 1;
 		}
 		const reduced_section_includes_anchor =//token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1) &&
 			Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
