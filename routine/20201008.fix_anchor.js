@@ -1127,10 +1127,12 @@ async function check_page(target_page_data, options) {
 			const need_check = !num_token || !num_rename_to || num_token.includes(num_rename_to) || num_rename_to.includes(num_token) ? ''
 				// 當阿拉伯數字都增刪時較容易出問題。
 				: CeL.gettext('請幫忙檢核此次編輯。');
-			if (!need_check && !/20\d{2}/.test(token.anchor) && !/\d月/.test(token.anchor)
-				// 假如 token.anchor 消失時和 rename_to 共存，則不該是 token.anchor 換成 rename_to。
-				&& !(section_title_history[rename_to]?.appear?.revid < section_title_history[token.anchor]?.disappear?.revid)) {
+			if ((!need_check
 				// 必須避免已移去存檔頁面之 anchor。 e.g., [[w:zh:Special:Diff/65523646]]
+				|| !/20\d{2}/.test(token.anchor) && !/\d月/.test(token.anchor)
+				&& wiki.is_talk_namespace(linking_page_data)
+				// 假如 token.anchor 消失時和 rename_to 共存，則不該是 token.anchor 換成 rename_to。
+			) && !(section_title_history[rename_to]?.appear?.revid < section_title_history[token.anchor]?.disappear?.revid)) {
 				this.summary += ` ${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
 					}${need_check}`;
 				if (section_title_history[token.anchor]) {
