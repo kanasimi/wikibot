@@ -474,14 +474,14 @@ async function tracking_section_title_history(page_data, options) {
 		const reduced_from = reduce_section_title(from), reduced_to = reduce_section_title(to);
 		// only fixes similar section names (to prevent errors)
 		// 當標題差異過大時，不視為相同的意涵。會當作缺失。
-		if ((reduced_to.length < 2 || !reduced_from.includes(reduced_to)) && (reduced_from.length < 2 || !reduced_to.includes(reduced_from))
+		if (reduced_from.length > 4 && reduced_to.includes(reduced_from) || reduced_to.length > 4 && reduced_from.includes(reduced_to)
 			//(very_different = 2 * CeL.edit_distance(from, to)) > Math.min(from.length , to.length)
-			&& (very_different = CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) > Math.min(from.length, to.length)
+			|| (very_different = CeL.LCS(from, to, 'diff').reduce((length, diff) => length + diff[0].length + diff[1].length, 0)) < Math.min(from.length, to.length)
 		) {
+			very_different = false;
+		} else {
 			very_different += `>${Math.min(from.length, to.length)}`;
 			CeL.error(`${set_rename_to.name}: Too different to be regarded as the same meaning (${very_different}): ${from}→${to}`);
-		} else {
-			very_different = false;
 		}
 
 		const rename_to_chain = [from], is_directly_rename_to = section_title_history[to]?.is_present;
@@ -1112,7 +1112,7 @@ async function check_page(target_page_data, options) {
 		function filter_reduced_section(reduced_section) {
 			//console.log([token.anchor, reduced_section, 3 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length)]);
 			// 3: prevent [[w:en:Special:Diff/286140354|Princess Abi]]
-			return token.anchor.length > 3 && reduced_section.includes(token.anchor) || reduced_section.length > 3 && token.anchor.includes(reduced_section)
+			return token.anchor.length > 4 && reduced_section.includes(token.anchor) || reduced_section.length > 4 && token.anchor.includes(reduced_section)
 				// 選出接近之 anchor。
 				|| 3 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length) < 1;
 		}
