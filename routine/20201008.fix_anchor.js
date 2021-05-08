@@ -452,7 +452,9 @@ async function tracking_section_title_history(page_data, options) {
 				title: section_title,
 				appear: null,
 			};
-		} else if (section_title_history[section_title][type]) {
+		} else if (section_title_history[section_title][type]
+			// appear: 首次出現, disappear: 最後一次消失
+			&& type !== 'appear') {
 			// 已經有比較新的資料。
 			if (CeL.is_debug()) {
 				CeL.warn(`${tracking_section_title_history.name}: ${type} of ${wiki.normalize_title(page_data)}#${section_title} is existed! ${JSON.stringify(section_title_history[section_title])
@@ -509,33 +511,87 @@ async function tracking_section_title_history(page_data, options) {
 
 	CeL.info(`${tracking_section_title_history.name}: Trying to traversal all revisions of ${CeL.wiki.title_link_of(page_data)}...`);
 
-	await wiki.tracking_revisions(page_data, (diff, revision) => {
+	await wiki.tracking_revisions(page_data, (diff, revision, old_revision) => {
+		//  `diff` 為從舊的版本 `old_revision` 改成 `revision` 時的差異。
 		if (!section_title_history[KEY_latest_page_data]) {
 			set_recent_section_title(CeL.wiki.revision_content(revision), revision);
 		}
 
+		//console.trace(diff);
 		let [removed_text, added_text] = diff;
-		if (false)
-			console.trace([diff, removed_text, added_text, revision]);
+		//console.trace([diff, removed_text, added_text, revision]);
+		//console.trace([previous_text_is_different, removed_text, added_text]);
 
-		removed_text = CeL.wiki.parse.anchor(removed_text, wiki.append_session_to_options());
-		added_text = CeL.wiki.parse.anchor(added_text, wiki.append_session_to_options());
+		const _options = wiki.append_session_to_options();
 
-		if (removed_text.length === 0 && added_text.length === 0)
+		// using get_all_anchor()
+		const removed_anchors = CeL.wiki.parse.anchor(removed_text, _options);
+		const added_anchors = CeL.wiki.parse.anchor(added_text, _options);
+
+		removed_text = CeL.wiki.parser(removed_text, _options).parse();
+		added_text = CeL.wiki.parser(added_text, _options).parse();
+
+		// 當標題前後沒有空白之外的文字時，就當作是置換標題。
+		const replaced_anchors = revision.replaced_anchors || (revision.replaced_anchors = Object.create(null));
+
+		let previous_text_is_different = revision.previous_text_is_different;
+		if (previous_text_is_different && diff.last_index && diff.index[1]) {
+			// 因 !!previous_text_is_different, assert: Array.isArray(revision.last_index)
+			//console.trace([revision.lines[last_index[1]], revision.lines[diff.index[1]], old_revision.lines[last_index[0]], old_revision.lines[diff.index[0]]]);
+
+			// 中間這一段表示兩方相同的文字。
+			if (revision.lines.slice(revision.last_index[1], diff.index[1][0]).join('').trim().length > 200)
+				previous_text_is_different = false;
+		}
+
+		revision.last_index = diff.last_index;
+
+		if (!previous_text_is_different) {
+			for (let removed_index = 0, added_index = 0; removed_index < removed_text.length && added_index < added_text.length;) {
+				while (typeof removed_text[removed_index] === 'string' && !(previous_text_is_different = removed_text[removed_index].trim())) removed_index++;
+				if (previous_text_is_different) break;
+
+				while (typeof added_text[added_index] === 'string' && !(previous_text_is_different = added_text[added_index].trim())) added_index++;
+				if (previous_text_is_different) break;
+
+				const removed_token = removed_text[removed_index++], added_token = added_text[added_index++];
+				if (removed_token?.type === 'section_title' && added_token?.type === 'section_title') {
+					const from = removed_token.link.id;
+					const to = added_token.link.id;
+					const length = Math.min(from.length, to.length);
+					const edit_distance_score = 2 * CeL.edit_distance(from, to) / length;
+					if (edit_distance_score < 1)
+						replaced_anchors[from] = to;
+				} else {
+					// assert: removed_token || added_token 其中一個為非標題文字。
+					previous_text_is_different = true;
+					break;
+				}
+			}
+		}
+
+		revision.previous_text_is_different = previous_text_is_different;
+
+		if (removed_anchors.length === 0 && added_anchors.length === 0)
 			return;
 
+		// TODO: https://ja.wikipedia.org/w/index.php?diff=83223729&diffmode=source
 		if (!revision.removed_section_titles) {
 			revision.removed_section_titles = [];
 			revision.added_section_titles = [];
 		}
-		revision.removed_section_titles.append(removed_text);
-		revision.added_section_titles.append(added_text);
+		revision.removed_section_titles.append(removed_anchors);
+		revision.added_section_titles.append(added_anchors);
 
 	}, {
 		revision_post_processor(revision) {
 			// save memory 刪除不需要的提醒內容
 			delete revision.slots;
 			delete revision.diff_list;
+
+			delete revision.last_index;
+			delete revision.previous_text_is_different;
+
 			// for old MediaWiki. e.g., moegirl
 			delete revision.contentformat;
 			delete revision.contentmodel;
@@ -571,6 +627,14 @@ async function tracking_section_title_history(page_data, options) {
 				}
 			});
 
+			// We need this filter
+			Object.keys(revision.replaced_anchors).forEach(from_anchor => {
+				if (!revision.removed_section_titles.includes(from_anchor)) {
+					// 例如轉換前後都有此 anchor，可能是移動段落。
+					delete revision.replaced_anchors[from_anchor];
+				}
+			});
+			//if (!CeL.is_empty_object(revision.replaced_anchors)) console.trace(revision.replaced_anchors);
 
 			function check_rename_to(from, to) {
 				// assert: section_title_history[from].disappear === revision && section_title_history[to].appear === revision
@@ -588,7 +652,16 @@ async function tracking_section_title_history(page_data, options) {
 			// TODO: 整次編輯幅度不大，且一增一減時，才當作是改變章節名稱。
 			if (!has_newer_data && revision.removed_section_titles.length === 1 && revision.added_section_titles.length === 1) {
 				const from = revision.removed_section_titles[0], to = revision.added_section_titles[0];
-				check_rename_to(from, to);
+				//assert: Object.keys(revision.replaced_anchors).length === 1
+				if (revision.replaced_anchors[from] === to) {
+					// or: revision.removed_section_titles.remove(from); revision.added_section_titles.remove(to);
+					//delete revision.removed_section_titles;
+					//delete revision.added_section_titles;
+					check_rename_to(from, to);
+				} else if (revision.replaced_anchors[from]) {
+					CeL.warn(`一對一有疑義: ${from}→${to}, replaced_anchors to ${revision.replaced_anchors[from]}`);
+					delete revision.replaced_anchors;
+				}
 
 			} else {
 				// edit_distance_lsit = [ [ edit_distance_score, from, to ], [ edit_distance_score, from, to ], ... ]
@@ -615,8 +688,31 @@ async function tracking_section_title_history(page_data, options) {
 					// 測試 from 是否已經有更匹配的 to。
 					if (modify_hash[from]) return;
 					modify_hash[from] = to;
-					check_rename_to(from, to);
+					if (revision.replaced_anchors[from] === to) {
+						//revision.removed_section_titles.remove(from);
+						//revision.added_section_titles.remove(to);
+						check_rename_to(from, to);
+					} else if (revision.replaced_anchors[from]) {
+						CeL.warn(`多對多有疑義: ${from}→${to}, replaced_anchors to ${revision.replaced_anchors[from]}`);
+						delete revision.replaced_anchors[from];
+					}
 				});
+
+				if (CeL.is_empty_object(revision.replaced_anchors)) {
+					delete revision.replaced_anchors;
+				} else {
+					//console.trace(revision.replaced_anchors);
+					Object.keys(revision.replaced_anchors).forEach(from_anchor => {
+						check_rename_to(from_anchor, revision.replaced_anchors[from_anchor]);
+					});
+				}
+
+				if (false) {
+					if (revision.removed_section_titles.length === 0)
+						delete revision.removed_section_titles;
+					if (revision.added_section_titles.length === 0)
+						delete revision.added_section_titles;
+				}
 			}
 
 		},
@@ -709,11 +805,10 @@ async function check_page(target_page_data, options) {
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
-	let summary = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}: `;
 	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
-		summary: summary + CeL.wiki.title_link_of(target_page_data),
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}: ${CeL.wiki.title_link_of(target_page_data)}`,
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
@@ -941,7 +1036,7 @@ async function check_page(target_page_data, options) {
 			change_to_anchor(section_title);
 			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			this.summary = `${summary}${message}`;
+			this.summary += ' ' + message;
 			return true;
 		}
 
@@ -953,8 +1048,9 @@ async function check_page(target_page_data, options) {
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 					.catch(error => console.error(error))
+					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title records from page revisions. Continue to check ${working_queue.list.length} pages.`))
+					//.then(() => console.trace(section_title_history))
 					.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
-					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title records from page revisions.`))
 					// free
 					.then(() => working_queue = null);
 				working_queue.list = [linking_page_data];
@@ -985,13 +1081,15 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: ${original_anchor}${ARROW_SIGN}${hash}`);
-			this.summary = `${summary}${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
+			this.summary += ` ${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
 				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`;
 
 			change_to_anchor(rename_to);
 			//changed = true;
 			return true;
 		}
+
+		// --------------------------------------------
 
 		const move_to_page_title_via_link = anchor_to_page[reduce_section_title(token.anchor)];
 		if (false && move_to_page_title_via_link) {
@@ -1003,16 +1101,20 @@ async function check_page(target_page_data, options) {
 			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
-			this.summary = `${summary}${message}`;
+			this.summary += ' ' + message;
 			change_to_anchor(move_to_page_title_via_link[1]);
 			return true;
 		}
 
+		// --------------------------------------------
+
 		// 檢測當前 anchors 是否有包含 token.anchor 的。
 		function filter_reduced_section(reduced_section) {
-			return reduced_section.includes(token.anchor) || token.anchor.includes(reduced_section)
+			//console.log([token.anchor, reduced_section, 3 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length)]);
+			// 3: prevent [[w:en:Special:Diff/286140354|Princess Abi]]
+			return token.anchor.length > 3 && reduced_section.includes(token.anchor) || reduced_section.length > 3 && token.anchor.includes(reduced_section)
 				// 選出接近之 anchor。
-				|| 2 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length) < 1;
+				|| 3 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length) < 1;
 		}
 		const reduced_section_includes_anchor =//token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1) &&
 			Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
@@ -1022,15 +1124,25 @@ async function check_page(target_page_data, options) {
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
 			const num_token = token.anchor.replace(/[^\d]/g, '');
 			const num_rename_to = rename_to.replace(/[^\d]/g, '');
-			this.summary = `${summary
-				}${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
-				}${!num_token || !num_rename_to || num_token.includes(num_rename_to) || num_rename_to.includes(num_token) ? ''
-					// 當阿拉伯數字都增刪時較容易出問題。
-					: CeL.gettext('請幫忙檢核此次編輯。')}`;
-			change_to_anchor(rename_to);
-			return true;
+			const need_check = !num_token || !num_rename_to || num_token.includes(num_rename_to) || num_rename_to.includes(num_token) ? ''
+				// 當阿拉伯數字都增刪時較容易出問題。
+				: CeL.gettext('請幫忙檢核此次編輯。');
+			if (!need_check && !/20\d{2}/.test(token.anchor) && !/\d月/.test(token.anchor)
+				// 假如 token.anchor 消失時和 rename_to 共存，則不該是 token.anchor 換成 rename_to。
+				&& !(section_title_history[rename_to]?.appear?.revid < section_title_history[token.anchor]?.disappear?.revid)) {
+				// 必須避免已移去存檔頁面之 anchor。 e.g., [[w:zh:Special:Diff/65523646]]
+				this.summary += ` ${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
+					}${need_check}`;
+				if (section_title_history[token.anchor]) {
+					//console.trace(section_title_history[token.anchor]);
+				}
+				change_to_anchor(rename_to);
+				return true;
+			}
 		}
 		//console.trace(reduced_section_includes_anchor);
+
+		// --------------------------------------------
 
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${original_anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
