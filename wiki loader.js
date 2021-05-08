@@ -160,8 +160,8 @@ _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 function login_options_of_API_URL(API_URL) {
 	var login_options = Object.assign({
 		API_URL : API_URL,
-		preserve_password : true,
-		configuration_adapter : null
+		preserve_password : true
+	// configuration_adapter : null
 	}, login_options_for_project[DEFAULT_PROJECT_KEY]);
 
 	if (!login_options.task_configuration_page) {
@@ -275,7 +275,8 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 		return new CeL.wiki(null, null, api);
 	}
 
-	var login_options = login_options_of_API_URL(api);
+	var login_options = Object.assign(Object.create(null),
+			_global.login_options, login_options_of_API_URL(api));
 	var un = login_options.user_name, pw = login_options.password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
