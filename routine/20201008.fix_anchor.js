@@ -802,13 +802,13 @@ async function check_page(target_page_data, options) {
 	//console.log(link_from);
 
 	let working_queue;
+	const summary = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}:`;
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
-	//summary = summary + CeL.wiki.title_link_of(target_page_data);
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
-		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}: ${CeL.wiki.title_link_of(target_page_data)}`,
+		summary,
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
@@ -907,7 +907,7 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors);
+				this.summary += ' ' + CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors);
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
@@ -1214,6 +1214,8 @@ async function check_page(target_page_data, options) {
 		if (!changed)
 			return Wikiapi.skip_edit;
 
+		if (this.summary === summary)
+			this.summary += ' ' + CeL.wiki.title_link_of(target_page_data);
 		pages_modified++;
 		return parsed.toString();
 	}
