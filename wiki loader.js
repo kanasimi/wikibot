@@ -181,8 +181,9 @@ function login_options_of_API_URL(API_URL) {
 		}
 	}
 
-	var matched = API_URL.match(new RegExp(Object.keys(
-			login_options_for_project).filter(function(key) {
+	var matched = API_URL && API_URL.match(
+	//
+	new RegExp(Object.keys(login_options_for_project).filter(function(key) {
 		return key !== DEFAULT_PROJECT_KEY;
 	}).join('|'), 'i'));
 	if (matched) {
