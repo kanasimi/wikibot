@@ -18,7 +18,7 @@ jstop cron-20170915.topic_list.moegirl;
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=commons
-/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js API_URL=https://zh.moegirl.org.cn/api.php
+/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -98,9 +98,7 @@ wiki = Wiki(true),
 /** {Object}設定頁面所獲得之手動設定 manual settings。 === wiki.latest_task_configuration */
 configuration,
 
-edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
-// API_URL=https://zh.moegirl.org.cn/api.php
-&& CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
+edit_tags = login_options.API_URL.includes('moegirl') && 'Bot' || '',
 
 // Will get page title from wikidata
 botop_sitelinks = {
