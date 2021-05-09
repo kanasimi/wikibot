@@ -162,7 +162,9 @@ function login_options_of_API_URL(API_URL) {
 		API_URL : API_URL,
 		preserve_password : true
 	// configuration_adapter : null
-	}, login_options_for_project[DEFAULT_PROJECT_KEY]);
+	}, login_options_for_project[DEFAULT_PROJECT_KEY],
+	// preserve _global.login_options.configuration_adapter
+	_global.login_options);
 
 	if (!login_options.task_configuration_page) {
 		/** {String}預設之運作記錄存放頁面。 */
@@ -187,7 +189,12 @@ function login_options_of_API_URL(API_URL) {
 		return key !== DEFAULT_PROJECT_KEY;
 	}).join('|'), 'i'));
 	if (matched) {
-		Object.assign(login_options, login_options_for_project[matched[0]]);
+		matched = matched[0];
+		var _login_options = login_options_for_project[matched];
+		var API_URL = _login_options.API_URL;
+		CeL.info('login_options_of_API_URL: Using options of ' + matched
+				+ (API_URL ? ': ' + API_URL : ''))
+		Object.assign(login_options, login_options_for_project[matched]);
 	}
 
 	return login_options;
@@ -272,8 +279,7 @@ if (false) {
 _global.Wiki = function new_wiki(do_login, API_URL) {
 	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 			|| use_project;
-	var login_options = Object.assign(Object.create(null),
-			_global.login_options, login_options_of_API_URL(api));
+	var login_options = login_options_of_API_URL(api);
 	// console.trace(login_options);
 	if (!do_login) {
 		return new CeL.wiki(null, null, login_options.API_URL);
