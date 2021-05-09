@@ -10,7 +10,7 @@ node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
 node 20201008.fix_anchor.js use_language=simple
-node 20201008.fix_anchor.js API_URL=https://zh.moegirl.org.cn/api.php
+node 20201008.fix_anchor.js use_project=zhmoegirl
 
 fix archived:
 node 20201008.fix_anchor.js use_language=en archives
@@ -72,7 +72,7 @@ const LINKS_PARAMETER = 'links';
 // 讀入手動設定 manual settings。
 async function adapt_configuration(latest_task_configuration) {
 	//console.log(latest_task_configuration);
-	// console.log(wiki);
+	//console.log(wiki);
 
 	// ----------------------------------------------------
 
@@ -653,11 +653,13 @@ async function tracking_section_title_history(page_data, options) {
 			if (!has_newer_data && revision.removed_section_titles.length === 1 && revision.added_section_titles.length === 1) {
 				const from = revision.removed_section_titles[0], to = revision.added_section_titles[0];
 				//assert: Object.keys(revision.replaced_anchors).length === 1
-				if (revision.replaced_anchors[from] === to) {
+				if (!revision.replaced_anchors[from] || revision.replaced_anchors[from] === to) {
 					// or: revision.removed_section_titles.remove(from); revision.added_section_titles.remove(to);
 					//delete revision.removed_section_titles;
 					//delete revision.added_section_titles;
 					check_rename_to(from, to);
+					if (CeL.is_empty_object(revision.replaced_anchors))
+						delete revision.replaced_anchors;
 				} else if (revision.replaced_anchors[from]) {
 					CeL.warn(`一對一有疑義: ${from}→${to}, replaced_anchors to ${revision.replaced_anchors[from]}`);
 					delete revision.replaced_anchors;
@@ -688,11 +690,12 @@ async function tracking_section_title_history(page_data, options) {
 					// 測試 from 是否已經有更匹配的 to。
 					if (modify_hash[from]) return;
 					modify_hash[from] = to;
-					if (revision.replaced_anchors[from] === to) {
+					if (!revision.replaced_anchors[from] || revision.replaced_anchors[from] === to) {
 						//revision.removed_section_titles.remove(from);
 						//revision.added_section_titles.remove(to);
 						check_rename_to(from, to);
-					} else if (revision.replaced_anchors[from]) {
+					} else {
+						// assert: !!revision.replaced_anchors[from] === true
 						CeL.warn(`多對多有疑義: ${from}→${to}, replaced_anchors to ${revision.replaced_anchors[from]}`);
 						delete revision.replaced_anchors[from];
 					}
