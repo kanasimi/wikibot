@@ -207,13 +207,6 @@ _global.set_language = function set_language(language) {
 			|| language;
 	// export
 	_global.login_options = login_options_of_API_URL(API_URL);
-	if (login_options.API_URL && /\Wzh\.moegirl\./.test(login_options.API_URL)) {
-		// e.g., zhmoegirl 設定 .template_functions_site_name = 'zhwiki'，
-		// 採用 zhwiki 的模板特設功能設定。
-		login_options.template_functions_site_name = 'zhwiki';
-	} else {
-		delete login_options.template_functions_site_name;
-	}
 	CeL.gettext.use_domain(language === 'simple' ? 'en' : language, true);
 	// 因為 CeL.wiki.set_language() 會用到 gettext()，
 	// 因此得置於 CeL.gettext.use_domain() 後。

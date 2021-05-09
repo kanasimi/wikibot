@@ -38,7 +38,7 @@ MIN_archive_offset = 1,
 max_archived_topics,
 
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true, 'https://zh.moegirl.org.cn/api.php'),
+wiki = Wiki(true, 'zhmoegirl'),
 /** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
 ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1),
 // 每天一次掃描：每個話題(討論串)最後一次回復的10日後進行存檔處理；

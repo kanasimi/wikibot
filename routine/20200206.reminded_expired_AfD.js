@@ -438,6 +438,7 @@ const PROD_MESSAGE = {
 	logs: 'Logs',
 };
 const ignore_recommendations = PROD_MESSAGE;
+// {{comment|Automated comment}}
 const PROD_MESSAGE_PREFIX = `* '''${PROD_MESSAGE.recommendation}''': `;
 const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], it is '''NOT eligible for [[WP:SOFTDELETE|soft deletion]]''' because ";
 

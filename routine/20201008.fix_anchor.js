@@ -524,7 +524,7 @@ async function tracking_section_title_history(page_data, options) {
 
 		const _options = wiki.append_session_to_options();
 
-		// using get_all_anchor()
+		// using get_all_anchors()
 		const removed_anchors = CeL.wiki.parse.anchor(removed_text, _options);
 		const added_anchors = CeL.wiki.parse.anchor(added_text, _options);
 
