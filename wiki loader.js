@@ -282,16 +282,13 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 	var login_options = login_options_of_API_URL(api);
 	// console.trace(login_options);
 	if (!do_login) {
-		return new CeL.wiki(null, null, login_options.API_URL);
+		return new CeL.wiki(login_options);
 	}
 
 	var un = login_options.user_name, pw = login_options.password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
-	var session = CeL.wiki.login(un, pw, Object.assign(Object.create(null),
-			login_options, {
-				API_URL : api
-			}));
+	var session = CeL.wiki.login(login_options);
 	if (typeof check_section === 'string') {
 		session.check_options = {
 			section : check_section
