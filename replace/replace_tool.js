@@ -78,6 +78,7 @@ async function setup_wiki_session(meta_configuration) {
 	if (!wiki) {
 		wiki = meta_configuration.wiki = new Wikiapi;
 
+		//console.trace(login_options);
 		await wiki.login(login_options);
 		// await wiki.login(null, null, use_language);
 	}
@@ -449,7 +450,8 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			let discussion_link;
 			section.each.call(token[0], 'link', token => {
 				if (!discussion_link) {
-					discussion_link = token[0] + token[1];
+					//discussion_link = token[0] + token[1];
+					discussion_link = token;
 					return;
 				}
 
@@ -488,22 +490,31 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		if (token.name !== 'リンク修正依頼/改名')
 			return;
 
-		let discussion_link;
 		// Get task configuration from section in request page.
 		//[[w:ja:Template:リンク修正依頼/改名]]
-		// 警告: 必須確保範圍較狹隘的放在前面!
-		CeL.wiki.parser.parser_prototype.each.call(token.parameters.提案, 'link', token => {
-			if (!discussion_link) {
-				discussion_link = token[0] + token[1];
-				return;
-			}
 
-			CeL.warn(`get_move_configuration_from_section: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+		let discussion_link = token.parameters.提案;
+		if (!discussion_link) {
+		} else if (discussion_link.type === 'link') {
+			//discussion_link = discussion_link[0] + discussion_link[1];
+		} else {
 			discussion_link = null;
-			return section.each.exit;
-		});
-		console.trace([token.parameters.提案, discussion_link]);
+			section.each.call(token.parameters.提案, 'link', token => {
+				//console.trace(token);
+				if (!discussion_link) {
+					//discussion_link = token[0] + token[1];
+					discussion_link = token;
+					return;
+				}
 
+				CeL.warn(`get_move_configuration_from_section: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+				discussion_link = null;
+				return section.each.exit;
+			});
+		}
+		//console.trace([token.parameters.提案, discussion_link]);
+
+		// 警告: 必須確保範圍較狹隘的放在前面!
 		let task_options = token.parameters.options;
 		if (task_options) {
 			//console.log(task_options);
@@ -525,11 +536,20 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
 			const title = token.parameters[index].toString().trim().replace(/{{!}}/g, '|');
-			const task_configuration = {
+			const move_to_link = token.parameters[index + 1].toString().trim().replace(/{{!}}/g, '|');
+			const task_configuration = Object.assign({
 				discussion_link,
-				move_to_link: token.parameters[index + 1].toString().trim().replace(/{{!}}/g, '|'),
 				...task_options,
-			};
+			}, move_to_link === 'subst:' ? {
+				//namespace: 0,
+				for_template: subst_template,
+				for_each_template_options: {
+					add_index: 'all'
+				},
+			} : {
+					// normal task_configuration
+					move_to_link,
+				});
 			task_configuration_from_section[title] = task_configuration;
 			if (Array.isArray(meta_configuration.also_replace_text) ? meta_configuration.also_replace_text.includes(title) : meta_configuration.also_replace_text) {
 				task_configuration_from_section[`insource:"${title}"`] = Object.clone(task_configuration);
@@ -627,7 +647,7 @@ async function notice_finished(wiki, meta_configuration) {
 		// +{{解決済み}}: @ general_replace.js
 		summary: use_language === 'ja' ? '作業が終了しました' : 'Bot request task finished.'
 	};
-	const _log_to = meta_configuration.log_to ?? log_to;
+	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
@@ -760,7 +780,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		const _summary = typeof summary === 'string' ? summary
 			: discussion_link ? CeL.wiki.title_link_of(discussion_link, section_title)
 				: section_title;
-		const _log_to = task_configuration.log_to ?? log_to;
+		const _log_to = 'log_to' in task_configuration ? task_configuration.log_to
+			: 'log_to' in meta_configuration ? (task_configuration.log_to = meta_configuration.log_to)
+				: log_to;
 		// summary = null, undefined : using section_title as summary
 		// summary = '' : auto-fill summary with page-to-delete + '改名に伴うリンク修正'
 		if (_summary) {
@@ -868,6 +890,22 @@ async function prepare_operation(meta_configuration, move_configuration) {
 					// continue;
 				}
 			}
+		}
+
+		if (task_configuration.also_replace_display_text) {
+			if (!Array.isArray(task_configuration.also_replace_display_text))
+				task_configuration.also_replace_display_text = [task_configuration.also_replace_display_text];
+			task_configuration.also_replace_display_text = task_configuration.also_replace_display_text.map(pattern => {
+				if (typeof pattern === 'string')
+					return pattern.to_RegExp({ allow_replacement: true });
+				return pattern;
+			}).filter(pattern => {
+				if (Array.isArray(pattern) && pattern.length === 2 && pattern[0] && (pattern[1] || pattern[1] === ''))
+					return true;
+				if (CeL.is_RegExp(pattern) && typeof pattern.replace === 'function')
+					return true;
+				CeL.error(`Invalid .also_replace_display_text pattern: ${pattern}`);
+			});
 		}
 
 		task_configuration.wiki = wiki;
@@ -1087,11 +1125,12 @@ async function get_list(task_configuration, list_configuration) {
 						const replace_to = move_to.page_name.replace(/ \([^()]+\)$/, '');
 						// 須避免 [[出雲 (列車)]] → [[サンライズ出雲]] 產生 /出雲/サンライズ出雲/g
 						if (!replace_to.includes(matched[1])) {
-							const also_replace_display_text = new RegExp(CeL.to_RegExp_pattern(matched[1]), 'g');
-							also_replace_display_text.replace_to = replace_to;
+							const also_replace_display_text = [new RegExp(CeL.to_RegExp_pattern(matched[1]), 'g'), replace_to];
 							//console.trace(also_replace_display_text);
-							CeL.info(`Auto-replace display text: ${also_replace_display_text}→${replace_to}`);
-							task_configuration.also_replace_display_text = also_replace_display_text;
+							CeL.info(`Auto-replace display text: ${also_replace_display_text[0]}→${also_replace_display_text[1]}`);
+							if (!task_configuration.also_replace_display_text)
+								task_configuration.also_replace_display_text = [];
+							task_configuration.also_replace_display_text.append(also_replace_display_text);
 						}
 					}
 				}
@@ -1249,7 +1288,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 		// for 「株式会社リクルートホールディングス」の修正
 		// for リクルートをパイプリンクにする
 		// page_options: { rvprop: 'ids|content|timestamp|user' },
-		log_to: task_configuration.log_to ?? log_to,
+		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
 		summary: task_configuration.summary
 	};
 	for (const option of work_option_switches) {
@@ -1451,8 +1490,13 @@ function for_each_link(token, index, parent) {
 			token[2] = this.move_to.display_text;
 		}
 	}
-	if (token[2] && this.also_replace_display_text)
-		token[2] = token[2].toString().replace(this.also_replace_display_text, this.also_replace_display_text.replace_to);
+	if (token[2] && this.also_replace_display_text) {
+		token[2] = token[2].toString();
+		// assert: this.also_replace_display_text = [ {RegExp} generated by "".to_RegExp(), [replace from, replace to], ... ]
+		this.also_replace_display_text.forEach(pattern => {
+			token[2] = pattern.replace ? pattern.replace(token[2]) : token[2].replace(pattern[0], pattern[1]);
+		});
+	}
 	// console.log('~~~~~~~~');
 	// console.log(token);
 
@@ -1555,6 +1599,45 @@ function for_each_file(token, index, parent) {
 		// e.g., [[File:pic.jpg|link=move to.jpg]]
 		token[token.index_of.link] = 'link=' + this.move_to_link;
 	}
+}
+
+// --------------------------------------------------------
+
+// subst展開 [[mw:Help:Substitution]]
+async function subst_template(token, index, parent) {
+	token[0] = 'subst:' + token[0];
+	const page_title = this.page_to_edit.title;
+	//this.task_configuration.wiki.append_session_to_options().session;
+
+	if (CeL.wiki.parser.token_is_children_of(parent,
+		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery')
+	)) {
+		//console.trace([page_title, token.toString(), parent]);
+		// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
+		// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
+
+		// TODO: this.task_configuration.wiki.expandtemplates(), this.task_configuration.wiki.compare()
+		// useless:
+		//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration.wiki.append_session_to_options()));
+
+		let wikitext = await this.task_configuration.wiki.query({
+			action: "compare",
+			fromtitle: page_title,
+			fromslots: "main",
+			'fromtext-main': "",
+			toslots: "main",
+			'totext-main': token.toString(),
+			topst: 1,
+		});
+		//console.log(wikitext);
+		wikitext = wikitext.compare['*']
+			// TODO: shoulld use HTML parser
+			.all_between('<td class="diff-addedline">', '</td>').map(token => token.replace(/^<div>/, '').replace(/<\/div>$/, '')).join('\n');
+		wikitext = CeL.HTML_to_Unicode(wikitext);
+		//console.trace([page_title, token.toString(), wikitext]);
+		parent[index] = wikitext;
+	}
+	//this.discard_changes = true;
 }
 
 // --------------------------------------------------------
