@@ -196,7 +196,8 @@ function login_options_of_API_URL(API_URL) {
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function set_language(language) {
 	use_language = language;
-	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || language;
+	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || use_project
+			|| language;
 	// export
 	_global.login_options = login_options_of_API_URL(API_URL);
 	if (login_options.API_URL && /\Wzh\.moegirl\./.test(login_options.API_URL)) {
@@ -271,12 +272,13 @@ if (false) {
 _global.Wiki = function new_wiki(do_login, API_URL) {
 	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 			|| use_project;
-	if (!do_login) {
-		return new CeL.wiki(null, null, api);
-	}
-
 	var login_options = Object.assign(Object.create(null),
 			_global.login_options, login_options_of_API_URL(api));
+	// console.trace(login_options);
+	if (!do_login) {
+		return new CeL.wiki(null, null, login_options.API_URL);
+	}
+
 	var un = login_options.user_name, pw = login_options.password;
 	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
