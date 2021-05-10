@@ -6,7 +6,8 @@
 
 'use strict';
 
-// only for node.js.
+// Using [[Special:BotPasswords]] to create password.
+
 // default for MediaWiki projects
 login_options_for_project[DEFAULT_PROJECT_KEY] = {
 	/** {String}user/bot owner name */
@@ -17,7 +18,6 @@ login_options_for_project[DEFAULT_PROJECT_KEY] = {
 };
 
 // For special wiki projects.
-// Visit [[Special:BotPasswords]]
 login_options_for_project.lingualibre = {
 	API_URL : 'https://lingualibre.org/api.php',
 	user_name : 'bot@bot',

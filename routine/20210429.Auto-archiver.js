@@ -81,7 +81,7 @@ async function for_each_discussion_page(page_data) {
 		}
 
 		sections_need_to_archive.push(section);
-		CeL.info(`Need archive #${sections_need_to_archive.length} (${CeL.age_of(latest_timevalue)}): ${section.section_title.link}`);
+		CeL.info(`Need archive #${sections_need_to_archive.length} (${CeL.age_of(latest_timevalue)}): ${section.section_title.link[1]}`);
 	}, {
 		level_filter: archive_configuration.level || 2,
 		get_users: true,
@@ -115,6 +115,7 @@ async function select_archive_to_page(configuration) {
 		: patterns[0] ? patterns[0].generator
 			// Default archive generator. See [[w:en:Template:Archives]]
 			: CeL.detect_serial_pattern.parse_generator('Archive %1');
+	CeL.info(`${select_archive_to_page.name}: Using generator: ${archive_subpage_generator()}`);
 	let archive_subpage_index = 0, archive_subpage;
 	while (true) {
 		const subpage = archive_subpage_generator(++archive_subpage_index);
@@ -165,11 +166,11 @@ async function archive_page(configuration) {
 			return;
 		}
 		if (archive_configuration.archive_header) {
-			archive_wikitext = archive_configuration.archive_header.toString().trim() + '\n' + archive_wikitext;
+			archive_wikitext = archive_configuration.archive_header.toString().trim() + '\n\n' + archive_wikitext;
 		}
 	}
 	// 寫入存檔失敗則 throw，不刪除。
-	await wiki.edit_page(archive_to_page, archive_to_page.wikitext + archive_wikitext, { summary: `archive ${sections_need_to_archive.length} topics: append topics` });
+	await wiki.edit_page(archive_to_page, archive_to_page.wikitext.trim() + '\n\n' + archive_wikitext.trim() + '\n\n', { bot: 1, minor: 1, summary: `archive ${sections_need_to_archive.length} topics: append topics` });
 
 	// TODO: updating broken links
 	sections_need_to_archive.forEach(
@@ -177,5 +178,5 @@ async function archive_page(configuration) {
 			&& CeL.gettext(archive_configuration.left_link.toString(), section.section_title.link[0] + '#' + section.section_title.link[1])
 		)
 	);
-	await wiki.edit_page(target_root_page, parsed.toString(), { summary: `archive ${sections_need_to_archive.length} topics: remove topics` });
+	await wiki.edit_page(target_root_page, parsed.toString(), { nocreate: 1, bot: 1, minor: 1, summary: `archive ${sections_need_to_archive.length} topics: remove topics` });
 }

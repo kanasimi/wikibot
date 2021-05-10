@@ -159,12 +159,13 @@ _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 
 function login_options_of_API_URL(API_URL) {
 	var login_options = Object.assign({
-		API_URL : API_URL,
 		preserve_password : true
 	// configuration_adapter : null
 	}, login_options_for_project[DEFAULT_PROJECT_KEY],
 	// preserve _global.login_options.configuration_adapter
 	_global.login_options);
+	if (API_URL)
+		login_options.API_URL = API_URL;
 
 	if (!login_options.task_configuration_page) {
 		/** {String}預設之運作記錄存放頁面。 */
@@ -272,6 +273,7 @@ if (false) {
 _global.Wiki = function new_wiki(do_login, API_URL) {
 	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
 			|| use_project;
+	// console.trace(api);
 	var login_options = login_options_of_API_URL(api);
 	// console.trace(login_options);
 	if (!do_login) {

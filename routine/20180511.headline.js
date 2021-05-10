@@ -2637,6 +2637,7 @@ function parse_headline_page(page_data) {
 function main_process() {
 	var configuration = wiki.latest_task_configuration;
 	var task_configuration = configuration.general;
+	//console.trace(wiki);
 	page_prefix = task_configuration.page_prefix || '';
 	DATE_NAME = task_configuration.DATE_NAME || '';
 	category_name = task_configuration.locale || locale;
