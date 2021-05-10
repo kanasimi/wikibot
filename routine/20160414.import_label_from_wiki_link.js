@@ -1441,7 +1441,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 	}, {
 		bot : 1,
 		// TODO: add [[Special:Redirect/revision/00000|版本]]
-		summary : '[[User:' + user_name
+		summary : '[[User:' + wiki.token.login_user_name
 		//
 		+ '#Import labels/aliases|import label/alias]] from ' + summary_prefix
 		// 一般到第5,6個就會被切掉。

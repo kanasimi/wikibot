@@ -622,7 +622,7 @@ async function notice_to_edit(wiki, meta_configuration) {
 			'{{BOTREQ|作業中}}' : '{{Doing}}');
 		// let PATTERN = /\n[:* ]*{{BOTREQ\|作業中}}/i;
 		// PATTERN =
-		// new RegExp(PATTERN.source + ' .+?' + user_name, PATTERN.flags);
+		// new RegExp(PATTERN.source + ' .+?' + meta_configuration.wiki.token.login_user_name, PATTERN.flags);
 		if (section.toString().includes(doing_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed doning: ${meta_configuration.section_title}`);
 			options.need_edit = false;
@@ -651,9 +651,11 @@ async function notice_finished(wiki, meta_configuration) {
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
 		const finished_message = meta_configuration.finished_message || (wiki.site_name() === 'jawiki' ?
-			//{{利用者の投稿記録リンク|Example|50|20100820121030|4}}
-			//{{BOTREQ|済}} こちらのリンクからご確認下さい
-			`{{BOTREQ|完了}} 修正しなかった場合や望ましくない状況があるなら、お教えください。今後の参考になります。問題が無い場合は{{tl|確認}}でご確認をお願いします。 ${CeL.wiki.title_link_of(_log_to)}` : '{{Done}}');
+			// {{利用者の投稿記録リンク|Example|50|20100820121030|4}}
+			// {{BOTREQ|済}} こちらのリンクからご確認下さい
+			`{{BOTREQ|完了}} 修正しなかった場合や望ましくない状況があるなら、お教えください。今後の参考になります。問題が無い場合は{{tl|確認}}でご確認をお願いします。 ${CeL.wiki.title_link_of(_log_to)}`
+			: wiki.site_name() === 'zhwiki' ? '{{BOTREQ|done}}: 請協助檢查錯誤，並不吝提供些意見，謝謝。'
+				: '{{Done}}');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
 			options.need_edit = false;

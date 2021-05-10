@@ -805,12 +805,12 @@ async function check_page(target_page_data, options) {
 	//console.log(link_from);
 
 	let working_queue;
-	const summary = [`${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}:`];
-	//summary.toString = function () { return this.join(' '); };
-	summary.add = function (message) {
+	const summary = [];
+	function add_summary(message) {
 		message = message.toString();
-		if (!this.includes(message)) this.push(message);
-	};
+		if (!summary.includes(message))
+			summary.push(message);
+	}
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
@@ -915,8 +915,8 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				this.summary.add(CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors));
-				//this.summary.add('（全部です）');
+				add_summary(CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors));
+				//add_summary('（全部です）');
 				if (!anchor_token) {
 					//this.allow_empty = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors)}`);
@@ -1044,7 +1044,7 @@ async function check_page(target_page_data, options) {
 			change_to_anchor(section_title);
 			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			this.summary.add(message);
+			add_summary(message);
 			return true;
 		}
 
@@ -1089,7 +1089,7 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: ${original_anchor}${ARROW_SIGN}${hash}`);
-			this.summary.add(`${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
+			add_summary(`${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
 				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`);
 
 			change_to_anchor(rename_to);
@@ -1109,7 +1109,7 @@ async function check_page(target_page_data, options) {
 			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
-			this.summary.add(message);
+			add_summary(message);
 			change_to_anchor(move_to_page_title_via_link[1]);
 			return true;
 		}
@@ -1141,7 +1141,7 @@ async function check_page(target_page_data, options) {
 				&& wiki.is_talk_namespace(linking_page_data)
 				// 假如 token.anchor 消失時和 rename_to 共存，則不該是 token.anchor 換成 rename_to。
 			) && !(section_title_history[rename_to]?.appear?.revid < section_title_history[token.anchor]?.disappear?.revid)) {
-				this.summary.add(`${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
+				add_summary(`${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
 					}${need_check}`);
 				if (section_title_history[token.anchor]) {
 					//console.trace(section_title_history[token.anchor]);
@@ -1224,9 +1224,10 @@ async function check_page(target_page_data, options) {
 		if (!changed)
 			return Wikiapi.skip_edit;
 
-		if (this.summary.length === 1)
-			this.summary.add(CeL.wiki.title_link_of(target_page_data));
-		this.summary = this.summary.join(' ');
+		if (summary.length === 0)
+			summary.push(CeL.wiki.title_link_of(target_page_data));
+		summary[0] = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}: ${summary[0]}`;
+		this.summary = summary.join(', ');
 		pages_modified++;
 		return parsed.toString();
 	}

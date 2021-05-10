@@ -24,7 +24,8 @@ wiki = Wiki(true);
 
 var
 /** {String}只檢查這個命名空間下面的所有頁面。 20: for 20dd年 */
-title_prefix = 'User:' + user_name + '/log/20',
+title_prefix = 'User:'
+		+ CeL.wiki.extract_login_user_name(login_options.user_name) + '/log/20',
 /**
  * log_root (所有個別項目之記錄頁面) 的模式。其下視為子頁面，其上不被視作記錄頁面。
  * 
@@ -293,7 +294,7 @@ get_log_pages(function(log_pages) {
 	//
 	'PATTERN_log_archive: ' + PATTERN_log_archive, 1, 'get_log_pages');
 	var
-	/** {Array}filter log root. e.g., [[User:user_name/log/20010101]] */
+	/** {Array}filter log root. e.g., [[User:bot_name/log/20010101]] */
 	log_root = log_pages.filter(function(title) {
 		if (false && !title.includes('20150916')) {
 			return;

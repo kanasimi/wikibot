@@ -60,8 +60,8 @@ function for_each_foreign_talk_page(page_data) {
 	user = this.user = revision && CeL.wiki.normalize_title(revision.user);
 	// console.log(revision);
 	if (user === CeL.wiki.normalize_title(login_options.owner_name)
-	//
-	|| user === CeL.wiki.normalize_title(login_options.user_name)) {
+	// login_options.user_name → wiki_session.token.login_user_name
+	|| user === this.wiki.token.login_user_name) {
 		return;
 	}
 

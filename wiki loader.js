@@ -173,9 +173,8 @@ function login_options_of_API_URL(API_URL) {
 		if (check_section) {
 			// 本工具將產生之記錄頁面。 log to page
 			log_to = 'User:'
-			// "owner_name@user_name" → "user_name"
-			+ login_options.user_name.replace(/^[^@]+@/, '') + '/log/'
-					+ check_section;
+					+ CeL.wiki.extract_login_user_name(login_options.user_name)
+					+ '/log/' + check_section;
 			login_options.log_to = log_to;
 			// wiki.latest_task_configuration.configuration_page_title
 			login_options.task_configuration_page = log_to + '/configuration';
@@ -214,11 +213,11 @@ _global.set_language = function set_language(language) {
 	CeL.wiki.set_language(language);
 	// console.trace(language);
 
-	_global.user_name = login_options.user_name;
 	_global.log_to = login_options.log_to || '';
 	/** {String}home directory */
 	var home_directory = CeL.env.home || CeL.wiki.wmflabs && '/data/project/'
-			+ user_name + '/' || '';
+			+ CeL.wiki.extract_login_user_name(login_options.user_name) + '/'
+			|| '';
 	/** {String}bot base directory */
 	_global.bot_directory = CeL.wiki.wmflabs ? home_directory + 'wikibot/' : '';
 	/** {String}預設之本任務獨有的 base directory。衍生檔案如記錄檔、cache 等將置放此目錄下。 */
@@ -380,8 +379,9 @@ function check_routine_task(session) {
 	if (notice_list.length === 0)
 		return;
 
+	session.page('User talk:' + session.token.login_user_name)
 	// 任務太久沒執行則提醒使用者。
-	session.page('User talk:' + user_name).edit(function(page_data) {
+	.edit(function(page_data) {
 		var title = CeL.wiki.title_of(page_data),
 		/**
 		 * {String}page content, maybe undefined. 條目/頁面內容 =

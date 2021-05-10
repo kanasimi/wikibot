@@ -408,7 +408,9 @@ function check_final_work() {
 	}
 	check_final_work.done = true;
 
-	wiki.page('User:' + user_name + '/' + message_set.report_page, {
+	wiki.page('User:' + wiki.token.login_user_name
+	//
+	+ '/' + message_set.report_page, {
 		redirects : 1
 	}).edit(function() {
 		// console.trace(wiki);

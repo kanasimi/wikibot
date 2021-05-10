@@ -81,6 +81,7 @@ var localized_column_to_header = {
 localized_column_to_header = localized_column_to_header[use_language]
 // e.g., unknown language or 'commons' in CeL.wiki.api_URL.wikimedia
 || localized_column_to_header.en;
+// console.trace(localized_column_to_header);
 var column_to_header = Object.assign({
 	// № No 序號 '#' [[w:en:ordinal indicator|º]]
 	NO : 'data-sort-type="number" | #'
@@ -989,10 +990,14 @@ var page_configurations = {
 		header_class : 'wikitable sortable mw-collapsible metadata',
 		list_legend_class : "wikitable mw-collapsible mw-collapsed metadata",
 		postfix : function(section_table) {
-			if (false)
+			if (false) {
 				section_table.unshift("'''關於為討論頁面增加主題列表的功能"
-						+ "[[Wikisource:机器人#User:" + user_name
+				//
+				+ "[[Wikisource:机器人#User:"
+				//
+				+ CeL.wiki.extract_login_user_name(login_options.user_name)
 						+ "|正申請中]]，請提供意見，謝謝。'''");
+			}
 			section_table.push('[[Category:维基文库]]');
 		}
 	}, general_page_configuration),

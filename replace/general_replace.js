@@ -44,7 +44,7 @@ node general_replace.js ${KEY_replace_all} use_language=${use_language && 'ja'}
 }
 
 check_section = '20190913';
-log_to = 'User:' + user_name + '/log/' + check_section;
+log_to = 'User:' + CeL.wiki.extract_login_user_name(login_options.user_name) + '/log/' + check_section;
 
 if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 	const need_replace_all = section_title === KEY_replace_all;

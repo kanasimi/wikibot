@@ -27,7 +27,9 @@ wiki.edit_time_interval = 0;
 
 // ----------------------------------------------------------------------------
 
-var main_operation_title = 'User talk:' + user_name + '/VOA-request', PATTERN_link = /\n[*#:]?\s*(https?:\/\/[^\s]+)(\s[^\n]*)?/g;
+var main_operation_title = 'User talk:'
+		+ CeL.wiki.extract_login_user_name(login_options.user_name)
+		+ '/VOA-request', PATTERN_link = /\n[*#:]?\s*(https?:\/\/[^\s]+)(\s[^\n]*)?/g;
 
 // @see [[Category:频道]]
 var preserve_categories = ('臺灣|台灣|台湾|香港|澳门|西藏|蒙古|印度|俄罗斯|朝鲜|中东' + '|环境|天气'

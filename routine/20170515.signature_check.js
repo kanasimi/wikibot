@@ -203,7 +203,7 @@ function filter_row(row) {
 	})) {
 		// Ignore these tags
 
-	} else if (row.user === user_name
+	} else if (row.user === wiki.token.login_user_name
 	// 跳過機器人的編輯。為了某些編輯不加 bot flag 的 bot。
 	|| CeL.wiki.PATTERN_BOT_NAME.test(row.user)
 	// 篩選編輯摘要。
@@ -424,7 +424,7 @@ function for_each_row(row) {
 	// 跳過重定向頁。
 	|| CeL.wiki.parse.redirect(content)
 	// [[Project:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
-	|| CeL.wiki.edit.denied(row, user_name, 'SIGN')
+	|| CeL.wiki.edit.denied(row, wiki.token.login_user_name, 'SIGN')
 	// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
 	|| content.includes('{{NoAutosign}}' || PATTERN_ignore.test(content))) {
 		return;
@@ -915,7 +915,7 @@ function for_each_row(row) {
 		.replace(/([\s\n]*)$/, '{{' + (using_subst ? 'subst:' : '')
 				+ 'Unsigned|' + row.user + '|' + get_parsed_time(row)
 				+ (is_IP_user ? '|IP=1' : '') + '}}'
-				// + '<!-- Autosigned by ' + user_name + ' -->'
+				// + '<!-- Autosigned by ' + wiki.token.login_user_name + ' -->'
 				+ '$1');
 
 		CeL.info('需要在最後補簽名的編輯: ' + CeL.wiki.title_link_of(row));

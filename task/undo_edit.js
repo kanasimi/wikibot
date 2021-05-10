@@ -23,8 +23,6 @@ var wiki = Wiki(true, 'ja');
 
 // ---------------------------------------------------------------------//
 
-user_name = CeL.wiki.normalize_title(user_name);
-
 var edit_summary = 'Sorry, revert error made by bot';
 // 向前追溯筆數。
 var trace_forward_length = 'max';
@@ -34,10 +32,9 @@ function filter_summary(summary, page_data) {
 	// console.log(summary);
 	var revert_this_edit = summary.includes('内部リンクに置き換えます')
 	//
-	//&& summary.includes('Bot作業依頼')
+	// && summary.includes('Bot作業依頼')
 	// Do not revert [[User:cewbot/log/20190913]]
-	&& (!page_data || !page_data.title.includes(20190913))
-	;
+	&& (!page_data || !page_data.title.includes(20190913));
 	// revert_this_edit = summary === 'Robot';
 	if (false && revert_this_edit) {
 		CeL.info(filter_summary.name + ': ' + CeL.wiki.title_link_of(page_data)
@@ -128,7 +125,7 @@ function for_each_page(run_next, title, index, list) {
 			return;
 		}
 
-		if (revision.user !== user_name) {
+		if (revision.user !== wiki.token.login_user_name) {
 			CeL.warn(CeL.wiki.title_link_of(page_data) + ' 已被 ' + revision.user
 					+ ' 編輯過'
 					+ (revision.comment ? ': ' + revision.comment : ''));
