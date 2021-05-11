@@ -5,6 +5,8 @@ node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ARGONAVIS from BanG Dream! 翻唱曲列表"
+
 
 node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=zh
@@ -314,7 +316,7 @@ async function for_each_row(row) {
 			// pages_modified maybe undefined
 			CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
 			if (pages_modified > 0) {
-				CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) link ${CeL.wiki.title_link_of(row.title)}`);
+				CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) linking to ${CeL.wiki.title_link_of(row.title)}`);
 			}
 		} catch (e) {
 			console.error(e);
@@ -805,18 +807,21 @@ async function check_page(target_page_data, options) {
 	//console.log(link_from);
 
 	let working_queue;
-	const summary = [];
-	function add_summary(message) {
-		message = message.toString();
-		if (!summary.includes(message))
-			summary.push(message);
-	}
+	function add_summary(options, message) {
+		if (Array.isArray(options.summary)) {
+			message = message.toString();
+			if (!options.summary.includes(message))
+				options.summary.push(message);
+		} else {
+			options.summary = [options.summary + ': ' + message];
+		}
+	};
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
 	const for_each_page_options = {
 		no_message: true, no_warning: true,
-		summary,
+		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點')),
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
@@ -915,8 +920,8 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				add_summary(CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors));
-				//add_summary('（全部です）');
+				add_summary(this, CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors));
+				//add_summary(this,'（全部です）');
 				if (!anchor_token) {
 					//this.allow_empty = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors)}`);
@@ -1044,7 +1049,7 @@ async function check_page(target_page_data, options) {
 			change_to_anchor(section_title);
 			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			add_summary(message);
+			add_summary(this, message);
 			return true;
 		}
 
@@ -1089,7 +1094,7 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: ${original_anchor}${ARROW_SIGN}${hash}`);
-			add_summary(`${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
+			add_summary(this, `${type || `[[Special:Diff/${record.disappear.revid}|${record.disappear.timestamp}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
 				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`);
 
 			change_to_anchor(rename_to);
@@ -1109,7 +1114,7 @@ async function check_page(target_page_data, options) {
 			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
-			add_summary(message);
+			add_summary(this, message);
 			change_to_anchor(move_to_page_title_via_link[1]);
 			return true;
 		}
@@ -1141,7 +1146,7 @@ async function check_page(target_page_data, options) {
 				&& wiki.is_talk_namespace(linking_page_data)
 				// 假如 token.anchor 消失時和 rename_to 共存，則不該是 token.anchor 換成 rename_to。
 			) && !(section_title_history[rename_to]?.appear?.revid < section_title_history[token.anchor]?.disappear?.revid)) {
-				add_summary(`${CeL.gettext('%1→當前最近似的網頁錨點%2。', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
+				add_summary(this, `${CeL.gettext('%1→當前最近似的網頁錨點%2', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
 					}${need_check}`);
 				if (section_title_history[token.anchor]) {
 					//console.trace(section_title_history[token.anchor]);
@@ -1224,10 +1229,9 @@ async function check_page(target_page_data, options) {
 		if (!changed)
 			return Wikiapi.skip_edit;
 
-		if (summary.length === 0)
-			summary.push(CeL.wiki.title_link_of(target_page_data));
-		summary[0] = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點'))}: ${summary[0]}`;
-		this.summary = summary.join(', ');
+		if (!Array.isArray(this.summary))
+			add_summary(this, CeL.wiki.title_link_of(target_page_data));
+		this.summary = this.summary.join(', ');
 		pages_modified++;
 		return parsed.toString();
 	}

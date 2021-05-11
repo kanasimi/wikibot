@@ -170,7 +170,7 @@ async function archive_page(configuration) {
 		}
 	}
 	// 寫入存檔失敗則 throw，不刪除。
-	await wiki.edit_page(archive_to_page, archive_to_page.wikitext.trim() + '\n\n' + archive_wikitext.trim() + '\n\n', { bot: 1, minor: 1, summary: `archive ${sections_need_to_archive.length} topics: append topics` });
+	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n', { bot: 1, minor: 1, summary: `archive ${sections_need_to_archive.length} topics: append topics` });
 
 	// TODO: updating broken links
 	sections_need_to_archive.forEach(
