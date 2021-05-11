@@ -920,8 +920,8 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				add_summary(this, CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors));
-				//add_summary(this,'（全部です）');
+				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors);
+				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors)}`);

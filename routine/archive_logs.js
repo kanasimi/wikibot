@@ -209,15 +209,13 @@ function for_log_page(page_data) {
 	/** 寫入記錄頁面的存檔 */
 	function write_archive() {
 		var archive_page = archive_title(log_title);
-		summary = CeL.wiki.title_link_of('Project:ARCHIVE',
-				use_language === 'zh' ? '歸檔封存作業'
-						: use_language === 'ja' ? '記録保存' : 'Archiving')
-				+ ': [['
-				+ log_title
-				+ ']] → [['
-				+ archive_page
-				+ ']] '
-				+ log_size + '字';
+		summary = [
+				CeL.wiki.title_link_of('Project:ARCHIVE',
+						use_language === 'zh' ? '歸檔封存作業'
+								: use_language === 'ja' ? '記録保存' : 'Archiving')
+						+ ':', CeL.wiki.title_link_of(log_title), '→',
+				CeL.wiki.title_link_of(archive_page), log_size + '字' ]
+				.join(' ');
 		CeL.info('for_log_page: ' + summary);
 
 		var config = {

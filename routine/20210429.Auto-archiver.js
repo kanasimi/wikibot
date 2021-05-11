@@ -169,8 +169,12 @@ async function archive_page(configuration) {
 			archive_wikitext = archive_configuration.archive_header.toString().trim() + '\n\n' + archive_wikitext;
 		}
 	}
+
+	const summary = [CeL.wiki.title_link_of('Project:ARCHIVE', use_language === 'zh' ? '歸檔封存作業' : use_language === 'ja' ? '記録保存' : 'Archiving') + ':',
+	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
+		.join(' ');
 	// 寫入存檔失敗則 throw，不刪除。
-	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n', { bot: 1, minor: 1, summary: `archive ${sections_need_to_archive.length} topics: append topics` });
+	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n', { bot: 1, minor: 1, summary: `${summary}: Append ${sections_need_to_archive.length} topics` });
 
 	// TODO: updating broken links
 	sections_need_to_archive.forEach(
@@ -178,5 +182,5 @@ async function archive_page(configuration) {
 			&& CeL.gettext(archive_configuration.left_link.toString(), section.section_title.link[0] + '#' + section.section_title.link[1])
 		)
 	);
-	await wiki.edit_page(target_root_page, parsed.toString(), { nocreate: 1, bot: 1, minor: 1, summary: `archive ${sections_need_to_archive.length} topics: remove topics` });
+	await wiki.edit_page(target_root_page, parsed.toString(), { nocreate: 1, bot: 1, minor: 1, summary: `${summary}: Remove ${sections_need_to_archive.length} topics` });
 }
