@@ -86,9 +86,15 @@ async function adapt_configuration(latest_task_configuration) {
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);
 
+	if (general.action_for_blank_talk_page) {
+		// For 萌娘百科
+		general.action_for_blank_talk_page = general.action_for_blank_talk_page.toString().replace(/({{)tl[a-z]?\s*\|/, '$1');
+	}
+
 	await wiki.register_redirects(['Section link', 'Broken anchors'].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
+	console.trace(wiki.latest_task_configuration.general);
 }
 
 // ----------------------------------------------------------------------------
@@ -956,7 +962,8 @@ async function check_page(target_page_data, options) {
 				// 添加在頁面最前面。
 				parsed.unshift(wikitext_to_add);
 			}
-			return parsed.toString();
+
+			return parsed.toString().trim() || wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
 		}
 
 		const main_page_wikitext = linking_page_data.wikitext;
