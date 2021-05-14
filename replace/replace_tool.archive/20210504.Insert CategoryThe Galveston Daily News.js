@@ -10,11 +10,15 @@ replace_tool.replace({
 	log_to: null,
 	diff_id: 557730952,
 }, {
-	'intitle:"The Galveston Daily News. (Galveston, Tex.), Vol."': {
-		list_title: 'File:The Galveston Daily News. (Galveston, Tex.), Vol. 5',
-		//list_title: 'File:The Galveston Daily News. (Galveston, Tex.), No. 3',
-		list_types: 'prefixsearch',
+	[`intitle:"${category_name}. (Galveston, Tex.)," -incategory:"${category_name}"`]: {
+		//list_title: `File:${category_name}. (Galveston, Tex.), Vol. 5`,
+		//list_title: `File:${category_name}. (Galveston, Tex.), No. 3`,
+		//list_types: 'prefixsearch',
 		text_processor(wikitext, page_data) {
+			if (!page_data.title.includes(category_name)){
+				// Do not know why, sometimes we get files without specified "intitle".
+				return Wikiapi.skip_edit;
+			}
 			const parsed = page_data.parse();
 			let has_token;
 			parsed.each('Category', token => {

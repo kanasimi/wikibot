@@ -30,6 +30,10 @@ replace_tool.replace({
 
 	// Speedy renaming or speedy merging
 	speedy_criteria: 'merging',
+
+	wiki: new Wikiapi,
+	use_language,
+	not_bot_requests: true,
 }, {
 	'title#anchor|display_text': 'title#anchor|display_text',
 	//'from_title': REDIRECT_TARGET,
@@ -42,6 +46,9 @@ replace_tool.replace({
 	// no anchor
 	'title#|display_text': '',
 	'title#': '',
+
+	// subst展開
+	'Template:name': 'subst:',
 
 	'': {
 		move_to_link: 'to_title',

@@ -37,7 +37,7 @@ The `replace_tool.replace()` will:
 TODO:
 除重定向頁為 (曖昧さ回避)外，將所有 move_from 的重定向也一起修正
 檢查是否為討論頁。 e.g., [[w:ja:Special:Diff/80384825]]
-
+移動頁面相關的機器人或機器使用者需要提出對所有不同頁面內容模型的處理計畫，JSON頁沒有重新導向功能。一般頁面與模板都能重導向。分類頁面則必須移動所有包含的頁面。module 可用<code>return require( 'Module:name' );</code>重導向。
 
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 並非所有常規修補程序都適用於所有語言。
@@ -182,6 +182,10 @@ async function replace_tool(meta_configuration, move_configuration) {
 	//console.trace(meta_configuration);
 	if (meta_configuration.use_language)
 		meta_configuration.language = meta_configuration.use_language;
+
+	if (!meta_configuration.language && meta_configuration.wiki) {
+		meta_configuration.language = meta_configuration.wiki.append_session_to_options().session.language;
+	}
 
 	if (!meta_configuration.language) {
 		CeL.env.ignore_COM_error = true;
@@ -404,8 +408,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	//'max'
 	const rvlimit = 80;
 
-	if (meta_configuration.diff_id) {
-	} else if (section_title) {
+	if (section_title) {
 		CeL.log_temporary(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)}`);
 		const requests_page_data = await wiki.page(requests_page, {
 			redirects: 1,
@@ -429,6 +432,8 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 			guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta_configuration);
 		}
 
+	} else if (meta_configuration.diff_id) {
+		// Skip
 	} else {
 		CeL.error(`guess_and_fulfill_meta_configuration: Did not set section_title!`);
 	}
@@ -547,9 +552,9 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 					add_index: 'all'
 				},
 			} : {
-					// normal task_configuration
-					move_to_link,
-				});
+				// normal task_configuration
+				move_to_link,
+			});
 			task_configuration_from_section[title] = task_configuration;
 			if (Array.isArray(meta_configuration.also_replace_text) ? meta_configuration.also_replace_text.includes(title) : meta_configuration.also_replace_text) {
 				task_configuration_from_section[`insource:"${title}"`] = Object.clone(task_configuration);
@@ -1098,8 +1103,10 @@ async function get_list(task_configuration, list_configuration) {
 				list_types = list_types.filter(type => type !== 'categorymembers');
 				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
 					const redirect_list = (await wiki.register_redirects(list_configuration.move_from_link))?.redirect_list;
-					if (list_types.includes('embeddedin') && redirect_list?.length > 1) {
-						CeL.error(`由於 ${list_configuration.move_from_link} 有 redirects，必須對所有 redirects 個別執行 embeddedin，否則會有疏漏未處理之頁面！`);
+					if (list_types.includes('embeddedin') && redirect_list?.length > 1
+						//subst:
+						&& task_configuration.for_template !== subst_template) {
+						CeL.error(`由於 ${list_configuration.move_from_link} 有 redirects，必須對所有 redirects 個別執行 embeddedin，或採用 wiki_session.is_template()，否則會有疏漏未處理之頁面！`);
 					}
 				}
 			}
