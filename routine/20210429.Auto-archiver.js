@@ -1,6 +1,7 @@
 ﻿/*
 
 node 20210429.Auto-archiver.js use_language=zh
+node 20210429.Auto-archiver.js use_project=wikidata
 
 2021/5/2 8:41:44	初版試營運。
 
