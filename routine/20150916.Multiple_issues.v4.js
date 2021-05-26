@@ -77,7 +77,7 @@ async function adapt_configuration(latest_task_configuration) {
 	});
 	maintenance_template_list = wiki.to_namespace(maintenance_template_list, 'template');
 
-	await wiki.register_redirects(maintenance_template__category_list);
+	await wiki.register_redirects([configuration.Multiple_issues_template_name].append(maintenance_template__category_list));
 	maintenance_template__category_list = await Promise.all(wiki.redirect_target_of(maintenance_template__category_list).map(category_name => wiki.category_tree(category_name, { namespace: 'Template' })));
 	function append_maintenance_templates(list) {
 		//console.trace(list);
@@ -247,7 +247,7 @@ async function check_pages_including_maintenance_template(page_data) {
 	});
 	//console.trace([this.maintenance_template_inside, this.maintenance_template_outer]);
 
-	/** {Number}解析出維護模板數。 */
+	/** {Number}解析出整個頁面包含的維護模板數量。 */
 	const all_maintenance_template_count = this.maintenance_template_inside.length + this.maintenance_template_outer.length;
 	if (all_maintenance_template_count >= configuration.template_count_to_be_reported) {
 		if (!configuration.count_list[all_maintenance_template_count])
@@ -344,7 +344,7 @@ async function check_pages_including_maintenance_template(page_data) {
 		const Multiple_issues_template_token = this.Multiple_issues_template_token;
 		if (Multiple_issues_template_token) {
 			// 本來就已經含有{{多個問題}}模板。
-			this.summary += `: ${gettext('將%1個維護模板納入{{%2}}模板', this.maintenance_template_outer.length, configuration.Multiple_issues_template_name_without_namespace)}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
+			this.summary += `: ${gettext('將%1個維護模板納入{{%2}}模板', this.maintenance_template_outer.length, Multiple_issues_template_token.name)}: ${this.maintenance_template_outer.map(t => t.name).join(', ')}`;
 			const tokens = Multiple_issues_template_token.parameters[1];
 			if (!/^\s*\n/.test(tokens[0])) {
 				// be sure .startsWith('\n')
@@ -373,8 +373,8 @@ async function check_pages_including_maintenance_template(page_data) {
 		// 含有{{多個問題}}模板，卻不在可以忽略不處理的條目list或須合併維護模板的條目list中。
 
 		// assert true === !!this.Multiple_issues_template_token
-		this.summary += `: ${gettext('拆分僅有%1個維護模板的{{%2}}模板', all_maintenance_template_count, configuration.Multiple_issues_template_name_without_namespace)}: ${this.maintenance_template_inside.map(t => t.name).join(', ')}`;
 		const token = this.Multiple_issues_template_token;
+		this.summary += `: ${gettext('拆分僅有%1個維護模板的{{%2}}模板', all_maintenance_template_count, token.name)}: ${this.maintenance_template_inside.map(t => t.name).join(', ')}`;
 		token.parent[token.index] = token.parameters[1] && token.parameters[1].toString().trim();
 	}
 
