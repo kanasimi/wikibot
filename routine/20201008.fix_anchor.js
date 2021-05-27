@@ -69,6 +69,12 @@ const wiki = new Wikiapi;
 // @see {{Broken anchors|links=}}
 const LINKS_PARAMETER = 'links';
 
+// Ignore these tags
+const ignore_tags = [
+	//'mw-reverted',
+	'mw-blank',
+];
+
 // ----------------------------------------------
 
 // 讀入手動設定 manual settings。
@@ -189,7 +195,8 @@ async function main_process() {
 			// You need the "patrol" or "patrolmarks" right to request the
 			// patrolled flag.
 			// rcshow : '!bot',
-			rcprop: 'title|ids|sizes|flags|user'
+			// 擷取資料的時候要加上filter_row()需要的資料，例如編輯摘要。
+			rcprop: 'title|ids|sizes|flags|user|tags'
 		},
 		interval: '5s',
 	});
@@ -231,6 +238,13 @@ function filter_row(row) {
 		//|| wiki.is_namespace(row, 'User talk')
 	) {
 		// ignore all link to [[Draft:]], [[User talk:]]
+		return;
+	}
+
+	if (ignore_tags.some(function (tag) {
+		return row.tags.includes(tag);
+	})) {
+		// Ignore these tags
 		return;
 	}
 
