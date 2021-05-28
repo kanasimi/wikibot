@@ -17,7 +17,7 @@ jstop cron-20170915.topic_list.moegirl;
 /usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=ja
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
-/usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=commons
+/usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
 /usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
 
 2017/9/10 22:31:46	開始計畫。
@@ -76,6 +76,7 @@ archive topics:
 存檔完可以留下索引，等到特定的日子/特定的天數之後再刪除
 存檔完可以直接刪除，只留下oldid
 
+延遲應該在十數分鐘內。現行設定若寫入失敗2次，程式就會重啟。
 已知無法解決問題：目前 MediaWiki 之 link anchor, display_text 尚無法接受"�"這個特殊字元。
 
  */

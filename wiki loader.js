@@ -202,6 +202,10 @@ function login_options_of_API_URL(API_URL) {
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function set_language(language) {
+	if (language.language) {
+		language = language.language;
+	}
+
 	use_language = language;
 	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || use_project
 			|| language;
@@ -275,14 +279,14 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 	// console.trace(api);
 	var login_options = login_options_of_API_URL(api);
 	// console.trace(login_options);
+	var session = do_login ? CeL.wiki.login(login_options) : new CeL.wiki(
+			login_options);
+	set_language(session);
 	if (!do_login) {
-		return new CeL.wiki(login_options);
+		return session;
 	}
 
-	var un = login_options.user_name, pw = login_options.password;
-	// CeL.log('Wiki: login with [' + un + ']');
 	// CeL.set_debug(3);
-	var session = CeL.wiki.login(login_options);
 	if (typeof check_section === 'string') {
 		session.check_options = {
 			section : check_section
