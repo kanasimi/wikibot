@@ -158,6 +158,9 @@ _global.use_language = '';
 _global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
 
 function login_options_of_API_URL(API_URL) {
+	if (API_URL && API_URL.API_URL) {
+		API_URL = API_URL.API_URL;
+	}
 	var login_options = Object.assign({
 		preserve_password : true
 	// configuration_adapter : null
@@ -202,6 +205,7 @@ function login_options_of_API_URL(API_URL) {
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function set_language(language) {
+	// assert: !!language === true
 	if (language.language) {
 		language = language.language;
 	}

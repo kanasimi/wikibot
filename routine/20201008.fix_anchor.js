@@ -753,7 +753,7 @@ async function tracking_section_title_history(page_data, options) {
 async function get_all_links(page_data, options) {
 	page_data = await wiki.page(page_data);
 	const parsed = CeL.wiki.parser(page_data).parse();
-	const anchor_to_page = Object.create(null);
+	const reduced_anchor_to_page = Object.create(null);
 
 	parsed.each('link', link_token => {
 		if (link_token[1])
@@ -761,15 +761,15 @@ async function get_all_links(page_data, options) {
 
 		// 假如完全刪除 #anchor，但存在 [[anchor]] 則直接改連至 [[anchor]]
 		var page_title = wiki.normalize_title(link_token[0].toString());
-		anchor_to_page[reduce_section_title(page_title)] = [page_title];
+		reduced_anchor_to_page[reduce_section_title(page_title)] = [page_title];
 
 		// 假如完全刪除 #anchor，但存在 [[[page|anchor]] 則直接改連至 [[page]]
 		var display_text = link_token[2] && link_token[2].toString();
 		if (display_text)
-			anchor_to_page[reduce_section_title(display_text)] = [page_title];
+			reduced_anchor_to_page[reduce_section_title(display_text)] = [page_title];
 	});
 
-	return anchor_to_page;
+	return reduced_anchor_to_page;
 }
 
 async function check_page(target_page_data, options) {
@@ -791,11 +791,11 @@ async function check_page(target_page_data, options) {
 		print_anchors: options.print_anchors
 	});
 
-	// anchor_to_page[reduced anchor] = [page title, to anchor]
-	const anchor_to_page = await get_all_links(target_page_data);
+	// reduced_anchor_to_page[reduced anchor] = [page title, to anchor]
+	const reduced_anchor_to_page = await get_all_links(target_page_data);
 	if (options.print_anchors) {
-		CeL.info(`${check_page.name}: anchor_to_page:`);
-		console.trace(anchor_to_page);
+		CeL.info(`${check_page.name}: reduced_anchor_to_page:`);
+		console.trace(reduced_anchor_to_page);
 	}
 
 	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
@@ -952,7 +952,8 @@ async function check_page(target_page_data, options) {
 			}
 
 			if (has_broken_anchors_template || !wikitext_to_add) {
-				return parsed.toString();
+				wikitext_to_add = parsed.toString();
+				return wikitext_to_add.trim() ? wikitext_to_add : wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
 			}
 
 			// Modify from 20200122.update_vital_articles.js
@@ -977,7 +978,8 @@ async function check_page(target_page_data, options) {
 				parsed.unshift(wikitext_to_add);
 			}
 
-			return parsed.toString().trim() || wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
+			// assert: !!parsed.toString() === true
+			return parsed.toString();
 		}
 
 		const main_page_wikitext = linking_page_data.wikitext;
@@ -985,7 +987,7 @@ async function check_page(target_page_data, options) {
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
 		let wikitext_to_add;
 		if (anchor_token) {
-			const move_to_page_title_via_link = anchor_to_page[reduce_section_title(anchor_token.anchor)];
+			const move_to_page_title_via_link = reduced_anchor_to_page[reduce_section_title(anchor_token.anchor)];
 			const target_link = move_to_page_title_via_link && (move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : ''));
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki> ${move_to_page_title_via_link
@@ -1125,7 +1127,7 @@ async function check_page(target_page_data, options) {
 
 		// --------------------------------------------
 
-		const move_to_page_title_via_link = anchor_to_page[reduce_section_title(token.anchor)];
+		const move_to_page_title_via_link = reduced_anchor_to_page[reduce_section_title(token.anchor)];
 		if (false && move_to_page_title_via_link) {
 			// 有問題: 例如 [[Special:Diff/83294745]] [[名探偵コナンの登場人物#公安警察|風見裕也]] 不該轉為 [[公安警察|風見裕也]]。
 			// 對人名連結可能較有用。

@@ -50,6 +50,7 @@ replace_tool.replace({
 	// subst展開
 	'Template:name': 'subst:',
 
+	//console.log(JSON.stringify(options))
 	'': {
 		move_to_link: 'to_title',
 		move_from_link: '作品',
@@ -58,8 +59,10 @@ replace_tool.replace({
 		// for debug or 直接指定頁面列表。
 		page_list: [],
 
-		// Also replace text in source for link
-		// リンクのない本文表記についても本来の修正します。
+		// 本文表記/地の文についても修正します。
+		replace_text: { from: to },
+		// Also replace text in source for non-link pages
+		// リンクのない本文表記/地の文についても修正します。
 		also_replace_text: true,
 
 		// also run 20201008.fix_anchor.js after maving anchors. 切れたアンカーの修正 + 「切れたアンカーの告知」のテンプレートを除去。
