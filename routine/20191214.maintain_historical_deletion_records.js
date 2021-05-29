@@ -387,6 +387,17 @@ async function check_deletion_discussion_page(page_data) {
 					return true;
 				}
 			}
+
+			if (title_token.name === 'Al') {
+				for (let index = 0; index < title_token.length; index++) {
+					const _title_token = title_token.parameters[index];
+					if (_title_token) {
+						add_page(_title_token, section, flags);
+					}
+				}
+				return true;
+			}
+
 		}
 		if (for_template(title_to_delete)) return;
 
@@ -817,7 +828,7 @@ function modified_notice_page(page_data, discussions) {
 	// {{tlx|bots|optout{{=}}VFD|reason{{=}}<nowiki>[[Wikipedia:机器人/申请/Cewbot/21]]</nowiki>}}
 	// 即可。
 	// {{bots|optout=VFD|reason=[[Wikipedia:机器人/申请/Cewbot/21]]}}
-	if (CeL.wiki.edit.denied(page_data, wiki.token.login_user_name, 'VFD')) {
+	if (CeL.wiki.edit.denied(page_data, wiki.append_session_to_options().session.token.login_user_name, 'VFD')) {
 		ignore_pages[main_page_title] = 'bots denied';
 		return Wikiapi.skip_edit;
 	}
@@ -863,7 +874,7 @@ async function generate_report() {
 
 	const page_count = Object.keys(pages_to_modify).length;
 	// [[Wikipedia:頁面存廢討論/討論頁模板維護報告]]
-	await wiki.edit_page(`User:${wiki.token.login_user_name}/頁面存廢討論維護報告`,
+	await wiki.edit_page(`User:${wiki.append_session_to_options().session.token.login_user_name}/頁面存廢討論維護報告`,
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
 		+ `總共編輯${page_count}個討論頁，列出其中${report_count}筆特別情況紀錄。\n`
