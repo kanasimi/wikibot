@@ -206,8 +206,12 @@ function login_options_of_API_URL(API_URL) {
 // Set default language. 改變預設之語言。 e.g., 'zh'
 _global.set_language = function set_language(language) {
 	// assert: !!language === true
-	if (language.language) {
+	if (CeL.wiki.is_wiki_API(language)) {
 		language = language.language;
+	}
+	if (!language) {
+		// e.g., use_project=wikinews
+		return;
 	}
 
 	use_language = language;
