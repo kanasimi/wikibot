@@ -209,21 +209,24 @@ _global.set_language = function set_language(language) {
 	if (CeL.wiki.is_wiki_API(language)) {
 		language = language.language;
 	}
-	if (!language) {
+
+	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || use_project
+			|| language;
+	if (!API_URL) {
 		// e.g., use_project=wikinews
 		return;
 	}
 
-	use_language = language;
-	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || use_project
-			|| language;
 	// export
 	_global.login_options = login_options_of_API_URL(API_URL);
-	CeL.gettext.use_domain(language === 'simple' ? 'en' : language, true);
-	// 因為 CeL.wiki.set_language() 會用到 gettext()，
-	// 因此得置於 CeL.gettext.use_domain() 後。
-	CeL.wiki.set_language(language);
-	// console.trace(language);
+	if (language) {
+		use_language = language;
+		CeL.gettext.use_domain(language === 'simple' ? 'en' : language, true);
+		// 因為 CeL.wiki.set_language() 會用到 gettext()，
+		// 因此得置於 CeL.gettext.use_domain() 後。
+		CeL.wiki.set_language(language);
+		// console.trace(language);
+	}
 
 	_global.log_to = login_options.log_to || '';
 	/** {String}home directory */
