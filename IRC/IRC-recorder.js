@@ -17,7 +17,9 @@ var start_time = Date.now(), fs = require('fs'),
 //
 irc = require('irc'),
 // configuration
-channels = [ '#wikipedia-zh', '#wikinews-zh', '#wikipedia-zh-help',
+channels = [ '#wikipedia-zh',
+// https://zh.wikinews.org/wiki/Wikinews:IRC%E8%81%8A%E5%A4%A9%E9%A0%BB%E9%81%93
+'#wikinews-zh', '#wikipedia-zh-help',
 // https://phabricator.wikimedia.org/T160264
 '#mediawiki-i18n', '#cejs' ],
 //
@@ -38,7 +40,9 @@ use_project = 'IRC';
 // setup login_options
 set_language();
 // console.trace(login_options);
-var login_user_name = CeL.wiki.extract_login_user_name(login_options.user_name);
+var login_user_name = login_options.user_name
+// CeL.wiki.extract_login_user_name(login_options.user_name)
+;
 
 // https://github.com/martynsmith/node-irc
 // Create the bot name
