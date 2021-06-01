@@ -666,11 +666,10 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 
 	// full_name: e.g., "Tropical Depression 07W (Seven)",
 	// "Tropical Storm 07W (Seven)", "Tropical Storm 07W (Nari)" → "07W"
-	//
+	// 'Tropical Storm 04W (Choi-wan)' → "04W"
 	// 'Tropical Cyclone Formation Alert WTPN21' → "WTPN21"
-	//
 	// matched: [ all, id, name ]
-	var id = full_name.match(/\s+(\w+)(?:\s+\((\w+)\))$/)
+	var id = full_name.match(/\s+(\w+)(?:\s+\(([\w\-]+)\))$/)
 			|| full_name.match(/\s+([A-Z]+\d+)$/);
 	// console.log([ full_name, id ]);
 
