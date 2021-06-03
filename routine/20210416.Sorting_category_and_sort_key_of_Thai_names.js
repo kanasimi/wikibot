@@ -11,7 +11,7 @@
 require('../wiki loader.js');
 
 // Load modules.
-CeL.run([
+CeL.run(['application.net.wiki.template_functions',
 	// for CeL.assert()
 	'application.debug.log']);
 
@@ -65,23 +65,15 @@ function split_English_Thai_name(English_Thai_name) {
 })();
 
 const summary_prefix = '[[Wikipedia:Bots/Requests for approval/Cewbot 7|Maintaining sort keys in Thai-people categories]]: ';
-const do_not_check_redirects = false;
 let Thai_name_CATEGORY_LIST;
 const pages_without_people_data = [];
 const non_biographical_pages = [];
-let biographical_templates = [
-	'birth date', 'birth date and age', 'birth year and age',
-	'death date', 'death date and age', 'death year and age'
-].map(name => 'Template:' + name);
 
 async function main_process() {
 	// Do only once.
 	//await insert__Thai_people_category__template();
 
-	await read_Thai_name_table(biographical_templates);
-
-	await wiki.register_redirects(biographical_templates);
-	biographical_templates = wiki.redirect_target_of(biographical_templates);
+	await read_Thai_name_table();
 
 	Thai_name_CATEGORY_LIST = await wiki.embeddedin('Template:' + Thai_people_category__template_name);
 	//console.log(Thai_name_CATEGORY_LIST);
@@ -300,6 +292,8 @@ async function deprecated_read_Thai_name_table() {
 
 // ----------------------------------------------------------------------------
 
+const do_not_check_redirects = false;
+
 // Thai_name_data[Thai people page title] = { page_title:'', given_name:'', surname:'', DEFAULTSORT:'', Thai_sort_key:'' }
 const Thai_name_data = Object.create(null);
 
@@ -389,46 +383,22 @@ async function for_each_Thai_people_category(page_data) {
 			&& !/^\w+$/.test(page_title_to_sort_key(page_data.title))
 			&& Thai_people_page_list.add(page_data.title)
 		);
-		if (page_list.subcategories)
-			Object.values(page_list).subcategories.forEach(append_page_list)
+		// No recursion
+		if (false && page_list.subcategories)
+			Object.values(page_list.subcategories).forEach(append_page_list);
 	}
 	append_page_list(page_list);
 }
 
 // ----------------------------------------------------------------------------
 
-// is biography of a person
-function page_is_biography(page_data) {
-	//console.log(page_data);
-	const parsed = page_data.parsed;
-	let is_biography;
-	parsed.each('template', token => {
-		if (wiki.is_template(biographical_templates, token)) {
-			is_biography = true;
-			return parsed.each.exit;
-		}
-	});
-
-	parsed.each('category', token => {
-		if (['Living people'].includes(token.name)
-			//e.g., [[Category:2000 births]] [[Category:2000 deaths]]
-			|| /^\d+ (?:births|deaths)$/.test(token.name)) {
-			is_biography = true;
-			return parsed.each.exit;
-		}
-	});
-
-	if (is_biography)
-		return true;
-
-	CeL.warn(`${page_is_biography.name}: Not biography? ${CeL.wiki.title_link_of(page_data)}`);
-	non_biographical_pages.push(page_data.title);
-}
-
 function for_each_Thai_people_page(page_data) {
 	const parsed = page_data.parse();
-	if (!page_is_biography(page_data))
+	if (!parsed.is_biography()) {
+		CeL.warn(`${for_each_Thai_people_page.name}: Not biography? ${CeL.wiki.title_link_of(page_data)}`);
+		non_biographical_pages.push(page_data.title);
 		return Wikiapi.skip_edit;
+	}
 
 	let changed;
 
@@ -456,28 +426,34 @@ function for_each_Thai_people_page(page_data) {
 		parsed.insert_layout_token(token => {
 			//console.log([page_data.title, Thai_people_data.DEFAULTSORT, token]);
 			this.summary += 'Per values in [[Wikipedia:WikiProject Thailand/Thai name sort keys]]';
-			const Thai_sort_key_not_needed = Thai_sort_key ? '' : '{{Thai sort key not needed}}\n';
 
-			if (!token) {
-				changed = true;
-				return `${Thai_sort_key_not_needed}{{DEFAULTSORT:${Thai_people_data.DEFAULTSORT}}}`;
-			}
-
-			if (Thai_people_data.DEFAULTSORT.toString().includes("don't change")) {
+			if (!Thai_people_data.DEFAULTSORT) {
+				;
+			} else if (Thai_people_data.DEFAULTSORT.toString().includes("don't change")) {
 				CeL.debug(`${for_each_Thai_people_page.name}: Skip page ${CeL.wiki.title_link_of(page_data)} being tald not to change.`);
-			} else if (Thai_people_data.DEFAULTSORT
+			} else if (!token) {
+				token = `{{DEFAULTSORT:${Thai_people_data.DEFAULTSORT}}}`;
+				changed = true;
+				this.summary += ` +${token}`;
+			} else if (token[1]
 				// ... also be skipped, as well as pages with empty DEFAULTSORTs or DEFAULTSORTs that are identical to the PAGENAME or differ only in capitalisation (e.g. Abu Samah Mohd Kassim and Alef Vieira Santos above).
-				&& token[1] && page_title_to_sort_key(token[1]).toLowerCase() !== Thai_people_data.DEFAULTSORT.toString().toLowerCase()) {
+				&& page_title_to_sort_key(token[1]).toLowerCase() !== Thai_people_data.DEFAULTSORT.toString().toLowerCase()) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The default sort key of <code><nowiki>${token}</nowiki></code> will be set to ${JSON.stringify(Thai_people_data.DEFAULTSORT)}!`);
 				token.truncate(2);
 				token[1] = Thai_people_data.DEFAULTSORT;
 				changed = true;
+				this.summary += ` →${token}`;
 			}
+
+			const Thai_sort_key_not_needed = Thai_sort_key ? '' : '{{Thai sort key not needed}}\n';
 			if (Thai_sort_key_not_needed) {
 				changed = true;
+				this.summary += ` +{{Thai sort key not needed}}`;
 				// return wikitext that will replace original {{DEFAULTSORT}}
-				return Thai_sort_key_not_needed + token;
+				return Thai_sort_key_not_needed + (token || '');
 			}
+			// return when !!token === false
+			return token;
 		}, 'DEFAULTSORT');
 		//console.log(parsed.layout_indices);
 

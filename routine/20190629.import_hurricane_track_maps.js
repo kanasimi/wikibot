@@ -1395,26 +1395,64 @@ function start_PAGASA() {
 		+ ' menu.html'), html);
 
 		// <div class="col-md-12 article-header" id="swb">
-		var text = html.between('id="swb"');
+		var text = html.between('article-header');
 		if (!text) {
 			return;
 		}
 
+		html = text.between('role="tablist">', '</ul>');
+		if (!html) {
+			media_data.source_url = base_URL + 'tropical-cyclone/tropical-cyclone-warning-for-agriculture';
+			return;
+			fetch(media_data.source_url).then(function(response) {
+				return response.text();
+			}).then(handle_with_SWB);
+			return;
+		}
+
 		var NO_hash = Object.create(null);
-		text.between('role="tablist">', '</ul>')
-		//
-		.each_between('<li', '</li>', function(token) {
+		html.each_between('<li', '</li>', function(token) {
 			// console.log(token);
-			NO_hash[token.between('<a').between('>', '<')]
-			//
-			= token.between('data-header="', '"');
+			var name = token.between('<a').between('>', '<');
+			NO_hash[name] = token.between('data-header="', '"');
 		});
 
-		text = text.between(null, '<style type="text/css">') || text;
+		text = text.between(null, {tail:'<style type="text/css">'}) || text;
 		text.each_between('role="tabpanel"', null,
 		//
 		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
 	});
+
+	function handle_with_SWB(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('PAGASA ' + cache_filename_label
+		//
+		+ ' menu.html'), html);
+
+		// <div class="col-md-12 article-header" id="swb">
+		var text = html.between('article-header');
+		if (!text) {
+			return;
+		}
+
+		html = text.between('role="tablist">', '</ul>');
+		if (!html) {
+			return;
+		}
+
+		var NO_hash = Object.create(null);
+		html.each_between('<li', '</li>', function(token) {
+			// console.log(token);
+			var name = token.between('<a').between('>', '<');
+			NO_hash[name] = token.between('href="', '"').replace(/^#/, '');
+		});
+
+		text = text.between(null, {tail:'<style type="text/css">'}) || text;
+		text.each_between('role="tabpanel"', null,
+		//
+		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
+	}
 }
 
 function for_each_PAGASA_typhoon(NO_hash, token) {

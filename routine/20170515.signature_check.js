@@ -145,7 +145,7 @@ PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来
 // "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
 // @see [[Wikipedia:Twinkle]] ([[WP:TW]])
 PATTERN_revert_or_bot_summary = /還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
-//
+// Ignore these tags
 ignore_tags = [ 'mw-rollback', 'mw-reverted', 'mw-undo', 'mw-manual-revert',
 		'mw-blank', 'mw-new-redirect', 'mw-replace' ],
 // 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
@@ -328,7 +328,7 @@ if (test_the_page_only) {
 			// to request the patrolled flag.
 			rcshow : '!bot',
 			// 擷取資料的時候要加上filter_row()需要的資料，例如編輯摘要。
-			rcprop : 'title|ids|sizes|flags|user|comment|tags'
+			rcprop : 'title|ids|sizes|flags|user|tags|comment'
 		},
 		interval : test_mode || time_back_to ? 500 : 60 * 1000
 	});

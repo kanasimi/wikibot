@@ -63,7 +63,7 @@ async function main_process() {
 	//console.log(Thai_people_page_list);
 	Thai_name_CATEGORY_LIST = new Set(Thai_name_CATEGORY_LIST.map(page_data => wiki.remove_namespace(page_data)));
 	//console.log(Thai_name_CATEGORY_LIST);
-	if (1 || false) {
+	if (false) {
 		// for debug
 		Thai_people_page_list.clear();
 		`Rama II
@@ -112,8 +112,9 @@ async function for_each_Thai_people_category(page_data) {
 			&& !/^\w+$/.test(CeL.wiki.page_title_to_sort_key(page_data))
 			&& Thai_people_page_list.add(page_data.title)
 		);
-		if (page_list.subcategories)
-			Object.values(page_list).subcategories.forEach(append_page_list)
+		// No recursion
+		if (false && page_list.subcategories)
+			Object.values(page_list.subcategories).forEach(append_page_list);
 	}
 	append_page_list(page_list);
 }
@@ -123,6 +124,7 @@ async function for_each_Thai_people_category(page_data) {
 function for_each_Thai_people_page(page_data) {
 	const parsed = page_data.parse();
 	if (!parsed.is_biography()) {
+		CeL.warn(`${for_each_Thai_people_page.name}: Not biography? ${CeL.wiki.title_link_of(page_data)}`);
 		this.non_biographical_pages.push(page_data.title);
 		return Wikiapi.skip_edit;
 	}
