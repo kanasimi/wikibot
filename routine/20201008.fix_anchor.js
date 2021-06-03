@@ -1186,7 +1186,7 @@ async function check_page(target_page_data, options) {
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
 		if (!options.is_archive && wiki.latest_task_configuration.general.add_note_to_talk_page_for_broken_anchors) {
-			await add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
+			add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
 
@@ -1246,7 +1246,7 @@ async function check_page(target_page_data, options) {
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
 			// check talk page, 刪掉已有沒問題之 anchors。
-			await add_note_to_talk_page_for_broken_anchors(linking_page_data);
+			add_note_to_talk_page_for_broken_anchors(linking_page_data);
 		}
 
 		if (!changed)
