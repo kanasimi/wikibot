@@ -57,9 +57,9 @@ async function main_process() {
 	// Get all pages of Thai_name_CATEGORY_LIST (categories transcluding {{Thai people category}}).
 	await wiki.for_each_page(Thai_name_CATEGORY_LIST
 		// for debug
-		.slice(20, 21)
+		//.slice(20, 21)
 		//&& ['Category:Chiangrai United F.C. players']
-		, [for_each_Thai_people_category, { Thai_people_page_list }]);
+		, for_each_Thai_people_category, { Thai_people_page_list });
 	//console.log(Thai_people_page_list);
 	Thai_name_CATEGORY_LIST = new Set(Thai_name_CATEGORY_LIST.map(page_data => wiki.remove_namespace(page_data)));
 	//console.log(Thai_name_CATEGORY_LIST);
@@ -87,7 +87,7 @@ Ajaan Suwat Suvaco`.split('\n').forEach(t => Thai_people_page_list.add(t));
 
 	await wiki.edit_page('Wikipedia:WikiProject Thailand/Nonbiographical pages transcluding Thai name categories',
 		'The pages below are pages transcluding Thai name categories but detect as non-biographical articles.\n'
-		+ CeL.wiki.array_to_table(non_biographical_pages.map(page_title => CeL.wiki.title_link_of(page_title)), 'no_header'), {
+		+ CeL.wiki.array_to_table(non_biographical_pages.map((page_title, index) => [index + 1, CeL.wiki.title_link_of(page_title)]), 'no_header'), {
 		summary: summary_prefix + `Report ${non_biographical_pages.length} non-biographical articles.`
 	});
 
