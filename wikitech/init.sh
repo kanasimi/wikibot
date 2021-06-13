@@ -83,11 +83,11 @@ printf "$SP\nCreate linking..."
 
 #cd ~
 
-ln -s /shared/bin/node ~/bin/
+[ -e ~/bin/node ] || ln -s /shared/bin/node ~/bin/
 
 cd ~/wikibot
 
-ln -s ../node_modules/cejs/application/net/wiki.js js.js
+[ -e "js.js" ] || ln -s ../node_modules/cejs/application/net/wiki.js js.js
 
 #[ -s "20150503.js" ] || ln -s 20150503.提報關注度不足過期提醒.js 20150503.js
 

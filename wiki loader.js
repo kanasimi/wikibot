@@ -228,7 +228,7 @@ _global.set_language = function set_language(language) {
 		// console.trace(language);
 	}
 
-	_global.log_to = login_options.log_to || '';
+	_global.log_to = _global.log_to || login_options.log_to || '';
 	/** {String}home directory */
 	var home_directory = CeL.env.home || CeL.wiki.wmflabs && '/data/project/'
 			+ CeL.wiki.extract_login_user_name(login_options.user_name) + '/'
