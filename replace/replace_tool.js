@@ -61,6 +61,7 @@ CeL.run([
 
 // 20190913.replace.js
 log_to = log_to.replace(/\d+$/, 20190913);
+//console.trace(log_to);
 
 // global variables using in move_configuration
 const DELETE_PAGE = Symbol('DELETE_PAGE');
@@ -406,7 +407,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	const section_title = meta_configuration.section_title;
 	//'max'
-	const rvlimit = 80;
+	const rvlimit = meta_configuration.requests_page_rvlimit || 80;
 
 	if (section_title) {
 		CeL.log_temporary(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)}`);
@@ -539,9 +540,14 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			//console.log(task_options);
 		}
 
+		function normalize_page_token(index) {
+			return token.parameters[index].toString().replace(/<!--[\s\S]*-->/g, '').trim().replace(/{{!}}/g, '|');
+		}
+
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
-			const title = token.parameters[index].toString().trim().replace(/{{!}}/g, '|');
-			const move_to_link = token.parameters[index + 1].toString().trim().replace(/{{!}}/g, '|');
+			const title = normalize_page_token(index);
+			//if (title.includes('IOS (Apple)')) { console.trace(`Ignore ${title}`); continue; }
+			const move_to_link = normalize_page_token(index + 1);
 			const task_configuration = Object.assign({
 				discussion_link,
 				...task_options,
@@ -775,6 +781,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			// e.g., 20200101.ブランドとしてのXboxの記事作成に伴うリンク修正.js
 			// [[A]] → [[A (細分 type)]]
 			&& (task_configuration.move_to_link.toLowerCase().includes(move_from_link.toLowerCase())
+				// e.g., [[BOSSコーヒー]]→[[ボス (コーヒー)]]
+				|| !/ \([^()]+\)$/.test(move_from_link) && / \([^()]+\)$/.test(task_configuration.move_to_link)
+				// [[イジー・ス・ポジェブラト]]→[[イジー]] 亦須設定 .keep_display_text
+				|| move_from_link.toLowerCase().includes(task_configuration.move_to_link.toLowerCase().replace(/ \([^()]+\)$/, ''))
 				// e.g., 20200121.「離陸決心速度」の「V速度」への統合に伴うリンク修正.js
 				|| task_configuration.move_to_link.includes('#')
 			)) {
@@ -790,6 +800,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		const _log_to = 'log_to' in task_configuration ? task_configuration.log_to
 			: 'log_to' in meta_configuration ? (task_configuration.log_to = meta_configuration.log_to)
 				: log_to;
+		//console.trace([log_to, _log_to]);
+
 		// summary = null, undefined : using section_title as summary
 		// summary = '' : auto-fill summary with page-to-delete + '改名に伴うリンク修正'
 		if (_summary) {
@@ -917,6 +929,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		task_configuration.wiki = wiki;
 		await main_move_process(task_configuration, meta_configuration);
+		//console.trace(`Done: ${task_configuration.summary}`);
 	}
 
 	if (meta_configuration.external_program_running
@@ -938,7 +951,7 @@ async function finish_work(meta_configuration) {
 // separate namespace and page name
 function parse_move_link(link, session) {
 	// /^(?<namespace>[^:]+):(?<page_name>.+)$/
-	const matched = typeof link === 'string' && CeL.wiki.normalize_title(link).match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
+	const matched = typeof link === 'string' && CeL.wiki.normalize_title(link, { no_upper_case_initial: true }).match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
 	if (!matched)
 		return;
 
@@ -1094,7 +1107,7 @@ async function get_list(task_configuration, list_configuration) {
 			list_configuration.move_from_link = CeL.wiki.normalize_title(list_configuration.move_from_link);
 			// separate namespace and page name
 			list_configuration.move_from = {
-				...parse_move_link(list_configuration.move_from_link, wiki),
+				...parse_move_link(CeL.wiki.normalize_title(list_configuration.move_from_link), wiki),
 				...list_configuration.move_from
 			};
 			// console.trace(task_configuration.move_from);
@@ -1104,6 +1117,7 @@ async function get_list(task_configuration, list_configuration) {
 				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
 					const redirect_list = (await wiki.register_redirects(list_configuration.move_from_link))?.redirect_list;
 					if (list_types.includes('embeddedin') && redirect_list?.length > 1
+						&& task_configuration.for_template
 						//subst:
 						&& task_configuration.for_template !== subst_template) {
 						CeL.error(`由於 ${list_configuration.move_from_link} 有 redirects，必須對所有 redirects 個別執行 embeddedin，或採用 wiki_session.is_template()，否則會有疏漏未處理之頁面！`);
@@ -1139,7 +1153,7 @@ async function get_list(task_configuration, list_configuration) {
 							CeL.info(`Auto-replace display text: ${also_replace_display_text[0]}→${also_replace_display_text[1]}`);
 							if (!task_configuration.also_replace_display_text)
 								task_configuration.also_replace_display_text = [];
-							task_configuration.also_replace_display_text.append(also_replace_display_text);
+							task_configuration.also_replace_display_text.push(also_replace_display_text);
 						}
 					}
 				}
@@ -1200,7 +1214,10 @@ async function get_list(task_configuration, list_configuration) {
 	const list_title_list = list_configuration.list_title || list_configuration.move_from?.page_title || list_configuration.move_from_link;
 	// TODO: fix if list_title_list !== list_configuration.move_from_link
 
-	const list_label = list_title_list ? CeL.wiki.title_link_of(list_title_list) : list_types;
+	//console.trace([list_title_list, CeL.is_RegExp(list_title_list)]);
+	const list_label = list_title_list
+		? list_types.join() === 'search' ? list_title_list : CeL.wiki.title_link_of(list_title_list)
+		: list_types;
 	if (Array.isArray(page_list)) {
 		// Only for get .pageid & .ns
 		//page_list = await wiki.page(page_list, { rvprop: 'ids' });
@@ -1211,7 +1228,7 @@ async function get_list(task_configuration, list_configuration) {
 	} else {
 		page_list = [];
 		CeL.info(`${get_list.name}: Get types: ${list_types.join(', ')}`
-			+ (list_title_list ? ` of ${wiki.site_name()}: ${CeL.wiki.title_link_of(list_title_list)}` : '')
+			+ (list_title_list ? ` of ${wiki.site_name()}: ${list_types.join() === 'search' ? list_title_list : CeL.wiki.title_link_of(list_title_list)}` : '')
 			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_title_list ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
 			+ (` (namespace: ${list_options.namespace})`)
 		);
@@ -1238,22 +1255,30 @@ async function get_list(task_configuration, list_configuration) {
 	}
 
 	page_list = page_list.unique(page_data => CeL.wiki.title_of(page_data));
-	if (list_configuration.is_tracking_category && list_configuration.move_from.ns === wiki.namespace('Category')) {
+	if (/*list_configuration.is_tracking_category && */list_configuration.move_from.ns === wiki.namespace('Category')) {
 		page_list.forEach(page_data => {
 			if (wiki.is_namespace(page_data, 'Template') || wiki.is_namespace(page_data, 'Module')) {
 				const title = CeL.wiki.title_of(page_data);
-				if (title.endsWith('/doc'))
+				if (title.endsWith('/doc') || page_list.includes(title + '/doc'))
 					return;
-				//對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
-				page_list.push(title + '/doc');
+				const doc_title = title + '/doc';
+				if (page_list.includes(doc_title))
+					return;
+
+				CeL.warn(`${get_list.name}: +${CeL.wiki.title_link_of(doc_title)}: 對於追蹤類別 [[Category:Tracking categories]] 或 template/doc 中包含 <includeonly>[[Category:name]]</includeonly>，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]`);
+				page_list.push(doc_title);
+				page_list.options = { redirects: 1, ...page_list.options };
 			}
 		});
 		//console.log(page_list);
 	}
 	if (list_configuration.page_limit >= 1) {
 		CeL.info(`${get_list.name}: Limit to ${list_configuration.page_limit}/${page_list.length} page(s) got from ${list_label}`);
+		const page_list_options = page_list.options;
 		page_list = page_list.truncate(list_configuration.page_limit);
 		//page_list = page_list.slice(1, 2);
+		if (page_list_options)
+			page_list.options = page_list_options;
 	} else {
 		CeL.info(`${get_list.name}: Get ${page_list.length} page(s) from ${list_label}`);
 	}
@@ -1284,6 +1309,9 @@ async function main_move_process(task_configuration, meta_configuration) {
 	if (Array.isArray(list_intersection)) {
 		for (const list_configuration of list_intersection) {
 			const sub_page_id_hash = Object.create(null);
+			// e.g., for redirects
+			Object.assign(list_configuration, page_list.options);
+			//console.trace(list_configuration);
 			(await get_list(task_configuration, list_configuration)).forEach(page_data => { sub_page_id_hash[page_data.pageid] = null; });
 			page_list = page_list.filter(page_data => page_data.pageid in sub_page_id_hash);
 		}
@@ -1298,8 +1326,9 @@ async function main_move_process(task_configuration, meta_configuration) {
 		// for リクルートをパイプリンクにする
 		// page_options: { rvprop: 'ids|content|timestamp|user' },
 		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
-		summary: task_configuration.summary
+		summary: task_configuration.summary,
 	};
+	//console.trace(work_config);
 	for (const option of work_option_switches) {
 		//work_config[option] = task_configuration[option] ?? meta_configuration[option];
 		if (option in task_configuration) {
@@ -1308,10 +1337,13 @@ async function main_move_process(task_configuration, meta_configuration) {
 			work_config[option] = meta_configuration[option];
 		}
 	}
+	// e.g., for redirects
+	work_config.page_options = { ...work_config.page_options, ...page_list.options };
 	//console.trace(work_config);
 	if (typeof task_configuration.before_get_pages === 'function') {
 		await task_configuration.before_get_pages(page_list, work_config, { meta_configuration, bot_requests_page });
 	}
+	//page_list = page_list.slice(0, 3);
 	await wiki.for_each_page(page_list, function () {
 		// 注意: this !== work_config === `config`
 
@@ -1397,7 +1429,7 @@ async function for_each_page(page_data) {
 	if (task_configuration.replace_text) {
 		if (!task_configuration.replace_text_pattern)
 			task_configuration.replace_text_pattern = new RegExp(Object.keys(task_configuration.replace_text).join('|'), 'g');
-		//Warning: 必須排除 {{Redirect|text}}, [[text|]] 之類！
+		// Warning: 必須排除 {{Redirect|text}}, [[text|]] 之類！
 		wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched => task_configuration.replace_text[matched]);
 	}
 
@@ -1421,17 +1453,20 @@ function remove_duplicated_display_text(token, index, parent) {
 
 function for_each_link(token, index, parent) {
 	// token: [ page_name, anchor / section_title, displayed_text ]
-	const page_title = CeL.wiki.normalize_title(token[0].toString());
+	const page_title = CeL.wiki.normalize_title(token[0].toString() || this.page_data.title);
 	const page_title_data = parse_move_link(page_title, this.wiki);
 	//console.trace([page_title, page_title_data, this.move_from]);
 
 	// if (page_title === this.move_from.page_title) console.log(token);
+	//if (page_title.includes('アップル')) console.log(token);
+	//if (page_title.includes(this.move_from.page_name))console.log(token);
+
 	if (!page_title_data
 		|| page_title_data.ns !== this.move_from.ns || page_title_data.page_name !== this.move_from.page_name
 		|| typeof this.move_from.anchor === 'string' && this.move_from.anchor !== token.anchor
 		|| typeof this.move_from.display_text === 'string' && this.move_from.display_text !== (token[2] || '').toString().trim()
 		// 排除連結標的與頁面名稱相同的情況。
-		|| this.page_data.title === this.move_to_link
+		//|| this.page_data.title === this.move_to_link
 	) {
 		return;
 	}
@@ -1495,8 +1530,9 @@ function for_each_link(token, index, parent) {
 			}
 		}
 	} else {
-		if (this.move_to.display_text || this.move_to.display_text === '') {
-			token[2] = this.move_to.display_text;
+		const display_text = this.move_to.display_text;
+		if (display_text || display_text === '') {
+			token[2] = display_text;
 		}
 	}
 	if (token[2] && this.also_replace_display_text) {
@@ -1507,7 +1543,7 @@ function for_each_link(token, index, parent) {
 		});
 	}
 	// console.log('~~~~~~~~');
-	// console.log(token);
+	//console.log(token);
 
 	// 替換頁面。
 	// TODO: using original namesapce
@@ -1536,7 +1572,7 @@ function for_each_link(token, index, parent) {
 
 	if (!token[2]) {
 		;
-	} else if (!token[1] && CeL.wiki.normalize_title(CeL.wiki.wikitext_to_plain_text(token[2])) === this.move_to.page_title) {
+	} else if (!token[1] && CeL.wiki.normalize_title(CeL.wiki.wikitext_to_plain_text(token[2]), { no_upper_case_initial: true }) === this.move_to.page_title) {
 		// 去掉與頁面標題相同的 display_text。 preserve [[PH|pH]]
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
@@ -1568,6 +1604,15 @@ function for_each_link(token, index, parent) {
 			token.pop();
 		}
 	}
+
+	if (token[0] === this.page_data.title) {
+		// 連結標的與頁面名稱相同的情況，可省略 page title。
+		token[0] = '';
+	}
+
+	// TODO: 視 display_text 增加空格
+	// [[...字]]A → [[...T]] A
+	// A[[字...]] → A[[T...]]
 
 	if (this.move_from.ns === this.wiki.namespace('Category')) {
 		if (this.page_data.hook && this.page_data.hook[this.move_to.page_title]) {
@@ -1653,8 +1698,11 @@ async function subst_template(token, index, parent) {
 
 const no_ns_templates = {
 	Pathnav: true,
+	子記事: true,
 	Navbox: true,
 	Catlink: true,
+	C: true,
+	リダイレクトの所属カテゴリ: true,
 
 	'Infobox 鐵道路線': '標誌',
 	'Infobox rail system-route': 'logo_filename',
@@ -1703,6 +1751,13 @@ function check_link_parameter(task_configuration, template_token, parameter_name
 		//TODO
 		[options, parameter_name] = parameter_name;
 	}
+
+	if (parameter_name === '*') {
+		Object.keys(template_token.parameters)
+			.forEach(parameter_name => check_link_parameter(task_configuration, template_token, parameter_name));
+		return;
+	}
+
 	const attribute_text = template_token.parameters[parameter_name];
 	if (!attribute_text) {
 		if (isNaN(parameter_name) || parameter_name == 1) {
@@ -1823,6 +1878,9 @@ async function for_each_template(page_data, token, index, parent) {
 		// [[w:ja:Template:Navbox]]
 		Navbox: 'name',
 
+		// {{Catmore|項目名}}
+		Catmore: 1,
+
 		// e.g., {{仮リンク|延白郡|ko|연백군}}
 		仮リンク: 1,
 		// e.g., {{支流リンク|ラン河}}
@@ -1833,6 +1891,8 @@ async function for_each_template(page_data, token, index, parent) {
 		//[[Special:Diff/61197015/61197026#車站編號標誌|Bot request]]
 		'Infobox 鐵道路線': '標誌',
 		'Infobox rail system-route': 'logo_filename',
+
+		リダイレクトの所属カテゴリ: '*',
 	})) return;
 
 	// templates that ALL NUMERAL parameters are treated as links.
@@ -1846,6 +1906,8 @@ async function for_each_template(page_data, token, index, parent) {
 		// [[w:ja:Template:Pathnav]]
 		// e.g., {{Pathnav|主要カテゴリ|…|.move_from.page_title}}
 		Pathnav: 1,
+		子記事: 1,
+		C: 1,
 	}, 1)) return;
 
 	if (replace_link_parameter(task_configuration, token, {
@@ -1862,9 +1924,9 @@ async function for_each_template(page_data, token, index, parent) {
 		// [[w:ja:Template:Otheruseslist]]
 		Otheruseslist: 3,
 		Otheruses: 3,
+		About: 3,
 	}, 2)) return;
 
-	// TODO: fix {{リダイレクトの所属カテゴリ}} for Category:
 }
 
 // ---------------------------------------------------------------------//
