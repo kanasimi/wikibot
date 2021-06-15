@@ -105,7 +105,8 @@ async function for_AfD_list(AfD_list_page_data) {
 	const all_report_lines = [];
 	await wiki.for_each_page(discussion_title_list, for_AfD.bind({ all_report_lines, page_data_hash }), { no_edit: true });
 	// console.log(all_report_lines);
-	const report_wikitext = `
+	if (false) {
+		const report_wikitext = `
 {{Please leave this line alone (sandbox heading)}}
 
 == Report for ${CeL.wiki.title_link_of(AfD_list_page_data)} ==
@@ -114,7 +115,6 @@ async function for_AfD_list(AfD_list_page_data) {
 
 ${all_report_lines.join('\n\n')}
 `;
-	if (false) {
 		CeL.info(`${CeL.wiki.title_link_of(AfD_list_page_data)}: write report:`);
 		console.log(report_wikitext);
 		await wiki.edit_page('Wikipedia:Sandbox', report_wikitext, { summary: 'Report for ' + CeL.wiki.title_link_of(AfD_list_page_data) });
@@ -307,7 +307,8 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 		return discussions
 			.sort((a, b) => a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0)
 			// discussion_report may contain links
-			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }) + (add_title ? ' ' + extract_target_page_of_AfD(item[1]) : ''))} ${/(?:^|\W)(?:delete)(?:$|\W)/i.test(item[2]) ? '{{color|red|✗}} ' : /(?:^|\W)(?:keep)(?:$|\W)/i.test(item[2]) ? '{{color|green|✓}} ' : ''}${item[2]}`);
+			.map(item => `${CeL.wiki.title_link_of(item[1], to_timestamp({ timestamp: item[0] }) + (add_title ? ' ' + extract_target_page_of_AfD(item[1]) : ''))
+				} (closed as ${/(?:^|\W)(?:delete)(?:$|\W)/i.test(item[2]) ? '{{color|red|✗}} ' : /(?:^|\W)(?:keep)(?:$|\W)/i.test(item[2]) ? '{{color|green|✓}} ' : ''}${item[2]})`);
 	}
 	const report = {
 		previous: sort_discussions(previous_discussions),
@@ -540,7 +541,10 @@ async function for_AfD(AfD_page_data) {
 		if (participations_report) {
 			return;
 		}
-		report_lines.unshift(result_notice + ' --~~~~');
+		report_lines.unshift(result_notice
+			// the bot's signature should be at the end of its message, not in the middle.
+			// + ' --~~~~'
+		);
 	} else {
 		// for debug report:
 		if (participations_report) {
@@ -556,6 +560,8 @@ async function for_AfD(AfD_page_data) {
 ${result_notice} --~~~~`);
 	}
 
+	// the bot's signature should be at the end of its message
+	report_lines.push('--~~~~');
 	const report_wikitext = report_lines.join('\n: ');
 	const page_wikitext = AfD_page_data.wikitext.trimEnd() + '\n' + report_wikitext;
 	// console.log(CeL.wiki.title_link_of(AfD_page_data));

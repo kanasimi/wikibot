@@ -550,8 +550,9 @@ async function tracking_section_title_history(page_data, options) {
 		const removed_anchors = CeL.wiki.parse.anchor(removed_text, _options);
 		const added_anchors = CeL.wiki.parse.anchor(added_text, _options);
 
-		removed_text = CeL.wiki.parser(removed_text, _options).parse();
-		added_text = CeL.wiki.parser(added_text, _options).parse();
+		// "|| ''" 避免跳出警告
+		removed_text = CeL.wiki.parser(removed_text || '', _options).parse();
+		added_text = CeL.wiki.parser(added_text || '', _options).parse();
 
 		// 當標題前後沒有空白之外的文字時，就當作是置換標題。
 		const replaced_anchors = revision.replaced_anchors || (revision.replaced_anchors = Object.create(null));
@@ -761,6 +762,10 @@ async function get_all_links(page_data, options) {
 
 		// 假如完全刪除 #anchor，但存在 [[anchor]] 則直接改連至 [[anchor]]
 		var page_title = wiki.normalize_title(link_token[0].toString());
+		if (/^[\w\-]+:\S/.test(page_title)) {
+			//e.g., 'wikt:ducky', 'jp:...'
+			return;
+		}
 		reduced_anchor_to_page[reduce_section_title(page_title)] = [page_title];
 
 		// 假如完全刪除 #anchor，但存在 [[[page|anchor]] 則直接改連至 [[page]]
