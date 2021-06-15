@@ -255,7 +255,7 @@ function fill_type_name(media_data) {
 	|| area.includes('pacific')
 	// [[Category:2019 Pacific hurricane season]]
 	&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
-	// [[File:2020 CIMSS 05B Burevi visible infrared map.GIF]]
+	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
 	: area === 'indian' ? 'cyclone'
 	// [[Category:2019 North Indian Ocean cyclone season]]
 	// But JTWC using "Northwest Pacific/North Indian Ocean*"
@@ -279,7 +279,7 @@ function upload_media(media_data) {
 	area.includes('pacific') ? 'Pacific'
 	//
 	: area.includes('atlantic') ? 'Atlantic'
-	// [[File:2020 CIMSS 05B Burevi visible infrared map.GIF]]
+	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
 	// TODO: 'South-West Indian Ocean'
 	: area === 'indian' ? 'North Indian Ocean'
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
@@ -872,8 +872,9 @@ function for_each_CIMSS_typhoon(media_data, token) {
 		date : date,
 		media_url : media_url,
 		filename : date.format(filename_prefix) + 'CIMSS ' + media_data.NO
-				+ ' ' + media_data.name + ' visible infrared map'
-				+ media_url.match(/\.\w+$/)[0]
+				+ ' ' + media_data.name + ' visible infrared satellite loop'
+				// .GIF → .gif
+				+ media_url.match(/\.\w+$/)[0].toLowerCase()
 	});
 	media_data.source_url += '\n' + media_url;
 
@@ -883,10 +884,12 @@ function for_each_CIMSS_typhoon(media_data, token) {
 	var note;
 
 	Object.assign(media_data, {
-		description : '{{en|' + media_data.author + "'s visible infrared map"
+		description : '{{en|' + media_data.author
+				+ "'s visible infrared satellite loop"
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
+		comment :
 		// comment won't accept templates and external links
-		comment : 'Import CIMSS tropical cyclone visible infrared map'
+		'Import CIMSS tropical cyclone visible infrared satellite loop'
 				+ wiki_link + '. ' + (note ? note + ' ' : ''),
 		page_text_updater : media_data.variable_Map
 	}, media_data);
@@ -1384,44 +1387,54 @@ function start_PAGASA() {
 	};
 
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
-	fetch(media_data.source_url).then(function(response) {
-		return response.text();
-
-	}).then(function(html) {
-		CeL.write_file(data_directory
-		//
-		+ (new Date).format('PAGASA ' + cache_filename_label
-		//
-		+ ' menu.html'), html);
-
-		// <div class="col-md-12 article-header" id="swb">
-		var text = html.between('article-header');
-		if (!text) {
-			return;
-		}
-
-		html = text.between('role="tablist">', '</ul>');
-		if (!html) {
-			media_data.source_url = base_URL + 'tropical-cyclone/tropical-cyclone-warning-for-agriculture';
-			return;
-			fetch(media_data.source_url).then(function(response) {
+	fetch(media_data.source_url)
+			.then(function(response) {
 				return response.text();
-			}).then(handle_with_SWB);
-			return;
-		}
 
-		var NO_hash = Object.create(null);
-		html.each_between('<li', '</li>', function(token) {
-			// console.log(token);
-			var name = token.between('<a').between('>', '<');
-			NO_hash[name] = token.between('data-header="', '"');
-		});
+			})
+			.then(
+					function(html) {
+						CeL.write_file(data_directory
+						//
+						+ (new Date).format('PAGASA ' + cache_filename_label
+						//
+						+ ' menu.html'), html);
 
-		text = text.between(null, {tail:'<style type="text/css">'}) || text;
-		text.each_between('role="tabpanel"', null,
-		//
-		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
-	});
+						// <div class="col-md-12 article-header" id="swb">
+						var text = html.between('article-header');
+						if (!text) {
+							return;
+						}
+
+						html = text.between('role="tablist">', '</ul>');
+						if (!html) {
+							media_data.source_url = base_URL
+									+ 'tropical-cyclone/tropical-cyclone-warning-for-agriculture';
+							return;
+							fetch(media_data.source_url).then(
+									function(response) {
+										return response.text();
+									}).then(handle_with_SWB);
+							return;
+						}
+
+						var NO_hash = Object.create(null);
+						html.each_between('<li', '</li>',
+								function(token) {
+									// console.log(token);
+									var name = token.between('<a').between('>',
+											'<');
+									NO_hash[name] = token.between(
+											'data-header="', '"');
+								});
+
+						text = text.between(null, {
+							tail : '<style type="text/css">'
+						}) || text;
+						text.each_between('role="tabpanel"', null,
+						//
+						for_each_PAGASA_typhoon.bind(media_data, NO_hash));
+					});
 
 	function handle_with_SWB(html) {
 		CeL.write_file(data_directory
@@ -1448,7 +1461,9 @@ function start_PAGASA() {
 			NO_hash[name] = token.between('href="', '"').replace(/^#/, '');
 		});
 
-		text = text.between(null, {tail:'<style type="text/css">'}) || text;
+		text = text.between(null, {
+			tail : '<style type="text/css">'
+		}) || text;
 		text.each_between('role="tabpanel"', null,
 		//
 		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
