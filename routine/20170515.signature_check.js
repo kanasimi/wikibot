@@ -1019,7 +1019,8 @@ function for_each_row(row) {
 		wiki.page('User talk:' + row.user, {
 			redirects : 1
 		}).edit(message, {
-			// notification_name : 'SIGN',
+			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
+			notification_name : 'SIGN',
 			section : 'new',
 			sectiontitle : gettext('您好，可能需要麻煩改變一下您的留言簽名格式'),
 			tags : edit_tags,
@@ -1042,6 +1043,8 @@ function for_each_row(row) {
 	wiki.page(row, {
 		redirects : 1
 	}).edit(row.diff.to.join(''), {
+		// 若頁面不想有為署名的編輯添加簽名標記的功能。
+		notification_name : 'SIGN',
 		tags : edit_tags,
 		nocreate : 1,
 		minor : 1,
@@ -1065,7 +1068,7 @@ function for_each_row(row) {
 			redirects : 1
 		}).edit(message, {
 			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
-			// notification_name : 'SIGN',
+			notification_name : 'SIGN',
 			section : 'new',
 			sectiontitle : gettext('請記得在留言時署名'),
 			tags : edit_tags,
