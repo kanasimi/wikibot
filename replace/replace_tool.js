@@ -1444,9 +1444,13 @@ async function for_each_page(page_data) {
 
 // ---------------------------------------------------------------------//
 
+// preserve style: ''' , '' , <span style="color: black;"></span>
+const PATTERN_need_to_preserve_style = /''|color\s[:=]/;
+
 // e.g., 'title': { for_each_link: replace_tool.remove_duplicated_display_text },
 function remove_duplicated_display_text(token, index, parent) {
-	if (token[2] && (token[0] + token[1]).trim() === CeL.wiki.wikitext_to_plain_text(token[2]).trim()) {
+	if (token[2] && (token[0] + token[1]).trim() === CeL.wiki.wikitext_to_plain_text(token[2]).trim()
+		&& !PATTERN_need_to_preserve_style.test(token[2])) {
 		token.pop();
 	}
 }
@@ -1573,13 +1577,20 @@ function for_each_link(token, index, parent) {
 	if (!token[2]) {
 		;
 	} else if (!token[1] && CeL.wiki.normalize_title(CeL.wiki.wikitext_to_plain_text(token[2]), { no_upper_case_initial: true }) === this.move_to.page_title) {
-		// 去掉與頁面標題相同的 display_text。 preserve [[PH|pH]]
+		// 去掉與頁面標題相同的 display_text。 preserve 大小寫變化 [[PH|pH]], [[iOS]]。
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
 		// → [[move to link]] || [[.move_to.page_title]] 預防大小寫變化。
-		token[0] = /[<>{}|]|&#/.test(token[2].toString()) ? this.move_to.page_title : token[2];
-		// assert: token.length === 2
-		token.pop();
+		if (PATTERN_need_to_preserve_style.test(token[2])) {
+			token[0] = this.move_to.page_title;
+			if (false && /&#/.test(token[2])) {
+				token[2] = CeL.HTML_to_Unicode(token[2].toString());
+			}
+		} else {
+			token[0] = /[<>{}|]|&#/.test(token[2]) ? this.move_to.page_title : token[2];
+			// assert: token.length === 2
+			token.pop();
+		}
 	} else if (!token[1] && this.move_from.page_title === this.move_to.page_title && this.move_from.display_text && this.move_to.display_text === undefined) {
 		// 移動前後的頁面標題相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！
 		// 消除特定 display_text。 e.g., 設定 [[T|d]] → [[T]]
