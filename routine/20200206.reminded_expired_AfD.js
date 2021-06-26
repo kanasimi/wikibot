@@ -440,7 +440,7 @@ const PROD_MESSAGE = {
 };
 const ignore_recommendations = PROD_MESSAGE;
 // {{comment|Automated comment}}
-const PROD_MESSAGE_PREFIX = `* {{A note|Info}} '''${PROD_MESSAGE.recommendation}''': `;
+const PROD_MESSAGE_PREFIX = `* {{A note|Info}} - '''${PROD_MESSAGE.recommendation}''': `;
 const PROD_ineligible_MESSAGE_PREFIX = PROD_MESSAGE_PREFIX + "While this discussion appears to have [[WP:NOQUORUM|no quorum]], it is '''NOT eligible for [[WP:SOFTDELETE|soft deletion]]''' because ";
 
 async function for_AfD(AfD_page_data) {
