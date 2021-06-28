@@ -316,7 +316,8 @@ function upload_media(media_data, product_data, detail) {
 				P571 : media_data.date
 			} : CeL.wiki.edit.cancel;
 		}, {
-			bot : 1
+			bot : 1,
+			summary : 'Add creating datetime'
 		});
 	}
 }
