@@ -341,6 +341,18 @@ function upload_media(media_data) {
 
 	// CeL.set_debug(9);
 	wiki.upload(media_data);
+
+	if (media_data.date) {
+		wiki.edit_structured_data(media_data.filename, function(entity) {
+			return entity.claims
+			// 成立或建立時間 (P571)
+			&& !CeL.wiki.data.value_of(entity.claims.P571) ? {
+				P571 : media_data.date
+			} : CeL.wiki.edit.cancel;
+		}, {
+			bot : 1
+		});
+	}
 }
 
 // ============================================================================
@@ -1387,54 +1399,48 @@ function start_PAGASA() {
 	};
 
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
-	fetch(media_data.source_url)
-			.then(function(response) {
+	fetch(media_data.source_url).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('PAGASA ' + cache_filename_label
+		//
+		+ ' menu.html'), html);
+
+		// <div class="col-md-12 article-header" id="swb">
+		var text = html.between('article-header');
+		if (!text) {
+			return;
+		}
+
+		html = text.between('role="tablist">', '</ul>');
+		if (!html) {
+			media_data.source_url = base_URL
+			//
+			+ 'tropical-cyclone/tropical-cyclone-warning-for-agriculture';
+			return;
+			fetch(media_data.source_url).then(function(response) {
 				return response.text();
+			}).then(handle_with_SWB);
+			return;
+		}
 
-			})
-			.then(
-					function(html) {
-						CeL.write_file(data_directory
-						//
-						+ (new Date).format('PAGASA ' + cache_filename_label
-						//
-						+ ' menu.html'), html);
+		var NO_hash = Object.create(null);
+		html.each_between('<li', '</li>', function(token) {
+			// console.log(token);
+			var name = token.between('<a').between('>', '<');
+			NO_hash[name] = token.between('data-header="', '"');
+		});
 
-						// <div class="col-md-12 article-header" id="swb">
-						var text = html.between('article-header');
-						if (!text) {
-							return;
-						}
-
-						html = text.between('role="tablist">', '</ul>');
-						if (!html) {
-							media_data.source_url = base_URL
-									+ 'tropical-cyclone/tropical-cyclone-warning-for-agriculture';
-							return;
-							fetch(media_data.source_url).then(
-									function(response) {
-										return response.text();
-									}).then(handle_with_SWB);
-							return;
-						}
-
-						var NO_hash = Object.create(null);
-						html.each_between('<li', '</li>',
-								function(token) {
-									// console.log(token);
-									var name = token.between('<a').between('>',
-											'<');
-									NO_hash[name] = token.between(
-											'data-header="', '"');
-								});
-
-						text = text.between(null, {
-							tail : '<style type="text/css">'
-						}) || text;
-						text.each_between('role="tabpanel"', null,
-						//
-						for_each_PAGASA_typhoon.bind(media_data, NO_hash));
-					});
+		text = text.between(null, {
+			tail : '<style type="text/css">'
+		}) || text;
+		text.each_between('role="tabpanel"', null,
+		//
+		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
+	});
 
 	function handle_with_SWB(html) {
 		CeL.write_file(data_directory

@@ -307,4 +307,16 @@ function upload_media(media_data, product_data, detail) {
 	});
 
 	wiki.upload(media_data);
+
+	if (media_data.date) {
+		wiki.edit_structured_data(media_data.filename, function(entity) {
+			return entity.claims
+			// 成立或建立時間 (P571)
+			&& !CeL.wiki.data.value_of(entity.claims.P571) ? {
+				P571 : media_data.date
+			} : CeL.wiki.edit.cancel;
+		}, {
+			bot : 1
+		});
+	}
 }
