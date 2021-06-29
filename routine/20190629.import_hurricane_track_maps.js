@@ -11,6 +11,7 @@
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
+ https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/himawari-8/
  [[Category:375m-resolution VIIRS images of tropical cyclones]]
 
  */
@@ -343,15 +344,16 @@ function upload_media(media_data) {
 	wiki.upload(media_data);
 
 	if (media_data.date) {
-		wiki.edit_structured_data(media_data.filename, function(entity) {
-			return entity.claims
-			// 成立或建立時間 (P571)
-			&& !CeL.wiki.data.value_of(entity.claims.P571) ? {
+		wiki.edit_structured_data('File:' + media_data.filename, function(
+				entity) {
+			return !entity.claims
+			// 成立或建立時間 (P571) [[Commons:Structured data/Modeling/Date]]
+			|| !CeL.wiki.data.value_of(entity.claims.P571) ? {
 				P571 : media_data.date
-			} : CeL.wiki.edit.cancel;
+			} : [ CeL.wiki.edit.cancel, 'skip' ];
 		}, {
 			bot : 1,
-			summary : 'Add creating datetime'
+			summary : 'Add created datetime: ' + media_data.date
 		});
 	}
 }
