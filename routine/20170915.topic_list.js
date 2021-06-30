@@ -99,7 +99,7 @@ wiki = Wiki(true),
 /** {Object}設定頁面所獲得之手動設定 manual settings。 === wiki.latest_task_configuration */
 configuration,
 
-edit_tags = login_options.API_URL.includes('moegirl') && 'Bot' || '',
+edit_tags = wiki.API_URL.includes('moegirl') ? 'Bot' : '',
 
 // Will get page title from wikidata
 botop_sitelinks = {

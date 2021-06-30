@@ -861,8 +861,10 @@ async function check_page(target_page_data, options) {
 	// ----------------------------------------------------
 
 	async function add_note_to_talk_page_for_broken_anchors(linking_page_data, anchor_token, record) {
-		if (anchor_token && !anchor_token[anchor_token.article_index || 0]
-			&& target_page_data.title === linking_page_data.title) {
+		if (target_page_data.title === linking_page_data.title && anchor_token
+			&& (!anchor_token[anchor_token.article_index || 0]
+				|| anchor_token[anchor_token.article_index || 0] === target_page_data.title)
+		) {
 			// Will be modified at last.
 			return;
 		}

@@ -13,7 +13,7 @@ jstop cron-20170515.signature_check.moegirl
 /usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikinews
 /usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikisource
 /usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikiversity
-/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js API_URL=https://zh.moegirl.org.cn/api.php
+/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=zhmoegirl
 
 
 node 20170515.signature_check.js use_language=simple
@@ -71,12 +71,11 @@ wiki = Wiki(true),
 gettext = CeL.gettext,
 
 // for 萌娘百科 zh.moegirl.org.cn
-edit_tags = CeL.env.arg_hash && CeL.env.arg_hash.API_URL
-// API_URL=https://zh.moegirl.org.cn/api.php
-&& CeL.env.arg_hash.API_URL.includes('moegirl') && 'Bot' || '',
+edit_tags = wiki.API_URL.includes('moegirl') ? 'Bot' : '',
 
-using_subst = !CeL.env.arg_hash.API_URL
-		|| !CeL.env.arg_hash.API_URL.includes('moegirl');
+using_subst = wiki.API_URL.includes('moegirl');
+
+console.trace([ edit_tags, using_subst ]);
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定
