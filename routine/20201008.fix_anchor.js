@@ -84,7 +84,12 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	const { general } = latest_task_configuration;
+	let { general } = latest_task_configuration;
+	if (!general) {
+		CeL.error(`{adapt_configuration.name}: No general configuration got!`);
+		general = latest_task_configuration.general = Object.create(null);
+	}
+
 	general.archive_template_list = (general.archive_template_list || ['Template:Archive'])
 		// remove "Template:" prefix
 		.map(name => wiki.remove_namespace(name));
@@ -856,6 +861,12 @@ async function check_page(target_page_data, options) {
 	// ----------------------------------------------------
 
 	async function add_note_to_talk_page_for_broken_anchors(linking_page_data, anchor_token, record) {
+		if (anchor_token && !anchor_token[anchor_token.article_index || 0]
+			&& target_page_data.title === linking_page_data.title) {
+			// Will be modified at last.
+			return;
+		}
+
 		function add_note_for_broken_anchors(talk_page_data) {
 			// Modify from 20200122.update_vital_articles.js
 			// TODO: fix disambiguation
