@@ -694,14 +694,27 @@ async function tracking_section_title_history(page_data, options) {
 				}
 
 			} else {
+				// https://ja.wikipedia.org/w/index.php?title=%E7%99%BD%E7%9F%B3%E7%BE%8E%E5%B8%86&diff=prev&oldid=84287198
+				// TODO: assert: get_edit_distance_score('警視庁捜査一課9係 season11','警視庁捜査一課9係 season11（2006年）') < get_edit_distance_score('警視庁捜査一課9係 season11','警視庁捜査一課9係 season1（2016年）')
+				function get_edit_distance_score(from, to) {
+					const length = Math.min(from.length, to.length);
+					// 不可使之通過: CeL.edit_distance('植松竜司郎','小田切敏郎'); CeL.edit_distance('赤井家・羽田家','赤井秀一');
+					const edit_distance_score = 2 * (CeL.edit_distance(from, to)
+						//+ length - CeL.longest_common_starting_length([from, to])
+						// 微調
+						- (from.length > to.length ? from.includes(to) : to.includes(from) ? 1 : 0)
+
+						// 還可以嘗試若標題一對一對應，則相對應的標題微調減分。
+					) / length;
+					return edit_distance_score;
+				}
+
 				// edit_distance_lsit = [ [ edit_distance_score, from, to ], [ edit_distance_score, from, to ], ... ]
 				const edit_distance_lsit = [];
 				// 找出變更低於限度的，全部填入 edit_distance_lsit。
 				revision.removed_section_titles.forEach(from => {
 					revision.added_section_titles.forEach(to => {
-						const length = Math.min(from.length, to.length);
-						// 不可使之通過: CeL.edit_distance('植松竜司郎','小田切敏郎'); CeL.edit_distance('赤井家・羽田家','赤井秀一');
-						const edit_distance_score = 2 * CeL.edit_distance(from, to) / length;
+						const edit_distance_score = get_edit_distance_score(from, to);
 						if (edit_distance_score < 1) {
 							edit_distance_lsit.push([edit_distance_score, from, to]);
 						}
@@ -714,7 +727,7 @@ async function tracking_section_title_history(page_data, options) {
 				// modify_hash[from] = to
 				const modify_hash = Object.create(null);
 				edit_distance_lsit.forEach(item => {
-					const from = item[1], to = item[2];
+					const [/*edit_distance_score*/, from, to] = item;
 					// 測試 from 是否已經有更匹配的 to。
 					if (modify_hash[from]) return;
 					modify_hash[from] = to;
