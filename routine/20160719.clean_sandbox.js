@@ -148,7 +148,7 @@ clean_wiki_sandbox(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
 
 // --------------------------
 
-clean_wiki_sandbox('wikinews',
+clean_wiki_sandbox('zh.wikinews',
 		'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n',
 		undefined,
 		// 對於機器人有管理員權限的wiki，必須準確設定頁面名稱，預防有人將頁面導向到主頁之類重要頁面。
@@ -158,7 +158,7 @@ clean_wiki_sandbox('wikinews',
 
 // 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
 if (force || JD % 7 === 0) {
-	clean_wiki_sandbox('wikisource',
+	clean_wiki_sandbox('zh.wikisource',
 			'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n', null,
 			'Wikisource:沙盒');
 }
@@ -172,7 +172,7 @@ clean_wiki_sandbox('zh-classical',
 
 // 兩天一次指的是兩天檢查一次。...了解，應該可以搬運過來了。
 if (force || JD % 2 === 0) {
-	clean_wiki_sandbox('wikiversity',
+	clean_wiki_sandbox('zh.wikiversity',
 	// 請勿刪除此行
 	'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n', null,
 			'Wikiversity:沙盒');
@@ -184,7 +184,7 @@ if (force || JD % 2 === 0) {
 // 改2天一次試試。
 if (force || JD % 2 === 0) {
 	/** {Object}wiki operator 操作子. */
-	var moegirl = Wiki(true, 'https://zh.moegirl.org.cn/api.php');
+	var moegirl = Wiki(true, 'zhmoegirl');
 	var edit_options = {
 		summary : summary,
 		nocreate : 1,
@@ -204,3 +204,5 @@ if (force || JD % 2 === 0) {
 	'<noinclude><!-- 请勿删除此行 -->{{帮助导航}}{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n',
 			edit_options);
 }
+
+routine_task_done('7d');
