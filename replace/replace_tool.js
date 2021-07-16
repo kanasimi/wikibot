@@ -97,7 +97,7 @@ async function get_all_sections(meta_configuration) {
 
 	async function for_each_section(section) {
 		//console.log(section);
-		const section_title = section.section_title.link[1];
+		const section_title = section.section_title.title;
 		//console.log(section_title);
 		if (meta_configuration.for_section) {
 			await meta_configuration.for_section.apply(/* parsed */this, arguments);
@@ -238,11 +238,11 @@ async function replace_tool(meta_configuration, move_configuration) {
 // ---------------------------------------------------------------------//
 
 const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_nochange', 'allow_empty'];
-const command_line_switches = ['diff_id', 'section_title', 'also_replace_text', 'use_language', 'task_configuration', 'namespace', 'no_task_configuration_from_section', 'get_task_configuration_from', 'caption', 'allow_eval'].append(work_option_switches);
+const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace', 'no_task_configuration_from_section', 'get_task_configuration_from', 'caption', 'allow_eval'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
-	insource: 'also_replace_text',
+	insource: 'also_replace_text_insource',
 };
 
 function get_move_configuration_from_command_line(meta_configuration) {
@@ -290,8 +290,8 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			meta_configuration[property_name] = value;
 		}
 
-		if (meta_configuration.also_replace_text && typeof meta_configuration.also_replace_text === 'string') {
-			meta_configuration.also_replace_text = meta_configuration.also_replace_text.split('|');
+		if (meta_configuration.also_replace_text_insource && typeof meta_configuration.also_replace_text_insource === 'string') {
+			meta_configuration.also_replace_text_insource = meta_configuration.also_replace_text_insource.split('|');
 		}
 		//console.trace(meta_configuration);
 	}
@@ -558,7 +558,8 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 				move_to_link,
 			};
 			task_configuration_from_section[title] = task_configuration;
-			if (Array.isArray(meta_configuration.also_replace_text) ? meta_configuration.also_replace_text.includes(title) : meta_configuration.also_replace_text) {
+			if (Array.isArray(meta_configuration.also_replace_text_insource) ? meta_configuration.also_replace_text_insource.includes(title) : meta_configuration.also_replace_text_insource) {
+				// Also replace text in source of **non-linked** pages
 				task_configuration_from_section[`insource:"${title}"`] = Object.clone(task_configuration);
 				//console.log(task_configuration_from_section);
 			}
@@ -585,8 +586,9 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 	const section_title = meta_configuration.section_title;
 	//console.trace(meta_configuration);
 	parsed.each_section(function (section) {
-		//console.log(section.section_title && section.section_title.link[1]);
-		if (!section.section_title || section_title && section.section_title.link[1] !== section_title) {
+		//console.log([section.section_title && section.section_title.title, section_title]);
+		//console.log(section.section_title);
+		if (!section.section_title || section_title && section.section_title.title !== section_title) {
 			return;
 		}
 		// console.log(section.toString());
@@ -644,7 +646,7 @@ async function notice_to_edit(wiki, meta_configuration) {
 	}, options);
 
 	if (options.need_edit === undefined) {
-		CeL.info('Will NOT auto-notice starting to edit!');
+		CeL.info(`No title ${JSON.stringify(meta_configuration.section_title)} found. Will NOT auto-notice starting to edit!`);
 	}
 }
 
@@ -727,7 +729,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_section);
 	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_args);
-	//console.log(move_configuration);
+	//console.trace(move_configuration);
 
 	// Object.entries(move_configuration).forEach(main_move_process);
 	if (CeL.is_Object(move_configuration)) {
@@ -773,9 +775,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		usage of task_configuration.move_from_link:
 
 		page_name							→	替換所有連結到 page_name 的頁面。
-		page_name#anchor					→	僅針對特定 anchor 替換。
+		page_name#anchor					→	僅針對特定 anchor，即 [[page_name#anchor]], [[page_name#anchor|display_text]] 替換。
 		page_name|							→	僅針對特定無 display_text，即 [[page_name]], [[page_name#anchor]] 替換。
-		page_name|display_text				→	僅針對特定 display_text 替換。
+		page_name|display_text				→	僅針對特定 display_text 替換，不論 anchor。
 		ns:page_name#anchor|display_text	→	針對特定 anchor + display_text 替換。
 
 		-----------------------------------------------------------------------------
@@ -893,7 +895,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		};
 		if (!meta_configuration.not_bot_requests) {
 			task_configuration.summary.diff_to_add = CeL.wiki.title_link_of(
-				diff_id ? `Special:Diff/${diff_id}${_section_title}`
+				diff_id ? `Special:Diff/${diff_id}${CeL.wiki.section_link_escape(_section_title, true)}`
 					// Speedy renaming or speedy merging
 					: meta_configuration.speedy_criteria === 'merging' ? 'WP:CFDS'
 						: meta_configuration.requests_page || bot_requests_page,
@@ -902,6 +904,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				meta_configuration.speedy_criteria ? 'Speedy ' + meta_configuration.speedy_criteria
 					: use_language === 'zh' ? '機器人作業請求'
 						: use_language === 'ja' ? 'Bot作業依頼' : 'Bot request');
+			//console.trace(task_configuration.summary.diff_to_add);
 		}
 		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
 			task_configuration.summary.title_to_add = '';
@@ -963,6 +966,21 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			});
 		}
 
+		if (task_configuration.replace_text) {
+			// Initialize `task_configuration.replace_text`
+			if (task_configuration.replace_text === true) {
+				if (task_configuration.move_to_link.includes('|')) {
+					CeL.error('The option .replace_text===true is only for [[from]] → [[to]], NOT for [[from]] → [[to|display_text]]! Please use .replace_text={"":""} instead!');
+				}
+				task_configuration.replace_text = { [task_configuration.move_from_link]: task_configuration.move_to_link };
+			}
+			if (!task_configuration.replace_text_pattern) {
+				// Prevent replace page title in wikilink 必須排除 {{Redirect|text}}, [[text|]] 之類！
+				// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Assertions#other_assertions
+				task_configuration.replace_text_pattern = new RegExp(/(?<!{{ *|\[\[ *)(?:key)/.source.replace('key', Object.keys(task_configuration.replace_text).join('|')), 'g');
+			}
+		}
+
 		task_configuration.wiki = wiki;
 		await main_move_process(task_configuration, meta_configuration);
 		//console.trace(`Done: ${task_configuration.summary}`);
@@ -997,11 +1015,11 @@ function parse_move_link(link, session) {
 		// "ns:page_name#anchor|display_text"
 		// link: matched[0],
 
-		// page_title: 'ns:page_name'
+		// page_title: 'ns:page_name'	{{FULLPAGENAME}}
 		page_title: matched[1],
-		// namespace
+		// namespace	{{NAMESPACE}}
 		ns: ns,
-		// page name only, without namespace
+		// page name only, without namespace {{PAGENAME}}
 		page_name: matched[3],
 		// anchor without '#'
 		anchor: matched[4],
@@ -1174,23 +1192,27 @@ async function get_list(task_configuration, list_configuration) {
 					...task_configuration.move_to
 				};
 
+				// display_text_replacer 表記の変更
+				// @see .also_replace_text_insource, .replace_text
 				if (move_to.page_name && task_configuration.move_from.page_name
 					&& !move_to.display_text && !task_configuration.move_from.display_text) {
-					const matched = task_configuration.move_from.page_name.match(/^(.+) \([^()]+\)$/);
-					if (matched) {
-						// e.g., [[A (C)]] → [[B (C)]]
-						// [[A (C)]] → [[B (C)]] 則同時把 [[A (C)|A]] → [[B (C)|B]], [[A (C)|A君]] → [[B (C)|B君]]
-						// display_text_replacer 表記の変更
-						const replace_to = move_to.page_name.replace(/ \([^()]+\)$/, '');
+					// [[A (C)]] → [[B (C)]]	則同時把 [[A (C)|A]] → [[B (C)|B]], [[A (C)|A君]] → [[B (C)|B君]]
+					// [[A]] → [[B]]			則同時把 [[A|A ...]] → [[B|B ...]]
+					// e.g., [[w:ja:Special:Diff/83431400/84451965]]
+					// also replace display_text in [[MARの登場人物#anchor|MARの登場人物 ...]]→[[MÄRの登場人物#anchor|MÄRの登場人物 ...]]
+					let replace_from = task_configuration.move_from.page_name.match(/^(.+?) +\([^()]+\)$/);
+					replace_from = replace_from ? replace_from[1] : task_configuration.move_from.page_name;
+					const replace_to = move_to.page_name.replace(/ +\([^()]+\)$/, '');
+					if (replace_from
 						// 須避免 [[出雲 (列車)]] → [[サンライズ出雲]] 產生 /出雲/サンライズ出雲/g
-						if (!replace_to.includes(matched[1])) {
-							const also_replace_display_text = [new RegExp(CeL.to_RegExp_pattern(matched[1]), 'g'), replace_to];
-							//console.trace(also_replace_display_text);
-							CeL.info(`Auto-replace display text: ${also_replace_display_text[0]}→${also_replace_display_text[1]}`);
-							if (!task_configuration.also_replace_display_text)
-								task_configuration.also_replace_display_text = [];
-							task_configuration.also_replace_display_text.push(also_replace_display_text);
-						}
+						&& !replace_to.includes(replace_from)) {
+						const also_replace_display_text = [new RegExp(CeL.to_RegExp_pattern(replace_from), 'g'), replace_to];
+						//console.trace(also_replace_display_text);
+						CeL.info(`Auto-replace display text: ${also_replace_display_text[0]}→${also_replace_display_text[1]}`);
+						if (!task_configuration.also_replace_display_text)
+							task_configuration.also_replace_display_text = [];
+						task_configuration.also_replace_display_text.push(also_replace_display_text);
+						//console.trace(task_configuration.also_replace_display_text);
 					}
 				}
 
@@ -1380,6 +1402,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 		await task_configuration.before_get_pages(page_list, work_config, { meta_configuration, bot_requests_page });
 	}
 	//page_list = page_list.slice(0, 3);
+	//page_list = [await wiki.page('Priject:Sandbox')];
 	await wiki.for_each_page(page_list, function () {
 		// 注意: this !== work_config === `config`
 
@@ -1388,6 +1411,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 		return for_each_page.apply(this, arguments);
 	}, work_config);
 
+	// TODO: 對於同一個頁面，應該在最後一次更改完後才執行。否則可能干擾本身作業。
 	if (task_configuration.fix_anchor) {
 		// @see https://nodejs.org/api/vm.html#vm_script_runinnewcontext_contextobject_options
 		const command_list = ['../routine/20201008.fix_anchor.js',
@@ -1463,8 +1487,6 @@ async function for_each_page(page_data) {
 	let wikitext = parsed.toString();
 	// {Object}task_configuration.replace_text: only replace the text in the target pages
 	if (task_configuration.replace_text) {
-		if (!task_configuration.replace_text_pattern)
-			task_configuration.replace_text_pattern = new RegExp(Object.keys(task_configuration.replace_text).join('|'), 'g');
 		// Warning: 必須排除 {{Redirect|text}}, [[text|]] 之類！
 		wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched => task_configuration.replace_text[matched]);
 	}
@@ -1535,7 +1557,7 @@ function for_each_link(token, index, parent) {
 		return;
 	}
 
-	const matched = this.move_to_link.match(/^([^()]+) \([^()]+\)$/);
+	const matched = this.move_to_link.match(/^([^()]+?) +\([^()]+\)$/);
 	if (matched) {
 		// e.g., move_to_link: 'movie (1985)', 'movie (disambiguation)'
 		// TODO
@@ -1610,26 +1632,29 @@ function for_each_link(token, index, parent) {
 
 	if (typeof this.move_to.anchor === 'string') {
 		token[1] = this.move_to.anchor ? '#' + this.move_to.anchor : '';
-	} else if (this.move_to.ns === 0
+	} else if (
+		//this.move_to.ns === 0 &&
 		// token[2] maybe NOT {String}
-		&& token[2] && token[0].includes(token[2])) {
+		token[2] && token[0].toString().toLowerCase().includes(token[2].toString().toLowerCase())) {
 		//console.trace(token);
-		//	[[AB|A]]B → [[AB]]
-		//	A[[AB|B]] → [[AB]]
 		//	A[[ABC|B]]C → [[ABC]]
+		//	A[[AB|B]] → [[AB]]
+		//	[[AB|A]]B → [[AB]]
 		const _index = token[0].indexOf(token[2]);
-		const header = _index > 0 && token[0].slice(0, _index), tail = token[0].slice(_index + token[2].toString().length);
 		// assert: index >= 0 && (header || tail)
-		if ((!header || typeof parent[index - 1] === 'string' && parent[index - 1].endsWith(header))
-			&& (!tail || typeof parent[index + 1] === 'string' && parent[index + 1].startsWith(tail))) {
-			if (header)
-				parent[index - 1] = parent[index - 1].slice(0, -header.length);
-			if (tail)
-				parent[index + 1] = parent[index + 1].slice(tail.length);
-			if (!token[1]) {
-				// assert: token.length === 2
-				token.pop();
-			}
+		// assert: token.length === 2
+
+		const header = _index > 0 && token[0].slice(0, _index);
+		if (header && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith(header)) {
+			//	A[[AB|B]] → [[AB|AB]]
+			parent[index - 1] = parent[index - 1].slice(0, -header.length);
+			token[2] = header + token[2];
+		}
+		const tail = token[0].slice(_index + token[2].toString().length);
+		if (tail && typeof parent[index + 1] === 'string' && parent[index + 1].startsWith(tail)) {
+			//	[[AB|A]]B → [[AB|AB]]
+			parent[index + 1] = parent[index + 1].slice(tail.length);
+			token[2] += tail;
 		}
 		//console.trace([header, tail, parent[index - 1], token, parent[index + 1]]);
 	}
@@ -1656,6 +1681,11 @@ function for_each_link(token, index, parent) {
 		// 消除特定 display_text。 e.g., 設定 [[T|d]] → [[T]]
 		// assert: token.length === 2
 		token.pop();
+	} else if (!/ +\([^()]+\)$/.test(this.move_to.page_title) && this.move_from.page_title !== this.move_to.page_title
+		&& this.move_from.page_title === /*CeL.wiki.wikitext_to_plain_text(token[2], { no_upper_case_initial: true })*/CeL.HTML_to_Unicode(token[2].toString())) {
+		// [[AA]] → [[B]]			則同時把 [[AA#anchor|A&#65;]] → [[B#anchor|BB]]
+		// @see .also_replace_display_text
+		token[2] = this.move_to.page_title;
 	}
 
 	if (token[0] === this.page_data.title) {
@@ -1678,6 +1708,8 @@ function for_each_link(token, index, parent) {
 			this.page_data.hook = Object.create(null);
 		this.page_data.hook[this.move_to.page_title] = token;
 	}
+
+	//console.trace(token);
 
 	if (this.after_for_each_link) {
 		return this.after_for_each_link(token, index, parent);
@@ -2142,7 +2174,8 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 	if (move_title_pair) {
 		//task_configuration_from_section[from] = to;
 		move_title_pair[from] = to;
-		if (Array.isArray(options.also_replace_text) ? options.also_replace_text.includes(from) : options.also_replace_text) {
+		if (Array.isArray(options.also_replace_text_insource) ? options.also_replace_text_insource.includes(from) : options.also_replace_text_insource) {
+			// Also replace text in source of **non-linked** pages
 			move_title_pair[`insource:"${from}"`] = to;
 			//console.log(move_title_pair);
 		}
