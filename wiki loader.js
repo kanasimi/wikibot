@@ -196,8 +196,9 @@ function login_options_of_API_URL(API_URL) {
 		var _login_options = login_options_for_project[matched];
 		var API_URL = _login_options.API_URL;
 		CeL.info('login_options_of_API_URL: Using options of ' + matched
-				+ (API_URL ? ': ' + API_URL : ''))
-		Object.assign(login_options, login_options_for_project[matched]);
+				+ (API_URL ? ': ' + API_URL : ''));
+		Object.assign(login_options, _login_options);
+		// console.trace(login_options);
 	}
 
 	return login_options;

@@ -373,13 +373,15 @@ function adapt_configuration(latest_task_configuration) {
 			|| (configuration.listen_to_pages = Object.create(null));
 	function adapt_listen_to_page(page_title) {
 		var page_config = configuration_now[page_title];
-		if (!page_title.startsWith(CeL.wiki.site_name(wiki)))
-			page_title = CeL.wiki.site_name(wiki) + ':' + page_title;
+		var use_project = CeL.wiki.site_name(wiki);
+		if (!page_title.startsWith(use_project))
+			page_title = use_project + ':' + page_title;
 		if (page_configurations[page_title]) {
 			// Skip existed page.
 			return;
 		}
 
+		// console.trace([ page_title, page_config, globalThis.use_project ]);
 		if (page_config) {
 			if (!global.special_page_configuration[page_config]) {
 				try {
@@ -393,8 +395,8 @@ function adapt_configuration(latest_task_configuration) {
 					page_config = null;
 				}
 			}
-		} else if (CeL.wiki.site_name(wiki) in global.special_page_configuration) {
-			page_config = CeL.wiki.site_name(wiki);
+		} else if (use_project in global.special_page_configuration) {
+			page_config = use_project;
 		}
 
 		CeL.info('+ Listen to page: '
@@ -458,10 +460,10 @@ function start_main_work() {
 	Object.keys(page_configurations).forEach(function(wiki_and_page_title) {
 		var matched = wiki_and_page_title.match(/^([^:]+):(.+)$/),
 		//
-		project = CeL.wiki.site_name(wiki);
-		if (matched[1] === project) {
+		use_project = CeL.wiki.site_name(wiki);
+		if (matched[1] === use_project) {
 			main_talk_pages.push(matched[2]);
-			page_configurations[wiki_and_page_title].project = project;
+			page_configurations[wiki_and_page_title].project = use_project;
 		}
 	});
 
