@@ -72,10 +72,10 @@ gettext = CeL.gettext,
 
 // for 萌娘百科 zh.moegirl.org.cn
 edit_tags = wiki.API_URL.includes('moegirl') ? 'Bot' : '',
-
+// moegirl don't subst.
 using_subst = !wiki.API_URL.includes('moegirl');
 
-console.trace([ edit_tags, using_subst ]);
+//console.trace([ edit_tags, using_subst ]);
 
 // ----------------------------------------------------------------------------
 // 常用的主要設定

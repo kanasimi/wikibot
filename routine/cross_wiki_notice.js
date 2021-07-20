@@ -17,8 +17,8 @@ var zhwiki = Wiki(true, 'zh');
 
 // ----------------------------------------------------------------------------
 
-notice_wiki('https://zh.moegirl.org.cn/api.php');
-notice_wiki('https://lingualibre.org/api.php');
+notice_wiki('zhmoegirl');
+notice_wiki('lingualibre');
 
 function notice_wiki(API_URL) {
 
