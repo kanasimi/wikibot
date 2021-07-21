@@ -365,6 +365,7 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 						CSD_link = CSD_link[0];
 				}
 				log_text = `${to_timestamp(log)} {{color|red|✗}} ` + (is_PROD ? '[[WP:PROD|]]' : CSD_link || 'deleted');
+				// TODO: use {{fullurl}}
 				const note = `${PROD_ineligible_MESSAGE_PREFIX}it has been [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously ${is_PROD ? "PROD'd" : 'deleted'}]${CSD_link ? ` (${CSD_link})` : ''}.`;
 				if (is_PROD) {
 					result_notice_data.PROD = note;
@@ -384,8 +385,10 @@ async function get_AfD_logs(target_page_title, result_notice_data) {
 				// type: 'delete'
 				// [[File:Gnome-undelete.svg|20px]]
 				log_text = `${to_timestamp(log)} {{color|blue|↻}} restored`;
-				if (!logs.note)
+				if (!logs.note) {
+					// TODO: use {{fullurl}}
 					logs.note = `${PROD_ineligible_MESSAGE_PREFIX}it was [{{fullurl:Special:Log|page={{urlencode:${target_page_title}}}}} previously undeleted (${new Date(log.timestamp).toLocaleDateString('en-US', { dateStyle: "medium" })})].`;
+				}
 				break;
 			case 'create':
 				// type: 'create'
@@ -479,7 +482,7 @@ async function for_AfD(AfD_page_data) {
 
 	function add_report_line(logs, title) {
 		if (logs.length > 0) {
-			report_lines.push(`'''${title}''': <code>${logs.join('</code>, <code>')}</code>`);
+			report_lines.push(`'''${title}''': <code>${logs.join('</code> ← <code>')}</code>`);
 		}
 	}
 
@@ -514,6 +517,7 @@ async function for_AfD(AfD_page_data) {
 	}
 	// CeL.info(`${CeL.wiki.title_link_of(AfD_page_data)}: logs`);
 	// console.log(logs);
+	// TODO: use {{fullurl}}
 	// [{{fullurl:Special:Log|page=target_page_title}} Logs]
 	add_report_line(logs, PROD_MESSAGE.logs);
 
