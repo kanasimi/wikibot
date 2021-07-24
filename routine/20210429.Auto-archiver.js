@@ -85,7 +85,7 @@ async function for_each_discussion_page(page_data) {
 		}
 
 		sections_need_to_archive.push(section);
-		CeL.info(`Need archive #${sections_need_to_archive.length} (${CeL.age_of(latest_timevalue)}): ${section.section_title.link[1]}`);
+		CeL.info(`Need archive #${sections_need_to_archive.length} (${CeL.age_of(latest_timevalue)}): ${section.section_title.title}`);
 	}, {
 		level_filter: archive_configuration.level || 2,
 		get_users: true,
