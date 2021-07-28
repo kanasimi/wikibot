@@ -15,7 +15,7 @@ cd ~
 
 [ -d "node_modules" ] || md node_modules
 
-#printf "$SP\nnpm update..."
+#printf "$SP\nnpm update...\n"
 
 #/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm install mysql
 #/mnt/nfs/labstore-secondary-tools-project/.shared/node/bin/npm install opencc
@@ -23,7 +23,7 @@ cd ~
 
 # ---------------------------------------------------------
 
-printf "$SP\nClone CeJS..."
+printf "$SP\nClone CeJS...\n"
 
 # 若有更新，得自己刪除 ~/CeJS。
 #rm -rf ~/CeJS
@@ -45,13 +45,13 @@ cd node_modules
 # ---------------------------------------------------------
 # 2019/9/12 18:25:17
 
-printf "$SP\nUpdate wikiapi..."
+printf "$SP\nUpdate wikiapi...\n"
 
 /usr/bin/wget -O wikiapi.zip https://github.com/kanasimi/wikiapi/archive/master.zip && [ -d wikiapi ] && /usr/bin/diff wikiapi.zip wikiapi.zip.old && mv -f wikiapi.zip wikiapi.zip.old && echo "wikiapi: No news." || ( echo "Extracting wikiapi..." && /usr/bin/unzip wikiapi.zip > /dev/null && mv -f wikiapi.zip wikiapi.zip.old && rm -rf wikiapi && mv wikiapi-master wikiapi || echo "Failed to get CeJS" )
 
 # ---------------------------------------------------------
 
-printf "$SP\nCopy task programs..."
+printf "$SP\nCopy task programs...\n"
 
 cd ~
 
@@ -79,7 +79,7 @@ cd ~
 
 # ---------------------------------------------------------
 
-printf "$SP\nCreate linking..."
+printf "$SP\nCreate linking...\n"
 
 #cd ~
 
@@ -93,7 +93,7 @@ cd ~/wikibot
 
 # ---------------------------------------------------------
 
-printf "$SP\nCopy configurations..."
+printf "$SP\nCopy configurations...\n"
 
 #cd ~/wikibot
 
@@ -114,6 +114,7 @@ fi
 #cd ~/wikibot
 
 [ -f "wikitech/init.sh" ] && /bin/cp -f "wikitech/init.sh" .
+/bin/chmod u+x init.sh
 
 # /bin/rm "wiki configuration.js" archive
 
