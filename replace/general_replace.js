@@ -1,6 +1,6 @@
 ﻿/*
 
-node general_replace.js 車站編號標誌 get_task_configuration_from=list namespace=Module also_replace_text
+node general_replace.js 車站編號標誌 get_task_configuration_from=list namespace=Module also_replace_text_insource
 node general_replace.js 車站編號標誌 get_task_configuration_from=list skip_nochange=false
 
 */
@@ -24,9 +24,9 @@ if (!section_title) {
 Usage:
 node ${script_name} "section title"
 node ${script_name} "section title" diff=0000
-node ${script_name} "section_title=section title" diff=0000 use_language=ja also_replace_text
+node ${script_name} "section_title=section title" diff=0000 use_language=ja also_replace_text_insource
 node ${script_name} "section title" keep_display_text allow_empty skip_nochange=false
-node ${script_name} "section title" "also_replace_text=title1|title2"
+node ${script_name} "section title" "also_replace_text_insource=title1|title2"
 node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
 node ${script_name} "section title" "task_configuration={""from"":""DELETE_PAGE""}" no_task_configuration_from_section
 node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
@@ -51,6 +51,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 	(async () => {
 		const meta_configuration = Object.create(null);
 		const all_section_data = await replace_tool.get_all_sections(meta_configuration), need_close = [];
+		//console.trace(all_section_data);
 		for (const section_title in all_section_data) {
 			const section_data = all_section_data[section_title];
 			if (section_data.task_configuration) {
@@ -81,7 +82,8 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 		//console.trace(need_close);
 		Object.assign(meta_configuration, {
 			for_section(section) {
-				const section_title = section.section_title.link[1];
+				const section_title = section.section_title.title;
+				//console.trace([section_title, need_close]);
 				if (need_close.includes(section_title)) {
 					const parsed = this;
 					parsed[section.range[0]] = parsed[section.range[0]].toString().replace(/^(\n*)/, '$1{{解決済み|~~~~}}\n');
@@ -93,6 +95,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 				summary: need_close.length === 1 ? 'Close request' : `Close ${need_close.length} requests`
 			}
 		});
+		//console.trace(meta_configuration);
 		await replace_tool.get_all_sections(meta_configuration);
 	})();
 
