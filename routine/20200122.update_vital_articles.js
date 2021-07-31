@@ -59,9 +59,37 @@ const PATTERN_counter_title = new RegExp(/^[\w\s\-–',\/]+MARK$/.source.replace
 const report_lines = [];
 report_lines.skipped_records = 0;
 
+// ----------------------------------------------
+
+// 讀入手動設定 manual settings。
+async function adapt_configuration(latest_task_configuration) {
+	// console.log(wiki);
+
+	// ----------------------------------------------------
+
+	const { general } = latest_task_configuration;
+	if (general?.report_page)
+		talk_page_summary_prefix = CeL.wiki.title_link_of(general.report_page, talk_page_summary_prefix_text);
+
+	// ----------------------------------------------------
+
+	const { Topics } = latest_task_configuration;
+	Object.keys(Topics).forEach(page_and_section => {
+		const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#') || DEFAULT_LEVEL;
+		if (!Topics[page_and_section_id]) {
+			Topics[page_and_section_id] = Topics[page_and_section];
+			delete Topics[page_and_section];
+		}
+	});
+
+	console.log(latest_task_configuration);
+}
+
 // ----------------------------------------------------------------------------
 
 (async () => {
+	login_options.configuration_adapter = adapt_configuration;
+	//console.log(login_options);
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
@@ -117,7 +145,7 @@ async function main_process() {
 		bot: 1,
 		minor: false,
 		log_to: null,
-		summary: '[[Wikipedia:Database reports/Vital articles update report|Update the section counts and article assessment icons]]'
+		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page, 'Update the section counts and article assessment icons')
 	});
 
 	// ----------------------------------------------------
@@ -408,6 +436,8 @@ async function for_each_list_page(list_page_data) {
 
 	const need_check_redirected = Object.create(null);
 	let latest_section;
+	// parent_section
+	let latest_main_level_section;
 
 	function simplify_link(link_token, normalized_page_title) {
 		// console.log(link_token);
@@ -466,13 +496,30 @@ async function for_each_list_page(list_page_data) {
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
-				// console.log(latest_section && latest_section.link);
+				const main_level_section_title = latest_main_level_section?.title.toString().replace(PATTERN_count_mark, '').trim();
+				const page_id = level_of_page_title(list_page_data) || DEFAULT_LEVEL;
+				const page_section_id = `${page_id}#${main_level_section_title}`;
+				//console.log(wiki.latest_task_configuration.Topics);
+				//console.log([normalized_page_title, page_section_id]);
 				const article_info = {
 					level: level_of_page_title(list_page_data, true),
-					// subtitle: latest_section && latest_section.link[2].toString().replace(PATTERN_count_mark, '').trim(),
-					link: latest_section && latest_section.link
+					link: latest_section?.link,
 				};
 				listed_article_info[normalized_page_title].push(article_info);
+
+				const topic = wiki.latest_task_configuration.Topics
+					&& (wiki.latest_task_configuration.Topics[page_section_id]
+						|| wiki.latest_task_configuration.Topics[page_id]);
+				if (topic) {
+					const matched = topic.match(/^(.+?)\/(.+)$/);
+					if (matched) {
+						article_info.topic = matched[1];
+						article_info.subpage = matched[2];
+					} else {
+						article_info.topic = topic;
+					}
+					//console.log([normalized_page_title, article_info]);
+				}
 
 				if (normalized_page_title in icons_of_page) {
 					icons.append(icons_of_page[normalized_page_title]);
@@ -717,6 +764,9 @@ async function for_each_list_page(list_page_data) {
 				return true;
 			}
 			(latest_section = token).item_count = 0;
+			if (latest_section.level < 3) {
+				latest_main_level_section = latest_section;
+			}
 			return;
 		}
 
@@ -752,6 +802,7 @@ async function for_each_list_page(list_page_data) {
 		CeL.info(`${CeL.wiki.title_link_of(list_page_data)}: Check ${need_check_redirected_list.length} link(s) for redirects.`);
 		if (need_check_redirected_list.length < 9) {
 			console.log(need_check_redirected_list);
+			// console.trace(need_check_redirected_list);
 		}
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
 			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data));
@@ -786,7 +837,7 @@ async function for_each_list_page(list_page_data) {
 	}
 
 	// summary table / count report table for each page
-	const summary_table = [['Class', 'Articles']];
+	const summary_table = [['Class', '#Articles']];
 	for (const icon in article_count_of_icon) {
 		let category_name = icon_to_category[icon];
 		if (category_name) {
@@ -945,7 +996,9 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary = `Maintain {{${VA_template_name}}}`;
+const talk_page_summary_prefix_text = `Maintain {{${VA_template_name}}}`;
+let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
+//console.log(talk_page_summary_prefix);
 
 async function maintain_VA_template() {
 	// CeL.info('need_edit_VA_template: ');
@@ -968,7 +1021,7 @@ async function maintain_VA_template() {
 			nocreate: 1,
 			bot: 1,
 			log_to: null,
-			summary: talk_page_summary
+			summary: talk_page_summary_prefix
 		});
 	} catch (e) {
 		// e.g., [[Talk:Chenla]]: [spamblacklist]
@@ -993,7 +1046,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	if (CeL.wiki.parse.redirect(talk_page_data)) {
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
-		// this kind of redirects will be skipped and listed in [[Wikipedia:Database reports/Vital articles update report]] for manually fixing.
+		// this kind of redirects will be skipped and listed in `wiki.latest_task_configuration.general.report_page` for manually fixing.
 		// Warning: Should not go to here!
 		CeL.warn(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		//console.log(talk_page_data.wikitext);
@@ -1062,10 +1115,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	let VA_template_object = {
 		// normalize_class(): e.g., for [[Talk:Goosebumps]]
-		class: normalize_class(article_info.class ?? (VA_template_token && VA_template_token.parameters.class) ?? class_from_other_templates ?? '')
+		class: normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? class_from_other_templates ?? '')
 	};
-	if ('level' in article_info) {
-		VA_template_object.level = article_info.level;
+	// 高重要度層級的設定，應當覆蓋低重要度的。
+	if (!(VA_template_token?.parameters.level <= article_info.level)
+		|| !VA_template_token?.parameters.topic && article_info.topic) {
+		for (const property of ['level', 'topic', 'subpage']) {
+			if (property in article_info) {
+				VA_template_object[property] = article_info[property];
+			}
+		}
 	}
 	if (article_info.link) {
 		VA_template_object.link = article_info.link[0];
@@ -1131,7 +1190,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return Wikiapi.skip_edit;
 		// console.log(wikitext);
 	}
-	this.summary = talk_page_summary + ': ' + article_info.reason;
+	this.summary = talk_page_summary_prefix + ': ' + article_info.reason;
+	if (!article_info.topic)
+		this.summary += ' ' + CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page');
 	return wikitext;
 }
 
@@ -1177,19 +1238,20 @@ async function generate_report() {
 		report_wikitext = "* '''So good, no news!'''";
 	}
 
+	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 	// __NOTITLECONVERT__
-	report_wikitext = '__NOCONTENTCONVERT__\n'
-		+ '* The report will update automatically.\n'
-		+ '* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Please modify the link manually.</ref>\n'
-		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* Generate date: <onlyinclude>~~~~~</onlyinclude>\n'
-		+ report_mark_start + report_wikitext + report_mark_end
-		+ '\n[[Category:Wikipedia vital articles]]'
+	report_wikitext = `__NOCONTENTCONVERT__
+* Configuration: ${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title)}
+* The report will update automatically.
+* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Please modify the link manually.</ref>
+* Generate date: <onlyinclude>~~~~~</onlyinclude>
+${report_mark_start}${report_wikitext}${report_mark_end}
+[[Category:Wikipedia vital articles]]`;
 
-	await wiki.edit_page(`Wikipedia:Database reports/Vital articles update report`,
+	await wiki.edit_page(wiki.latest_task_configuration.general.report_page,
 		report_wikitext, {
 		bot: 1,
 		nocreate: 1,
-		summary: `Vital articles update report: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} records`
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, `Vital articles update report`)}: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} records`
 	});
 }
