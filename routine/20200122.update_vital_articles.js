@@ -1118,12 +1118,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		class: normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? class_from_other_templates ?? '')
 	};
 	// 高重要度層級的設定，應當覆蓋低重要度的。
-	if (!(VA_template_token?.parameters.level <= article_info.level)
+	if (!(+VA_template_token?.parameters.level <= +article_info.level)
 		|| !VA_template_token?.parameters.topic && article_info.topic) {
 		for (const property of ['level', 'topic', 'subpage']) {
 			if ((property in article_info)
-				// level 取最小值，其他的不覆蓋原有值。
-				&& (!VA_template_token.parameters[property] || property === 'level' && VA_template_token.parameters.level > article_info.level)) {
+				// 取最小 level 之設定，其他的不覆蓋原有值。
+				&& (+article_info.level <= + VA_template_token?.parameters.level || !VA_template_token?.parameters[property])) {
 				VA_template_object[property] = article_info[property];
 			}
 		}
