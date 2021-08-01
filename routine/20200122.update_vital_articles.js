@@ -1121,7 +1121,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	if (!(VA_template_token?.parameters.level <= article_info.level)
 		|| !VA_template_token?.parameters.topic && article_info.topic) {
 		for (const property of ['level', 'topic', 'subpage']) {
-			if (property in article_info) {
+			if ((property in article_info)
+				// level 取最小值，其他的不覆蓋原有值。
+				&& (!VA_template_token.parameters[property] || property === 'level' && VA_template_token.parameters.level > article_info.level)) {
 				VA_template_object[property] = article_info[property];
 			}
 		}
