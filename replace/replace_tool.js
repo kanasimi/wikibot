@@ -913,7 +913,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(task_configuration.move_to_link.toLowerCase()))) {
 			task_configuration.summary.title_to_add = '';
 		} else {
-			task_configuration.summary.title_to_add = ` (${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
+			task_configuration.log_section_title_postfix = `(${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
+			task_configuration.summary.title_to_add = ' ' + task_configuration.log_section_title_postfix;
 		}
 		task_configuration.summary = (task_configuration.summary.diff_to_add
 			? task_configuration.summary.diff_to_add + ': ' : '')
@@ -935,6 +936,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				const page_data = await wiki.page(move_from_link);
 				if (!page_data.missing && CeL.wiki.parse.redirect(page_data) !== task_configuration.move_to_link) {
 					// カテゴリの改名も依頼に含まれている
+					// TODO: 移動元に即時削除テンプレートを貼っていただくことはできないでしょうか。
 					await wiki.move_to(task_configuration.move_to_link, task_configuration.do_move_page);
 				}
 			} catch (e) {
@@ -978,6 +980,12 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				// Prevent replace page title in wikilink 必須排除 {{Redirect|text}}, [[text|]] 之類！
 				// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Assertions#other_assertions
 				task_configuration.replace_text_pattern = new RegExp(/(?<!{{ *|\[\[ *)(?:key)/.source.replace('key', Object.keys(task_configuration.replace_text).join('|')), 'g');
+			} else if (typeof task_configuration.replace_text_pattern === 'string' && CeL.PATTERN_RegExp.test(task_configuration.replace_text_pattern)) {
+				task_configuration.replace_text_pattern = task_configuration.replace_text_pattern.to_RegExp();
+			}
+			if (!CeL.is_RegExp(task_configuration.replace_text_pattern) || !task_configuration.replace_text_pattern.global) {
+				CeL.error(`${prepare_operation.name}: "replace_text_pattern" should have global flag! The operation will continue anyway.`);
+				console.trace({ replace_text_pattern: task_configuration.replace_text_pattern, replace_text: task_configuration.replace_text });
 			}
 		}
 
@@ -1385,6 +1393,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 		// page_options: { rvprop: 'ids|content|timestamp|user' },
 		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
 		summary: task_configuration.summary,
+		log_section_title_postfix: task_configuration.log_section_title_postfix,
 	};
 	//console.trace(work_config);
 	for (const option of work_option_switches) {
@@ -1488,7 +1497,7 @@ async function for_each_page(page_data) {
 	// {Object}task_configuration.replace_text: only replace the text in the target pages
 	if (task_configuration.replace_text) {
 		// Warning: 必須排除 {{Redirect|text}}, [[text|]] 之類！
-		wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched => task_configuration.replace_text[matched]);
+		wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched_all => task_configuration.replace_text[matched_all]);
 	}
 
 	if (wikitext === page_data.wikitext) {
@@ -1688,7 +1697,8 @@ function for_each_link(token, index, parent) {
 		token[2] = this.move_to.page_title;
 	}
 
-	if (token[0] === this.page_data.title) {
+	if (token[0] === this.page_data.title && token[1] && token[2]) {
+		// TODO: 應該確保不是重定向頁。
 		// 連結標的與頁面名稱相同的情況，可省略 page title。
 		token[0] = '';
 	}
