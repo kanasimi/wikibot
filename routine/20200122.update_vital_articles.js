@@ -1192,9 +1192,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return Wikiapi.skip_edit;
 		// console.log(wikitext);
 	}
-	this.summary = talk_page_summary_prefix + ': ' + article_info.reason;
-	if (!article_info.topic)
-		this.summary += ' ' + CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page');
+	this.summary = `${talk_page_summary_prefix}: ${article_info.reason} ${article_info.topic
+		? `Configured as topic=${article_info.topic}${article_info.subpage ? ', subpage=' + article_info.subpage : ''}`
+		: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page')}`;
 	return wikitext;
 }
 
