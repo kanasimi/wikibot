@@ -22,6 +22,8 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+CeL.get_URL.default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4590.0 Safari/537.36';
+
 var data_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
@@ -40,6 +42,14 @@ if (data_directory || media_directory) {
 	data_directory && prepare_directory(data_directory);
 	media_directory && prepare_directory(media_directory);
 }
+
+// https://stackoverflow.com/questions/20082893/unable-to-verify-leaf-signature
+// for Error: unable to verify the first certificate
+// code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
+// process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+// 2021/8/3 6:18:27 Error [ERR_TLS_CERT_ALTNAME_INVALID]: Hostname/IP does not
+// match certificate's altnames: Host: www.metoc.navy.mil. is not in the cert's
+// altnames: ...
 
 function area_is_Southern_Hemisphere(area) {
 	return /South|Australian|India/i.test(area);
@@ -161,6 +171,19 @@ function search_category_by_name(TD_name, media_data) {
 	}
 }
 
+function check_result(operator) {
+	try {
+		var result = operator();
+		if (CeL.is_thenable(result)) {
+			return result['catch'](function(error) {
+				console.error(error);
+			});
+		}
+	} catch (e) {
+		console.error(e);
+	}
+}
+
 function main_work() {
 	if (CeL.is_debug())
 		console.log(category_to_parent_hash);
@@ -181,7 +204,7 @@ function main_work() {
 		if (site) {
 			site = site_mapper[site.toUpperCase()];
 			if (site) {
-				site();
+				check_result(site);
 			} else {
 				CeL.error('Invalid site: ' + site);
 			}
@@ -193,7 +216,7 @@ function main_work() {
 			if (CeL.env.arg_hash[arg_name] === true
 			// e.g., `node 20190629.import_hurricane_track_maps debug nhc`
 			&& (arg_name = site_mapper[arg_name.toUpperCase()])) {
-				arg_name();
+				check_result(arg_name);
 				site = true;
 			}
 		});
@@ -563,11 +586,20 @@ function parse_NHC_Static_Images(media_data, html) {
 // ============================================================================
 
 function start_JTWC() {
+	// CeL.set_debug(9);
 	return fetch('https://www.metoc.navy.mil/jtwc/rss/jtwc.rss?' + Date.now())
 	//
 	.then(function(response) {
 		return response.text();
 	}).then(function(xml) {
+		// <H1>403 ERROR</H1>
+		var error = xml.between('<H1>', '</H1>')
+		// <div id="header"><h1>Server Error</h1></div>
+		|| xml.between('<h1>', '</h1>');
+		if (error) {
+			throw new Error(error);
+		}
+
 		CeL.write_file(data_directory
 		//
 		+ (new Date).format('JTWC ' + cache_filename_label
