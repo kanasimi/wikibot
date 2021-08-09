@@ -55,9 +55,10 @@ const need_edit_VA_template = Object.create(null);
 const VA_template_name = 'Vital article';
 
 const default_base_page_prefix = 'Wikipedia:Vital articles';
-const base_page_prefix = CeL.env.arg_hash?.base_page?.replace(/\/+$/, '') || default_base_page_prefix;
+const base_page_prefix = wiki.normalize_title(CeL.env.arg_hash?.base_page?.replace(/\/+$/, '')) || default_base_page_prefix;
 const get_category_level_of_page = base_page_prefix === default_base_page_prefix;
 const modify_talk_pages = base_page_prefix === default_base_page_prefix;
+console.trace([base_page_prefix, get_category_level_of_page]);
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page_prefix`
 const DEFAULT_LEVEL = 3;
 
