@@ -1,9 +1,14 @@
 ﻿/*
 
+node 20200122.update_vital_articles.js "base_page=Wikipedia:Vital people"
+TODO:
+node 20200122.update_vital_articles.js "base_page=Wikipedia:基礎條目" use_language=zh
+
 2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
 2020/2/7 7:12:28	於 Wikimedia Toolforge 執行需要耗費30分鐘，大部分都耗在 for_each_list_page()。
 
 TODO:
+將判斷條目的屬性與品質寫成泛用功能
 report level/class change
 report articles with {{`VA_template_name`}} but is not listing in the list page.
 
@@ -36,8 +41,10 @@ const page_info_cache = using_cache && CeL.get_JSON(page_info_cache_file);
 
 /** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache?.icons_of_page || Object.create(null);
+/** {Object}level of page get from list page. icons_of_page[title]=1–5 */
+const list_page_level_of_page = page_info_cache?.list_page_level_of_page || Object.create(null);
 /** {Object}level of page get from category. icons_of_page[title]=1–5 */
-const level_of_page = page_info_cache?.level_of_page || Object.create(null);
+const category_level_of_page = page_info_cache?.category_level_of_page || Object.create(null);
 /** {Object}listed_article_info[title]=[{level,topic},{level,topic},...] */
 const listed_article_info = Object.create(null);
 /**
@@ -47,7 +54,10 @@ const listed_article_info = Object.create(null);
 const need_edit_VA_template = Object.create(null);
 const VA_template_name = 'Vital article';
 
-const base_page_prefix = 'Wikipedia:Vital articles';
+const default_base_page_prefix = 'Wikipedia:Vital articles';
+const base_page_prefix = CeL.env.arg_hash?.base_page?.replace(/\/+$/, '') || default_base_page_prefix;
+const get_category_level_of_page = base_page_prefix === default_base_page_prefix;
+const modify_talk_pages = base_page_prefix === default_base_page_prefix;
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page_prefix`
 const DEFAULT_LEVEL = 3;
 
@@ -68,7 +78,7 @@ async function adapt_configuration(latest_task_configuration) {
 	// ----------------------------------------------------
 
 	const { general } = latest_task_configuration;
-	if (general?.report_page)
+	if (general?.report_page && base_page_prefix === default_base_page_prefix)
 		talk_page_summary_prefix = CeL.wiki.title_link_of(general.report_page, talk_page_summary_prefix_text);
 
 	// ----------------------------------------------------
@@ -100,7 +110,7 @@ async function main_process() {
 	if (!wiki.FC_data_hash) {
 		await get_page_info();
 		if (using_cache)
-			CeL.write_file(page_info_cache_file, { level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
+			CeL.write_file(page_info_cache_file, { category_level_of_page, icons_of_page, FC_data_hash: wiki.FC_data_hash });
 	}
 
 	await wiki.register_redirects([VA_template_name, 'WikiProject banner shell', 'WikiProject Disambiguation'], { namespace: 'Template' });
@@ -126,17 +136,22 @@ async function main_process() {
 
 	function to_title(page_data) {
 		const title = typeof page_data === 'string' ? page_data : page_data.title;
-		//console.log([title, title === base_page_prefix ? level_to_page_title(DEFAULT_LEVEL) : '']);
+		//console.log([title, title === base_page_prefix ? level_to_page_title(DEFAULT_LEVEL, true) : '']);
 		if (title === base_page_prefix)
 			return level_to_page_title(DEFAULT_LEVEL, true);
 		return title;
 	}
 
 	// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
-	// assert: to_title(page_data_1) !== to_title(page_data_2)
-	vital_articles_list.sort((page_data_1, page_data_2) => to_title(page_data_1) < to_title(page_data_2) ? -1 : 1);
+	vital_articles_list.sort((page_data_1, page_data_2) => {
+		const title_1 = to_title(page_data_1);
+		const title_2 = to_title(page_data_2);
+		// assert: to_title(page_data_1) !== to_title(page_data_2)
+		return title_1 < title_2 ? -1 : 1;
+	});
+	// assert: 標題應該已按照高重要度 → 低重要度的級別排序。
 
-	// console.log(vital_articles_list.length);
+	//console.log(vital_articles_list.length);
 	//console.log(vital_articles_list.map(page_data => page_data.title));
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
@@ -145,6 +160,7 @@ async function main_process() {
 		bot: 1,
 		minor: false,
 		log_to: null,
+		multi: 'keep order',
 		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page, 'Update the section counts and article assessment icons')
 	});
 
@@ -154,11 +170,13 @@ async function main_process() {
 
 	check_page_count();
 
-	await maintain_VA_template();
+	if (modify_talk_pages)
+		await maintain_VA_template();
 
 	// ----------------------------------------------------
 
-	await generate_report();
+	if (modify_talk_pages)
+		await generate_report();
 
 	routine_task_done('1d');
 }
@@ -180,20 +198,22 @@ async function get_page_info() {
 	// ---------------------------------------------
 
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
-	for (let i = 5; i >= 1; i--) {
-		const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`, {
-			// exclude [[User:Fox News Brasil]]
-			namespace: 'talk'
-		});
-		page_list.forEach(page_data => {
-			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
-			if (title in level_of_page) {
-				report_lines.push([title, , `${level_of_page[title]}→${i}`]);
-			}
-			level_of_page[title] = i;
-		});
+	if (get_category_level_of_page) {
+		for (let i = 5; i >= 1; i--) {
+			const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`, {
+				// exclude [[User:Fox News Brasil]]
+				namespace: 'talk'
+			});
+			page_list.forEach(page_data => {
+				const title = wiki.talk_page_to_main(page_data.original_title || page_data);
+				if (title in category_level_of_page) {
+					report_lines.push([title, , `${category_level_of_page[title]}→${i}`]);
+				}
+				category_level_of_page[title] = i;
+			});
+		}
+		// console.log(category_level_of_page);
 	}
-	// console.log(level_of_page);
 
 	// ---------------------------------------------
 
@@ -363,7 +383,7 @@ function level_of_page_title(page_title, number_only) {
 	}
 }
 
-function replace_level_note(item, index, category_level, new_wikitext) {
+function replace_level_note(item, index, highest_level, new_wikitext) {
 	if (item.type !== 'list_item' && item.type !== 'plain')
 		return;
 
@@ -373,16 +393,16 @@ function replace_level_note(item, index, category_level, new_wikitext) {
 
 	if (new_wikitext === undefined) {
 		// auto-generated
-		new_wikitext = ` (${level_page_link(category_level, false, matched &&
+		new_wikitext = ` (${level_page_link(highest_level, false, matched &&
 			// preserve level page. e.g.,
 			// " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
-			(category_level === DEFAULT_LEVEL || matched[1] && matched[1].includes(`/${category_level}`)) && matched[1])})`;
+			(highest_level === DEFAULT_LEVEL || matched[1] && matched[1].includes(`/${highest_level}`)) && matched[1])})`;
 	}
 	// assert: typeof new_wikitext === 'string'
 	// || typeof new_wikitext === 'number'
 
 	if (new_wikitext) {
-		item.set_category_level = category_level;
+		item.set_category_level = highest_level;
 	}
 
 	// Decide whether we need to replace or not.
@@ -536,34 +556,38 @@ async function for_each_list_page(list_page_data) {
 					latest_section.item_count++;
 				}
 
-				const category_level = level_of_page[normalized_page_title];
+				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
+				// 登記列在本頁面的項目。先到先贏。
+				if (!(normalized_page_title in list_page_level_of_page)) {
+					list_page_level_of_page[normalized_page_title] = level;
+				}
 				// The frist link should be the main article.
-				if (category_level === level || is_ignored_list_page(list_page_data)) {
+				if (list_page_or_category_level === level || is_ignored_list_page(list_page_data)) {
 					// Remove level note. It is unnecessary.
-					replace_level_note(_item, index, category_level, '');
+					replace_level_note(_item, index, list_page_or_category_level, '');
 				} else {
-					// `category_level===undefined`: e.g., redirected
-					replace_level_note(_item, index, category_level, category_level ? undefined : '');
+					// `list_page_or_category_level===undefined`: e.g., redirected
+					replace_level_note(_item, index, list_page_or_category_level, list_page_or_category_level ? undefined : '');
 
 					if (false) {
-						const message = `Category level ${category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
+						const message = `Category level ${list_page_or_category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
 					}
 					// reduce size
-					const message = `${CeL.wiki.title_link_of(wiki.to_talk_page(normalized_page_title))}: ${category_level ? `Category level ${category_level}.{{r|c}}` : 'No VA template?{{r|e}}'}`;
-					if (!category_level) {
+					const message = `${CeL.wiki.title_link_of(wiki.to_talk_page(normalized_page_title))}: ${list_page_or_category_level ? `Category level ${list_page_or_category_level}.{{r|c}}` : 'No VA template?{{r|e}}'}`;
+					if (!list_page_or_category_level) {
 						need_edit_VA_template[normalized_page_title] = {
 							...article_info,
 							level,
 							reason: `The article is listed in the level ${level} page`
 						};
 					}
-					if (!(category_level < level)) {
-						// Only report when category_level (main level) is not
+					if (!(list_page_or_category_level < level)) {
+						// Only report when list_page_or_category_level (main level) is not
 						// smallar than level list in.
 						report_lines.push([normalized_page_title, list_page_data, message]);
 						if (false) CeL.warn(`${CeL.wiki.title_link_of(normalized_page_title)}: ${message}`);
-						// If there is category_level, the page was not redirected.
-						if (!category_level) {
+						// If there is list_page_or_category_level, the page was not redirected.
+						if (!list_page_or_category_level) {
 							// e.g., deleted; redirected (fix latter);
 							// does not has {{`VA_template_name`}}
 							// (fix @ maintain_VA_template_each_talk_page())
@@ -619,9 +643,9 @@ async function for_each_list_page(list_page_data) {
 				if (false && token.toString().includes('Russian Empire')) {
 					console.trace(_item);
 				}
-				if (_item[index] === token && _item.set_category_level && level - category_level > 0) {
+				if (_item[index] === token && _item.set_category_level && level - list_page_or_category_level > 0) {
 					// All articles from higher levels are also included in lower levels. For example, all 100 subjects on the Level 2 list (shown on this page in bold font) are included here in Level 3. And the Level 2 list also includes the 10 subjects on Level 1 (shown on this page in bold italics).
-					_item[index] = level - category_level === 1 ? `'''${token}'''` : `'''''${token}'''''`;
+					_item[index] = level - list_page_or_category_level === 1 ? `'''${token}'''` : `'''''${token}'''''`;
 					//console.trace(_item[index]);
 				}
 				// Using token will preserve link display text.
@@ -927,8 +951,8 @@ The list contains ${count} articles. --~~~~`
 // ----------------------------------------------------------------------------
 
 function check_page_count() {
-	for (const page_title in level_of_page) {
-		const category_level = level_of_page[page_title];
+	for (const page_title in category_level_of_page) {
+		const category_level = category_level_of_page[page_title];
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
 			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
@@ -988,9 +1012,9 @@ function check_page_count() {
 			report_lines.skipped_records++;
 			continue;
 		}
-		report_lines.push([page_title, level_of_page[page_title], article_info_list.length > 0
+		report_lines.push([page_title, category_level_of_page[page_title], article_info_list.length > 0
 			? `Listed ${article_info_list.length} times in ${article_info_list.map(article_info => level_page_link(article_info.level || DEFAULT_LEVEL))}`
-			: `Did not listed in level ${level_of_page[page_title]}.`]);
+			: `Did not listed in level ${category_level_of_page[page_title]}.`]);
 	}
 }
 
@@ -1213,7 +1237,7 @@ async function generate_report() {
 		const page_title = record[0];
 		record[0] = CeL.wiki.title_link_of(page_title);
 		if (!record[1]) {
-			record[1] = level_of_page[page_title];
+			record[1] = category_level_of_page[page_title];
 		} else if (record[1].title) {
 			record[1] = record[1].title;
 			const matched = record[1].match(/Level\/([1-5](?:\/.+)?)$/);
