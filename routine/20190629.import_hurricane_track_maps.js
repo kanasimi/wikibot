@@ -11,7 +11,6 @@
 
  TODO:
  https://www.nhc.noaa.gov/archive/2019/ONE-E_graphics.php?product=5day_cone_with_line_and_wind
- https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/himawari-8/
  [[Category:375m-resolution VIIRS images of tropical cyclones]]
 
  */
@@ -96,6 +95,7 @@ var category_to_parent_hash = Object.create(null);
 
 		// parent categories
 		'Category:University of Wisconsin CIMSS images',
+		'Category:NRL images of tropical cyclones',
 		'Category:Central Weather Bureau ROC',
 		'Category:Japan Meteorological Agency',
 		'Category:Images from the Japan Meteorological Agency',
@@ -191,6 +191,7 @@ function main_work() {
 	var site_mapper = {
 		NHC : start_NHC,
 		JTWC : start_JTWC,
+		NRL : start_NRL,
 		CIMSS : start_CIMSS,
 		// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
 		CWB : start_CWB,
@@ -366,7 +367,7 @@ function upload_media(media_data) {
 	// CeL.set_debug(9);
 	wiki.upload(media_data);
 
-	if (media_data.date) {
+	if (!media_data.test_only && media_data.date) {
 		wiki.edit_structured_data('File:' + media_data.filename, function(
 				entity) {
 			return !entity.claims
@@ -1577,5 +1578,155 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 	// + media_url
 	}, media_data);
 
+	upload_media(media_data);
+}
+
+// ============================================================================
+
+function start_NRL() {
+	var base_URL = 'https://www.nrlmry.navy.mil/';
+
+	var base_media_data = {
+		base_URL : base_URL,
+		author : '{{label|Q1499258}}',
+		license : '{{PD-USGov-Navy}}',
+		// Satellite images of tropical cyclones by NRL
+		categories : [ 'Category:NRL images of tropical cyclones' ],
+		source_url : base_URL + 'TC.html'
+	};
+
+	// https://www.nrlmry.navy.mil/TC.html
+	fetch(base_media_data.source_url).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
+		base_media_data.year = html.match(/YEAR=(\d+)/);
+		if (base_media_data.year) {
+			base_media_data.year = base_media_data.year[1];
+		} else {
+			CeL.error('start_NRL: Cannot get year of NRL! 網站改版?')
+			base_media_data.year = (new Date()).getFullYear();
+		}
+		html = html.between(
+		//
+		'<!-- Start of the list_storms cell Width set',
+		//
+		'<!-- End of the list_storms cell -->');
+		html.each_between('<font size="+1"><font color="black">', null,
+		//
+		function(area_text) {
+			// console.log([area_text]);
+			var area = area_text.between(null, '</font>');
+			area_text.each_between('<font size="-1">', '</font>',
+			//
+			function(text) {
+				// e.g., text: '08E.HILDA'
+				var matched = text.trim().match(/(\d{2})\w\.(.+)/);
+				var media_data = Object.assign({
+					area : area,
+					NO : matched[1],
+					name : matched[2]
+				}, base_media_data);
+				// console.log(media_data);
+				for_each_NRL_cyclone(media_data);
+			});
+		});
+	});
+}
+
+var NRL_area_to_code_mapper = {
+	Atlantic : 'AL'
+};
+
+var matched, PATTERN_image = /alt="\[IMG\]"> <a href="([^"]+)">[\s\S]+?<\/a> (\d{2}-\w+-\d+ \d+:\d+)/g;
+
+function for_each_NRL_cyclone(media_data) {
+	var area_code = NRL_area_to_code_mapper[media_data.area]
+			//
+			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
+					.toUpperCase();
+	media_data.NO = area_code + media_data.NO + media_data.year;
+	// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
+	var image_directory_URL = media_data.base_URL + 'tcdat/tc'
+			+ media_data.year + '/' + area_code + '/' + media_data.NO
+			+ '/png_clean/Infrared-Gray/';
+	// console.log(image_directory_URL);
+	fetch(image_directory_URL).then(function(response) {
+		return response.text();
+
+	}).then(function(html) {
+		// console.log(html);
+		var satellites = Object.create(null);
+		html.each_between('alt="[DIR]"> <a href="', '/"', function(text) {
+			satellites[text] = null;
+		});
+		[ 'himawari-8', 'goes-16', 'goes-17', 'mg-1' ]
+		//
+		.some(function(satellite) {
+			if (satellite in satellites) {
+				media_data.satellite = satellite;
+				fetch(image_directory_URL += satellite + '/')
+
+				.then(function(response) {
+					return response.text();
+
+				}).then(function(html) {
+					while (matched = PATTERN_image.exec(html)) {
+						// using the latest one
+						media_data.media_url
+						//
+						= image_directory_URL + matched[1];
+						// e.g., "24-May-2021 11:11"
+						media_data.date = new Date(matched[2]);
+					}
+					;
+					if (media_data.media_url) {
+						for_each_NRL_cyclone_image(media_data);
+					} else {
+						CeL.error(
+						//
+						'for_each_NRL_cyclone: Cannot get image url of NRL!');
+						console.trace(media_data);
+					}
+				});
+				return true;
+			}
+		});
+	});
+}
+
+function for_each_NRL_cyclone_image(media_data) {
+	// console.log(media_data);
+
+	// media_data.date.format(filename_prefix)
+	var _filename_prefix = media_data.year + ' ';
+	var media_url = media_data.media_url;
+	Object.assign(media_data, {
+		filename : _filename_prefix + 'NRL ' + media_data.NO + ' '
+				+ media_data.name + ' visible infrared satellite'
+				// .GIF → .gif
+				+ media_url.match(/\.\w+$/)[0].toLowerCase()
+	});
+	media_data.source_url += '\n' + media_url;
+
+	search_category_by_name(media_data.name, media_data);
+	var wiki_link = of_wiki_link(media_data);
+
+	var note = 'Satellite: ' + media_data.satellite;
+
+	Object.assign(media_data, {
+		// description={{en|1=Geostationary imagery of Tropical Cyclone Fred
+		// (06L) of the 2021 Atlantic hurricane season}}
+		description : '{{en|' + media_data.author
+				+ "'s visible infrared satellite"
+				+ media_data.variable_Map.format('wiki_link') + '.}}',
+		comment :
+		// comment won't accept templates and external links
+		'Import NRL tropical cyclone visible infrared satellite' + wiki_link
+				+ '. ' + (note ? note + ' ' : ''),
+		page_text_updater : media_data.variable_Map
+	}, media_data);
+
+	// media_data.test_only = true;
 	upload_media(media_data);
 }
