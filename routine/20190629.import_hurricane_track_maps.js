@@ -546,8 +546,8 @@ function parse_NHC_Static_Images(media_data, html) {
 		}
 	}
 	// year is included in filename. e.g., "EP022019"
-	filename = /* media_data.date.format(filename_prefix) + */'NHC '
-			+ filename + '.png';
+	filename = media_data.date.format(filename_prefix) + 'NHC ' + filename
+			+ '.png';
 	media_url = NHC_base_URL + media_url;
 	// console.log(media_url);
 
@@ -858,7 +858,7 @@ function start_CIMSS() {
 			if (!matched)
 				return;
 			media_data.area = media_data._area = matched[1];
-			media_data.NO = matched[2];
+			media_data.id = matched[2];
 			matched = media_data.area.match(/(west|east)pac/);
 			if (matched) {
 				media_data.area = normalize_name(matched[1]) + 'ern Pacific';
@@ -873,7 +873,7 @@ function start_CIMSS() {
 			var _media_data = Object.clone(media_data);
 			_media_data.source_url += 'real-time/storm.frame.php?&basin='
 			//
-			+ media_data._area + '&sname=' + media_data.NO
+			+ media_data._area + '&sname=' + media_data.id
 			//
 			+ '&invest=NO&zoom=4&img=7&vars=111110000000000000000&loop=1';
 			fetch_CIMSS_typhoon_frame(_media_data);
@@ -891,7 +891,7 @@ function fetch_CIMSS_typhoon_frame(media_data) {
 		//
 		+ (new Date).format('CIMSS ' + cache_filename_label
 		//
-		+ ' menu ' + media_data.NO + '.html'), html);
+		+ ' menu ' + media_data.id + '.html'), html);
 		// console.trace(html);
 		for_each_CIMSS_typhoon(media_data, html);
 	});
@@ -919,7 +919,7 @@ function for_each_CIMSS_typhoon(media_data, token) {
 	Object.assign(media_data, {
 		date : date,
 		media_url : media_url,
-		filename : date.format(filename_prefix) + 'CIMSS ' + media_data.NO
+		filename : date.format(filename_prefix) + 'CIMSS ' + media_data.id
 				+ ' ' + media_data.name + ' visible infrared satellite loop'
 				// .GIF → .gif
 				+ media_url.match(/\.\w+$/)[0].toLowerCase()
@@ -1624,7 +1624,8 @@ function start_NRL() {
 				var matched = text.trim().match(/(\d{2})\w\.(.+)/);
 				var media_data = Object.assign({
 					area : area,
-					NO : matched[1],
+					NO : 0,
+					id : matched[1],
 					name : matched[2]
 				}, base_media_data);
 				// console.log(media_data);
@@ -1642,13 +1643,12 @@ var matched, PATTERN_image = /alt="\[IMG\]"> <a href="([^"]+)">[\s\S]+?<\/a> (\d
 
 function for_each_NRL_cyclone(media_data) {
 	var area_code = NRL_area_to_code_mapper[media_data.area]
-			//
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
-	media_data.NO = area_code + media_data.NO + media_data.year;
+	media_data.id = area_code + media_data.id + media_data.year;
 	// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
 	var image_directory_URL = media_data.base_URL + 'tcdat/tc'
-			+ media_data.year + '/' + area_code + '/' + media_data.NO
+			+ media_data.year + '/' + area_code + '/' + media_data.id
 			+ '/png_clean/Infrared-Gray/';
 	// console.log(image_directory_URL);
 	fetch(image_directory_URL).then(function(response) {
@@ -1672,6 +1672,7 @@ function for_each_NRL_cyclone(media_data) {
 
 				}).then(function(html) {
 					while (matched = PATTERN_image.exec(html)) {
+						media_data.NO++;
 						// using the latest one
 						media_data.media_url
 						//
@@ -1679,7 +1680,6 @@ function for_each_NRL_cyclone(media_data) {
 						// e.g., "24-May-2021 11:11"
 						media_data.date = new Date(matched[2]);
 					}
-					;
 					if (media_data.media_url) {
 						for_each_NRL_cyclone_image(media_data);
 					} else {
@@ -1702,7 +1702,8 @@ function for_each_NRL_cyclone_image(media_data) {
 	var _filename_prefix = media_data.year + ' ';
 	var media_url = media_data.media_url;
 	Object.assign(media_data, {
-		filename : _filename_prefix + 'NRL ' + media_data.NO + ' '
+		// year is included in media_data.name. e.g., "AL952021"
+		filename : _filename_prefix + 'NRL ' + media_data.id + ' '
 				+ media_data.name + ' visible infrared satellite'
 				// .GIF → .gif
 				+ media_url.match(/\.\w+$/)[0].toLowerCase()
