@@ -230,7 +230,7 @@ function main_work() {
 	// return;
 
 	for (site in site_mapper) {
-		site_mapper[site]();
+		Promise.resolve(site_mapper[site]())['catch'](console.error);
 	}
 }
 
@@ -392,7 +392,7 @@ function start_NHC() {
 	var parsed_NHC_menu_URL = new URL(NHC_menu_URL);
 	NHC_base_URL = parsed_NHC_menu_URL.origin;
 
-	fetch(NHC_menu_URL).then(function(response) {
+	return fetch(NHC_menu_URL).then(function(response) {
 		// console.log(response);
 		return response.text();
 
@@ -825,7 +825,7 @@ function start_CIMSS() {
 	};
 
 	// http://bagong.CIMSS.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
-	fetch(media_data.source_url).then(function(response) {
+	return fetch(media_data.source_url).then(function(response) {
 		return response.text();
 
 	}).then(function(html) {
@@ -1434,8 +1434,41 @@ function start_PAGASA() {
 		source_url : base_URL + 'tropical-cyclone/severe-weather-bulletin/2'
 	};
 
+	function handle_with_SWB(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('PAGASA ' + cache_filename_label
+		//
+		+ ' menu.html'), html);
+
+		// <div class="col-md-12 article-header" id="swb">
+		var text = html.between('article-header');
+		if (!text) {
+			return;
+		}
+
+		html = text.between('role="tablist">', '</ul>');
+		if (!html) {
+			return;
+		}
+
+		var NO_hash = Object.create(null);
+		html.each_between('<li', '</li>', function(token) {
+			// console.log(token);
+			var name = token.between('<a').between('>', '<');
+			NO_hash[name] = token.between('href="', '"').replace(/^#/, '');
+		});
+
+		text = text.between(null, {
+			tail : '<style type="text/css">'
+		}) || text;
+		text.each_between('role="tabpanel"', null,
+		//
+		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
+	}
+
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
-	fetch(media_data.source_url).then(function(response) {
+	return fetch(media_data.source_url).then(function(response) {
 		return response.text();
 
 	}).then(function(html) {
@@ -1477,39 +1510,6 @@ function start_PAGASA() {
 		//
 		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
 	});
-
-	function handle_with_SWB(html) {
-		CeL.write_file(data_directory
-		//
-		+ (new Date).format('PAGASA ' + cache_filename_label
-		//
-		+ ' menu.html'), html);
-
-		// <div class="col-md-12 article-header" id="swb">
-		var text = html.between('article-header');
-		if (!text) {
-			return;
-		}
-
-		html = text.between('role="tablist">', '</ul>');
-		if (!html) {
-			return;
-		}
-
-		var NO_hash = Object.create(null);
-		html.each_between('<li', '</li>', function(token) {
-			// console.log(token);
-			var name = token.between('<a').between('>', '<');
-			NO_hash[name] = token.between('href="', '"').replace(/^#/, '');
-		});
-
-		text = text.between(null, {
-			tail : '<style type="text/css">'
-		}) || text;
-		text.each_between('role="tabpanel"', null,
-		//
-		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
-	}
 }
 
 function for_each_PAGASA_typhoon(NO_hash, token) {
@@ -1596,7 +1596,7 @@ function start_NRL() {
 	};
 
 	// https://www.nrlmry.navy.mil/TC.html
-	fetch(base_media_data.source_url).then(function(response) {
+	return fetch(base_media_data.source_url).then(function(response) {
 		return response.text();
 
 	}).then(function(html) {
