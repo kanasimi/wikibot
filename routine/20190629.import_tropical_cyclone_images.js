@@ -1,4 +1,4 @@
-﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190629.import_hurricane_track_maps.js PAGASA
+﻿// cd /d D:\USB\cgi-bin\program\wiki && node 20190629.import_tropical_cyclone_images.js PAGASA
 
 /*
 
@@ -215,7 +215,7 @@ function main_work() {
 		Object.keys(CeL.env.arg_hash).forEach(function(arg_name) {
 			// console.log(arg_name);
 			if (CeL.env.arg_hash[arg_name] === true
-			// e.g., `node 20190629.import_hurricane_track_maps debug nhc`
+			// e.g., `node 20190629.import_tropical_cyclone_images debug nhc`
 			&& (arg_name = site_mapper[arg_name.toUpperCase()])) {
 				check_result(arg_name);
 				site = true;
@@ -1710,12 +1710,12 @@ function for_each_NRL_cyclone_image(media_data) {
 	var _filename_prefix = media_data.year + ' ';
 	var media_url = media_data.media_url;
 	Object.assign(media_data, {
-		// Geostationary
 		// year is included in media_data.name. e.g., "AL952021"
 		filename : _filename_prefix + 'NRL ' + media_data.id + ' '
-				+ media_data.name + ' ' + media_data.image_type + ' satellite'
-				// .GIF → .gif
-				+ media_url.match(/\.\w+$/)[0].toLowerCase()
+		// Geostationary
+		+ media_data.name + ' ' + media_data.image_type + ' satellite'
+		// .GIF → .gif
+		+ media_url.match(/\.\w+$/)[0].toLowerCase()
 	});
 	media_data.source_url += '\n' + media_url;
 
