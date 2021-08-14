@@ -1646,20 +1646,22 @@ function for_each_NRL_cyclone(media_data) {
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
+	var promise = Promise.resolve();
 	[ 'Infrared-Gray', 'Visible' ].forEach(function(image_type) {
 		var image_directory_URL = media_data.base_URL + 'tcdat/tc'
 		// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
 		+ media_data.year + '/' + area_code + '/' + media_data.id
 				+ '/png_clean/' + image_type + '/';
-		for_each_NRL_cyclone_typed_image(image_directory_URL, Object.assign({
-			image_type : image_type.toLowerCase()
-		}, media_data));
+		promise.then(for_each_NRL_cyclone_typed_image.bind(null,
+				image_directory_URL, Object.assign({
+					image_type : image_type.toLowerCase()
+				}, media_data)));
 	});
 }
 
 function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 	// console.log(image_directory_URL);
-	fetch(image_directory_URL).then(function(response) {
+	return fetch(image_directory_URL).then(function(response) {
 		return response.text();
 
 	}).then(function(html) {
