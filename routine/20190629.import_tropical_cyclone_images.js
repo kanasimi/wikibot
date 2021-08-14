@@ -1670,38 +1670,43 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 		html.each_between('alt="[DIR]"> <a href="', '/"', function(text) {
 			satellites[text] = null;
 		});
+		var promise;
 		[ 'himawari-8', 'goes-16', 'goes-17', 'mg-1' ]
 		//
 		.some(function(satellite) {
-			if (satellite in satellites) {
-				media_data.satellite = satellite;
-				fetch(image_directory_URL += satellite + '/')
-
-				.then(function(response) {
-					return response.text();
-
-				}).then(function(html) {
-					while (matched = PATTERN_image.exec(html)) {
-						media_data.NO++;
-						// using the latest one
-						media_data.media_url
-						//
-						= image_directory_URL + matched[1];
-						// e.g., "24-May-2021 11:11"
-						media_data.date = new Date(matched[2]);
-					}
-					if (media_data.media_url) {
-						for_each_NRL_cyclone_image(media_data);
-					} else {
-						CeL.error(
-						//
-						'for_each_NRL_cyclone: Cannot get image url of NRL!');
-						console.trace(media_data);
-					}
-				});
-				return true;
+			if (!(satellite in satellites)) {
+				return;
 			}
+
+			media_data.satellite = satellite;
+			promise = fetch(image_directory_URL += satellite + '/')
+			//
+			.then(function(response) {
+				return response.text();
+
+			}).then(function(html) {
+				while (matched = PATTERN_image.exec(html)) {
+					media_data.NO++;
+					// using the latest one
+					media_data.media_url
+					//
+					= image_directory_URL + matched[1];
+					// e.g., "24-May-2021 11:11"
+					media_data.date = new Date(matched[2]);
+				}
+				if (media_data.media_url) {
+					for_each_NRL_cyclone_image(media_data);
+				} else {
+					CeL.error(
+					//
+					'for_each_NRL_cyclone: Cannot get image url of NRL!');
+					console.trace(media_data);
+				}
+			});
+			return true;
 		});
+
+		return promise;
 	});
 }
 
