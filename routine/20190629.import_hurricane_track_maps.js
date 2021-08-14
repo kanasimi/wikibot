@@ -1646,10 +1646,18 @@ function for_each_NRL_cyclone(media_data) {
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
-	// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
-	var image_directory_URL = media_data.base_URL + 'tcdat/tc'
-			+ media_data.year + '/' + area_code + '/' + media_data.id
-			+ '/png_clean/Infrared-Gray/';
+	[ 'Infrared-Gray', 'Visible' ].forEach(function(image_type) {
+		var image_directory_URL = media_data.base_URL + 'tcdat/tc'
+		// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
+		+ media_data.year + '/' + area_code + '/' + media_data.id
+				+ '/png_clean/' + image_type + '/';
+		for_each_NRL_cyclone_typed_image(image_directory_URL, Object.assign({
+			image_type : image_type.toLowerCase()
+		}, media_data));
+	});
+}
+
+function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 	// console.log(image_directory_URL);
 	fetch(image_directory_URL).then(function(response) {
 		return response.text();
@@ -1702,9 +1710,10 @@ function for_each_NRL_cyclone_image(media_data) {
 	var _filename_prefix = media_data.year + ' ';
 	var media_url = media_data.media_url;
 	Object.assign(media_data, {
+		// Geostationary
 		// year is included in media_data.name. e.g., "AL952021"
 		filename : _filename_prefix + 'NRL ' + media_data.id + ' '
-				+ media_data.name + ' visible infrared satellite'
+				+ media_data.name + ' ' + media_data.image_type + ' satellite'
 				// .GIF → .gif
 				+ media_url.match(/\.\w+$/)[0].toLowerCase()
 	});
@@ -1718,13 +1727,14 @@ function for_each_NRL_cyclone_image(media_data) {
 	Object.assign(media_data, {
 		// description={{en|1=Geostationary imagery of Tropical Cyclone Fred
 		// (06L) of the 2021 Atlantic hurricane season}}
-		description : '{{en|' + media_data.author
-				+ "'s visible infrared satellite"
+		description : '{{en|' + media_data.author + "'s "
+				+ media_data.image_type + ' satellite image'
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		comment :
 		// comment won't accept templates and external links
-		'Import NRL tropical cyclone visible infrared satellite' + wiki_link
-				+ '. ' + (note ? note + ' ' : ''),
+		'Import NRL tropical cyclone ' + media_data.image_type
+				+ ' satellite image' + wiki_link + '. '
+				+ (note ? note + ' ' : ''),
 		page_text_updater : media_data.variable_Map
 	}, media_data);
 
