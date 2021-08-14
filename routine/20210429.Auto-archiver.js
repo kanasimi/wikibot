@@ -112,7 +112,10 @@ async function select_archive_to_page(configuration) {
 
 	const archive_prefix = target_root_page.title + '/';
 	const subpages = (await wiki.prefixsearch(archive_prefix))
-		.map(page_data => page_data.title.replace(archive_prefix, ''));
+		// Exclude [[target_root_page.title]]
+		.filter(page_data => page_data.title.startsWith(archive_prefix))
+		.map(page_data => page_data.title.replace(archive_prefix, ''))
+		.filter(page_title => !!page_title);
 	const patterns = CeL.detect_serial_pattern(subpages);
 	const archive_subpage_generator = archive_configuration.archive_to_subpage ? CeL.detect_serial_pattern.parse_generator(archive_configuration.archive_to_subpage)
 		// Auto detect pattern of subpage title
@@ -120,6 +123,7 @@ async function select_archive_to_page(configuration) {
 			// Default archive generator. See [[w:en:Template:Archives]]
 			: CeL.detect_serial_pattern.parse_generator('Archive %1');
 	CeL.info(`${select_archive_to_page.name}: Using generator: ${archive_subpage_generator()}`);
+	//console.trace([subpages, patterns, archive_subpage_generator]);
 	let archive_subpage_index = 0, archive_subpage;
 	while (true) {
 		const subpage = archive_subpage_generator(++archive_subpage_index);
