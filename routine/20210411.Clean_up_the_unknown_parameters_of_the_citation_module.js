@@ -1,8 +1,7 @@
 ﻿'use strict';
 
-const { replace } = require('./replace_tool.js');
 // Load replace tools.
-const replace_tool = require('./replace_tool.js');
+const replace_tool = require('../replace/replace_tool.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('zh');
