@@ -23,6 +23,8 @@ require('../wiki loader.js');
 
 CeL.get_URL.default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4590.0 Safari/537.36';
 
+login_options.configuration_adapter = adapt_configuration;
+
 var data_directory = base_directory + 'data/',
 /** {Boolean}若在 media_directory 目錄下已有 cache 檔案就不再 upload。 */
 skip_cached = false, media_directory = base_directory + 'media/',
@@ -34,6 +36,34 @@ cache_filename_label = '%4Y-%2m-%2d',
 filename_prefix = '%4Y ';
 
 // ----------------------------------------------------------------------------
+
+function adapt_configuration(latest_task_configuration) {
+	// console.log(latest_task_configuration);
+	// console.log(wiki);
+
+	// 一般設定
+	var general = latest_task_configuration.general
+			|| (latest_task_configuration.general = Object.create(null));
+	if (!general) {
+		// CeL.info('No configuration.');
+	}
+
+	// 衛星圖像優先度 https://www.nrlmry.navy.mil/tcdat/tc2021/
+	var satellite_image_priority = latest_task_configuration['NRL satellite image priority'];
+	if (CeL.is_Object(satellite_image_priority)) {
+		for ( var area_code in satellite_image_priority) {
+			satellite_image_priority[area_code] = satellite_image_priority[area_code]
+			//
+			.split(',').map(function(satellite) {
+				return satellite.trim();
+			});
+		}
+		if (false) {
+			console
+					.log(wiki.latest_task_configuration['NRL satellite image priority']);
+		}
+	}
+}
 
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 if (data_directory || media_directory) {
@@ -1639,10 +1669,8 @@ var NRL_area_to_code_mapper = {
 	Atlantic : 'AL'
 };
 
-var matched, PATTERN_image = /alt="\[IMG\]"> <a href="([^"]+)">[\s\S]+?<\/a> (\d{2}-\w+-\d+ \d+:\d+)/g;
-
 function for_each_NRL_cyclone(media_data) {
-	var area_code = NRL_area_to_code_mapper[media_data.area]
+	var area_code = media_data.area_code = NRL_area_to_code_mapper[media_data.area]
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
@@ -1670,7 +1698,14 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 			satellites[text] = null;
 		});
 		var promise;
-		[ 'himawari-8', 'goes-16', 'goes-17', 'mg-1' ]
+		var satellite_image_priority
+		//
+		= wiki.latest_task_configuration['NRL satellite image priority'];
+		satellite_image_priority
+		//
+		&& (satellite_image_priority[media_data.area_code]
+		//
+		|| satellite_image_priority['default'])
 		//
 		.some(function(satellite) {
 			if (!(satellite in satellites)) {
@@ -1684,6 +1719,11 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 				return response.text();
 
 			}).then(function(html) {
+				var matched, PATTERN_image =
+				//
+				/alt="\[IMG\]"> <a href="([^"]+)">[\s\S]+?<\/a> (\d{2}-\w+-\d+ \d+:\d+)/g
+				//
+				;
 				while (matched = PATTERN_image.exec(html)) {
 					media_data.NO++;
 					// using the latest one
