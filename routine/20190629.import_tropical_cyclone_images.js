@@ -1626,6 +1626,7 @@ function start_NRL() {
 	};
 
 	// https://www.nrlmry.navy.mil/TC.html
+	// console.log(base_media_data.source_url);
 	return fetch(base_media_data.source_url).then(function(response) {
 		return response.text();
 
@@ -1642,6 +1643,7 @@ function start_NRL() {
 		'<!-- Start of the list_storms cell Width set',
 		//
 		'<!-- End of the list_storms cell -->');
+		// console.log(html);
 		html.each_between('<font size="+1"><font color="black">', null,
 		//
 		function(area_text) {
@@ -1720,8 +1722,8 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 
 			}).then(function(html) {
 				var matched, PATTERN_image =
-				//
-				/alt="\[IMG\]"> <a href="([^"]+)">[\s\S]+?<\/a> (\d{2}-\w+-\d+ \d+:\d+)/g
+				// \s+(\d+(?:\.\d+)?)[KM]
+				/alt="\[IMG\]"> <a href="([^"]+)">[\s\S]+?<\/a>\s+(\d{2}-\w+-\d+ \d+:\d+)/g
 				//
 				;
 				while (matched = PATTERN_image.exec(html)) {
