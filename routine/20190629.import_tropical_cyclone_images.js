@@ -1778,10 +1778,15 @@ function for_each_NRL_cyclone_image(media_data) {
 		description : '{{en|' + media_data.author + "'s "
 				+ media_data.image_type + ' satellite image'
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
-		comment :
-		// comment won't accept templates and external links
-		'Import NRL tropical cyclone ' + media_data.image_type
-				+ ' satellite image' + wiki_link + '. '
+		comment : CeL.wiki.title_link_of(
+				wiki.latest_task_configuration.configuration_page_title, CeL
+						.gettext('Import NRL tropical cyclone'))
+				+ ' '
+				// comment won't accept templates and external links
+				+ media_data.image_type
+				+ ' satellite image'
+				+ wiki_link
+				+ '. '
 				+ (note ? note + ' ' : ''),
 		page_text_updater : media_data.variable_Map
 	}, media_data);
