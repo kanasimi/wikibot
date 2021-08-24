@@ -75,7 +75,10 @@ async function main_process() {
 	await wiki.register_redirects('NoteTA', {
 		namespace: 'Template'
 	});
-	await wiki.for_each_page(await wiki.embeddedin('Template:NoteTA', { namespace: 0 }), for_NoteTA_article, {
+	await wiki.for_each_page(
+		//['Wikipedia:沙盒'] ||
+		await wiki.embeddedin('Template:NoteTA', { namespace: 0 }),
+		for_NoteTA_article, {
 		no_message: true,
 		summary: '[[Wikipedia:机器人/申请/Cewbot/24|去除重複的轉換規則]]:'
 	});
@@ -434,13 +437,15 @@ async function for_NoteTA_article(page_data) {
 		for (let index = 0; index < token.conversion_list.length; index++) {
 			const conversion = token.conversion_list[index];
 			const rule = conversion.toString('rule');
+			const source = conversion_hash[rule];
 			// assert: (rule in conversion_hash)
 			// rule 已於前面的 "登記{{NoteTA}}中的轉換規則" 登記。
-			if (typeof conversion_hash[rule] !== 'string') {
+			if (typeof source !== 'string') {
 				return;
 			}
 
-			duplicate_list.與公共轉換組重複的轉換規則.push(rule);
+			// CeL.wiki.title_link_of('Module:CGroup/' + source)
+			duplicate_list.與公共轉換組重複的轉換規則.push(`存在於轉換組 ${source}: ${rule}`);
 			_changed = true;
 			token[conversion.index] = '';
 		}
@@ -519,7 +524,7 @@ async function for_NoteTA_article(page_data) {
 
 		const source = conversion_hash[rule];
 		if (typeof source === 'string') {
-			duplicate_list.與公共轉換組重複的轉換規則.push(rule);
+			duplicate_list.與公共轉換組重複的轉換規則.push(`存在於轉換組 ${source}: ${rule}`);
 		} else if (source.type === 'convert') {
 			duplicate_list.與內文之全文轉換重複的字詞轉換.push(rule);
 		} else {
@@ -539,7 +544,7 @@ async function for_NoteTA_article(page_data) {
 		this.summary += ` 去除${type} (${list.length})`;
 		list = list.unique();
 		if (list.length < 4)
-			this.summary += ': ' + list[0];
+			this.summary += ': ' + list.join(', ');
 		//else: list.length > 1
 	}
 
