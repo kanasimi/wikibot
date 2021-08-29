@@ -23,16 +23,20 @@ var wiki = Wiki(true, 'ja');
 
 // ---------------------------------------------------------------------//
 
-var edit_summary = 'Sorry, revert error made by bot';
+var edit_summary = 'Sorry, revert error made by bot. ('
+// 加上時間戳記以方便要回復這次 undo 時使用。
++ (new Date).toISOString() + ')';
 // 向前追溯筆數。
 var trace_forward_length = 'max';
 
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	var revert_this_edit = summary.includes('内部リンクに置き換えます')
+	// return summary.includes('Bot作業依頼');
+
+	var revert_this_edit = summary.includes('「尾花高夫」の再改名に伴うリンク修正依頼')
 	//
-	// && summary.includes('Bot作業依頼')
+	&& summary.includes('Bot作業依頼')
 	// Do not revert [[User:cewbot/log/20190913]]
 	&& (!page_data || !page_data.title.includes(20190913));
 	// revert_this_edit = summary === 'Robot';
@@ -45,7 +49,9 @@ function filter_summary(summary, page_data) {
 
 // ---------------------------------------------------------------------//
 
-wiki.usercontribs(user_name, function(list) {
+wiki.usercontribs(CeL.wiki.extract_login_user_name(login_options.user_name),
+//
+function(list) {
 	CeL.log('Get ' + list.length + ' edits from ' + CeL.wiki.site_name(wiki));
 
 	var undo_page_hash = Object.create(null);
