@@ -355,7 +355,7 @@ function normalize_parameter(token) {
 	function set_title(index) {
 		var parameter = parameters[index];
 		if (parameter) {
-			index_order_exactly[parameter_name] = index;
+			index_order_exactly[parameter_name] = token.index_of[index];
 			// normalize
 			parameter = parameter.toString()
 			// 去除註解 comments。
@@ -447,6 +447,7 @@ function check_final_work() {
 			+ CeL.wiki.title_link_of(title)
 			// https://en.wikipedia.org/wiki/Help:Link#Links_containing_URL_query_strings
 			// an external link rather than as an wikilink
+			// TODO: use {{fullurl}}
 			+ ' ([{{fullurl:' + title + '|action=edit}} '
 			//
 			+ message_set.edit + '])');
@@ -619,6 +620,7 @@ function for_each_page(page_data, messages) {
 				}
 
 				// cache 以在之後回復 recover 用。
+				// console.trace(normalized_param);
 				var local_title = normalized_param.local_title,
 				//
 				local_title_index = normalized_param.index_order.local_title;
@@ -646,6 +648,7 @@ function for_each_page(page_data, messages) {
 					error_list.push(token.error_message);
 				}
 
+				// console.trace(token);
 				// 回復 recover: 因為其他模板可能被置換，最後 .toString() 會重新使用所有資訊，因此務必回復原先資訊！
 				if (local_title_index in token) {
 					CeL.debug('recover: token[' + local_title_index + '] = '
@@ -657,6 +660,7 @@ function for_each_page(page_data, messages) {
 							+ foreign_title, 3, 'check_page');
 					parent[index] = foreign_title;
 				}
+				// console.trace(token);
 			}
 
 			CeL.debug('template_count: ' + template_count + ' / page_remains: '
@@ -725,9 +729,11 @@ function for_each_page(page_data, messages) {
 			// [[:en:Template:ill]]
 			/** {String}label text displayed */
 			text_displayed = normalized_param.label;
+			// console.trace(normalized_param);
 			if (text_displayed) {
-				if (text_displayed !== link_target)
+				if (text_displayed !== link_target) {
 					link += '|' + text_displayed;
+				}
 			} else if (false && /\([^()]+\)$/.test(link_target)) {
 				// ↑ 盡可能讓表現/顯示出的文字與原先相同。有必要的話，編輯者會使用 .label。
 				// e.g., [[Special:Diff/59967187]]
@@ -979,6 +985,7 @@ function for_each_page(page_data, messages) {
 		// main work for each link
 
 		if (normalized_param) {
+			// console.trace(normalized_param);
 			template_count++;
 			token.page_data = page_data;
 			// console.log(token);
@@ -1121,6 +1128,7 @@ function main_work() {
 
 			// only for debug {{ill}}s on specified page
 			// this.list = [ 'Wikipedia:沙盒' ];
+			// this.list = [ 'Wikipedia:サンドボックス' ];
 		}
 
 	}, false && {
