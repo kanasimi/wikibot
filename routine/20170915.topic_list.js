@@ -79,6 +79,7 @@ archive topics:
 延遲應該在十數分鐘內。現行設定若寫入失敗2次，程式就會重啟。
 已知無法解決問題：目前 MediaWiki 之 link anchor, display_text 尚無法接受"�"這個特殊字元。
 
+@see [[w:zh:Module:Talkpage]] {{ #invoke:Talkpage | analyse | titlelevel=3 |WikiProject_talk:电子游戏 | type=topic | userlink=[[U:$USER|$USER]] }}
  */
 
 'use strict';
@@ -485,7 +486,9 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:已删除内容查询' ];
 	// main_talk_pages = [ 'Wikipedia:互助客栈/其他' ];
 	// main_talk_pages = [ 'Wikipedia:互助客栈/技术' ];
+	// main_talk_pages = [ 'Wikipedia:互助客栈/条目探讨' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
+	// main_talk_pages = [ '萌娘百科 talk:讨论版/页面相关' ];
 
 	// ----------------------------------------------------
 
@@ -515,6 +518,7 @@ function start_main_work() {
 			// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
 			// 検出後30秒ほどのタイムラグを設けて
 			delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
+			namespace : 'project|project talk|talk',
 			filter : main_talk_pages,
 			with_content : true,
 			// language : use_language,
