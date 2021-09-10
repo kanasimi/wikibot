@@ -1089,6 +1089,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		return Wikiapi.skip_edit;
 	}
 
+	// ------------------------------------------------------------------------
+
 	// console.log(article_info);
 	const parsed = talk_page_data.parse();
 	CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
@@ -1106,6 +1108,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	}
 
 	parsed.each('template', token => {
+		if (wiki.is_template('WikiProject Disambiguation', token)) {
+			// TODO: should test main article
+			is_DAB = true;
+			return parsed.each.exit;
+		}
+
 		if (wiki.is_template(VA_template_name, token)) {
 			// get the first one
 			if (VA_template_token) {
@@ -1121,10 +1129,6 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			WikiProject_banner_shell_token = token;
 			// {{WikiProject banner shell}} has no .class
 
-		} else if (wiki.is_template('WikiProject Disambiguation', token)) {
-			// TODO: should test main article
-			is_DAB = true;
-
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			&& /project|rating/i.test(token.name)) {
@@ -1138,6 +1142,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		CeL.warn(`${maintain_VA_template_each_talk_page.name}: Skip DAB article: ${CeL.wiki.title_link_of(talk_page_data)}`);
 		return Wikiapi.skip_edit;
 	}
+
+	// ------------------------------------------------------------------------
 
 	let VA_template_object = {
 		// normalize_class(): e.g., for [[Talk:Goosebumps]]
@@ -1173,39 +1179,49 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	} else if (WikiProject_banner_shell_token) {
 		// uses the {{WikiProject banner shell}}
 		// adding the Vital article template to the bottom of the banner shell
-		wikitext_to_add = '\n' + CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n';
+		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
 		// TODO: using CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, ...)
-		const parameter_name = 1;
-		const index = WikiProject_banner_shell_token.index_of[parameter_name];
-		if (index > 0) {
-			const original_text = WikiProject_banner_shell_token.parameters[parameter_name].toString().trim() + '\n';
-			// put {{Vital article}} at the front of the parameter
-			WikiProject_banner_shell_token[index] = wikitext_to_add + original_text;
-		} else
-			WikiProject_banner_shell_token.push(wikitext_to_add);
+		CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, {
+			'1': value => wikitext_to_add + '\n' + (value ? value.toString().trimStart() : '')
+		}, 'value_only');
+		if (false) {
+			// @deprecated
+			const parameter_name = 1;
+			const index = WikiProject_banner_shell_token.index_of[parameter_name];
+			if (index > 0) {
+				const original_text = WikiProject_banner_shell_token.parameters[parameter_name].toString().trim() + '\n';
+				// put {{Vital article}} at the front of the parameter
+				WikiProject_banner_shell_token[index] = wikitext_to_add + original_text;
+			} else
+				WikiProject_banner_shell_token.push(wikitext_to_add);
+		}
 
 	} else {
 		// There are copies @ 20201008.fix_anchor.js
-		// 添加在首段文字或首個 section_title 前，最後一個 template 後。
 		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n\n';
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext_to_add.trim()}`);
-		parsed.each((token, index, parent) => {
-			if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
-				const previous_node = index > 0 && parent[index - 1];
-				// 避免多個換行。
-				if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
-					parent[index - 1] = previous_node.replace(/\n$/, '');
+		parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
+		if (false) {
+			// @deprecated
+			// 添加在首段文字或首個 section_title 前，最後一個 hatnote template 後。
+			parsed.each((token, index, parent) => {
+				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
+					const previous_node = index > 0 && parent[index - 1];
+					// 避免多個換行。
+					if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
+						parent[index - 1] = previous_node.replace(/\n$/, '');
+					}
+					parent.splice(index, 0, wikitext_to_add);
+					wikitext_to_add = null;
+					return parsed.each.exit;
 				}
-				parent.splice(index, 0, wikitext_to_add);
-				wikitext_to_add = null;
-				return parsed.each.exit;
+			}, {
+				max_depth: 1
+			});
+			if (wikitext_to_add) {
+				// 添加在頁面最前面。
+				parsed.unshift(wikitext_to_add);
 			}
-		}, {
-			max_depth: 1
-		});
-		if (wikitext_to_add) {
-			// 添加在頁面最前面。
-			parsed.unshift(wikitext_to_add);
 		}
 	}
 
@@ -1220,7 +1236,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	}
 	this.summary = `${talk_page_summary_prefix}: ${article_info.reason} ${article_info.topic
 		? `Configured as topic=${article_info.topic}${article_info.subpage ? ', subpage=' + article_info.subpage : ''}`
-		: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page')}`;
+		: article_info.remove ? ''
+			: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page')}`;
 	return wikitext;
 }
 
