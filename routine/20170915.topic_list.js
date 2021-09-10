@@ -518,7 +518,8 @@ function start_main_work() {
 			// [[Wikipedia‐ノート:井戸端#節ごとの発言数・参加者数・最終更新日時などの表(topic list)について]]
 			// 検出後30秒ほどのタイムラグを設けて
 			delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
-			namespace : 'project|project talk|talk',
+			// [[w:zh:WikiProject talk:电子游戏]]
+			namespace : 'project|project talk|talk|WikiProject talk',
 			filter : main_talk_pages,
 			with_content : true,
 			// language : use_language,
