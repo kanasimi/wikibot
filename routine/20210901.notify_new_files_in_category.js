@@ -4,6 +4,11 @@
 2021/9/1 15:11:14	完成。正式運用。
 2021/9/11 16:4:26	從頁面為主的作業轉成以日期為主。
 
+TODO:
+DAYS_PER_GALLERY	galleries_per_month:1-31
+categories+depth
+SHOW_FILENAME
+
  */
 
 'use strict';
@@ -20,9 +25,6 @@ login_options.API_URL = 'commons';
 const wiki = new Wikiapi;
 
 // ----------------------------------------------------------------------------
-
-/** {Number}一整天的 time 值。should be 24 * 60 * 60 * 1000 = 86400000. */
-const ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 let summary_prefix;
 
@@ -70,17 +72,13 @@ async function main_process() {
 	start_date = start_date.getTime();
 
 	// default: 只篩選到1週前，留取時間等待添加分類。
-	for (let end_date = Math.min(start_date + 7 * ONE_DAY_LENGTH_VALUE, Date.now()), this_end_date; start_date < end_date; start_date = this_end_date) {
-		this_end_date = start_date + ONE_DAY_LENGTH_VALUE;
-		CeL.info(`${'-'.repeat(60)}\nProcess ${new Date(start_date).format({ format: '%Y-%2m-%2d', zone: 0 })}`);
+	for (let end_date = Math.min(start_date + CeL.to_millisecond('1w'), Date.now()), this_end_date; start_date < end_date; start_date = this_end_date) {
+		this_end_date = start_date + CeL.to_millisecond('1d');
+		CeL.info(`${'-'.repeat(60)}\nProcess ${new Date(start_date).format({ format: '%Y-%2m-%2d', zone: 0 })} (${CeL.indicate_date_time(start_date)})})`);
 		const file_created_list = await wiki.categories(await wiki.allimages([new Date(start_date).toISOString(), new Date(this_end_date).toISOString()]), { clprop: 'sortkey' });
 		Object.freeze(file_created_list);
 		for (const options of Object.values(wiki.latest_task_configuration.Subscribers)) {
-			if (!(options.end_date <= Date.now())) {
-				// default: 只篩選到1週前，留取時間等待添加分類。
-				options.end_date = Date.now() - CeL.to_millisecond('1w');
-			}
-			Object.assign(options, { start_date, end_date, file_created_list });
+			Object.assign(options, { start_date, end_date: this_end_date, file_created_list });
 			await process_page(options);
 		}
 	}
@@ -93,16 +91,15 @@ async function main_process() {
 async function process_page(options) {
 	const base_category_name = options.base_category;
 	const all_sub_categories_Set = new Set(await get_all_sub_categories(base_category_name, options));
-	CeL.info(`${base_category_name}: ${all_sub_categories_Set.size} sub-categories.`);
 
 	for (let start_date = new Date(options.start_date), end_date; ; start_date = end_date) {
-		end_date = start_date.getTime() + ONE_DAY_LENGTH_VALUE;
+		end_date = start_date.getTime() + CeL.to_millisecond('1d');
 		if (!(end_date <= options.end_date))
 			break;
 		end_date = new Date(end_date);
 
-		const page_data = await wiki.page(start_date.format({ format: options.dated_page_format, zone: 0 }));
-		const parsed = CeL.wiki.parser(page_data);
+		const dated_page_data = await wiki.page(start_date.format({ format: options.dated_page_format, zone: 0 }));
+		const parsed = CeL.wiki.parser(dated_page_data);
 		let had_got;
 		parsed.each_section(section => {
 			if (section.section_title?.title.includes(start_date.format({ format: options.section_title, zone: 0 }))) {
@@ -114,22 +111,23 @@ async function process_page(options) {
 			CeL.info('Had got ' + had_got);
 			continue;
 		}
+		options.dated_page_data = dated_page_data;
 		await process_date(start_date, end_date, options, all_sub_categories_Set);
 	}
 }
 
 async function get_all_sub_categories(category_name, options) {
-	const cache_file_path = `${base_directory}${category_name}.all_sub_categories.json`;
+	const cache_file_path = `${base_directory}${CeL.to_file_name(options.base_page_title)}.${CeL.to_file_name(category_name)}.all_sub_categories.json`;
 	let all_sub_categories_data = CeL.read_file(cache_file_path);
 	const exclude_categories = options.exclude_categories;
 	if (all_sub_categories_data && (all_sub_categories_data = JSON.parse(all_sub_categories_data))
 		//必須有相同的篩選條件。
 		&& all_sub_categories_data.PATTERN_exclude_categories === options.PATTERN_exclude_categories
 		&& all_sub_categories_data.exclude_categories === JSON.stringify(exclude_categories)
-		// 有效期限1個月。
-		&& Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond('1 month')
+		// 有效期限(options.cache_expires)個月。
+		&& Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond(options.cache_expires)
 		// 2021/8/29 14:17:18	Echinodermata: 4509 sub-categories.
-		&& Array.isArray(all_sub_categories_data.list) && all_sub_categories_data.list.length > 1e3
+		&& Array.isArray(all_sub_categories_data.list) && all_sub_categories_data.list.length > 200
 	) {
 		return all_sub_categories_data.list;
 	}
@@ -142,15 +140,21 @@ async function get_all_sub_categories(category_name, options) {
 		category_filter: category_data => (!PATTERN_exclude_categories || !PATTERN_exclude_categories.test(category_data.title))
 			&& (!exclude_categories || !exclude_categories.includes(category_data.title))
 	});
+
+	const list = Object.keys(category_tree.flated_subcategories);
+	CeL.info(`${base_category_name}: ${list.length} sub-categories.`);
+	list.unshift(category_name);
+
 	all_sub_categories_data = {
 		date: new Date,
 		PATTERN_exclude_categories: options.PATTERN_exclude_categories,
 		exclude_categories,
-		list: [category_name].append(Object.keys(category_tree.flated_subcategories)),
+		list,
 		tree: category_tree.get_category_tree(),
 	};
 	CeL.write_file(cache_file_path, all_sub_categories_data);
-	return all_sub_categories_data.list;
+
+	return list;
 }
 
 async function process_date(start_date, end_date, options, all_sub_categories_Set) {
@@ -170,6 +174,11 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 	// ------------------------------------------
 
 	const contents_to_write = [`<gallery ${options.gallery_attributes?.trim() || ''}>`];
+	if (!CeL.wiki.content_of(options.dated_page_data)) {
+		contents_to_write.unshift('');
+		if (options.WARNING) contents_to_write.unshift('{{User:OgreBot/gallery/notice}}');
+		if (options.NOINDEX) contents_to_write.unshift('__NOINDEX__ ');
+	}
 	let count = 0;
 	for (const [file_title, category] of Object.entries(filtered_files)) {
 		count++;
@@ -183,9 +192,7 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 	contents_to_write.push('</gallery>');
 
 	//console.log([end_date, filtered_files]);
-	await wiki.edit_page(start_date.format({ format: options.dated_page_format, zone: 0 }), page_data => {
-		return contents_to_write.join('\n');
-	}, {
+	await wiki.edit_page(options.dated_page_data, contents_to_write.join('\n'), {
 		section: 'new',
 		sectiontitle: start_date.format({ format: options.section_title, zone: 0 }),
 		summary: `${summary_prefix}Updating gallery for files in [[Category:${options.base_category}]] (${start_date.format({ format: '%Y-%2m-%2d', zone: 0 })})`,
