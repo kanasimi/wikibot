@@ -75,7 +75,8 @@ cd ~
 # method 2:
 # /usr/bin/unzip -UU
 /usr/bin/wget -O wikibot.zip https://github.com/kanasimi/wikibot/archive/master.zip && [ -d wikibot ] && /usr/bin/diff wikibot.zip wikibot.zip.old && mv -f wikibot.zip wikibot.zip.old && echo "wikibot: No news." || ( echo "Extracting wikibot..." && /usr/bin/unzip wikibot.zip > /dev/null && mv -f wikibot.zip wikibot.zip.old && rsync -a --remove-source-files wikibot-master/ wikibot && rm -rf wikibot-master || echo "Failed to get wikibot" )
-/bin/rm wikibot/*#U*
+
+[ -e wikibot/*#U* ] && /bin/rm wikibot/*#U*
 
 # ---------------------------------------------------------
 
@@ -104,7 +105,7 @@ printf "$SP\nCopy configurations...\n"
 # chmod o-x . && rm "wiki configuration.js"
 
 if [ -r "/home/kanashimi/wiki configuration.js" ]; then
- [ -f "wiki configuration.js" ] && mv -f "wiki configuration.js" "wiki configuration.js.old"
+ [ -f "wiki configuration.js" ] && mv -f "wiki configuration.js" "archive/"
  # copy contents only.
  /bin/cp "/home/kanashimi/wiki configuration.js" "wiki configuration.js"
 fi
@@ -115,8 +116,6 @@ fi
 
 [ -f "wikitech/init.sh" ] && /bin/cp -f "wikitech/init.sh" .
 /bin/chmod u+x init.sh
-
-# /bin/rm "wiki configuration.js" archive
 
 [ -f README.md ] && /bin/rm README.md
 
