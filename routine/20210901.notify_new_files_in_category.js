@@ -97,10 +97,11 @@ async function main_process() {
 async function process_page(options) {
 	const base_category_list = Array.isArray(options.base_category) ? options.base_category : [options.base_category];
 	const all_sub_categories_Set = new Set(await get_all_sub_categories(base_category_list[0], options));
-	base_category_list.slice(1).forEach(base_category_name => {
+	for (let index = 1; index < base_category_list.length; index++) {
+		const base_category_name = base_category_list[index];
 		const all_sub_categories = await get_all_sub_categories(base_category_name, options);
 		all_sub_categories.forEach(category => all_sub_categories_Set.add(category));
-	});
+	}
 
 	// for debug
 	return;
