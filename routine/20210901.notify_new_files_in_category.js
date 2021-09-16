@@ -157,20 +157,34 @@ async function get_all_sub_categories(base_category_name, options) {
 	} else {
 		depth = options.subcategory_depth;
 	}
+
 	const cache_file_path = `${base_directory}${CeL.to_file_name(options.base_page_title)}.${CeL.to_file_name(base_category_name)}.all_sub_categories.json`;
 	let all_sub_categories_data = CeL.read_file(cache_file_path);
 	const { exclude_categories } = options;
-	if (all_sub_categories_data && (all_sub_categories_data = JSON.parse(all_sub_categories_data))
-		// 必須有相同的篩選條件。
-		&& all_sub_categories_data.PATTERN_exclude_categories === options.PATTERN_exclude_categories
-		&& all_sub_categories_data.exclude_categories === JSON.stringify(exclude_categories)
-		// 有效期限(options.cache_expires)個月。
-		&& Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond(options.cache_expires)
-		// 2021/8/29 14:17:18	Echinodermata: 4509 sub-categories.
-		&& Array.isArray(all_sub_categories_data.list) && all_sub_categories_data.list.length > 200
-	) {
-		return all_sub_categories_data.list;
+	if (all_sub_categories_data) {
+		// cache 不符資格
+		const cache_not_qualified = [];
+		try { all_sub_categories_data = JSON.parse(all_sub_categories_data); } catch (e) { all_sub_categories_data = null; }
+		if (!all_sub_categories_data) cache_not_qualified.push('cache 非正規 JSON');
+		else {
+			// 必須有相同的篩選條件。
+			if (JSON.stringify(all_sub_categories_data.exclude_categories) !== JSON.stringify(exclude_categories)) cache_not_qualified.push('exclude_categories 篩選條件不同');
+			if (all_sub_categories_data.PATTERN_exclude_categories !== options.PATTERN_exclude_categories) cache_not_qualified.push('PATTERN_exclude_categories 篩選條件不同');
+			if (all_sub_categories_data.depth !== depth) cache_not_qualified.push('depth 不同');
+			// 有效期限(options.cache_expires)個月。
+			if (!(Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond(options.cache_expires))) cache_not_qualified.push('cache 不在期限內');
+			// 2021/8/29 14:17:18	Echinodermata: 4509 sub-categories.
+			if (!Array.isArray(all_sub_categories_data.list)) cache_not_qualified.push('list 非 {Arraay}');
+			else if (all_sub_categories_data.list.length < 100) cache_not_qualified.push('list 過小');
+		}
+
+		if (cache_not_qualified.length === 0) {
+			return all_sub_categories_data.list;
+		}
+		CeL.info(`重新取得 sub_categories_data: ${cache_not_qualified.join(', ')}`);
 	}
+
+	// ------------------------------------------
 
 	const PATTERN_exclude_categories = options.PATTERN_exclude_categories && options.PATTERN_exclude_categories.to_RegExp();
 	const category_tree = await wiki.category_tree(base_category_name, {
