@@ -97,11 +97,13 @@ async function main_process() {
 async function process_page(options) {
 	const base_category_list = Array.isArray(options.base_category) ? options.base_category : [options.base_category];
 	const all_sub_categories_Set = new Set(await get_all_sub_categories(base_category_list[0], options));
+	//console.trace(all_sub_categories_Set.size);
 	for (let index = 1; index < base_category_list.length; index++) {
 		const base_category_name = base_category_list[index];
 		const all_sub_categories = await get_all_sub_categories(base_category_name, options);
 		all_sub_categories.forEach(category => all_sub_categories_Set.add(category));
 	}
+	//console.trace(all_sub_categories_Set.size);
 
 	// for debug
 	return;
@@ -186,6 +188,8 @@ async function get_all_sub_categories(base_category_name, options) {
 
 	// ------------------------------------------
 
+	//console.trace([cache_file_path, base_category_name, depth, process.memoryUsage()]);
+
 	const PATTERN_exclude_categories = options.PATTERN_exclude_categories && options.PATTERN_exclude_categories.to_RegExp();
 	const category_tree = await wiki.category_tree(base_category_name, {
 		depth,
@@ -206,8 +210,10 @@ async function get_all_sub_categories(base_category_name, options) {
 		PATTERN_exclude_categories: options.PATTERN_exclude_categories,
 		exclude_categories,
 		list,
-		tree: category_tree.get_category_tree(),
+		// 會造成 JavaScript heap out of memory
+		//tree: category_tree.get_category_tree(),
 	};
+	//console.trace(all_sub_categories_data);
 	CeL.write_file(cache_file_path, all_sub_categories_data);
 
 	return list;
