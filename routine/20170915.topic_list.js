@@ -381,6 +381,7 @@ function adapt_configuration(latest_task_configuration) {
 
 		// console.trace([ page_title, page_config, globalThis.use_project ]);
 		if (page_config) {
+			// e.g., {"need_time_legend":false}
 			if (!global.special_page_configuration[page_config]) {
 				if (!CeL.is_Object(page_config)) {
 					CeL.error(
@@ -907,7 +908,8 @@ function get_list_legend(page_configuration) {
 					+ '" style="'
 					+ (page_configuration.list_legend_style
 							|| general_page_configuration.list_legend_style || '')
-					+ '"',
+					// {{#if:檢查字串|有值時輸出|無值時輸出}}
+					+ ';{{#if:{{{no_time_legend|}}}|display:none;|}}' + '"',
 			// TODO: .header 應該用 caption
 			// title: 相對於機器人最後一次編輯
 			'! title="From the latest bot edit" | '
