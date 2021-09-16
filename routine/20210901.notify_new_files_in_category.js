@@ -48,7 +48,7 @@ async function adapt_configuration(latest_task_configuration) {
 			}
 		}
 	}
-	console.log(Object.values(wiki.latest_task_configuration.Subscribers));
+	//console.log(Object.values(wiki.latest_task_configuration.Subscribers));
 
 	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('Notify new files in category')) + ': ';
 }
@@ -210,8 +210,7 @@ async function get_all_sub_categories(base_category_name, options) {
 		PATTERN_exclude_categories: options.PATTERN_exclude_categories,
 		exclude_categories,
 		list,
-		// 會造成 JavaScript heap out of memory
-		//tree: category_tree.get_category_tree(),
+		tree: category_tree.get_category_tree({ circular_mark: 'circular' }),
 	};
 	//console.trace(all_sub_categories_data);
 	CeL.write_file(cache_file_path, all_sub_categories_data);
