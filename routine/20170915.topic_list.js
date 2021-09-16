@@ -369,9 +369,6 @@ function adapt_configuration(latest_task_configuration) {
 
 	// setup_list_legend();
 
-	// 顯示主題列表之頁面。
-	configuration_now = configuration.listen_to_pages
-			|| (configuration.listen_to_pages = Object.create(null));
 	function adapt_listen_to_page(page_title) {
 		var page_config = configuration_now[page_title];
 		var use_project = CeL.wiki.site_name(wiki);
@@ -385,9 +382,7 @@ function adapt_configuration(latest_task_configuration) {
 		// console.trace([ page_title, page_config, globalThis.use_project ]);
 		if (page_config) {
 			if (!global.special_page_configuration[page_config]) {
-				try {
-					page_config = JSON.parse(page_config);
-				} catch (e) {
+				if (!CeL.is_Object(page_config)) {
 					CeL.error(
 					//
 					'adapt_configuration: Invalid page configuration for '
@@ -409,9 +404,14 @@ function adapt_configuration(latest_task_configuration) {
 			page_config = global.special_page_configuration[page_config];
 		}
 		// console.log(page_config);
-		page_configurations[page_title] = page_config
-				|| general_page_configuration;
+		page_configurations[page_title] = page_config ? Object.assign(Object
+				.create(null), general_page_configuration, page_config)
+				: general_page_configuration;
 	}
+
+	// 顯示主題列表之頁面。
+	configuration_now = configuration.listen_to_pages
+			|| (configuration.listen_to_pages = Object.create(null));
 	if (configuration_now) {
 		Object.keys(configuration_now).forEach(adapt_listen_to_page);
 	}
