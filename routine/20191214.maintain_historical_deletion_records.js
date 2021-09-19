@@ -484,6 +484,11 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
+	if (/{{ *CSD Placeholder *}}/.test(CeL.wiki.content_of(page_data))) {
+		// 可忽略占位頁面。 e.g., [[w:zh:Wikipedia talk:2021年基金會針對中文維基百科的行動/topic list]]
+		return;
+	}
+
 	if (DEBUG_PAGE && page_data.title.includes(DEBUG_PAGE)) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
 		console.log(CeL.wiki.parse.redirect(page_data));
