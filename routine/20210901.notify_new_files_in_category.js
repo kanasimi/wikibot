@@ -101,11 +101,11 @@ async function process_page(options) {
 	for (let index = 1; index < base_category_list.length; index++) {
 		const base_category_name = base_category_list[index];
 		const all_sub_categories = await get_all_sub_categories(base_category_name, options);
-		all_sub_categories.forEach(category => all_sub_categories_Set.add(category));
+		all_sub_categories.forEach(category_name => all_sub_categories_Set.add(category_name));
 	}
 	//console.trace(all_sub_categories_Set.size);
 
-	// for debug
+	// for debug: get_all_sub_categories() only
 	return;
 
 	for (let start_date = new Date(options.start_date), end_date; ; start_date = end_date) {
@@ -191,6 +191,7 @@ async function get_all_sub_categories(base_category_name, options) {
 	//console.trace([cache_file_path, base_category_name, depth, process.memoryUsage()]);
 
 	const PATTERN_exclude_categories = options.PATTERN_exclude_categories && options.PATTERN_exclude_categories.to_RegExp();
+	const start_time = Date.now();
 	const category_tree = await wiki.category_tree(base_category_name, {
 		depth,
 		cmtype: 'subcat',
@@ -201,16 +202,21 @@ async function get_all_sub_categories(base_category_name, options) {
 	});
 
 	const list = Object.keys(category_tree.flated_subcategories);
-	CeL.info(`${base_category_name}: ${list.length} sub-categories.`);
+	CeL.info(`${get_all_sub_categories.name}: ${base_category_name}: ${list.length} sub-categories.`);
 	list.unshift(base_category_name);
 
 	all_sub_categories_data = {
 		date: new Date,
 		depth,
+		elapsed_time: Date.now() - start_time,
 		PATTERN_exclude_categories: options.PATTERN_exclude_categories,
 		exclude_categories,
 		list,
-		tree: category_tree.get_category_tree({ circular_mark: 'circular' }),
+		// 稽查到底是哪個 route 開始出現怪異檔案用。
+		tree: category_tree.get_category_tree({
+			circular_mark: 'circular'
+			//circular_mark(category_name, tree_of_category) { return `circular: including ${Object.keys(tree_of_category[category_name]).join(', ')}`; }
+		}),
 	};
 	//console.trace(all_sub_categories_data);
 	CeL.write_file(cache_file_path, all_sub_categories_data);
@@ -267,16 +273,19 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 	if (!CeL.wiki.content_of(options.dated_page_data)) {
 		contents_to_write.unshift('');
 		if (options.WARNING) contents_to_write.unshift(`{{${options.warning_page}}}`);
-		if (options.NOINDEX) contents_to_write.unshift('__NOINDEX__ ');
+		if (options.NOINDEX) contents_to_write.unshift('__NOINDEX__');
+		//if (!options.dated_subpage_format) contents_to_write.unshift('__NOTOC__');
 	}
 
 	//console.log([end_date, filtered_files]);
 	//console.trace([options.dated_page_data.title, contents_to_write, options.date_range]);
 
+	const base_category_list = (Array.isArray(options.base_category) ? options.base_category : [options.base_category])
+		.map(base_category => CeL.wiki.title_link_of(wiki.to_namespace(base_category, 'Category')));
 	await wiki.edit_page(options.dated_page_data, contents_to_write.join('\n'), {
 		section: 'new',
 		sectiontitle: start_date.format({ format: options.section_title, zone: 0 }),
-		summary: `${summary_prefix}Updating gallery for files in [[Category:${options.base_category}]] (${start_date.format({ format: '%Y-%2m-%2d', zone: 0 })})`,
+		summary: `${summary_prefix}Updating gallery for files in ${base_category_list.join(', ')} (${start_date.format({ format: '%Y-%2m-%2d', zone: 0 })})`,
 	});
 
 	if (!options.dated_subpage_format) {
@@ -290,22 +299,39 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 	if (options.list_links?.includes(dated_page_sub_title))
 		return;
 
+	// add link to the first list
 	await wiki.edit_page(options.base_page_title, page_data => {
 		const parsed = page_data.parse();
 		let had_link;
-		parsed.each('link', token => {
-			if (token[0].toString().includes(dated_page_sub_title))
+		parsed.each('link', link_token => {
+			if (link_token[0].toString().includes(dated_page_sub_title)) {
 				had_link = true;
+				return parsed.each.exit;
+			}
 		});
 		if (!options.list_links)
 			options.list_links = [];
 		options.list_links.push(dated_page_sub_title);
 		if (had_link)
 			return Wikiapi.skip_edit;
-		return parsed.toString() + '\n* ' + CeL.wiki.title_link_of(dated_page_sub_title, options.date_range && options.date_range[1]
+
+		// ----------------------------
+
+		const default_list_prefix = '\n* ';
+		const link_wikitext = CeL.wiki.title_link_of(dated_page_sub_title, options.date_range && options.date_range[1]
 			? `{{complex date|-|${options.date_range[0].format('%Y-%2m-%2d')}|${options.date_range[1].format('%Y-%2m-%2d')}}}`
 			: start_date.format('{{date|%Y|%m}}'));
+		parsed.each('list', the_first_list_token => {
+			const list_prefix = the_first_list_token.at(-1)?.list_prefix || '';
+			the_first_list_token.push((list_prefix.startsWith('\n') ? list_prefix : default_list_prefix) + link_wikitext);
+			had_link = true;
+			return parsed.each.exit;
+		}, { max_depth: 0 });
+		if (had_link)
+			return parsed.toString();
+		return parsed.toString() + default_list_prefix + link_wikitext;
 	}, {
+		nocreate: 1,
 		summary: `${summary_prefix}Updating gallery list (${start_date.format({ format: '%Y-%2m', zone: 0 })}, ${CeL.wiki.title_link_of(dated_page_sub_title)})`,
 	});
 }
