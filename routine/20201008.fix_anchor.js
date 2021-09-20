@@ -1249,7 +1249,7 @@ async function check_page(target_page_data, options) {
 		}
 
 		const { skip_comments } = wiki.latest_task_configuration.general;
-		let changed;
+		let changed, _this = this;
 		parsed.each_section(function (section, section_index) {
 			if (skip_comments && section.users?.length > 0) {
 				// 他者発言の改ざんをしないように
@@ -1258,7 +1258,7 @@ async function check_page(target_page_data, options) {
 
 			// handle [[link#anchor|display text]]
 			section.each('link', token => {
-				if (check_token.call(this, token, linking_page_data))
+				if (check_token.call(_this, token, linking_page_data))
 					changed = true;
 			}, { use_global_index: true });
 
@@ -1282,7 +1282,7 @@ async function check_page(target_page_data, options) {
 						if (!token.anchor_index)
 							continue;
 						token.anchor = CeL.wiki.parse.anchor.normalize_anchor(token.parameters[index]);
-						if (check_token.call(this, token, linking_page_data))
+						if (check_token.call(_this, token, linking_page_data))
 							changed = true;
 					}
 
