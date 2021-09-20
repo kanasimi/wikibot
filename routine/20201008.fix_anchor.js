@@ -6,6 +6,10 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ARGONAVIS from BanG Dream! 翻唱曲列表"
+node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
+
+// [[Political divisions of the United States#Counties in the United States|counties]]
+node 20201008.fix_anchor.js use_project=en only_modify_pages=Wikipedia:Sandbox "check_page=Political divisions of the United States"
 
 
 node 20201008.fix_anchor.js use_language=en
@@ -48,6 +52,8 @@ fix [[Special:PermanentLink]]
 假如是 level 3 之後的 section title，可 link 至上一層？
 
 read {{cbignore}}?
+
+當某個錨點1與錨點2同時存在，就不該設定錨點1→錨點2。
 
  */
 
@@ -155,6 +161,7 @@ async function main_process() {
 			force_check_talk_page: 'check_talk_page' in CeL.env.arg_hash ? CeL.env.arg_hash.check_talk_page : true,
 			// 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。這會檢查並刪除已不存在的 check_page 連結報告。
 			backlink_of: CeL.env.arg_hash.backlink_of,
+			only_modify_pages: CeL.env.arg_hash.only_modify_pages,
 			print_anchors: true,
 		});
 		return;
@@ -636,11 +643,15 @@ async function tracking_section_title_history(page_data, options) {
 				// 亦可能是搬到較遠地方。
 				const index = revision.added_section_titles.indexOf(section_title);
 				if (index >= 0) {
+					// 去掉被刪除又新增的，可能只是搬移。
+					CeL.debug('Ignore title moved inside the article: ' + section_title, 1, 'revision_post_processor');
 					revision.added_section_titles.splice(index, 1);
 				} else {
 					return true;
 				}
 			});
+			//console.trace(revision.removed_section_titles);
+			//console.trace(revision.added_section_titles);
 
 			/** {Boolean}有增加或減少的 anchor */
 			let has_newer_data = false;
@@ -987,26 +998,30 @@ async function check_page(target_page_data, options) {
 				return wikitext_to_add.trim() ? wikitext_to_add : wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
 			}
 
-			// Modify from 20200122.update_vital_articles.js
-			// 添加在首段文字或首個 section_title 前，最後一個 template 後。
-			wikitext_to_add = `{{Broken anchors|${LINKS_PARAMETER}=${wikitext_to_add}\n}}` + '\n\n';
-			parsed.each((token, index, parent) => {
-				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
-					const previous_node = index > 0 && parent[index - 1];
-					// 避免多個換行。
-					if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
-						parent[index - 1] = previous_node.replace(/\n$/, '');
+			wikitext_to_add = `{{Broken anchors|${LINKS_PARAMETER}=${wikitext_to_add}\n}}`;
+			parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
+			if (false) {
+				// @deprecated
+				// Modify from 20200122.update_vital_articles.js
+				// 添加在首段文字或首個 section_title 前，最後一個 hatnote template 後。
+				parsed.each((token, index, parent) => {
+					if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
+						const previous_node = index > 0 && parent[index - 1];
+						// 避免多個換行。
+						if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
+							parent[index - 1] = previous_node.replace(/\n$/, '');
+						}
+						parent.splice(index, 0, wikitext_to_add);
+						wikitext_to_add = null;
+						return parsed.each.exit;
 					}
-					parent.splice(index, 0, wikitext_to_add);
-					wikitext_to_add = null;
-					return parsed.each.exit;
+				}, {
+					max_depth: 1
+				});
+				if (wikitext_to_add) {
+					// 添加在頁面最前面。
+					parsed.unshift(wikitext_to_add);
 				}
-			}, {
-				max_depth: 1
-			});
-			if (wikitext_to_add) {
-				// 添加在頁面最前面。
-				parsed.unshift(wikitext_to_add);
 			}
 
 			// assert: !!parsed.toString() === true
@@ -1036,7 +1051,7 @@ async function check_page(target_page_data, options) {
 
 		//console.trace(anchor_token);
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
-			//Notification of broken anchor
+			// Notification of broken anchor
 			notification_name: 'anchor-fixing',
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
 			bot: 1,
@@ -1233,46 +1248,54 @@ async function check_page(target_page_data, options) {
 			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_KB(linking_page_data.wikitext.length)} chars`);
 		}
 
+		const { skip_comments } = wiki.latest_task_configuration.general;
 		let changed;
-		// handle [[link#anchor|display text]]
-		parsed.each('link', token => {
-			if (check_token.call(this, token, linking_page_data))
-				changed = true;
-		});
+		parsed.each_section(function (section, section_index) {
+			if (skip_comments && section.users?.length > 0) {
+				// 他者発言の改ざんをしないように
+				return;
+			}
 
-		parsed.each('template', (token, index, parent) => {
-			// handle {{Section link}}
-			if (wiki.is_template('Section link', token)) {
-				const ARTICLE_INDEX = 1;
-				if (token.parameters[ARTICLE_INDEX]) {
-					const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');
-					if (matched) {
-						token[token.index_of[ARTICLE_INDEX]] = token.parameters[ARTICLE_INDEX].toString().replace('#', '|');
-						parent[index] = token = CeL.wiki.parse(token.toString());
+			// handle [[link#anchor|display text]]
+			section.each('link', token => {
+				if (check_token.call(this, token, linking_page_data))
+					changed = true;
+			}, { use_global_index: true });
+
+			section.each('template', (token, index, parent) => {
+				// handle {{Section link}}
+				if (wiki.is_template('Section link', token)) {
+					const ARTICLE_INDEX = 1;
+					if (token.parameters[ARTICLE_INDEX]) {
+						const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');
+						if (matched) {
+							token[token.index_of[ARTICLE_INDEX]] = token.parameters[ARTICLE_INDEX].toString().replace('#', '|');
+							parent[index] = token = CeL.wiki.parse(token.toString());
+						}
 					}
+
+					token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
+					//console.trace(token);
+					token.article_index = ARTICLE_INDEX;
+					for (let index = 2; index < token.length; index++) {
+						token.anchor_index = token.index_of[index];
+						if (!token.anchor_index)
+							continue;
+						token.anchor = CeL.wiki.parse.anchor.normalize_anchor(token.parameters[index]);
+						if (check_token.call(this, token, linking_page_data))
+							changed = true;
+					}
+
+					return;
 				}
 
-				token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
-				//console.trace(token);
-				token.article_index = ARTICLE_INDEX;
-				for (let index = 2; index < token.length; index++) {
-					token.anchor_index = token.index_of[index];
-					if (!token.anchor_index)
-						continue;
-					token.anchor = CeL.wiki.parse.anchor.normalize_anchor(token.parameters[index]);
-					if (check_token.call(this, token, linking_page_data))
-						changed = true;
+				// handle {{Sfn}}
+				if (wiki.is_template(['Sfn', 'Sfnp'], token)) {
+					// TODO: 太過複雜 跳過
+					return;
 				}
 
-				return;
-			}
-
-			// handle {{Sfn}}
-			if (wiki.is_template(['Sfn', 'Sfnp'], token)) {
-				// TODO: 太過複雜 跳過
-				return;
-			}
-
+			}, { get_users: skip_comments, use_global_index: true });
 		});
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
@@ -1290,7 +1313,7 @@ async function check_page(target_page_data, options) {
 		return parsed.toString();
 	}
 
-	await wiki.for_each_page(link_from, resolve_linking_page, for_each_page_options);
+	await wiki.for_each_page(options.only_modify_pages?.split('|') || link_from, resolve_linking_page, for_each_page_options);
 	await working_queue;
 
 	await add_note_to_talk_page_for_broken_anchors(target_page_data);
