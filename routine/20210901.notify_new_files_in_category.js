@@ -1,5 +1,8 @@
 ﻿/*
 
+node routine/20210901.notify_new_files_in_category.js start_date=2021-05-01
+
+
 2021/9/1 13:31:50	初版試營運。
 2021/9/1 15:11:14	完成。正式運用。
 2021/9/11 16:4:26	從頁面為主的作業轉成以日期為主。
@@ -143,7 +146,7 @@ async function process_page(options) {
 			}
 		});
 		if (had_got) {
-			CeL.info('Had got ' + had_got);
+			CeL.info(`${process_page.name}: ${CeL.wiki.title_link_of(dated_page_title)}: Had got ${had_got}`);
 			continue;
 		}
 		Object.assign(options, { dated_page_sub_title, dated_page_data });
@@ -173,11 +176,14 @@ async function get_all_sub_categories(base_category_name, options) {
 			if (JSON.stringify(all_sub_categories_data.exclude_categories) !== JSON.stringify(exclude_categories)) cache_not_qualified.push('exclude_categories 篩選條件不同');
 			if (all_sub_categories_data.PATTERN_exclude_categories !== options.PATTERN_exclude_categories) cache_not_qualified.push('PATTERN_exclude_categories 篩選條件不同');
 			if (all_sub_categories_data.depth !== depth) cache_not_qualified.push('depth 不同');
+			const time_diff = Date.now() - Date.parse(all_sub_categories_data.date);
 			// 有效期限(options.cache_expires)個月。
-			if (!(Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond(options.cache_expires))) cache_not_qualified.push('cache 不在期限內');
+			if (!(time_diff < CeL.to_millisecond(options.cache_expires))) cache_not_qualified.push('cache 不在期限內');
 			// 2021/8/29 14:17:18	Echinodermata: 4509 sub-categories.
 			if (!Array.isArray(all_sub_categories_data.list)) cache_not_qualified.push('list 非 {Arraay}');
-			else if (all_sub_categories_data.list.length < 100 && !(Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond('1d'))) cache_not_qualified.push('list 過小');
+			else if (all_sub_categories_data.list.length < 100
+				// 本次執行(1天內)不重複取得這些小分類。
+				&& !(time_diff < CeL.to_millisecond('1d'))) cache_not_qualified.push('list 過小');
 		}
 
 		if (cache_not_qualified.length === 0) {
