@@ -71,10 +71,14 @@ prepare_directory(base_directory);
 
 async function main_process() {
 	let start_date = Date.parse(CeL.env.arg_hash?.start_date);
-	start_date = start_date ? new Date(start_date) : new Date();
-	//回溯兩周。
-	start_date.setUTCDate(start_date.getUTCDate() - 7 * 2);
-	//必須以UTC時間每日0時起算，否則會分配到錯誤日期。
+	if (start_date) {
+		start_date = new Date(start_date);
+	} else {
+		start_date = new Date();
+		// 預設回溯兩周。
+		start_date.setUTCDate(start_date.getUTCDate() - 7 * 2);
+	}
+	// 必須以UTC時間每日0時起算，否則會分配到錯誤日期。
 	start_date.setUTCHours(0, 0, 0, 0);
 	start_date = start_date.getTime();
 
