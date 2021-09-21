@@ -106,7 +106,7 @@ async function process_page(options) {
 	//console.trace(all_sub_categories_Set.size);
 
 	// for debug: get_all_sub_categories() only
-	return;
+	//return;
 
 	for (let start_date = new Date(options.start_date), end_date; ; start_date = end_date) {
 		end_date = start_date.getTime() + CeL.to_millisecond('1d');
@@ -177,7 +177,7 @@ async function get_all_sub_categories(base_category_name, options) {
 			if (!(Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond(options.cache_expires))) cache_not_qualified.push('cache 不在期限內');
 			// 2021/8/29 14:17:18	Echinodermata: 4509 sub-categories.
 			if (!Array.isArray(all_sub_categories_data.list)) cache_not_qualified.push('list 非 {Arraay}');
-			else if (all_sub_categories_data.list.length < 100) cache_not_qualified.push('list 過小');
+			else if (all_sub_categories_data.list.length < 100 && !(Date.now() - Date.parse(all_sub_categories_data.date) < CeL.to_millisecond('1d'))) cache_not_qualified.push('list 過小');
 		}
 
 		if (cache_not_qualified.length === 0) {
@@ -202,7 +202,7 @@ async function get_all_sub_categories(base_category_name, options) {
 	});
 
 	const list = Object.keys(category_tree.flated_subcategories);
-	CeL.info(`${get_all_sub_categories.name}: ${base_category_name}: ${list.length} sub-categories.`);
+	CeL.info(`${get_all_sub_categories.name}: ${base_category_name}: ${list.length} sub-categorie(s).`);
 	list.unshift(base_category_name);
 
 	all_sub_categories_data = {
