@@ -867,7 +867,7 @@ async function check_page(target_page_data, options) {
 			if (!options.summary.includes(message))
 				options.summary.push(message);
 		} else {
-			options.summary = [options.summary + ': ' + message];
+			options.summary = [options.summary + ': ', message];
 		}
 	};
 	// [[w:zh:Wikipedia:格式手册/链接#章節]]
@@ -1308,7 +1308,7 @@ async function check_page(target_page_data, options) {
 
 		if (!Array.isArray(this.summary))
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
-		this.summary = this.summary.join(', ');
+		this.summary = this.summary[0] + this.summary.slice(1).join(', ');
 		pages_modified++;
 		return parsed.toString();
 	}
