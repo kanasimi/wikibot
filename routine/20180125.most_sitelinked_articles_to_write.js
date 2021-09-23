@@ -17,7 +17,11 @@ https://github.com/Pascalco/DeltaBot/blob/master/badges.py
 
 
 TODO:
-write [[Template:Recent_changes_article_requests/list]]
+write:
+[[w:ja:Wikipedia:多数の言語版にあるが日本語版にない記事/仮リンク]]
+
+[[w:en:Template:Recent_changes_article_requests/list]]
+[[w:zh:Template:Recent_changes_article_requests/list]]
 
  */
 
@@ -395,6 +399,10 @@ function for_item_list_passed(item_list, options) {
 		content.push('|-\n| ' + link_count + ' || 共'
 		// \n\n
 		+ item_list.length + '條目。\n' + item_list.map(function(item_id) {
+			return '{{wikidata|label|edit|linked|Q' + item_id + '}}';
+			// @deprecated
+			return '[[{{label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
+			return '[[{{wikidata|label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
 			return '{{Illm|WD=Q' + item_id + '|preserve=1}}';
 		}).join(', '));
 	});
