@@ -1076,7 +1076,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 		// matched: [ all, id, name ]
 		var id = name.match(/^([^\s()]+)(?:\s*\(([^()]+)\))?$/);
 		if (!id) {
-			CeL.error('generate_data: Can not parse name: ' + name);
+			CeL.error('generate_data: Cannot parse name: ' + name);
 		} else if (id[2]) {
 			// "TD11(原百合颱風)"→{name:"百合",id:"TD11"}
 			name = id[2].match(/原(.+?)颱風/);
@@ -1452,7 +1452,10 @@ function for_each_JMA_typhoon(html) {
 // ============================================================================
 
 function start_PAGASA() {
-	var base_URL = 'http://bagong.pagasa.dost.gov.ph/';
+	return;
+
+	// http://bagong.pagasa.dost.gov.ph/
+	var base_URL = 'http://www.pagasa.dost.gov.ph/';
 
 	var media_data = {
 		base_URL : base_URL,
@@ -1461,9 +1464,94 @@ function start_PAGASA() {
 		author : '{{label|Q747963}}',
 		license : '{{PD-PhilippinesGov}}',
 		categories : [ 'Category:Typhoon track maps by PAGASA' ],
-		source_url : base_URL + 'tropical-cyclone/severe-weather-bulletin/2'
+		source_url : base_URL + 'index.php/agri-weather'
 	};
 
+	/**
+	 * <code>
+	[http://www.pagasa.dost.gov.ph/tropical-cyclone/tropical-cyclone-warning-for-agriculture Tropical Cyclone Warning for Agriculture] 資訊較多，但 [http://www.pagasa.dost.gov.ph/tropical-cyclone-bulletin-iframe/2 Tropical Cyclone Bulletin] 的圖比較清晰。
+	[http://www.pagasa.dost.gov.ph/index.php/agri-weather Tropical Cyclone for Agriculture] 可找到國際颱風名稱。 (search: CHANTHU CONSON site:http://www.pagasa.dost.gov.ph/)
+	</code>
+	 */
+
+	// Tropical Cyclone for Agriculture
+	function handle_with_TCA(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('PAGASA ' + cache_filename_label
+		//
+		+ ' menu.html'), html);
+
+		// <div class="col-md-12 article-header ">
+		var text = html.between('article-header');
+		text = text.between(null, {
+			tail : '<style type="text/css">'
+		}) || text;
+		media_data.synopsis = text
+				.between('<div class="panel-heading">Synopsis</div>');
+		text = text.between(null, '<div class="panel-heading">Synopsis</div>');
+		if (!text || !media_data.synopsis) {
+			return;
+		}
+
+		text.each_between('role="tabpanel"', null,
+		// <div role="tabpanel" class="tab-pane active" id="tc-303">
+		for_each_PAGASA_typhoon.bind(media_data));
+	}
+
+	// Tropical Cyclone Warning for Agriculture
+	function handle_with_TCWA(html) {
+		CeL.write_file(data_directory
+		//
+		+ (new Date).format('PAGASA ' + cache_filename_label
+		//
+		+ ' menu.html'), html);
+
+		// <div class="col-md-12 article-header">
+		var text = html.between('article-header');
+		text = text.between(null, {
+			tail : '<style type="text/css">'
+		}) || text;
+		if (!text) {
+			return;
+		}
+
+		if (false) {
+			/**
+			 * <code>
+			<ul class="nav nav-tabs" role="tablist">
+				<li role="presentation" class="active"><a href="#tc-303"  role="tab" data-toggle="tab">TCWA #10 –TROPICAL STORM “JOLINA”</a></li>
+				<li role="presentation"><a href="#tc-304"   role="tab" data-toggle="tab">TCWA #2 – TYPHOON “KIKO”</a></li>
+			</ul>
+			</code>
+			 */
+			html = text.between('role="tablist">', '</ul>');
+			if (!html) {
+				return;
+				// @deprecated
+				media_data.source_url = base_URL
+						+ 'tropical-cyclone-bulletin-iframe';
+				fetch(media_data.source_url).then(function(response) {
+					return response.text();
+				}).then(handle_with_SWB);
+				return;
+			}
+
+			var NO_hash = Object.create(null);
+			html.each_between('<li', '</li>', function(token) {
+				// console.log(token);
+				var name = token.between('<a').between('>', '<');
+				NO_hash[name] = token.between('data-header="', '"');
+			});
+		}
+
+		text.each_between('role="tabpanel"', null,
+		// <div role="tabpanel" class="tab-pane active" id="tc-303">
+		for_each_PAGASA_typhoon.bind(media_data));
+	}
+
+	// Severe Weather Bulletin
+	// @deprecated
 	function handle_with_SWB(html) {
 		CeL.write_file(data_directory
 		//
@@ -1471,86 +1559,40 @@ function start_PAGASA() {
 		//
 		+ ' menu.html'), html);
 
-		// <div class="col-md-12 article-header" id="swb">
-		var text = html.between('article-header');
-		if (!text) {
-			return;
-		}
-
-		html = text.between('role="tablist">', '</ul>');
-		if (!html) {
-			return;
-		}
-
-		var NO_hash = Object.create(null);
-		html.each_between('<li', '</li>', function(token) {
-			// console.log(token);
-			var name = token.between('<a').between('>', '<');
-			NO_hash[name] = token.between('href="', '"').replace(/^#/, '');
-		});
-
-		text = text.between(null, {
-			tail : '<style type="text/css">'
-		}) || text;
-		text.each_between('role="tabpanel"', null,
-		//
-		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
 	}
 
 	// http://bagong.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin
 	return fetch(media_data.source_url).then(function(response) {
 		return response.text();
-
-	}).then(function(html) {
-		CeL.write_file(data_directory
-		//
-		+ (new Date).format('PAGASA ' + cache_filename_label
-		//
-		+ ' menu.html'), html);
-
-		// <div class="col-md-12 article-header" id="swb">
-		var text = html.between('article-header');
-		if (!text) {
-			return;
-		}
-
-		html = text.between('role="tablist">', '</ul>');
-		if (!html) {
-			media_data.source_url = base_URL
-			//
-			+ 'tropical-cyclone/tropical-cyclone-warning-for-agriculture';
-			return;
-			fetch(media_data.source_url).then(function(response) {
-				return response.text();
-			}).then(handle_with_SWB);
-			return;
-		}
-
-		var NO_hash = Object.create(null);
-		html.each_between('<li', '</li>', function(token) {
-			// console.log(token);
-			var name = token.between('<a').between('>', '<');
-			NO_hash[name] = token.between('data-header="', '"');
-		});
-
-		text = text.between(null, {
-			tail : '<style type="text/css">'
-		}) || text;
-		text.each_between('role="tabpanel"', null,
-		//
-		for_each_PAGASA_typhoon.bind(media_data, NO_hash));
-	});
+	}).then(handle_with_TCA);
 }
 
-function for_each_PAGASA_typhoon(NO_hash, token) {
+function for_each_PAGASA_typhoon(/* NO_hash, */token) {
+	/**
+	 * <code>
+	<h3>TROPICAL CYCLONE WARNING<br><small><strong>TCWA #10 –TROPICAL STORM “JOLINA”</strong></small></h3>
+	</code>
+	 */
 	var name = token.between('<h3>', '</h3>');
-	name = name.between(null, '<br>') || name;
-	var NO = NO_hash[name];
-	name = name.split('&quot;');
-	var type = name[0];
-	name = normalize_name(name[1]);
+	name = name.between('<br>') || name;
+	var NO = name;
+	name = name.between('–').match(/(.+) “(.+)”/);
+	if (!name) {
+		CeL.error('for_each_PAGASA_typhoon: Cannot parse:\n' + token);
+	}
+	var type = name[1].toLowerCase();
+	name = normalize_name(name[2]);
+	// At 3:00 AM today, the center of the eye of Typhoon "KIKO" (CHANTHU) was
+	// estimated based on all available data
+	name = new RegExp(name + '"\\s+\\((.+)\\)', 'i');
+	console.trace(name);
+	name = this.synopsis.match(name);
+	if (name) {
+		name = name[1];
+	}
 
-	// console.log(NO_hash);
+	// console.log([ this, NO_hash, token ]);
+	// console.log([ this, token ]);
 	if (NO && (NO = NO.match(/#(\d+)/))) {
 		NO = NO[1];
 	}
@@ -1564,11 +1606,25 @@ function for_each_PAGASA_typhoon(NO_hash, token) {
 			NO = NO[1];
 	}
 
+	console.log([ this, name, type, NO ]);
+
 	// <h5 style="margin-bottom: 1px;">Issued at 11:00 pm, 03 August
 	// 2019</h5>
 	var date = token.between('<h5', '</h5>').between('>').replace(
-			/Issued at /i, '');
+			/Issued at[: ]*/i, '');
+	if (!date) {
+		// <h5>Issued at: 8AM Friday, September 10, 2021</h5>
+		date = this.synopsis.between('<h5', '</h5>').between('>').replace(
+				/Issued at[: ]*/i, '').replace(/(\d)([AP]M) [\w]+/, '$1:0 $2');
+		// console.log(date);
+	}
+	if (!name || !date) {
+		CeL.error('Cannot parse:\n' + this.synopsis);
+		return;
+	}
 	date = new Date(date + ' UTC+8');
+	// console.log(date);
+	throw 4564
 
 	var media_url = token.match(
 	// <img
@@ -1676,6 +1732,7 @@ function for_each_NRL_cyclone(media_data) {
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
+	console.trace(media_data.id);
 	[ 'Infrared-Gray', 'Visible' ].forEach(function(image_type) {
 		var image_directory_URL = media_data.base_URL + 'tcdat/tc'
 		// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
