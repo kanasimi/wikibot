@@ -311,7 +311,7 @@ function fill_type_name(media_data) {
 	// [[Category:2019 Pacific hurricane season]]
 	&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
 	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
-	: area === 'indian' ? 'cyclone'
+	: area.includes('indian') ? 'cyclone'
 	// [[Category:2019 North Indian Ocean cyclone season]]
 	// But JTWC using "Northwest Pacific/North Indian Ocean*"
 	// : area.includes('north indian') ? 'cyclone'
@@ -336,7 +336,8 @@ function upload_media(media_data) {
 	: area.includes('atlantic') ? 'Atlantic'
 	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
 	// TODO: 'South-West Indian Ocean'
-	: area === 'indian' ? 'North Indian Ocean'
+	// indian ocean
+	: area.includes('indian') ? 'North Indian Ocean'
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
 	: area === 'southern hemisphere' ? 'Southern Hemisphere'
 	// West Australian, Southern Indian Ocean?
@@ -344,7 +345,7 @@ function upload_media(media_data) {
 	//
 	: null;
 	if (!track_maps_category) {
-		CeL.error('Unknown area: ' + area);
+		CeL.error('upload_media: Unknown area: ' + area);
 		console.log(media_data);
 		return;
 	}
@@ -1732,12 +1733,13 @@ function for_each_NRL_cyclone(media_data) {
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
-	console.trace(media_data.id);
+	// console.trace(media_data.id);
 	[ 'Infrared-Gray', 'Visible' ].forEach(function(image_type) {
 		var image_directory_URL = media_data.base_URL + 'tcdat/tc'
 		// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
 		+ media_data.year + '/' + area_code + '/' + media_data.id
 				+ '/png_clean/' + image_type + '/';
+		// console.trace(image_directory_URL);
 		wiki.run(for_each_NRL_cyclone_typed_image.bind(null,
 				image_directory_URL, Object.assign({
 					image_type : image_type.toLowerCase()
@@ -1795,9 +1797,9 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 				if (media_data.media_url) {
 					for_each_NRL_cyclone_image(media_data);
 				} else {
-					CeL.error(
+					CeL.error('for_each_NRL_cyclone: '
 					//
-					'for_each_NRL_cyclone: Cannot get image url of NRL!');
+					+ 'Cannot get image url of NRL: ' + media_data.id + '!');
 					console.trace(media_data);
 				}
 			});
