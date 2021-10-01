@@ -81,7 +81,7 @@ if (data_directory || media_directory) {
 // altnames: ...
 
 function area_is_Southern_Hemisphere(area) {
-	return /South|Australian|India/i.test(area);
+	return /South|Australian|India/i.test(area) && !/North Indian/i.test(area);
 }
 
 function get_year_range(is_Southern_Hemisphere, date) {
@@ -311,7 +311,8 @@ function fill_type_name(media_data) {
 	// [[Category:2019 Pacific hurricane season]]
 	&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
 	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
-	: area.includes('indian') ? 'cyclone'
+	// 'indian ocean': e.g., @NRL
+	: area === 'indian' || area === 'indian ocean' ? 'cyclone'
 	// [[Category:2019 North Indian Ocean cyclone season]]
 	// But JTWC using "Northwest Pacific/North Indian Ocean*"
 	// : area.includes('north indian') ? 'cyclone'
@@ -336,8 +337,8 @@ function upload_media(media_data) {
 	: area.includes('atlantic') ? 'Atlantic'
 	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
 	// TODO: 'South-West Indian Ocean'
-	// indian ocean
-	: area.includes('indian') ? 'North Indian Ocean'
+	// 'indian ocean': e.g., @NRL
+	: area === 'indian' || area === 'indian ocean' ? 'North Indian Ocean'
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
 	: area === 'southern hemisphere' ? 'Southern Hemisphere'
 	// West Australian, Southern Indian Ocean?
