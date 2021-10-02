@@ -940,11 +940,11 @@ function for_each_CIMSS_typhoon(media_data, token) {
 	</code>
 	 */
 	var date = token.between('Visible/Shorwave IR Image', '"');
-	if (false && !date) {
-		console.log(token);
-		console.log(media_data);
-	}
 	date = date.match(/(\d{4})(\d{2})(\d{2})\/(\d{2})(\d{2})(\d{2})(UTC)/);
+	if (!date) {
+		console.log(token);
+		console.trace(media_data);
+	}
 	date = new Date(date.slice(1, 4).join('-') + ' '
 			+ date.slice(4, 7).join(':') + ' ' + date[7]);
 
