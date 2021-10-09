@@ -24,26 +24,32 @@ set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-prepare_directory(base_directory);
-
 // ----------------------------------------------
 
+// {{Old vfd multi}}
 const notification_template = `Template:${CeL.wiki.template_functions.Old_vfd_multi.main_name}`;
 
 // [[維基百科:刪除投票和請求/2006年4月13日]]開始有依照段落來分割討論的格式。
 // [[維基百科:刪除投票和請求/2006年5月2日]]開始有{{delh|}}標示處理結果。
-const start_date = '2006-05-02';
-// const start_date = '2008-02-12';
+const start_date = '2006-05-02'
+	// [[Wikipedia:頁面存廢討論/記錄/2021/09/15#Wikipedia:2021年基金會針對中文維基百科的行動/topic list]]
+	//&& '2021-09-15'
+	;
+
+const end_date = Date.now()
+	//&& Date.parse('2008/10/13')
+	//&& Date.parse(start_date)
+	;
 
 // 刪除投票分拆方案已經通過，並將於2008年8月12日起正式分拆。
 const revision_date = Date.parse('2008-08-12');
 
-const end_date = Date.now();
-// const end_date = Date.parse('2008/10/13');
-// const end_date = Date.parse(start_date);
+const DEBUG_PAGE = ''
+	//|| 'Wikipedia:2021年基金會針對中文維基百科的行動/topic list'
+	;
 
-const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated', FLAG_CONFLICTED = 'conflicted';
-// const FLAG_TO_ADD = 'need add';
+prepare_directory(base_directory, !DEBUG_PAGE);
+
 
 const using_cache = true;
 const deletion_flags_of_page_file = base_directory + 'deletion_flags_of_page.json';
@@ -58,9 +64,12 @@ const pages_to_modify = Object.create(null);
 const ignore_pages_file = base_directory + 'ignore_pages.json';
 const ignore_pages = using_cache && CeL.get_JSON(ignore_pages_file) || Object.create(null);
 
-const report_lines = [];
+const ignore_page_embeddedin_template = Object.create(null);
 
-const DEBUG_PAGE = '';
+const FLAG_CHECKED = 'OK', FLAG_TO_REMOVE = 'not found', FLAG_DUPLICATED = 'duplicated', FLAG_CONFLICTED = 'conflicted';
+// const FLAG_TO_ADD = 'need add';
+
+const report_lines = [];
 
 // ----------------------------------------------------------------------------
 
@@ -74,6 +83,10 @@ async function main_process() {
 	// const page_data = await wiki.page(notification_template);
 	// console.log(page_data.wikitext);
 
+	// 可忽略占位頁面。 e.g., [[w:zh:Wikipedia talk:2021年基金會針對中文維基百科的行動/topic list]]
+	(/* ignore_page_list = */await wiki.embeddedin('Template:CSD Placeholder'))
+		.forEach((page_data, index, list) => ignore_page_embeddedin_template[page_data.pageid] = list.title);
+
 	if (!using_cache || CeL.is_empty_object(deletion_flags_of_page)) {
 		await get_pages_embeddedin_notification_template();
 		using_cache && CeL.write_file(deletion_flags_of_page_file, deletion_flags_of_page);
@@ -81,8 +94,10 @@ async function main_process() {
 		CeL.info(`main_process: Using cache for deletion_flags_of_page: ${Object.keys(deletion_flags_of_page).length} records.`);
 	}
 
-	if (DEBUG_PAGE)
-		console.log(deletion_flags_of_page[DEBUG_PAGE]);
+	if (DEBUG_PAGE) {
+		//console.trace(deletion_flags_of_page);
+		console.trace(deletion_flags_of_page[DEBUG_PAGE]);
+	}
 	// return;
 
 	// ----------------------------------------------------
@@ -97,7 +112,7 @@ async function main_process() {
 	// 全副武裝測試，跑到這邊約需要 2.5小時。
 	CeL.info(`Check ${Object.keys(pages_to_modify).length} pages if need modify...`);
 	// console.log(pages_to_modify);
-	CeL.write_file('historical_deletion_records.pages_to_modify.json', pages_to_modify);
+	CeL.write_file(base_directory + 'historical_deletion_records.pages_to_modify.json', pages_to_modify);
 
 	// Wait 10 seconds.
 	//await new Promise(resolve => setTimeout(resolve, 10 * 1000));
@@ -105,7 +120,7 @@ async function main_process() {
 	await modify_pages();
 	using_cache && CeL.write_file(ignore_pages_file, ignore_pages);
 	// 若有更改過，則需要重新再取得。
-	CeL.remove_file(deletion_flags_of_page_file);
+	DEBUG_PAGE || CeL.remove_file(deletion_flags_of_page_file);
 
 	// ----------------------------------------------------
 
@@ -195,7 +210,7 @@ async function get_deletion_discussions() {
 	if (vfd_page_list.length === 0) {
 		CeL.warn('get_deletion_discussions: No archived deletion discussion to check!');
 	} else {
-		// console.log(vfd_page_list);
+		// console.trace(vfd_page_list);
 		await wiki.for_each_page(vfd_page_list, check_deletion_discussion_page, {
 			//hash: `[${vfd_page_list.length}] vfd_page_list`,
 			//last() { CeL.info(`get_deletion_discussions: last: ${vfd_page_list.length} vfd pages finished.`); },
@@ -484,14 +499,17 @@ async function check_deletion_page(JDN, page_data) {
 		return;
 	}
 
-	if (/{{ *CSD Placeholder *}}/.test(CeL.wiki.content_of(page_data))) {
-		// 可忽略占位頁面。 e.g., [[w:zh:Wikipedia talk:2021年基金會針對中文維基百科的行動/topic list]]
+	if (page_data.pageid in ignore_page_embeddedin_template) {
+		CeL.log(`${check_deletion_page.name}: 忽略包含 ${ignore_page_embeddedin_template[page_data.pageid]} 的頁面 ${CeL.wiki.title_link_of(page_data.title)}`);
 		return;
 	}
 
+	// 警告: page_data 不包含內容!
+
 	if (DEBUG_PAGE && page_data.title.includes(DEBUG_PAGE)) {
 		CeL.info(CeL.wiki.title_link_of(page_data));
-		console.log(CeL.wiki.parse.redirect(page_data));
+		console.trace(CeL.wiki.parse.redirect(page_data));
+		console.trace(page_data);
 	}
 
 	const normalized_main_page_title = page_data.title;
