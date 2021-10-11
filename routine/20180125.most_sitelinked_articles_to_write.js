@@ -399,11 +399,12 @@ function for_item_list_passed(item_list, options) {
 		content.push('|-\n| ' + link_count + ' || 共'
 		// \n\n
 		+ item_list.length + '條目。\n' + item_list.map(function(item_id) {
+			return '{{Illm|WD=Q' + item_id + '|preserve=1}}';
+			// {{wikidata|label|edit|linked|}}不夠理想: 不會顯示連結，有些沒有標籤。
 			return '{{wikidata|label|edit|linked|Q' + item_id + '}}';
 			// @deprecated
 			return '[[{{label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
 			return '[[{{wikidata|label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
-			return '{{Illm|WD=Q' + item_id + '|preserve=1}}';
 		}).join(', '));
 	});
 
