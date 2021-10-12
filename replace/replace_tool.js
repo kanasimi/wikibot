@@ -245,6 +245,29 @@ const command_line_argument_alias = {
 	insource: 'also_replace_text_insource',
 };
 
+function convert_special_move_to(move_to_link) {
+	switch (move_to_link) {
+		case 'DELETE_PAGE':
+			return DELETE_PAGE;
+
+		case 'REDIRECT_TARGET':
+			return REDIRECT_TARGET;
+
+		case 'subst:':
+		// 將會在後面 prepare_operation() 處理。
+
+		default:
+	}
+
+	return move_to_link;
+}
+
+function convert_special_move_to_of_task(task_configuration) {
+	for (const [move_from_link, move_to_link] of task_configuration) {
+		task_configuration[move_from_link] = convert_special_move_to(move_to_link);
+	}
+}
+
 function get_move_configuration_from_command_line(meta_configuration) {
 	if (CeL.env.arg_hash) {
 		for (const arg_name in command_line_argument_alias) {
@@ -255,18 +278,7 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			if (CeL.env.arg_hash.task_configuration) {
 				try {
 					const task_configuration_from_args = JSON.parse(CeL.env.arg_hash.task_configuration);
-					for (const move_from_link in task_configuration_from_args) {
-						switch (task_configuration_from_args[move_from_link]) {
-							case 'DELETE_PAGE':
-								task_configuration_from_args[move_from_link] = DELETE_PAGE;
-								break;
-							case 'REDIRECT_TARGET':
-								task_configuration_from_args[move_from_link] = REDIRECT_TARGET;
-								break;
-							default:
-						}
-
-					}
+					convert_special_move_to_of_task(task_configuration_from_args);
 					//console.log(CeL.env.arg_hash.task_configuration);
 					//console.trace(task_configuration_from_args);
 					meta_configuration.task_configuration_from_args = task_configuration_from_args;
@@ -551,7 +563,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
 			const title = normalize_page_token(index);
 			//if (title.includes('IOS (Apple)')) { console.trace(`Ignore ${title}`); continue; }
-			const move_to_link = normalize_page_token(index + 1);
+			const move_to_link = convert_special_move_to(normalize_page_token(index + 1));
 			const task_configuration = {
 				discussion_link,
 				...task_options,
@@ -812,7 +824,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		// TODO: [[ジェイソン・チャンドラー・ウィリアムス]]→[[ジェイソン・ウィリアムス (1975年生のバスケットボール選手)|ジェイソン・ウィリアムス]]
 		if (!('keep_display_text' in task_configuration) && typeof task_configuration.move_to_link === 'string'
-			// incase → [[title|display text]]
+			// incase → [[title|display text]]; task_configuration.move_to.display_text
 			&& !task_configuration.move_to_link.includes('|')
 			// 不包含 [[Category:立憲民主党の衆議院議員]]→[[Category:立憲民主党の衆議院議員 (日本 2017)]]
 			&& wiki.is_namespace(move_from_link, 'Main')
@@ -829,6 +841,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			CeL.warn('prepare_operation: Set .keep_display_text = true. 請注意可能有錯誤的 redirect、{{Pathnav}}、{{Main2}}、{{Navbox}} 等編輯!');
 			task_configuration.keep_display_text = true;
 		}
+		//console.trace(task_configuration);
 
 		// 議論場所 Links to relevant discussions
 		const discussion_link = task_configuration.discussion_link || meta_configuration.discussion_link;
@@ -953,18 +966,23 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		}
 
 		if (task_configuration.also_replace_display_text) {
-			if (!Array.isArray(task_configuration.also_replace_display_text))
+			if (!Array.isArray(task_configuration.also_replace_display_text)) {
+				// e.g., .also_replace_display_text = "/ムスターカス/ムスタカス/"
 				task_configuration.also_replace_display_text = [task_configuration.also_replace_display_text];
+			}
 			task_configuration.also_replace_display_text = task_configuration.also_replace_display_text.map(pattern => {
-				if (typeof pattern === 'string')
+				if (typeof pattern === 'string') {
+					// e.g., pattern = "/ムスターカス/ムスタカス/"
 					return pattern.to_RegExp({ allow_replacement: true });
+				}
+				// e.g., pattern = ["ムスターカス", "ムスタカス/"]
 				return pattern;
 			}).filter(pattern => {
 				if (Array.isArray(pattern) && pattern.length === 2 && pattern[0] && (pattern[1] || pattern[1] === ''))
 					return true;
 				if (CeL.is_RegExp(pattern) && typeof pattern.replace === 'function')
 					return true;
-				CeL.error(`Invalid .also_replace_display_text pattern: ${pattern}`);
+				CeL.error(`Ignore invalid .also_replace_display_text pattern: ${pattern}`);
 			});
 		}
 
@@ -1222,6 +1240,7 @@ async function get_list(task_configuration, list_configuration) {
 						task_configuration.also_replace_display_text.push(also_replace_display_text);
 						//console.trace(task_configuration.also_replace_display_text);
 					}
+					// TODO: [[マイク・ムスターカス|ムスターカス]] → [[マイク・ムスタカス|ムスタカス]]
 				}
 
 				//console.log(task_configuration.move_from);
@@ -1571,6 +1590,7 @@ function for_each_link(token, index, parent) {
 		// e.g., move_to_link: 'movie (1985)', 'movie (disambiguation)'
 		// TODO
 	}
+	//console.trace(token);
 
 	if (this.keep_display_text) {
 		// e.g., [[.move_from.page_title]] →
@@ -1605,16 +1625,26 @@ function for_each_link(token, index, parent) {
 		if (display_text || display_text === '') {
 			token[2] = display_text;
 		}
+		if (/*!this.keep_display_text &&*/ token[2] && !token[1] && token[0].toString().trim() === token[2].toString().trim()) {
+			// 必須(!this.keep_display_text)，預防 [[A]] → [[A|A]] → [[A]] → [[A (B)]]
+			// 經過 this.keep_display_text 後，可能獲得:
+			// [[A (B)|A (B)]] → [[A (B)]]
+			// [[title|title]] → [[title]]
+			// 也有可能原先就是這樣子的標示。
+			token.pop();
+		}
 	}
 	if (token[2] && this.also_replace_display_text) {
 		token[2] = token[2].toString();
 		// assert: this.also_replace_display_text = [ {RegExp} generated by "".to_RegExp(), [replace from, replace to], ... ]
 		this.also_replace_display_text.forEach(pattern => {
-			token[2] = pattern.replace ? pattern.replace(token[2]) : token[2].replace(pattern[0], pattern[1]);
+			// 「[[ノエル (2003年の映画)|NOEL ノエル]]」が「[[NOEL (2003年の映画)|NOEL NOEL]]」という修正になっていました
+			if (!token[2].includes(pattern.replace_to || pattern[1]))
+				token[2] = pattern.replace ? pattern.replace(token[2]) : token[2].replace(pattern[0], pattern[1]);
 		});
 	}
 	// console.log('~~~~~~~~');
-	//console.log(token);
+	//console.trace(token);
 
 	// 替換頁面。
 	// TODO: using original namesapce
@@ -1692,10 +1722,11 @@ function for_each_link(token, index, parent) {
 		token.pop();
 	} else if (!/ +\([^()]+\)$/.test(this.move_to.page_title) && this.move_from.page_title !== this.move_to.page_title
 		&& this.move_from.page_title === /*CeL.wiki.wikitext_to_plain_text(token[2], { no_upper_case_initial: true })*/CeL.HTML_to_Unicode(token[2].toString())) {
-		// [[AA]] → [[B]]			則同時把 [[AA#anchor|A&#65;]] → [[B#anchor|BB]]
+		// [[AA]] → [[B]]			則同時把 [[AA#anchor|A&#66;]] → [[B#anchor|BB]]
 		// @see .also_replace_display_text
 		token[2] = this.move_to.page_title;
 	}
+	//console.trace(token);
 
 	if (token[0] === this.page_data.title && token[1] && token[2]) {
 		// TODO: 應該確保不是重定向頁。
@@ -1918,6 +1949,7 @@ async function for_each_template(page_data, token, index, parent) {
 		if (task_configuration.move_to_link === DELETE_PAGE) {
 			return remove_token;
 		}
+
 		if (task_configuration.replace_parameters) {
 			if (CeL.is_Object(task_configuration.replace_parameters)) {
 				// e.g., `{{リンク修正依頼/改名|options={"replace_parameters":{"from_parameter":"to_parameter"},"parameter_name_only":true} }}`
@@ -1929,7 +1961,7 @@ async function for_each_template(page_data, token, index, parent) {
 		if (task_configuration.move_to?.page_name
 			&& task_configuration.move_from.ns === task_configuration.move_to.ns
 			&& task_configuration.move_from.ns === task_configuration.wiki.namespace('Template')) {
-			// 直接替換模板名稱。
+			// 直接替換模板名稱。注意: 這會刪除最後的 /[\t ]/
 			token[0] = task_configuration.move_to.page_name
 				// 保留模板名最後的換行。
 				+ token[0].toString().match(/\n?[ \t]*$/)[0];
