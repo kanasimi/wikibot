@@ -1,7 +1,12 @@
 ﻿/*
 
+node 20210923.update_foreign_featured_contents_list.js use_language=ja
+node 20210923.update_foreign_featured_contents_list.js use_language=zh
+
+
 2021/10/7 6:10:25	初版試營運。
-	完成。正式運用。
+2021/10/9 5:16:17	完成。正式運用 for jawiki。
+2021/10/13 16:8:42	adapt for zhwiki
 
 [[ja:Module:ISO639言語名]]
 [[en:Module:Language/data/ISO 639-1]]
@@ -22,7 +27,7 @@ CeL.run(['application.net.wiki.featured_content']);
 //login_options.API_URL = 'en';
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('ja');
+//set_language('ja');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
@@ -35,8 +40,7 @@ console.assert(MAX_ITEMS_TO_LIST > 1000);
 
 // 讀入手動設定 manual settings。
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(latest_task_configuration);
-	// console.log(wiki);
+	//console.log(wiki.latest_task_configuration);
 
 	// ----------------------------------------------------
 
@@ -76,7 +80,9 @@ async function main_process() {
 	}
 	//console.trace(all_featured_contents);
 
-	const badges_to_process = 'FA|GA|FL'.split('|').map(icon => {
+	const badges_to_process = (wiki.latest_task_configuration.general.badges_to_process || 'FA,GA,FL').split(',').map(icon => {
+		icon = icon.trim();
+		if (!icon) return;
 		let badge_entity_id;
 		if (featured_content_badges.some(_badge_entity_id => {
 			if (Wikimedia_article_badges[_badge_entity_id]?.icon === icon) {
@@ -89,6 +95,9 @@ async function main_process() {
 	}).filter(badge_entity_id => !!badge_entity_id);
 	// Should be ['Q17437796', 'Q17437798', 'Q17506997']
 	//console.trace(badges_to_process);
+	if (badges_to_process.length === 0) {
+		CeL.error('No badges_to_process set!');
+	}
 
 	for (const badge_entity_id_to_process of badges_to_process) {
 		console.assert(featured_content_badges.includes(badge_entity_id_to_process));
@@ -123,7 +132,7 @@ function get_language_name(options) {
 	const language_name = extract_label_of_language(wikipedia_sites, language_code);
 	if (language_name) {
 		// e.g., 'ヴォラピュク版ウィキペディア'
-		return language_name.replace(/版ウィキペディア/, '');
+		return language_name.replace(/版ウィキペディア|维基百科|維基百科/, '');
 	}
 	return extract_label_of_language(all_wikipedia_language_codes, language_code);
 }
@@ -271,6 +280,9 @@ async function for_badge_to_process(options) {
 	const FC_of_local_language = all_featured_contents[use_language];
 	//console.log(Wikimedia_article_badges[badge_entity_id_to_process]);
 	const local_badge_name = Wikimedia_article_badges[badge_entity_id_to_process].label;
+	wiki.latest_task_configuration.general.summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('更新%1', local_badge_name)) + ': ';
+	//console.trace(wiki.latest_task_configuration.general.summary_prefix);
+
 	const FC_sitelinks = (await wiki.data(`Wikipedia:${local_badge_name}`)).sitelinks;
 
 	const all_languages_to_process = Object.keys(all_featured_contents)
@@ -342,13 +354,13 @@ function parse_FC_data(entity_id, item, item_hash_with_language, partly) {
 	const entity_id_hash = item_hash_with_language[language_code] || (item_hash_with_language[language_code] = partly ? { partly: true } : Object.create(null));
 
 	//const entity_id = CeL.wiki.data.value_of(item.item).match(/(Q\d+)$/)[1];
-	const FC_data = entity_id_hash[entity_id] || {
+	const FC_data = entity_id_hash[entity_id] || (entity_id_hash[entity_id] = {
 		name: CeL.wiki.data.value_of(item.name),
 		linkcount: CeL.wiki.data.value_of(item.linkcount),
 		sitelink: decodeURIComponent(sitelink.between('wiki/')).replace(/_/g, ' '),
 
 		entity_id,
-	};
+	});
 
 	if (item.lang) {
 		FC_data.lang = CeL.wiki.data.value_of(item.lang);
@@ -365,10 +377,6 @@ function parse_FC_data(entity_id, item, item_hash_with_language, partly) {
 	if (item.sitelink_of_lang)
 		FC_data.sitelink_of_local_language = decodeURIComponent(CeL.wiki.data.value_of(item.sitelink_of_lang).between('wiki/')).replace(/_/g, ' ');
 
-	if (!entity_id_hash[entity_id]) {
-		entity_id_hash[entity_id] = FC_data;
-	}
-
 	add_entity_id_list(FC_data, item, 'badge');
 	add_entity_id_list(FC_data, item, 'type');
 
@@ -379,23 +387,23 @@ function parse_FC_data(entity_id, item, item_hash_with_language, partly) {
 
 async function get_featured_content_of_language(options) {
 	const label_languages = get_label_languages(options);
-	CeL.log_temporary(`${get_featured_content_of_language.name}: ${options?.language_code} (${label_languages})`);
+	const language_code = options?.language_code || general_language_code;
 
 	const { featured_content_badges } = options;
 
 	const FC_of_local_language = Object.create(null);
-	const LIMIT = 10000;
-	let offset = 0;
-	(await wiki.SPARQL(`
+	async function get_badges(badges) {
+		CeL.log_temporary(`${get_featured_content_of_language.name}: ${badges} of ${language_code} (${label_languages})`);
+		(await wiki.SPARQL(`
 SELECT ?lang ?name ?itemLabel ?sitelink ?linkcount ?item ?type ?sitelink_of_lang ?badge
 WHERE {
-	VALUES ?badges { ${featured_content_badges.map(id => 'wd:' + id).join(' ')} }
+	VALUES ?badges { ${badges.map(id => 'wd:' + id).join(' ')} }
 	?item wikibase:sitelinks ?linkcount.
 	?sitelink schema:name ?name;
 		schema:about ?item;
 		schema:inLanguage ?lang;
 
-		schema:isPartOf <https://${options?.language_code || general_language_code}.wikipedia.org/>;
+		schema:isPartOf <https://${language_code}.wikipedia.org/>;
 		wikibase:badge ?badges;
 		wikibase:badge ?badge.
 	OPTIONAL { ?item wdt:P31 ?type }
@@ -403,11 +411,29 @@ WHERE {
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "${label_languages}" }
 }
 `)).for_id((id, item) => {
-		parse_FC_data(id, item, FC_of_local_language);
-	});
+			parse_FC_data(id, item, FC_of_local_language);
+		});
+	}
+
+	const TOO_LARGE_LANGUAGES = ['en'];
+	// 這些是特定語言(TOO_LARGE_LANGUAGES)需要一個一個擷取的徽章。
+	const TOO_LARGE_BADGES = ['Q17437798'];
+	let badges = featured_content_badges;
+	if (TOO_LARGE_LANGUAGES.includes(language_code)) {
+		// 避免 timeout。
+		for (const badge of TOO_LARGE_BADGES) {
+			if (badges.includes(badge)) {
+				await get_badges([badge]);
+			}
+			badges = badges.filter(_badge => _badge !== badge);
+		}
+	}
+
+	// 擷取其他所有徽章。
+	await get_badges(badges);
 
 	//console.trace(FC_of_local_language);
-	return FC_of_local_language[options?.language_code];
+	return FC_of_local_language[language_code];
 }
 
 async function get_all_featured_contents(options) {
@@ -469,8 +495,7 @@ async function for_wikipedia_site(options) {
 
 	const too_many_items = FC_list.length > MAX_ITEMS_TO_LIST;
 	if (too_many_items) {
-		// 必須分類。
-		CeL.warn(`${for_wikipedia_site.name}: 必須分類: ${language_code} (${language_name})`);
+		CeL.warn(`${for_wikipedia_site.name}: 太多項目，必須裁減或分類: ${language_code} (${language_name})`);
 		/**<code>
 
 SELECT ?type (COUNT(?item) AS ?count)
@@ -536,9 +561,10 @@ ORDER BY DESC(?count)
 		if (FC_data.type_entity_ids) {
 			type_entity_ids = FC_data.type_entity_ids;
 			if (too_many_items) {
+				// 項目太多，只能顯現 entity id 最小（通常是最重要）的1個。
 				type_entity_ids = type_entity_ids.slice(0, 1);
 			} else {
-				// 放太多分類也沒意義。
+				// 放太多分類也沒意義。只顯示 entity id 最小（通常是最重要）的幾個。
 				type_entity_ids = type_entity_ids.slice(0, 3);
 			}
 			const type_count = type_entity_ids.length;
@@ -556,7 +582,7 @@ ORDER BY DESC(?count)
 		total_linkcount += FC_data.linkcount;
 		table.push(row);
 	});
-	// sort by FC数, local 版記事 + entity_id
+	// sort by FC数, local 版條目 + entity_id
 	// row.sort_key: 盡可能維持恆定用。
 	table.sort((_1, _2) => _2[4] - _1[4] || (_2.sort_key < _1.sort_key ? 1 : -1));
 
@@ -567,24 +593,33 @@ ORDER BY DESC(?count)
 		// reset index
 		table.forEach((row, index) => row[0] = index + 1);
 
-		let row = ['data-sort-type="number" | #', language_name + '版記事', '{{label|P31}}', `${local_language_name}版記事`,
+		let row = ['data-sort-type="number" | #', CeL.gettext('%1版條目', language_name), '{{label|P31}}', CeL.gettext('%1版條目', local_language_name),
 			// 言語版数
-			'data-sort-type="number" | 言語数'];
+			'data-sort-type="number" | ' + CeL.gettext('語言數')];
 		table.unshift(row);
 
-		row = ['', '平均', '', `${local_count.all} / ${count} (${(100 * local_count.all / count).to_fixed(1)}%) ${local_language_name}版あり`, (total_linkcount / count).to_fixed(1)];
+		row = ['', CeL.gettext('Average'), '',
+			//`${local_count.all} / ${count} (${(100 * local_count.all / count).to_fixed(1)}%) ${local_language_name}版あり`
+			CeL.gettext('有%1版', local_language_name) + `: ${local_language_code}/${language_code} (${language_name}) = ${local_count.all}/${count} (${(100 * local_count.all / count).to_fixed(1)}%)`
+			, (total_linkcount / count).to_fixed(1)];
 		row.class = 'sortbottom';
 		table.push(row);
 
-		row = ['', '合計', '', `${count - local_count.all - no_label_count} 赤リンク/違い青リンク、${no_label_count} ラベル欠如`, total_linkcount];
+		row = ['', CeL.gettext('Sum'), '', CeL.gettext('%1 同名條目或無此條目、%2 無標籤', count - local_count.all - no_label_count, no_label_count), total_linkcount.toLocaleString(use_language)];
 		row.class = 'sortbottom';
 		table.push(row);
 
 		//console.trace([CeL.wiki.site_name(language_code), FC_sitelinks[CeL.wiki.site_name(language_code)]]);
-		const caption = `[[:${language_code}:|${language_name}版]]の${FC_sitelinks[CeL.wiki.site_name(language_code)]?.title ? `[[:${language_code}:${FC_sitelinks[CeL.wiki.site_name(language_code)].title}|「Wikipedia:${local_badge_name}」一覧]]` : `「Wikipedia:${local_badge_name}」一覧`}`;
-		let content_to_write = [`{{ショートカット|WP:${Wikimedia_article_badges[badge_entity_id_to_process].icon}OL/${language_code}}}`, `{{Wikipedia:諸言語版の${local_badge_name}/ヘッダ}}`, '', '__TOC__'];
+		const caption = CeL.gettext('%1的%2',
+			CeL.wiki.title_link_of(`:${language_code}:`, CeL.gettext('%1版', language_name)),
+			FC_sitelinks[CeL.wiki.site_name(language_code)]?.title ? `[[:${language_code}:${FC_sitelinks[CeL.wiki.site_name(language_code)].title}|${CeL.gettext('「Wikipedia:%1」條目一覽', local_badge_name)}]]` : CeL.gettext('「Wikipedia:%1」條目一覽', local_badge_name)
+		);
+		let content_to_write = [`{{Shortcut|${CeL.gettext('Shortcut:%1/%2', Wikimedia_article_badges[badge_entity_id_to_process].icon, language_code)}}}`];
+		if (CeL.gettext('Wikipedia:諸語言的維基百科%1/header', local_badge_name))
+			content_to_write.push(`{{${CeL.gettext('Wikipedia:諸語言的維基百科%1/header', local_badge_name)}}}`);
+		content_to_write.push('', '__TOC__');
 		content_to_write.push(
-			'', `== ${sub_page_title || ''}記事一覧 ==`, CeL.wiki.array_to_table(table, {
+			'', `== ${sub_page_title || CeL.gettext('記事一覧')} ==`, CeL.wiki.array_to_table(table, {
 				class: 'wikitable sortable',
 				caption,
 			}));
@@ -597,21 +632,26 @@ ORDER BY DESC(?count)
 		}
 		content_to_write.push(
 			// ~~~~~
-			'', '== 集計 ==', `Total ${local_language_code}/${language_code} (${language_name}) = ${local_count.all}/${count} (${(100 * local_count.all / count).to_fixed(1)}%) articles existing in ${local_language_name}.`,
-			'', '== 関連項目 ==', `* ${caption}`, '', `{{世界の${Wikimedia_article_badges[badge_entity_id_to_process].icon}|state=uncollapsed}}`, `[[Category:諸言語版の${local_badge_name}|${language_code}]]`
+			//'', '== 集計 ==', `Total ${local_language_code}/${language_code} (${language_name}) = ${local_count.all}/${count} (${(100 * local_count.all / count).to_fixed(1)}%) articles existing in ${local_language_name}.`,
+			// https://translatewiki.net/wiki/MediaWiki:Seealso/ja
+			'', `== ${CeL.gettext('See also')} ==`, `* ${caption}`, '',
 		);
+		if (CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon))
+			content_to_write.push(`${CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon)}|state=uncollapsed}}`);
+		if (CeL.gettext('Category:諸語言的%1', local_badge_name))
+			content_to_write.push(`[[${CeL.gettext('Category:諸語言的%1', local_badge_name)}|${language_code}]]`);
 		// free
 		row = null;
 		table.truncate();
 
 		content_to_write = content_to_write.join('\n');
-		const page_title = `Wikipedia:諸言語版の${local_badge_name}/${language_name}版${sub_page_title ? `/${sub_page_title}` : ''}`;
+		const page_title = CeL.gettext('Wikipedia:諸語言的維基百科%1/%2版', local_badge_name, language_name) + (sub_page_title ? `/${sub_page_title}` : '');
 		try {
 			const _options = {
-				bot: 1, redirects: 1, summary: `[[Wikipedia:Bot作業依頼/定期作成ページのメンテナンス|${local_badge_name
-					}の更新]]: ${language_name} (${language_code}) ${local_count.all}/${count} ${Wikimedia_article_badges[badge_entity_id_to_process].icon}(s)`
+				bot: 1, redirects: 1, summary: `${wiki.latest_task_configuration.general.summary_prefix}${language_name} (${language_code}) ${_too_many_items ? MAX_ITEMS_TO_LIST + '/' : ''}${local_count.all}/${count} ${Wikimedia_article_badges[badge_entity_id_to_process].icon}(s)`
 			};
-			if (!/^.{1,15}?(?:語|方言)$/.test(language_name))
+			// 文言文版, 新共同语言版
+			if (!/^.{1,15}?(?:語|语言?|文|方言)$/.test(language_name))
 				_options.nocreate = 1;
 			await wiki.edit_page(page_title, page_data => {
 				//return content_to_write;
@@ -635,7 +675,7 @@ ORDER BY DESC(?count)
 	if (too_many_items) {
 		// 日本語版なし
 		const no_local_table = table.filter(row => row.no_local);
-		await writetable_to_page(no_local_table, '日本語版なし');
+		await writetable_to_page(no_local_table, CeL.gettext('無%1版條目一覽', local_language_name));
 	}
 
 	const page_title = await writetable_to_page(table);
@@ -669,7 +709,7 @@ async function update_all_sites_menu(options) {
 			continue;
 
 		const summary_table = summary_of_language[language_code];
-		if (!summary_table.count) {
+		if (!summary_table?.count) {
 			// 沒有這種類型的 FC。
 			continue;
 		}
@@ -677,7 +717,7 @@ async function update_all_sites_menu(options) {
 		article_count += summary_table.count;
 		article_with_local_count += summary_table.local_count.all;
 		no_label_count += summary_table.no_label_count;
-		const row = [++count, CeL.wiki.title_link_of(summary_table.page_title, summary_table.language_name), `[[:${language_code}:|${language_code}]]`, summary_table.count, summary_table.local_count.all, summary_table.no_label_count];
+		const row = [++count, CeL.wiki.title_link_of(summary_table.page_title, summary_table.language_name), `[[:${language_code}:|${language_code}]]`, summary_table.count.toLocaleString(use_language), summary_table.local_count.all.toLocaleString(use_language), summary_table.no_label_count.toLocaleString(use_language)];
 		_badge_entity_ids_to_count.forEach(badge_entity_id => {
 			const count = summary_table.local_count[badge_entity_id];
 			row.push(count);
@@ -690,36 +730,38 @@ async function update_all_sites_menu(options) {
 	// reset index
 	table.forEach((row, index) => row[0] = index + 1);
 
-	let row = ['data-sort-type="number" | #', '{{label|Q315}}', '{{label|P424}}', `data-sort-type="number" | ${Wikimedia_article_badges[badge_entity_id_to_process].icon}数`, `data-sort-type="number" | ${local_language_code}あり`, 'data-sort-type="number" | ラベル欠如'];
-	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(`data-sort-type="number" | ${local_language_code}ありの{{icon|${Wikimedia_article_badges[badge_entity_id].icon}}}{{label|${badge_entity_id}}}`));
+	let row = ['data-sort-type="number" | #', '{{label|Q315}}', '{{label|P424}}', `data-sort-type="number" | ${CeL.gettext('%1數', Wikimedia_article_badges[badge_entity_id_to_process].icon)}`, `data-sort-type="number" | ${CeL.gettext('有%1版', local_language_code)}`, `data-sort-type="number" | ${CeL.gettext('無標籤')}`];
+	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(`data-sort-type="number" | ${CeL.gettext('有%1版的%2%3', local_language_code, `{{icon|${Wikimedia_article_badges[badge_entity_id].icon}}}`, `{{label|${badge_entity_id}}}`)}`));
 	table.unshift(row);
 
-	row = ['', '平均', '', (article_count / count).to_fixed(1), (article_with_local_count / count).to_fixed(1), (no_label_count / count).to_fixed(1)];
+	row = ['', CeL.gettext('平均'), '', (article_count / count).to_fixed(1), (article_with_local_count / count).to_fixed(1), (no_label_count / count).to_fixed(1)];
 	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push((local_count[badge_entity_id] / count).to_fixed(1)));
 	row.class = 'sortbottom';
 	table.push(row);
-	row = ['', '合計', '', article_count, article_with_local_count, no_label_count];
+	row = ['', CeL.gettext('合計'), '', article_count.toLocaleString(use_language), article_with_local_count.toLocaleString(use_language), no_label_count.toLocaleString(use_language)];
 	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(local_count[badge_entity_id]));
 	row.class = 'sortbottom';
 	table.push(row);
 
 	const content_to_write = CeL.wiki.array_to_table(table, {
 		class: 'wikitable sortable',
-		caption: `諸言語版の${local_badge_name}統計`
+		caption: CeL.gettext('諸語言的維基百科%1統計', local_badge_name)
 	});
 	// free
 	row = null;
 	table.truncate();
 
-	const page_title = `Wikipedia:諸言語版の${local_badge_name}/統計`;
+	const page_title = CeL.gettext('Wikipedia:諸語言的維基百科%1/統計', local_badge_name);
 	await wiki.edit_page(page_title, page_data => content_to_write === page_data.wikitext ? Wikiapi.skip_edit : content_to_write, {
-		bot: 1, nocreate: 1, redirects: 1, summary: `[[Wikipedia:Bot作業依頼/定期作成ページのメンテナンス|${local_badge_name
-			}の更新]]: ${count} languages, ${article_with_local_count}/${article_count} ${Wikimedia_article_badges[badge_entity_id_to_process].icon}(s)`
+		bot: 1, nocreate: 1, redirects: 1, summary: `${wiki.latest_task_configuration.general.summary_prefix}${count} languages, ${article_with_local_count}/${article_count} ${Wikimedia_article_badges[badge_entity_id_to_process].icon}(s)`
 	});
 }
 
 async function update_navigation_template(options) {
 	const { badge_entity_id_to_process, local_badge_name, Wikimedia_article_badges, all_languages_to_process, summary_of_language, badge_entity_ids_to_count, local_language_code } = options;
+	const page_title = CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon);
+	if (!page_title) return;
+
 	const list = [];
 	for (const language_code of all_languages_to_process) {
 		const summary_table = summary_of_language[language_code];
@@ -733,6 +775,5 @@ async function update_navigation_template(options) {
 	// free
 	list.truncate();
 
-	const page_title = `Template:世界の${Wikimedia_article_badges[badge_entity_id_to_process].icon}`;
-	await wiki.edit_page(page_title, variable_Map, { bot: 1, nocreate: 1, redirects: 1, summary: `[[Wikipedia:Bot作業依頼/定期作成ページのメンテナンス|${local_badge_name}の更新]]: ${count} languages` });
+	await wiki.edit_page(page_title, variable_Map, { bot: 1, nocreate: 1, redirects: 1, summary: `${wiki.latest_task_configuration.general.summary_prefix}${count} languages` });
 }
