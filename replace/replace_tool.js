@@ -124,6 +124,11 @@ async function get_all_sections(meta_configuration) {
 			set_process('done');
 		}
 
+		matched = section_wikitext.match(/{{ *(BOTREQ *\| *(?:impossible|不受理) *[|}]/);
+		if (matched) {
+			set_process('deny');
+		}
+
 		matched = section_wikitext.match(/{{ *(確認) *[|}]/);
 		if (matched) {
 			set_process('completed');
@@ -784,7 +789,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		/**<code>
 
-		usage of task_configuration.move_from_link:
+		usage of task_configuration.move_from_link →:
 
 		page_name							→	替換所有連結到 page_name 的頁面。
 		page_name#anchor					→	僅針對特定 anchor，即 [[page_name#anchor]], [[page_name#anchor|display_text]] 替換。
@@ -794,12 +799,15 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		-----------------------------------------------------------------------------
 
-		usage of task_configuration.move_to_link:
+		usage of → task_configuration.move_to_link:
 
-		page_name							→	保留 anchor，自動判別是否該保留 display_text。
+		page_name							→	保留 anchor，自動判別是否該保留 display_text。可設定 .keep_display_text 以明確指定。
+												想清掉 display_text 應該採用 move_to_link=page_name|page_name 或是 .keep_display_text=false
 		page_name#							→	清空 anchor?
 		page_name#anchor					→	相當於替換成 [[page_name#anchor|#原display_text]]。
-		page_name|							→	相當於替換成 [[page_name#原anchor|]]。	注意: 不是清空 display_text! 想要清掉 display_text 應該採用 move_to_link=page_name|page_name 或是 .keep_display_text=false
+		page_name|							→	相當於替換成 [[page_name#原anchor|]]。	注意: 不是清空 display_text! ** 應明確指定要改成的標的，避免這種表示法。 **
+												想清掉 display_text 應該採用 move_to_link=page_name|page_name 或是 .keep_display_text=false
+												TODO: 在 <ref> 之類中將失效。
 		page_name|display_text				→	相當於替換成 [[page_name#原anchor|display_text]]。保留 anchor。
 		ns:page_name#anchor|display_text	→	亦替換 anchor + display_text。
 
@@ -1247,8 +1255,8 @@ async function get_list(task_configuration, list_configuration) {
 				//console.log(task_configuration.move_to);
 				if (task_configuration.move_from.page_title === task_configuration.move_to.page_title && !task_configuration.move_to.display_text) {
 					if (task_configuration.move_to.display_text === '') {
-						// 應明確設定
-						CeL.error(`若您想消除特定 display_text，應將 move_to_link 設定為 ${JSON.stringify(task_configuration.move_to_link.replace(/\|$/, ''))}。`);
+						// @see function prepare_operation()
+						CeL.error(`將替換成 [[${task_configuration.move_to_link}]]。應明確指定要改成的標的，避免這種表示法。若您想保持原 display_text，可將 move_to_link 設定為 ${JSON.stringify(`${task_configuration.move_from.page_title}|${task_configuration.move_from.page_title}`)}。`);
 					} else if (task_configuration.move_from.display_text) {
 						CeL.warn(`移動前後的頁面標題 ${JSON.stringify(list_configuration.move_from_link)} 相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！`);
 					}
