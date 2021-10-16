@@ -739,7 +739,7 @@ async function update_all_sites_menu(options) {
 	row.class = 'sortbottom';
 	table.push(row);
 	row = ['', CeL.gettext('合計'), '', article_count.toLocaleString(use_language), article_with_local_count.toLocaleString(use_language), no_label_count.toLocaleString(use_language)];
-	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(local_count[badge_entity_id]));
+	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(local_count[badge_entity_id].toLocaleString(use_language)));
 	row.class = 'sortbottom';
 	table.push(row);
 
