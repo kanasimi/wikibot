@@ -171,6 +171,10 @@ var section_column_operators = {
 			// CeL.info('NO_counter: ' + this.page.NO_counter);
 			if (!this.page.NO_counter)
 				this.page.NO_counter = 0;
+			// var section_title = section.section_title;
+			// var page_configuration = this.page.page_configuration;
+			// console.log([ section_index, section_title, page_configuration
+			// ]);
 			section_index = ++this.page.NO_counter;
 			// section.section_index 序號可能因 section_filter，沒有連號。
 			if (false && section.section_index >= 1)
@@ -187,10 +191,13 @@ var section_column_operators = {
 			return set_small ? '<small>' + title + '</small>' : title;
 		}
 
-		var title = section.section_title.link, adding_link,
+		var section_title = section.section_title;
+		var title = section_title.link, adding_link;
 		// 當標題過長時，縮小標題字型。
-		title_too_long = if_too_long(section.section_title.title), style = title_too_long;
+		var title_too_long = if_too_long(section.section_title.title), style = title_too_long;
 		title = small_title(title, title_too_long);
+
+		var page_configuration = this.page.page_configuration;
 
 		// console.log(section);
 		if (configuration.closed_style.show_subtopic
@@ -222,6 +229,16 @@ var section_column_operators = {
 				style = true;
 			}
 			title += '<br />→' + small_title(adding_link, title_too_long);
+
+		} else if (Array.isArray(page_configuration.level_filter)
+				&& section_title.level > page_configuration.level_filter[0]) {
+			if (false) {
+				title = '→'.repeat(section_title.level
+						- page_configuration.level_filter[0])
+						+ title;
+			}
+			// 處理次標題的 indent 縮進。
+			title = '\n: ' + title + '\n';
 		}
 
 		if (style) {
@@ -490,6 +507,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:互助客栈/条目探讨' ];
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 	// main_talk_pages = [ '萌娘百科 talk:讨论版/页面相关' ];
+	// main_talk_pages = [ 'Wikipedia:可靠来源/布告板' ];
 
 	// ----------------------------------------------------
 
@@ -704,7 +722,7 @@ function general_row_style(section, section_index) {
 	archived = section.archived && 'archived', move_to = section.moved
 			&& 'moved';
 
-	// console.log(section);
+	// console.trace(section);
 	this.each.call(section, function(token) {
 		if (token.type === 'transclusion'
 		// 本主題全部或部分段落文字，已移動至...
@@ -1562,7 +1580,9 @@ function generate_topic_list(page_data) {
 	if (page_configuration.sort_function)
 		TOC_list.sort(page_configuration.sort_function);
 	TOC_list.forEach(function(row) {
-		section_table.push('|-' + row.style + '\n| ' + row.join(' || '));
+		section_table.push('|-' + row.style + '\n| '
+		// 為了應付像處理次標題的 indent 縮進 的情況，不可用 `.join(' || '))`。
+		+ row.join('\n| '));
 	});
 	section_table.push('|}');
 	if (page_configuration.need_time_legend) {

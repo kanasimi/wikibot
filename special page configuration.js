@@ -328,7 +328,7 @@ var default_FC_vote_configurations = {
 			countdown : 'data-sort-type="number" | <span title="從上次編輯時間起算之截止期限。非從現在起的時間！">截止</span>'
 		}
 	}[use_language],
-	// 要篩選的章節標題層級。
+	// 要篩選的章節標題層級。 cf. .show_subtopic
 	level_filter : 3,
 
 	// 發言數量固定減去此數。
@@ -816,7 +816,7 @@ var page_configurations = {
 			last_botop_set : '<small title="bot owner, bot operator">Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
 		},
 		operators : {
-			// 議體進度狀態。
+			// 議體進度/狀態。
 			status : check_BOTREQ_status
 		}
 	},
@@ -882,7 +882,7 @@ var page_configurations = {
 			status : '進度',
 		},
 		operators : {
-			// 議體進度狀態。
+			// 議體進度/狀態。
 			status : check_BOTREQ_status
 		}
 	},
@@ -909,6 +909,7 @@ var page_configurations = {
 	// TODO: 維基百科:同行評審
 	'zhwiki:Wikipedia:典范条目评选/提名区' : Object.assign({
 		timezone : 8,
+		// 不顯示發言更新圖例 list_legend。
 		need_time_legend : false
 	}, default_FC_vote_configurations),
 	'zhwiki:Wikipedia:特色列表评选/提名区' : Object.assign({
@@ -963,15 +964,34 @@ var page_configurations = {
 			// 查詢進度狀態。
 			status : function(section) {
 				var status_token;
-				section.each('template', function(token) {
-					if (token.name === 'ARstatus') {
-						status_token = token;
-					}
+				section.each('Template:ARstatus', function(token) {
+					status_token = token;
 				});
 				return status_token && status_token.toString();
 			}
 		}
 	},
+	'zhwiki:Wikipedia:可靠来源/布告板' : Object.assign({
+		topic_page : general_topic_page,
+		timezone : 8,
+		// 要篩選的章節標題層級。
+		level_filter : [ 2, 3 ],
+		columns : 'NO;title;status;discussions;participants;last_user_set',
+		column_to_header : {
+			// 處理情況
+			status : '狀態'
+		},
+		operators : {
+			// 議體進度/狀態。
+			status : function check_Status_template(section, section_index) {
+				var status_token;
+				section.each('Template:Status', function(token) {
+					status_token = token;
+				});
+				return status_token && status_token.toString();
+			}
+		}
+	}, general_page_configuration),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
@@ -1021,7 +1041,7 @@ global.special_page_configuration = {
 			status : '進度',
 		},
 		operators : {
-			// 議體進度狀態。
+			// 議體進度/狀態。
 			status : check_MarkAsResolved_status
 		},
 		sort_function : function(row_1, row_2) {
