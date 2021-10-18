@@ -232,13 +232,9 @@ var section_column_operators = {
 
 		} else if (Array.isArray(page_configuration.level_filter)
 				&& section_title.level > page_configuration.level_filter[0]) {
-			if (false) {
-				title = '→'.repeat(section_title.level
-						- page_configuration.level_filter[0])
-						+ title;
-			}
 			// 處理次標題的 indent 縮進。
-			title = '\n: ' + title + '\n';
+			title = '\n' + ':'.repeat(section_title.level
+						- page_configuration.level_filter[0]) + ' ' + title;
 		}
 
 		if (style) {

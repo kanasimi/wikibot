@@ -971,7 +971,9 @@ var page_configurations = {
 			}
 		}
 	},
-	'zhwiki:Wikipedia:可靠来源/布告板' : Object.assign({
+	'zhwiki:Wikipedia:可靠来源/布告板' : Object.assign(Object.create(null),
+	//
+	general_page_configuration, {
 		topic_page : general_topic_page,
 		timezone : 8,
 		// 要篩選的章節標題層級。
@@ -991,7 +993,7 @@ var page_configurations = {
 				return status_token && status_token.toString();
 			}
 		}
-	}, general_page_configuration),
+	}),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
