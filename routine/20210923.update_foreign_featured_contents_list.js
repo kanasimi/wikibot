@@ -6,7 +6,7 @@ node 20210923.update_foreign_featured_contents_list.js use_language=zh
 
 2021/10/7 6:10:25	初版試營運。
 2021/10/9 5:16:17	完成。正式運用 for jawiki。
-2021/10/13 16:8:42	adapt for zhwiki
+2021/10/13 16:8:42	adapt for zhwiki 更新諸語言的維基百科典範條目
 
 [[ja:Module:ISO639言語名]]
 [[en:Module:Language/data/ISO 639-1]]
@@ -578,13 +578,15 @@ ORDER BY DESC(?count)
 		row.push(`[[:${language_code}:${FC_data.name}|${FC_data.name.replace(/ \([^()]+\)$/, '')}]]`,
 			type_entity_ids,
 			label_in_local_language,
-			FC_data.linkcount);
+			FC_data.linkcount.toLocaleString(use_language)
+		);
+		row.linkcount = FC_data.linkcount;
 		total_linkcount += FC_data.linkcount;
 		table.push(row);
 	});
 	// sort by FC数, local 版條目 + entity_id
 	// row.sort_key: 盡可能維持恆定用。
-	table.sort((_1, _2) => _2[4] - _1[4] || (_2.sort_key < _1.sort_key ? 1 : -1));
+	table.sort((_1, _2) => _2.linkcount - _1.linkcount || (_2.sort_key < _1.sort_key ? 1 : -1));
 
 	async function writetable_to_page(table, sub_page_title) {
 		const _too_many_items = table.length > MAX_ITEMS_TO_LIST;
@@ -718,6 +720,7 @@ async function update_all_sites_menu(options) {
 		article_with_local_count += summary_table.local_count.all;
 		no_label_count += summary_table.no_label_count;
 		const row = [++count, CeL.wiki.title_link_of(summary_table.page_title, summary_table.language_name), `[[:${language_code}:|${language_code}]]`, summary_table.count.toLocaleString(use_language), summary_table.local_count.all.toLocaleString(use_language), summary_table.no_label_count.toLocaleString(use_language)];
+		row.count = summary_table.count;
 		_badge_entity_ids_to_count.forEach(badge_entity_id => {
 			const count = summary_table.local_count[badge_entity_id];
 			row.push(count);
@@ -726,7 +729,7 @@ async function update_all_sites_menu(options) {
 		table.push(row);
 	}
 	// sort by FC数, language code
-	table.sort((_1, _2) => _2[3] - _1[3] || (_2[2] < _1[2] ? 1 : -1));
+	table.sort((_1, _2) => _2.count - _1.count || (_2[2] < _1[2] ? 1 : -1));
 	// reset index
 	table.forEach((row, index) => row[0] = index + 1);
 
