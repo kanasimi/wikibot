@@ -639,7 +639,7 @@ ORDER BY DESC(?count)
 			'', `== ${CeL.gettext('See also')} ==`, `* ${caption}`, '',
 		);
 		if (CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon))
-			content_to_write.push(`${CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon)}|state=uncollapsed}}`);
+			content_to_write.push(`{{${CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon)}|state=uncollapsed}}`);
 		if (CeL.gettext('Category:諸語言的%1', local_badge_name))
 			content_to_write.push(`[[${CeL.gettext('Category:諸語言的%1', local_badge_name)}|${language_code}]]`);
 		// free
