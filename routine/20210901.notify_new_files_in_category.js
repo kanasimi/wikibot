@@ -102,6 +102,7 @@ async function main_process() {
 // ----------------------------------------------------------------------------
 
 async function process_page(options) {
+	CeL.log_temporary(`Process ${CeL.wiki.title_link_of(options.base_page_title)}`);
 	const base_category_list = Array.isArray(options.base_category) ? options.base_category : [options.base_category];
 	const all_sub_categories_Set = new Set(await get_all_sub_categories(base_category_list[0], options));
 	//console.trace(all_sub_categories_Set.size);
@@ -235,7 +236,10 @@ async function get_all_sub_categories(base_category_name, options) {
 }
 
 async function get_file_created_list(start_date, end_date) {
-	return await wiki.categories(await wiki.allimages([start_date.toISOString(), end_date.toISOString()]), { clprop: 'sortkey' });
+	const file_created_list = await wiki.categories(await wiki.allimages([start_date.toISOString(), end_date.toISOString()]), { clprop: 'sortkey' });
+	//console.trace(file_created_list.slice(0, 4));
+	// TODO: Sort: old to new
+	return file_created_list;
 }
 
 async function process_date(start_date, end_date, options, all_sub_categories_Set) {
@@ -248,6 +252,7 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 	const file_created_list = options.file_created_list || await get_file_created_list(start_date, end_date);
 	//console.log(file_created_list);
 
+	CeL.log_temporary(`${CeL.wiki.title_link_of(options.dated_page_data)}: 本日共 ${file_created_list.length} 個新檔案，正篩選出所有包含 ${all_sub_categories_Set.size} 個分類中任何一個分類的新檔案。`);
 	const filtered_files = Object.create(null);
 	file_created_list.forEach(
 		file_categories_data => file_categories_data.some(
@@ -275,7 +280,7 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 		// No file in this range.
 		return;
 	}
-	contents_to_write.unshift(`* ${count} / all ${all_sub_categories_Set.size} new files in this day`,
+	contents_to_write.unshift(`* ${count} / all ${file_created_list.length} new files in this day`,
 		// gallery parameters
 		`<gallery ${options.gallery_attributes?.trim() || ''}>`);
 	contents_to_write.push('</gallery>');
@@ -288,7 +293,7 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 	}
 
 	//console.log([end_date, filtered_files]);
-	//console.trace([options.dated_page_data.title, contents_to_write, options.date_range]);
+	//console.trace([CeL.wiki.title_link_ofoptions.dated_page_data), contents_to_write, options.date_range]);
 
 	const base_category_list = (Array.isArray(options.base_category) ? options.base_category : [options.base_category])
 		.map(base_category => CeL.wiki.title_link_of(wiki.to_namespace(base_category, 'Category')));
@@ -330,15 +335,18 @@ async function process_date(start_date, end_date, options, all_sub_categories_Se
 		const default_list_prefix = '\n* ';
 		const link_wikitext = CeL.wiki.title_link_of(dated_page_sub_title, options.date_range && options.date_range[1]
 			? `{{complex date|-|${options.date_range[0].format('%Y-%2m-%2d')}|${options.date_range[1].format('%Y-%2m-%2d')}}}`
-			: start_date.format('{{date|%Y|%m}}'));
-		parsed.each('list', the_first_list_token => {
-			const list_prefix = the_first_list_token.at(-1)?.list_prefix || '';
-			the_first_list_token.push((list_prefix.startsWith('\n') ? list_prefix : default_list_prefix) + link_wikitext);
-			had_link = true;
-			return parsed.each.exit;
+			: start_date.format('{{date|%Y|%m}}')) + ` (${all_sub_categories_Set.size.toLocaleString('en')} categories)`;
+		// 應該放在最後一個列表。 e.g., [[User:AleXXw/St. Pölten]]
+		let latest_list_token;
+		parsed.each('list', list_token => {
+			latest_list_token = list_token;
 		}, { max_depth: 0 });
-		if (had_link)
+
+		if (latest_list_token) {
+			const list_prefix = latest_list_token.at(-1)?.list_prefix || '';
+			latest_list_token.push((list_prefix.startsWith('\n') ? list_prefix : default_list_prefix) + link_wikitext);
 			return parsed.toString();
+		}
 		return parsed.toString() + default_list_prefix + link_wikitext;
 	}, {
 		nocreate: 1,
