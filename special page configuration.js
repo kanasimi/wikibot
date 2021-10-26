@@ -989,7 +989,7 @@ var page_configurations = {
 				var status_token;
 				section.each('Template:Status', function(token) {
 					status_token = token;
-					token.push('no_prefix=1');
+					token.push('prefix=');
 					return section.each.exit;
 				});
 				return status_token && status_token.toString();
