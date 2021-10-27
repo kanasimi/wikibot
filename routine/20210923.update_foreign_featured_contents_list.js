@@ -585,7 +585,8 @@ ORDER BY DESC(?count)
 					row.sort_key = FC_data.label + entity_id_String;
 				}
 			}
-			label_in_local_language += `([[d:${FC_data.entity_id}]])`;
+			if (!wiki.latest_task_configuration.general.no_wikidata_links)
+				label_in_local_language += ` ([[d:${FC_data.entity_id}]])`;
 		}
 
 		// Will timeout: `{{wikidata|label|linked|${type_entity_id}}}`
@@ -610,7 +611,8 @@ ORDER BY DESC(?count)
 		} else {
 			type_entity_ids = '';
 		}
-		row.push(`[[:${language_code}:${FC_data.name}|${FC_data.name.replace(/ \([^()]+\)$/, '')}]]`,
+		row.push(
+			`[[:${language_code}:${FC_data.name}|${FC_data.name.replace(/ \([^()]+\)$/, '')}]]`,
 			type_entity_ids,
 			label_in_local_language,
 			FC_data.linkcount.toLocaleString(use_language)
