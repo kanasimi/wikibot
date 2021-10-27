@@ -4,6 +4,7 @@
 node 20150916.Multiple_issues.v4.js use_language=zh
 node 20150916.Multiple_issues.v4.js use_language=en
 node 20150916.Multiple_issues.v4.js use_language=simple
+node 20150916.Multiple_issues.v4.js use_language=ks
 
 2020/5/13 6:44:35	初版試營運 因為 enwiki 量大，不得不採用 inplace 處理法。
 
@@ -74,7 +75,7 @@ async function adapt_configuration(latest_task_configuration) {
 		} else {
 			return true;
 		}
-	});
+	}).map(template_name => wiki.to_namespace(template_name, 'template'));
 	maintenance_template_list = wiki.to_namespace(maintenance_template_list, 'template');
 
 	await wiki.register_redirects([configuration.Multiple_issues_template_name].append(maintenance_template__category_list));
@@ -96,7 +97,7 @@ async function adapt_configuration(latest_task_configuration) {
 	 * 
 	 * @see [[Category:刪除模板]]
 	 */
-	configuration[gettext('須排除之維護模板名稱列表')] = configuration[gettext('須排除之維護模板名稱列表')] || [];
+	configuration[gettext('須排除之維護模板名稱列表')] = configuration[gettext('須排除之維護模板名稱列表')]?.map(template_name => wiki.to_namespace(template_name, 'template')) || [];
 
 	// get_maintenance_template_list()
 	// 解析出所有維護模板別名
@@ -126,7 +127,8 @@ async function adapt_configuration(latest_task_configuration) {
 		if (!Array.isArray(categories)) {
 			categories = [categories];
 		}
-		categories = categories.map(category_name => `[[Category:${category_name}]]\n`).join('');
+		categories = categories.map(category_name => `[[${wiki.to_namespace(category_name.replace(/^:/, ''), 'Category')}]]`).join('\n');
+		//console.trace(categories);
 	} else {
 		categories = '';
 	}
