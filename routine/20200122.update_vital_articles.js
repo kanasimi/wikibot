@@ -48,8 +48,7 @@ const category_level_of_page = page_info_cache?.category_level_of_page || Object
 /** {Object}listed_article_info[title]=[{level,topic},{level,topic},...] */
 const listed_article_info = Object.create(null);
 /**
- * {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the
- * talk page] = {level,topic}
+ * {Object}need_edit_VA_template[main page title needing to edit {{VA}} in the talk page] = {level,topic}
  */
 const need_edit_VA_template = Object.create(null);
 const VA_template_name = 'Vital article';
@@ -461,6 +460,19 @@ async function for_each_list_page(list_page_data) {
 	// parent_section
 	let latest_main_level_section;
 
+	function set_redirect_to(redirect_from, normalized_redirect_to) {
+		[icons_of_page, list_page_level_of_page, category_level_of_page, listed_article_info].forEach(list => {
+			if (redirect_from in list) {
+				if (normalized_redirect_to in list) {
+					CeL.error(`${set_redirect_to.name}: For ${redirect_from}→${normalized_redirect_to}, the target is existed in the list!`);
+					return;
+				}
+				list[normalized_redirect_to] = list[redirect_from];
+				//delete list[redirect_from];
+			}
+		});
+	}
+
 	function simplify_link(link_token, normalized_page_title) {
 		// console.log(link_token);
 		if (link_token[2]
@@ -848,6 +860,8 @@ async function for_each_list_page(list_page_data) {
 				console.log(page_data);
 			}
 			fixed_list.push(link_token[0] + '→' + normalized_redirect_to);
+			// 預防頁面被移動後被當作已失去資格，確保執行 check_page_count() 還是可以找到頁面資料。
+			set_redirect_to(link_token[0], normalized_redirect_to);
 			link_token[0] = normalized_redirect_to;
 			simplify_link(link_token, normalized_redirect_to);
 		}, { no_edit: true, no_warning: true, redirects: false });
@@ -1184,45 +1198,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, {
 			'1': value => wikitext_to_add + '\n' + (value ? value.toString().trimStart() : '')
 		}, 'value_only');
-		if (false) {
-			// @deprecated
-			const parameter_name = 1;
-			const index = WikiProject_banner_shell_token.index_of[parameter_name];
-			if (index > 0) {
-				const original_text = WikiProject_banner_shell_token.parameters[parameter_name].toString().trim() + '\n';
-				// put {{Vital article}} at the front of the parameter
-				WikiProject_banner_shell_token[index] = wikitext_to_add + original_text;
-			} else
-				WikiProject_banner_shell_token.push(wikitext_to_add);
-		}
 
 	} else {
 		// There are copies @ 20201008.fix_anchor.js
-		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object) + '\n\n';
+		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext_to_add.trim()}`);
 		parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
-		if (false) {
-			// @deprecated
-			// 添加在首段文字或首個 section_title 前，最後一個 hatnote template 後。
-			parsed.each((token, index, parent) => {
-				if (typeof token === 'string' ? token.trim() : token.type !== 'transclusion') {
-					const previous_node = index > 0 && parent[index - 1];
-					// 避免多個換行。
-					if (typeof previous_node === 'string' && /\n\n/.test(previous_node)) {
-						parent[index - 1] = previous_node.replace(/\n$/, '');
-					}
-					parent.splice(index, 0, wikitext_to_add);
-					wikitext_to_add = null;
-					return parsed.each.exit;
-				}
-			}, {
-				max_depth: 1
-			});
-			if (wikitext_to_add) {
-				// 添加在頁面最前面。
-				parsed.unshift(wikitext_to_add);
-			}
-		}
 	}
 
 	const wikitext = parsed.toString();
