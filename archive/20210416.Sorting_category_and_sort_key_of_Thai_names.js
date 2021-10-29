@@ -103,7 +103,7 @@ async function main_process() {
 
 	await wiki.edit_page('Wikipedia:WikiProject Thailand/Nonbiographical pages transcluding Thai name categories',
 		'The pages below are pages transcluding Thai name categories but detect as non-biographical articles.\n'
-		+ CeL.wiki.array_to_table(non_biographical_pages.map(page_title => CeL.wiki.title_link_of(page_title)), 'no_header'), {
+		+ CeL.wiki.array_to_table(non_biographical_pages.map(page_title => CeL.wiki.title_link_of(page_title)), {is_header : false}), {
 		summary: summary_prefix + `Report ${non_biographical_pages.length} non-biographical articles.`
 	});
 
