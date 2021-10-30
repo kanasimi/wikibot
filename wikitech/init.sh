@@ -80,7 +80,7 @@ cd ~
 
 # ---------------------------------------------------------
 
-printf "$SP\nCreate linking...\n"
+printf "$SP\nCreate links...\n"
 
 #cd ~
 
@@ -105,7 +105,7 @@ printf "$SP\nCopy configurations...\n"
 # chmod o-x . && rm "wiki configuration.js"
 
 if [ -r "/home/kanashimi/wiki configuration.js" ]; then
- [ -f "wiki configuration.js" ] && mv -f "wiki configuration.js" "archive/"
+ [ -f "wiki configuration.js" ] && /bin/mv -f "wiki configuration.js" "archive/"
  # copy contents only.
  /bin/cp "/home/kanashimi/wiki configuration.js" "wiki configuration.js"
 fi
