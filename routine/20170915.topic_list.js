@@ -10,6 +10,7 @@ jstop cron-20170915.topic_list.wikisource;
 jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
 jstop cron-20170915.topic_list.moegirl;
+jstop cron-20170915.topic_list.wiktionary;
 
 /usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh-classical
@@ -19,6 +20,7 @@ jstop cron-20170915.topic_list.moegirl;
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
 /usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
+/usr/bin/jstart -N cron-20170915.topic_list.wiktionary -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wiktionary
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。

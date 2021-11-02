@@ -977,7 +977,8 @@ var page_configurations = {
 		topic_page : general_topic_page,
 		timezone : 8,
 		// 要篩選的章節標題層級。
-		level_filter : [ 2, 3 ],
+		// 可以只收錄一級標題嗎？—— Eric Liu
+		// level_filter : [ 2, 3 ],
 		columns : 'NO;title;status;discussions;participants;last_user_set',
 		column_to_header : {
 			// 處理情況

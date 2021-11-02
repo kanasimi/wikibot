@@ -5,7 +5,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
-node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ARGONAVIS from BanG Dream! 翻唱曲列表"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出场的铁路车站列表"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 
 // [[Political divisions of the United States#Counties in the United States|counties]]
@@ -17,6 +17,7 @@ node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
 node 20201008.fix_anchor.js use_language=simple
 node 20201008.fix_anchor.js use_project=zhmoegirl
+node 20201008.fix_anchor.js use_project=wiktionary
 
 fix archived:
 node 20201008.fix_anchor.js use_language=en archives
@@ -92,7 +93,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 	let { general } = latest_task_configuration;
 	if (!general) {
-		CeL.error(`{adapt_configuration.name}: No general configuration got!`);
+		CeL.error(`${adapt_configuration.name}: No general configuration got!`);
 		general = latest_task_configuration.general = Object.create(null);
 	}
 
