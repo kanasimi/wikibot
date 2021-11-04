@@ -85,13 +85,26 @@ async function adapt_configuration(latest_task_configuration) {
 	// ----------------------------------------------------
 
 	const { Topics } = latest_task_configuration;
-	Object.keys(Topics).forEach(page_and_section => {
-		const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#') || DEFAULT_LEVEL;
-		if (!Topics[page_and_section_id]) {
-			Topics[page_and_section_id] = Topics[page_and_section];
-			delete Topics[page_and_section];
+	if (Topics) {
+		for (let [page_and_section, topic] of Object.entries(Topics)) {
+			const matched = topic.match(/^(.+?)\/(.+)$/);
+			topic = matched ? {
+				topic: matched[1],
+				subpage: matched[2]
+			} : { topic };
+
+			const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#') || DEFAULT_LEVEL;
+			if (!Topics[page_and_section_id]) {
+				Topics[page_and_section_id] = topic;
+				delete Topics[page_and_section];
+			} else if (page_and_section_id === page_and_section) {
+				// `page_and_section` is page and section id
+				Topics[page_and_section_id] = topic;
+			} else {
+				CeL.warn(`${adapt_configuration.name}: Duplicated topic configuration! ${page_and_section_id} and ${page_and_section}`);
+			}
 		}
-	});
+	}
 
 	console.log(latest_task_configuration);
 }
@@ -449,16 +462,41 @@ async function for_each_list_page(list_page_data) {
 	CeL.assert([CeL.wiki.content_of(list_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(list_page_data));
 	// console.log(parsed);
 	parsed.each_section();
-	// console.log(parsed.subsections);
-	// console.log(parsed.subsections[0]);
-	// console.log(parsed.subsections[0].subsections[0]);
+	// console.log(parsed.child_section_titles);
+	// console.log(parsed.child_section_titles[0]);
+	// console.log(parsed.child_section_titles[0].child_section_titles[0]);
 
 	const article_count_of_icon = Object.create(null);
 
 	const need_check_redirected = Object.create(null);
-	let latest_section;
-	// parent_section
-	let latest_main_level_section;
+	let latest_section_title;
+
+	let topic_of_this_section, latest_topic_section;
+	function set_latest_section_title(token) {
+		(latest_section_title = token).item_count = 0;
+
+		// 判別 topic: 從本 section 一直向上追溯所有 parent section。
+		const Topics = wiki.latest_task_configuration.Topics;
+		//console.log(Topics);
+		if (!Topics || latest_topic_section === latest_section_title)
+			return;
+		latest_topic_section = latest_section_title;
+
+		const page_id = level_of_page_title(list_page_data) || DEFAULT_LEVEL;
+		let section_title_now = latest_section_title;
+		do {
+			//console.trace(section_title_now);
+			if (section_title_now) {
+				const section_title = section_title_now.title.toString().replace(PATTERN_count_mark, '').trim();
+				const page_section_id = `${page_id}#${section_title}`;
+				topic_of_this_section = Topics[page_section_id];
+				//if (topic_of_this_section) console.trace([page_section_id, topic_of_this_section]);
+			} else {
+				topic_of_this_section = Topics[page_id];
+				//console.trace([page_id, topic_of_this_section]);
+			}
+		} while (!topic_of_this_section && (section_title_now = section_title_now?.parent_section_title));
+	}
 
 	function set_redirect_to(redirect_from, normalized_redirect_to) {
 		[icons_of_page, list_page_level_of_page, category_level_of_page, listed_article_info].forEach(list => {
@@ -530,29 +568,15 @@ async function for_each_list_page(list_page_data) {
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
-				const main_level_section_title = latest_main_level_section?.title.toString().replace(PATTERN_count_mark, '').trim();
-				const page_id = level_of_page_title(list_page_data) || DEFAULT_LEVEL;
-				const page_section_id = `${page_id}#${main_level_section_title}`;
-				//console.log(wiki.latest_task_configuration.Topics);
-				//console.log([normalized_page_title, page_section_id]);
 				const article_info = {
 					level: level_of_page_title(list_page_data, true),
-					link: latest_section?.link,
+					link: latest_section_title?.link,
 				};
 				listed_article_info[normalized_page_title].push(article_info);
 
-				const topic = wiki.latest_task_configuration.Topics
-					&& (wiki.latest_task_configuration.Topics[page_section_id]
-						|| wiki.latest_task_configuration.Topics[page_id]);
-				if (topic) {
-					const matched = topic.match(/^(.+?)\/(.+)$/);
-					if (matched) {
-						article_info.topic = matched[1];
-						article_info.subpage = matched[2];
-					} else {
-						article_info.topic = topic;
-					}
-					//console.log([normalized_page_title, article_info]);
+				if (topic_of_this_section) {
+					Object.assign(article_info, topic_of_this_section);
+					//console.trace([normalized_page_title, article_info]);
 				}
 
 				if (normalized_page_title in icons_of_page) {
@@ -566,8 +590,8 @@ async function for_each_list_page(list_page_data) {
 				// Good: Always count articles.
 				// NG: The bot '''WILL NOT COUNT''' the articles listed in level
 				// other than current page to prevent from double counting.
-				if (latest_section) {
-					latest_section.item_count++;
+				if (latest_section_title) {
+					latest_section_title.item_count++;
 				}
 
 				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
@@ -766,7 +790,7 @@ async function for_each_list_page(list_page_data) {
 			// ''Latin America'' (9 articles)
 			&& PATTERN_counter_title.test((wikitext += next_wikitext).trim())) {
 			// console.log(token);
-			const level = '='.repeat(latest_section.level + 1);
+			const level = '='.repeat(latest_section_title.level + 1);
 			// The bot only update counter in section title. The counter will
 			// update next time.
 			parent[index] = `\n${level} ${wikitext.trim()} ${level}`;
@@ -797,14 +821,12 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (token.type === 'section_title') {
+			//if (list_page_data.title.includes('Military personnel, revolutionaries, and activists')) console.log(token);
 			// e.g., [[Wikipedia:Vital articles]]
 			if (/See also/i.test(token[0].toString())) {
 				return true;
 			}
-			(latest_section = token).item_count = 0;
-			if (latest_section.level < 3) {
-				latest_main_level_section = latest_section;
-			}
+			set_latest_section_title(token);
 			return;
 		}
 
@@ -816,12 +838,12 @@ async function for_each_list_page(list_page_data) {
 	// -------------------------------------------------------
 
 	function set_section_title_count(parent_section) {
-		const item_count = parent_section.subsections.reduce((item_count, subsection) => item_count + set_section_title_count(subsection), parent_section.item_count || 0);
+		const item_count = parent_section.child_section_titles.reduce((item_count, subsection) => item_count + set_section_title_count(subsection), parent_section.item_count || 0);
 
 		if (parent_section.type === 'section_title') {
 			// $1: Target number
 			parent_section[0] = parent_section.join('')
-				.replace(PATTERN_count_mark, `(${item_count.toLocaleString()}$1 article${item_count >= 2 ? 's' : ''})`);
+				.replace(PATTERN_count_mark, `(${item_count.toLocaleString()}$1 ${item_count >= 2 ? 'articles' : 'article'})`);
 			// console.log(parent_section[0]);
 			parent_section.truncate(1);
 		}
@@ -861,6 +883,7 @@ async function for_each_list_page(list_page_data) {
 			}
 			fixed_list.push(link_token[0] + '→' + normalized_redirect_to);
 			// 預防頁面被移動後被當作已失去資格，確保執行 check_page_count() 還是可以找到頁面資料。
+			// TODO: 必須捨棄 catch。
 			set_redirect_to(link_token[0], normalized_redirect_to);
 			link_token[0] = normalized_redirect_to;
 			simplify_link(link_token, normalized_redirect_to);
@@ -1058,7 +1081,9 @@ async function maintain_VA_template() {
 			//redirects: 1,
 
 			// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
-			nocreate: 1,
+			// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
+			//nocreate: false,
+
 			bot: 1,
 			log_to: null,
 			summary: talk_page_summary_prefix
