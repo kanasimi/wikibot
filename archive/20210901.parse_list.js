@@ -39,7 +39,8 @@ prepare_directory(base_directory);
 
 // ----------------------------------------------------------------------------
 
-const Gallery_list = `Category:Political maps of the United States, Category:Election maps | User:Magog the Ogre/Political maps | DAYS_PER_GALLERY(11)| Category:Maps of countries visited by US presidents‎ | Category:International relations maps of the United States | Category:Political maps of Ohio as of the 2000 United States Census | Category:Fictitious U.S. presidential election maps
+const Gallery_list = `
+Category:Political maps of the United States, Category:Election maps | User:Magog the Ogre/Political maps | DAYS_PER_GALLERY(11)| Category:Maps of countries visited by US presidents‎ | Category:International relations maps of the United States | Category:Political maps of Ohio as of the 2000 United States Census | Category:Fictitious U.S. presidential election maps
 Category:Rail transport in the United Kingdom(depth=10) | User:Mattbuck/Railways | 250x250 DAYS_PER_GALLERY(31) | Category:London Transport Museum | Category:English Electric locomotives | Category:Archer M. Huntington | Category:Jawaharlal Nehru | Category:Photographs by Geof Sheppard | Category:Shropshire Union Canal | Category:Amsterdam Central station | Category:Rotterdam Central station | Category:Thomas the Tank Engine and Friends | Category:People associated with rail transport in the United Kingdom
 Category:Maps of Iowa | User:Philosopher/Maps of Iowa | 300x300
 Category:Politicians of Iowa | User:Philosopher/Politicians of Iowa | 150x150
@@ -49,7 +50,7 @@ Category:Museums in Japan‎ | User:Nightingale/Museums in Japan‎ | 150x150
 Category:Landkreis Freising | User:Vuxi/Neue Bilder in Freising | 150x150 DAYS_PER_GALLERY(31) | Category:Roman Catholic Archdiocese of Munich and Freising
 Category:Gambia | User:Atamari/BotGallery/Gambia | 150x150
 Category:Pigeons | User:PigeonIP/Tauben | 150x150 | Category:Deutsche Pute | Category:Duck breeds with EE-Standard | Category:Pigeons in heraldry | Category:Holy Spirit in heraldry
-Category:Poultry | User:PigeonIP/Geflügel | 150x150 | Category:Pigeon breeds by EE Breed Groups‎ | Category:Chicken restaurants
+Category:Poultry | User:PigeonIP/Geflügel | 150x150 | Category:Pigeon breeds by EE Breed Groups‎ | Category:Chicken restaurants | Category:Disney ducks
 Category:St. Pölten | User:AleXXw/St. Pölten | 150x150 DAYS_PER_GALLERY(31) | Category:Churches in the Roman Catholic Diocese of Sankt Pölten
 Category:South Tyrol | User:Mai-Sachme/South Tyrol | 150x150
 Category:Equestrian sports | User:Nordlicht8/Equestriansports | 150x150 | Category:Male equestrians | Category:Horsewomen | Category:Postillions | Category:Horse riders in art | Category:Racing silks | Category:Temples of Athena | Category:Knights in art | Category:Horse riding in Christian art
@@ -74,6 +75,7 @@ Category:Roads in Finland(depth=5) | User:Apalsola/recent uploads/Roads in Finla
 Category:Churches in Finland | User:Apalsola/recent uploads/Churches in Finland | 200x200 | Category:Lutherans from Finland
 Category:Kainuu | User:Apalsola/recent uploads/Kainuu | 200x200
 Category:Lapland, Finland | User:Apalsola/recent uploads/Lapland, Finland | 200x200
+
 Category:Wiesbaden | User:SBT/Wiesbaden | 200x200
 Category:Railway coaches of Germany, Category:Multiple units, motor coaches and railcars of Germany, Category:Locomotives of Germany, Category:Trains at train stations in Germany, Category:Rail transport companies of Germany | User:Nordlicht8/Rail Germany | 200x200
 Category:São Paulo, Category:São Paulo (city) | User:Jcornelius/São Paulo | 200x200
@@ -118,16 +120,13 @@ Category:Falkland Islands | User:4ing/Falkland Islands | 150x150 NO_SUBPAGE | Ca
 Category:Vorarlberg | User:Plani/Vorarlberg new files | 150x150 | Category:Lake Constance | Category:Allgäuer Alpen
 Category:Konrad Stürtzel von Buchheim | User:HeinrichStuerzl/Konrad Stürtzel von Buchheim | 150x150 NO_SUBPAGE
 Category:Mobile upload | User:Didym/Mobile upload | 150x150 DAYS_PER_GALLERY(5)
-Category:Bundeswehr | User:Indeedous/Recent Uploads/Bundeswehr | 150x150 NO_SUBPAGE | Category:Enigma machine
 Category:Jena | User:Indeedous/Recent Uploads/Jena | 150x150 NO_SUBPAGE | Category:Carl Zeiss lenses | Category:Carl Zeiss microscopes | Category:Karl Marx | Category:Lafayette Street (Manhattan) | Category:Things named after Jena
 Category:Schöneiche bei Berlin | User:Indeedous/Recent Uploads/Schöneiche | 150x150 NO_SUBPAGE
-Category:Cottbus | User:Indeedous/Recent Uploads/Cottbus | 150x150 NO_SUBPAGE
 Category:Hennigsdorf | User:Indeedous/Recent Uploads/Hennigsdorf | 150x150 NO_SUBPAGE
 Category:Train stations in Thuringia | User:Indeedous/Recent Uploads/Bahnhöfe Thüringen | 150x150 NO_SUBPAGE
 Category:Ambulances in Germany | User:Indeedous/Recent Uploads/Rettungsdienst | 150x150 NO_SUBPAGE
 Category:Canton of Thurgau | User:Pingelig/Recent uploads/Canton of Thurgau | 200x200 | Category:Stadler Rail | Category:Carl Gustav Jung | Category:Stadler Rail | Category:Carl Gustav Jung
 Category:Heilbronn, Category:Landkreis Heilbronn, Category:Hohenlohekreis, Category:Rhein-Neckar-Kreis, Category:Neckar-Odenwald-Kreis, Category:Lucas Cranach d. Ä., Category:Lucas Cranach the Younger | User:TRXX-TRXX/NewFiles | 150x150 | Category:Flora of Rhein-Neckar-Kreis | Category:Flora of Rhein-Neckar-Kreis by month
-Category:Ennepe-Ruhr-Kreis | User:Holger1959/EN | NO_SUBPAGE
 Category:Rail transport in South Korea | User:-revi/Korail | 150x150 DAYS_PER_GALLERY(31), NO_INDEX, SHOW_FILENAME
 Category:History of Georgia, Category:Culture of Georgia | User:Kober/Georgia | 200x200 NO_SUBPAGE | Category:Stalinism | Category:Saint George churches | Category:Things named after Joseph Stalin | Category:Armenian language | Category:Colchis | Category:Saint George | Category:Recipients of St. George's Order of Victory | Category:Soviet Union | Category:Joseph Stalin | Category:Black Sea | Category:Recipients of the Presidential Order of Excellence
 Category:Rail transport infrastructure in Japan | User:콩가루/일본철도 | 200x200 DAYS_PER_GALLERY(31), NO_INDEX
@@ -164,11 +163,11 @@ Category:Elbriot 2014| User:Huhu Uet/Festivals/Elbriot 2014 | 230x230
 Category:Karlsruhe | User:ireas/OgreBot/Karlsruhe | 230x230 NO_INDEX
 Category:Clocks | User:Tokfo/Clocks | 200x200 NO_INDEX | Category:Rolex Sports Car Series | Category:GPS receivers | Category:Jubilee Medal "50 Years of Victory in the Great Patriotic War 1941–1945" | Category:Apple Inc. | Category:Healy Hall
 Category:Hamburg Metal Dayz 2014 | User:Huhu Uet/Festivals/Hamburg Metal Dayz 2014 | 230x230
-Category:Trier(depth=10) | User:Berthold_Werner/OgreBot| NO_SUBPAGE, WARNING | Category:Karl Marx
 Category:East Frisia | User:Matthias_Süßen/East Frisia | 150x150 DAYS_PER_GALLERY(31), MODE("packed")
 Category:PD KoreaGov, Category:PD-South Korea | User:-revi/PD-대한민국 | 150x150 NO_INDEX, DAYS_PER_GALLERY(31), SHOW_FILENAME
 Category:Uetersener Hafennacht 2014 | User:Huhu Uet/Festivals/Uetersener Hafennacht 2014 | 230x230
 Category:Streets in Paris | User:Paris 16/Recent uploads | 200x200 DAYS_PER_GALLERY(3) | Category:Musée du Louvre | Category:Institut de France | Category:Ministère de la Culture (France) | Category:Events at Hôtel du ministre des Affaires étrangères | Category:Burials at Père Lachaise Cemetery | Category:European Space Agency | Category:Senate of France | Category:People buried at the Panthéon | Category:Alumni of the Académie Carmen | Category:People associated with Eiffel Tower | Category:French Open tennis champions | Category:Louis Figuier | Category:Zoo de Vincennes | Category:Collections of Musée national de la Marine | Category:Burials at the Père-Lachaise Cemetery | Category:Copies of Nike of Samothrace | Category:Architects of the Palais du Louvre | Category:Storming of the Bastille, 14 July 1789 | Category:Moulin Rouge | Category:Gilbert du Motier, Marquis de La Fayette
+
 Category:National Museum of Korea | User:-revi/국립중앙박물관 | 150x150 NO_INDEX, DAYS_PER_GALLERY(31), SHOW_FILENAME
 Category:Wacken Roadshow 2014 | User:Huhu Uet/Festivals/Wacken Roadshow 2014 | 230x230
 Category:Elmshorner Eisvergnügen 2014 | User:Huhu Uet/Festivals/Elmshorner Eisvergnügen 2014 | 230x230
@@ -237,7 +236,7 @@ Category:Primal Fear supp.: Brainstorm & Striker | User:Huhu Uet/Festivals/Prima
 Category:Van Wolfen "Cigarbox-Experiment" Vol. 1 | User:Huhu Uet/Festivals/Van Wolfen "Cigarbox-Experiment" Vol. 1 | 235x235
 Category:Uploaded with video2commons | User:Atlasowa/New video2commons | 200x200 SHOW_FILENAME
 Category:Uploaded with videoconvert | User:Atlasowa/New videoconvert | 200x200 SHOW_FILENAME
-Category:Logos(depth=0), Category:Unidentified logos‎(depth=0) | User:Josve05a/Logos | DAYS_PER_GALLERY(11)
+Category:Logos(depth=0), Category:Unidentified logos(depth=0) | User:Josve05a/Logos | DAYS_PER_GALLERY(11)
 Category:Heathen Rock Festival 2016 | User:Huhu Uet/Festivals/Heathen Rock Festival 2016 | 235x235
 Category:CeBIT supported by Wikimedia Deutschland 2016 | User:Huhu Uet/Events/CeBIT 2016 | 235x235
 Category:Featured pictures of project Festivalsommer, Category:Quality images of project Festivalsommer, Category:Valued images of project Festivalsommer | User:Atamari/BotGallery/Festivalsommer gallery of FI, QI and VI | 150x150 DAYS_PER_GALLERY(31)
@@ -336,7 +335,6 @@ Category:Allgäu (depth=15) | User:Hilarmont/Allgäu | 100x100 DAYS_PER_GALLERY(
 Category:Sports (depth=3) | User:Ytoyoda/botgalleries/Sports | 100x100 DAYS_PER_GALLERY(3)
 Category:Ball games (depth=3) | User:Ytoyoda/botgalleries/Ballsports | 100x100 DAYS_PER_GALLERY(8)
 Category:Association football (depth=2) | User:Ytoyoda/botgalleries/Associationfootball | 100x100 DAYS_PER_GALLERY(30)
-Category:Warsaw (depth=10) | User:Cybularny/Warsaw | DAYS_PER_GALLERY(16) | Category:Honorary citizens of Warsaw | Category:Births in Warsaw
 Category:Upper Austria | User:Luftschiffhafen/Upper Austria | 150x150 | Category:People of Upper Austria | Category:Adolf Hitler | Category:People of Upper Austria in art
 Category:Wangen im Allgäu (depth=12) | User:Altsprachenfreund/Neue Wangener Bilder | NO_SUBPAGE
 Category:Hafengeburtstag 2018 | User:Huhu Uet/Festivals/Hafengeburtstag 2018 | 240x240
@@ -422,7 +420,8 @@ Category:Typewriters | User:PiotrekD/Typewriters | DAYS_PER_GALLERY(31) | Catego
 Category:Landkreis Nienburg/Weser | User:Clic/Landkreis Nienburg/Weser | 150x150 SHOW_FILENAME
 Category:Main-Tauber-Kreis | User:Triplec85/Main-Tauber-Kreis | DAYS_PER_GALLERY(31), SHOW_FILENAME
 Category:Stolpersteine | User:GeorgDerReisende/Stolpersteine | DAYS_PER_GALLERY(31), NO_INDEX, SHOW_FILENAME
-Category:Tyrol (state) | User:Luftschiffhafen/Tyrol | 150x150`.split('\n');
+Category:Tyrol (state) | User:Luftschiffhafen/Tyrol | 150x150
+`.split('\n').filter(line => !!line);
 
 // ----------------------------------------------------------------------------
 
@@ -435,15 +434,14 @@ Category:Tyrol (state) | User:Luftschiffhafen/Tyrol | 150x150`.split('\n');
 })();
 
 async function main_process() {
-	CeL.info(Gallery_list.length + ' galleries');
-	const Subscribers = Gallery_list.map(parse_gallery);
 	const file_name = '20210901.gallery_configuration.txt';
-	//CeL.remove_file(file_name);
+	CeL.info(`${file_name}: ${Gallery_list.length} galleries`);
+	const Subscribers = Gallery_list.map(parse_gallery);
 	CeL.write_file(file_name, Subscribers.map(subscriber => {
 		return `|-
 | ${CeL.wiki.title_link_of(subscriber[0])} || <syntaxhighlight lang="JSON">
 ${JSON.stringify(subscriber[1], null, '\t')}
-</syntaxhighlight>`;
+</syntaxhighlight> ||`;
 	}).join('\n'));
 }
 
@@ -463,6 +461,8 @@ function parse_gallery(gallery_line) {
 	if (base_category.length < 2 && typeof base_category[0] === 'string')
 		base_category = base_category[0];
 	options.base_category = base_category;
+	// The default is 11,
+	options.gallery_per_month = 3;
 
 	let exclude_categories = gallery_line.slice(3);
 	if (exclude_categories.length > 0)
