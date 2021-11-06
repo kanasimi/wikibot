@@ -1117,7 +1117,7 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 		// cache
 		var type = null;
 
-		// 標的語言wikipedia存在所欲連接/指向的頁面。
+		// 標的語言 wikipedia 存在所欲連接/指向的頁面。
 		titles.forEach(function(title) {
 			wiki.page(title).edit(function(page_data) {
 				var
