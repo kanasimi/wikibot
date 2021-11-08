@@ -93,7 +93,7 @@ async function adapt_configuration(latest_task_configuration) {
 				subpage: matched[2]
 			} : { topic };
 
-			const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#') || DEFAULT_LEVEL;
+			const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#').replace(/^([^#]+)#$/, '$1') || DEFAULT_LEVEL;
 			if (!Topics[page_and_section_id]) {
 				Topics[page_and_section_id] = topic;
 				delete Topics[page_and_section];
@@ -471,31 +471,39 @@ async function for_each_list_page(list_page_data) {
 	const need_check_redirected = Object.create(null);
 	let latest_section_title;
 
-	let topic_of_this_section, latest_topic_section;
-	function set_latest_section_title(token) {
-		(latest_section_title = token).item_count = 0;
+	let topic_of_current_section, latest_topic_section;
+	set_latest_section_title();
+	function set_latest_section_title(section_title_token) {
+		latest_section_title = section_title_token;
+		if (latest_section_title)
+			latest_section_title.item_count = 0;
 
 		// 判別 topic: 從本 section 一直向上追溯所有 parent section。
 		const Topics = wiki.latest_task_configuration.Topics;
 		//console.log(Topics);
-		if (!Topics || latest_topic_section === latest_section_title)
+		if (!Topics || latest_section_title && latest_topic_section === latest_section_title)
 			return;
 		latest_topic_section = latest_section_title;
 
 		const page_id = level_of_page_title(list_page_data) || DEFAULT_LEVEL;
 		let section_title_now = latest_section_title;
-		do {
-			//console.trace(section_title_now);
-			if (section_title_now) {
-				const section_title = section_title_now.title.toString().replace(PATTERN_count_mark, '').trim();
-				const page_section_id = `${page_id}#${section_title}`;
-				topic_of_this_section = Topics[page_section_id];
-				//if (topic_of_this_section) console.trace([page_section_id, topic_of_this_section]);
-			} else {
-				topic_of_this_section = Topics[page_id];
-				//console.trace([page_id, topic_of_this_section]);
+		topic_of_current_section = null;
+		while (section_title_now) {
+			const section_title = section_title_now.title.toString().replace(PATTERN_count_mark, '').trim();
+			//console.trace(section_title);
+			const page_section_id = `${page_id}#${section_title}`;
+			topic_of_current_section = Topics[page_section_id];
+			if (topic_of_current_section) {
+				// console.trace([page_section_id, topic_of_current_section]);
+				break;
 			}
-		} while (!topic_of_this_section && (section_title_now = section_title_now?.parent_section_title));
+			section_title_now = section_title_now.parent_section_title;
+		}
+		topic_of_current_section = topic_of_current_section || Topics[page_id];
+
+		if (false && section_title_token?.title.toString().includes('Crocodilia')) {
+			console.trace([page_id, topic_of_current_section]);
+		}
 	}
 
 	function set_redirect_to(redirect_from, normalized_redirect_to) {
@@ -574,8 +582,8 @@ async function for_each_list_page(list_page_data) {
 				};
 				listed_article_info[normalized_page_title].push(article_info);
 
-				if (topic_of_this_section) {
-					Object.assign(article_info, topic_of_this_section);
+				if (topic_of_current_section) {
+					Object.assign(article_info, topic_of_current_section);
 					//console.trace([normalized_page_title, article_info]);
 				}
 
@@ -833,11 +841,20 @@ async function for_each_list_page(list_page_data) {
 		section_text_to_title(token, index, root);
 	}
 
+	if (false && list_page_data.title.endsWith('5/Biological and health sciences/Animals')) {
+		//console.trace(parsed);
+		console.trace(topic_of_current_section);
+	}
 	parsed.some(for_root_token);
+	if (false && list_page_data.title.endsWith('5/Biological and health sciences/Animals')) {
+		console.trace(topic_of_current_section);
+		//throw 65456456
+	}
 
 	// -------------------------------------------------------
 
 	function set_section_title_count(parent_section) {
+		//if (!parent_section.page) console.log(parent_section);
 		const item_count = parent_section.child_section_titles.reduce((item_count, subsection) => item_count + set_section_title_count(subsection), parent_section.item_count || 0);
 
 		if (parent_section.type === 'section_title') {
@@ -851,9 +868,10 @@ async function for_each_list_page(list_page_data) {
 		return item_count;
 	}
 
+	//console.trace(list_page_data.title);
 	const total_articles = `Total ${set_section_title_count(parsed).toLocaleString()} articles.`;
 	this.summary += `: ${total_articles}`;
-	// console.log(this.summary);
+	//console.trace([list_page_data.title, this.summary]);
 
 	// `Check redirects`
 	if (!CeL.is_empty_object(need_check_redirected)) {
