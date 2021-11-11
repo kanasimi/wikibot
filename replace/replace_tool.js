@@ -44,6 +44,8 @@ https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 
 : {{コメント}} {{tl|リンク修正依頼/改名}}を使ってみた。 --~~~~
 
+fix https://ja.wikipedia.org/w/index.php?title=%E3%82%A6%E3%82%A9%E3%83%83%E3%82%AB&diff=86465417&oldid=86454811&diffmode=source
+
 read {{cbignore}}?
 
  */
@@ -114,6 +116,8 @@ async function get_all_sections(meta_configuration) {
 			section_data[process] = matched[1];
 		}
 
+		// TODO: 必須避免如 <nowiki>{{確認}}</nowiki>
+
 		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\| *(?:着手|準備中|作業中)) *[|}]/);
 		if (matched) {
 			set_process('doing');
@@ -124,7 +128,7 @@ async function get_all_sections(meta_configuration) {
 			set_process('done');
 		}
 
-		matched = section_wikitext.match(/{{ *(BOTREQ *\| *(?:impossible|不受理) *[|}]/);
+		matched = section_wikitext.match(/{{ *(BOTREQ *\| *(?:impossible|不受理)) *[|}]/);
 		if (matched) {
 			set_process('deny');
 		}
@@ -158,6 +162,7 @@ async function get_all_sections(meta_configuration) {
 	await for_bot_requests_section(wiki, meta_configuration, for_each_section,
 		//await replace_tool.get_all_sections({ for_section(section, index, parent) { }, for_section_options: { need_edit: true, summary: 'Close request' } });
 		meta_configuration.for_section_options);
+	//console.trace(all_section_data);
 	return all_section_data;
 }
 
@@ -631,7 +636,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 async function notice_to_edit(wiki, meta_configuration) {
 	const options = {
 		// 着手します
-		summary: use_language === 'ja' ? '作業を開始します' : 'Starting bot request task.'
+		summary: use_language === 'ja' ? '作業を始めます' : 'Starting bot request task.'
 	};
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
@@ -803,9 +808,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		page_name							→	保留 anchor，自動判別是否該保留 display_text。可設定 .keep_display_text 以明確指定。
 												想清掉 display_text 應該採用 move_to_link=page_name|page_name 或是 .keep_display_text=false
-		page_name#							→	清空 anchor?
+		page_name#							→	清空/清掉 anchor
 		page_name#anchor					→	相當於替換成 [[page_name#anchor|#原display_text]]。
-		page_name|							→	相當於替換成 [[page_name#原anchor|]]。	注意: 不是清空 display_text! ** 應明確指定要改成的標的，避免這種表示法。 **
+		page_name|							→	相當於替換成 [[page_name#原anchor|]]。	注意: 不是清空/清掉 display_text! ** 應明確指定要改成的標的，避免這種表示法。 **
 												想清掉 display_text 應該採用 move_to_link=page_name|page_name 或是 .keep_display_text=false
 												TODO: 在 <ref> 之類中將失效。
 		page_name|display_text				→	相當於替換成 [[page_name#原anchor|display_text]]。保留 anchor。
@@ -819,6 +824,11 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		{page_name : 'page_name_append'}
 
 		</code>*/
+
+		if (/#[^\|]+/.test(task_configuration.move_from_link) && typeof task_configuration.move_to_link === 'string' && !/#[^\|]*/.test(task_configuration.move_to_link)) {
+			CeL.warn('prepare_operation: .move_from_link 設定了 anchor 但 .move_to_link 未設定 anchor，將自動清除 anchor！若需要保留 anchor，請明確設定 .move_to_link 之 anchor！');
+			task_configuration.move_to_link = task_configuration.move_to_link.replace(/($|\|.*)/, '#$1');
+		}
 
 		// TODO: keep_letter_case
 		if (!('keep_initial_case' in task_configuration) && typeof task_configuration.move_to_link === 'string') {
@@ -1609,7 +1619,9 @@ function for_each_link(token, index, parent) {
 		// keep original title
 		// [[原先的頁面名稱#anchor]] → [[move_to_link]]
 		if (!token[2]) {
-			if (!token[1] || this.keep_display_text === 'title') {
+			if (this.keep_display_text === 'title'
+				// [[A (B)]] → [[A (C)]] 遇到 `[[A (B)]]` 時不必保留 display_text。
+				|| !token[1] && !/ \([^()]+\)$/.test(/* token[0] 可能包含前後空白 */ this.move_from.page_title)) {
 				// [[原先的頁面名稱]] → [[move_to_link|原先的頁面名稱]]
 				// [[原先的頁面名稱#anchor]] → [[move_to_link|原先的頁面名稱]]
 				token[2] = token[0];
