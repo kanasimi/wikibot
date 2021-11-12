@@ -1,7 +1,7 @@
 ﻿/*
 
 2021/9/3 14:29:5	初版試營運。
-	完成。正式運用。
+2021/11/12 13:33:11	完成。正式運用。
 
  */
 
@@ -75,10 +75,10 @@ async function for_each_challenge_template(template_page_data) {
 	CeL.info(`${template_page_data.title}: ${talk_page_list.length} pages.`);
 	//console.log(talk_page_list);
 
-	await wiki.for_each_page(talk_page_list.slice(0, 20)
-		, [for_each_item, { operator_options: options }], {
-		tags: 'bot trial',
-		summary: summary_prefix + `insert challenge template {{${options.template_page}}} `
+	await wiki.for_each_page(talk_page_list, [for_each_item, { operator_options: options }], {
+		//tags: 'bot trial',
+		nocreate: false,
+		summary: summary_prefix + `Insert challenge template {{${options.template_page}}} `
 	});
 }
 
@@ -104,29 +104,31 @@ async function for_each_item(talk_page_data) {
 	let has_template, WikiProject_banner_shell_token, is_DAB;
 	//console.log(talk_page_data.title);
 	parsed.each('template', token => {
-		if (wiki.is_template(options.template_page, token)) {
-			// get the first one
-			has_template = true;
-			return parsed.each.exit;
-
-		} else if (wiki.is_template('WikiProject banner shell', token)) {
-			WikiProject_banner_shell_token = token;
-			// {{WikiProject banner shell}} has no .class
-
-		} else if (wiki.is_template('WikiProject Disambiguation', token)) {
+		if (wiki.is_template('WikiProject Disambiguation', token)) {
 			// TODO: should test main article
 			is_DAB = true;
 			return parsed.each.exit;
 		}
-	});
 
-	if (has_template)
-		return Wikiapi.skip_edit;
+		if (wiki.is_template(options.template_page, token)) {
+			// get the first one
+			has_template = true;
+			return parsed.each.exit;
+		}
+
+		if (wiki.is_template('WikiProject banner shell', token)) {
+			WikiProject_banner_shell_token = token;
+			// {{WikiProject banner shell}} has no .class
+		}
+	});
 
 	if (is_DAB) {
 		CeL.warn(`${for_each_item.name}: Skip DAB article: ${CeL.wiki.title_link_of(talk_page_data)}`);
 		return Wikiapi.skip_edit;
 	}
+
+	if (has_template)
+		return Wikiapi.skip_edit;
 
 	// ------------------------------------------------------------------------
 
