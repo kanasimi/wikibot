@@ -23,7 +23,7 @@ min_interval = '30m', JD = CeL.date.Julian_day(new Date);
 
 // --------------------------------------------------------
 
-function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
+function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 	if (!CeL.wiki.is_wiki_API(wiki)) {
 		/** {Object}wiki operator 操作子. */
 		wiki = Wiki(true, wiki);
@@ -68,10 +68,10 @@ function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
 		/**
 		 * <code>
 		var PATTERN = /\n==[^=]+==([\n\s]*(?:<[^<>]+>)?)\n?$/;
-		'header</noinclude>'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==</noinclude>\n'.replace(PATTERN, '$1').trim()
-		'header'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==\n'.replace(PATTERN, '$1').trim()
-		'header\n</noinclude>'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==\n</noinclude>\n'.replace(PATTERN, '$1').trim()
-		'header\n'.trim() === 'header\n== 請在這行文字底下進行您的測試 ==\n'.replace(PATTERN, '$1').trim()
+		'header</noinclude>'.trim() === 'header\n== 請在這行文字底下測試 ==</noinclude>\n'.replace(PATTERN, '$1').trim()
+		'header'.trim() === 'header\n== 請在這行文字底下測試 ==\n'.replace(PATTERN, '$1').trim()
+		'header\n</noinclude>'.trim() === 'header\n== 請在這行文字底下測試 ==\n</noinclude>\n'.replace(PATTERN, '$1').trim()
+		'header\n'.trim() === 'header\n== 請在這行文字底下測試 ==\n'.replace(PATTERN, '$1').trim()
 		</code>
 		 */
 		if (CeL.wiki.site_name(wiki) === 'zhwiki'
@@ -116,9 +116,9 @@ function clean_wiki_sandbox(wiki, replace_to, _summary, page) {
 clean_wiki_sandbox(
 		'test',
 		'<noinclude>{{Sandbox}}</noinclude>\n== Please start your testing below this line ==\n',
-		'Clearing the sandbox. If you want to keep a longer time, please test in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.',
 		// Specify page title to prevent redirecting to important page.
-		'Wikipedia:Sandbox');
+		'Wikipedia:Sandbox',
+		'Clearing the sandbox. If you want to keep a longer time, please test in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
 
 // --------------------------
 
@@ -134,33 +134,36 @@ clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下�
 // @see [[Special:链入页面/Template:Sandbox]]
 // TODO: [[模块:沙盒]], [[File:沙盒.png]]
 clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-, null, 'Wikipedia:使用指南 (编辑)/沙盒');
+, 'Wikipedia:使用指南 (编辑)/沙盒');
 clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-, null, 'Draft:沙盒');
+, 'Draft:沙盒');
 clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-, null, 'Category:Foo');
+, 'Category:Foo');
 clean_wiki_sandbox(zhwiki, '<noinclude>' + zhwiki_announcement.trim()
 // + '== 請在這行文字底下進行您的測試 =='
-+ '</noinclude>\n', null, 'Template:沙盒');
++ '</noinclude>\n', 'Template:沙盒');
 clean_wiki_sandbox(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
 // + '== 請在這行文字底下進行您的測試 ==\n'
-, null, 'User talk:Sandbox for user warnings~zhwiki');
+, 'User talk:Sandbox for user warnings~zhwiki');
 
 // --------------------------
 
-clean_wiki_sandbox('zh.wikinews',
-		'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n',
-		undefined,
-		// 對於機器人有管理員權限的wiki，必須準確設定頁面名稱，預防有人將頁面導向到主頁之類重要頁面。
-		'Wikinews:沙盒');
+var general_announcement = '<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下開始測試 ==\n';
+
+clean_wiki_sandbox('zh.wikinews', general_announcement,
+// 對於機器人有管理員權限的wiki，必須準確設定頁面名稱，預防有人將頁面導向到主頁之類重要頁面。
+'Wikinews:沙盒');
+
+// --------------------------
+
+clean_wiki_sandbox('zh.wiktionary', general_announcement);
+clean_wiki_sandbox('zh.wiktionary', general_announcement, 'Template:沙盒');
 
 // --------------------------
 
 // 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
 if (force || JD % 7 === 0) {
-	clean_wiki_sandbox('zh.wikisource',
-			'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n', null,
-			'Wikisource:沙盒');
+	clean_wiki_sandbox('zh.wikisource', general_announcement, 'Wikisource:沙盒');
 }
 
 // --------------------------
@@ -174,8 +177,7 @@ clean_wiki_sandbox('zh-classical',
 if (force || JD % 2 === 0) {
 	clean_wiki_sandbox('zh.wikiversity',
 	// 請勿刪除此行
-	'<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下進行您的測試 ==\n', null,
-			'Wikiversity:沙盒');
+	general_announcement, 'Wikiversity:沙盒');
 }
 
 // --------------------------------------------------------
@@ -197,7 +199,7 @@ if (force || JD % 2 === 0) {
 	// https://zh.moegirl.org.cn/Special:滥用过滤器/17
 	.edit('<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
-	+ '== 請在這行文字底下進行您的測試 ==\n', edit_options);
+	+ '== 請在這行文字底下開始測試 ==\n', edit_options);
 
 	moegirl.page('Template:沙盒').edit(
 	//
