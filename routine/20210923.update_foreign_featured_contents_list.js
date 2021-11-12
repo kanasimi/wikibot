@@ -638,7 +638,7 @@ ORDER BY DESC(?count)
 		table.unshift(row);
 
 		row = ['', CeL.gettext('Average'), '',
-			(show_style ? 'style="background:#afa;" | ' : '')
+			(show_style ? 'style="background:#afa;" | ' : '✓ ')
 			//`${local_count.all} / ${count} (${(100 * local_count.all / count).to_fixed(1)}%) ${local_language_name}版あり`
 			+ CeL.gettext('有%1版', local_language_name) + `: ${local_language_code}/${language_code} (${language_name}) = ${local_count.all}/${count} (${(100 * local_count.all / count).to_fixed(1)}%)`
 			, (total_linkcount / count).to_fixed(1)];
@@ -646,7 +646,7 @@ ORDER BY DESC(?count)
 		table.push(row);
 
 		row = ['', CeL.gettext('Sum'), '',
-			(show_style ? 'style="background:#faa;" | ' : '')
+			(show_style ? 'style="background:#faa;" | ' : '✗ ')
 			+ CeL.gettext('%1 同名條目或無此條目、%2 無標籤', count - local_count.all - no_label_count, no_label_count), total_linkcount.toLocaleString(use_language)];
 		row.class = 'sortbottom';
 		table.push(row);
@@ -691,11 +691,14 @@ ORDER BY DESC(?count)
 		//if (language_name !== 'Afrikaans') return page_title;
 		try {
 			const _options = {
-				bot: 1, redirects: 1, summary: `${wiki.latest_task_configuration.general.summary_prefix}${language_name} (${language_code}) ${_too_many_items ? MAX_ITEMS_TO_LIST + '/' : ''}${local_count.all}/${count} ${Wikimedia_article_badges[badge_entity_id_to_process].icon}(s)`
+				//tags: 'bot trial',
+				redirects: 1,
+				nocreate: 1,
+				bot: 1, summary: `${wiki.latest_task_configuration.general.summary_prefix}${language_name} (${language_code}) ${_too_many_items ? MAX_ITEMS_TO_LIST + '/' : ''}${local_count.all}/${count} ${Wikimedia_article_badges[badge_entity_id_to_process].icon}(s)`
 			};
 			// 文言文版, 新共同语言版
-			if (!/^.{1,15}?(?:語|语言?|文|方言)$/.test(language_name))
-				_options.nocreate = 1;
+			if (/^.{1,15}?(?:語|语言?|文|方言)$/.test(language_name))
+				_options.nocreate = false;
 			await wiki.edit_page(page_title, page_data => check_redirects(page_title, page_data, content_to_write, options), _options);
 		} catch (e) {
 			if (e.code === 'contenttoobig') {
