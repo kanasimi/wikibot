@@ -170,7 +170,7 @@ function main_work(template_name_redirect_to) {
 				rvprop : 'ids|timestamp',
 				// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Binfo
 				// https://www.mediawiki.org/wiki/API:Info#inprop.3Dprotection
-				additional : 'inprop=protection'
+				additional_query : 'inprop=protection'
 			},
 			last : archive_pages
 

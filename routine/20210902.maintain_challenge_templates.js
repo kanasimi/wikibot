@@ -73,7 +73,10 @@ async function for_each_challenge_template(template_page_data) {
 	await wiki.for_each_page(list_page_list, page_data => {
 		const parsed = CeL.wiki.parser(page_data);
 		parsed.each('link', token => {
-			const talk_page_title = wiki.to_talk_page(token[0].toString());
+			const page_title = token[0].toString();
+			if (!wiki.is_namespace(page_title, 'main')) return;
+
+			const talk_page_title = wiki.to_talk_page(page_title);
 			if (pages_transcluding_template.has(talk_page_title))
 				pages_transcluding_template.delete(talk_page_title);
 			else if (talk_page_title)
@@ -86,6 +89,7 @@ async function for_each_challenge_template(template_page_data) {
 	await wiki.for_each_page(talk_page_list, [for_each_item, { operator_options: options }], {
 		//tags: 'bot trial',
 		nocreate: false, no_message: true,
+		page_options: { prop: 'info|revisions', additional_query: { inprop: 'subjectid|associatedpage|varianttitles' } },
 		summary: summary_prefix + `Insert challenge template {{${options.template_page}}} `
 	});
 
@@ -100,7 +104,16 @@ ${Array.from(pages_transcluding_template).map(page_title => '# ' + CeL.wiki.titl
 
 // @see function maintain_VA_template_each_talk_page() @ 20200122.update_vital_articles.js
 async function for_each_item(talk_page_data) {
+	//console.trace(talk_page_data);
+
+	// Do not create orphaned talk page.
+	if (!('subjectid' in talk_page_data)) {
+		CeL.warn(`${for_each_item.name}: The article of ${CeL.wiki.title_link_of(talk_page_data)} is not exists`);
+		return Wikiapi.skip_edit;
+	}
+
 	if (CeL.wiki.parse.redirect(talk_page_data)) {
+		// assert: ('redirect' in talk_page_data)
 		CeL.warn(`${for_each_item.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		//console.log(talk_page_data.wikitext);
 		return Wikiapi.skip_edit;
@@ -127,7 +140,8 @@ async function for_each_item(talk_page_data) {
 		}
 
 		// Should have been excluded via `pages_transcluding_template`.
-		if (false && wiki.is_template(options.template_page, token)) {
+		// But maybe redirects.
+		if (wiki.is_template(options.template_page, token)) {
 			// get the first one
 			has_template = true;
 			return parsed.each.exit;
@@ -140,7 +154,7 @@ async function for_each_item(talk_page_data) {
 	});
 
 	if (is_DAB) {
-		CeL.warn(`${for_each_item.name}: Skip DAB article: ${CeL.wiki.title_link_of(talk_page_data)}`);
+		CeL.warn(`${for_each_item.name}: Skip DAB talk page: ${CeL.wiki.title_link_of(talk_page_data)}`);
 		return Wikiapi.skip_edit;
 	}
 
