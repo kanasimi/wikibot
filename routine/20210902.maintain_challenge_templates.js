@@ -10,8 +10,8 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-// Load modules.
-CeL.run([]);
+// Load additional modules.
+//CeL.run([]);
 
 //login_options.API_URL = 'en';
 
@@ -68,17 +68,33 @@ async function for_each_challenge_template(template_page_data) {
 	const list_page_list = await wiki.prefixsearch(options.subpages_of);
 	//console.log(list_page_list);
 	const talk_page_list = [];
+	const pages_transcluding_template = new Set((await wiki.embeddedin(template_page_data)).map(page_data => page_data.title));
+	const pages_transcluding_template_count = pages_transcluding_template.size;
 	await wiki.for_each_page(list_page_list, page_data => {
 		const parsed = CeL.wiki.parser(page_data);
-		parsed.each('link', token => talk_page_list.push(wiki.to_talk_page(token[0].toString())));
+		parsed.each('link', token => {
+			const talk_page_title = wiki.to_talk_page(token[0].toString());
+			if (pages_transcluding_template.has(talk_page_title))
+				pages_transcluding_template.delete(talk_page_title);
+			else if (talk_page_title)
+				talk_page_list.push(talk_page_title);
+		});
 	});
-	CeL.info(`${template_page_data.title}: ${talk_page_list.length} pages.`);
+	CeL.info(`${template_page_data.title}: ${pages_transcluding_template_count} pages transcluding this template. ${talk_page_list.length} pages to check.`);
 	//console.log(talk_page_list);
 
 	await wiki.for_each_page(talk_page_list, [for_each_item, { operator_options: options }], {
 		//tags: 'bot trial',
-		nocreate: false,
+		nocreate: false, no_message: true,
 		summary: summary_prefix + `Insert challenge template {{${options.template_page}}} `
+	});
+
+	await wiki.edit_page(log_to, `* ${talk_page_list.length} pages checked. ~~~~
+* ${pages_transcluding_template_count} pages transcluding ${CeL.wiki.title_link_of(template_page_data)}, ${pages_transcluding_template.size} of them seems not listed in [[${options.subpages_of.replace(/\/$/, '')}]]. You may add the page to list, or remove the template manually.
+${Array.from(pages_transcluding_template).map(page_title => '# ' + CeL.wiki.title_link_of(page_title)).join('\n')}
+`, {
+		bot: 1, section: 'new', sectiontitle: `${CeL.wiki.title_link_of(template_page_data)}`,
+		summary: `${summary_prefix}Report of ${CeL.wiki.title_link_of(template_page_data)}`
 	});
 }
 
@@ -101,7 +117,7 @@ async function for_each_item(talk_page_data) {
 	const options = this.operator_options;
 	const parsed = CeL.wiki.parser(talk_page_data);
 
-	let has_template, WikiProject_banner_shell_token, is_DAB;
+	let has_template, is_DAB, WikiProject_banner_shell_token;
 	//console.log(talk_page_data.title);
 	parsed.each('template', token => {
 		if (wiki.is_template('WikiProject Disambiguation', token)) {
@@ -110,7 +126,8 @@ async function for_each_item(talk_page_data) {
 			return parsed.each.exit;
 		}
 
-		if (wiki.is_template(options.template_page, token)) {
+		// Should have been excluded via `pages_transcluding_template`.
+		if (false && wiki.is_template(options.template_page, token)) {
 			// get the first one
 			has_template = true;
 			return parsed.each.exit;
