@@ -6,10 +6,28 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出场的铁路车站列表"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=赛马娘 Pretty Derby/成句与梗"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
+node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
 
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_project=en only_modify_pages=Wikipedia:Sandbox "check_page=Political divisions of the United States"
+
+
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.simple
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.zh
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.ja
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.moegirl
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary
+
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.en -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=en
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.simple -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=simple
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.zh -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=zh
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.ja -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=ja
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=wiktionary
+
 
 
 node 20201008.fix_anchor.js use_language=en
@@ -367,7 +385,9 @@ const MARK_case_change = 'case change';
 
 function reduce_section_title(section_title) {
 	// ＝: e.g., パリからポン＝タヴァン
-	return section_title.replace(/[\s_\-–()#＝]/g, '').replace(/（/g, '(').replace(/）/g, ')').toLowerCase();
+	return section_title.replace(/[\s_\-–()（）{}「」#＝]/g, '')
+		//.replace(/（/g, '(').replace(/）/g, ')')
+		.toLowerCase();
 }
 
 function get_section_title_data(section_title_history, section_title) {
@@ -1102,6 +1122,7 @@ async function check_page(target_page_data, options) {
 		}
 
 		function change_to_anchor(to_anchor) {
+			to_anchor = CeL.wiki.section_link_escape(to_anchor, true);
 			if (token.anchor_index) {
 				token[token.anchor_index] = to_anchor || '';
 			} else {
