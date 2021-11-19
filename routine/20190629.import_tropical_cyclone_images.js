@@ -1689,23 +1689,30 @@ function start_NRL() {
 		return response.text();
 
 	}).then(function(html) {
-		base_media_data.year = html.match(/YEAR=(\d+)/);
-		if (base_media_data.year) {
-			base_media_data.year = base_media_data.year[1];
-		} else {
-			CeL.error('start_NRL: Cannot get year of NRL! 網站改版?')
-			base_media_data.year = (new Date()).getFullYear();
+		if (false) {
+			base_media_data.year = html.match(/YEAR=(20\d{2})&/);
+			if (base_media_data.year) {
+				base_media_data.year = base_media_data.year[1];
+			} else {
+				CeL.error('start_NRL: Cannot get year of NRL! 網站改版?')
+				base_media_data.year = (new Date()).getFullYear();
+			}
 		}
 		html = html.between(
-		//
+		// <!-- Start of the list_storms cell Width set in tc.css -->
 		'<!-- Start of the list_storms cell Width set',
 		//
 		'<!-- End of the list_storms cell -->');
 		// console.log(html);
-		html.each_between('<font size="+1"><font color="black">', null,
-		//
+		html.each_between('<B><a href="/tc-bin/tc_home2.cgi?', null,
+		/**
+		 * <code>
+		<br><B><a href="/tc-bin/tc_home2.cgi?YEAR=2021&amp;MO=11&amp;BASIN=ATL&amp;STORM_NAME=null&amp;PROD=microvap&amp;AID_DIR=/SATPRODUCTS/TC/tc22/ATL/null/microvap/dmsp&amp;PHOT=yes&amp;ARCHIVE=active&amp;NAV=tc&amp;AGE=Latest&amp;SIZE=full&amp;STYLE=tables" TARGET=_top onMouseover="highlight(this,'yellow')" onMouseout="highlight(this,'')"  ><font size="+1"><font color="black">Atlantic</font></font></a></B> <br>
+		</code>
+		 */
 		function(area_text) {
 			// console.log([area_text]);
+			var year = area_text.match(/YEAR=(20\d{2})&/)[1];
 			var area = area_text.between(null, '</font>');
 			area_text.each_between('<font size="-1">', '</font>',
 			//
@@ -1714,6 +1721,7 @@ function start_NRL() {
 				var matched = text.trim().match(/(\d{2})\w\.(.+)/);
 				var media_data = Object.assign({
 					area : area,
+					year : year,
 					NO : 0,
 					id : matched[1],
 					name : matched[2]
