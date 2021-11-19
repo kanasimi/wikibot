@@ -1711,9 +1711,9 @@ function start_NRL() {
 		</code>
 		 */
 		function(area_text) {
-			// console.log([area_text]);
 			var year = area_text.match(/YEAR=(20\d{2})&/)[1];
-			var area = area_text.between(null, '</font>');
+			var area = area_text.between('<font size="+1">', '</font>');
+			// console.log([ area, year, area_text ]);
 			area_text.each_between('<font size="-1">', '</font>',
 			//
 			function(text) {
