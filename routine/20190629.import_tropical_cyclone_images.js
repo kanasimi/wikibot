@@ -21,7 +21,7 @@
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
-CeL.get_URL.default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4590.0 Safari/537.36';
+CeL.get_URL.default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4710.4 Safari/537.36';
 
 login_options.configuration_adapter = adapt_configuration;
 
@@ -1707,15 +1707,30 @@ function start_NRL() {
 		html.each_between('<B><a href="/tc-bin/tc_home2.cgi?', null,
 		/**
 		 * <code>
+
 		<br><B><a href="/tc-bin/tc_home2.cgi?YEAR=2021&amp;MO=11&amp;BASIN=ATL&amp;STORM_NAME=null&amp;PROD=microvap&amp;AID_DIR=/SATPRODUCTS/TC/tc22/ATL/null/microvap/dmsp&amp;PHOT=yes&amp;ARCHIVE=active&amp;NAV=tc&amp;AGE=Latest&amp;SIZE=full&amp;STYLE=tables" TARGET=_top onMouseover="highlight(this,'yellow')" onMouseout="highlight(this,'')"  ><font size="+1"><font color="black">Atlantic</font></font></a></B> <br>
+
+		<br><B><a href="/tc-bin/tc_home2.cgi?YEAR=2022&amp;MO=11&amp;BASIN=SHEM&amp;STORM_NAME=null&amp;PROD=microvap&amp;AID_DIR=/SATPRODUCTS/TC/tc20/SHEM/null/microvap/dmsp&amp;PHOT=yes&amp;ARCHIVE=active&amp;NAV=tc&amp;AGE=Latest&amp;SIZE=full&amp;STYLE=tables" TARGET=_top onMouseover="highlight(this,'yellow')" onMouseout="highlight(this,'')"  ><font size="+1"><font color="black">Southern Hem. <BR>Season: </font></font></a></B> 22<br>
+
 		</code>
 		 */
 		function(area_text) {
 			var year = area_text.match(/YEAR=(20\d{2})&/)[1];
-			var area = area_text.between('<font size="+1">', '</font>');
+			var area = area_text.between('<font color="black">', '</font>')
+			// "Southern Hem. <BR>Season:"
+			.between(null, '<BR>').trim();
+			if (area === 'Southern Hem.')
+				area = 'Southern Hemisphere';
+
 			// console.log([ area, year, area_text ]);
 			area_text.each_between('<font size="-1">', '</font>',
-			//
+			/**
+			 * <code>
+
+			<img src = "/tc_pages_docs/icons/ball.green.jpg" border="0" height=15 width=15 alt="green ball icon"><font size="-1">90S.INVEST</font></a></td>
+
+			</code>
+			 */
 			function(text) {
 				// e.g., text: '08E.HILDA'
 				var matched = text.trim().match(/(\d{2})\w\.(.+)/);
