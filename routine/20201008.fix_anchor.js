@@ -7,6 +7,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出场的铁路车站列表"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=赛马娘 Pretty Derby/成句与梗"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=User:玄微子/萌百史记/维护组部分"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
 
@@ -574,8 +575,8 @@ async function tracking_section_title_history(page_data, options) {
 
 		//console.trace(diff);
 		let [removed_text, added_text] = diff;
-		//console.trace([diff, removed_text, added_text, revision]);
-		//console.trace([previous_text_is_different, removed_text, added_text]);
+		//console.trace([diff, removed_text, revision, added_text]);
+		//console.trace([removed_text, revision.previous_text_is_different, added_text]);
 
 		const _options = wiki.append_session_to_options();
 
@@ -895,6 +896,7 @@ async function check_page(target_page_data, options) {
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
 	const for_each_page_options = {
+		notification_name: 'anchor-fixing',
 		no_message: true, no_warning: true,
 		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點')),
 		bot: 1, minor: 1, nocreate: 1,
