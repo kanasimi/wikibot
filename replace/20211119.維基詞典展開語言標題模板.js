@@ -1,6 +1,6 @@
 ﻿/*
 
-	初版試營運。
+2021/11/20 20:26:32	初版試營運。	使用 expandtemplates 的方法來展開，再把部分 wikitext 轉換為模板。
 	完成。正式運用。
 
 @see
@@ -54,9 +54,16 @@ async function text_processor(wikitext, page_data, work_config) {
 			CeL.warn(`${add_category.name}: ${CeL.wiki.title_link_of(page_data)}: Multiple sort key: ${old_category_token}, ${category_token}`);
 			append_category(category_token);
 		} else {
-			// reuse old_category_token
+			// reuse old category_token
 			old_category_token[2] = old_category_token.sort_key = category_token.sort_key;
 		}
+	}
+
+	function set_text_size(text, size) {
+		if (!(size > 120)) return text;
+		if (size < 170) return `{{large|${text}}}`;
+		// Font size as a percentage. Default is 180%.
+		return size < 190 ? `{{huge|${text}}}` : `{{huge|${text}|${size}%}}`;
 	}
 
 	parsed.each('category', category_token => categories.set(category_token.name, category_token));
@@ -66,12 +73,16 @@ async function text_processor(wikitext, page_data, work_config) {
 		const parsed = CeL.wiki.parser(wikitext, wiki.append_session_to_options()).parse();
 		CeL.assert([wikitext, parsed.toString()], 'wikitext parser check 2: ' + CeL.wiki.title_link_of(page_data));
 
+		const language_list = [];
 		parsed.each('category', category_token => {
+			if (category_token.name === '待分類詞彙' && category_token.sort_key) {
+				language_list.append(category_token.sort_key.split(','));
+				language_list.category_token = category_token;
+			}
 			add_category(category_token);
 			return parsed.each.remove_token;
 		}, true);
 
-		let name, need_huge;
 		wikitext = parsed.toString()
 			// remove {{-}}
 			.replace(/<div style=\"clear: both; height: 1em\"><\/div>/g, '')
@@ -80,17 +91,18 @@ async function text_processor(wikitext, page_data, work_config) {
 
 			.replace(/<h2>(.+)<\/h2>/g, (all, header) => {
 				header = header
-					.replace(/([英日])语/g, '$1語')
+					.replace(/([英日]|越南)语/g, '$1語')
 					.replace(/汉语/g, '漢語').replace(/朝鲜语/g, '韓語')
 					;
+				language_list.push(header);
 				return `==${header}==`;
 			})
 
 			// for {{越南文}}, {{漢字|越南語漢字|vi}}
 			.replace(/<span class=\"han-nom\" style=\"([^<>]+)>([^<>]*)<\/span>/ig, (all, style, text) => {
-				const matched = style.match(/font-size:\s*(\d{1,3})%/);
-				if (matched) need_huge = matched[1];
-				return `{{vi-nom|${text}}}`;
+				let size = style.match(/font-size:\s*(\d{1,3})%/);
+				if (size) size = size[1];
+				return set_text_size(`{{vi-nom|${text}}}`, size);
 			})
 			// 處理 {{中文}}
 			.replace(/<span( [^<>]*?xml:lang=\"([\w\-]+)\"[^<>]*)>([^<>]*)<\/span>/g, (all, attributes, lang, text) => {
@@ -99,21 +111,15 @@ async function text_processor(wikitext, page_data, work_config) {
 				// {{Lang}} 自帶 -{}-
 				text = text.replace(/^-{(.+?)}-$/, '$1');
 				text = lang === 'vi-Hani' ? `{{vi-nom|${text}}}` : `{{Lang|${lang}|${text}}}`;
-				if (need_huge) text = `{{huge|${text}|${need_huge}%}}`;
 				return text;
-			}).replace(/<span style=\"font-size:\s*(\d{1,3})%\s*\">(.*)<\/span>/g, (all, size, text) => {
-				// Font size as a percentage. Default is 180%.
-				if (Math.abs(size - 180) > 20) {
-					return `{{huge|${text}|${size}%}}`;
-				}
-				return `{{huge|${text}}}`;
 			})
+			.replace(/<span style=\"font-size:\s*(\d{1,3})%\s*\">(.*)<\/span>/g, (all, size, text) => set_text_size(text, size))
 
 			// fix {{漢字}}
 			.replace(/-{(［{{vi-nom\|.+?}}］)}-/g, '$1')
 			.replace(/-{〈<span style="width: 30px; border: 1px solid #CEDFF2; background: #F5FAFF; font-size:110%([^<>]*)>(.*)<\/span>〉}-/g, (all, attributes, text) => text.includes('{{Lang|') ? `〈${text}〉` : all)
 			// e.g., [[英語]]
-			.replace(/(〈{{Lang\|.+?}}〉)-{zh-hant;zh-hans;\|的汉字表记。}-/g, '$1的漢字表記。')
+			.replace(/(〈{{Lang\|.+?}}〉|［{{vi-nom\|.+?}}］)-{zh-hant;zh-hans;?\|的汉字表记。}-/g, '$1的漢字表記。')
 
 			// e.g., '\n==漢語==\n:-{{{huge|{{Lang|zh|啊}}|250%}}}-' is invalid
 			.replace(/-{({{.+?}})}-/g, (all, template_wikitext) => template_wikitext.includes('-{') ? all : template_wikitext)
@@ -125,7 +131,7 @@ async function text_processor(wikitext, page_data, work_config) {
 			throw new Error(`${split_category.name}: ${CeL.wiki.title_link_of(page_data)}: 仍存有 "语", <tag> 或 -{{{template}}}-:\n${wikitext}`);
 		}
 
-		return { wikitext, name };
+		return { wikitext, language_list };
 	}
 
 	// https://zh.wiktionary.org/wiki/Special:ApiSandbox#action=expandtemplates&format=json&title=%E9%A6%96%E9%A0%81&text=%7B%7B%E6%BC%A2%E8%AA%9E%7C%E5%AD%97%7D%7D&prop=wikitext&utf8=1
@@ -141,7 +147,13 @@ async function text_processor(wikitext, page_data, work_config) {
 			});
 			//console.trace(expanded_data);
 			const converted_data = split_category(expanded_data.expandtemplates.wikitext);
-			add_category(CeL.wiki.parser(`[[Category:待分類詞彙|${converted_data.name || template_token.name}]]`, wiki.append_session_to_options()).parse());
+			const sort_key = converted_data.language_list.unique().join(',') || template_token.name;
+			if (converted_data.language_list.category_token) {
+				// reuse old category_token
+				converted_data.language_list.category_token[2] = converted_data.language_list.category_token.sort_key = sort_key;
+			} else {
+				add_category(CeL.wiki.parser(`[[Category:待分類詞彙|${sort_key}]]`, wiki.append_session_to_options()).parse());
+			}
 			//console.trace(converted_data);
 			return converted_data.wikitext;
 		}
@@ -160,7 +172,8 @@ async function text_processor(wikitext, page_data, work_config) {
 		;
 }
 
-const template_list_to_process = ['朝鮮語漢字詞', '朝鮮語', '日語-題', '日語', '-en-', '漢語'];
+// [[分類:語言模板]]
+const template_list_to_process = ['越南語漢字詞', '-vi-', '朝鮮語漢字詞', '朝鮮語', '日語-題', '日語', '-en-', '漢語'];
 
 (async () => {
 	login_options.API_URL = 'zh.wiktionary';
