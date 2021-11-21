@@ -148,6 +148,11 @@ clean_wiki_sandbox(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
 
 // --------------------------
 
+clean_wiki_sandbox('zh-classical',
+		'<noinclude>{{Sandbox}}</noinclude>\n== 請於此行文下習纂而莫去本行以上文 ==\n');
+
+// --------------------------
+
 var general_announcement = '<noinclude>{{Sandbox}}</noinclude>\n== 請在這行文字底下開始測試 ==\n';
 
 clean_wiki_sandbox('zh.wikinews', general_announcement,
@@ -156,8 +161,9 @@ clean_wiki_sandbox('zh.wikinews', general_announcement,
 
 // --------------------------
 
-clean_wiki_sandbox('zh.wiktionary', general_announcement);
-clean_wiki_sandbox('zh.wiktionary', general_announcement, 'Template:沙盒');
+var zhwiktionary = Wiki(true, 'zh.wiktionary');
+clean_wiki_sandbox(zhwiktionary, general_announcement);
+clean_wiki_sandbox(zhwiktionary, general_announcement, 'Template:沙盒');
 
 // --------------------------
 
@@ -165,11 +171,6 @@ clean_wiki_sandbox('zh.wiktionary', general_announcement, 'Template:沙盒');
 if (force || JD % 7 === 0) {
 	clean_wiki_sandbox('zh.wikisource', general_announcement, 'Wikisource:沙盒');
 }
-
-// --------------------------
-
-clean_wiki_sandbox('zh-classical',
-		'<noinclude>{{Sandbox}}</noinclude>\n== 請於此行文下習纂而莫去本行以上文 ==\n');
 
 // --------------------------
 
