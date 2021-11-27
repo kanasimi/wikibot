@@ -19,7 +19,7 @@ globalThis.no_task_date_warning = true;
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
-var wiki = Wiki(true, 'ja');
+var wiki = Wiki(true, 'commons');
 
 // ---------------------------------------------------------------------//
 
@@ -32,9 +32,13 @@ var trace_forward_length = 'max';
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	// return summary.includes('Bot作業依頼');
+	// return summary.includes('The article is NOT listed in any vital article
+	// list page');
+	return summary.includes('files that should have their license reviewed')
+	// && wiki.is_namespace(page_data, 'Category')
+	;
 
-	var revert_this_edit = summary.includes('「尾花高夫」の再改名に伴うリンク修正依頼')
+	var revert_this_edit = summary.includes('まんたんブロードのリンク修正依頼2')
 	//
 	&& summary.includes('Bot作業依頼')
 	// Do not revert [[User:cewbot/log/20190913]]
@@ -51,7 +55,11 @@ function filter_summary(summary, page_data) {
 
 wiki.usercontribs(CeL.wiki.extract_login_user_name(login_options.user_name),
 //
-function(list) {
+check_usercontribs, {
+	limit : trace_forward_length
+});
+
+function check_usercontribs(list) {
 	CeL.log('Get ' + list.length + ' edits from ' + CeL.wiki.site_name(wiki));
 
 	var undo_page_hash = Object.create(null);
@@ -93,15 +101,31 @@ function(list) {
 
 	list = Object.keys(undo_page_hash);
 
-	CeL.log('' + list.length + ' pages need to test.');
+	CeL.info('check_usercontribs: ' + list.length + ' pages need to test.');
+	// console.trace(list.slice(0, 5).join(', '));
 
 	list.run_serial(for_each_page);
 
-}, {
-	limit : trace_forward_length
-});
+}
 
 var check_diff = false;
+
+function filter_content(content) {
+	return true;
+
+	var need_fix;
+	if (false) {
+		// e.g., [[File:Yoon Bomi at Severance Hospital, May 2013.jpg]]
+		need_fix = content.match(/{{ *Licensereview *[|}]/g);
+		if (need_fix)
+			need_fix = need_fix.length > 1;
+		// e.g., [[File:Adilson dos Santos.jpg]]
+		if (!need_fix)
+			need_fix = /{{ *PermissionTicket *[|}]/.test(content);
+	}
+	return need_fix;
+}
+
 function filter_diff(diff) {
 	var removed_text = diff[0], added_text = diff[1];
 	// console.log(diff);
@@ -118,7 +142,10 @@ function filter_diff(diff) {
 function for_each_page(run_next, title, index, list) {
 	CeL.debug('Test ' + CeL.wiki.title_link_of(title));
 
+	// filter by content and others
 	wiki.page(title, function(page_data) {
+		CeL.log_temporary((index + 1) + '/' + list.length + ' '
+				+ CeL.wiki.title_link_of(page_data));
 		// console.log(page_data);
 
 		/** {Object}revision data. 修訂版本資料。 */
@@ -144,10 +171,17 @@ function for_each_page(run_next, title, index, list) {
 			return;
 		}
 
+		// wikitext
+		var content = CeL.wiki.revision_content(revision);
+		if (!filter_content(content)) {
+			run_next();
+			return;
+		}
+
 		if (check_diff && page_data.revisions[1]) {
-			var diff_list = CeL.LCS(CeL.wiki
-					.revision_content(page_data.revisions[1]), CeL.wiki
-					.revision_content(revision), 'diff');
+			var diff_list = CeL.LCS(CeL.wiki.revision_content(
+			//
+			page_data.revisions[1]), content, 'diff');
 			if (!diff_list.some(filter_diff)) {
 				run_next();
 				return;
