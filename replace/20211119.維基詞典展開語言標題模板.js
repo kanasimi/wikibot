@@ -1,7 +1,7 @@
 ﻿/*
 
 2021/11/20 20:26:32	初版試營運。	使用 expandtemplates 的方法來展開，再把部分 wikitext 轉換為模板。
-	完成。正式運用。
+2021/11/24 6:56:14	完成。正式運用。
 
 @see
 [[分類:標題行模板]]
@@ -19,36 +19,37 @@ const wiki = new Wikiapi;
 
 // ----------------------------------------------------------------------------
 
-const summary_prefix = '[[Special:PermaLink/6518948#章節模板是否應該刪除？|展開語言標題模板]]: ';
+const summary_prefix = '[[Special:PermaLink/6522159#章節模板是否應該刪除？|展開語言標題模板]]: ';
 const main_maintenance_category = '待分類詞彙';
-
-const maintenance_templates = new Set;
-// cache for headers
-const convert_Map = new Map;
 
 (async () => {
 	login_options.API_URL = 'zh.wiktionary';
 	//console.trace(login_options);
 	await wiki.login(login_options);
 
-	const base_task_configuration = { text_processor, list_types: 'embeddedin', template_list_to_process };
 	const move_configuration = Object.create(null);
 	const template_list_to_process = [];
-	await wiki.category_tree('语言模板', {
-		for_each(page_data) {
-			if (!wiki.is_namespace(page_data, 'template')) return;
-			const title = page_data.title;
+	const maintenance_templates = new Set;
+	const base_task_configuration = {
+		text_processor,
+		list_types: 'embeddedin',
+		conversion_Map: new Map,
+		template_list_to_process,
+		maintenance_templates,
+	};
+	function add_template(page_data) {
+		if (!wiki.is_namespace(page_data, 'template')) return;
+		const title = page_data.title;
 
-			// ['-ja-hiragana-', '-fr-', '法語', '-ang-', '越南語漢字詞', '-vi-', '朝鮮語漢字詞', '朝鮮語', '日語-題', '日語', '-en-', '漢語']
-			// for debug: 僅處理單一模板
-			if (!title.includes('馬來語')) return;
+		// ['-ja-hiragana-', '-fr-', '法語', '-ang-', '越南語漢字詞', '-vi-', '朝鮮語漢字詞', '朝鮮語', '日語-題', '日語', '-en-', '漢語']
+		// for debug: 僅處理單一模板
+		//if (!title.includes('馬來語')) return;
 
-			if (title in move_configuration) return;
-			move_configuration[title] = Object.clone(base_task_configuration);
-			template_list_to_process.push(title);
-		}
-	});
-	//template_list_to_process.forEach((template_name, index) => move_configuration[template_list_to_process[index] = wiki.to_namespace(template_name, 'template')] = Object.clone(base_task_configuration));
+		if (title in move_configuration) return;
+		move_configuration[title] = Object.clone(base_task_configuration);
+		template_list_to_process.push(title);
+	}
+	(await wiki.categorymembers('语言模板')).forEach(add_template);
 
 	//console.log(template_list_to_process);
 	//console.trace(move_configuration);
@@ -75,55 +76,27 @@ async function text_processor(wikitext, page_data, work_config) {
 	const parsed = page_data.parse();
 	CeL.assert([wikitext, parsed.toString()], 'wikitext parser check: ' + CeL.wiki.title_link_of(page_data));
 
-	let need_append_new_line = !/\n$/.test(parsed.at(-1));
-	function append_category(category_token) {
-		if (need_append_new_line) {
-			need_append_new_line = false;
-			parsed.push('\n');
-		}
-		parsed.push(category_token, '\n');
-	}
+	// cache for converted headers
+	const conversion_Map = this.conversion_Map;
 
-	const categories = new Map;
-	function register_category(category_token, is_existed) {
+	function register_and_append_category(category_token, options) {
 		//console.trace(category_token.name);
 		//console.trace(category_token);
-		console.assert(category_token.type === 'category');
-		let category_name = category_token.name;
-		if (convert_Map.has(category_name)) {
-			// 避免同時存在繁體簡體的 category。
-			category_name = convert_Map.get(category_name);
-			category_token.name = category_name;
-			//category_token[0][1] = category_name;
-			category_token[0] = `Category:${category_name}`;
-		}
+		parsed.append_category(category_token, {
+			...options,
+			remove_existed_duplicated: true,
+			get_key(category_token) {
+				if (!conversion_Map.has(category_token.name))
+					return;
 
-		if (!categories.has(category_name)) {
-			categories.set(category_name, category_token);
-			if (!is_existed)
-				append_category(category_token);
-			return;
-		}
-
-		//console.trace(category_token);
-
-		if (!category_token.sort_key)
-			return;
-
-		const old_category_token = categories.get(category_name);
-		//console.trace(old_category_token);
-		if (old_category_token.sort_key) {
-			CeL.warn(`${register_category.name}: ${CeL.wiki.title_link_of(page_data)}: Multiple sort key: ${old_category_token}, ${category_token}`);
-			if (!is_existed)
-				append_category(category_token);
-		} else {
-			// reuse old category_token
-			old_category_token[2] = old_category_token.sort_key = category_token.sort_key;
-			if (is_existed) {
-				// 移除重複的/同時存在繁體簡體的 category。
-				return parsed.each.remove_token;
+				// 避免同時存在繁體簡體的 category。
+				const category_name = conversion_Map.get(category_token.name);
+				category_token.name = category_name;
+				//category_token[0][1] = category_name;
+				category_token[0] = `Category:${category_name}`;
+				return category_name;
 			}
-		}
+		});
 	}
 
 	function set_text_size(text, size) {
@@ -133,10 +106,7 @@ async function text_processor(wikitext, page_data, work_config) {
 		return size < 190 ? `{{huge|${text}}}` : `{{huge|${text}|${size}%}}`;
 	}
 
-	parsed.each('category', category_token => register_category(category_token, true), true);
-	//console.trace(categories);
-
-	function split_category(wikitext) {
+	function split_category(wikitext, template_token) {
 		const parsed = CeL.wiki.parser(wikitext, wiki.append_session_to_options()).parse();
 		CeL.assert([wikitext, parsed.toString()], 'wikitext parser check 2: ' + CeL.wiki.title_link_of(page_data));
 
@@ -146,7 +116,7 @@ async function text_processor(wikitext, page_data, work_config) {
 				language_list.append(category_token.sort_key.split(','));
 				language_list.category_token = category_token;
 			}
-			register_category(category_token);
+			register_and_append_category(category_token);
 			return parsed.each.remove_token;
 		}, true);
 
@@ -183,9 +153,13 @@ async function text_processor(wikitext, page_data, work_config) {
 			.replace(/-{({{.+?}})}-/g, (all, template_wikitext) => template_wikitext.includes('-{') ? all : template_wikitext)
 			.trim();
 
-		if (/<\w|-{{{/.test(wikitext)
-			|| wikitext.replace(/{{Lang\|.+?}}/g, '').includes('语')
+		if (/<\w|-{{{/.test(wikitext
+			// e.g., {{-en-v-}}
+			.replace(/<span style="[^<>"]*">([^<>]*)<\/span>/g, '$1'))
+			// e.g., {{-en-v-|...}}
+			|| !/^-en-\w+-$/.test(template_token.name) && wikitext.replace(/{{Lang\|.+?}}/g, '').includes('语')
 		) {
+			//console.trace([template_token.name, wikitext.replace(/<span style="[^<>"]*">([^<>]*)<\/span>/g, '$1'), wikitext.replace(/{{Lang\|.+?}}/g, '')]);
 			throw new Error(`${split_category.name}: ${CeL.wiki.title_link_of(page_data)}: 仍存有 "语", <tag> 或 -{{{template}}}-:\n${wikitext}`);
 		}
 
@@ -193,6 +167,7 @@ async function text_processor(wikitext, page_data, work_config) {
 	}
 
 	const template_list_to_process = this.template_list_to_process;
+	const maintenance_templates = this.maintenance_templates;
 
 	function normalize_header(header) {
 		// e.g., {{馬來語}}
@@ -220,7 +195,7 @@ async function text_processor(wikitext, page_data, work_config) {
 			function add_header(PATTERN) {
 				for (const matched of wikitext.matchAll(PATTERN)) {
 					const header = normalize_header(matched.groups.header);
-					if (!convert_Map.has(header))
+					if (!conversion_Map.has(header))
 						header_list.push(header);
 				}
 			}
@@ -228,15 +203,15 @@ async function text_processor(wikitext, page_data, work_config) {
 			//add_header(/<h2>(.+)<\/h2>/g);
 			if (header_list.length > 0) {
 				const converted_header_list = await wiki.convert_Chinese(header_list, { uselang: 'zh-hant' });
-				header_list.forEach((header, index) => convert_Map.set(header, converted_header_list[index]));
-				//console.trace(convert_Map);
+				header_list.forEach((header, index) => conversion_Map.set(header, converted_header_list[index]));
+				//console.trace(conversion_Map);
 			}
 			// free
 			//header_list.truncate();
 
 			const language_list = [];
 			wikitext = wikitext.replace(/==(.+)==/g, (all, header) => {
-				header = convert_Map.get(normalize_header(header));
+				header = conversion_Map.get(normalize_header(header));
 				console.assert(!!header);
 				//console.trace(header);
 				language_list.push(header);
@@ -251,18 +226,18 @@ async function text_processor(wikitext, page_data, work_config) {
 						summary: summary_prefix + `創建追縱、維護分類`
 					});
 				}
-				register_category(CeL.wiki.parse(`[[${category_name}]]`, wiki.append_session_to_options()));
+				register_and_append_category(category_name, wiki.append_session_to_options());
 				return `==${header}==`;
 			});
 			//console.trace(wikitext);
 
-			const converted_data = split_category(wikitext);
+			const converted_data = split_category(wikitext, template_token);
 			const sort_key = language_list.append(converted_data.language_list).unique().join(',') || template_token.name;
 			if (converted_data.language_list.category_token) {
 				// reuse old category_token
-				converted_data.language_list.category_token[2] = converted_data.language_list.category_token.sort_key = sort_key;
+				converted_data.language_list.category_token.set_sort_key_of_category(sort_key);
 			} else {
-				//register_category(CeL.wiki.parse(`[[${wiki.to_namespace(main_maintenance_category,'category')}|${sort_key}]]`, wiki.append_session_to_options()));
+				//register_and_append_category(`${main_maintenance_category}|${sort_key}`, wiki.append_session_to_options());
 			}
 			//console.trace(converted_data);
 			return converted_data.wikitext;
@@ -275,8 +250,8 @@ async function text_processor(wikitext, page_data, work_config) {
 
 	work_config.summary = summary_prefix + summary.unique().join(', ');
 	return parsed.toString()
-		// 去除舊英語詞條 __NOEDITSECTION__
-		.replace(/__NOEDITSECTION__\n*/g, '')
+		// 去除舊英語詞條, [[異性戀]] 等之 __NOEDITSECTION__
+		.replace(/\n?__NOEDITSECTION__/g, '')
 		// e.g., [[英語]]
 		.replace(/((?:\n|^)(={2})[^=].*?\2)(?! *\n)/g, '$1\n')
 		;
