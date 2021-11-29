@@ -45,6 +45,9 @@ const main_maintenance_category = '待分類詞彙';
 		// for debug: 僅處理單一模板
 		//if (!title.includes('馬來語')) return;
 
+		// e.g., [[解脫]]
+		//if (title.includes('日語-題')) return;
+
 		if (title in move_configuration) return;
 		move_configuration[title] = Object.clone(base_task_configuration);
 		template_list_to_process.push(title);
@@ -153,16 +156,6 @@ async function text_processor(wikitext, page_data, work_config) {
 			.replace(/-{({{.+?}})}-/g, (all, template_wikitext) => template_wikitext.includes('-{') ? all : template_wikitext)
 			.trim();
 
-		if (/<\w|-{{{/.test(wikitext
-			// e.g., {{-en-v-}}
-			.replace(/<span style="[^<>"]*">([^<>]*)<\/span>/g, '$1'))
-			// e.g., {{-en-v-|...}}
-			|| !/^-en-\w+-$/.test(template_token.name) && wikitext.replace(/{{Lang\|.+?}}/g, '').includes('语')
-		) {
-			//console.trace([template_token.name, wikitext.replace(/<span style="[^<>"]*">([^<>]*)<\/span>/g, '$1'), wikitext.replace(/{{Lang\|.+?}}/g, '')]);
-			throw new Error(`${split_category.name}: ${CeL.wiki.title_link_of(page_data)}: 仍存有 "语", <tag> 或 -{{{template}}}-:\n${wikitext}`);
-		}
-
 		return { wikitext, language_list };
 	}
 
@@ -180,7 +173,6 @@ async function text_processor(wikitext, page_data, work_config) {
 	// https://zh.wiktionary.org/wiki/Special:ApiSandbox#action=expandtemplates&format=json&title=%E9%A6%96%E9%A0%81&text=%7B%7B-en-%7D%7D&prop=wikitext&utf8=1
 	await parsed.each('template', async template_token => {
 		if (wiki.is_template(template_list_to_process, template_token)) {
-			summary.push(template_token);
 			const expanded_data = await wiki.query({
 				action: 'expandtemplates',
 				prop: 'wikitext',
@@ -191,23 +183,31 @@ async function text_processor(wikitext, page_data, work_config) {
 			let wikitext = expanded_data.expandtemplates.wikitext
 				.replace(/<h2>(.+)<\/h2>/g, `==$1==`);
 
-			const header_list = [];
+			let new_header_list;
 			function add_header(PATTERN) {
 				for (const matched of wikitext.matchAll(PATTERN)) {
 					const header = normalize_header(matched.groups.header);
+					console.assert(!!header);
+					if (!new_header_list)
+						new_header_list = [];
 					if (!conversion_Map.has(header))
-						header_list.push(header);
+						new_header_list.push(header);
 				}
 			}
 			add_header(/(==)(?<header>.+)\1/g);
 			//add_header(/<h2>(.+)<\/h2>/g);
-			if (header_list.length > 0) {
-				const converted_header_list = await wiki.convert_Chinese(header_list, { uselang: 'zh-hant' });
-				header_list.forEach((header, index) => conversion_Map.set(header, converted_header_list[index]));
+
+			if (!new_header_list) {
+				CeL.log(`跳過不包含標題的模板: {{${template_token.name}}} @ ${CeL.wiki.title_link_of(page_data)}`);
+				return;
+
+			} else if (new_header_list.length > 0) {
+				const converted_header_list = await wiki.convert_Chinese(new_header_list, { uselang: 'zh-hant' });
+				new_header_list.forEach((header, index) => conversion_Map.set(header, converted_header_list[index]));
 				//console.trace(conversion_Map);
 			}
 			// free
-			//header_list.truncate();
+			new_header_list = null;
 
 			const language_list = [];
 			wikitext = wikitext.replace(/==(.+)==/g, (all, header) => {
@@ -221,7 +221,7 @@ async function text_processor(wikitext, page_data, work_config) {
 					maintenance_templates.add(category_name);
 					/*await*/ wiki.edit_page(category_name, `{{Hidden category}}
 
-[[${wiki.to_namespace(main_maintenance_category, 'category')}]]
+[[${wiki.to_namespace(main_maintenance_category, 'category')}|header]]
 `, {
 						summary: summary_prefix + `創建追縱、維護分類`
 					});
@@ -232,6 +232,23 @@ async function text_processor(wikitext, page_data, work_config) {
 			//console.trace(wikitext);
 
 			const converted_data = split_category(wikitext, template_token);
+			wikitext = converted_data.wikitext;
+			if (/<\w|-{{{/.test(wikitext
+				// e.g., {{-en-v-}}
+				.replace(/<span style="[^<>"]*">([^<>]*)<\/span>/g, '$1'))
+				// e.g., {{-en-v-|...}}
+				|| !/^-en-\w+-$/.test(template_token.name) && wikitext.replace(/{{Lang\|.+?}}/g, '').includes('语')
+				// e.g., [[解脫]]
+				|| /\[\[:?Template:/.test(wikitext)
+			) {
+				//console.trace([template_token.name, wikitext.replace(/<span style="[^<>"]*">([^<>]*)<\/span>/g, '$1'), wikitext.replace(/{{Lang\|.+?}}/g, '')]);
+				CeL.error(`${split_category.name}: {{${template_token.name}}} @ ${CeL.wiki.title_link_of(page_data)}: 仍存有 "语", <tag> 或 -{{{template}}}- 之類無效 wikitext:
+${template_token}
+${'-'.repeat(70)}
+${wikitext}`);
+				return;
+			}
+
 			const sort_key = language_list.append(converted_data.language_list).unique().join(',') || template_token.name;
 			if (converted_data.language_list.category_token) {
 				// reuse old category_token
@@ -240,7 +257,8 @@ async function text_processor(wikitext, page_data, work_config) {
 				//register_and_append_category(`${main_maintenance_category}|${sort_key}`, wiki.append_session_to_options());
 			}
 			//console.trace(converted_data);
-			return converted_data.wikitext;
+			summary.push(template_token);
+			return wikitext;
 		}
 	}, true);
 	//console.trace(parsed.toString());
