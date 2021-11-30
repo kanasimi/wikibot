@@ -47,8 +47,9 @@ node 20170515.signature_check.js use_language=simple
  其他一般討論，應該加上署名。
 
  @see
- https://en.wikipedia.org/wiki/User:SineBot
+ https://en.wikipedia.org/wiki/User:SineBot https://en.wikipedia.org/wiki/User:Anomie/unsignedhelper.js
  https://commons.wikimedia.org/wiki/Commons:Bots/Requests/SignBot
+ https://en.wikipedia.org/wiki/User:SineBot/ChangeLog
  https://zh.wikipedia.org/wiki/User:Crystal-bot
  [[ja:User:Cpro/checksigniture.js]]
  [[fr:Utilisateur:Signature manquante (bot)]]
@@ -409,7 +410,7 @@ function for_each_row(row) {
 	//
 	&& row.title.startsWith('Wikipedia:')
 	// e.g., [[Wikipedia:机器人/申请/...]]
-	// NG: [[Wikipedia:頁面存廢討論/*]], [[Wikipedia:模板消息/用戶討論名字空間]]
+	// NG: [[Wikipedia:頁面存廢討論/*]], [[Wikipedia:模板消息/用戶討論命名空間]]
 	// && !/(?:討論|讨论|申請|申请)\//.test(row.title)
 	&& !row.title.startsWith('Wikipedia:机器人/申请/')
 	//
@@ -991,7 +992,7 @@ function for_each_row(row) {
 				//
 				+ (added_signs_or_notice
 				//
-				? ' ** Need add sign or notice **' : '')
+				? ' [[Need add sign or notice]]' : '')
 			});
 		}
 	}
