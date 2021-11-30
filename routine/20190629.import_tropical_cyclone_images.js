@@ -1716,13 +1716,13 @@ function start_NRL() {
 		 */
 		function(area_text) {
 			var year = area_text.match(/YEAR=(20\d{2})&/)[1];
-			var area = area_text.between('<font color="black">', '</font>')
+			var area = area_text.between('<font color="black">', '</font>');
 			// "Southern Hem. <BR>Season:"
-			.between(null, '<BR>').trim();
+			area = (area.between(null, '<BR>') || area).trim();
 			if (area === 'Southern Hem.')
 				area = 'Southern Hemisphere';
 
-			// console.log([ area, year, area_text ]);
+			// console.trace([ area, year, area_text ]);
 			area_text.each_between('<font size="-1">', '</font>',
 			/**
 			 * <code>
@@ -1741,7 +1741,7 @@ function start_NRL() {
 					id : matched[1],
 					name : matched[2]
 				}, base_media_data);
-				// console.log(media_data);
+				// console.trace(media_data);
 				for_each_NRL_cyclone(media_data);
 			});
 		});
@@ -1758,6 +1758,7 @@ function for_each_NRL_cyclone(media_data) {
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
 	// console.trace(media_data.id);
+	// console.trace(media_data);
 	[ 'Infrared-Gray', 'Visible' ].forEach(function(image_type) {
 		var image_directory_URL = media_data.base_URL + 'tcdat/tc'
 		// https://www.nrlmry.navy.mil/tcdat/tc2021/WP/WP062021/png_clean/Infrared-Gray/
