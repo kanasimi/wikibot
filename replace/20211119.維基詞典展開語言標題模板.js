@@ -39,7 +39,7 @@ const main_maintenance_category = '待分類詞彙';
 	};
 	function add_template(page_data) {
 		if (!wiki.is_namespace(page_data, 'template')) return;
-		const title = page_data.title;
+		const title = typeof page_data === 'string' ? page_data : page_data.title;
 
 		// ['-ja-hiragana-', '-fr-', '法語', '-ang-', '越南語漢字詞', '-vi-', '朝鮮語漢字詞', '朝鮮語', '日語-題', '日語', '-en-', '漢語']
 		// for debug: 僅處理單一模板
@@ -52,6 +52,7 @@ const main_maintenance_category = '待分類詞彙';
 		move_configuration[title] = Object.clone(base_task_configuration);
 		template_list_to_process.push(title);
 	}
+	//['Template:漢'].forEach(add_template);
 	(await wiki.categorymembers('语言模板')).forEach(add_template);
 
 	//console.log(template_list_to_process);
@@ -128,6 +129,20 @@ async function text_processor(wikitext, page_data, work_config) {
 			.replace(/<div style=\"clear: both; height: 1em\"><\/div>/g, '')
 			// remove templatestyles in {{漢字}}, {{vi-nom}}
 			.replace(/<templatestyles src="vi-nom\/fonts.css" \/>/g, '')
+			// https://zh.wiktionary.org/wiki/Module:Wikipedia
+			// e.g., '<div class="sister-wikipedia sister-project noprint floatright" style="border: 1px solid #aaa; font-size: 90%; background: #f9f9f9; width: 250px; padding: 4px; text-align: left;"><div style="float: left;">[[File:Wikipedia-logo.png|44px|none|link=|alt=]]</div><div style="margin-left: 60px;">日語[[維基百科]]有一篇文章關於:<div style="margin-left: 10px;"><b class="Jpan" lang="ja">[[w:ja:寒冷|-{寒冷}-]]</b></div></div></div>'
+			.replace(/<div class="sister-wikipedia sister-project noprint floatright"[^<>]+>(?:<[\w\/][^<>]+>|\[\[.+?\]\])+.+?有一篇文章關於:(?:<[\w\/][^<>]+>)+\[\[(.+?)\|-{(.+?)}-\]\](?:<[\w\/][^<>]+>)+<\/div>/g, (all, wikilink, display_text) => {
+				const matched = wikilink.match(/^w:(?:(\w+):)?(.+)$/);
+				if (!matched) return all;
+				const params = ['維基百科'];
+				if (matched[2] !== page_data.title || display_text !== page_data.title) {
+					params.push(matched[2]);
+					// alt = args[2] or args[1] or args["dab"] or mw.title.getCurrentTitle().text
+					if (display_text !== matched[2]) params.push(display_text);
+				}
+				if (matched[1]) params.push('lang=' + matched[1]);
+				return `{{${params.join('|')}}}`;
+			})
 
 			// for {{越南文}}, {{漢字|越南語漢字|vi}}
 			.replace(/<span class=\"han-nom\" style=\"([^<>]+)>([^<>]*)<\/span>/ig, (all, style, text) => {
@@ -154,6 +169,9 @@ async function text_processor(wikitext, page_data, work_config) {
 
 			// e.g., '\n==漢語==\n:-{{{huge|{{Lang|zh|啊}}|250%}}}-' is invalid
 			.replace(/-{({{.+?}})}-/g, (all, template_wikitext) => template_wikitext.includes('-{') ? all : template_wikitext)
+
+			// {{漢}}
+			.replace(/\n?__NOTITLECONVERT__/g, '')
 			.trim();
 
 		return { wikitext, language_list };
@@ -221,7 +239,7 @@ async function text_processor(wikitext, page_data, work_config) {
 					maintenance_templates.add(category_name);
 					/*await*/ wiki.edit_page(category_name, `{{Hidden category}}
 
-[[${wiki.to_namespace(main_maintenance_category, 'category')}|header]]
+[[${wiki.to_namespace(main_maintenance_category, 'category')}|${header}]]
 `, {
 						summary: summary_prefix + `創建追縱、維護分類`
 					});
