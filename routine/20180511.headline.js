@@ -723,7 +723,7 @@ var source_configurations = {
 			flag : 'Hong Kong',
 			// url_2019 : 'https://hk.appledaily.com/catalog/index/',
 			// parser : parser_蘋果日報_香港_2019
-			url : 'https://hk.appledaily.com/realtime/local/',
+			// url : 'https://hk.appledaily.com/realtime/local/',
 			data_url : function() {
 				var url = new URL(
 						'https://hk.appledaily.com/pf/api/v3/content/fetch/query-feed');
@@ -1100,6 +1100,10 @@ var source_configurations = {
 
 function for_source(source_id) {
 	var source_data = source_configurations[source_id];
+	if (!source_data.url) {
+		// e.g., 蘋果日報
+		return;
+	}
 	CeL.debug(source_id + ':	' + source_data.url, 1, 'for_source');
 	working_queue[source_id] = source_data.url;
 
@@ -2637,7 +2641,7 @@ function parse_headline_page(page_data) {
 function main_process() {
 	var configuration = wiki.latest_task_configuration;
 	var task_configuration = configuration.general;
-	//console.trace(wiki);
+	// console.trace(wiki);
 	page_prefix = task_configuration.page_prefix || '';
 	DATE_NAME = task_configuration.DATE_NAME || '';
 	category_name = task_configuration.locale || locale;
