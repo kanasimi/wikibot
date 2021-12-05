@@ -36,6 +36,8 @@ CeL.character.load('big5');
 // else if (locale === '國際')
 CeL.character.load('gb2312');
 
+require('tls').DEFAULT_MIN_VERSION = "TLSv1";
+
 // ------------------------------------
 
 var working_queue = Object.create(null),
@@ -706,8 +708,8 @@ var source_configurations = {
 		},
 		星島日報 : {
 			flag : 'Hong Kong',
-			url : 'http://std.stheadline.com/daily/daily.php',
-			today_only : true,
+			url : 'https://std.stheadline.com/daily/hongkong/日報-港聞',
+			// today_only : true,
 			parser : parser_星島日報
 		},
 		東方日報 : {
@@ -1617,7 +1619,7 @@ function parser_大公報(html) {
 	return headline_list;
 }
 
-function parser_星島日報(html) {
+function parser_星島日報_201811(html) {
 	var list = html.between('<div class="top-news">', '<div class="des">'), headline_list = [],
 	//
 	PATTERN_headline_201805 = /<a href="([^"<>]+)" title="([^"<>]+)">/g,
@@ -1630,6 +1632,31 @@ function parser_星島日報(html) {
 		};
 		headline_list.push(headline);
 	}
+	return headline_list;
+}
+
+function parser_星島日報(html) {
+	// <div class="container">...<div class="footer pt-2">
+	var list = html.between('<div class="main">', '<div class="footer'), headline_list = [],
+	/**
+	 * 2021改版? <code>
+	<a class="title" href="https://std.stheadline.com/daily/article/2423139/日報-港聞-食肆變陣-B轉C-勢暴增逾千家" title="食肆變陣 「B轉C」勢暴增逾千家">食肆變陣 「B轉C」勢暴增逾千家</a>
+	<a class="title" href="https://std.stheadline.com/daily/article/2423141/日報-港聞-業界爭取放寬D類-宴會上限加至360人" title="業界爭取放寬D類 宴會上限加至360人">業界爭取放寬D類 宴會上限加至360人</a>
+
+	<span class="date">2021-12-06 00:00:00</span>
+	</code>
+	 */
+	PATTERN_headline = /<a class="title" href="([^"<>]+)"[\s\S]*? title="([^"<>]+)"[\s\S]*?>(.+?)<\/a>/, matched;
+	list.each_between('<div class="media-body">', '</div>', function(text) {
+		// 這中間應該只有一筆頭條。
+		var matched = text.match(PATTERN_headline);
+		var headline = {
+			url : matched[1],
+			'KEY headline title' : get_label(matched[2]),
+			date : new Date(text.between('<span class="date">', '</span>'))
+		};
+		headline_list.push(headline);
+	});
 	return headline_list;
 }
 
