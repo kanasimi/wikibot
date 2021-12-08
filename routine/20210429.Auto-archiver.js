@@ -3,10 +3,14 @@
 node 20210429.Auto-archiver.js use_language=zh
 node 20210429.Auto-archiver.js use_project=wikidata
 node 20210429.Auto-archiver.js use_project=zh.wikiversity
+node 20210429.Auto-archiver.js use_project=wikinews
 
 2021/5/2 8:41:44	初版試營運。
 
 [[w:en:Help:Archiving a talk page#Automated archiving]]
+
+TODO:
+{{Save to}}
 
  */
 
@@ -54,6 +58,11 @@ async function for_each_discussion_page(page_data) {
 		return;
 	}
 
+	if (archive_configuration.archive_after_last_comment > 0) {
+		// Treat number as days
+		archive_configuration.archive_after_last_comment += 'day';
+	}
+	//console.trace(archive_configuration);
 	const archive_after_last_comment = CeL.date.to_millisecond(archive_configuration.archive_after_last_comment || '1 week');
 	//console.log(CeL.age_of(0, archive_after_last_comment));
 	if (!archive_after_last_comment) {
@@ -64,32 +73,50 @@ async function for_each_discussion_page(page_data) {
 
 	let sections_need_to_archive = [];
 
-	parsed.each_section((section, index) => {
-		if (index === 0) {
-			// Skip the ffirst section.
+	parsed.each_section((section, section_index) => {
+		if (!section.section_title) {
+			// Skip the first section.
 			return;
 		}
+
+		// --------------------------------------------------------------------
+
+		const NOW = Date.now();
+		let not_yet_expired;
+		// This section is pinned and will not be automatically archived.
+		section.each('template', template_token => {
+			if (0 < template_token.message_expire_date) {
+				not_yet_expired = NOW < template_token.message_expire_date;
+				if (not_yet_expired)
+					return parsed.each.exit;
+			}
+		}, {
+			max_depth: 1
+		});
+		if (not_yet_expired) {
+			// has not yet expired
+			return;
+		}
+
+		// --------------------------------------------------------------------
 
 		const latest_timevalue = section.dates.max_timevalue;
-		if (!latest_timevalue) {
-			CeL.warn(`Cannot get latest date of ${section.section_title.link}`);
-			return;
-		}
-		if (Date.now() - latest_timevalue < archive_after_last_comment) {
-			return;
-		}
-
-		// This section is pinned and will not be automatically archived.
-		if (parsed.find_template.call(section, 'Pin message')
-			//
-			|| parsed.find_template.call(section, 'Do not archive')) {
-			return;
+		if (not_yet_expired !== false) {
+			if (!latest_timevalue) {
+				CeL.warn(`Cannot get latest date of ${section.section_title.link}`);
+				return;
+			}
+			if (NOW - latest_timevalue < archive_after_last_comment) {
+				return;
+			}
 		}
 
 		sections_need_to_archive.push(section);
-		CeL.info(`Need archive #${sections_need_to_archive.length} (${CeL.age_of(latest_timevalue)}): ${section.section_title.title}`);
+		// : ${section.section_title.title}
+		CeL.info(`${for_each_discussion_page.name}: Need archive #${sections_need_to_archive.length} ${section.section_title.link.toString()
+			}${not_yet_expired !== false && latest_timevalue && latest_timevalue !== -Infinity ? ` (${CeL.age_of(latest_timevalue) || latest_timevalue})` : ''}`);
 	}, {
-		level_filter: archive_configuration.level || 2,
+		level_filter: +archive_configuration.section_level,
 		get_users: true,
 	});
 
@@ -186,7 +213,9 @@ async function archive_page(configuration) {
 	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
 		.join(' ');
 	const summary_tail = ` ${sections_need_to_archive.length} topic(s): ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
-	// 寫入存檔失敗則 throw，不刪除。
+	//console.trace([summary, summary_tail]);
+
+	// 寫入存檔失敗則 throw，不刪除原討論頁內容。
 	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n',
 		{ bot: 1, minor: 1, summary: `${summary}: Append${summary_tail}` });
 
