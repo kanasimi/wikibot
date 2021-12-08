@@ -785,7 +785,7 @@ var source_configurations = {
 		},
 		華僑報 : {
 			flag : 'Macau',
-			today_only : true,
+			// today_only : true,
 			url : 'http://www.vakiodaily.com/site/history/id/'
 					+ use_date.format('%Y%2m%2d'),
 			parser : parser_華僑報
@@ -1860,7 +1860,7 @@ function parser_現代澳門日報(html) {
 			CeL.error('parser_澳門日報: ' + token);
 		var headline = {
 			url : matched[1],
-			'KEY headline title' : get_label(matched[2]),
+			'KEY headline title' : get_label(matched[2]).replace(/_/g, ' '),
 		};
 
 		if (headline_list.length < 9)
