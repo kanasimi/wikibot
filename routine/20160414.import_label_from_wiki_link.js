@@ -214,6 +214,10 @@ PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓�
 	}
 }));
 
+// 常用非英語拉丁語言。多為歐美語系。
+var languages_maybe_latin_script = [ 'de', 'fr', 'pt', 'es', 'hu', 'pl', 'ca',
+		'hr', 'it', 'af', 'vi', 'sl' ];
+
 function language_label(language) {
 	if (language in PATTERN_language_label)
 		return PATTERN_language_label[language];
@@ -628,7 +632,10 @@ function for_each_page(page_data, messages) {
 		// 注意: 此處已不可包含 "''"。
 		// @see common_characters
 		.match(/^([a-z][a-z\s\d,.\-–`]{3,40})[)），;；。]/i))
-				&& (foreign_title = CeL.wiki.plain_text(matched[1]))) {
+				&& (foreign_title = CeL.wiki.plain_text(matched[1]))
+				// 不應包含常用非英語拉丁語言。
+				// e.g., {{link-de|ZUB|Zugbeeinflussung}} 不應當作英語縮寫。
+				&& !languages_maybe_latin_script.includes(foreign_language)) {
 			foreign_language = 'en';
 			CeL.debug('title@lead type （title，...）: '
 					+ CeL.wiki.title_link_of(title) + ' → [['
