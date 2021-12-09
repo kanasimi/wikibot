@@ -375,16 +375,20 @@ function for_each_page(page_data, messages) {
 
 		if (!local_language) {
 			local_language = CeL.wiki.guess_language(label);
-			if (local_language === '') {
+			if (!local_language) {
+				// local_language === ''
 				CeL.warn('add_label: Unknown language: ' + token + ' @ '
 						+ CeL.wiki.title_link_of(title));
-			}
-			if (local_language === 'en'
+
+			} else if (local_language === 'en'
 			// 不應包含常用非英語拉丁語言。
 			// e.g., {{link-de|ZUB|Zugbeeinflussung}} 不應當作英語縮寫。
 			// [[d:User talk:Kanashimi#English aliases]]
 			&& languages_maybe_latin_script.includes(foreign_language)) {
-				local_language = foreign_language;
+				// local_language = foreign_language;
+
+				// Will set as `use_language`
+				local_language = null;
 			}
 		}
 
