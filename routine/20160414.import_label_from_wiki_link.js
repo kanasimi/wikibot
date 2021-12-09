@@ -379,6 +379,13 @@ function for_each_page(page_data, messages) {
 				CeL.warn('add_label: Unknown language: ' + token + ' @ '
 						+ CeL.wiki.title_link_of(title));
 			}
+			if (local_language === 'en'
+			// 不應包含常用非英語拉丁語言。
+			// e.g., {{link-de|ZUB|Zugbeeinflussung}} 不應當作英語縮寫。
+			// [[d:User talk:Kanashimi#English aliases]]
+			&& languages_maybe_latin_script.includes(foreign_language)) {
+				local_language = foreign_language;
+			}
 		}
 
 		if (is_zh && (!local_language
@@ -632,10 +639,7 @@ function for_each_page(page_data, messages) {
 		// 注意: 此處已不可包含 "''"。
 		// @see common_characters
 		.match(/^([a-z][a-z\s\d,.\-–`]{3,40})[)），;；。]/i))
-				&& (foreign_title = CeL.wiki.plain_text(matched[1]))
-				// 不應包含常用非英語拉丁語言。
-				// e.g., {{link-de|ZUB|Zugbeeinflussung}} 不應當作英語縮寫。
-				&& !languages_maybe_latin_script.includes(foreign_language)) {
+				&& (foreign_title = CeL.wiki.plain_text(matched[1]))) {
 			foreign_language = 'en';
 			CeL.debug('title@lead type （title，...）: '
 					+ CeL.wiki.title_link_of(title) + ' → [['
@@ -1670,8 +1674,9 @@ function finish_work() {
 			+ '處理 ' + use_language + ' Wikipedia 上的頁面。';
 	CeL.log(message);
 
-	CeL.write_file('en_label_list_of_' + use_language + '.txt', en_label_list
-			.join('\n'));
+	CeL.write_file(
+			base_directory + 'en_label_list_of_' + use_language + '.txt',
+			en_label_list.join('\n'));
 }
 
 // ----------------------------------------------------------------------------
