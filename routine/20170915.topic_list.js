@@ -234,9 +234,9 @@ var section_column_operators = {
 
 		} else if (Array.isArray(page_configuration.level_filter)
 				&& section_title.level > page_configuration.level_filter[0]) {
-			// 處理次標題的 indent 縮進。
 			title = '\n' + ':'.repeat(section_title.level
-						- page_configuration.level_filter[0]) + ' ' + title;
+			// 處理次標題的 indent 縮進。
+			- page_configuration.level_filter[0]) + ' ' + title;
 		}
 
 		if (style) {
@@ -1395,7 +1395,7 @@ function for_each_sub_page_index(index) {
 				section.section_title && section.section_title.title ]);
 			}
 			if (section.section_title
-
+			//
 			&& section.section_title.title === transclusion_section) {
 				content = section.section_title + section;
 			}
@@ -1484,7 +1484,8 @@ function generate_topic_list(page_data) {
 					+ ' -->',
 			'{| class="' + (page_configuration.header_class
 			// plainlinks autocollapse
-			|| 'wikitable sortable mw-collapsible') + '"  style="float:left;"'
+			|| 'wikitable sortable mw-collapsible') + '"  style="'
+					+ (page_configuration.table_style || 'float:left;') + '"'
 					+ (page_configuration.additional_header || ''), '|-',
 			generate_headers(page_configuration) ],
 	//
@@ -1513,7 +1514,7 @@ function generate_topic_list(page_data) {
 			console.log(section);
 		}
 
-		if (section_index === 0) {
+		if (!section.section_title) {
 			// 跳過頁首設定與公告區。
 			return;
 		}

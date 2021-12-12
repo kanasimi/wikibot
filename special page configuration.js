@@ -1037,6 +1037,8 @@ global.special_page_configuration = {
 		// topic_page : general_topic_page,
 		// timezone : 8,
 		purge_page : '萌娘百科 talk:讨论版',
+		// 把填充背景色應用至整個<td>單元格 [[Special:Diff/5491729]]
+		table_style : 'float:left;height:1px;',
 		columns : 'NO;title;status;discussions;participants;last_user_set',
 		// "發言更新圖例"不必摺疊，因為那裡的位置很寬裕且作為參考圖例每次點開很不便
 		list_legend_class : "wikitable mw-collapsible",
@@ -1456,7 +1458,11 @@ function check_MarkAsResolved_status(section, section_index) {
 			} else {
 				token.push(status);
 			}
-			status = token.toString();
+
+			// token.parameters.status
+			// 把填充背景色應用至整個<td>單元格 [[Special:Diff/5491729]]
+			status = 'style="padding: 0;" | ' + token.toString();
+
 			section.archived = true;
 
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
