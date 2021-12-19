@@ -8,8 +8,10 @@ node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backli
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出场的铁路车站列表"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=赛马娘 Pretty Derby/成句与梗"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=User:玄微子/萌百史记/维护组部分"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
+node 20201008.fix_anchor.js use_project=en "check_page=Glossary of cricket terms"
 
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_project=en only_modify_pages=Wikipedia:Sandbox "check_page=Political divisions of the United States"
@@ -163,8 +165,8 @@ async function main_process() {
 		// [[w:zh:Special:Diff/37559912]]
 		await check_page('香港特別行政區區旗', { force_check: true });
 
-		await check_page('Wikipedia:互助客栈/技术‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
-		await check_page('Wikipedia:当前的破坏‎‎', { force_check: true, namespace: '*', has_subpage_archives: true });
+		await check_page('Wikipedia:互助客栈/技术', { force_check: true, namespace: '*', has_subpage_archives: true });
+		await check_page('Wikipedia:当前的破坏', { force_check: true, namespace: '*', has_subpage_archives: true });
 
 		// "&amp;"
 		await check_page('三井E&Sホールディングス', { force_check: true });
@@ -215,7 +217,7 @@ async function main_process() {
 	wiki.listen(for_each_row, {
 		// 檢查的延遲時間。
 		// 時間必須長到機器人存檔作業完成後，因此最起碼應該有1分鐘。
-		delay: '2m',
+		delay: wiki.latest_task_configuration.general.delay || '2m',
 		//start: '30D',
 		filter: filter_row,
 		// also get diff
