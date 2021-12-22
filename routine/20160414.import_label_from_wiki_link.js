@@ -117,7 +117,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
 
-// for debug specified pages. 只處理此一頁面。僅測試此單一頁面。
+// for debug specified pages. 只處理此一頁面。僅測試此單一頁面上的跨語言連結。
 test_the_page_only = "",
 
 /** {Natural}所欲紀錄的最大筆數。 */
@@ -329,6 +329,19 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 		}
+
+		// 不應處理 {{仮リンク|タイタンの地質|en|Titan_(moon)#Surface_features}}
+		if (label.includes('#') || foreign_title.includes('#')) {
+			// [[ビッグ・リーグ・チュー]]:
+			// [[タバコ#噛みタバコ|噛みタバコ]] ([[:en:Chewing tobacco|chewing tobacco]])
+			// [[スクロドフスカ石]]:
+			// {{仮リンク|ネソ珪酸塩鉱物|en|Silicate_minerals#Nesosilicates_or_orthosilicates}}
+			// {{le|Deep Silver|Koch Media#Deep Silver}}
+			CeL.debug('不處理名稱包含"#"者: [' + label + '], foreign_title: '
+					+ foreign_title);
+			return;
+		}
+
 		foreign_title = CeL.wiki.normalize_title(foreign_title
 				.replace(/^:/, ''));
 		label = CeL.wiki.normalize_title(label
@@ -341,17 +354,6 @@ function for_each_page(page_data, messages) {
 		if (false) {
 			// done by CeL.wiki.normalize_title().
 			label = label.replace(/_/g, ' ');
-		}
-
-		// 不應處理 {{仮リンク|タイタンの地質|en|Titan_(moon)#Surface_features}}
-		if (label.includes('#') || foreign_title.includes('#')) {
-			// [[ビッグ・リーグ・チュー]]:
-			// [[タバコ#噛みタバコ|噛みタバコ]] ([[:en:Chewing tobacco|chewing tobacco]])
-			// [[スクロドフスカ石]]:
-			// {{仮リンク|ネソ珪酸塩鉱物|en|Silicate_minerals#Nesosilicates_or_orthosilicates}}
-			CeL.debug('不處理名稱包含"#"者: [' + label + '], foreign_title: '
-					+ foreign_title);
-			return;
 		}
 
 		if ((foreign_language !== 'ja' || local_language !== 'zh-hant')
