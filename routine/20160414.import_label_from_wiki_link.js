@@ -385,10 +385,12 @@ function for_each_page(page_data, messages) {
 			// e.g., {{link-de|ZUB|Zugbeeinflussung}} 不應當作英語縮寫。
 			// [[d:User talk:Kanashimi#English aliases]]
 			&& languages_maybe_latin_script.includes(foreign_language)) {
-				// local_language = foreign_language;
-
 				// Will set as `use_language`
-				local_language = null;
+				// local_language = null;
+
+				local_language = languages_maybe_latin_script
+						.includes(use_language) ? use_language
+						: foreign_language;
 			}
 		}
 
