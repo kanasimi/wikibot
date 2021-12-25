@@ -22,17 +22,17 @@ if (!section_title) {
 	// 「」→「」の改名に伴うリンク修正依頼
 	CeL.info(`
 Usage:
-node ${script_name} "section title"
-node ${script_name} "section title" diff=0000
-node ${script_name} "section_title=section title" diff=0000 use_language=ja also_replace_text_insource
-node ${script_name} "section title" keep_display_text allow_empty skip_nochange=false
-node ${script_name} "section title" "also_replace_text_insource=title1|title2"
-node ${script_name} "section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
-node ${script_name} "section title" "task_configuration={""from"":""DELETE_PAGE""}" no_task_configuration_from_section
-node ${script_name} "section title" "task_configuration={""http://url/"":""https://url/""}"
-node ${script_name} "section title" "task_configuration={""insource:\\\\""[[T|T]]\\\\"""":""T""}"
-node ${script_name} "section title" "task_configuration={""insource:\\\\""從文字\\\\"""":""改成文字""}"
-node ${script_name} "section title" get_task_configuration_from=list|table
+node ${script_name} "request section title"
+node ${script_name} "request section title" diff=0000
+node ${script_name} "section_title=request section title" diff=0000 use_language=ja also_replace_text_insource
+node ${script_name} "request section title" keep_display_text allow_empty skip_nochange=false
+node ${script_name} "request section title" "also_replace_text_insource=title1|title2"
+node ${script_name} "request section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
+node ${script_name} "request section title" "task_configuration={""from"":""DELETE_PAGE""}" no_task_configuration_from_section
+node ${script_name} "request section title" "task_configuration={""http://url/"":""https://url/""}"
+node ${script_name} "request section title" "task_configuration={""insource:\\\\""[[T|T]]\\\\"""":""T""}"
+node ${script_name} "request section title" "task_configuration={""insource:\\\\""從文字\\\\"""":""改成文字""}"
+node ${script_name} "request section title" get_task_configuration_from=list|table
 
 Show all titles:
 node general_replace.js ${KEY_show_sections} use_language=${use_language && 'ja'}
@@ -64,7 +64,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 				}
 				continue;
 			}
-			if (section_data.finished) {
+			if (section_data.finished || section_data.withdrawed) {
 				continue;
 			}
 			if (section_data.completed && (section_data.doing || section_data.done)) {
@@ -73,9 +73,10 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 			} else {
 				CeL.log(section_title);
 			}
-			//console.log(section_data);
+			//console.trace(section_data);
 		}
 		if (!need_replace_all || need_close.modified || need_close.length === 0) {
+			//console.trace(need_close);
 			return;
 		}
 
@@ -92,7 +93,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 			section_title: need_close.length === 1 && need_close[0],
 			for_section_options: {
 				need_edit: true,
-				summary: need_close.length === 1 ? 'Close request' : `Close ${need_close.length} requests`
+				summary: `${need_close.length > 1 ? `Close ${need_close.length} requests` : 'Close request'}: ${need_close.map(section_title => section_title.link).join(', ')}`
 			}
 		});
 		//console.trace(meta_configuration);
