@@ -26,8 +26,23 @@ const archive_template_name = 'Auto-archive';
 
 // ----------------------------------------------------------------------------
 
+// 讀入手動設定 manual settings。
+async function adapt_configuration(latest_task_configuration) {
+	//console.log(wiki.latest_task_configuration);
+
+	// ----------------------------------------------------
+
+	const { general } = latest_task_configuration;
+
+}
+
+// ----------------------------------------------------------------------------
+
 (async () => {
+	login_options.configuration_adapter = adapt_configuration;
+	//console.log(login_options);
 	await wiki.login(login_options);
+	// await wiki.login(null, null, use_language);
 	await wiki.for_each_page(await wiki.embeddedin(
 		// wiki.to_namespace(archive_template_name, 'template')
 		'Template:' + archive_template_name), for_each_discussion_page);
@@ -49,12 +64,14 @@ async function for_each_discussion_page(page_data) {
 		return;
 
 	if (archive_configuration.target_root_page && archive_configuration.target_root_page !== page_data.title) {
+		// 將頁面內容存檔至子頁面以外的地方
 		target_root_page = await wiki.page(archive_configuration.target_root_page);
 		parsed = target_root_page.parse();
 	}
 
-	// 討論頁面超過此大小才存檔
-	if (target_root_page.wikitext.length < archive_configuration.archive_exceed_size) {
+	// .archive_exceed_size
+	// 紀錄/討論頁面字元數超過此大小(chars)才會被搬移存檔。
+	if (target_root_page.wikitext.length < archive_configuration.min_size_left) {
 		return;
 	}
 
@@ -121,7 +138,7 @@ async function for_each_discussion_page(page_data) {
 	});
 
 	if (0 < archive_configuration.min_threads_left) {
-		// 最少需要留下幾個議題(章節)
+		// 紀錄/討論頁面最少需要留下幾個議題(章節)。
 		//-1: the first section
 		const left = Math.floor(parsed.sections.length - 1 - archive_configuration.min_threads_left);
 		if (left <= 0)
@@ -129,7 +146,10 @@ async function for_each_discussion_page(page_data) {
 		sections_need_to_archive.truncate(left);
 	}
 
-	if (0 < archive_configuration.min_threads_to_archive ? sections_need_to_archive.length < archive_configuration.min_threads_to_archive : sections_need_to_archive.length === 0) {
+	if (0 < archive_configuration.min_threads_to_archive
+		// 每次最少存檔幾個議題(章節)，可降低編輯頻率。
+		? sections_need_to_archive.length < archive_configuration.min_threads_to_archive
+		: sections_need_to_archive.length === 0) {
 		return;
 	}
 
@@ -172,9 +192,18 @@ async function select_archive_to_page(configuration) {
 	let archive_to_page;
 	while (true) {
 		archive_to_page = await wiki.page(archive_prefix + archive_subpage);
-		if (archive_to_page.wikitext.length > archive_configuration.max_archive_page_size
-			|| archive_to_page.wikitext.length > 10_000_000) {
-			// 存檔頁面超過尺大小就轉到下一個存檔頁面
+		// hard limit
+		let need_skip = archive_to_page.wikitext.length > 10_000_000
+			// 存檔頁面超過此大小(chars)就轉到下一個存檔頁面。
+			|| archive_to_page.wikitext.length > archive_configuration.max_archive_page_size;
+
+		if (!need_skip && 1 < archive_configuration.max_archive_page_threads) {
+			const parsed = CeL.wiki.parser(page_data);
+			// 存檔頁面議題(章節)數超過此數值就轉到下一個存檔頁面。
+			need_skip = parsed.sections.length > archive_configuration.max_archive_page_threads;
+		}
+
+		if (need_skip) {
 			const subpage = archive_subpage_generator(++archive_subpage_index);
 			if (archive_subpage === subpage) {
 				CeL.error(`Skip archive ${CeL.wiki.title_link_of(archive_prefix + archive_subpage)} (${archive_to_page.wikitext.length} chars): No archive page title available.`);
@@ -202,8 +231,12 @@ async function archive_page(configuration) {
 			// 字元數超過了這個長度，才會造出首個存檔。
 			return;
 		}
-		if (archive_configuration.archive_header) {
-			archive_wikitext = archive_configuration.archive_header.toString().trim() + '\n\n' + archive_wikitext;
+		// 存檔頁面標頭。未設定時預設為{{tl|Talk archive}}。
+		const archive_header = archive_configuration.archive_header ?? wiki.latest_task_configuration.general.archive_header
+			// default: using Template:Archive
+			?? (use_language === 'zh' ? '{{Talk archive}}' : '{{Archive}}');
+		if (archive_header) {
+			archive_wikitext = archive_header.toString().trim() + '\n\n' + archive_wikitext;
 		}
 	}
 
