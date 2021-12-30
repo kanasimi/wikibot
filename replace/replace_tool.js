@@ -526,13 +526,9 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 	//console.trace(meta_configuration);
 	//console.trace(task_configuration_from_section);
 
-	section.each('template', token => {
-		if (token.name !== 'リンク修正依頼/改名')
-			return;
-
-		// Get task configuration from section in request page.
-		//[[w:ja:Template:リンク修正依頼/改名]]
-
+	// Get task configuration from section in request page.
+	//[[w:ja:Template:リンク修正依頼/改名]]
+	section.each('Template:リンク修正依頼/改名', token => {
 		let discussion_link = token.parameters.提案;
 		if (!discussion_link) {
 		} else if (discussion_link.type === 'link') {
@@ -574,23 +570,42 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			//console.log(task_options);
 		}
 
-		function normalize_page_token(index) {
-			return token.parameters[index].toString().replace(/<!--[\s\S]*-->/g, '').trim().replace(/{{!}}/g, '|');
+		function match_link(link) {
+			const matched = link.match(/^\[\[([^\[\]]+)\]\]$/);
+			return matched;
+		}
+
+		function normalize_page_token(index, keep_link) {
+			//console.log(token.parameters[index]);
+			let link = typeof index === 'number' ? token.parameters[index].toString().replace(/<!--[\s\S]*-->/g, '').trim().replace(/{{!}}/g, '|') : index;
+			if (!keep_link && match_link(link)) {
+				const parsed = CeL.wiki.parse(link);
+				// @see function prepare_operation(meta_configuration, move_configuration)
+				if (!parsed[1]) parsed[1] = '#';
+				if (!parsed[2]) parsed[2] = typeof index === 'number' && index % 2 === 1 ? '' : parsed[0];
+				link = match_link(parsed.toString())[1];
+			}
+			return link;
 		}
 
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
-			const title = normalize_page_token(index);
-			//if (title.includes('IOS (Apple)')) { console.trace(`Ignore ${title}`); continue; }
-			const move_to_link = convert_special_move_to(normalize_page_token(index + 1));
+			const move_from_link = normalize_page_token(index);
+			//if (move_from_link.includes('IOS (Apple)')) { console.trace(`Ignore ${move_from_link}`); continue; }
+			let move_to_link = convert_special_move_to(normalize_page_token(index + 1, true));
 			const task_configuration = {
 				discussion_link,
 				...task_options,
-				move_to_link,
 			};
-			task_configuration_from_section[title] = task_configuration;
-			if (Array.isArray(meta_configuration.also_replace_text_insource) ? meta_configuration.also_replace_text_insource.includes(title) : meta_configuration.also_replace_text_insource) {
+			if (match_link(move_to_link)) {
+				// assert: 'keep_display_text' in task_configuration === false
+				task_configuration.keep_display_text = false;
+				move_to_link = normalize_page_token(move_to_link);
+			}
+			task_configuration.move_to_link = move_to_link;
+			task_configuration_from_section[move_from_link] = task_configuration;
+			if (Array.isArray(meta_configuration.also_replace_text_insource) ? meta_configuration.also_replace_text_insource.includes(move_from_link) : meta_configuration.also_replace_text_insource) {
 				// Also replace text in source of **non-linked** pages
-				task_configuration_from_section[`insource:"${title}"`] = Object.clone(task_configuration);
+				task_configuration_from_section[`insource:"${move_from_link}"`] = Object.clone(task_configuration);
 				//console.log(task_configuration_from_section);
 			}
 		}
@@ -708,7 +723,7 @@ async function notice_finished(wiki, meta_configuration) {
 		// assert: parsed[index] === section.at(-1)
 		parsed[index] = parsed[index].toString().trimEnd()
 			// [[mw:Extension:Echo#Usage]]
-			+ `\n* ${meta_configuration.bot_requests_user ? `[[User:${meta_configuration.bot_requests_user}]]: ` : ''} ${finished_message} --~~~~\n`;
+			+ `\n* ${meta_configuration.bot_requests_user ? `[[User:${meta_configuration.bot_requests_user}|]]: ` : ''} ${finished_message} --~~~~\n`;
 		options.need_edit = true;
 	}, options);
 
@@ -1083,9 +1098,12 @@ async function finish_work(meta_configuration) {
 // separate namespace and page name
 function parse_move_link(link, session) {
 	// /^(?<namespace>[^:]+):(?<page_name>.+)$/
-	const matched = typeof link === 'string' && session.normalize_title(link, { no_upper_case_initial: true }).match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
+	const matched = typeof link === 'string' && session.normalize_title(link, { no_upper_case_initial: true, keep_anchor: true })
+		// TODO: use wiki.parse()
+		.match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
 	if (!matched)
 		return;
+	//console.trace([link, matched]);
 
 	const _session = session || CeL.wiki;
 	const ns = _session.namespace(matched[2]) || _session.namespace('Main');
@@ -1236,12 +1254,12 @@ async function get_list(task_configuration, list_configuration) {
 
 	} else if (list_types.join() !== 'search') {
 		if (list_configuration.move_from_link) {
-			list_configuration.move_from_link = wiki.normalize_title(list_configuration.move_from_link);
 			// separate namespace and page name
 			list_configuration.move_from = {
-				...parse_move_link(wiki.normalize_title(list_configuration.move_from_link), wiki),
+				...parse_move_link(list_configuration.move_from_link, wiki),
 				...list_configuration.move_from
 			};
+			list_configuration.move_from_link = wiki.normalize_title(list_configuration.move_from_link);
 			// console.trace(task_configuration.move_from);
 			// 手動設定另當別論。
 			if (!list_configuration.list_types && list_configuration.move_from.ns !== wiki.namespace('Category')) {
@@ -1619,9 +1637,9 @@ function for_each_link(token, index, parent) {
 	) {
 		return;
 	}
-	// console.log(token);
-	// console.log(page_title);
-	// console.log(this);
+	//console.log(token);
+	//console.log(page_title);
+	//console.log(this);
 
 	if (this.for_each_link) {
 		return this.for_each_link(token, index, parent);
@@ -1783,9 +1801,14 @@ function for_each_link(token, index, parent) {
 		token.pop();
 	} else if (!/ +\([^()]+\)$/.test(this.move_to.page_title) && this.move_from.page_title !== this.move_to.page_title
 		&& this.move_from.page_title === /*CeL.wiki.wikitext_to_plain_text(token[2], { no_upper_case_initial: true })*/CeL.HTML_to_Unicode(token[2].toString())) {
-		// [[AA]] → [[B]]			則同時把 [[AA#anchor|A&#66;]] → [[B#anchor|BB]]
-		// @see .also_replace_display_text
-		token[2] = this.move_to.page_title;
+		if (!token[1] && token[0] === this.move_to.page_title) {
+			// MeToo → ＃MeToo 則 [[MeToo]] 此時為 [[＃MeToo|MeToo]]，直接改成 [[＃MeToo]]。
+			token.pop();
+		} else {
+			// [[AA]] → [[B]]			則同時把 [[AA#anchor|A&#66;]] → [[B#anchor|BB]]
+			// @see .also_replace_display_text
+			token[2] = this.move_to.page_title;
+		}
 	}
 	//console.trace(token);
 
