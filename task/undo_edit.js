@@ -9,6 +9,9 @@ node undo_edit.js use_language=ja
 
  @see [[m:User:Hoo man/Scripts/Smart rollback]]
 
+TODO:
++ 預估剩餘時間
+
  */
 
 'use strict';
@@ -23,6 +26,7 @@ var wiki = Wiki(true, 'commons');
 
 // ---------------------------------------------------------------------//
 
+// ごめんなさい。
 var edit_summary = 'Sorry, revert error made by bot. ('
 // 加上時間戳記以方便要回復這次 undo 時使用。
 + (new Date).toISOString() + ')';
@@ -34,7 +38,8 @@ function filter_summary(summary, page_data) {
 	// console.log(summary);
 	// return summary.includes('The article is NOT listed in any vital article
 	// list page');
-	return summary.includes('files that should have their license reviewed')
+	return summary
+			.includes('Language clarification on UK legislation uploads by Fae. (incategory:')
 	// && wiki.is_namespace(page_data, 'Category')
 	;
 
@@ -56,6 +61,7 @@ function filter_summary(summary, page_data) {
 wiki.usercontribs(CeL.wiki.extract_login_user_name(login_options.user_name),
 //
 check_usercontribs, {
+	// namespace : 'Category',
 	limit : trace_forward_length
 });
 
