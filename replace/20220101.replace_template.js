@@ -17,7 +17,11 @@ replace_tool.replace({
 	no_task_configuration_from_section: true,
 
 	language: 'ja',
-	API_URL: 'https://zh.moegirl.org.cn/api.php',
+	//language: 'commons',
+	ignore_language: true,
+	API_URL: 'zh.wiktionary',
+	//API_URL: 'https://zh.moegirl.org.cn/api.php',
+
 
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	// 'small_oldid/big_new_diff' or {Number}new
@@ -25,15 +29,19 @@ replace_tool.replace({
 
 	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
 	section_title: '',
+	// Get more revisions.
+	requests_page_rvlimit: 800,
+	not_bot_requests: true,
 
 	summary: '',
+
+	log_to: null,
 
 	// Speedy renaming or speedy merging
 	speedy_criteria: 'merging',
 
 	wiki: new Wikiapi,
 	use_language,
-	not_bot_requests: true,
 }, {
 	'title#anchor|display_text': 'title#anchor|display_text',
 	//'from_title': REDIRECT_TARGET,
@@ -50,20 +58,23 @@ replace_tool.replace({
 	// subst展開
 	'Template:name': 'subst:',
 
-	//console.log(JSON.stringify(options))
+	//console.log(JSON.stringify({}).replace(/}}/g,'} }'))
 	'': {
 		move_to_link: 'to_title',
 		move_from_link: '作品',
+		// options={"do_move_page": {"noredirect": true, "movetalk": true} }
 		do_move_page: true,
 
 		// for debug or 直接指定頁面列表。
 		page_list: [],
 
+		also_replace_display_text: ["/from/to/g",],
+		// Replace text in target pages link to `move_to_link`.
 		// 本文表記/地の文についても修正します。
-		replace_text: { from: to },
-		// Also replace text in source for non-link pages
+		replace_text: { "from": "to" },
+		// Also replace text in source of **non-linked** pages (using "insource:")
 		// リンクのない本文表記/地の文についても修正します。
-		also_replace_text: true,
+		also_replace_text_insource: true,
 
 		// also run 20201008.fix_anchor.js after maving anchors. 切れたアンカーの修正 + 「切れたアンカーの告知」のテンプレートを除去。
 		"fix_anchor": true,
