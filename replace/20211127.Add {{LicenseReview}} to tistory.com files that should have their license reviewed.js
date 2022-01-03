@@ -15,8 +15,9 @@ const replace_tool = require('./replace_tool.js');
 (async () => {
 	await replace_tool.replace({
 		language: 'commons',
+		log_to: null,
 	}, {
-		'-incategory:License_review_needed insource:".tistory.com" -insource:/\\{\\{Extracted from/ -insource:/\\{\\{LicenseReview\\|/': { text_processor }
+		'-incategory:License_review_needed insource:".tistory.com" -insource:/\\{\\{Extracted from/ -insource:/\\{\\{LicenseReview\\|/': { namespace: 'file', text_processor }
 	});
 })();
 
