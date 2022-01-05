@@ -225,14 +225,14 @@ async function archive_page(configuration) {
 	if (!archive_to_page)
 		return;
 
-	const archive_wikitext = sections_need_to_archive.map(section => section.section_title + section).join('');
+	let archive_wikitext = sections_need_to_archive.map(section => section.section_title + section).join('');
 	if ('missing' in archive_to_page) {
 		if (0 < archive_configuration.min_size_to_create && archive_wikitext.length < archive_configuration.min_size_to_create) {
 			// 字元數超過了這個長度，才會造出首個存檔。
 			return;
 		}
 		// 存檔頁面標頭。未設定時預設為{{tl|Talk archive}}。
-		const archive_header = archive_configuration.archive_header ?? wiki.latest_task_configuration.general.archive_header
+		const archive_header = archive_configuration.archive_header ?? wiki.latest_task_configuration?.general?.archive_header
 			// default: using Template:Archive
 			?? (use_language === 'zh' ? '{{Talk archive}}' : '{{Archive}}');
 		if (archive_header) {
