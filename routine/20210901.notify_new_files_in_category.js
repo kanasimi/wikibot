@@ -206,13 +206,13 @@ async function get_all_sub_categories(base_category_name, options) {
 	const category_tree = await wiki.category_tree(base_category_name, {
 		depth,
 		cmtype: 'subcat',
-		get_flated_subcategories: true,
+		get_flat_subcategories: true,
 		category_filter: category_page_data => (!PATTERN_exclude_categories || !PATTERN_exclude_categories.test(category_page_data.title))
 			// `category_page_data.title` starts with "Category:"
 			&& (!exclude_categories || !exclude_categories.includes(wiki.remove_namespace(category_page_data)))
 	});
 
-	const list = Object.keys(category_tree.flated_subcategories);
+	const list = Object.keys(category_tree.flat_subcategories);
 	CeL.info(`${get_all_sub_categories.name}: ${base_category_name}: ${list.length} sub-categorie(s).`);
 	list.unshift(base_category_name);
 
