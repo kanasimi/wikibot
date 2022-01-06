@@ -107,7 +107,7 @@ async function main_process() {
 		const source_site_info = source_wiki.site_name({ get_all_properties: true });
 		//console.log(source_site_info);
 
-		Object.assign(options, { source_wiki, source_site_info, target_site_info });
+		Object.assign(options, { source_wiki, source_site_info, target_site_info, rvprop: 'ids|timestamp|user|comment' });
 
 		// --------------------------------------------------------------------
 
@@ -315,7 +315,10 @@ async function edit_page(source_page_title, target_page_title, options) {
 			//nocreate: 1,
 			summary: summary_prefix
 				// 自中文維基百科匯入Template:Fullurl2的版本58191651
-				+ source_page_link + ' ' + new Date(revision.timestamp).format('%Y-%2m-%2d') + ' ' + CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid, CeL.gettext('版本%1', revision.revid))
+				+ source_page_link + ' ' + new Date(revision.timestamp).format('%Y-%2m-%2d') + ' '
+				+ CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid, CeL.gettext('版本%1', revision.revid))
+				// 加上原版本註解
+				+ (revision.comment ? ` (${revision.comment})` : '')
 				// 受 options.depended_on_by 所依賴
 				+ (options.depended_on_by ? ' (' + CeL.gettext('受 %1 所需', CeL.wiki.title_link_of(options.depended_on_by)) + ')' : '')
 				+ (additional_description ? ` (${additional_description})` : '')
