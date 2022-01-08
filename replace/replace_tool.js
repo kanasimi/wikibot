@@ -381,7 +381,7 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 			if (user === revision.user && diff_to > 0) {
 				diff_from = revision.parentid;
 				// At last, diff_from should starts
-				// from e.g., "→‎鈴木正人のリンク修正: 新しい節"
+				// from e.g., "→鈴木正人のリンク修正: 新しい節"
 			} else {
 				set_diff_to(revision);
 			}
@@ -669,8 +669,6 @@ async function notice_to_edit(wiki, meta_configuration) {
 		meta_configuration.bot_requests_user = section.users[0];
 		//console.trace(meta_configuration.bot_requests_user);
 
-		get_move_configuration_from_section(meta_configuration, section);
-
 		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ?
 			//{{BOTREQ|着手}}
 			'{{BOTREQ|作業中}}' : '{{Doing}}');
@@ -682,10 +680,26 @@ async function notice_to_edit(wiki, meta_configuration) {
 			options.need_edit = false;
 			return;
 		}
+
+		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section);
+		let warning_messages = [];
+		if (wiki.site_name() === 'jawiki') {
+			Object.keys(task_configuration_from_section).forEach(move_from_link => {
+				const task_configuration = task_configuration_from_section[move_from_link];
+				if (!task_configuration.force_remove_disambiguation && / \([^()]+\)$/.test(move_from_link) && !/ \([^()]+\)$/.test(task_configuration.move_to_link)) {
+					warning_messages.push(`* ${CeL.wiki.title_link_of(move_from_link)}→${CeL.wiki.title_link_of(task_configuration.move_to_link)}: 項目付きの曖昧さ回避を解消する場合は、各分野のプロジェクト／ポータルにおける曖昧さ回避関連のルールに準拠したものへの付け替えをお勧めします。（[[WP:PRIRDR]]）`);
+					delete task_configuration_from_section[move_from_link];
+				}
+			});
+		}
+
 		const parsed = this;
 		const index = section.range[1] - 1;
 		// assert: parsed[index] === section.at(-1)
-		parsed[index] = parsed[index].toString().trimEnd() + `\n* ${doing_message} --~~~~\n`;
+		parsed[index] = parsed[index].toString().trimEnd();
+		if (warning_messages.length > 0)
+			parsed[index] += '\n' + warning_messages.join('\n');
+		parsed[index] += `\n* ${doing_message} --~~~~\n`;
 		// TODO: +確認用リンク
 		options.need_edit = true;
 	}, options);
