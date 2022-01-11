@@ -170,7 +170,9 @@ function check_media(media_data, product_data, detail, index, length) {
 			+ ')' + media_data.media_url.match(/\.[a-z]+$/)[0];
 
 	// CeL.log('check_media: [[File:' + media_data.filename + ']]');
-	wiki.page('File:' + media_data.filename, function(page_data) {
+	wiki.page(wiki.to_namespace(
+	// 'File:' +
+	media_data.filename, 'File'), function(page_data) {
 		// Skip exists file on Wikimedia Commons
 		if (!CeL.wiki.content_of.page_exists(page_data) || detail.was_updated) {
 			CeL.log((index + 1) + '/' + length + '	'
@@ -306,19 +308,31 @@ function upload_media(media_data, product_data, detail) {
 		}
 	});
 
-	wiki.upload(media_data);
-
-	if (media_data.date) {
-		wiki.edit_structured_data('File:' + media_data.filename, function(
-				entity) {
-			return !entity.claims
-			// 成立或建立時間 (P571) [[Commons:Structured data/Modeling/Date]]
-			|| !CeL.wiki.data.value_of(entity.claims.P571) ? {
-				P571 : media_data.date
-			} : CeL.wiki.edit.cancel;
-		}, {
-			bot : 1,
-			summary : 'Add created datetime: ' + media_data.date
-		});
+	var after_upload;
+	if (!media_data.test_only && media_data.date) {
+		after_upload = function(data, error) {
+			// console.trace([ data, error ]);
+			if (error) {
+				if (data && data.error
+						&& data.error.code === 'fileexists-no-change')
+					;
+				return;
+			}
+			wiki.edit_structured_data(wiki.to_namespace(
+			// 'File:' +
+			media_data.filename, 'File'), function(entity) {
+				return !entity.claims
+				// 成立或建立時間 (P571) [[Commons:Structured data/Modeling/Date]]
+				|| !CeL.wiki.data.value_of(entity.claims.P571) ? {
+					P571 : media_data.date
+				} : CeL.wiki.edit.cancel;
+			}, {
+				bot : 1,
+				summary : 'Add created datetime: ' + media_data.date
+			});
+		};
 	}
+
+	// CeL.set_debug(9);
+	wiki.upload(media_data, after_upload);
 }
