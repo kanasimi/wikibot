@@ -270,6 +270,31 @@ async function edit_page(source_page_title, target_page_title, options) {
 		return;
 	}
 
+	const replace_text = CeL.is_Object(options.replace_text) ? Object.entries(options.replace_text)
+		// e.g., replace_text:[["from","to"],["from","to"]]
+		: Array.isArray(options.replace_text) && (options.replace_text.length !== 2 || typeof options.replace_text[1] !== 'string' || CeL.PATTERN_RegExp_replacement.test(options.replace_text[1])) ? options.replace_text
+			// e.g., replace_text:"/from/to/"
+			: options.replace_text ? [options.replace_text]
+				: [];
+	// patch for 頁面不能直接同步
+	replace_text.forEach(replace_text_pattern => {
+		if (typeof replace_text_pattern === 'string') {
+			// e.g., pattern = "/維基百科/維基新聞/g"
+			replace_text_pattern = replace_text_pattern.to_RegExp({ allow_replacement: true });
+		}
+		// Modify from wiki/replace/replace_tool.js
+		if (CeL.is_RegExp(replace_text_pattern) && typeof replace_text_pattern.replace === 'function') {
+			wikitext = replace_text_pattern.replace(wikitext);
+		} else if (Array.isArray(replace_text_pattern) && replace_text_pattern.length === 2
+			&& typeof replace_text_pattern[0] === 'string' && replace_text_pattern[0]
+			&& (replace_text_pattern[1] || replace_text_pattern[1] === '')) {
+			const replace_from = typeof replace_text_pattern[0] === 'string' ? replace_text_pattern[0].to_RegExp() : replace_text_pattern[0];
+			wikitext = wikitext.replace(replace_from, replace_text_pattern[1]);
+		} else {
+			CeL.error(`Ignore invalid options.replace_text pattern: ${replace_text_pattern}`);
+		}
+	});
+
 	const source_redirect_to = CeL.wiki.parse.redirect(source_page_data);
 	const target_page_data = await wiki.page(target_page_title);
 	let additional_description = options?.additional_description?.trim();
@@ -282,6 +307,7 @@ async function edit_page(source_page_title, target_page_title, options) {
 				);
 			return;
 		}
+
 	} else {
 		const prefix = CeL.gettext('本頁面複製自%1，由機器人定期更新。請直接編輯原維基項目頁面，或自設定頁面%2去除本頁面之後再編輯。', source_page_link, CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title));
 		const is_template = wiki.is_namespace(target_page_title, 'template'), is_module = wiki.is_namespace(target_page_title, 'module');
@@ -317,6 +343,7 @@ async function edit_page(source_page_title, target_page_title, options) {
 				// 自中文維基百科匯入Template:Fullurl2的版本58191651
 				+ source_page_link + ' ' + new Date(revision.timestamp).format('%Y-%2m-%2d') + ' '
 				+ CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid, CeL.gettext('版本%1', revision.revid))
+				+ (replace_text.length > 0 ? ' ' + CeL.gettext('經過微調') : '')
 				// 加上原版本註解
 				+ (revision.comment ? ` (${revision.comment})` : '')
 				// 受 options.depended_on_by 所依賴
