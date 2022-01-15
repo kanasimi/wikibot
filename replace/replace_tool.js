@@ -443,6 +443,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	//'max'
 	const rvlimit = meta_configuration.requests_page_rvlimit || 80;
 
+	//console.trace(section_title);
 	if (section_title) {
 		CeL.log_temporary(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)}`);
 		const requests_page_data = await wiki.page(requests_page, {
@@ -512,15 +513,19 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 
 	const task_configuration_from_section = Object.create(null);
 
+	//console.trace(meta_configuration.get_task_configuration_from);
 	if (meta_configuration.get_task_configuration_from === 'table') {
 		section.each('table', table => {
-			if (!meta_configuration.caption || table.caption === meta_configuration.caption)
+			if (!meta_configuration.caption || table.caption === meta_configuration.caption) {
 				parse_move_pairs_from_link(table, task_configuration_from_section, meta_configuration);
+			}
 		});
 	} else if (meta_configuration.get_task_configuration_from === 'list') {
 		section.each('list', list_token => {
-			if (list_token.length > 5)
+			//console.log(list_token);
+			if (list_token.length >= 3) {
 				parse_move_pairs_from_link(list_token, task_configuration_from_section, meta_configuration);
+			}
 		});
 	}
 	//console.trace(meta_configuration);
@@ -669,6 +674,9 @@ async function notice_to_edit(wiki, meta_configuration) {
 		meta_configuration.bot_requests_user = section.users[0];
 		//console.trace(meta_configuration.bot_requests_user);
 
+		// 必須執行以從章節讀取設定!
+		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section);
+
 		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ?
 			//{{BOTREQ|着手}}
 			'{{BOTREQ|作業中}}' : '{{Doing}}');
@@ -681,7 +689,6 @@ async function notice_to_edit(wiki, meta_configuration) {
 			return;
 		}
 
-		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section);
 		let warning_messages = [];
 		let had_add_user_notice;
 		if (wiki.site_name() === 'jawiki') {
@@ -805,6 +812,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const { summary, section_title } = meta_configuration;
 	const _section_title = section_title ? '#' + section_title : '';
 
+	//console.trace(meta_configuration);
 	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_section);
 	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_args);
 	//console.trace(move_configuration);
@@ -1062,6 +1070,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			}
 		}
 
+		// Also used in wiki/routine/20211203.synchronizing_common_pages.js
 		if (task_configuration.also_replace_display_text) {
 			if (!Array.isArray(task_configuration.also_replace_display_text)) {
 				// e.g., .also_replace_display_text = "/ムスターカス/ムスタカス/"
@@ -1075,7 +1084,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				// e.g., pattern = ["ムスターカス", "ムスタカス/"]
 				return pattern;
 			}).filter(pattern => {
-				if (Array.isArray(pattern) && pattern.length === 2 && pattern[0] && (pattern[1] || pattern[1] === ''))
+				if (Array.isArray(pattern) && pattern.length === 2
+					&& typeof pattern[0] === 'string' && pattern[0]
+					&& (pattern[1] || pattern[1] === ''))
 					return true;
 				if (CeL.is_RegExp(pattern) && typeof pattern.replace === 'function')
 					return true;
@@ -2281,9 +2292,10 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 
 	// ---------------------------------------------
 
+	const wiki = options.wiki;
 	function preprocess_link(link) {
 		// move_to: ":File:name.jpg" → "File:name.jpg"
-		link = wiki.normalize_title(link);
+		link = wiki ? wiki.normalize_title(link) : CeL.wiki.normalize_title(link);
 		//console.trace(link);
 		return link;
 	}
