@@ -215,9 +215,10 @@ function archive_pages() {
 		wiki.page(page_data, function(page_data, error) {
 			for_each_old_page(page_data, error);
 			if (--left === 0) {
+				var error_count = error_logs.length;
 				CeL.info('for_each_page_not_archived: Write report: '
-						+ error_logs.length + ' lines.');
-				if (error_logs.length > 0) {
+						+ error_count + ' lines.');
+				if (error_count > 0) {
 					error_logs.unshift('<!-- 本條目會定期更新，毋須手動修正。 -->\n'
 							+ '請幫忙修復這些文章。機器人將在修復完畢、待時限過後自動保護。 --~~~~');
 					error_logs.push(
@@ -229,7 +230,7 @@ function archive_pages() {
 					error_logs = [ ': 本次檢查未發現問題頁面。 --~~~~' ];
 				}
 				wiki.page(log_to).edit(error_logs.join('\n'), {
-					summary : summary + '報告',
+					summary : summary + '報告: ' + error_count + '筆錯誤',
 					nocreate : 1,
 					bot : 1
 				});
