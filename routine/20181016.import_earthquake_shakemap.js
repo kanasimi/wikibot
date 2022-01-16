@@ -183,8 +183,10 @@ function check_media(media_data, product_data, detail, index, length) {
 			// CeL.log(' ' + media_data.filename);
 
 			upload_media(media_data, product_data, detail);
-		} else
-			CeL.log('File exists: ' + media_data.filename);
+
+		} else {
+			CeL.log('check_media: File exists: ' + media_data.filename);
+		}
 	}, {
 		prop : 'ids'
 	});
@@ -289,6 +291,12 @@ function upload_media(media_data, product_data, detail) {
 		license : '{{PD-USGov-USGS}}',
 		categories : categories,
 
+		location : [ detail.geometry.coordinates[1],
+		// detail.geometry:
+		// { type: 'Point', coordinates: [ -167.9169, 52.6563, 22.32 ] }
+		detail.geometry.coordinates[0], -detail.geometry.coordinates[2] ],
+		location_template_name : 'Object location',
+
 		comment : 'Import USGS ' + (detail.was_updated ? 'updated ' : '')
 				+ detail.properties.type + ' map, ' + product_data.type
 				+ ' id: ' + product_data.id
@@ -308,31 +316,6 @@ function upload_media(media_data, product_data, detail) {
 		}
 	});
 
-	var after_upload;
-	if (!media_data.test_only && media_data.date) {
-		after_upload = function(data, error) {
-			// console.trace([ data, error ]);
-			if (error) {
-				if (data && data.error
-						&& data.error.code === 'fileexists-no-change')
-					;
-				return;
-			}
-			wiki.edit_structured_data(wiki.to_namespace(
-			// 'File:' +
-			media_data.filename, 'File'), function(entity) {
-				return !entity.claims
-				// 成立或建立時間 (P571) [[Commons:Structured data/Modeling/Date]]
-				|| !CeL.wiki.data.value_of(entity.claims.P571) ? {
-					P571 : media_data.date
-				} : CeL.wiki.edit.cancel;
-			}, {
-				bot : 1,
-				summary : 'Add created datetime: ' + media_data.date
-			});
-		};
-	}
-
 	// CeL.set_debug(9);
-	wiki.upload(media_data, after_upload);
+	wiki.upload(media_data/* , after_upload */);
 }

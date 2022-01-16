@@ -379,6 +379,10 @@ function upload_media(media_data) {
 					CeL.write_file(media_directory + media_data.filename,
 							XMLHttp.responseText);
 			}
+		},
+		structured_data : {
+			// 描繪內容 (P180) [[Commons:Structured data/Modeling/Depiction]]
+			depicts : 'Q8092'
 		}
 	});
 	// add datetime stamp
@@ -396,34 +400,8 @@ function upload_media(media_data) {
 		return;
 	}
 
-	var after_upload;
-	if (!media_data.test_only && media_data.date) {
-		after_upload = function(data, error) {
-			// console.trace([ data, error ]);
-			if (error) {
-				if (data && data.error
-						&& data.error.code === 'fileexists-no-change')
-					;
-				return;
-			}
-			wiki.edit_structured_data(wiki.to_namespace(
-			// 'File:' +
-			media_data.filename, 'File'), function(entity) {
-				return !entity.claims
-				// 成立或建立時間 (P571) [[Commons:Structured data/Modeling/Date]]
-				|| !CeL.wiki.data.value_of(entity.claims.P571) ? {
-					P571 : media_data.date
-				} : [ CeL.wiki.edit.cancel, 'skip' ];
-			}, {
-				bot : 1,
-				summary : 'Add created datetime: ' + media_data.date
-			});
-		};
-	}
-
 	// CeL.set_debug(9);
-	wiki.upload(media_data, after_upload);
-
+	wiki.upload(media_data/* , after_upload */);
 }
 
 // ============================================================================
