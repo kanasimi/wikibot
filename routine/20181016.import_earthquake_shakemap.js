@@ -313,6 +313,11 @@ function upload_media(media_data, product_data, detail) {
 					CeL.write_file(media_directory + media_data.filename,
 							XMLHttp.responseText);
 			}
+		},
+
+		structured_data : {
+			// 描繪內容 (P180) [[Commons:Structured data/Modeling/Depiction]]
+			depicts : 'Q7944'
 		}
 	});
 
