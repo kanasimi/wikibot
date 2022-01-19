@@ -1,6 +1,7 @@
 ﻿/*
 
-node 20211203.synchronizing_common_pages.js use_project=wikinews
+node 20211203.synchronizing_common_pages.js use_project=zh.wikinews
+node 20211203.synchronizing_common_pages.js use_project=zh.wiktionary
 
 本任務會同步通用頁面。並檢查工具頁面，嘗試載入相依頁面。
 
@@ -162,6 +163,8 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 		return;
 	}
 
+	// options_for_depended_page: 這個選項不應該帶進其他頁面。
+	delete options.replace_text;
 	delete options.depended_on_by;
 
 	if (wiki.is_namespace(target_page_title, 'template')) {
@@ -301,10 +304,11 @@ async function edit_page(source_page_title, target_page_title, options) {
 	if (source_redirect_to) {
 		const target_redirect_to = CeL.wiki.parse.redirect(target_page_data);
 		if (target_redirect_to) {
-			if (source_wiki.normalize_title(target_redirect_to) !== source_wiki.normalize_title(source_redirect_to))
+			if (source_wiki.normalize_title(target_redirect_to) !== source_wiki.normalize_title(source_redirect_to)) {
 				CeL.error(`${edit_page.name}: `
-					+ CeL.gettext('來源維基項目 %1 重定向至→ %2，但目標維基項目重定向至→ %2，兩者不同！跳過此頁面。', source_page_link, CeL.wiki.title_link_of(source_redirect_to), CeL.wiki.title_link_of(target_redirect_to))
+					+ CeL.gettext('來源維基項目 %1 重定向至→ %2，但目標維基項目重定向至→ %3，兩者不同！跳過此頁面。', source_page_link, CeL.wiki.title_link_of(source_redirect_to), CeL.wiki.title_link_of(target_redirect_to))
 				);
+			}
 			return;
 		}
 
@@ -336,21 +340,25 @@ async function edit_page(source_page_title, target_page_title, options) {
 		if (target_page_data.wikitext) {
 			CeL.info(`${edit_page.name}: ` + CeL.gettext('覆蓋目標頁面 %1', CeL.wiki.title_link_of(target_page_data)));
 		}
-		await wiki.edit_page(target_page_title, wikitext, {
-			bot: 1,
-			//nocreate: 1,
-			summary: summary_prefix
-				// 自中文維基百科匯入Template:Fullurl2的版本58191651
-				+ source_page_link + ' ' + new Date(revision.timestamp).format('%Y-%2m-%2d') + ' '
-				+ CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid, CeL.gettext('版本%1', revision.revid))
-				+ (replace_text.length > 0 ? ' ' + CeL.gettext('經過微調') : '')
-				// 加上原版本註解
-				+ (revision.comment ? ` (${revision.comment})` : '')
-				// 受 options.depended_on_by 所依賴
-				+ (options.depended_on_by ? ' (' + CeL.gettext('受 %1 所需', CeL.wiki.title_link_of(options.depended_on_by)) + ')' : '')
-				+ (additional_description ? ` (${additional_description})` : '')
-				+ (source_redirect_to ? ` (${CeL.gettext('添加與原維基項目頁面同名的重定向:')} ${CeL.wiki.title_link_of(target_page_title)}→${CeL.wiki.title_link_of(source_redirect_to)})` : '')
-		});
+		try {
+			await wiki.edit_page(target_page_title, wikitext, {
+				bot: 1,
+				//nocreate: 1,
+				summary: summary_prefix
+					// 自中文維基百科匯入Template:Fullurl2的版本58191651
+					+ source_page_link + ' ' + new Date(revision.timestamp).format('%Y-%2m-%2d') + ' '
+					+ CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid, CeL.gettext('版本%1', revision.revid))
+					// 加上原版本註解
+					+ (revision.comment ? ` (${revision.comment})` : '')
+					+ (replace_text.length > 0 ? ' ' + CeL.gettext('經過微調') : '')
+					// 受 options.depended_on_by 所依賴
+					+ (options.depended_on_by ? ' (' + CeL.gettext('受 %1 所需', CeL.wiki.title_link_of(options.depended_on_by)) + ')' : '')
+					+ (additional_description ? ` (${additional_description})` : '')
+					+ (source_redirect_to ? ` (${CeL.gettext('添加與原維基項目頁面同名的重定向:')} ${CeL.wiki.title_link_of(target_page_title)}→${CeL.wiki.title_link_of(source_redirect_to)})` : '')
+			});
+		} catch (e) {
+			//CeL.error(e);
+		}
 	}
 
 	// ---------------------------------------------------------------------------
@@ -374,12 +382,17 @@ async function edit_page(source_page_title, target_page_title, options) {
 		//console.trace({ sitelinks: { [target_site_info.site]: target_page_data.title } });
 		//console.trace(data_entity);
 		if (data_entity.pageid > 0) {
-			await data_entity.modify({
-				sitelinks: { [target_site_info.site]: target_page_data.title }
-			}, {
-				bot: 1,
-				summary: CeL.gettext('Adding sitelinks when synchronizing common pages: %1 → %2', source_site_info.site, target_site_info.site)
-			});
+			try {
+				await data_entity.modify({
+					sitelinks: { [target_site_info.site]: target_page_data.title }
+				}, {
+					bot: 1,
+					summary: CeL.gettext('Adding sitelinks when synchronizing common pages: %1 → %2', source_site_info.site, target_site_info.site)
+				});
+			} catch (e) {
+				// Error to edit
+				CeL.error(e);
+			}
 		} else {
 			// e.g., /doc 頁面未連結到 wikidata。
 		}
