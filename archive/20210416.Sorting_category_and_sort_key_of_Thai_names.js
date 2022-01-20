@@ -459,7 +459,7 @@ function for_each_Thai_people_page(page_data) {
 
 	} else {
 		let DEFAULTSORT_token, DEFAULTSORT_is_equivalent_to_page_title;
-		parsed.each('function', token => {
+		parsed.each('magic_word_function', token => {
 			if (token.name === 'DEFAULTSORT') {
 				DEFAULTSORT_token = token;
 				if (token[1] && page_title_to_sort_key(token[1]).toLowerCase()
