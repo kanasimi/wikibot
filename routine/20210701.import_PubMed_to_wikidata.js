@@ -5,6 +5,14 @@
 	初版試營運。
 	完成。正式運用。
 
+TODO:
+https://www.wikidata.org/wiki/User:Research_Bot
+https://www.wikidata.org/wiki/User:Mr.Ibrahembot
+https://www.wikidata.org/wiki/User:PintochBot
+
+https://www.wikidata.org/wiki/User:Citationgraph_bot
+依照 series ordinal 調整作者排序
+
  */
 
 'use strict';
@@ -117,16 +125,16 @@ async function main_process() {
 	console.assert(published_source_mapper.get('genetics') === 'Q3100575');
 	console.assert(published_source_mapper.get('biochemical and biophysical research communications') === 'Q864228');
 
-	const start_date = new Date('2000-01-01');
+	const start_date = new Date('2021-02-01');
 	// Set to yesterday.
 	start_date.setDate(start_date.getDate() - 1);
 	let end_date;
 	end_date = new Date(start_date.getTime() + 1e8);
-	const PubMed_ID_list = (await get_PubMed_ID_list(start_date, end_date)).slice(0, 4)
+	const PubMed_ID_list = (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
 		// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3FitemDescription%20%3Fvalue%20%3Fst%20%3Fids%20%3Fsl%0AWHERE%0A%7B%0A%20%20SERVICE%20bd%3Asample%20%7B%20%3Fitem%20wdt%3AP698%20%3Fvalue.%20bd%3AserviceParam%20bd%3Asample.limit%20200%20%7D%0A%20%20OPTIONAL%20%7B%20%3Fitem%20wikibase%3Astatements%20%3Fst%20%3B%20wikibase%3Aidentifiers%20%3Fids%20%3B%20wikibase%3Asitelinks%20%3Fsl%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0A
 		// 11373397: PubMed 經常進行某種標題翻譯 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
 		// Tested:
-		//&& ['17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182']
+		//&& ['17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077']
 		;
 
 	const link_list = [];
@@ -135,9 +143,10 @@ async function main_process() {
 		CeL.log_temporary(`${index}/${PubMed_ID_list.length} PubMed_ID ${PubMed_ID}`);
 		try {
 			const result = await for_each_PubMed_ID(PubMed_ID);
-			console.trace(result);
-			if (result.title) {
-				link_list.push(CeL.wiki.title_link_of(result.title, PubMed_ID));
+			//console.trace(result);
+			// New item has .id, no .title
+			if (result.id) {
+				link_list.push(CeL.wiki.title_link_of(result.id, PubMed_ID));
 			}
 		} catch (e) {
 			// Still import next article.
@@ -270,7 +279,7 @@ async function get_PubMed_ID_list(start_date, end_date) {
 
 // ----------------------------------------------------------------------------
 
-const summary_source_posifix = ' from NCBI, Europe PMC and CrossRef';
+const summary_source_posifix = ' [[Wikidata:Requests for permissions/Bot/Cewbot 4|from NCBI, Europe PMC and CrossRef]]';
 
 async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 	// https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
@@ -424,6 +433,9 @@ function normalize_title(title) {
 	title = title
 		// remove <i>...</i>. https://www.wikidata.org/wiki/Q97521125
 		.replace(/<[\/\w][^<>]*>/g, '').trim()
+		// https://api.crossref.org/works/10.1148/rycan.2019190022
+		// Do not need too many spaces.
+		.replace(/\s+/g, ' ').trim()
 		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33915672
 		// [title].
 		.replace(/\s*\.$/, '')
@@ -458,7 +470,6 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	// @see
 	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
-	// https://www.wikidata.org/wiki/User:Citationgraph_bot
 
 	const data_to_modify = {
 		labels: {
@@ -506,13 +517,13 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			references: Europe_PMC_article_data.wikidata_references
 		});
 	}
-
+	// Add more variants, usually English translation in NCBI_article_data and Europe_PMC_article_data.
 	if (main_title !== normalize_title(Europe_PMC_article_data.title)[0]) {
 		const [Europe_PMC_title, title_converted] = normalize_title(Europe_PMC_article_data.title);
-		if (!Array.isArray(CrossRef_article_data.title) || !CrossRef_article_data.title.some(title => title === Europe_PMC_title)) {
+		if (!Array.isArray(CrossRef_article_data.title) || !CrossRef_article_data.title.some(title => normalize_title(title)[0] === Europe_PMC_title)) {
 			data_to_modify.claims.push({
 				// title 標題 (P1476)
-				// Usually English. https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33932783
+				// Usually English translation. https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33932783
 				P1476: Europe_PMC_title,
 				rank: title_converted ? 'deprecated' : 'normal',
 				references: Europe_PMC_article_data.wikidata_references
@@ -571,7 +582,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 						// series ordinal (P1545) 系列序號
 						P1545: ++index,
 						// stated as (P1932)
-						//P1932: author_name,
+						P1932: author_name,
 					},
 					references: Europe_PMC_article_data.wikidata_references
 				});
@@ -693,8 +704,11 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	data_to_modify.claims.publication_in_claim_qualifiers = {
 		P478: NCBI_article_data.volume,
 		P433: NCBI_article_data.issue,
-		P304: NCBI_article_data.pages.replace(/^(\d+)-(\d+)$/, '$1–$2')
 	};
+	if (NCBI_article_data.pages) {
+		// 可能為 ""
+		data_to_modify.claims.publication_in_claim_qualifiers.P304 = NCBI_article_data.pages.replace(/^(\d+)-(\d+)$/, '$1–$2');
+	}
 	if (data_to_modify.claims.publication_date) {
 		// publication date (P577) 出版日期
 		data_to_modify.claims.publication_in_claim_qualifiers.P577 = data_to_modify.claims.publication_date;
