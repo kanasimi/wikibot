@@ -3,7 +3,8 @@
 node 20210429.Auto-archiver.js use_language=zh
 node 20210429.Auto-archiver.js use_project=wikidata
 node 20210429.Auto-archiver.js use_project=zh.wikiversity
-node 20210429.Auto-archiver.js use_project=wikinews
+node 20210429.Auto-archiver.js use_project=zh.wikinews
+node 20210429.Auto-archiver.js use_project=zh.wiktionary
 
 2021/5/2 8:41:44	初版試營運。
 
@@ -11,6 +12,7 @@ node 20210429.Auto-archiver.js use_project=wikinews
 
 TODO:
 {{Save to}}
+必須留下頁面最後的分類標記。變通方法: 把分類移動到頁面首段落。
 
  */
 
@@ -168,9 +170,9 @@ async function select_archive_to_page(configuration) {
 	const patterns = CeL.detect_serial_pattern(subpages);
 	const archive_subpage_generator = archive_configuration.archive_to_subpage ? CeL.detect_serial_pattern.parse_generator(archive_configuration.archive_to_subpage)
 		// Auto detect pattern of subpage title
-		: patterns[0] ? patterns[0].generator
-			// Default archive generator. See [[w:en:Template:Archives]]
-			: CeL.detect_serial_pattern.parse_generator('Archive %1');
+		: patterns[0]?.generator
+		// Default archive generator. See [[w:en:Template:Archives]]
+		|| CeL.detect_serial_pattern.parse_generator('Archive %1');
 	CeL.info(`${select_archive_to_page.name}: Using generator: ${archive_subpage_generator()}`);
 	//console.trace([subpages, patterns, archive_subpage_generator]);
 	let archive_subpage_index = 0, archive_subpage;
@@ -194,7 +196,7 @@ async function select_archive_to_page(configuration) {
 		archive_to_page = await wiki.page(archive_prefix + archive_subpage);
 		// hard limit
 		let need_skip = archive_to_page.wikitext.length > 10_000_000
-			// 存檔頁面超過此大小(chars)就轉到下一個存檔頁面。
+			// 存檔頁面超過此大小(chars)就轉到下一個存檔頁面。 TODO: accept '300K' as 300 KiB
 			|| archive_to_page.wikitext.length > archive_configuration.max_archive_page_size;
 
 		if (!need_skip && 1 < archive_configuration.max_archive_page_threads) {
@@ -245,12 +247,13 @@ async function archive_page(configuration) {
 		'Template:' + archive_template_name, use_language === 'zh' ? '歸檔封存作業' : use_language === 'ja' ? '記録保存' : 'Archiving') + ':',
 	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
 		.join(' ');
-	const summary_tail = ` ${sections_need_to_archive.length} topic(s): ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
+	const summary_tail = `: ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
 	//console.trace([summary, summary_tail]);
 
 	// 寫入存檔失敗則 throw，不刪除原討論頁內容。
 	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n',
-		{ bot: 1, minor: 1, summary: `${summary}: Append${summary_tail}` });
+		// TODO: 1件のスレッドを「%1」より過去ログ化 (7日以上経過、過去ログ満杯)
+		{ bot: 1, minor: 1, summary: `${summary}: Append ${sections_need_to_archive.length} topic(s)${summary_tail}` });
 
 	// TODO: updating broken links
 	sections_need_to_archive.forEach(
@@ -258,5 +261,6 @@ async function archive_page(configuration) {
 			&& CeL.gettext(archive_configuration.left_link.toString(), section.section_title.link[0] + '#' + section.section_title.link[1])
 		)
 	);
-	await wiki.edit_page(target_root_page, parsed.toString(), { nocreate: 1, bot: 1, minor: 1, summary: `${summary}: Remove${summary_tail}` });
+	// TODO: 1件のスレッドを「%1」へ過去ログ化 (7日以上経過、過去ログ満杯)
+	await wiki.edit_page(target_root_page, parsed.toString(), { nocreate: 1, bot: 1, minor: 1, summary: `${summary}: Remove ${sections_need_to_archive.length} topic(s)${summary_tail}` });
 }
