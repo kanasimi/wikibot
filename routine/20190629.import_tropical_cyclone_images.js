@@ -380,6 +380,7 @@ function upload_media(media_data) {
 							XMLHttp.responseText);
 			}
 		},
+
 		structured_data : {
 			// 描繪內容 (P180) [[Commons:Structured data/Modeling/Depiction]]
 			depicts : 'Q8092'
@@ -1661,7 +1662,12 @@ function for_each_PAGASA_typhoon(/* NO_hash, */token) {
 
 // ============================================================================
 
+if (!CeL.wiki.wmflabs) {
+	// IPv6 is not OK for `www.nrlmry.navy.mil` @ HiNET.
+	require('dns').setDefaultResultOrder('ipv4first');
+}
 function start_NRL() {
+	// 199.9.2.143
 	var base_URL = 'https://www.nrlmry.navy.mil/';
 
 	var base_media_data = {
@@ -1770,25 +1776,43 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 	}).then(function(html) {
 		// console.log(html);
 		var satellites = Object.create(null);
-		html.each_between('alt="[DIR]"> <a href="', '/"', function(text) {
+		html.each_between(
+		// <img src="/icons/folder.gif" alt="[DIR]"> <a href="aqua/">aqua/</a>
+		'folder.gif" alt="[DIR]"> <a href="', '/"', function(text) {
 			satellites[text] = null;
 		});
-		var promise;
 		var satellite_image_priority
 		//
 		= wiki.latest_task_configuration['NRL satellite image priority'];
-		satellite_image_priority
-		//
-		&& (satellite_image_priority[media_data.area_code]
-		//
-		|| satellite_image_priority['default'])
-		//
-		.some(function(satellite) {
+		if (satellite_image_priority) {
+			satellite_image_priority
+			//
+			= satellite_image_priority[media_data.area_code]
+			//
+			|| satellite_image_priority['default'];
+		}
+
+		if (!satellite_image_priority) {
+			CeL.error('for_each_NRL_cyclone_typed_image: '
+			//
+			+ 'No satellite image priority configuration get!');
+			return;
+		}
+
+		if (false) {
+			console.trace([ media_data.area_code,
+			//
+			satellite_image_priority, satellites ]);
+		}
+
+		var promise;
+		satellite_image_priority.some(function(satellite) {
 			if (!(satellite in satellites)) {
 				return;
 			}
 
 			media_data.satellite = satellite;
+			// console.trace(image_directory_URL + satellite + '/');
 			promise = fetch(image_directory_URL += satellite + '/')
 			//
 			.then(function(response) {
