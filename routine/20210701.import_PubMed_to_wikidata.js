@@ -2,16 +2,20 @@
 
 2021/7/1 7:55:3	初版。
 2022/1/20 2:46:48	再開。
-	初版試營運。
+2022/1/23 6:54:23	初版試營運。
 	完成。正式運用。
 
 TODO:
 https://www.wikidata.org/wiki/User:Research_Bot
 https://www.wikidata.org/wiki/User:Mr.Ibrahembot
 https://www.wikidata.org/wiki/User:PintochBot
+https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/StreetmathematicianBot_2
 
+https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
 https://www.wikidata.org/wiki/User:Citationgraph_bot
 依照 series ordinal 調整作者排序
+
+一個學術類資源搜尋器: 找出所有符合搜尋條件者。對每一筆項目回傳固定格式的資料。
 
  */
 
@@ -37,7 +41,7 @@ const wiki = new Wikiapi;
 CeL.wiki.query.default_edit_time_interval = 0;
 
 /** PMC API articleid name to wikidata property id mapping */
-const articleid_properties_mapper = {
+const NCBI_articleid_properties_mapper = {
 	pubmed: 'P698',
 	pmc: 'P932',
 	// NCBI Bookshelf ID https://en.wikipedia.org/wiki/National_Center_for_Biotechnology_Information#NCBI_Bookshelf
@@ -51,11 +55,11 @@ const articleid_properties_mapper = {
 	eid: '',
 	pmcid: '',
 };
-const articleid_properties_id_list = Object.entries(articleid_properties_mapper).filter(pair => !!pair[1]).map(pair => {
+const articleid_properties_id_list = Object.entries(NCBI_articleid_properties_mapper).filter(pair => !!pair[1]).map(pair => {
 	const [idtype, property_id] = pair;
 	return '?' + idtype;
 }).join(' ');
-const articleid_properties_id_assignment = Object.entries(articleid_properties_mapper).filter(pair => !!pair[1]).map(pair => {
+const articleid_properties_id_assignment = Object.entries(NCBI_articleid_properties_mapper).filter(pair => !!pair[1]).map(pair => {
 	const [idtype, property_id] = pair;
 	return `
 	OPTIONAL { ?item wdt:${property_id} ?${idtype}. }`;
@@ -86,7 +90,7 @@ const language_code_mapper = new Map((() => {
 })());
 
 const problematic_articles = [];
-const MAX_error_reported = 100;
+const MAX_error_reported = 1000;
 
 // ----------------------------------------------
 
@@ -135,6 +139,7 @@ async function main_process() {
 		// 11373397: PubMed 經常進行某種標題翻譯 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
 		// Tested:
 		//&& ['17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077']
+		&& [9541661] && [33910272]
 		;
 
 	const link_list = [];
@@ -215,7 +220,7 @@ async function fill_published_source_mapper(id) {
 			await fill_published_source_mapper(id);
 		}
 		CeL.write_file(published_source_mapper__file_path, JSON.stringify(Array.from(published_source_mapper)));
-		CeL.info(`fill_published_source_mapper: Get ${published_source_mapper.size} sources.`);
+		CeL.info(`${fill_published_source_mapper.name}: Get ${published_source_mapper.size} sources.`);
 		return;
 	}
 
@@ -315,7 +320,7 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 		results.NCBI_article_data.wikidata_references = {
 			// 載於 NCBI: National Center for Biotechnology Information
 			P248: 'Q82494',
-			[articleid_properties_mapper.pubmed]: PubMed_ID,
+			[NCBI_articleid_properties_mapper.pubmed]: PubMed_ID,
 			// 來源網址
 			P854: NCBI_API_URL.toString(),
 			// 檢索日期
@@ -327,7 +332,7 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 		results.Europe_PMC_article_data.wikidata_references = {
 			// 載於 Europe PMC
 			P248: 'Q5412157',
-			[articleid_properties_mapper.pubmed]: PubMed_ID,
+			[NCBI_articleid_properties_mapper.pubmed]: PubMed_ID,
 			// 來源網址
 			P854: Europe_PMC_API_URL.toString(),
 			// 檢索日期
@@ -340,6 +345,10 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 }
 
 async function fetch_DOI_data_from_service(DOI) {
+	// https://www.wikidata.org/wiki/Property_talk:P356
+	// Uppercase recommended.
+	DOI = DOI.toUpperCase();
+
 	// https://api.crossref.org/swagger-ui/index.html
 	// https://api.crossref.org/works/10.1107/S0108768100019121
 	const CrossRef_API_URL = new CeL.URI('https://api.crossref.org/works/' + DOI);
@@ -362,7 +371,7 @@ async function fetch_DOI_data_from_service(DOI) {
 		results.CrossRef_article_data.wikidata_references = {
 			// 載於
 			P248: 'Q5188229',
-			[articleid_properties_mapper.doi]: DOI,
+			[NCBI_articleid_properties_mapper.doi]: DOI,
 			// 來源網址
 			P854: CrossRef_API_URL.toString(),
 			// 檢索日期
@@ -378,7 +387,7 @@ async function get_entity_id_of_ORCID(ORCID, author_name) {
 	if (!ORCID) return;
 
 	// https://query.wikidata.org/#%23%20items%20with%20property%20P496%20and%20most%20identifiers%0A%23%20added%20by%20User%3AJura1%2C%202017-07-30%0ASELECT%20%3Fitem%20%3FitemLabel%20%3Fvalue%20%3Fids%0A%7B%0A%20%20%3Fitem%20wdt%3AP496%20%220000-0002-7122-2650%22.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0AORDER%20BY%20DESC%28%3Fids%29%20%3Fitem
-	CeL.log_temporary(`get_entity_id_of_ORCID: Get entity_id of ORCID=${ORCID}${author_name ? ` (${author_name})` : ''}`);
+	CeL.log_temporary(`${get_entity_id_of_ORCID.name}: Get entity_id of ORCID=${ORCID}${author_name ? ` (${author_name})` : ''}`);
 	const author_item_list = await wiki.SPARQL(`
 SELECT ?item ?itemLabel
 {
@@ -388,6 +397,7 @@ SELECT ?item ?itemLabel
 `);
 	if (author_item_list.length === 0) {
 		// TODO: create author item
+		// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
 	}
 	const entity_id = author_item_list.id_list()[0];
 	return entity_id;
@@ -396,7 +406,7 @@ SELECT ?item ?itemLabel
 async function get_entity_id_of_ISSN(ISSN) {
 	if (!ISSN) return;
 
-	CeL.log_temporary(`get_entity_id_of_ISSN: Get entity_id of ISSN=${ISSN}`);
+	CeL.log_temporary(`${get_entity_id_of_ISSN.name}: Get entity_id of ISSN=${ISSN}`);
 	const item_list = await wiki.SPARQL(`
 SELECT ?item ?itemLabel
 {
@@ -411,16 +421,6 @@ SELECT ?item ?itemLabel
 	return entity_id;
 }
 
-/**
- * 為不精確的日期
- * @param {String} date_string 日期
- * @returns {Boolean} 為不精確的日期
- */
-function is_imprecise_date(date_string) {
-	return /^\d{4} [a-z]{3,}$/i.test(date_string)
-		|| /^[a-z]{3,},? \d{4}$/i.test(date_string);
-}
-
 // ----------------------------------------------------------------------------
 
 // For Europe_PMC_article_data.title & NCBI_article_data.title
@@ -428,7 +428,7 @@ function is_imprecise_date(date_string) {
 // 撇開 mathml 之類的問題不談，它似乎經常在文章標題的末尾添加句號
 // 標題的翻譯，用方括號括起來。
 // https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=EXT_ID:33932783%20AND%20SRC:MED
-function normalize_title(title) {
+function normalize_article_title(title) {
 	if (!title) return [];
 	title = title
 		// remove <i>...</i>. https://www.wikidata.org/wiki/Q97521125
@@ -447,6 +447,16 @@ function normalize_title(title) {
 			.replace(/\[([^\[\]]+)\]/g, '$1');
 	}
 	return [title, title_converted];
+}
+
+/**
+ * 為不精確的日期
+ * @param {String} date_string 日期
+ * @returns {Boolean} 為不精確的日期
+ */
+function is_imprecise_date(date_string) {
+	return /^\d{4} [a-z]{3,}$/i.test(date_string)
+		|| /^[a-z]{3,},? \d{4}$/i.test(date_string);
 }
 
 async function for_each_PubMed_ID(PubMed_ID) {
@@ -473,7 +483,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	const data_to_modify = {
 		labels: {
-			en: normalize_title(NCBI_article_data.title || NCBI_article_data.booktitle)[0]
+			en: normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle)[0]
 		},
 		claims: [
 			{
@@ -485,7 +495,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	};
 
 	// CrossRef may have the original title.
-	let [main_title, title_converted] = normalize_title(CrossRef_article_data.title && CrossRef_article_data.title[0]);
+	let [main_title, title_converted] = normalize_article_title(CrossRef_article_data.title && CrossRef_article_data.title[0]);
 	if (main_title
 		// 不採用全大寫標題。全大寫標題改採用 Europe_PMC_article_data。 e.g., @ https://www.wikidata.org/wiki/Q5418627
 		&& main_title !== main_title.toUpperCase()) {
@@ -503,7 +513,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			references: CrossRef_article_data.wikidata_references
 		});
 	} else {
-		[main_title, title_converted] = normalize_title(Europe_PMC_article_data.title
+		[main_title, title_converted] = normalize_article_title(Europe_PMC_article_data.title
 			// Should not go to here!
 			|| data_to_modify.labels.en);
 		if (!main_title) {
@@ -518,9 +528,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		});
 	}
 	// Add more variants, usually English translation in NCBI_article_data and Europe_PMC_article_data.
-	if (main_title !== normalize_title(Europe_PMC_article_data.title)[0]) {
-		const [Europe_PMC_title, title_converted] = normalize_title(Europe_PMC_article_data.title);
-		if (!Array.isArray(CrossRef_article_data.title) || !CrossRef_article_data.title.some(title => normalize_title(title)[0] === Europe_PMC_title)) {
+	if (main_title !== normalize_article_title(Europe_PMC_article_data.title)[0]) {
+		const [Europe_PMC_title, title_converted] = normalize_article_title(Europe_PMC_article_data.title);
+		if (!Array.isArray(CrossRef_article_data.title) || !CrossRef_article_data.title.some(title => normalize_article_title(title)[0] === Europe_PMC_title)) {
 			data_to_modify.claims.push({
 				// title 標題 (P1476)
 				// Usually English translation. https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33932783
@@ -530,10 +540,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			});
 		}
 	}
-	if (main_title !== normalize_title(NCBI_article_data.title || NCBI_article_data.booktitle)[0]) {
+	if (main_title !== normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle)[0]) {
 		// NCBI_article_data.vernaculartitle may contains original title. e.g., https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33932783
-		const [NCBI_title, title_converted] = normalize_title(NCBI_article_data.title || NCBI_article_data.booktitle);
-		if (NCBI_title && NCBI_title !== normalize_title(Europe_PMC_article_data.title)[0]) {
+		const [NCBI_title, title_converted] = normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle);
+		if (NCBI_title && NCBI_title !== normalize_article_title(Europe_PMC_article_data.title)[0]) {
 			// Should not go to here.
 			data_to_modify.claims.push({
 				// title 標題 (P1476)
@@ -797,11 +807,11 @@ ORDER BY DESC (?item)
 	// ids of NCBI are relatively complete
 	NCBI_article_data.articleids.forEach(articleid => {
 		const idtype = articleid.idtype;
-		if (!(idtype in articleid_properties_mapper)) {
+		if (!(idtype in NCBI_articleid_properties_mapper)) {
 			//console.trace(NCBI_article_data);
-			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to articleid_properties_mapper!`);
+			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to NCBI_articleid_properties_mapper!`);
 		}
-		let property_id = articleid_properties_mapper[idtype];
+		let property_id = NCBI_articleid_properties_mapper[idtype];
 		if (!property_id) {
 			// Do not use this id.
 			return;
@@ -810,8 +820,8 @@ ORDER BY DESC (?item)
 		let id = articleid.value;
 		switch (idtype) {
 			case 'doi':
-				//https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
-				// DOI's are technically case insensitive - SourceMD has been upper-casing them before adding them.
+				// https://www.wikidata.org/wiki/Property_talk:P356
+				// Uppercase recommended.
 				id = id.toUpperCase();
 				break;
 			case 'pmc':
@@ -833,9 +843,10 @@ ORDER BY DESC (?item)
 	//console.trace(article_item_list.id_list());
 
 	if (article_item_list.length > 1) {
+		CeL.warn(`${for_each_PubMed_ID.name}: There are ${article_item_list.length} articles that PubMed_ID=${PubMed_ID} or title=${JSON.stringify(main_title)}!${article_item_list.length < 30 ? ' (' + article_item_list.id_list().join(', ') + ')' : ''}`);
+		// count > 1: error, log the result.
 		if (problematic_articles.length < MAX_error_reported) {
-			// count > 1: error, log the result.
-			console.trace(article_item_list);
+			//console.trace(article_item_list);
 			problematic_articles.push([
 				PubMed_ID,
 				article_item_list.id_list().map(id => `{{Q|${id}}}`).join(', '),
@@ -847,8 +858,8 @@ ORDER BY DESC (?item)
 
 	// ----------------------------------------------------
 
-	console.log(JSON.stringify(data_to_modify));
-	console.trace(data_to_modify);
+	//console.log(JSON.stringify(data_to_modify));
+	//console.trace(data_to_modify);
 	//return;
 	//CeL.set_debug(6);
 
@@ -862,6 +873,24 @@ ORDER BY DESC (?item)
 	// Only one result: Already added. Append.
 	const article_item = await wiki.data(article_item_list.id_list()[0]);
 	//console.trace([article_item_list[0], article_item]);
+
+	// 檢查標題是否差太多
+	if (4 * CeL.edit_distance(CeL.wiki.data.value_of(article_item.labels.en), data_to_modify.labels.en) > data_to_modify.labels.en.length + 8) {
+		CeL.warn(`${for_each_PubMed_ID.name}: 跳過標題差太多的 article item [[${article_item.id}]]!`);
+		if (problematic_articles.length < MAX_error_reported) {
+			//console.trace(article_item_list);
+			problematic_articles.push([
+				PubMed_ID,
+				`${JSON.stringify(data_to_modify.labels.en)} is too different from the title of {{Q|${article_item.id}}}`,
+			]);
+		}
+		return;
+	}
+
+	// TODO: https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/StreetmathematicianBot_2
+	// remove the author name string (P2093) statement
+	// 請注意，文章可能有多個作者有相同的姓名
+
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
 	await article_item.modify(data_to_modify, { bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}` });
 	return article_item;
