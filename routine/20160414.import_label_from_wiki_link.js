@@ -193,9 +193,9 @@ parse_templates = '{{link-[a-z]+|[a-z]+-link|le' + '|ill|interlanguage[ _]link'
 // TODO: \p{Katakana}
 // |^[ァ-ヴ][ァ-ヴー]+(?:[・＝][ァ-ヴ][ァ-ヴー]*)*語$
 // @see https://www.tactsystem.co.jp/blog/post-94/
-PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](?:文|[語语國国]文?)[名字]?$|(?:国|フランス|ドイツ|ロシア|アラビア|スペイン|オランダ)語$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)/i;
+PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓諺俄独原](?:文|[語语國国]文?)[名字]?[)）]?$|(?:国|フランス|ドイツ|ロシア|アラビア|スペイン|オランダ)語[)）]?$|[語语國国文](?:版|[維维]基|[頁页]面|Wikipedia|ウィキペディア)|:?(?:en|zh|ko|de|fr|pt|es|hu|pl|ca|hr|it|af|vi|sl)(?:$|[)）]|\W)/i;
 
-('著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語|ケベック英語|法律英語'
+'著作権法|上告禁止法|自由社会主義|聖体の祝日|霧の国|チルボン王国|全米哀悼の日|行動心理療法|アルバ憲法|楕円法|王国記念日|多配置SCF法|高速多重極展開法|アゼルバイジャンの言語|古代アラム語|ジル・ブラース物語|アルスター・スコットランド語|DIGITALコマンド言語|多文化的なロンドン英語|ケベック英語|法律英語'
 // TODO: should be OK: |英語版の有名人のリスト
 .split('|').forEach(function(title) {
 	if (PATTERN_CJK_foreign_language_indicator.test(title)) {
@@ -203,8 +203,8 @@ PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓�
 		//
 		'Matched PATTERN_CJK_foreign_language_indicator: ' + title);
 	}
-}));
-("日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語|オランダ語版|英語|英語版記事|（英語版）|英語版の記事|法文版|義大利文版|イタリア語版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版|英語版該当ページ|フランス語版|伊語版|アラビア語|アラビア語版|スペイン語|スペイン語版|英語版のサイト"
+});
+"日语维基百科|英語版|中国版|TI-30（Wikipedia英語版）|オランダ語|オランダ語版|英語|英語版記事|（英語版）|（英語）|（en）|(英語版)|(英語)|(en)|:en:ABC|英語版の記事|法文版|義大利文版|イタリア語版|英語版ウィキペディア\"Objectivism\"|中文版|独語版|英語版該当ページ|中国語版ウィキペディアの記事|参考:英語版|（ドイツ語版）|イタリア語版|中国版|中国語版|朝鮮語版|英語版該当ページ|フランス語版|伊語版|アラビア語|アラビア語版|スペイン語|スペイン語版|英語版のサイト"
 // should be NG:
 .split('|').forEach(function(title) {
 	if (!PATTERN_CJK_foreign_language_indicator.test(title)) {
@@ -212,7 +212,7 @@ PATTERN_CJK_foreign_language_indicator = /^[(（]?\s*[英中日德法西義韓�
 		//
 		'Not match PATTERN_CJK_foreign_language_indicator: ' + title);
 	}
-}));
+});
 
 // 常用非英語拉丁語言。多為歐美語系。
 var languages_maybe_latin_script = [ 'de', 'fr', 'pt', 'es', 'hu', 'pl', 'ca',
@@ -331,12 +331,12 @@ function for_each_page(page_data, messages) {
 		}
 
 		// 不應處理 {{仮リンク|タイタンの地質|en|Titan_(moon)#Surface_features}}
+		// Skip {{le|Deep Silver|Koch Media#Deep Silver}}
 		if (label.includes('#') || foreign_title.includes('#')) {
 			// [[ビッグ・リーグ・チュー]]:
 			// [[タバコ#噛みタバコ|噛みタバコ]] ([[:en:Chewing tobacco|chewing tobacco]])
 			// [[スクロドフスカ石]]:
 			// {{仮リンク|ネソ珪酸塩鉱物|en|Silicate_minerals#Nesosilicates_or_orthosilicates}}
-			// {{le|Deep Silver|Koch Media#Deep Silver}}
 			CeL.debug('不處理名稱包含"#"者: [' + label + '], foreign_title: '
 					+ foreign_title);
 			return;
