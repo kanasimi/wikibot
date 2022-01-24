@@ -6,14 +6,9 @@
 	完成。正式運用。
 
 TODO:
-https://www.wikidata.org/wiki/User:Research_Bot
-https://www.wikidata.org/wiki/User:Mr.Ibrahembot
-https://www.wikidata.org/wiki/User:PintochBot
-https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/StreetmathematicianBot_2
-
-https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
-https://www.wikidata.org/wiki/User:Citationgraph_bot
 依照 series ordinal 調整作者排序
+https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
+P921 https://www.wikidata.org/w/index.php?title=Q69566581&diff=prev&oldid=1566235568&diffmode=source
 
 一個學術類資源搜尋器: 找出所有符合搜尋條件者。對每一筆項目回傳固定格式的資料。
 
@@ -41,7 +36,7 @@ const wiki = new Wikiapi;
 CeL.wiki.query.default_edit_time_interval = 0;
 
 /** PMC API articleid name to wikidata property id mapping */
-const NCBI_articleid_properties_mapper = {
+const NCBI_articleid_properties_mapping = {
 	pubmed: 'P698',
 	pmc: 'P932',
 	// NCBI Bookshelf ID https://en.wikipedia.org/wiki/National_Center_for_Biotechnology_Information#NCBI_Bookshelf
@@ -52,37 +47,45 @@ const NCBI_articleid_properties_mapper = {
 	// EMSID
 	mid: '',
 	rid: '',
+	// electronic identification?
 	eid: '',
 	pmcid: '',
 };
-const articleid_properties_id_list = Object.entries(NCBI_articleid_properties_mapper).filter(pair => !!pair[1]).map(pair => {
+const articleid_properties_id_list = Object.entries(NCBI_articleid_properties_mapping).filter(pair => !!pair[1]).map(pair => {
 	const [idtype, property_id] = pair;
 	return '?' + idtype;
 }).join(' ');
-const articleid_properties_id_assignment = Object.entries(NCBI_articleid_properties_mapper).filter(pair => !!pair[1]).map(pair => {
+const articleid_properties_id_assignment = Object.entries(NCBI_articleid_properties_mapping).filter(pair => !!pair[1]).map(pair => {
 	const [idtype, property_id] = pair;
 	return `
 	OPTIONAL { ?item wdt:${property_id} ?${idtype}. }`;
 }).join('');
 
-const NCBI_pubstatus_to_entity_id_mapper = {
+const NCBI_pubstatus_to_entity_id_mapping = {
 	entrez: 'Q1345229',
 	pubmed: 'Q180686',
 	medline: 'Q1540899',
 };
 
-const published_source_mapper__file_path = base_directory + 'published_source_mapper.json';
-const published_source_mapper = new Map((() => {
-	let data = CeL.read_file(published_source_mapper__file_path);
+// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3Fvalue%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20wdt%3AP1195%20%22pdf%22.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D
+const Europe_PMC_documentStyle = {
+	html: 'Q8811',
+	pdf: 'Q42332',
+	//txt: 'Q86920',
+};
+
+const published_source_mapping__file_path = base_directory + 'published_source_mapping.json';
+const published_source_mapping = new Map((() => {
+	let data = CeL.read_file(published_source_mapping__file_path);
 	if (data) return JSON.parse(data.toString());
 	return Object.entries({
 		//Genetics: 'Q3100575',
 	});
 })());
 
-const language_code_mapper__file_path = base_directory + 'language_code_mapper.json';
-const language_code_mapper = new Map((() => {
-	let data = CeL.read_file(language_code_mapper__file_path);
+const language_code_mapping__file_path = base_directory + 'language_code_mapping.json';
+const language_code_mapping = new Map((() => {
+	let data = CeL.read_file(language_code_mapping__file_path);
 	if (data) return JSON.parse(data.toString());
 	return Object.entries({
 		//eng: 'Q1860',
@@ -121,13 +124,13 @@ prepare_directory(base_directory);
 })();
 
 async function main_process() {
-	if (language_code_mapper.size < 100)
-		await fill_language_code_mapper();
+	if (language_code_mapping.size < 100)
+		await fill_language_code_mapping();
 
-	if (published_source_mapper.size < 1000)
-		await fill_published_source_mapper();
-	console.assert(published_source_mapper.get('genetics') === 'Q3100575');
-	console.assert(published_source_mapper.get('biochemical and biophysical research communications') === 'Q864228');
+	if (published_source_mapping.size < 1000)
+		await fill_published_source_mapping();
+	console.assert(published_source_mapping.get('genetics') === 'Q3100575');
+	console.assert(published_source_mapping.get('biochemical and biophysical research communications') === 'Q864228');
 
 	const start_date = new Date('2021-02-01');
 	// Set to yesterday.
@@ -137,9 +140,9 @@ async function main_process() {
 	const PubMed_ID_list = (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
 		// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3FitemDescription%20%3Fvalue%20%3Fst%20%3Fids%20%3Fsl%0AWHERE%0A%7B%0A%20%20SERVICE%20bd%3Asample%20%7B%20%3Fitem%20wdt%3AP698%20%3Fvalue.%20bd%3AserviceParam%20bd%3Asample.limit%20200%20%7D%0A%20%20OPTIONAL%20%7B%20%3Fitem%20wikibase%3Astatements%20%3Fst%20%3B%20wikibase%3Aidentifiers%20%3Fids%20%3B%20wikibase%3Asitelinks%20%3Fsl%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0A
 		// 11373397: PubMed 經常進行某種標題翻譯 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
+		// PMID: 19790808 was deleted because it is a duplicate of PMID: 9541661
 		// Tested:
-		//&& ['17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077']
-		&& [9541661] && [33910272]
+		//&& [19790808, '17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077', 33513662, 4721605]
 		;
 
 	const link_list = [];
@@ -150,7 +153,7 @@ async function main_process() {
 			const result = await for_each_PubMed_ID(PubMed_ID);
 			//console.trace(result);
 			// New item has .id, no .title
-			if (result.id) {
+			if (result?.id) {
 				link_list.push(CeL.wiki.title_link_of(result.id, PubMed_ID));
 			}
 		} catch (e) {
@@ -176,7 +179,7 @@ async function main_process() {
 
 // ----------------------------------------------------------------------------
 
-async function fill_language_code_mapper() {
+async function fill_language_code_mapping() {
 
 	async function set_language_code_item_list(property_id) {
 		const language_code_item_list = await wiki.SPARQL(`
@@ -189,9 +192,9 @@ WHERE
 `);
 		language_code_item_list.forEach(language_data => {
 			const language_code = CeL.wiki.data.value_of(language_data.value);
-			if (!language_code_mapper.has(language_code)) {
+			if (!language_code_mapping.has(language_code)) {
 				const entity_id = CeL.wiki.data.value_of(language_data.item).match(/\/(Q\d+)$/)[1];
-				language_code_mapper.set(language_code, entity_id);
+				language_code_mapping.set(language_code, entity_id);
 			}
 		});
 	}
@@ -205,7 +208,7 @@ WHERE
 	// ISO 639-1 code
 	await set_language_code_item_list('P218');
 
-	CeL.write_file(language_code_mapper__file_path, JSON.stringify(Array.from(language_code_mapper)));
+	CeL.write_file(language_code_mapping__file_path, JSON.stringify(Array.from(language_code_mapping)));
 
 }
 
@@ -213,19 +216,19 @@ function normalize_source_name(source_name) {
 	return source_name.replace(/[,;:.]/g, '').trim().toLowerCase();
 }
 
-async function fill_published_source_mapper(id) {
+async function fill_published_source_mapping(id) {
 	if (!id) {
 		// read cache
 		for (id of ['Q5633421', 'Q5633421', 'Q737498']) {
-			await fill_published_source_mapper(id);
+			await fill_published_source_mapping(id);
 		}
-		CeL.write_file(published_source_mapper__file_path, JSON.stringify(Array.from(published_source_mapper)));
-		CeL.info(`${fill_published_source_mapper.name}: Get ${published_source_mapper.size} sources.`);
+		CeL.write_file(published_source_mapping__file_path, JSON.stringify(Array.from(published_source_mapping)));
+		CeL.info(`${fill_published_source_mapping.name}: Get ${published_source_mapping.size} sources.`);
 		return;
 	}
 
 	CeL.log_temporary(`Get ${id}`);
-	const initial_size = published_source_mapper.size;
+	const initial_size = published_source_mapping.size;
 	const source_item_list = await wiki.SPARQL(`
 SELECT ?item ?itemLabel
 WHERE 
@@ -241,14 +244,42 @@ WHERE
 		let source_name = CeL.wiki.data.value_of(source_data.itemLabel);
 		let source_key = normalize_source_name(source_name);
 		//console.log([source_name, source_key, entity_id]);
-		if (!published_source_mapper.has(source_key))
-			published_source_mapper.set(source_key, entity_id);
+		if (!published_source_mapping.has(source_key))
+			published_source_mapping.set(source_key, entity_id);
 
 		// "Acta Crystallographica Section B: Structural Science, Crystal Engineering and Materials"
 		// should NOT match 'Acta crystallographica. Section B, Structural science'
 	}
 
-	CeL.debug(`${published_source_mapper.size - initial_size}/${source_item_list.length} sources filled.`, 1, 'fill_published_source_mapper');
+	CeL.debug(`${published_source_mapping.size - initial_size}/${source_item_list.length} sources filled.`, 1, 'fill_published_source_mapping');
+}
+
+const MAX_slice_length = 4000;
+async function search_DOIs(DOI_list) {
+	const DOI_to_item_id_mapping = new Map();
+
+	for (let index = 0; index < DOI_list.length;) {
+		let this_slice = '';
+		while (index < DOI_list.length && this_slice.length < MAX_slice_length) {
+			this_slice += JSON.stringify(DOI_list[index++].toUpperCase()) + ' ';
+		}
+		const item_list = await wiki.SPARQL(`
+SELECT ?doi ?item ?itemLabel WHERE {
+	VALUES ?doi { ${this_slice} }
+	?item wdt:P356 ?doi.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}`);
+		item_list.forEach(item_data => {
+			DOI_to_item_id_mapping.set(
+				CeL.wiki.data.value_of(item_data.doi),
+				// [ item id, itemLabel ]
+				[CeL.wiki.data.value_of(item_data.item).match(/\/(Q\d+)$/)[1], CeL.wiki.data.value_of(item_data.itemLabel)]
+			);
+		});
+	}
+
+	//console.trace(DOI_to_item_id_mapping);
+	return DOI_to_item_id_mapping;
 }
 
 // ----------------------------------------------------------------------------
@@ -297,6 +328,7 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 	});
 
 	// https://europepmc.org/RestfulWebService
+	// https://europepmc.org/docs/EBI_Europe_PMC_Web_Service_Reference.pdf
 	// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=EXT_ID:33932783%20AND%20SRC:MED
 	const Europe_PMC_API_URL = new CeL.URI('https://www.ebi.ac.uk/europepmc/webservices/rest/search');
 	Europe_PMC_API_URL.search_params.set_parameters({
@@ -318,9 +350,9 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 
 	if (results.NCBI_article_data) {
 		results.NCBI_article_data.wikidata_references = {
-			// 載於 NCBI: National Center for Biotechnology Information
+			// stated in (P248) 載於 NCBI: National Center for Biotechnology Information (Q82494); or PubMed Central (Q229883)?
 			P248: 'Q82494',
-			[NCBI_articleid_properties_mapper.pubmed]: PubMed_ID,
+			[NCBI_articleid_properties_mapping.pubmed]: PubMed_ID,
 			// 來源網址
 			P854: NCBI_API_URL.toString(),
 			// 檢索日期
@@ -330,9 +362,9 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 
 	if (results.Europe_PMC_article_data) {
 		results.Europe_PMC_article_data.wikidata_references = {
-			// 載於 Europe PMC
-			P248: 'Q5412157',
-			[NCBI_articleid_properties_mapper.pubmed]: PubMed_ID,
+			// stated in (P248) 載於 Europe PMC, Europe PubMed Central (Q5412157)
+			P248: 'Europe PubMed Central',
+			[NCBI_articleid_properties_mapping.pubmed]: PubMed_ID,
 			// 來源網址
 			P854: Europe_PMC_API_URL.toString(),
 			// 檢索日期
@@ -369,12 +401,12 @@ async function fetch_DOI_data_from_service(DOI) {
 
 	if (results.CrossRef_article_data) {
 		results.CrossRef_article_data.wikidata_references = {
-			// 載於
+			// stated in (P248) 載於: source website for the property (P1896)
 			P248: 'Q5188229',
-			[NCBI_articleid_properties_mapper.doi]: DOI,
-			// 來源網址
+			[NCBI_articleid_properties_mapping.doi]: DOI,
+			// reference URL (P854) 來源網址: formatter URL (P1630)
 			P854: CrossRef_API_URL.toString(),
-			// 檢索日期
+			// retrieved date (P813) 檢索日期
 			P813: new Date,
 		};
 	}
@@ -444,7 +476,9 @@ function normalize_article_title(title) {
 	const title_converted = /^\[([^\[\]]+)\]/.test(title);
 	if (title_converted) {
 		title = title
-			.replace(/\[([^\[\]]+)\]/g, '$1');
+			.replace(/\[([^\[\]]+)\]/g, '$1')
+			// https://www.wikidata.org/w/index.php?title=Q42169511&oldid=1565788442
+			.replace(/\s*\.$/, '');
 	}
 	return [title, title_converted];
 }
@@ -459,23 +493,162 @@ function is_imprecise_date(date_string) {
 		|| /^[a-z]{3,},? \d{4}$/i.test(date_string);
 }
 
+/**
+ * 測試兩姓名是否等價
+ * 
+ * 警告: 等價不代表相同一個人
+ * 
+ * @param {String} name_1 姓名1
+ * @param {String} name_2 姓名2
+ * @returns {Boolean} 兩姓名等價
+ */
+function are_equivalent_person_names(name_1, name_2) {
+	if (!name_1 || !name_2) return false;
+	function normalize_person_name(name) {
+		name = name.trim().replace(/\s+/g, ' ');
+		const matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
+		if (matched) name = matched[2] + ' ' + matched[1];
+		return name.replace(/\./g, '')
+			// 保留姓氏全稱，其他改縮寫。
+			.replace(/([A-Z])[a-z]+\s/g, '$1 ');
+	}
+	// "S. W. Hawking" ≡ "S W Hawking"
+	// "Adam Smith" ≡ "A. Smith"
+	// "Stephen William Hawking" ≡ "Stephen W. Hawking" ≡ "S. W. Hawking"
+	if (normalize_person_name(name_1) === normalize_person_name(name_2)) return true;
+	// TODO: "Stephen William Hawking" ≡ "Hawking, Stephen"
+}
+
+// ------------------------------------
+
+/*
+Method to add language:
+# Get the `language_code` (using https://www.wikidata.org/wiki/Special:EntityData/Q5418627.json or get from Google Translate URL "&tl=language_code")
+# check if `every_date.toLocaleDateString(`language_code`, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })` supports this language AS `toLocaleDateString_supports`
+# Be sure the pattern of "scientific article" AND (toLocaleDateString_supports ? "scientific article published on every_date" : "scientific article published on every_year") translated to the language AS `type` AND `description_with_date`
+	https://translate.google.com.tw/?hl=en&sl=auto&tl=el&text=scientific%20article%0A%0Ascientific%20article%20published%20on%201991%0A%0Ascientific%20article%20published%20on%20July%201%2C%201931%0A%0Ascientific%20article%20published%20on%20March%202%2C%202021%0A%0Ascientific%20article%20published%20on%20April%203%2C%201945%0A%0Ascientific%20article%20published%20on%20May%2023%2C%202001%0A&op=translate
+# Be sure the `type` is the same with the description listed in https://www.wikidata.org/wiki/Q13442814 scholarly article (Q13442814)
+# Check the most commonly used description pattern in wikidata using https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3FitemDescription%0AWHERE%0A%7B%0A%20%20SERVICE%20bd%3Asample%20%7B%20%3Fitem%20wdt%3AP698%20%3Fvalue.%20bd%3AserviceParam%20bd%3Asample.limit%202000%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22es%22.%20%7D%0A%7D%0AORDER%20BY%20DESC%28%3FitemDescription%29
+	Be sure it is the same with the translations (`type` AND `description_with_date`).
+# Add the `type` AND `description_with_date` to `descriptions_configuration`.
+*/
+const descriptions_configuration = {
+	en: [is_book => `scientific ${is_book ? 'book' : 'article'}`, (type, date) => `${type} published on ${date}`],
+	fr: ['article scientifique', (type, date) => `${type} publié le ${date}`],
+	it: ['articolo scientifico', (type, date) => `${type} pubblicato il ${date}`],
+	es: ['artículo científico', (type, date) => `${type} publicado el ${date}`],
+	pt: ['artigo científico', (type, date) => `${type} publicado em ${date}`],
+	pl: ['artykuł naukowy', (type, date) => `${type} opublikowany ${date}`],
+	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/XabatuBot
+	ast: ['artículu científicu', (type, date) => `${type} espublizáu en ${date}`, 'year'],
+	cs: ['vědecký článek', (type, date) => `${type} publikovaný ${date}`],
+	sk: ['vedecký článok', (type, date) => `${type} publikovaný ${date}`],
+	sv: ['vetenskaplig artikel', (type, date) => `${type} publicerad den ${date}`],
+	da: ['videnskabelig artikel', (type, date) => `${type} offentliggjort den ${date}`],
+	nl: ['wetenschappelijk artikel', (type, date) => `${type} gepubliceerd op ${date}`],
+	lt: ['mokslinis straipsnis', (type, date) => `${type}, publikuotas ${date}`],
+	sl: ['znanstveni članek', (type, date) => `${type} objavljen ${date}`],
+	sr: ['научни чланак', (type, date) => `${type} објављен ${date}`],
+	bg: ['научна статия', (type, date) => `${type}, публикувана на ${date}`],
+	ru: ['научная статья', (type, date) => `${type} опубликованная ${date}`],
+	uk: ['наукова стаття', (type, date) => `${type} опублікована ${date}`],
+	vi: ['bài báo khoa học', (type, date) => `${type} xuất bản ngày ${date}`],
+
+	de: ['wissenschaftlicher Artikel', (type, date) => `im ${date} veröffentlichter ${type}`],
+
+	'zh-hant': [is_book => '學術' + (is_book ? '書籍' : '文章'), (type, year) => `${year}年${type}`, 'year'],
+	'zh-hans': [is_book => '学术' + (is_book ? '书籍' : '文章'), (type, year) => `${year}年${type}`, 'year'],
+	// https://zh-min-nan.wikipedia.org/wiki/Ha%CC%8Dk-su%CC%8Dt_k%C3%AE-khan
+	// https://zh-min-nan.wikipedia.org/wiki/L%C5%ABn-b%C3%BBn
+	// https://zh-min-nan.wikipedia.org/wiki/Chheh
+	nan: [is_book => is_book ? 'ha̍k-su̍t chu' : 'lūn-bûn', (type, year) => `${year} nî ê ${type}`, 'year'],
+	ja: [is_book => is_book ? '学術書' : '学術論文', (type, year) => `${year}年の${type}`, 'year'],
+	ko: ['논문', (type, year) => `${year}년 ${type}`, 'year'],
+};
+// aliases / The same description pattern
+for (const [alias, language_code] of Object.entries({
+	'en-gb': 'en',
+	'pt-br': 'pt',
+	'sr-ec': 'sr',
+
+	'zh': 'zh-hant',
+	'zh-tw': 'zh-hant',
+	'zh-hk': 'zh-hant',
+	'zh-mo': 'zh-hant',
+	yue: 'zh-hant',
+	'zh-cn': 'zh-hans',
+	'zh-sg': 'zh-hans',
+	'zh-my': 'zh-hans',
+	wuu: 'zh-hans',
+})) {
+	descriptions_configuration[alias] = descriptions_configuration[language_code];
+}
+
+const descriptions_date_options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
+
+// +descriptions https://www.wikidata.org/wiki/User:Mr.Ibrahembot
+function adapt_time_to_descriptions(data_to_modify, publication_date) {
+	const year = publication_date?.getUTCFullYear();
+
+	if (!data_to_modify.descriptions)
+		data_to_modify.descriptions = Object.create(null);
+
+	for (const [language_code, configuration] of Object.entries(descriptions_configuration)) {
+		let [ /* description without publication_date */ type, time_adaptor, toLocaleDateString_options] = configuration;
+
+		if (typeof type === 'function')
+			type = type(data_to_modify.is_book);
+
+		if (!publication_date) {
+			if (type)
+				data_to_modify.descriptions[language_code] = type;
+			continue;
+		}
+
+		if (time_adaptor.length > 1 && !toLocaleDateString_options) {
+			toLocaleDateString_options = true;
+		}
+
+		data_to_modify.descriptions[language_code]
+			= time_adaptor(
+				type || data_to_modify.descriptions[language_code],
+				// 'year': e.g., .toLocaleDateString() 無法顯示正確日期
+				toLocaleDateString_options === 'year' ? year
+					: toLocaleDateString_options && publication_date.toLocaleDateString(language_code, toLocaleDateString_options === true ? descriptions_date_options : toLocaleDateString)
+			);
+	}
+}
+
+// ----------------------------------------------------------------------------
+
 async function for_each_PubMed_ID(PubMed_ID) {
+	console.assert(CeL.is_digits(String(PubMed_ID)));
 	const { NCBI_article_data, Europe_PMC_article_data } = await fetch_PubMed_ID_data_from_service(PubMed_ID);
 	//console.trace(NCBI_article_data, Europe_PMC_article_data);
+	if (NCBI_article_data?.error) {
+		// e.g., PubMed_ID=19790808
+		CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: ${NCBI_article_data.error}`);
+		return;
+	}
+	if (!NCBI_article_data || !Europe_PMC_article_data) {
+		CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: Fault to get data!`);
+		return;
+	}
 	console.assert(PubMed_ID.toString() === NCBI_article_data.uid && NCBI_article_data.uid === Europe_PMC_article_data.id && Europe_PMC_article_data.id === Europe_PMC_article_data.pmid);
 
 	let CrossRef_article_data;
-	if (Array.isArray(NCBI_article_data.articleids)) {
-		let DOI;
-		NCBI_article_data.articleids.some(articleid => articleid.idtype === 'doi' && (DOI = articleid.value));
-		if (DOI) {
+	if (Europe_PMC_article_data.doi || Array.isArray(NCBI_article_data.articleids)) {
+		let DOI = Europe_PMC_article_data.doi;
+		if (DOI || NCBI_article_data.articleids.some(
+			articleid => articleid.idtype === 'doi' && (DOI = articleid.value)
+		)) {
 			CrossRef_article_data = (await fetch_DOI_data_from_service(DOI)).CrossRef_article_data;
 			//console.trace(CrossRef_article_data);
 		}
 	}
 	CrossRef_article_data = CrossRef_article_data || Object.create(null);
 
-	// ----------------------------------------------------
+	// ----------------------------------------------------------------------------------------------------------------
 	// Generate data to modify
 
 	// @see
@@ -494,22 +667,44 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		]
 	};
 
+	// --------------------------------------------------------------
+	// title
+
 	// CrossRef may have the original title.
 	let [main_title, title_converted] = normalize_article_title(CrossRef_article_data.title && CrossRef_article_data.title[0]);
+
+	// also: Europe_PMC_article_data.language, CrossRef_article_data.language
+	if (Array.isArray(NCBI_article_data.lang)) {
+		// "eng", "spa"
+		NCBI_article_data.lang.forEach(language_code => {
+			const language_entity_id = language_code_mapping.get(language_code);
+			if (language_entity_id) {
+				data_to_modify.is_non_English_title = language_entity_id !== language_code_mapping.get('eng');
+				data_to_modify.claims.push({
+					// language of work or name (P407)
+					P407: language_entity_id,
+					references: NCBI_article_data.wikidata_references
+				});
+			} else {
+				CeL.warn(`Unknown language code: ${language_code} (${main_title})`);
+			}
+		});
+	}
+
 	if (main_title
 		// 不採用全大寫標題。全大寫標題改採用 Europe_PMC_article_data。 e.g., @ https://www.wikidata.org/wiki/Q5418627
 		&& main_title !== main_title.toUpperCase()) {
 		// No .language @ https://api.crossref.org/works/10.1107/s0108768100019121
 		const language = CrossRef_article_data.language || use_language;
 		data_to_modify.labels[language] = main_title;
-		//const language_entity_id = language_code_mapper.get(language);
+		//const language_entity_id = language_code_mapping.get(language);
 		data_to_modify.claims.push({
 			// title 標題 (P1476)
 			P1476: main_title,
 			language,
 			// https://www.wikidata.org/wiki/Property:P1476#P1476$f785f365-4c6d-6e2c-c3ab-8ab2d109f9df
 			// set English title in square brackets to deprecated rank
-			rank: title_converted ? 'deprecated' : 'normal',
+			rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
 			references: CrossRef_article_data.wikidata_references
 		});
 	} else {
@@ -523,10 +718,11 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		data_to_modify.claims.push({
 			// title 標題 (P1476)
 			P1476: main_title,
-			rank: title_converted ? 'deprecated' : 'normal',
+			rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
 			references: Europe_PMC_article_data.wikidata_references
 		});
 	}
+
 	// Add more variants, usually English translation in NCBI_article_data and Europe_PMC_article_data.
 	if (main_title !== normalize_article_title(Europe_PMC_article_data.title)[0]) {
 		const [Europe_PMC_title, title_converted] = normalize_article_title(Europe_PMC_article_data.title);
@@ -535,11 +731,12 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				// title 標題 (P1476)
 				// Usually English translation. https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33932783
 				P1476: Europe_PMC_title,
-				rank: title_converted ? 'deprecated' : 'normal',
+				rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
 				references: Europe_PMC_article_data.wikidata_references
 			});
 		}
 	}
+
 	if (main_title !== normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle)[0]) {
 		// NCBI_article_data.vernaculartitle may contains original title. e.g., https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33932783
 		const [NCBI_title, title_converted] = normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle);
@@ -548,28 +745,17 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			data_to_modify.claims.push({
 				// title 標題 (P1476)
 				P1476: NCBI_title,
-				rank: title_converted ? 'deprecated' : 'normal',
+				rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
 				references: NCBI_article_data.wikidata_references
 			});
 		}
 	}
 
-	if (Array.isArray(NCBI_article_data.lang)) {
-		// "eng", "spa"
-		NCBI_article_data.lang.forEach(language_code => {
-			const language_entity_id = language_code_mapper.get(language_code);
-			if (language_entity_id) {
-				data_to_modify.claims.push({
-					// language of work or name (P407)
-					P407: language_entity_id,
-					references: NCBI_article_data.wikidata_references
-				});
-			} else {
-				CeL.warn(`Unknown language code: ${language_code} (${main_title})`);
-			}
-		});
-	}
+	// --------------------------------------------------------------
+	// author
 
+	// data_to_modify.author_list[ordinal] = author_name
+	data_to_modify.author_list = [,];
 	if (Array.isArray(Europe_PMC_article_data.authorList?.author)) {
 		// authors of NCBI are relatively complete
 		let index = 0;
@@ -582,6 +768,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				: author_data.fullName?.trim()
 				// e.g., PubMed_ID 33914447
 				|| author_data.collectiveName.trim();
+			data_to_modify.author_list.push(author_name);
 			let author_itme_id;
 			if (author_data.authorId?.type === "ORCID"
 				&& (author_itme_id = await get_entity_id_of_ORCID(author_data.authorId.value, author_data.fullName))) {
@@ -621,12 +808,18 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		}
 
 	} else if (Array.isArray(NCBI_article_data.authors)) {
+		// Should not use these.
 		NCBI_article_data.authors.forEach((author_data, index) => {
+			// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
+			// PubMed 還刪除了作者姓名首字母后面的句點字符並顛倒過來，以便姓氏在前，因此在 PubMed（和導入的）中，名稱類似於“Peschar R”而不是原始出版物的“R. Peschar” . 
+			const author_name = author_data.name.replace(/^(.+) ([A-Z])$/, '$2. $1');
+
+			// 這邊的資料不好，不採用。
+			//data_to_modify.author_list.push(author_name);
+
 			data_to_modify.claims.push({
 				// author name string (P2093) 作者姓名字符串
-				// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
-				// PubMed 還刪除了作者姓名首字母后面的句點字符並顛倒過來，以便姓氏在前，因此在 PubMed（和導入的）中，名稱類似於“Peschar R”而不是原始出版物的“R. Peschar” . 
-				P2093: author_data.name.replace(/^(.+) ([A-Z])$/, '$2. $1'),
+				P2093: author_name,
 				qualifiers: {
 					// series ordinal (P1545) 系列序號
 					P1545: index + 1
@@ -636,41 +829,44 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		});
 	}
 
-	// 設定 data_to_modify.claims.publication_date_claim, data_to_modify.claims.publication_date
-	data_to_modify.claims.publication_date_claim = Object.create(null);
+	// --------------------------------------------------------------
+	// 設定 data_to_modify.publication_date_claim, data_to_modify.publication_date
+
+	data_to_modify.publication_date_claim = Object.create(null);
 	if (Europe_PMC_article_data.firstPublicationDate) {
 		// UTC+0: 確保日期不跑掉
 		const publication_date = (Europe_PMC_article_data.firstPublicationDate + ' UTC+0').to_Date();
 		if (publication_date.getTime() > 0
 			// 假如只能取得當月1號的日期，則直接採用 NCBI_article_data.pubdate 就好
 			&& (publication_date.getUTCDate() > 1 || !NCBI_article_data.pubdate)) {
-			data_to_modify.claims.publication_date = publication_date;
+			data_to_modify.publication_date = publication_date;
 			//console.trace([publication_date.getUTCDate(), NCBI_article_data.pubdate, Europe_PMC_article_data.firstPublicationDate, publication_date, publication_date.precision]);
-			Object.assign(data_to_modify.claims.publication_date_claim, {
+			Object.assign(data_to_modify.publication_date_claim, {
 				// publication date (P577) 出版日期
 				P577: publication_date,
 				references: Europe_PMC_article_data.wikidata_references
 			});
 		}
 	}
-	if (!data_to_modify.claims.publication_date && (NCBI_article_data.pubdate || NCBI_article_data.epubdate)) {
+	// TODO: NCBI_article_data.sortpubdate
+	if (!data_to_modify.publication_date && (NCBI_article_data.pubdate || NCBI_article_data.epubdate)) {
 		// UTC+0: 確保日期不跑掉
 		const publication_date = (((!NCBI_article_data.pubdate
 			// 避免不精確的日期 "2021 May" 被認作當月1號 https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33910271
 			// "1975 Jun" https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=1
 			|| is_imprecise_date(NCBI_article_data.pubdate)) && NCBI_article_data.epubdate || NCBI_article_data.pubdate) + ' UTC+0').to_Date();
 		if (publication_date.getTime() > 0) {
-			data_to_modify.claims.publication_date = publication_date;
-			Object.assign(data_to_modify.claims.publication_date_claim, {
+			data_to_modify.publication_date = publication_date;
+			Object.assign(data_to_modify.publication_date_claim, {
 				// publication date (P577) 出版日期
 				P577: publication_date,
 				references: NCBI_article_data.wikidata_references
 			});
 		}
 	}
-	if (!data_to_modify.claims.publication_date_claim.P577 && Array.isArray(NCBI_article_data.history) && NCBI_article_data.history.length > 0) {
+	if (!data_to_modify.publication_date_claim.P577 && Array.isArray(NCBI_article_data.history) && NCBI_article_data.history.length > 0) {
 		// e.g., NCBI_article_data.pubdate==="2021 May"
-		const PMC_publication_date = NCBI_article_data.history.filter(record => record.date && (record.pubstatus in NCBI_pubstatus_to_entity_id_mapper));
+		const PMC_publication_date = NCBI_article_data.history.filter(record => record.date && (record.pubstatus in NCBI_pubstatus_to_entity_id_mapping));
 		if (PMC_publication_date.length > 0) {
 			// assert: dates are early to late
 			const record = PMC_publication_date[0];
@@ -678,84 +874,84 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			const publication_date = (record.date + ' UTC+0').to_Date();
 			//console.trace([record.date, publication_date, publication_date.precision]);
 			if (publication_date.getTime() > 0) {
-				Object.assign(data_to_modify.claims.publication_date_claim, {
+				Object.assign(data_to_modify.publication_date_claim, {
 					// publication date (P577) 出版日期
 					P577: publication_date,
 					qualifiers: {
 						// published in (P1433) 發表於
-						P1433: NCBI_pubstatus_to_entity_id_mapper[record.pubstatus],
+						P1433: NCBI_pubstatus_to_entity_id_mapping[record.pubstatus],
 					},
 					references: NCBI_article_data.wikidata_references
 				});
 			}
 		}
 	}
-	// publication date (P577) 出版日期
-	if (data_to_modify.claims.publication_date_claim.P577) {
-		data_to_modify.claims.push(data_to_modify.claims.publication_date_claim);
-		const publication_date = data_to_modify.claims.publication_date_claim.P577;
-		//console.trace([publication_date, publication_date.precision]);
-		// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3FitemDescription%20%3Fvalue%20%3Fst%20%3Fids%20%3Fsl%0AWHERE%0A%7B%0A%20%20SERVICE%20bd%3Asample%20%7B%20%3Fitem%20wdt%3AP698%20%3Fvalue.%20bd%3AserviceParam%20bd%3Asample.limit%20200%20%7D%0A%20%20OPTIONAL%20%7B%20%3Fitem%20wikibase%3Astatements%20%3Fst%20%3B%20wikibase%3Aidentifiers%20%3Fids%20%3B%20wikibase%3Asitelinks%20%3Fsl%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0A
-		data_to_modify.descriptions = {
-			en: `scientific ${NCBI_article_data.doctype === 'book' ? 'book' : 'article'} published on ` + publication_date.toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
-			zh: publication_date.getUTCFullYear() + '年學術' + (NCBI_article_data.doctype === 'book' ? '書籍' : '文章'),
-			ja: publication_date.getUTCFullYear() + '年の' + (NCBI_article_data.doctype === 'book' ? '学術書' : '学術論文'),
-		};
-	} else {
-		data_to_modify.descriptions = {
-			en: `scientific ${NCBI_article_data.doctype === 'book' ? 'book' : 'article'}`,
-			zh: '學術' + (NCBI_article_data.doctype === 'book' ? '書籍' : '文章'),
-			ja: NCBI_article_data.doctype === 'book' ? '学術書' : '学術論文',
-		};
-	}
-	delete data_to_modify.claims.publication_date_claim;
 
-	// 設定 data_to_modify.claims.publication_in_claim_qualifiers
-	data_to_modify.claims.publication_in_claim_qualifiers = {
+	// @seealso Europe_PMC_article_data.hasBook==="Y"
+	data_to_modify.is_book = NCBI_article_data.doctype === 'book';
+	// publication date (P577) 出版日期
+	if (data_to_modify.publication_date_claim.P577) {
+		data_to_modify.claims.push(data_to_modify.publication_date_claim);
+		const publication_date = data_to_modify.publication_date_claim.P577;
+		//console.trace([publication_date, publication_date.precision]);
+		adapt_time_to_descriptions(data_to_modify, publication_date);
+	} else {
+		adapt_time_to_descriptions(data_to_modify);
+	}
+	//delete data_to_modify.publication_date_claim;
+
+	// --------------------------------------------------------------
+	// 設定 data_to_modify.publication_in_claim_qualifiers
+
+	data_to_modify.publication_in_claim_qualifiers = {
 		P478: NCBI_article_data.volume,
 		P433: NCBI_article_data.issue,
 	};
 	if (NCBI_article_data.pages) {
 		// 可能為 ""
-		data_to_modify.claims.publication_in_claim_qualifiers.P304 = NCBI_article_data.pages.replace(/^(\d+)-(\d+)$/, '$1–$2');
+		data_to_modify.publication_in_claim_qualifiers.P304 = NCBI_article_data.pages.replace(/^(\d+)-(\d+)$/, '$1–$2');
 	}
-	if (data_to_modify.claims.publication_date) {
+	if (data_to_modify.publication_date) {
 		// publication date (P577) 出版日期
-		data_to_modify.claims.publication_in_claim_qualifiers.P577 = data_to_modify.claims.publication_date;
+		data_to_modify.publication_in_claim_qualifiers.P577 = data_to_modify.publication_date;
 	}
-	delete data_to_modify.claims.publication_date;
+	//delete data_to_modify.publication_date;
 	if (NCBI_article_data.issn || NCBI_article_data.essn) {
 		const source_entity_id = await get_entity_id_of_ISSN(NCBI_article_data.issn) || await get_entity_id_of_ISSN(NCBI_article_data.essn);
 		if (source_entity_id) {
 			data_to_modify.claims.push({
 				// published in (P1433) 發表於
 				P1433: source_entity_id,
-				qualifiers: data_to_modify.claims.publication_in_claim_qualifiers,
+				qualifiers: data_to_modify.publication_in_claim_qualifiers,
 				references: NCBI_article_data.wikidata_references
 			});
-			delete data_to_modify.claims.publication_in_claim_qualifiers;
+			delete data_to_modify.publication_in_claim_qualifiers;
 		}
 	}
-	if (data_to_modify.claims.publication_in_claim_qualifiers && NCBI_article_data.fulljournalname) {
+	// TODO: using Europe_PMC_article_data.journalInfo.journal.issn
+	if (data_to_modify.publication_in_claim_qualifiers && NCBI_article_data.fulljournalname) {
 		// Using ISSN/ESSN is better than NCBI_article_data.fulljournalname. https://www.wikidata.org/wiki/Q110634863
 		// PubMed_ID=17246615
 		const source_name = normalize_source_name(NCBI_article_data.fulljournalname);
-		const source_entity_id = published_source_mapper.get(source_name);
+		const source_entity_id = published_source_mapping.get(source_name);
 		if (!source_entity_id) {
 			//console.trace(NCBI_article_data);
-			CeL.error(`${PubMed_ID}: Unknown fulljournalname: ${JSON.stringify(source_name)}. Please add it to published_source_mapper!`);
+			CeL.error(`${PubMed_ID}: Unknown fulljournalname: ${JSON.stringify(source_name)}. Please add it to published_source_mapping!`);
 		}
 		// https://www.wikidata.org/wiki/Special:EntityData/Q5418627.json
 		data_to_modify.claims.push({
 			// published in (P1433) 發表於
 			P1433: source_entity_id,
-			qualifiers: data_to_modify.claims.publication_in_claim_qualifiers,
+			qualifiers: data_to_modify.publication_in_claim_qualifiers,
 			references: NCBI_article_data.wikidata_references
 		});
 	}
-	delete data_to_modify.claims.publication_in_claim_qualifiers;
+	delete data_to_modify.publication_in_claim_qualifiers;
 
-	if (NCBI_article_data.doctype === 'book') {
+	// --------------------------------------------------------------
+	// publisher
+
+	if (data_to_modify.is_book) {
 		data_to_modify.claims.push({
 			// distribution format: printed book
 			P437: 'Q11396303',
@@ -781,7 +977,172 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		data_to_modify.claims.push(publisher);
 	}
 
-	// ----------------------------------------------------
+	// --------------------------------------------------------------
+	// full work available at URL (P953)
+
+	// https://www.wikidata.org/wiki/User:PintochBot
+	if (Array.isArray(Europe_PMC_article_data.fullTextUrlList?.fullTextUrl)) {
+		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A34572048
+		// May test Europe_PMC_article_data.hasPDF, Europe_PMC_article_data.isOpenAccess
+		Europe_PMC_article_data.fullTextUrlList.fullTextUrl.forEach(document_data => {
+			if (document_data.availability !== 'Open access') {
+				return;
+			}
+
+			const qualifiers = {
+				P2701: Europe_PMC_documentStyle[document_data.documentStyle] || document_data.documentStyle,
+				// reason for preferred rank: Open Access
+				//P7452: 'Q232932',
+				// online access status (P6954): Open Access
+				P6954: 'Q232932',
+				// content deliverer (P3274) 內容遞送者
+				P3274: document_data.site,
+			};
+
+			data_to_modify.claims.push({
+				// full work available at URL (P953)
+				P953: document_data.url,
+				qualifiers,
+				references: Europe_PMC_article_data.wikidata_references
+			});
+		});
+	}
+
+	if (Array.isArray(CrossRef_article_data.link)) {
+		CrossRef_article_data.link.forEach(document_data => {
+			let file_format = document_data.URL?.match(/\.(\w+)$/);
+			if (file_format) {
+				file_format = file_format[1].toLowerCase();
+				if (!/^(?:pdf|html|txt)$/.test(file_format))
+					file_format = null;
+			}
+
+			const qualifiers = file_format && {
+				P2701: Europe_PMC_documentStyle[file_format] || file_format,
+			};
+
+			data_to_modify.claims.push({
+				// full work available at URL (P953)
+				P953: document_data.URL,
+				qualifiers,
+				references: CrossRef_article_data.wikidata_references
+			});
+		});
+	}
+
+	// --------------------------------------------------------------
+	// main subject (P921)
+
+	data_to_modify.main_subject = Object.create(null);
+	function add_main_subject(key, references) {
+		if (!key) return;
+
+		if (Array.isArray(key)) {
+			for (const _key of key) {
+				add_main_subject(_key, references);
+			}
+			return;
+		}
+
+		key = key.trim().toLowerCase();
+		if (key in data_to_modify.main_subject) return;
+		data_to_modify.main_subject[key] = null;
+		// 這邊頻繁搜尋 key 可能造成 cache 肥大，且有拖延時間的問題。因此一次執行不能處理太多項目!
+		data_to_modify.claims.push({
+			// main subject (P921)
+			P921: key,
+			// based on heuristic (P887)
+			//references: + P887:'inferred from keyword and API search'
+			references
+		});
+	}
+
+	add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
+
+	// 醫學主題詞
+	add_main_subject(Europe_PMC_article_data.meshHeadingList?.meshHeading
+		?.filter(data => data.majorTopic_YN === 'Y')
+		?.map(data => data.descriptorName), Europe_PMC_article_data.wikidata_references);
+
+	//add_main_subject(Europe_PMC_article_data.subsetList?.subset, Europe_PMC_article_data.wikidata_references);
+
+	add_main_subject(CrossRef_article_data.subject, CrossRef_article_data.wikidata_references);
+
+	// --------------------------------------------------------------
+	// cites work (P2860)
+	// https://www.wikidata.org/wiki/User:Citationgraph_bot
+
+	if (Array.isArray(CrossRef_article_data.reference)) {
+		// 不是每一筆記錄皆有 https://api.crossref.org/works/10.3390/genes12020166
+		const DOI_to_item_id_mapping = await search_DOIs(CrossRef_article_data.reference.filter(reference_data => reference_data.DOI).map(reference_data => reference_data.DOI));
+		//console.trace(DOI_to_item_id_mapping);
+		for (let index = 0; index < CrossRef_article_data.reference.length;) {
+			const reference_data = CrossRef_article_data.reference[index];
+
+			const qualifiers = {
+				// series ordinal (P1545) 系列序號
+				P1545: ++index,
+			};
+			// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
+			if (reference_data.volume) {
+				qualifiers.P478 = reference_data.volume;
+			}
+			if (reference_data['first-page']) {
+				// page(s) (P304)
+				qualifiers.P304 = reference_data['first-page'];
+			}
+			if (reference_data['article-title']) {
+				// native label (P1705)
+				qualifiers.P1705 = reference_data['article-title'];
+			}
+			if (reference_data.author) {
+				// author name string (P2093) 作者姓名字符串
+				qualifiers.P2093 = reference_data.author;
+			}
+			if (reference_data.year) {
+				// publication date (P577) 出版日期
+				qualifiers.P577 = reference_data.year.to_Date({ zone: 0 });
+			}
+
+			const claim = {
+				qualifiers,
+				references: CrossRef_article_data.wikidata_references
+			};
+
+			if (reference_data.DOI) {
+				const DOI = reference_data.DOI.toUpperCase();
+				if (!DOI_to_item_id_mapping.has(DOI))
+					continue;
+				//qualifiers[NCBI_articleid_properties_mapping.doi] = DOI;
+				// cites work (P2860)
+				claim.P2860 = DOI_to_item_id_mapping.get(DOI)[0];
+				data_to_modify.claims.push(claim);
+				continue;
+			}
+
+			if (reference_data['journal-title']) {
+				// cites work (P2860)
+				claim.P2860 = reference_data['journal-title'];
+				data_to_modify.claims.push(claim);
+				continue;
+			}
+
+			if (
+				// title only
+				reference_data['series-title']
+				// 供應商尚未處理
+				|| reference_data.unstructured
+				// key only
+				|| Object.keys(reference_data).join() === 'key'
+			) {
+				continue;
+			}
+
+			CeL.error(`${for_each_PubMed_ID.name} Skip unknown reference: ${JSON.stringify(reference_data)}`);
+		}
+	}
+
+	// ----------------------------------------------------------------------------------------------------------------
 	// 檢查是否有重複項目
 
 	const id_filter = [];
@@ -807,11 +1168,11 @@ ORDER BY DESC (?item)
 	// ids of NCBI are relatively complete
 	NCBI_article_data.articleids.forEach(articleid => {
 		const idtype = articleid.idtype;
-		if (!(idtype in NCBI_articleid_properties_mapper)) {
+		if (!(idtype in NCBI_articleid_properties_mapping)) {
 			//console.trace(NCBI_article_data);
-			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to NCBI_articleid_properties_mapper!`);
+			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to NCBI_articleid_properties_mapping!`);
 		}
-		let property_id = NCBI_articleid_properties_mapper[idtype];
+		let property_id = NCBI_articleid_properties_mapping[idtype];
 		if (!property_id) {
 			// Do not use this id.
 			return;
@@ -826,6 +1187,7 @@ ORDER BY DESC (?item)
 				break;
 			case 'pmc':
 				id = id.replace(/^PMC/, '');
+				console.assert(CeL.is_digits(id));
 				break;
 		}
 		id_filter.push(`
@@ -863,8 +1225,19 @@ ORDER BY DESC (?item)
 	//return;
 	//CeL.set_debug(6);
 
+	function clean_data_to_modify() {
+		delete data_to_modify.is_non_English_title;
+		delete data_to_modify.is_book;
+		delete data_to_modify.publication_date_claim;
+		delete data_to_modify.publication_date;
+		delete data_to_modify.publication_in_claim_qualifiers;
+		delete data_to_modify.author_list;
+		delete data_to_modify.main_subject;
+	}
+
 	if (article_item_list.length === 0) {
 		// no result: Need to add.
+		clean_data_to_modify();
 		CeL.info(`${for_each_PubMed_ID.name}: Create new item for PubMed ID=${PubMed_ID}: ${main_title}`);
 		return await wiki.new_data_entity(data_to_modify, { bot: 1, summary: `Import new ${NCBI_article_data.doctype} PubMed ID = ${PubMed_ID}${summary_source_posifix}` });
 	}
@@ -887,9 +1260,49 @@ ORDER BY DESC (?item)
 		return;
 	}
 
-	// TODO: https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/StreetmathematicianBot_2
-	// remove the author name string (P2093) statement
+	// 不覆蓋原有更好的描述
+	for (const [language_code, modify_to] of Object.entries(data_to_modify.descriptions)) {
+		const original_value = CeL.wiki.data.value_of(article_item.descriptions[language_code]);
+		//console.log([original_value, modify_to]);
+		if (original_value?.length >= modify_to.length)
+			delete data_to_modify.descriptions[language_code];
+	}
+
 	// 請注意，文章可能有多個作者有相同的姓名
+
+	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/StreetmathematicianBot_2
+	// turn author name string (P2093) statements into disambiguated author (P50) statements based on ORCID iDs.
+	if (Array.isArray(article_item.claims.P2093)) {
+		//console.trace(article_item.claims.P2093);
+		const author_list = data_to_modify.author_list;
+		// author name string (P2093) 作者姓名字符串
+		article_item.claims.P2093.forEach(statement => {
+			let ordinal = CeL.wiki.data.value_of(statement.qualifiers.P1545);
+			if (!ordinal || !((ordinal = +ordinal[0]) > 0)) return;
+			const original_value = CeL.wiki.data.value_of(statement);
+			if (original_value === author_list[ordinal]) return;
+			if (!are_equivalent_person_names(original_value, author_list[ordinal])) {
+				// 跳過不等價的姓名
+				CeL.warn(`${for_each_PubMed_ID.name}: Skip inequivalent author names with the same ordinal ${ordinal}: ${JSON.stringify(original_value)} ≢ ${JSON.stringify(author_list[ordinal])}`);
+				return;
+			}
+			if (original_value.replace(/\s+/g, ' ').replace(/\./g, '').length
+				> author_list[ordinal].replace(/\s+/g, ' ').replace(/\./g, '').length) {
+				// 原來的項目已經有更好更完整的資料
+				// TODO: Do not add this name.
+				return;
+			}
+
+			//console.log([ordinal, original_value, author_list[ordinal]]);
+
+			// remove the author name string (P2093) statement
+			data_to_modify.claims.push({
+				P2093: original_value,
+				remove: true
+			});
+		});
+	}
+	clean_data_to_modify();
 
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
 	await article_item.modify(data_to_modify, { bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}` });
