@@ -93,13 +93,16 @@ async function for_each_challenge_template(template_page_data) {
 		summary: summary_prefix + `Insert challenge template {{${options.template_page}}} `
 	});
 
-	await wiki.edit_page(log_to, `* ${talk_page_list.length} pages checked. ~~~~
-* ${pages_transcluding_template_count} pages transcluding ${CeL.wiki.title_link_of(template_page_data)}, ${pages_transcluding_template.size} of them seems not listed in [[${options.subpages_of.replace(/\/$/, '')}]]. You may add the page to list, or remove the template manually.
+	// 每週記錄一次，避免記錄檔太大。
+	if ((new Date).getDay() === 5) {
+		await wiki.edit_page(log_to, `* ${talk_page_list.length} pages checked. ~~~~
+* ${pages_transcluding_template_count} pages transcluding ${CeL.wiki.title_link_of(template_page_data)}, ${pages_transcluding_template.size} of them seems not listed in [[${options.subpages_of.replace(/\/$/, '')}]]. You may append the articles to the list, or remove the template in the talk page manually.
 ${Array.from(pages_transcluding_template).map(page_title => '# ' + CeL.wiki.title_link_of(page_title)).join('\n')}
 `, {
-		bot: 1, section: 'new', sectiontitle: `${CeL.wiki.title_link_of(template_page_data)}`,
-		summary: `${summary_prefix}Report of ${CeL.wiki.title_link_of(template_page_data)}`
-	});
+			bot: 1, section: 'new', sectiontitle: `${CeL.wiki.title_link_of(template_page_data)}`,
+			summary: `${summary_prefix}Report of ${CeL.wiki.title_link_of(template_page_data)}`
+		});
+	}
 }
 
 // @see function maintain_VA_template_each_talk_page() @ 20200122.update_vital_articles.js
