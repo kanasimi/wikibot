@@ -6,6 +6,8 @@
 	完成。正式運用。
 
 TODO:
+添加訂正的標示
+
 依照 series ordinal 調整作者排序
 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
 P921 https://www.wikidata.org/w/index.php?title=Q69566581&diff=prev&oldid=1566235568&diffmode=source
@@ -37,6 +39,7 @@ CeL.wiki.query.default_edit_time_interval = 0;
 
 /** PMC API articleid name to wikidata property id mapping */
 const NCBI_articleid_properties_mapping = {
+	// idtype: property_id
 	pubmed: 'P698',
 	pmc: 'P932',
 	// NCBI Bookshelf ID https://en.wikipedia.org/wiki/National_Center_for_Biotechnology_Information#NCBI_Bookshelf
@@ -51,15 +54,10 @@ const NCBI_articleid_properties_mapping = {
 	eid: '',
 	pmcid: '',
 };
-const articleid_properties_id_list = Object.entries(NCBI_articleid_properties_mapping).filter(pair => !!pair[1]).map(pair => {
-	const [idtype, property_id] = pair;
-	return '?' + idtype;
-}).join(' ');
-const articleid_properties_id_assignment = Object.entries(NCBI_articleid_properties_mapping).filter(pair => !!pair[1]).map(pair => {
-	const [idtype, property_id] = pair;
-	return `
-	OPTIONAL { ?item wdt:${property_id} ?${idtype}. }`;
-}).join('');
+const articleid_properties_id_list = Object.entries(NCBI_articleid_properties_mapping)
+	.reduce((filtered, pair) => pair[1] ? filtered + ' ?' + pair[0] : filtered, '');
+const articleid_properties_id_assignment = Object.entries(NCBI_articleid_properties_mapping)
+	.reduce((filtered, pair) => pair[1] ? filtered + `OPTIONAL { ?item wdt:${pair[1]} ?${pair[0]}. }` : filtered, '');
 
 const NCBI_pubstatus_to_entity_id_mapping = {
 	entrez: 'Q1345229',
@@ -137,7 +135,9 @@ async function main_process() {
 	start_date.setDate(start_date.getDate() - 1);
 	let end_date;
 	end_date = new Date(start_date.getTime() + 1e8);
-	const PubMed_ID_list = (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
+	const PubMed_ID_list =
+		Array.from({ length: 10 }, (v, i) => i + /* start ordinal */1) ||
+		(await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
 		// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3FitemDescription%20%3Fvalue%20%3Fst%20%3Fids%20%3Fsl%0AWHERE%0A%7B%0A%20%20SERVICE%20bd%3Asample%20%7B%20%3Fitem%20wdt%3AP698%20%3Fvalue.%20bd%3AserviceParam%20bd%3Asample.limit%20200%20%7D%0A%20%20OPTIONAL%20%7B%20%3Fitem%20wikibase%3Astatements%20%3Fst%20%3B%20wikibase%3Aidentifiers%20%3Fids%20%3B%20wikibase%3Asitelinks%20%3Fsl%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0A
 		// 11373397: PubMed 經常進行某種標題翻譯 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
 		// PMID: 19790808 was deleted because it is a duplicate of PMID: 9541661
@@ -146,6 +146,7 @@ async function main_process() {
 		;
 
 	const link_list = [];
+	const start_time = Date.now();
 	for (let index = 0; index < PubMed_ID_list.length;) {
 		const PubMed_ID = PubMed_ID_list[index++];
 		CeL.log_temporary(`${index}/${PubMed_ID_list.length} PubMed_ID ${PubMed_ID}`);
@@ -171,7 +172,8 @@ async function main_process() {
 		await wiki.edit_page(log_to + '/PubMed ID duplicates', wikitext, { bot: 1, nocreate: 1, summary: `Error report: ${problematic_articles.length - 1} article(s)` });
 	}
 
-	CeL.info('Articles processed: PubMed ID ' + link_list.join(', '));
+	if (link_list.length > 0)
+		CeL.info(`Average ${CeL.age_of(0, (Date.now() - start_time) / link_list.length)} per item. Articles processed: PubMed ID ` + link_list.join(', '));
 	console.log(PubMed_ID_list);
 
 	routine_task_done('1 day');
@@ -269,13 +271,13 @@ SELECT ?doi ?item ?itemLabel WHERE {
 	?item wdt:P356 ?doi.
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }`);
-		item_list.forEach(item_data => {
+		item_list.forEach(item_data =>
 			DOI_to_item_id_mapping.set(
 				CeL.wiki.data.value_of(item_data.doi),
 				// [ item id, itemLabel ]
 				[CeL.wiki.data.value_of(item_data.item).match(/\/(Q\d+)$/)[1], CeL.wiki.data.value_of(item_data.itemLabel)]
-			);
-		});
+			)
+		);
 	}
 
 	//console.trace(DOI_to_item_id_mapping);
@@ -691,6 +693,29 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		});
 	}
 
+	function add_title_claim(references, title, language) {
+		const claim = {
+			// title 標題 (P1476)
+			P1476: title || main_title,
+			references
+		};
+
+		if (language)
+			claim.language = language;
+
+		if (/* title_converted || */ data_to_modify.is_non_English_title) {
+			// https://www.wikidata.org/wiki/Property:P1476#P1476$f785f365-4c6d-6e2c-c3ab-8ab2d109f9df
+			// set English title in square brackets to deprecated rank
+			claim.rank = 'deprecated';
+			claim.qualifiers = {
+				// reason for deprecated rank (P2241) = translation instead of the original (Q110678154)
+				P2241: 'Q108180274'
+			};
+		}
+
+		data_to_modify.claims.push(claim);
+	}
+
 	if (main_title
 		// 不採用全大寫標題。全大寫標題改採用 Europe_PMC_article_data。 e.g., @ https://www.wikidata.org/wiki/Q5418627
 		&& main_title !== main_title.toUpperCase()) {
@@ -698,15 +723,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		const language = CrossRef_article_data.language || use_language;
 		data_to_modify.labels[language] = main_title;
 		//const language_entity_id = language_code_mapping.get(language);
-		data_to_modify.claims.push({
-			// title 標題 (P1476)
-			P1476: main_title,
-			language,
-			// https://www.wikidata.org/wiki/Property:P1476#P1476$f785f365-4c6d-6e2c-c3ab-8ab2d109f9df
-			// set English title in square brackets to deprecated rank
-			rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
-			references: CrossRef_article_data.wikidata_references
-		});
+		add_title_claim(CrossRef_article_data.wikidata_references, null, language);
 	} else {
 		[main_title, title_converted] = normalize_article_title(Europe_PMC_article_data.title
 			// Should not go to here!
@@ -715,25 +732,15 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			CeL.error(`${for_each_PubMed_ID.name}: No title for PubMed ID ${PubMed_ID}!`);
 			return;
 		}
-		data_to_modify.claims.push({
-			// title 標題 (P1476)
-			P1476: main_title,
-			rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
-			references: Europe_PMC_article_data.wikidata_references
-		});
+		add_title_claim(Europe_PMC_article_data.wikidata_references);
 	}
 
 	// Add more variants, usually English translation in NCBI_article_data and Europe_PMC_article_data.
 	if (main_title !== normalize_article_title(Europe_PMC_article_data.title)[0]) {
 		const [Europe_PMC_title, title_converted] = normalize_article_title(Europe_PMC_article_data.title);
 		if (!Array.isArray(CrossRef_article_data.title) || !CrossRef_article_data.title.some(title => normalize_article_title(title)[0] === Europe_PMC_title)) {
-			data_to_modify.claims.push({
-				// title 標題 (P1476)
-				// Usually English translation. https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33932783
-				P1476: Europe_PMC_title,
-				rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
-				references: Europe_PMC_article_data.wikidata_references
-			});
+			// Europe_PMC_title: Usually English translation. https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33932783
+			add_title_claim(Europe_PMC_article_data.wikidata_references, Europe_PMC_title);
 		}
 	}
 
@@ -742,12 +749,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		const [NCBI_title, title_converted] = normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle);
 		if (NCBI_title && NCBI_title !== normalize_article_title(Europe_PMC_article_data.title)[0]) {
 			// Should not go to here.
-			data_to_modify.claims.push({
-				// title 標題 (P1476)
-				P1476: NCBI_title,
-				rank: /* title_converted || */ data_to_modify.is_non_English_title ? 'deprecated' : 'normal',
-				references: NCBI_article_data.wikidata_references
-			});
+			add_title_claim(NCBI_article_data.wikidata_references, NCBI_title);
 		}
 	}
 
@@ -1060,9 +1062,15 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
 
 	// 醫學主題詞
-	add_main_subject(Europe_PMC_article_data.meshHeadingList?.meshHeading
-		?.filter(data => data.majorTopic_YN === 'Y')
-		?.map(data => data.descriptorName), Europe_PMC_article_data.wikidata_references);
+	add_main_subject(
+		Europe_PMC_article_data.meshHeadingList?.meshHeading
+			//?.filter(data => data.majorTopic_YN === 'Y')?.map(data => data.descriptorName)
+			?.reduce((filtered, data) => {
+				if (data.majorTopic_YN === 'Y') filtered.push(data.descriptorName);
+				return filtered;
+			}, []),
+		Europe_PMC_article_data.wikidata_references
+	);
 
 	//add_main_subject(Europe_PMC_article_data.subsetList?.subset, Europe_PMC_article_data.wikidata_references);
 
@@ -1074,7 +1082,13 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	if (Array.isArray(CrossRef_article_data.reference)) {
 		// 不是每一筆記錄皆有 https://api.crossref.org/works/10.3390/genes12020166
-		const DOI_to_item_id_mapping = await search_DOIs(CrossRef_article_data.reference.filter(reference_data => reference_data.DOI).map(reference_data => reference_data.DOI));
+		const DOI_to_item_id_mapping = await search_DOIs(CrossRef_article_data.reference
+			//.filter(reference_data => reference_data.DOI).map(reference_data => reference_data.DOI)
+			.reduce((filtered, reference_data) => {
+				if (reference_data.DOI) filtered.push(reference_data.DOI);
+				return filtered;
+			}, [])
+		);
 		//console.trace(DOI_to_item_id_mapping);
 		for (let index = 0; index < CrossRef_article_data.reference.length;) {
 			const reference_data = CrossRef_article_data.reference[index];
@@ -1090,6 +1104,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			if (reference_data['first-page']) {
 				// page(s) (P304)
 				qualifiers.P304 = reference_data['first-page'];
+				// cf. number of pages (P1104)
 			}
 			if (reference_data['article-title']) {
 				// native label (P1705)
