@@ -35,14 +35,19 @@ let summary_prefix;
 
 // 讀入手動設定 manual settings。
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(wiki.latest_task_configuration);
-
-	// ----------------------------------------------------
-
 	const { general } = latest_task_configuration;
+
+	if (Array.isArray(general.skip_pages)) {
+		general.skip_pages = general.skip_pages.map(page_title => {
+			const matched = typeof page_title === 'string' && page_title.match(/^\s*\[\[(.+?)\]\]/);
+			return matched ? matched[1] : page_title;
+		});
+	}
 
 	// 匯入 工具頁面
 	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('同步通用頁面')) + ': ';
+
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------
