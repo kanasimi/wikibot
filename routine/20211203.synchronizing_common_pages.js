@@ -163,7 +163,9 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 	}
 
 	const base_source_page_data = await edit_page(source_page_title, target_page_title, options);
-	if (!base_source_page_data) {
+	if (!base_source_page_data
+		// 更新所依賴的模板與模組。這個選項可每個項目個別設定。
+		|| ('update_depended_pages' in options ? options.update_depended_pages : !wiki.latest_task_configuration.general.update_depended_pages)) {
 		//CeL.warn(``);
 		return;
 	}
