@@ -9,11 +9,14 @@ node 20210923.update_foreign_featured_contents_list.js use_language=en
 2021/10/9 5:16:17	完成。正式運用 for jawiki。
 2021/10/13 16:8:42	adapt for zhwiki 更新諸語言的維基百科典範條目
 
+https://www.mediawiki.org/wiki/Help:Magic_words#Miscellaneous
+{{#language:ar|en}} → Arabic
 [[ja:Module:ISO639言語名]]
 [[en:Module:Language/data/ISO 639-1]]
 
 [[MediaWiki:Variantname-zh-my]]
 
+[[Category:各種語言的維基百科]]
 
 TODO:
 + article size
@@ -295,10 +298,12 @@ async function for_badge_to_process(options) {
 
 	const FC_sitelinks = (await wiki.data(`Wikipedia:${local_badge_name}`)).sitelinks;
 
-	const all_languages_to_process = Object.keys(all_featured_contents)
-		//.filter(language_code => language_code !== use_language)
-		//.sort()
-		;
+	let all_languages_to_process = Object.keys(all_featured_contents);
+
+	if (!wiki.latest_task_configuration.local_to_general_language_code_page)
+		all_languages_to_process = all_languages_to_process.filter(language_code => language_code !== use_language);
+
+	all_languages_to_process.sort();
 
 	const summary_of_language = Object.create(null);
 	const badge_entity_ids_to_count = Object.keys(Wikimedia_article_badges).filter(badge_entity_id => featured_content_badges.includes(badge_entity_id));
@@ -682,7 +687,7 @@ ORDER BY DESC(?count)
 			content_to_write.push(`{{${CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon)}|state=uncollapsed}}`);
 		if (CeL.gettext('Category:諸語言的%1', local_badge_name))
 			content_to_write.push(`[[${CeL.gettext('Category:諸語言的%1', local_badge_name)}|${language_code}]]`);
-		// free
+		// Release memory. 釋放被占用的記憶體。
 		row = null;
 		table.truncate();
 
@@ -787,7 +792,7 @@ async function update_all_sites_menu(options) {
 		class: 'wikitable sortable',
 		caption: CeL.gettext('諸語言的維基百科%1統計', local_badge_name)
 	});
-	// free
+	// Release memory. 釋放被占用的記憶體。
 	row = null;
 	table.truncate();
 
@@ -812,7 +817,7 @@ async function update_navigation_template(options) {
 
 	const variable_Map = new CeL.wiki.Variable_Map({ FC_list: '\n' + list.map(data => '* ' + data[1]).join('\n') + '\n' });
 	const count = list.length;
-	// free
+	// Release memory. 釋放被占用的記憶體。
 	list.truncate();
 
 	await wiki.edit_page(page_title, variable_Map, { bot: 1, nocreate: 1, redirects: 1, summary: `${wiki.latest_task_configuration.general.summary_prefix}${count} languages` });
