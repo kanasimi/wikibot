@@ -300,7 +300,7 @@ async function for_badge_to_process(options) {
 
 	let all_languages_to_process = Object.keys(all_featured_contents);
 
-	if (!wiki.latest_task_configuration.local_to_general_language_code_page)
+	if (!wiki.latest_task_configuration.general.local_to_general_language_code_page)
 		all_languages_to_process = all_languages_to_process.filter(language_code => language_code !== use_language);
 
 	all_languages_to_process.sort();
@@ -488,7 +488,7 @@ WHERE {
 
 function check_redirects(page_title, page_data, content_to_write, options) {
 	const { local_badge_name } = options;
-	// TODO: using upcase initial char of `local_badge_name`
+	// TODO: using uppercased initial char of `local_badge_name`
 	if (page_title !== page_data.title && !page_data.title.toLowerCase().startsWith(CeL.gettext('Wikipedia:諸語言的維基百科%1', local_badge_name).toLowerCase() + '/')) {
 		CeL.warn(`${check_redirects.name}: Skip ${CeL.wiki.title_link_of(page_title)} → ${CeL.wiki.title_link_of(page_data.title)}`);
 		//console.trace([page_title, page_data.title, local_badge_name, CeL.gettext('Wikipedia:諸語言的維基百科%1', local_badge_name)]);
@@ -661,7 +661,7 @@ ORDER BY DESC(?count)
 			CeL.wiki.title_link_of(`:${language_code}:`, CeL.gettext('%1版', language_name)),
 			FC_sitelinks[CeL.wiki.site_name(language_code)]?.title ? `[[:${language_code}:${FC_sitelinks[CeL.wiki.site_name(language_code)].title}|${CeL.gettext('「Wikipedia:%1」條目一覽', local_badge_name)}]]` : CeL.gettext('「Wikipedia:%1」條目一覽', local_badge_name)
 		);
-		let content_to_write = [`{{Shortcut|${CeL.gettext('Shortcut:%1/%2', Wikimedia_article_badges[badge_entity_id_to_process].icon, language_code)}}}`];
+		let content_to_write = [`{{Shortcut|${CeL.gettext('Shortcut:%1/%2', Wikimedia_article_badges[badge_entity_id_to_process].icon, wiki.latest_task_configuration.general.uppercased_shortcut? language_code.toUpperCase() : language_code)}}}`];
 		if (CeL.gettext('Wikipedia:諸語言的維基百科%1/header', local_badge_name))
 			content_to_write.push(`{{${CeL.gettext('Wikipedia:諸語言的維基百科%1/header', local_badge_name)}}}`);
 		content_to_write.push('', '__TOC__');
