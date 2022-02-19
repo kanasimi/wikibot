@@ -75,7 +75,10 @@ if (data_directory || media_directory) {
 // https://stackoverflow.com/questions/20082893/unable-to-verify-leaf-signature
 // for Error: unable to verify the first certificate
 // code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
-// process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+// Or set https.request({... rejectUnauthorized:false })
+// https://codertw.com/%E5%89%8D%E7%AB%AF%E9%96%8B%E7%99%BC/250697/
+
 // 2021/8/3 6:18:27 Error [ERR_TLS_CERT_ALTNAME_INVALID]: Hostname/IP does not
 // match certificate's altnames: Host: www.metoc.navy.mil. is not in the cert's
 // altnames: ...
@@ -218,7 +221,7 @@ function main_work() {
 	if (CeL.is_debug())
 		console.log(category_to_parent_hash);
 
-	var site_mapper = {
+	var site_mapping = {
 		NHC : start_NHC,
 		JTWC : start_JTWC,
 		NRL : start_NRL,
@@ -233,7 +236,7 @@ function main_work() {
 	if (CeL.env.arg_hash) {
 		var site = CeL.env.arg_hash.site;
 		if (site) {
-			site = site_mapper[site.toUpperCase()];
+			site = site_mapping[site.toUpperCase()];
 			if (site) {
 				check_result(site);
 			} else {
@@ -246,7 +249,7 @@ function main_work() {
 			// console.log(arg_name);
 			if (CeL.env.arg_hash[arg_name] === true
 			// e.g., `node 20190629.import_tropical_cyclone_images debug nhc`
-			&& (arg_name = site_mapper[arg_name.toUpperCase()])) {
+			&& (arg_name = site_mapping[arg_name.toUpperCase()])) {
 				check_result(arg_name);
 				site = true;
 			}
@@ -259,8 +262,8 @@ function main_work() {
 	// for debug:
 	// return;
 
-	for (site in site_mapper) {
-		Promise.resolve(site_mapper[site]())['catch'](console.error);
+	for (site in site_mapping) {
+		Promise.resolve(site_mapping[site]())['catch'](console.error);
 	}
 }
 
@@ -1744,12 +1747,12 @@ function start_NRL() {
 	});
 }
 
-var NRL_area_to_code_mapper = {
+var NRL_area_to_code_mapping = {
 	Atlantic : 'AL'
 };
 
 function for_each_NRL_cyclone(media_data) {
-	var area_code = media_data.area_code = NRL_area_to_code_mapper[media_data.area]
+	var area_code = media_data.area_code = NRL_area_to_code_mapping[media_data.area]
 			|| media_data.area.replace(/(\w)\w+/g, '$1').replace(/\s/g, '')
 					.toUpperCase();
 	media_data.id = area_code + media_data.id + media_data.year;
