@@ -997,6 +997,29 @@ var page_configurations = {
 			}
 		}
 	}),
+	'zhwiki:Wikipedia:存廢覆核請求' : Object.assign(Object.create(null),
+	//
+	general_page_configuration, {
+		topic_page : general_topic_page,
+		timezone : 8,
+		columns : 'NO;title;status;discussions;participants;last_user_set',
+		column_to_header : {
+			// 處理情況
+			status : '狀態'
+		},
+		operators : {
+			// 議體進度/狀態。
+			status : function check_Status_template(section, section_index) {
+				var status_token;
+				section.each('Template:Status', function(token) {
+					status_token = token;
+					token.push('prefix=');
+					return section.each.exit;
+				});
+				return status_token && status_token.toString();
+			}
+		}
+	}),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
 		timezone : 8
@@ -1277,15 +1300,15 @@ function check_BOTREQ_status(section, section_index) {
 function check_BRFA_status(section) {
 	var status, to_exit = this.each.exit, BRFA_status;
 	this.each.call(section, 'template', function(token) {
-		var message_mapper = {
+		var message_mapping = {
 			BAGAssistanceNeeded : '請審核小組協助',
 			'BAG assistance needed' : '請審核小組協助',
 			OperatorAssistanceNeeded : '請機器人操作者協助'
 		};
-		if (token.name in message_mapper) {
+		if (token.name in message_mapping) {
 			status = 'style="background-color: #ff9;" | '
 					+ '[[File:Symbol_point_of_order.svg|20px|alt=|link=]] '
-					+ message_mapper[token.name];
+					+ message_mapping[token.name];
 			return;
 		}
 
@@ -1315,12 +1338,12 @@ function check_BRFA_status(section) {
 			}
 			BRFA_status = status;
 			// <s>此模板代表一種決定性的狀態，可不用再檢查其他內容。</s>
-			// Waiting for message_mapper
+			// Waiting for message_mapping
 			// return to_exit;
 		}
 
 		if (BRFA_status) {
-			// 只有 message_mapper 可顛覆 BRFA_status。其他皆不再受理。
+			// 只有 message_mapping 可顛覆 BRFA_status。其他皆不再受理。
 			return;
 		}
 
@@ -1348,7 +1371,7 @@ function check_BRFA_status(section) {
 				status = 'style="background-color: #ddd;" | ' + status;
 			}
 			// <s>此模板代表一種決定性的狀態，可不用再檢查其他內容。</s>
-			// Waiting for message_mapper
+			// Waiting for message_mapping
 			return;
 		}
 
@@ -1462,6 +1485,11 @@ function check_MarkAsResolved_status(section, section_index) {
 			// token.parameters.status
 			// 把填充背景色應用至整個<td>單元格 [[Special:Diff/5491729]]
 			status = 'style="padding: 0;" | ' + token.toString();
+			/**
+			 * <code>
+			inner: <div style="background-color:...; padding: ...; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">...</div>
+			</code>
+			 */
 
 			section.archived = true;
 
