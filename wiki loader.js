@@ -293,6 +293,7 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 	// console.trace(login_options);
 	var session = do_login ? CeL.wiki.login(login_options) : new CeL.wiki(
 			login_options);
+	// console.trace(session);
 	set_language(session);
 	if (!do_login) {
 		return session;

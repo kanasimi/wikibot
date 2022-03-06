@@ -163,7 +163,7 @@ async function main_process() {
 
 	// for debug specified article
 	if (false) {
-		check_articles_embeddedin_template(['東南季風']);
+		setTimeout(() => check_articles_embeddedin_template(['Mass killings under communist regimes']), 0);
 		return;
 	}
 
@@ -258,6 +258,7 @@ async function check_pages_including_maintenance_template(page_data) {
 		configuration.count_list[all_maintenance_template_count].push(page_data.title);
 	}
 
+	//console.trace([all_maintenance_template_count, configuration.template_count_to_be_split]);
 	let need_merge;
 	if (all_maintenance_template_count <= configuration.template_count_to_be_split) {
 		// need split
@@ -333,6 +334,8 @@ async function check_pages_including_maintenance_template(page_data) {
 	// ----------------------------------------------------
 
 	CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Need ${need_merge ? 'merge' : 'split'}. ${this.maintenance_template_inside.length}+${this.maintenance_template_outer.length} maintenance templates: ${this.maintenance_template_inside.map(t => t.name).join(' | ')} + ${this.maintenance_template_outer.map(t => t.name).join(' | ')}`);
+	//console.trace([need_merge, this.maintenance_template_outer, this.maintenance_template_inside]);
+	//console.trace(wiki.latest_task_configuration);
 
 	if (need_merge) {
 		// 處理須合併的條目:
@@ -403,6 +406,7 @@ function check_maintenance_templates(token, index, parent) {
 		this.Multiple_issues_template_token = token;
 		// console.log(token.parameters[1]);
 		this.for_each_token.call(token.parameters[1], 'template', token => {
+			//console.trace(token);
 			if (is_maintenance_template(token.name)) {
 				this.maintenance_template_inside.push(token);
 			}

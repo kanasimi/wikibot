@@ -56,7 +56,9 @@ function text_processor(wikitext, page_data, work_config) {
 		}
 
 		if (/(?:^|\n)[^*#]/.test(翻譯1.replace(/\n{{(?:trans-mid|翻譯-中|翻译-中)}}/i, '')) || 翻譯2 && /(?:^|\n)[^*#]/.test(翻譯2)) {
-			// 跳過不符合所需格式的模板。
+			//console.trace([/(?:^|\n)[^*#]/.test(翻譯1.replace(/\n{{(?:trans-mid|翻譯-中|翻译-中)}}/i, '')), 翻譯2 && /(?:^|\n)[^*#]/.test(翻譯2)]);
+			CeL.warn(`${text_processor.name}: 跳過不符合所需格式的模板:
+${template_token}`);
 			// e.g., [[drooping]]
 			return;
 		}
@@ -96,9 +98,9 @@ ${翻譯2}` : ''}
 		not_bot_requests: true,
 		wiki,
 	}, {
-		'insource:/\\*.{1,3}语：\\[\\[\\]\\]/': { text_processor },
-		'insource:/===相關詞彙===.{0,3}近義詞：.{0,3}反義詞：.{0,3}派生詞：.{0,3}同音詞（現代標準漢語）：.{0,3}相關詞彙：.{0,3}常見詞語搭配：.{0,4}=/': { text_processor },
-		'insource:/\{\{漢語讀音\|國=\|漢語拼音=[^=|]+\|粵=\|滬=\|白話字=\|臺羅拼音=\}\}/': { text_processor },
-		'Template:Transl': { text_processor },
+		'insource:/\\*.{1,3}语：\\[\\[\\]\\]/': { text_processor, namespace: 'main' },
+		'insource:/===相關詞彙===.{0,3}近義詞：.{0,3}反義詞：.{0,3}派生詞：.{0,3}同音詞（現代標準漢語）：.{0,3}相關詞彙：.{0,3}常見詞語搭配：.{0,4}=/': { text_processor, namespace: 'main' },
+		'insource:/\\{\\{漢語讀音\\|國=\\|漢語拼音=[^=|]+\\|粵=\\|滬=\\|白話字=\\|臺羅拼音=\\}\\}/': { text_processor, namespace: 'main' },
+		'Template:Transl': { text_processor, namespace: 'main' },
 	});
 })();

@@ -38,7 +38,7 @@ function replace_US_state_templates(wikitext, page_data) {
 		}
 		changed = true;
 		template_token[0] = this.replace_to_template;
-		template_token.splice(1, 0, this.states_mapper[this.state] || this.state);
+		template_token.splice(1, 0, this.states_mapping[this.state] || this.state);
 	});
 	if (changed) {
 		//console.log(parsed.toString());
@@ -61,9 +61,9 @@ function remove_needless_templates(wikitext, page_data) {
 		if (template_token.name !== from_template) {
 			return;
 		}
-		if (template_token[1].toString() in this.states_mapper) {
+		if (template_token[1].toString() in this.states_mapping) {
 			changed = true;
-			template_token[1] = this.states_mapper[template_token[1].toString()];
+			template_token[1] = this.states_mapping[template_token[1].toString()];
 		}
 	});
 	if (changed) {
@@ -82,12 +82,12 @@ async function setup_move_configuration(meta_configuration, options) {
 	}
 
 	const replace_to_template_existence = Object.create(null);
-	const states_mapper = Object.create(null);
+	const states_mapping = Object.create(null);
 	const list_configurations = Object.create(null);
 	for (let state of US_states_list) {
 		if (state.includes(' ')) {
 			const _state = state.replace(/\s/g, '');
-			states_mapper[_state] = state;
+			states_mapping[_state] = state;
 			state = _state;
 		}
 		for (const template_type of template_types) {
@@ -114,18 +114,18 @@ async function setup_move_configuration(meta_configuration, options) {
 				// template_type,
 				replace_to_template,
 				needless_templates,
-				states_mapper,
+				states_mapping,
 			};
 		}
 	}
-	//console.log(states_mapper);
+	//console.log(states_mapping);
 
 	for (const template of Object.keys(replace_to_template_existence)) {
 		list_configurations[wiki.to_namespace(template, 'template')] = {
 			text_processor: remove_needless_templates,
 			namespace: 'Category',
 			needless_templates,
-			states_mapper,
+			states_mapping,
 			before_get_pages(page_list, edit_options) { edit_options.summary += ' (redundancy {{US states}})'; }
 		};
 	}

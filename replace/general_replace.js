@@ -3,6 +3,8 @@
 node general_replace.js 車站編號標誌 get_task_configuration_from=list namespace=Module also_replace_text_insource
 node general_replace.js 車站編號標誌 get_task_configuration_from=list skip_nochange=false
 
+node general_replace.js 電影產地模板2 get_task_configuration_from=list
+
 */
 
 'use strict';
@@ -93,7 +95,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 			section_title: need_close.length === 1 && need_close[0],
 			for_section_options: {
 				need_edit: true,
-				summary: `${need_close.length > 1 ? `Close ${need_close.length} requests` : 'Close request'}: ${need_close.map(section_title => section_title.link).join(', ')}`
+				summary: `${need_close.length > 1 ? `Close ${need_close.length} requests` : 'Close request'}: ${need_close.join(', ')}`
 			}
 		});
 		//console.trace(meta_configuration);

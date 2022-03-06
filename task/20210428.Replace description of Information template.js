@@ -26,7 +26,9 @@ async function main_process() {
 
 	const data_set = JSON.parse((await wiki.page('Data:Bubenic.tab')).wikitext).data;
 	const data_hash = Object.create(null);
-	data_set.forEach(data => data_hash[data[0] = 'File:' + data[0]] = data);
+	data_set.forEach(data => data_hash[data[0] = wiki.to_namespace(
+		// 'File:' +
+		data[0], 'File')] = data);
 	const page_list = data_set.map(data => data[0]);
 	await wiki.for_each_page(page_list, page_data => {
 		const parsed = page_data.parse();
@@ -65,7 +67,7 @@ async function main_process() {
 			return parsed.toString();
 		return Wikiapi.skip_edit;
 	}, {
-		redirect: 1,
+		redirects: 1,
 		summary: '[[Special:Diff/555510974#Adding descriptions|Bot request]]: fix PLACEHOLDER descriptions'
 	});
 }

@@ -622,13 +622,13 @@ function get_special_users(callback, options) {
 
 	// 必須先取得bot這個群組以利後續檢查排除掉所有機器人。
 	get_allusers('bot');
-	get_allusers('bureaucrat', 'bureaucrat|steward|oversight', function() {
+	get_allusers('bureaucrat', 'bureaucrat|steward|suppress', function() {
 		// 行政員以上可利用[[Special:Makebot]]核可機器人權限，為當然成員。
 		special_users.BAG = Object.clone(special_users.bureaucrat);
 	});
 	// 取得管理員列表。
 	// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Ballusers
-	get_allusers('admin', 'sysop|bureaucrat|steward|oversight');
+	get_allusers('admin', 'sysop|bureaucrat|steward|suppress');
 
 	// [[WP:BAG]], [[Wikipedia:Bot Approvals Group]], [[維基百科:機器人審核小組]]
 	// TODO: 這裡的篩選方法會把頁面中所有的使用者都納入這個群體，包括不活躍與離職的。

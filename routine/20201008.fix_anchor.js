@@ -12,6 +12,8 @@ node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
 node 20201008.fix_anchor.js use_project=en "check_page=Glossary of cricket terms"
+node 20201008.fix_anchor.js use_project=en "check_page=Boeing C-17 Globemaster III"
+
 
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_project=en only_modify_pages=Wikipedia:Sandbox "check_page=Political divisions of the United States"
@@ -1159,7 +1161,7 @@ async function check_page(target_page_data, options) {
 					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title records from page revisions. Continue to check ${working_queue.list.length} pages.`))
 					//.then(() => console.trace(section_title_history))
 					.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
-					// free
+					// Release memory. 釋放被占用的記憶體。
 					.then(() => working_queue = null);
 				working_queue.list = [linking_page_data];
 			}
@@ -1225,8 +1227,12 @@ async function check_page(target_page_data, options) {
 				|| 3 * CeL.edit_distance(token.anchor, reduced_section) / Math.min(token.anchor.length, reduced_section.length) < 1;
 		}
 		const reduced_section_includes_anchor =//token.anchor.length >= (/^[\w\s]+$/.test(token.anchor) ? 3 : 1) &&
-			Object.keys(section_title_history[KEY_lower_cased_section_titles]).filter(filter_reduced_section)
-				.append(Object.keys(section_title_history).filter(section_title => section_title_history[section_title].is_present && section_title_history[section_title].title === section_title).filter(filter_reduced_section));
+			Object.keys(section_title_history[KEY_lower_cased_section_titles])
+				.filter(filter_reduced_section)
+				.append(Object.keys(section_title_history)
+					.filter(section_title => section_title_history[section_title].is_present && section_title_history[section_title].title === section_title)
+					.filter(filter_reduced_section)
+				);
 		if (reduced_section_includes_anchor?.length === 1) {
 			// 假如剛好只有一個，則將之視為過度簡化而錯誤。
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;

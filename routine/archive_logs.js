@@ -231,6 +231,7 @@ function for_log_page(page_data) {
 		}
 
 		wiki.page(archive_page).edit(function(page_data) {
+			// console.trace(archive_page, page_data);
 			if (CeL.is_debug(3)) {
 				console.log('** Edit:');
 				console.log(page_data);
@@ -275,7 +276,7 @@ function for_log_page(page_data) {
 				had_failed = true;
 				CeL.debug('write_archive: 嘗試存到下一個編號: '
 				//
-				+ lastest_archive[log_title] + '。');
+				+ lastest_archive[log_title] + '。', 1);
 				// retry again.
 				write_archive();
 			}

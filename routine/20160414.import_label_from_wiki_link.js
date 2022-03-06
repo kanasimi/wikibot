@@ -1016,7 +1016,7 @@ function create_label_data(callback) {
 var name_type_hash = {
 	5 : '人',
 	515 : '城市'
-}
+};
 
 // name of person, place, work, book, ...
 function name_type(entity) {
@@ -1180,8 +1180,8 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 					.includes(local.toLowerCase())
 					// [[:en:Day|en:]] → [​[日 (消歧義)|日]]
 					&& !/^[a-z]{2,3}:$/i.test(local)
-					// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]] →
-					// [​[中文全名]] (譯名已匯入 wikidata aliases)
+					// [[:en:name of person, book, place, work|無論是什麼奇怪譯名]]
+					// → [​[中文全名]] (譯名已匯入 wikidata aliases)
 					&& !(type === null ? (type = name_type(entity)) : type)
 					// ↓採用原先之標籤。
 					? local === local_title ? '' : '|' + local
@@ -1342,6 +1342,20 @@ function process_wikidata(full_title, foreign_language, foreign_title) {
 			//
 			+ ':' + foreign_title + ']]');
 			return [ CeL.wiki.edit.cancel, 'skip' ];
+		}
+
+		if (entity.claims && Array.isArray(entity.claims.P31)
+		// [[d:User_talk:Kanashimi/Archive_1#Excluding_given_name/family_name_items_for_Latin_script_aliases]]
+		&& entity.claims.P31.some(function(value) {
+			value = value.mainsnak.datavalue.value['numeric-id'];
+			return value && (value in {
+				12308941 : 'male given name',
+				11879590 : 'female given name',
+				202444 : 'given name',
+				101352 : 'family name'
+			});
+		})) {
+			return;
 		}
 
 		if (label_data_index % 1e4 === 0 || CeL.is_debug()) {

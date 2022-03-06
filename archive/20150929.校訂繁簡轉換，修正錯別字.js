@@ -21,7 +21,7 @@ var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'zh.wikisource');
 
-var conversion_pair = new CeL.data.Pair(CeL.get_file('校訂繁簡轉換，修正錯別字 轉換表.txt'));
+var conversion_pair = new CeL.data.Convert_Pairs(CeL.get_file('校訂繁簡轉換，修正錯別字 轉換表.txt'));
 
 // CeL.set_debug(3);
 wiki.work({

@@ -276,7 +276,7 @@ async function check_deletion_discussion_page(page_data) {
 
 	function for_each_section(section, index) {
 
-		if (index === 0) {
+		if (!section.section_title) {
 			// Skip the first section
 			return;
 		}

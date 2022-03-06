@@ -63,6 +63,7 @@ replace_tool.replace({
 		move_to_link: 'to_title',
 		move_from_link: '作品',
 		// options={"do_move_page": {"noredirect": true, "movetalk": true} }
+		// 請注意: 這時的討論頁連結必須指向移動後的討論頁。
 		do_move_page: true,
 
 		// for debug or 直接指定頁面列表。

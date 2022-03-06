@@ -135,14 +135,14 @@ function for_board_page(board_page_data) {
 }
 
 function for_each_topic(topic_token, section_index) {
-	if (section_index === 0) {
+	var section_title = topic_token.section_title;
+	if (!section_title) {
 		// first_section = section;
 		// Skip the first / lead section
 		return;
 	}
 
 	var archive_title = this.archive_title, error_topics = this.error_topics, to_exit = this.to_exit;
-	var section_title = topic_token.section_title;
 	if (section_title.level !== 2) {
 		return;
 	}

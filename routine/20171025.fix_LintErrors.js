@@ -772,6 +772,7 @@ function for_bogus_image_options(page_data) {
 	fix_list.push('lintId=' + page_data.lintId);
 	_this.summary += ' ' + fix_list.join(' ');
 	if (false) {
+		// TODO: use {{fullurl}}
 		_this.summary += ' [{{fullurl:' + CeL.wiki.title_of(page_data)
 				+ '|action=edit&oldid=' + page_data.revisions[0].revid
 				+ '&lintid=' + page_data.lintId + '}} ' + message + ']';

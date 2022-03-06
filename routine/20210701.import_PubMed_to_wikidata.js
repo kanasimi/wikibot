@@ -6,7 +6,8 @@
 	完成。正式運用。
 
 TODO:
-添加訂正的標示
+添加 corrigendum / erratum (P2507) 勘誤的標示
+	https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC1201098&resulttype=core&format=json
 
 依照 series ordinal 調整作者排序
 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
@@ -22,7 +23,9 @@ P921 https://www.wikidata.org/w/index.php?title=Q69566581&diff=prev&oldid=156623
 require('../wiki loader.js');
 
 // Load modules.
-CeL.run([]);
+CeL.run([
+	// For JSON.from_XML()
+	'data.XML']);
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('en');
@@ -122,6 +125,8 @@ prepare_directory(base_directory);
 })();
 
 async function main_process() {
+	//await fetch_ORCID_data_from_service('0000-0003-0626-8879');
+
 	if (language_code_mapping.size < 100)
 		await fill_language_code_mapping();
 
@@ -429,12 +434,15 @@ SELECT ?item ?itemLabel
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
 }
 `);
-	if (author_item_list.length === 0) {
-		// TODO: create author item
-		// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
+	if (author_item_list.length > 0) {
+		if (author_item_list.length > 1) {
+			CeL.warn(`${get_entity_id_of_ORCID.name}: ${author_item_list.length} authors get with ORCID=${ORCID}: ${author_item_list.id_list().join(', ')}`);
+		}
+		const entity_id = author_item_list.id_list()[0];
+		return entity_id;
 	}
-	const entity_id = author_item_list.id_list()[0];
-	return entity_id;
+
+	return await for_ceach_ORCID(ORCID, author_name);
 }
 
 async function get_entity_id_of_ISSN(ISSN) {
@@ -540,6 +548,7 @@ const descriptions_configuration = {
 	it: ['articolo scientifico', (type, date) => `${type} pubblicato il ${date}`],
 	es: ['artículo científico', (type, date) => `${type} publicado el ${date}`],
 	pt: ['artigo científico', (type, date) => `${type} publicado em ${date}`],
+	sq: ['artikull shkencor', (type, date) => `${type} i botuar më  ${date}`],
 	pl: ['artykuł naukowy', (type, date) => `${type} opublikowany ${date}`],
 	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/XabatuBot
 	ast: ['artículu científicu', (type, date) => `${type} espublizáu en ${date}`, 'year'],
@@ -555,6 +564,7 @@ const descriptions_configuration = {
 	ru: ['научная статья', (type, date) => `${type} опубликованная ${date}`],
 	uk: ['наукова стаття', (type, date) => `${type} опублікована ${date}`],
 	vi: ['bài báo khoa học', (type, date) => `${type} xuất bản ngày ${date}`],
+	tr: ['bilimsel makale', (type, date) => `${date}'de yayımlanmış ${type}`],
 
 	de: ['wissenschaftlicher Artikel', (type, date) => `im ${date} veröffentlichter ${type}`],
 
@@ -566,6 +576,19 @@ const descriptions_configuration = {
 	nan: [is_book => is_book ? 'ha̍k-su̍t chu' : 'lūn-bûn', (type, year) => `${year} nî ê ${type}`, 'year'],
 	ja: [is_book => is_book ? '学術書' : '学術論文', (type, year) => `${year}年の${type}`, 'year'],
 	ko: ['논문', (type, year) => `${year}년 ${type}`, 'year'],
+
+	'tg-cyrl': ['мақолаи илмӣ'],
+	'tg-latn': ['maqolai ilmiy'],
+	eo: ['scienca artikolo'],
+	ca: ['article científic'],
+	ro: ['articol științific'],
+	id: ['artikel ilmiah'],
+	bn: ['বৈজ্ঞানিক নিবন্ধ'],
+	nb: ['vitenskapelig artikkel'],
+	he: ['מאמר מדעי'],
+	nn: ['vitskapeleg artikkel'],
+	ar: ['مقالة علمية'],
+	gl: ['artigo científico'],
 };
 // aliases / The same description pattern
 for (const [alias, language_code] of Object.entries({
@@ -601,9 +624,10 @@ function adapt_time_to_descriptions(data_to_modify, publication_date) {
 		if (typeof type === 'function')
 			type = type(data_to_modify.is_book);
 
-		if (!publication_date) {
-			if (type)
+		if (!publication_date || !time_adaptor) {
+			if (type) {
 				data_to_modify.descriptions[language_code] = type;
+			}
 			continue;
 		}
 
@@ -891,6 +915,14 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	// @seealso Europe_PMC_article_data.hasBook==="Y"
 	data_to_modify.is_book = NCBI_article_data.doctype === 'book';
+	//data_to_modify.is_book = 'bookid' in Europe_PMC_article_data;
+	if (Array.isArray(Europe_PMC_article_data.pubTypeList?.pubType)) {
+		// TODO: 這邊的數據似乎更能判別文章型態
+		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:17246615%20AND%20SRC:MED&resulttype=core&format=json
+		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC1201098&resulttype=core&format=json
+		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:33914448%20AND%20SRC:MED&resulttype=core&format=json
+	}
+
 	// publication date (P577) 出版日期
 	if (data_to_modify.publication_date_claim.P577) {
 		data_to_modify.claims.push(data_to_modify.publication_date_claim);
@@ -987,7 +1019,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A34572048
 		// May test Europe_PMC_article_data.hasPDF, Europe_PMC_article_data.isOpenAccess
 		Europe_PMC_article_data.fullTextUrlList.fullTextUrl.forEach(document_data => {
-			if (document_data.availability !== 'Open access') {
+			if (document_data.availability !== 'Open access'
+				// https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC1201098&resulttype=core&format=json
+				&& document_data.availability !== 'Free'
+			) {
 				return;
 			}
 
@@ -1157,8 +1192,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		}
 	}
 
+	// TODO: Europe_PMC_article_data.citedByCount
+
 	// ----------------------------------------------------------------------------------------------------------------
-	// 檢查是否有重複項目
+	// article id + 檢查是否有重複項目
 
 	const id_filter = [];
 	id_filter.toString = function () { return this.join(''); };
@@ -1166,7 +1203,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// https://www.chinaw3c.org/REC-sparql11-overview-20130321-cn.html
 	// http://www.ruanyifeng.com/blog/2020/02/sparql.html
 	// https://longaspire.github.io/blog/%E5%9B%BE%E8%B0%B1%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B02_1/
-	const SPARQL = [`
+	const SPARQL_check_duplicates = [`
 SELECT DISTINCT ?item ?itemLabel ${articleid_properties_id_list}
 WHERE {`,
 		id_filter, `
@@ -1194,6 +1231,12 @@ ORDER BY DESC (?item)
 		}
 
 		let id = articleid.value;
+		if (!+id) {
+			// 未提供本種類ID
+			// https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id=1201098
+			return;
+		}
+
 		switch (idtype) {
 			case 'doi':
 				// https://www.wikidata.org/wiki/Property_talk:P356
@@ -1214,8 +1257,12 @@ ORDER BY DESC (?item)
 		});
 	});
 
+	if (Array.isArray(Europe_PMC_article_data.fullTextIdList?.fullTextId)) {
+		// TODO:
+	}
+
 	//console.trace(SPARQL.join(''));
-	const article_item_list = await wiki.SPARQL(SPARQL.join(''));
+	const article_item_list = await wiki.SPARQL(SPARQL_check_duplicates.join(''));
 	//console.trace(article_item_list);
 	//console.trace(article_item_list.id_list());
 
@@ -1322,4 +1369,60 @@ ORDER BY DESC (?item)
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
 	await article_item.modify(data_to_modify, { bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}` });
 	return article_item;
+}
+
+// ----------------------------------------------------------------------------
+
+async function fetch_ORCID_data_from_service(ORCID) {
+	const ORC_data = Object.create(null);
+
+	// https://info.orcid.org/documentation/api-tutorials/api-tutorial-read-data-on-a-record/#easy-faq-2570
+	// https://info.orcid.org/documentation/api-tutorials/api-tutorial-searching-the-orcid-registry/#easy-faq-2707
+	for (const type of ['record',/* 'external-identifiers', 'researcher-urls' */]) {
+		try {
+			JSON.from_XML((await (await CeL.fetch(`https://pub.orcid.org/v3.0/${ORCID}/${type}`)).text()).replace(/(<\/?)(\w+):\2([ >])/g, '$1$2$3'))[type]
+				.forEach(item => put_to_data(type === 'record' ? ORC_data : (ORC_data.person[type] = Object.create(null)), item));
+		} catch (e) {
+			return;
+		}
+	}
+
+	function put_to_data(data_to_put_to, item) {
+		for (let [key, value] of Object.entries(item)) {
+			//if (!value || key === 'path' || key === 'visibility') continue;
+
+			key = key.replace(/^[^:]+:/, '');
+
+			if (Array.isArray(value))
+				value = value.reduce(put_to_data, Object.create(null));
+
+			const original_value = data_to_put_to[key];
+			if (!original_value) {
+				data_to_put_to[key] = value;
+			} else {
+				if (!Array.isArray(original_value))
+					data_to_put_to[key] = [original_value];
+				data_to_put_to[key].push(value);
+			}
+		}
+		return data_to_put_to;
+	}
+
+	//console.trace(ORC_data);
+	//console.trace(JSON.stringify(ORC_data));
+	return ORC_data;
+}
+
+// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
+async function for_ceach_ORCID(ORCID, author_name) {
+	// TODO: create author item
+	return;
+
+	const ORC_data = await fetch_ORCID_data_from_service('0000-0003-0626-8879');
+	if (!ORC_data)
+		return;
+
+	// create_ORCID_item()
+
+	//return person item
 }

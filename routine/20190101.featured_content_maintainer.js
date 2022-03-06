@@ -487,6 +487,8 @@ function generate_FC_date_page_list() {
 }
 
 function parse_each_FC_date_page(page_data) {
+	// console.trace(page_data);
+
 	/**
 	 * {String}page title = page_data.title
 	 */

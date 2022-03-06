@@ -118,7 +118,7 @@ async function get_all_sections(meta_configuration) {
 
 		// TODO: 必須避免如 <nowiki>{{確認}}</nowiki>
 
-		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\| *(?:着手|準備中|作業中)) *[|}]/);
+		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\| *(?:着手|準備中|作業中|仕様)) *[|}]/);
 		if (matched) {
 			set_process('doing');
 		}
@@ -1938,7 +1938,9 @@ async function subst_template(token, index, parent) {
 	//this.task_configuration.wiki.append_session_to_options().session;
 
 	if (CeL.wiki.parser.token_is_children_of(parent,
-		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery')
+		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery'
+			// e.g., @ [[w:ja:Template:Round corners]]
+			|| parent.tag === 'includeonly')
 	)) {
 		//console.trace([page_title, token.toString(), parent]);
 		// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
@@ -1962,8 +1964,13 @@ async function subst_template(token, index, parent) {
 		//console.log(wikitext);
 		wikitext = wikitext.compare['*']
 			// TODO: shoulld use HTML parser
-			.all_between('<td class="diff-addedline">', '</td>').map(token => token.replace(/^<div>/, '').replace(/<\/div>$/, '')).join('\n');
+			// e.g., 2021/12/19:	<td class="diff-addedline"><div>...</div></td>
+			// e.g., 2022/3/3:		<td class="diff-addedline diff-side-added"><div>...</div></td>
+			.all_between('<td class="diff-addedline', '</td>').map(token => token.between('<div>', { tail: '</div>' })).join('\n');
 		wikitext = CeL.HTML_to_Unicode(wikitext);
+		if (!wikitext) {
+			CeL.warn(`${subst_template.name}: Nothing get for substituting ${token.toString()} inside <${parent.tag}>!`);
+		}
 		//console.trace([page_title, token.toString(), wikitext]);
 		parent[index] = wikitext;
 	}

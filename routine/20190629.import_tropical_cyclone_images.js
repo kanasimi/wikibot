@@ -73,7 +73,7 @@ if (data_directory || media_directory) {
 }
 
 // https://stackoverflow.com/questions/20082893/unable-to-verify-leaf-signature
-// for Error: unable to verify the first certificate
+// for NRL Error: unable to verify the first certificate
 // code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 // Or set https.request({... rejectUnauthorized:false })
