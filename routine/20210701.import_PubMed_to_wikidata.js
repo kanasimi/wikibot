@@ -135,26 +135,42 @@ async function main_process() {
 	console.assert(published_source_mapping.get('genetics') === 'Q3100575');
 	console.assert(published_source_mapping.get('biochemical and biophysical research communications') === 'Q864228');
 
+	// --------------------------------------------------------------------------------------------
+
+	if (true) {
+		for (let PubMed_ID = 1 + 0; ; PubMed_ID++) {
+			try {
+				const result = await for_each_PubMed_ID(PubMed_ID);
+			} catch (e) {
+				// Still import next article.
+				console.error(e);
+			}
+		}
+	}
+
 	const start_date = new Date('2021-02-01');
 	// Set to yesterday.
 	start_date.setDate(start_date.getDate() - 1);
 	let end_date;
 	end_date = new Date(start_date.getTime() + 1e8);
 	const PubMed_ID_list =
-		Array.from({ length: 10 }, (v, i) => i + /* start ordinal */1) ||
-		(await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
+		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from
+		Array.from({ length: 1000 }, (v, i) => i + /* start ordinal */1 + /* start from PubMed ID */200)
+
 		// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3FitemDescription%20%3Fvalue%20%3Fst%20%3Fids%20%3Fsl%0AWHERE%0A%7B%0A%20%20SERVICE%20bd%3Asample%20%7B%20%3Fitem%20wdt%3AP698%20%3Fvalue.%20bd%3AserviceParam%20bd%3Asample.limit%20200%20%7D%0A%20%20OPTIONAL%20%7B%20%3Fitem%20wikibase%3Astatements%20%3Fst%20%3B%20wikibase%3Aidentifiers%20%3Fids%20%3B%20wikibase%3Asitelinks%20%3Fsl%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0A
 		// 11373397: PubMed 經常進行某種標題翻譯 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
 		// PMID: 19790808 was deleted because it is a duplicate of PMID: 9541661
 		// Tested:
-		//&& [19790808, '17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077', 33513662, 4721605]
-		;
+		//|| [19790808, '17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077', 33513662, 4721605]
+
+		|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10);
 
 	const link_list = [];
 	const start_time = Date.now();
 	for (let index = 0; index < PubMed_ID_list.length;) {
 		const PubMed_ID = PubMed_ID_list[index++];
-		CeL.log_temporary(`${index}/${PubMed_ID_list.length} PubMed_ID ${PubMed_ID}`);
+		process.title = `${index}/${PubMed_ID_list.length} PubMed ID ${PubMed_ID}`;
+		CeL.log_temporary(`${index}/${PubMed_ID_list.length} PubMed ID ${PubMed_ID}`);
 		try {
 			const result = await for_each_PubMed_ID(PubMed_ID);
 			//console.trace(result);
@@ -504,9 +520,9 @@ function is_imprecise_date(date_string) {
 }
 
 /**
- * 測試兩姓名是否等價
+ * 測試兩姓名是否等價。
  * 
- * 警告: 等價不代表相同一個人
+ * 警告: 等價不代表相同一個人。
  * 
  * @param {String} name_1 姓名1
  * @param {String} name_2 姓名2
@@ -514,6 +530,7 @@ function is_imprecise_date(date_string) {
  */
 function are_equivalent_person_names(name_1, name_2) {
 	if (!name_1 || !name_2) return false;
+
 	function normalize_person_name(name) {
 		name = name.trim().replace(/\s+/g, ' ');
 		const matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
@@ -522,6 +539,9 @@ function are_equivalent_person_names(name_1, name_2) {
 			// 保留姓氏全稱，其他改縮寫。
 			.replace(/([A-Z])[a-z]+\s/g, '$1 ');
 	}
+
+	//console.trace([name_1, normalize_person_name(name_1), name_2, normalize_person_name(name_2)]);
+
 	// "S. W. Hawking" ≡ "S W Hawking"
 	// "Adam Smith" ≡ "A. Smith"
 	// "Stephen William Hawking" ≡ "Stephen W. Hawking" ≡ "S. W. Hawking"
@@ -782,8 +802,12 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	// data_to_modify.author_list[ordinal] = author_name
 	data_to_modify.author_list = [,];
+	data_to_modify.author_list.has_item = [];
+	data_to_modify.author_list.no_item_count = 0;
+	// Europe_PMC_article_data.authorIdList maybe error. e.g., https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A20
 	if (Array.isArray(Europe_PMC_article_data.authorList?.author)) {
 		// authors of NCBI are relatively complete
+		const author_list = data_to_modify.author_list;
 		let index = 0;
 		for (const author_data of Europe_PMC_article_data.authorList.author) {
 			const author_name = author_data.firstName && author_data.lastName
@@ -794,13 +818,14 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				: author_data.fullName?.trim()
 				// e.g., PubMed_ID 33914447
 				|| author_data.collectiveName.trim();
-			data_to_modify.author_list.push(author_name);
-			let author_itme_id;
+
+			author_list.push(author_name);
+			let author_item_id;
 			if (author_data.authorId?.type === "ORCID"
-				&& (author_itme_id = await get_entity_id_of_ORCID(author_data.authorId.value, author_data.fullName))) {
+				&& (author_item_id = await get_entity_id_of_ORCID(author_data.authorId.value, author_data.fullName))) {
 				data_to_modify.claims.push({
 					// author (P50) 作者
-					P50: author_itme_id,
+					P50: author_item_id,
 					qualifiers: {
 						// series ordinal (P1545) 系列序號
 						P1545: ++index,
@@ -809,6 +834,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 					},
 					references: Europe_PMC_article_data.wikidata_references
 				});
+				author_list.has_item[index] = true;
 				continue;
 			}
 
@@ -826,6 +852,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 					qualifiers,
 					references: Europe_PMC_article_data.wikidata_references
 				});
+				author_list.no_item_count++;
 			} else {
 				CeL.error('Cannot parse author_data! Skip this article!');
 				console.error(author_data);
@@ -1309,7 +1336,7 @@ ORDER BY DESC (?item)
 	const article_item = await wiki.data(article_item_list.id_list()[0]);
 	//console.trace([article_item_list[0], article_item]);
 
-	// 檢查標題是否差太多
+	// 檢查標題是否差太多。
 	if (4 * CeL.edit_distance(CeL.wiki.data.value_of(article_item.labels.en), data_to_modify.labels.en) > data_to_modify.labels.en.length + 8) {
 		CeL.warn(`${for_each_PubMed_ID.name}: 跳過標題差太多的 article item [[${article_item.id}]]!`);
 		if (problematic_articles.length < MAX_error_reported) {
@@ -1322,7 +1349,7 @@ ORDER BY DESC (?item)
 		return;
 	}
 
-	// 不覆蓋原有更好的描述
+	// 不覆蓋原有更好的描述。
 	for (const [language_code, modify_to] of Object.entries(data_to_modify.descriptions)) {
 		const original_value = CeL.wiki.data.value_of(article_item.descriptions[language_code]);
 		//console.log([original_value, modify_to]);
@@ -1330,7 +1357,31 @@ ORDER BY DESC (?item)
 			delete data_to_modify.descriptions[language_code];
 	}
 
-	// 請注意，文章可能有多個作者有相同的姓名
+	// 檢測原先就有的 author (P50) 作者，例如手動加入的。
+	if (Array.isArray(article_item.claims.P50) && (data_to_modify.author_list.no_item_count || Array.isArray(article_item.claims.P2093))) {
+		//console.trace(article_item.claims.P50);
+		const author_list = data_to_modify.author_list;
+		// author (P50) 作者
+		for (let index = 0; index < article_item.claims.P50.length; index++) {
+			const statement = article_item.claims.P50[index];
+			let ordinal = CeL.wiki.data.value_of(statement.qualifiers?.P1545);
+			if (!ordinal || !((ordinal = +ordinal[0]) > 0) || author_list.has_item[ordinal]) return;
+			const entity_id = CeL.wiki.data.value_of(statement);
+			const original_value = CeL.wiki.data.value_of((await wiki.data(entity_id, { props: 'labels' }))?.en);
+			//console.trace([ordinal, original_value, author_list[ordinal], author_list.has_item[ordinal]]);
+			if (!are_equivalent_person_names(original_value, author_list[ordinal])) {
+				// 跳過不等價的姓名。
+				continue;
+			}
+			author_list.has_item[ordinal] = true;
+			data_to_modify.claims = data_to_modify.claims.filter(statement => {
+				// author name string (P2093) 作者姓名字符串
+				return statement.P2093 !== author_list[ordinal];
+			});
+		}
+	}
+
+	// 請注意，文章可能有多個作者有相同的姓名。
 
 	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/StreetmathematicianBot_2
 	// turn author name string (P2093) statements into disambiguated author (P50) statements based on ORCID iDs.
@@ -1338,35 +1389,37 @@ ORDER BY DESC (?item)
 		//console.trace(article_item.claims.P2093);
 		const author_list = data_to_modify.author_list;
 		// author name string (P2093) 作者姓名字符串
-		article_item.claims.P2093.forEach(statement => {
-			let ordinal = CeL.wiki.data.value_of(statement.qualifiers.P1545);
-			if (!ordinal || !((ordinal = +ordinal[0]) > 0)) return;
+		for (let index = 0; index < article_item.claims.P2093.length; index++) {
+			const statement = article_item.claims.P2093[index];
+			let ordinal = CeL.wiki.data.value_of(statement.qualifiers?.P1545);
+			if (!ordinal || !((ordinal = +ordinal[0]) > 0)) continue;
 			const original_value = CeL.wiki.data.value_of(statement);
-			if (original_value === author_list[ordinal]) return;
+			//console.trace([ordinal, original_value, author_list[ordinal], author_list.has_item[ordinal]]);
+			if (original_value === author_list[ordinal] && !author_list.has_item[ordinal]) continue;
 			if (!are_equivalent_person_names(original_value, author_list[ordinal])) {
-				// 跳過不等價的姓名
+				// 跳過不等價的姓名。
 				CeL.warn(`${for_each_PubMed_ID.name}: Skip inequivalent author names with the same ordinal ${ordinal}: ${JSON.stringify(original_value)} ≢ ${JSON.stringify(author_list[ordinal])}`);
-				return;
+				continue;
 			}
 			if (original_value.replace(/\s+/g, ' ').replace(/\./g, '').length
 				> author_list[ordinal].replace(/\s+/g, ' ').replace(/\./g, '').length) {
-				// 原來的項目已經有更好更完整的資料
+				// 原來的項目已經有更好更完整的資料。
 				// TODO: Do not add this name.
-				return;
+				continue;
 			}
-
-			//console.log([ordinal, original_value, author_list[ordinal]]);
 
 			// remove the author name string (P2093) statement
 			data_to_modify.claims.push({
 				P2093: original_value,
 				remove: true
 			});
-		});
+		}
 	}
+
 	clean_data_to_modify();
 
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
+	//console.trace(data_to_modify);
 	await article_item.modify(data_to_modify, { bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}` });
 	return article_item;
 }
