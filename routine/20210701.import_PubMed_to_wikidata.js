@@ -138,9 +138,15 @@ async function main_process() {
 	// --------------------------------------------------------------------------------------------
 
 	if (true) {
-		for (let PubMed_ID = 1 + 0; ; PubMed_ID++) {
+		const latest_processed_file_path = base_directory + 'latest_processed.json';
+		let latest_processed_data = CeL.read_file(latest_processed_file_path);
+		latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);
+		if (!(latest_processed_data.id >= 1)) latest_processed_data.id = 1;
+		for (let PubMed_ID = latest_processed_data.id; ; PubMed_ID++) {
+			CeL.log_temporary(process.title = `PubMed ID ${PubMed_ID}`);
 			try {
 				const result = await for_each_PubMed_ID(PubMed_ID);
+				CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
 			} catch (e) {
 				// Still import next article.
 				console.error(e);
