@@ -75,15 +75,6 @@ const Europe_PMC_documentStyle = {
 	//txt: 'Q86920',
 };
 
-const published_source_mapping__file_path = base_directory + 'published_source_mapping.json';
-const published_source_mapping = new Map((() => {
-	let data = CeL.read_file(published_source_mapping__file_path);
-	if (data) return JSON.parse(data.toString());
-	return Object.entries({
-		//Genetics: 'Q3100575',
-	});
-})());
-
 const language_code_mapping__file_path = base_directory + 'language_code_mapping.json';
 const language_code_mapping = new Map((() => {
 	let data = CeL.read_file(language_code_mapping__file_path);
@@ -93,7 +84,27 @@ const language_code_mapping = new Map((() => {
 	});
 })());
 
-const problematic_articles = [];
+const main_subject_mapping__file_path = base_directory + 'main_subject_mapping.json';
+const main_subject_mapping = new Map((() => {
+	let data = CeL.read_file(main_subject_mapping__file_path);
+	if (data) return JSON.parse(data.toString());
+	return Object.entries({
+		//'cell biology': 'Q7141',
+	});
+})());
+
+const published_source_mapping__file_path = base_directory + 'published_source_mapping.json';
+const published_source_mapping = new Map((() => {
+	let data = CeL.read_file(published_source_mapping__file_path);
+	if (data) return JSON.parse(data.toString());
+	return Object.entries({
+		//Genetics: 'Q3100575',
+	});
+})());
+
+// problematic items
+const problematic_data_page_title = log_to + '/problematic articles';
+let problematic_data_list = [['PubMed ID', 'Problem']];
 const MAX_error_reported = 1000;
 
 // ----------------------------------------------
@@ -130,29 +141,19 @@ async function main_process() {
 	if (language_code_mapping.size < 100)
 		await fill_language_code_mapping();
 
+	if (main_subject_mapping.size < 1000)
+		await fill_main_subject_mapping();
+
 	if (published_source_mapping.size < 1000)
 		await fill_published_source_mapping();
 	console.assert(published_source_mapping.get('genetics') === 'Q3100575');
 	console.assert(published_source_mapping.get('biochemical and biophysical research communications') === 'Q864228');
 
+	await load_problematic_data_list();
+
 	// --------------------------------------------------------------------------------------------
 
-	if (true) {
-		const latest_processed_file_path = base_directory + 'latest_processed.json';
-		let latest_processed_data = CeL.read_file(latest_processed_file_path);
-		latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);
-		if (!(latest_processed_data.id >= 1)) latest_processed_data.id = 1;
-		for (let PubMed_ID = latest_processed_data.id; ; PubMed_ID++) {
-			CeL.log_temporary(process.title = `PubMed ID ${PubMed_ID}`);
-			try {
-				const result = await for_each_PubMed_ID(PubMed_ID);
-				CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
-			} catch (e) {
-				// Still import next article.
-				console.error(e);
-			}
-		}
-	}
+	await infinite_execution();
 
 	const start_date = new Date('2021-02-01');
 	// Set to yesterday.
@@ -190,13 +191,8 @@ async function main_process() {
 		}
 	}
 
-	if (problematic_articles.length > 0) {
-		//console.trace(problematic_articles);
-		problematic_articles.unshift(['PubMed ID', 'Items']);
-		//console.trace(CeL.wiki.array_to_table(problematic_articles, { 'class': "wikitable" }));
-		//console.trace(wiki.append_session_to_options());
-		const wikitext = start_date.format('%Y-%2m-%2d') + '\n\n' + CeL.wiki.array_to_table(problematic_articles, { 'class': "wikitable" });
-		await wiki.edit_page(log_to + '/PubMed ID duplicates', wikitext, { bot: 1, nocreate: 1, summary: `Error report: ${problematic_articles.length - 1} article(s)` });
+	if (problematic_data_list.length >/* 1: the header */ 1) {
+		//await write_problematic_data_list();
 	}
 
 	if (link_list.length > 0)
@@ -204,6 +200,24 @@ async function main_process() {
 	console.log(PubMed_ID_list);
 
 	routine_task_done('1 day');
+}
+
+async function infinite_execution() {
+	const latest_processed_file_path = base_directory + 'latest_processed.json';
+	let latest_processed_data = CeL.read_file(latest_processed_file_path);
+	latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);
+	if (!(latest_processed_data.id >= 1)) latest_processed_data.id = 1;
+
+	while (true) {
+		CeL.log_temporary(process.title = `PubMed ID ${latest_processed_data.id}`);
+		try {
+			const result = await for_each_PubMed_ID(latest_processed_data.id++);
+			CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
+		} catch (e) {
+			// Still import next article.
+			console.error(e);
+		}
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -240,6 +254,40 @@ WHERE
 	CeL.write_file(language_code_mapping__file_path, JSON.stringify(Array.from(language_code_mapping)));
 
 }
+
+async function fill_main_subject_mapping() {
+
+	async function set_main_subject_item_list(entity_id) {
+		const main_subject_item_list = await wiki.SPARQL(`
+SELECT ?item ?itemLabel
+WHERE 
+{
+	?item wdt:P31 wd:${entity_id}.
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+`);
+		//console.trace(main_subject_item_list);
+		main_subject_item_list.forEach(main_subject_data => {
+			const main_subject = CeL.wiki.data.value_of(main_subject_data.itemLabel).toLowerCase();
+			if (!main_subject_mapping.has(main_subject)) {
+				const entity_id = CeL.wiki.data.value_of(main_subject_data.item).match(/\/(Q\d+)$/)[1];
+				main_subject_mapping.set(main_subject, entity_id);
+			}
+		});
+	}
+
+	// academic discipline (Q11862829)
+	await set_main_subject_item_list('Q11862829');
+
+	// structural class of chemical compounds (Q47154513)
+	await set_main_subject_item_list('Q47154513');
+
+	// biological process (Q2996394)
+	await set_main_subject_item_list('Q2996394');
+
+	CeL.write_file(main_subject_mapping__file_path, JSON.stringify(Array.from(main_subject_mapping)));
+}
+
 
 function normalize_source_name(source_name) {
 	return source_name.replace(/[,;:.]/g, '').trim().toLowerCase();
@@ -344,7 +392,7 @@ async function get_PubMed_ID_list(start_date, end_date) {
 
 // ----------------------------------------------------------------------------
 
-const summary_source_posifix = ' [[Wikidata:Requests for permissions/Bot/Cewbot 4|from NCBI, Europe PMC and CrossRef]]';
+const summary_source_posifix = ` [[${problematic_data_page_title}|from NCBI, Europe PMC and CrossRef]]`;
 
 async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 	// https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
@@ -539,11 +587,17 @@ function are_equivalent_person_names(name_1, name_2) {
 
 	function normalize_person_name(name) {
 		name = name.trim().replace(/\s+/g, ' ');
-		const matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
+		let matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
 		if (matched) name = matched[2] + ' ' + matched[1];
-		return name.replace(/\./g, '')
+		matched = name.match(/^([A-Z][a-z]+)\s+([A-Z]+)$/);
+		if (matched) {
+			// "Huennekens FM" → "F M Huennekens"
+			name = matched[2].split('').join(' ') + ' ' + matched[1];
+		}
+		name = name.replace(/\./g, '')
 			// 保留姓氏全稱，其他改縮寫。
 			.replace(/([A-Z])[a-z]+\s/g, '$1 ');
+		return name;
 	}
 
 	//console.trace([name_1, normalize_person_name(name_1), name_2, normalize_person_name(name_2)]);
@@ -551,6 +605,7 @@ function are_equivalent_person_names(name_1, name_2) {
 	// "S. W. Hawking" ≡ "S W Hawking"
 	// "Adam Smith" ≡ "A. Smith"
 	// "Stephen William Hawking" ≡ "Stephen W. Hawking" ≡ "S. W. Hawking"
+	// "Huennekens FM" ≡ "F M Huennekens"
 	if (normalize_person_name(name_1) === normalize_person_name(name_2)) return true;
 	// TODO: "Stephen William Hawking" ≡ "Hawking, Stephen"
 }
@@ -669,6 +724,65 @@ function adapt_time_to_descriptions(data_to_modify, publication_date) {
 					: toLocaleDateString_options && publication_date.toLocaleDateString(language_code, toLocaleDateString_options === true ? descriptions_date_options : toLocaleDateString)
 			);
 	}
+}
+
+// ----------------------------------------------------------------------------
+
+async function load_problematic_data_list() {
+	const page_data = await wiki.page(problematic_data_page_title);
+	const array = CeL.wiki.table_to_array(page_data);
+	//console.trace([problematic_data_page_title, array]);
+	if (array.length > 1) {
+		problematic_data_list = array;
+		rebuild_problematic_data_mapping();
+		CeL.info(`${load_problematic_data_list.name}: ${problematic_data_list.mapping.size}/${MAX_error_reported} problematic data loaded.`);
+	} else {
+		rebuild_problematic_data_mapping();
+	}
+	//console.trace(problematic_data_list);
+}
+
+function rebuild_problematic_data_mapping() {
+	problematic_data_list.mapping = new Map;
+	problematic_data_list.forEach((line, index) => {
+		const PubMed_ID = +line[0];
+		if (PubMed_ID > 0) {
+			line[0] = PubMed_ID;
+			problematic_data_list.mapping.set(PubMed_ID, index);
+		}
+	});
+}
+
+async function add_problematic_data(PubMed_ID, problematic_data) {
+	if (problematic_data_list.length > MAX_error_reported) {
+		return;
+	}
+
+	PubMed_ID = +PubMed_ID;
+	const index = problematic_data_list.mapping.get(PubMed_ID);
+	if (!(index > 0)) {
+		problematic_data_list.mapping.set(PubMed_ID, problematic_data_list.length);
+		problematic_data_list.push([PubMed_ID, problematic_data]);
+	} else if (!problematic_data_list[index] || !problematic_data_list[index].toString().includes(problematic_data)) {
+		problematic_data_list[index] = problematic_data_list[index] ? problematic_data_list[index] + '\n' + problematic_data : problematic_data;
+	}
+
+	await write_problematic_data_list();
+}
+
+async function write_problematic_data_list() {
+	problematic_data_list.sort((line_1, line_2) => {
+		let id_1 = +line_1[0]; if (!(id_1 > 0)) id_1 = line_1[0];
+		let id_2 = +line_2[0]; if (!(id_2 > 0)) id_2 = line_2[0];
+		return id_1 < id_2 ? -1 : id_1 > id_2 ? 1 : 0;
+	});
+	rebuild_problematic_data_mapping();
+
+	//console.trace(problematic_data_list);
+	//console.trace(CeL.wiki.array_to_table(problematic_data_list, { 'class': "wikitable" }));
+	//console.trace(wiki.append_session_to_options());
+	const wikitext = (new Date).format('%Y-%2m-%2d') + '\n\n' + CeL.wiki.array_to_table(problematic_data_list, { 'class': "wikitable" });
+	await wiki.edit_page(problematic_data_page_title, wikitext, { bot: 1, nocreate: 1, summary: `Error report: ${problematic_data_list.length - 1} article(s)` });
 }
 
 // ----------------------------------------------------------------------------
@@ -1120,7 +1234,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		// 這邊頻繁搜尋 key 可能造成 cache 肥大，且有拖延時間的問題。因此一次執行不能處理太多項目!
 		data_to_modify.claims.push({
 			// main subject (P921)
-			P921: key,
+			P921: main_subject_mapping.get(key) || key,
 			// based on heuristic (P887)
 			//references: + P887:'inferred from keyword and API search'
 			references
@@ -1129,7 +1243,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
 
-	// 醫學主題詞
+	// 醫學主題詞。
 	add_main_subject(
 		Europe_PMC_article_data.meshHeadingList?.meshHeading
 			//?.filter(data => data.majorTopic_YN === 'Y')?.map(data => data.descriptorName)
@@ -1302,14 +1416,9 @@ ORDER BY DESC (?item)
 	if (article_item_list.length > 1) {
 		CeL.warn(`${for_each_PubMed_ID.name}: There are ${article_item_list.length} articles that PubMed_ID=${PubMed_ID} or title=${JSON.stringify(main_title)}!${article_item_list.length < 30 ? ' (' + article_item_list.id_list().join(', ') + ')' : ''}`);
 		// count > 1: error, log the result.
-		if (problematic_articles.length < MAX_error_reported) {
-			//console.trace(article_item_list);
-			problematic_articles.push([
-				PubMed_ID,
-				article_item_list.id_list().map(id => `{{Q|${id}}}`).join(', '),
-				//NCBI_article_data,
-			]);
-		}
+		await add_problematic_data(PubMed_ID, article_item_list.id_list().map(id => `{{Q|${id}}}`).join(', ')
+			//, NCBI_article_data
+		);
 		return article_item_list;
 	}
 
@@ -1344,14 +1453,10 @@ ORDER BY DESC (?item)
 
 	// 檢查標題是否差太多。
 	if (4 * CeL.edit_distance(CeL.wiki.data.value_of(article_item.labels.en), data_to_modify.labels.en) > data_to_modify.labels.en.length + 8) {
-		CeL.warn(`${for_each_PubMed_ID.name}: 跳過標題差太多的 article item [[${article_item.id}]]!`);
-		if (problematic_articles.length < MAX_error_reported) {
-			//console.trace(article_item_list);
-			problematic_articles.push([
-				PubMed_ID,
-				`${JSON.stringify(data_to_modify.labels.en)} is too different from the title of {{Q|${article_item.id}}}`,
-			]);
-		}
+		CeL.warn(`${for_each_PubMed_ID.name}: PubMed ID ${PubMed_ID}: 跳過標題差太多的 article item [[${article_item.id}]]!
+wiki 標題	${JSON.stringify(article_item.labels.en)}
+自 PMC 取得	${JSON.stringify(data_to_modify.labels.en)}`);
+		await add_problematic_data(PubMed_ID, `${JSON.stringify(data_to_modify.labels.en)} is too different from the title of {{Q|${article_item.id}}}`);
 		return;
 	}
 
