@@ -578,6 +578,7 @@ async function for_each_list_page(list_page_data) {
 				}
 				const article_info = {
 					level: level_of_page_title(list_page_data, true),
+					detailed_level: level_of_page_title(list_page_data),
 					link: latest_section_title?.link,
 				};
 				listed_article_info[normalized_page_title].push(article_info);
@@ -1069,9 +1070,24 @@ function check_page_count() {
 			report_lines.skipped_records++;
 			continue;
 		}
-		report_lines.push([page_title, category_level_of_page[page_title], article_info_list.length > 0
-			? `Listed ${article_info_list.length} times in ${article_info_list.map(article_info => level_page_link(article_info.level || DEFAULT_LEVEL))}`
-			: `Did not listed in level ${category_level_of_page[page_title]}.`]);
+		if (article_info_list.length === 0) {
+			report_lines.push([page_title, category_level_of_page[page_title],
+				`Did not listed in level ${category_level_of_page[page_title]}.`]);
+			continue;
+		}
+		const article_info_of_level = [];
+		//console.trace(article_info_list);
+		// https://github.com/kanasimi/wikibot/issues/24
+		// 在各級只列出一次的話應該沒有列出來的需要。
+		if (!article_info_list.some(article_info => {
+			const level = article_info.level || DEFAULT_LEVEL;
+			if (article_info_of_level[level]) return true;
+			article_info_of_level[level] = true;
+		})) {
+			continue;
+		}
+		report_lines.push([page_title, category_level_of_page[page_title],
+			`Listed ${article_info_list.length} times in ${article_info_list.map(article_info => level_page_link(article_info.detailed_level || DEFAULT_LEVEL)).join(', ')}`]);
 	}
 }
 
