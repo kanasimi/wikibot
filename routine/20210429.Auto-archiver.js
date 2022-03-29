@@ -1,6 +1,7 @@
 ﻿/*
 
 node 20210429.Auto-archiver.js use_language=zh
+node 20210429.Auto-archiver.js use_language=ks
 node 20210429.Auto-archiver.js use_project=wikidata
 node 20210429.Auto-archiver.js use_project=zh.wikiversity
 node 20210429.Auto-archiver.js use_project=zh.wikinews
@@ -122,7 +123,7 @@ async function for_each_discussion_page(page_data) {
 		const latest_timevalue = section.dates.max_timevalue;
 		if (not_yet_expired !== false) {
 			if (!latest_timevalue) {
-				CeL.warn(`Cannot get latest date of ${section.section_title.link}`);
+				CeL.warn(`${for_each_discussion_page.name}: Cannot get latest date of ${section.section_title.link}`);
 				return;
 			}
 			if (NOW - latest_timevalue < archive_after_last_comment) {
@@ -248,7 +249,7 @@ async function archive_page(configuration) {
 	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
 		.join(' ');
 	const summary_tail = `: ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
-	//console.trace([summary, summary_tail]);
+	//console.trace([archive_to_page, summary, summary_tail]);
 
 	// 寫入存檔失敗則 throw，不刪除原討論頁內容。
 	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n',

@@ -73,6 +73,7 @@ replace_tool.replace({
 		// Replace text in target pages link to `move_to_link`.
 		// 本文表記/地の文についても修正します。
 		replace_text: { "from": "to" },
+		replace_text_pattern: "/from/to/g",
 		// Also replace text in source of **non-linked** pages (using "insource:")
 		// リンクのない本文表記/地の文についても修正します。
 		also_replace_text_insource: true,
@@ -90,6 +91,7 @@ replace_tool.replace({
 
 		// リンク表記を変更しません。
 		keep_display_text: true,
+		// 標準名前空間が対象です。 options={"namespace": "main"}
 		namespace: 'Category',
 
 		// 對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]

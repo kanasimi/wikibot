@@ -207,12 +207,12 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 		//console.trace(meta_configuration.section_title);
 		//CeL.set_debug(9);
 		// e.g., 'ja-JP'
-		const language = CeL.encoding.guess_text_language(meta_configuration.section_title);
+		const language_code = CeL.encoding.guess_text_language(meta_configuration.section_title);
 		//CeL.set_debug(0);
-		const matched = language && language.match(/^([a-z]+)\-/);
+		const matched = language_code && language_code.match(/^([a-z]+)\-/);
 		if (matched) {
 			meta_configuration.language = matched[1];
-			CeL.info(`replace_tool: Treat ${JSON.stringify(meta_configuration.section_title)} as language: ${CeL.gettext.get_alias(language) || language}.`);
+			CeL.info(`replace_tool: Treat ${JSON.stringify(meta_configuration.section_title)} as language: ${CeL.gettext.get_alias(language_code) || language_code}.`);
 		} else {
 			const message = `replace_tool: Can not detect language of ${JSON.stringify(meta_configuration.section_title)}!`;
 			CeL.error(message);
@@ -252,7 +252,7 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 // ---------------------------------------------------------------------//
 
 const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_nochange', 'allow_empty'];
-const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace', 'no_task_configuration_from_section', 'get_task_configuration_from', 'caption', 'allow_eval'].append(work_option_switches);
+const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'replace_text_pattern', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace', 'no_task_configuration_from_section', 'get_task_configuration_from', 'caption', 'allow_eval'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -759,7 +759,7 @@ async function notice_finished(wiki, meta_configuration) {
 		// assert: parsed[index] === section.at(-1)
 		parsed[index] = parsed[index].toString().trimEnd()
 			// [[mw:Extension:Echo#Usage]]
-			+ `\n* ${meta_configuration.bot_requests_user ? `[[User:${meta_configuration.bot_requests_user}|]]: ` : ''} ${finished_message} --~~~~\n`;
+			+ `\n* ${meta_configuration.bot_requests_user ? `[[User:${meta_configuration.bot_requests_user}|]]: ` : ''}${finished_message} --~~~~\n`;
 		options.need_edit = true;
 	}, options);
 
@@ -1096,7 +1096,11 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			});
 		}
 
-		if (task_configuration.replace_text) {
+		if (meta_configuration.replace_text && !('replace_text' in task_configuration))
+			task_configuration.replace_text = meta_configuration.replace_text;
+		if (meta_configuration.replace_text_pattern && !('replace_text_pattern' in task_configuration))
+			task_configuration.replace_text_pattern = meta_configuration.replace_text_pattern;
+		if (task_configuration.replace_text || task_configuration.replace_text_pattern) {
 			// Initialize `task_configuration.replace_text`
 			if (task_configuration.replace_text === true) {
 				if (task_configuration.move_to_link.includes('|')) {
@@ -1104,18 +1108,19 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				}
 				task_configuration.replace_text = { [task_configuration.move_from_link]: task_configuration.move_to_link };
 			}
-			if (!task_configuration.replace_text_pattern) {
+			if (task_configuration.replace_text && !task_configuration.replace_text_pattern) {
 				// Prevent replace page title in wikilink 必須排除 {{Redirect|text}}, [[text|]] 之類！
 				// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Assertions#other_assertions
 				task_configuration.replace_text_pattern = new RegExp(/(?<!{{ *|\[\[ *)(?:key)/.source.replace('key', Object.keys(task_configuration.replace_text).join('|')), 'g');
-			} else if (typeof task_configuration.replace_text_pattern === 'string' && CeL.PATTERN_RegExp.test(task_configuration.replace_text_pattern)) {
-				task_configuration.replace_text_pattern = task_configuration.replace_text_pattern.to_RegExp();
+			} else if (typeof task_configuration.replace_text_pattern === 'string' && CeL.PATTERN_RegExp_replacement.test(task_configuration.replace_text_pattern)) {
+				task_configuration.replace_text_pattern = task_configuration.replace_text_pattern.to_RegExp({ allow_replacement: true });
 			}
 			if (!CeL.is_RegExp(task_configuration.replace_text_pattern) || !task_configuration.replace_text_pattern.global) {
 				CeL.error(`${prepare_operation.name}: "replace_text_pattern" should have global flag! The operation will continue anyway.`);
 				console.trace({ replace_text_pattern: task_configuration.replace_text_pattern, replace_text: task_configuration.replace_text });
 			}
 		}
+		//console.trace(task_configuration.replace_text_pattern);
 
 		task_configuration.wiki = wiki;
 		await main_move_process(task_configuration, meta_configuration);
@@ -1345,7 +1350,9 @@ async function get_list(task_configuration, list_configuration) {
 
 				// display_text_replacer 表記の変更
 				// @see .also_replace_text_insource, .replace_text
-				if (move_to.page_name && task_configuration.move_from.page_name
+				// 當設定 .keep_display_text 的時候就不改變 display text。
+				if (!task_configuration.keep_display_text
+					&& move_to.page_name && task_configuration.move_from.page_name
 					&& !move_to.display_text && !task_configuration.move_from.display_text) {
 					// [[A (C)]] → [[B (C)]]	則同時把 [[A (C)|A]] → [[B (C)|B]], [[A (C)|A君]] → [[B (C)|B君]]
 					// [[A]] → [[B]]			則同時把 [[A|A ...]] → [[B|B ...]]
@@ -1652,9 +1659,13 @@ async function for_each_page(page_data) {
 
 	let wikitext = parsed.toString();
 	// {Object}task_configuration.replace_text: only replace the text in the target pages
-	if (task_configuration.replace_text) {
+	if (task_configuration.replace_text_pattern) {
 		// Warning: 必須排除 {{Redirect|text}}, [[text|]] 之類！
-		wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched_all => task_configuration.replace_text[matched_all]);
+		if (task_configuration.replace_text_pattern.replace) {
+			wikitext = task_configuration.replace_text_pattern.replace(wikitext);
+		} else {
+			wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched_all => task_configuration.replace_text[matched_all]);
+		}
 	}
 
 	if (wikitext === page_data.wikitext) {

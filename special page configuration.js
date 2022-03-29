@@ -43,7 +43,7 @@ var localized_column_to_header = {
 		last_user_set : '最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
 
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
-		last_admin_set : '[[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | 管理員更新(UTC+8)',
+		last_admin_set : '[[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | <small>管理員更新(UTC+8)</small>',
 
 		// last_BAG_set: 特定使用者 special_users.BAG 最後留言者與最後時間(Last BAG editor)
 		// last_BAG_set: 最後BAG編輯者+BAG最後編輯於

@@ -30,6 +30,7 @@ node ${script_name} "section_title=request section title" diff=0000 use_language
 node ${script_name} "request section title" keep_display_text allow_empty skip_nochange=false
 node ${script_name} "request section title" "also_replace_text_insource=title1|title2"
 node ${script_name} "request section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
+node ${script_name} "request section title" "task_configuration={""link_title"":""link_title""}" no_task_configuration_from_section "replace_text_pattern=/從頁面內文文字/改成文字/g"
 node ${script_name} "request section title" "task_configuration={""from"":""DELETE_PAGE""}" no_task_configuration_from_section
 node ${script_name} "request section title" "task_configuration={""http://url/"":""https://url/""}"
 node ${script_name} "request section title" "task_configuration={""insource:\\\\""[[T|T]]\\\\"""":""T""}"
