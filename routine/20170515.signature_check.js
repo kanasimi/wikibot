@@ -160,10 +160,12 @@ no_link_user_hash = Object.create(null),
 KEY_COUNT = '#count',
 // 非內容的元素。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
 noncontent_type = {
-	category : true,
-	section_title : true,
 	// assert: 若是有正式具有意義的內容，那麼應該在模板之外也應該要有文字。
-	transclusion : true
+	// https://zh.moegirl.org.cn/index.php?oldid=5779684&diff=5779692
+	//transclusion : true,
+
+	section_title : true,
+	category : true
 },
 // options to LCS() diff
 with_diff = {
