@@ -1701,7 +1701,9 @@ function for_each_link(token, index, parent) {
 	//if (page_title.includes(this.move_from.page_name))console.log(token);
 
 	if (!page_title_data
-		|| page_title_data.ns !== this.move_from.ns || page_title_data.page_name !== this.move_from.page_name
+		|| page_title_data.ns !== this.move_from.ns
+		// this.wiki.normalize_title(this.move_from.page_name): 這邊的 (this.move_from.page_name) 可能是 no_upper_case_initial 的。
+		|| page_title_data.page_name !== this.wiki.normalize_title(this.move_from.page_name)
 		|| typeof this.move_from.anchor === 'string' && this.move_from.anchor !== token.anchor
 		|| typeof this.move_from.display_text === 'string' && this.move_from.display_text !== (token[2] || '').toString().trim()
 		// 排除連結標的與頁面名稱相同的情況。
