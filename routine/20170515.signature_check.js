@@ -42,7 +42,7 @@ node 20170515.signature_check.js use_language=simple
 
  一般說來在討論頁留言的用途有:
  在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。
- 當一次性大量加入連續的文字時，僅僅當做一次編輯。例如貼上文件備查。 [[Special:Diff/45239349]]
+ 當一次性大量加入連續的文字時，僅僅當做一次編輯。例如貼上文件備查。 [[w:zh:Special:Diff/45239349]]
  用戶在自己的討論頁添加上宣告或者維護模板。
  其他一般討論，應該加上署名。
 
@@ -56,7 +56,7 @@ node 20170515.signature_check.js use_language=simple
  optional:
  {{Template:Nosign}}
 
- TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[Special:Diff/45401508]], [[Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
+ TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[w:zh:Special:Diff/45401508]], [[w:zh:Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
 
  */
 
@@ -89,8 +89,8 @@ test_mode = !!test_the_page_only,
 // 回溯這麼多時間。最多約可回溯30天。用個一兩天可以避免 jstart 必須常常檢查。
 time_back_to = test_mode ? '1h' : '2D',
 // 檢查簽名的延遲時間: 檢測到未簽名的編輯後，機器人會等待 delay_time，以使用戶可以自行補簽。
-// 若是等待時間過長，可能會有其他人插入留言回覆。 [[zh:Special:Diff/45941555]],
-// [[zh:Special:Diff/46397467]]
+// 若是等待時間過長，可能會有其他人插入留言回覆。 [[w:zh:Special:Diff/45941555]],
+// [[w:zh:Special:Diff/46397467]]
 delay_time = '2m',
 // 用戶討論頁提示：如果進行了3次未簽名的編輯，通知使用者記得簽名。
 notification_limit_count = 3,
@@ -118,7 +118,8 @@ page_allowlist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wi
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
 page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
 		'Wikisource:管理员',
-		// [[Special:Diff/54719338]] 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
+		// [[w:zh:Special:Diff/54719338]]
+		// 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
 		/Module_talk:.+\/testcases/ ],
 
 user_denylist = [ '-Zest' ].map(function(title) {
@@ -129,7 +130,7 @@ user_denylist = [ '-Zest' ].map(function(title) {
 
 // 為每個段落都補簽名。
 // 除了在編輯維基專題、條目里程碑、維護、評級模板之外，每個段落至少要有一個簽名。
-// 因為有些時候可能是把正文中許多段落的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[Special:Diff/45239349]]
+// 因為有些時候可能是把正文中許多段落的文字搬移到討論頁備存，因此預設並不開啟。 e.g., [[w:zh:Special:Diff/45239349]]
 sign_each_section = false,
 // 另可以破折號代替橫線。
 more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
@@ -158,11 +159,12 @@ unsigned_user_hash = Object.create(null),
 no_link_user_hash = Object.create(null),
 // 不可為頁面名稱。
 KEY_COUNT = '#count',
-// 非內容的元素。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
+/**
+ * 非內容的元素。無正式具意義的
+ * token.type。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
+ */
 noncontent_type = {
-	// assert: 若是有正式具有意義的內容，那麼應該在模板之外也應該要有文字。
-	// https://zh.moegirl.org.cn/index.php?oldid=5779684&diff=5779692
-	//transclusion : true,
+	comment : true,
 
 	section_title : true,
 	category : true
@@ -481,6 +483,19 @@ function for_each_row(row) {
 			console.log(diff_pair);
 		}
 
+		diff_pair.from_text = diff_pair[0] ? diff_pair[0].join('\n') : '';
+		diff_pair.to_text = diff_pair[1] ? diff_pair[1].join('\n') : '';
+		// 小修改小變化不補簽名。
+		if (Math.abs(diff_pair.from_text.length - diff_pair.to_text.length) < 4
+		// e.g., [[w:simple:Special:Diff/8146442]]
+		&& CeL.edit_distance(diff_pair.from_text, diff_pair.to_text) < 4) {
+			CeL.debug('跳過: 這一段編輯差異過小，可能只是修改了錯字。', 2);
+			return;
+		}
+		// free
+		delete diff_pair.from_text;
+		delete diff_pair.to_text;
+
 		// [ to_diff_start_index, to_diff_end_index ] = diff_pair.index[1]
 		var to_diff_start_index = diff_pair.index[1];
 		if (!to_diff_start_index) {
@@ -566,7 +581,7 @@ function for_each_row(row) {
 			if (this_section_text_may_skip()) {
 				if (/^{{(?:Talk ?archive|讨论页存档|存档页|存檔頁)}}$/i
 						.test(this_section_text.trim())) {
-					CeL.debug('跳過: 只幫忙加入存檔模板。', 2, 'check_sections');
+					CeL.debug('跳過: 只幫忙加入存檔模板。', 2, 'check_diff_pair');
 					return;
 				}
 				check_log.push([
@@ -584,7 +599,7 @@ function for_each_row(row) {
 				// e.g., 增加 {{地鐵專題}} {{臺灣專題|class=Cat|importance=NA}}
 				// {{香港專題|class=stub}} {{Maintained|}} {{translated page|}}
 				// {{ArticleHistory|}}
-				CeL.debug('跳過修改模板中參數的情況。', 1, 'check_sections');
+				CeL.debug('跳過修改模板中參數的情況。', 1, 'check_diff_pair');
 				return;
 			}
 		}
@@ -671,13 +686,13 @@ function for_each_row(row) {
 		// 確保 to_diff_start_index, to_diff_end_index 這兩個分割點都在段落之間而非段落中間。
 
 		// 若是差異開始的地方是在段落中間，那就把開始的index向前移到段落起始之處。
-		// e.g., [[Special:Diff/45631425]]
+		// e.g., [[w:zh:Special:Diff/45631425]]
 		while (!/\n\s*$/.test(row.diff.to[to_diff_start_index])
 		// 分割點的前或者後應該要有換行。
 		&& !/^\s*\n/.test(row.diff.to[to_diff_start_index - 1])
 		//
 		&& to_diff_start_index - 1 > 0) {
-			CeL.debug('差異開始的地方是在段落中間，把開始的index向前移到段落起始之處: '
+			CeL.debug('差異開始的地方是在段落中間，把留言開始的index向前移到段落起始之處: '
 					+ to_diff_start_index + '→' + (to_diff_start_index - 1)
 					+ '。', 2);
 			to_diff_start_index--;
@@ -685,18 +700,21 @@ function for_each_row(row) {
 		}
 
 		// 若是差異結束的地方是在段落中間，那就把結束的index向後移到段落結束之處。
-		// e.g., [[Special:Diff/45510337]]
+		// e.g., [[w:zh:Special:Diff/45510337]]
 		while (!/\n\s*$/.test(row.diff.to[to_diff_end_index])
 		// 分割點的前或者後應該要有換行。
 		&& !/^\s*\n/.test(row.diff.to[to_diff_end_index + 1])
 		//
 		&& to_diff_end_index + 1 < next_section_index) {
-			CeL.debug('差異結束的地方是在段落中間，把結束的index向後移到段落結束之處: ' + to_diff_end_index
-					+ '→' + (to_diff_end_index + 1) + '。', 2);
+			CeL.debug('差異結束的地方是在段落中間，把留言結束的index向後移到段落結束之處: '
+					+ to_diff_end_index + '→' + (to_diff_end_index + 1) + '。',
+					2);
 			to_diff_end_index++;
 			// continue; 向後尋找剛好交界在換行的 token。
 		}
 
+		/** {Number}不去除掉模板的留言結束index */
+		var to_diff_end_index__preserve_templates;
 		while (to_diff_end_index >= to_diff_start_index) {
 			var token = row.parsed[to_diff_end_index];
 			if (typeof token === 'string') {
@@ -704,20 +722,31 @@ function for_each_row(row) {
 					break;
 				--to_diff_end_index;
 				// continue; 向前去掉最末尾的空白字元。
+			} else if (token.type === 'transclusion') {
+				// e.g., [[w:zh:Special:Diff/45536065|Talk:青色]]
+				if (!to_diff_end_index__preserve_templates) {
+					to_diff_end_index__preserve_templates = to_diff_end_index;
+				}
+				--to_diff_end_index;
 			} else if (noncontent_type[token.type]) {
-				// e.g., [[Special:Diff/45536065|Talk:青色]]
 				CeL.debug('這一次編輯，在最後加上了非內容的元素 ' + token + '。將會把簽名加在這之前。', 2);
 				--to_diff_end_index;
 				// continue; 向前去掉最末尾的非內容的元素。
 			} else {
-				// TODO: 向前去掉最末尾的 <br>
+				// TODO: 向前去掉最末尾的 <br />
 				break;
 			}
 		}
 
+		// https://zh.moegirl.org.cn/index.php?oldid=5779684&diff=5779692
 		if (to_diff_start_index > to_diff_end_index) {
-			CeL.debug('跳過: 去掉最末尾的非內容的元素之後，就沒有東西了。', 2);
+			CeL.debug('跳過: 去掉最末尾的非內容的元素與模板之後，就沒有東西了。', 2);
 			return;
+		}
+
+		// 假如不是只有無正式具意義的內容，那麼會在模板之後才補簽名。
+		if (to_diff_end_index__preserve_templates) {
+			to_diff_end_index = to_diff_end_index__preserve_templates;
 		}
 
 		// --------------------------------------
@@ -744,13 +773,13 @@ function for_each_row(row) {
 				&& CeL.wiki.content_of(row, -1).includes(
 						section_wikitext.trim())) {
 			// 可能需要人工手動檢查。可能是 diff 操作仍有可改善之處。寧可跳過漏報，不可錯殺。
-			// e.g., [[Special:Diff/45311637]]
+			// e.g., [[w:zh:Special:Diff/45311637]]
 			check_log.push([ gettext('此筆編輯之前就已經有這一段文字'), section_wikitext ]);
 			return;
 		}
 
 		if (PATTERN_symbol_only.test(section_wikitext)) {
-			// @see [[Special:Diff/45254729]]
+			// @see [[w:zh:Special:Diff/45254729]]
 			check_log.push([ gettext('此筆編輯僅僅添加了符號'), section_wikitext ]);
 			return;
 		}
@@ -867,7 +896,7 @@ function for_each_row(row) {
 		} else if (row.user.length >= (/^[ -\u007f]*$/.test(row.user) ? 4 : 2)
 		// 有簽名，缺少連結。這項測試必須要用戶名稱夠長，以預防漏報。
 		&& (new RegExp(CeL.to_RegExp_pattern(row.user)
-		// e.g., [[Special:Diff/45178923]]
+		// e.g., [[w:zh:Special:Diff/45178923]]
 		.replace(/[ _]/g, '[ _]'), 'i')).test(section_wikitext)
 		// 測試假如有加入日期的時候。
 		// {{Unsigned|user|2016年10月18日 (二) 00:04‎}}
