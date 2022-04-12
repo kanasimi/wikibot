@@ -151,7 +151,7 @@ ignore_tags = [ 'AWB', 'twinkle', 'WPCleaner', 'huggle', 'mw-new-redirect',
 		'mw-rollback', 'mw-reverted', 'mw-undo', 'mw-manual-revert',
 		'mw-blank', 'mw-new-redirect', 'mw-replace' ],
 // 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
-// 請機器人注意: 本頁面不採用補簽名
+// 請機器人注意: 本頁面不採用補簽名。
 PATTERN_ignore = /本頁面不.{0,3}補簽名/,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = Object.create(null),
@@ -483,15 +483,24 @@ function for_each_row(row) {
 			console.log(diff_pair);
 		}
 
+		/** {Number}超過這個編輯距離才會視為有意義的編輯，否則視為錯字修正之類無需簽名之小修改。 */
+		var MIN_EDIT_DISTANCE = 10;
 		diff_pair.from_text = diff_pair[0] ? diff_pair[0].join('\n') : '';
 		diff_pair.to_text = diff_pair[1] ? diff_pair[1].join('\n') : '';
 		// 小修改小變化不補簽名。
-		if (Math.abs(diff_pair.from_text.length - diff_pair.to_text.length) < 4
-		// e.g., [[w:simple:Special:Diff/8146442]]
-		&& CeL.edit_distance(diff_pair.from_text, diff_pair.to_text) < 4) {
-			CeL.debug('跳過: 這一段編輯差異過小，可能只是修改了錯字。', 2);
+		if (Math.abs(diff_pair.from_text.length - diff_pair.to_text.length) < MIN_EDIT_DISTANCE
+				// e.g., [[w:simple:Special:Diff/8146442]]
+				&& CeL.edit_distance(diff_pair.from_text, diff_pair.to_text) < MIN_EDIT_DISTANCE) {
+			CeL.debug('跳過: 這一段編輯差異過小，可能只是修改了錯字。', 2, 'check_diff_pair');
 			return;
 		}
+		if (/{{Unsigned(?:-before)?/.test(diff_pair.from_text)
+		// e.g., [[w:zh:Special:Diff/71112783]]
+		&& /<!-- Template:Unsigned(?:-before)? -->/.test(diff_pair.to_text)) {
+			CeL.debug('跳過: 手動補簽名作業。', 2, 'check_diff_pair');
+			return;
+		}
+		// TODO: 是否該跳過所有只編輯模板之類的小變更?
 		// free
 		delete diff_pair.from_text;
 		delete diff_pair.to_text;
@@ -499,14 +508,14 @@ function for_each_row(row) {
 		// [ to_diff_start_index, to_diff_end_index ] = diff_pair.index[1]
 		var to_diff_start_index = diff_pair.index[1];
 		if (!to_diff_start_index) {
-			CeL.debug('跳過: 這一段編輯刪除了文字 / deleted。', 2);
+			CeL.debug('跳過: 這一段編輯刪除了文字 / deleted。', 2, 'check_diff_pair');
 			return;
 		}
 		var to_diff_end_index = to_diff_start_index[1];
 		to_diff_start_index = to_diff_start_index[0];
 
 		if (to_diff_end_index < last_processed_index) {
-			CeL.debug('跳過: 這一段已經處理過。', 2);
+			CeL.debug('跳過: 這一段已經處理過。', 2, 'check_diff_pair');
 			return;
 		}
 
@@ -562,17 +571,18 @@ function for_each_row(row) {
 					return _token.includes(token);
 				});
 			}).join('').trim();
-			CeL.debug('本段篩選過的文字剩下 ' + JSON.stringify(token_list), 2);
+			CeL.debug('本段篩選過的文字剩下 ' + JSON.stringify(token_list), 2,
+					'this_section_text_may_skip');
 			// 本段文字只有ASCII符號。
 			return PATTERN_symbol_only.test(token_list);
 		}
 
 		if (row.ns === CeL.wiki.namespace('user_talk')) {
-			CeL.debug('測試是不是用戶在自己的討論頁添加上宣告或者維護模板。', 2);
+			CeL.debug('測試是不是用戶在自己的討論頁添加上宣告或者維護模板。', 2, 'check_diff_pair');
 			// row.title.startsWith(row.user)
 			if (CeL.wiki.parse.user(CeL.wiki.title_link_of(row), row.user)) {
 				// 跳過自己編輯自己的對話頁。
-				CeL.debug('跳過使用者編輯屬於自己的頁面。', 2);
+				CeL.debug('跳過使用者編輯屬於自己的頁面。', 2, 'check_diff_pair');
 				if (this_section_text_may_skip()) {
 					// Skip return;
 				}
@@ -593,7 +603,8 @@ function for_each_row(row) {
 
 		} else if (row.title.startsWith(project_page_prefix)
 				|| CeL.wiki.is_talk_namespace(row.ns)) {
-			CeL.debug('測試是不是在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。', 2);
+			CeL.debug('測試是不是在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。', 2,
+					'check_diff_pair');
 			if (this_section_text_may_skip()) {
 				// Skip: 忽略僅增加模板的情況。去掉編輯模板的情況。
 				// e.g., 增加 {{地鐵專題}} {{臺灣專題|class=Cat|importance=NA}}
@@ -620,7 +631,8 @@ function for_each_row(row) {
 
 			} else if (token.type === 'section_title') {
 				// assert: to_index > to_diff_start_index
-				CeL.debug('這一小段編輯跨越了不同的段落。但是我們會檢查每個個別的段落，每個段落至少要有一個簽名。', 4);
+				CeL.debug('這一小段編輯跨越了不同的段落。但是我們會檢查每個個別的段落，每個段落至少要有一個簽名。', 4,
+						'check_diff_pair');
 				check_sections(to_diff_start_index, to_index - 1, to_index,
 						diff_pair, diff_index);
 				// reset: 跳過之前的段落。但是之後的還是得繼續檢查。
@@ -629,12 +641,12 @@ function for_each_row(row) {
 		}
 
 		if (to_diff_start_index > to_diff_end_index) {
-			CeL.debug('跳過: 經過初始篩選，這一段已經不剩下任何內容。', 2);
+			CeL.debug('跳過: 經過初始篩選，這一段已經不剩下任何內容。', 2, 'check_diff_pair');
 			return;
 		}
 
 		var next_section_index = to_diff_end_index;
-		CeL.debug('對於頁面每個修改的部分，都向後搜尋/檢查到章節末。', 4);
+		CeL.debug('對於頁面每個修改的部分，都向後搜尋/檢查到章節末。', 4, 'check_diff_pair');
 		while (++next_section_index < row.parsed.length) {
 			var token = row.parsed[next_section_index];
 			if (token.type === 'section_title') {
@@ -651,13 +663,14 @@ function for_each_row(row) {
 			if (!(queued_start >= 0))
 				queued_start = to_diff_start_index;
 			CeL.debug('合併段落 ' + [ diff_index, diff_index + 1 ]
-					+ '，start index: ' + queued_start + '。', 2);
+					+ '，start index: ' + queued_start + '。', 2,
+					'check_diff_pair');
 			return;
 		}
 
 		if (queued_start >= 0) {
 			CeL.debug('之前合併過段落，start index: ' + to_diff_start_index + '→'
-					+ queued_start, 2);
+					+ queued_start, 2, 'check_diff_pair');
 			to_diff_start_index = queued_start;
 			queued_start = undefined;
 		}
