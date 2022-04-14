@@ -56,7 +56,9 @@ node 20170515.signature_check.js use_language=simple
  optional:
  {{Template:Nosign}}
 
- TODO: 跳過這一種把正文搬到討論區的情況. e.g., [[w:zh:Special:Diff/45401508]], [[w:zh:Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
+TODO:
+視您的編輯次數來判斷是否為您自動補簽。
+跳過這一種把正文搬到討論區的情況. e.g., [[w:zh:Special:Diff/45401508]], [[w:zh:Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
 
  */
 
@@ -122,9 +124,7 @@ page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikip
 		// 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
 		/Module_talk:.+\/testcases/ ],
 
-user_denylist = [ '-Zest' ].map(function(title) {
-	return CeL.wiki.normalize_title(title);
-}),
+user_denylist = new Set,
 
 // ----------------------------------------------------------------------------
 
@@ -281,6 +281,8 @@ function get_pages_to_notify(row, hash) {
 // ----------------------------------------------------------------------------
 // main process
 
+check_user_denylist();
+
 if (test_the_page_only) {
 	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
 			+ ': 先取得頁面資料。');
@@ -341,6 +343,26 @@ if (test_the_page_only) {
 
 // ---------------------------------------------------------
 
+function check_user_denylist() {
+	wiki.embeddedin('Template:NoAutosign', function(page_data_list) {
+		var new_user_denylist = new Set(page_data_list.filter(
+				function(page_data) {
+					return wiki.is_namespace(page_data, 'user');
+				}).map(function(page_data) {
+			return wiki.remove_namespace(page_data);
+		}));
+		if (user_denylist.size !== new_user_denylist.size) {
+			CeL.info('check_user_denylist: user_denylist: '
+					+ user_denylist.size + '→' + new_user_denylist.size);
+		}
+		user_denylist = new_user_denylist;
+		// 每5分鐘檢查一次嵌入{{NoAutosign}}模板的頁面。
+		setTimeout(check_user_denylist, CeL.date.to_millisecond('5min'));
+	});
+}
+
+// ---------------------------------------------------------
+
 // 篩選格式排版用。
 // @see CeL.wiki.plain_text(wikitext)
 function exclude_style(token_list) {
@@ -388,7 +410,7 @@ function for_each_row(row) {
 		console.log(row.diff);
 	}
 
-	if (user_denylist.includes(row.user)) {
+	if (user_denylist.has(row.user)) {
 		return;
 	}
 
@@ -430,8 +452,8 @@ function for_each_row(row) {
 	|| CeL.wiki.parse.redirect(content)
 	// [[Project:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, wiki.token.login_user_name, 'SIGN')
-	// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
-	|| content.includes('{{NoAutosign}}' || PATTERN_ignore.test(content))) {
+	//
+	|| PATTERN_ignore.test(content)) {
 		return;
 	}
 	if (CeL.is_debug(4)) {
