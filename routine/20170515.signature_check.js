@@ -516,9 +516,13 @@ function for_each_row(row) {
 			CeL.debug('跳過: 這一段編輯差異過小，可能只是修改了錯字。', 2, 'check_diff_pair');
 			return;
 		}
-		if (/{{Unsigned(?:-before)?/.test(diff_pair.from_text)
+		// e.g., [[w:zh:Special:Diff/71112848]]
 		// e.g., [[w:zh:Special:Diff/71112783]]
-		&& /<!-- Template:Unsigned(?:-before)? -->/.test(diff_pair.to_text)) {
+		if (/{{Unsigned(?:-before)?/.test(diff_pair.from_text)
+		// 放寬跳過幫忙處理簽名的條件
+		// && /<!-- Template:Unsigned(?:-before)? -->|在對話頁上簽名/
+		// .test(diff_pair.to_text)
+		) {
 			CeL.debug('跳過: 手動補簽名作業。', 2, 'check_diff_pair');
 			return;
 		}
