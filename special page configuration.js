@@ -1317,7 +1317,7 @@ function check_BRFA_status(section) {
 			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。
 			status = token.toString().replace(/(}})$/, '|prefix=$1');
 			BRFA_status = token.parameters[1] || 'new';
-			if (/^(?:tri|tiral|測試|测试)$/.test(BRFA_status)) {
+			if (/^(?:tri|trial|測試|测试)$/.test(BRFA_status)) {
 				status = 'style="background-color: #cfc;" | ' + status;
 			} else if (/^(?:new|tric|trial complete|測試完成|测试完成)$/
 			//

@@ -519,7 +519,7 @@ function for_each_row(row) {
 		// e.g., [[w:zh:Special:Diff/71112848]]
 		// e.g., [[w:zh:Special:Diff/71112783]]
 		if (/{{Unsigned(?:-before)?/.test(diff_pair.from_text)
-		// 放寬跳過幫忙處理簽名的條件
+		// 放寬跳過幫忙處理簽名的條件。
 		// && /<!-- Template:Unsigned(?:-before)? -->|在對話頁上簽名/
 		// .test(diff_pair.to_text)
 		) {
