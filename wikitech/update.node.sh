@@ -13,7 +13,11 @@ TMP=/tmp
 BIN_DIR=/shared/bin
 NODE=$BIN_DIR/node
 
-LASTEST=`curl https://nodejs.org/dist/latest/SHASUMS256.txt | grep "linux-x64.tar.xz" | awk '{print $2}'`
+LASTEST_VER=latest
+# 2022/4/21 16:47:0	node-v18.0.0 will cause `node: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.27' not found (required by node)` @ wmflabs.org
+LASTEST_VER=latest-v17.x
+
+LASTEST=`curl https://nodejs.org/dist/$LASTEST_VER/SHASUMS256.txt | grep "linux-x64.tar.xz" | awk '{print $2}'`
 VERSION=`$NODE -v`
 
 (echo $LASTEST|grep $VERSION) && echo `/bin/date "+%Y%m%d"` - We have the lastest node: $VERSION && exit
@@ -24,7 +28,7 @@ VERSION=`$NODE -v`
 cd $TMP
 
 # extract program
-/usr/bin/wget -O $LASTEST https://nodejs.org/dist/latest/$LASTEST
+/usr/bin/wget -O $LASTEST https://nodejs.org/dist/$LASTEST_VER/$LASTEST
 /bin/tar xvf $LASTEST
 /bin/rm $LASTEST
 
