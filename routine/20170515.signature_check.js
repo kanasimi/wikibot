@@ -396,6 +396,11 @@ function get_diff_text(diff_array) {
 	.replace(/\[\[.+?\]\]/g, '') : '';
 }
 
+var user_info_Map = new Map;
+/** 受信任的使用者權限 */
+var trusted_user_privileges = new Set([ 'bot', 'extendedconfirmed',
+		'rollbacker', 'sysop' ]);
+
 // for debug
 var latest_revid = 0;
 function for_each_row(row) {
@@ -503,27 +508,56 @@ function for_each_row(row) {
 
 	// -----------------------------------------------------
 
+	// function get_user_info_via_cache(user_name)
+	row.user_info = user_info_Map.get(row.user);
+
 	if (!row.user_info) {
 		return new Promise(function(resolve, reject) {
-			wiki.userinfo('groups|implicitgroups|editcount',
+			wiki.users(row.user,
 			// .userinfo('*',
-			function(userinfo) {
-				row.user_info = userinfo;
+			function(userinfo, error) {
+				if (error) {
+					reject(error);
+					return;
+				}
+				if (Array.isArray(userinfo))
+					userinfo = userinfo[0];
 				// console.trace(userinfo);
-				for_each_row(row);
-				// console.trace('resolve');
-				resolve();
+				// console.trace(userinfo.groupmemberships);
+				if (user_info_Map.size > 1e4 || 1) {
+					var limit_time = Date.now()
+					// 刪除超過12小時未編輯者。
+					- CeL.date.to_millisecond('12 hour');
+					Array.from(user_info_Map.keys()).filter(
+							function(user_name) {
+								return limit_time > user_info_Map
+										.get(user_name).latest_edit_date;
+							}).forEach(function(user_name) {
+						user_info_Map['delete'](user_name);
+					});
+				}
+				user_info_Map.set(row.user, userinfo);
+				row.user_info = userinfo;
+				try {
+					for_each_row(row);
+					resolve();
+				} catch (e) {
+					reject(e);
+				}
+			}, {
+				// |implicitgroups
+				usprop : 'editcount|groups'
 			});
 		});
 	}
 
+	row.user_info.latest_edit_date = Date.now();
 	// 視您的編輯次數來判斷是否為您自動補簽。
 	if (row.user_info.editcount > 10000
 	// 跳過受信任的使用者以避免打擾。
-	|| row.user_info.groups.includes('bot')
-			|| row.user_info.groups.includes('extendedconfirmed')
-			|| row.user_info.groups.includes('rollbacker')
-			|| row.user_info.groups.includes('sysop')) {
+	|| row.user_info.groups && row.user_info.groups.some(function(group) {
+		return trusted_user_privileges.has(group);
+	})) {
 		return;
 	}
 	// console.trace(userinfo);
