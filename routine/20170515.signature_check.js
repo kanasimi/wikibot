@@ -57,7 +57,6 @@ node 20170515.signature_check.js use_language=simple
  {{Template:Nosign}}
 
 TODO:
-視您的編輯次數來判斷是否為您自動補簽。
 跳過這一種把正文搬到討論區的情況. e.g., [[w:zh:Special:Diff/45401508]], [[w:zh:Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
 
  */
@@ -388,17 +387,28 @@ function get_parsed_time(row) {
 	return row.parsed_time;
 }
 
+/** {Number}超過這個編輯距離才會視為有意義的編輯，否則視為錯字修正之類無需簽名之小修改。 */
+var MIN_EDIT_DISTANCE = 10;
+
+function get_diff_text(diff_array) {
+	return diff_array ? diff_array.join('\n')
+	// [[w:zh:Special:Diff/71275680]] 令編輯連結不列入計算。
+	.replace(/\[\[.+?\]\]/g, '') : '';
+}
+
 // for debug
 var latest_revid = 0;
 function for_each_row(row) {
 	// console.trace(row.revid + ' ￩ ' + latest_revid);
 	// console.log([ row.timestamp, get_parsed_time(row) ]);
 	CeL.debug('revid = ' + row.revid, 1, 'for_each_row');
-	if (!(row.revid > latest_revid)) {
-		throw new Error('for_each_row: revid error: ' + row.revid + ' ￩ '
-				+ latest_revid);
+	if (false) {
+		if (!(row.revid > latest_revid)) {
+			throw new Error('for_each_row: revid error: ' + row.revid + ' ￩ '
+					+ latest_revid);
+		}
+		latest_revid = row.revid;
 	}
-	latest_revid = row.revid;
 
 	// free
 	delete row.row;
@@ -493,6 +503,33 @@ function for_each_row(row) {
 
 	// -----------------------------------------------------
 
+	if (!row.user_info) {
+		return new Promise(function(resolve, reject) {
+			wiki.userinfo('groups|implicitgroups|editcount',
+			// .userinfo('*',
+			function(userinfo) {
+				row.user_info = userinfo;
+				// console.trace(userinfo);
+				for_each_row(row);
+				// console.trace('resolve');
+				resolve();
+			});
+		});
+	}
+
+	// 視您的編輯次數來判斷是否為您自動補簽。
+	if (row.user_info.editcount > 10000
+	// 跳過受信任的使用者以避免打擾。
+	|| row.user_info.groups.includes('bot')
+			|| row.user_info.groups.includes('extendedconfirmed')
+			|| row.user_info.groups.includes('rollbacker')
+			|| row.user_info.groups.includes('sysop')) {
+		return;
+	}
+	// console.trace(userinfo);
+
+	// -----------------------------------------------------
+
 	var check_log = [], added_signs_or_notice = 0, write_to_log = project_name !== 'simplewiki', last_processed_index, queued_start, is_no_link_user, is_unsigned_user;
 
 	// 對於頁面每個修改的部分，比較頁面修訂差異。
@@ -505,10 +542,8 @@ function for_each_row(row) {
 			console.log(diff_pair);
 		}
 
-		/** {Number}超過這個編輯距離才會視為有意義的編輯，否則視為錯字修正之類無需簽名之小修改。 */
-		var MIN_EDIT_DISTANCE = 10;
-		diff_pair.from_text = diff_pair[0] ? diff_pair[0].join('\n') : '';
-		diff_pair.to_text = diff_pair[1] ? diff_pair[1].join('\n') : '';
+		diff_pair.from_text = get_diff_text(diff_pair[0]);
+		diff_pair.to_text = get_diff_text(diff_pair[1]);
 		// 小修改小變化不補簽名。
 		if (Math.abs(diff_pair.from_text.length - diff_pair.to_text.length) < MIN_EDIT_DISTANCE
 				// e.g., [[w:simple:Special:Diff/8146442]]
