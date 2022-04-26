@@ -132,6 +132,8 @@ prepare_directory(base_directory);
 	//console.log(login_options);
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
+	// 設定只要遇到 badtoken 就直接跳出。
+	wiki.append_session_to_options()[CeL.wiki.KEY_SESSION].max_retry_login = 0;
 	await main_process();
 })();
 
