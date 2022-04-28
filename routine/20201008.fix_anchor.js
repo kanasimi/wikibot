@@ -9,6 +9,7 @@ node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出�
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=赛马娘 Pretty Derby/成句与梗"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=User:玄微子/萌百史记/维护组部分"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=FLOWERS(Innocent Grey)"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
 node 20201008.fix_anchor.js use_project=en "check_page=Glossary of cricket terms"
@@ -71,6 +72,9 @@ jstop cron-tools.cewbot-20201008.fix_anchor.ja
 TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
 fix [[Special:PermanentLink]]
+
+https://en.wikipedia.org/w/index.php?title=Bibliography_of_works_on_Davy_Crockett&diff=prev&oldid=1080437075&diffmode=source
+https://en.wikipedia.org/w/index.php?title=Brands_Hatch_race_winners&curid=39487649&diff=1084263902&oldid=1083976678&diffmode=source
 
 檢核頁面分割、剪貼移動的情況。
 假如是 level 3 之後的 section title，可 link 至上一層？
