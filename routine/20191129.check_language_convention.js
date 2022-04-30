@@ -251,7 +251,7 @@ function add_conversion(item, from_page) {
 
 			</code>
 			 */
-			CeL.warn('add_conversion: Can not parse item:');
+			CeL.warn('add_conversion: Cannot parse item:');
 			console.log(item);
 			console.log(parsed);
 			return;

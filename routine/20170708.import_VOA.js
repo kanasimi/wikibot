@@ -154,7 +154,7 @@ function process_VOA_page(XMLHttp, error) {
 	// assert: 沒有經過301轉換網址
 	this_link_data = link_data[XMLHttp.original_URL];
 	if (!this_link_data) {
-		CeL.error('Can not found link data of ' + XMLHttp.original_URL);
+		CeL.error('Cannot found link data of ' + XMLHttp.original_URL);
 		console.log('link data: ' + JSON.stringify(link_data));
 		this.check_links();
 		return;

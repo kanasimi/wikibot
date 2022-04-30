@@ -308,7 +308,7 @@ message_set = {
 
 		// always display
 		preserved : 'Preserve interlanguage links for the "preserve" parameter is set.',
-		retrive_foreign_error : 'Can not retrive foreign page. I will retry next time.'
+		retrive_foreign_error : 'Cannot retrive foreign page. I will retry next time.'
 	}
 };
 

@@ -1380,7 +1380,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 		.edit(function(page_data) {
 			var title = introduction_section.title_token[0].toString();
 			if (title.includes('[[')) {
-				CeL.error('Can not adding link to introduction_section: '
+				CeL.error('Cannot adding link to introduction_section: '
 				//
 				+ title);
 			} else if (title.includes(FC_title)) {

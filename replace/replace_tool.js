@@ -212,9 +212,11 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 		const matched = language_code && language_code.match(/^([a-z]+)\-/);
 		if (matched) {
 			meta_configuration.language = matched[1];
-			CeL.info(`replace_tool: Treat ${JSON.stringify(meta_configuration.section_title)} as language: ${CeL.gettext.get_alias(language_code) || language_code}.`);
+			CeL.info(['replace_tool: ', {
+				T: ['Treat %1 as language: %2.', JSON.stringify(meta_configuration.section_title), CeL.gettext.get_alias(language_code) || language_code]
+			}]);
 		} else {
-			const message = `replace_tool: Can not detect language of ${JSON.stringify(meta_configuration.section_title)}!`;
+			const message = `replace_tool: Cannot detect language of ${JSON.stringify(meta_configuration.section_title)}!`;
 			CeL.error(message);
 			if (!meta_configuration.ignore_language)
 				throw new Error(message);
@@ -347,7 +349,7 @@ function get_move_configuration_from_command_line(meta_configuration) {
 		return;
 	}
 
-	throw new Error('Can not extract section title from task file name!');
+	throw new Error('Cannot extract section title from task file name!');
 }
 
 function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta_configuration) {
@@ -475,7 +477,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	}
 
 	if (!meta_configuration.diff_id) {
-		throw new Error(`Can not extract diff id from ${CeL.wiki.title_link_of(requests_page)} edit summary!`);
+		throw new Error(`Cannot extract diff id from ${CeL.wiki.title_link_of(requests_page)} edit summary!`);
 	}
 
 	// throw new Error(meta_configuration.section_title);
@@ -2266,7 +2268,7 @@ async function get_move_pairs_page(page_title, options) {
 			section = section_token;
 		});
 		if (!section) {
-			CeL.error('Can not find section title: ' + section_title);
+			CeL.error('Cannot find section title: ' + section_title);
 		}
 	}
 
@@ -2375,7 +2377,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 	//console.log([from, to]);
 	if (!from || !to) {
 		if (line.type !== 'table_attributes' && !line.type === 'caption' && !(line.type === 'table_row' && line.header_count)) {
-			CeL.error('parse_move_pairs_from_link: Can not parse:');
+			CeL.error('parse_move_pairs_from_link: Cannot parse:');
 			console.log(line);
 		}
 		return;

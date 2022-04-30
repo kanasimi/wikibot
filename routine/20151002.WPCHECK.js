@@ -200,6 +200,7 @@ function fix_d(content, page_data, messages, config) {
 
 // ------------------------------------
 
+fix_1.title = '含有多餘模板前綴的條目';
 function fix_1(content, page_data, messages, config) {
 	return content.replace(/{{\s*[Tt]emplate\s*:\s*/g, '{{');
 }

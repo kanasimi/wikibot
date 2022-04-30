@@ -55,7 +55,7 @@ try {
 		if (exit === 0) {
 			import_data();
 		} else {
-			throw 'Can not get file [' + TaiBNET_CSV_path + ']: exit code '
+			throw 'Cannot get file [' + TaiBNET_CSV_path + ']: exit code '
 					+ exit;
 		}
 	});

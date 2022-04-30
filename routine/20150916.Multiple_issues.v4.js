@@ -299,13 +299,13 @@ async function check_pages_including_maintenance_template(page_data) {
 					return parsed.toString();
 				}
 			}
-			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: There are additional parameters, so we can not remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${parameters.join(' | ')}`);
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: There are additional parameters, so we cannot remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${parameters.join(' | ')}`);
 			configuration.problematic_articles.push(page_data.title);
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}
 
 		if (this.maintenance_template_inside.length === 0 && Multiple_issues_template_token.parameters[1] && Multiple_issues_template_token.parameters[1].toString().trim()) {
-			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The parameter 1 is strange, so I can not remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${Multiple_issues_template_token.parameters[1].toString()}`);
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The parameter 1 is strange, so I cannot remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${Multiple_issues_template_token.parameters[1].toString()}`);
 			configuration.problematic_articles.push(page_data.title);
 			return [CeL.wiki.edit.cancel, 'skip'];
 		}

@@ -134,7 +134,7 @@ function to_timestamp(log) {
 		return date.format('%Y-%2m');
 	}
 	console.error(log);
-	throw new Error('Can not ertract timestamp!');
+	throw new Error('Cannot ertract timestamp!');
 }
 
 // ----------------------------------------------------------------------------
@@ -450,7 +450,7 @@ async function for_AfD(AfD_page_data) {
 	/** {String}target page title */
 	const target_page_title = extract_target_page_of_AfD(AfD_page_data);
 	if (!target_page_title) {
-		CeL.error(`for_AfD: Can not extract target page title: ${CeL.wiki.title_link_of(AfD_page_data)}`);
+		CeL.error(`for_AfD: Cannot extract target page title: ${CeL.wiki.title_link_of(AfD_page_data)}`);
 		return;
 	}
 

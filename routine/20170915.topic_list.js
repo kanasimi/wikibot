@@ -613,7 +613,7 @@ function get_special_users(callback, options) {
 		}, {
 			augroup : augroup || group_name,
 			auprop : 'groups',
-			// The parameters "augroup" and "auexcludegroup" can not be used
+			// The parameters "augroup" and "auexcludegroup" cannot be used
 			// together.
 			// auexcludegroup : 'bot',
 			limit : 'max'
@@ -1209,7 +1209,7 @@ function pre_fetch_sub_pages(page_data, error) {
 
 	if (!page_configuration) {
 		// for debug
-		CeL.error('Can not get page_configuration for '
+		CeL.error('Cannot get page_configuration for '
 				+ CeL.wiki.site_name(wiki) + ':' + page_data.title);
 	}
 

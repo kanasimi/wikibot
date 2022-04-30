@@ -1707,7 +1707,7 @@ function cross_out_vote(section, latest_vote, cross_out_token) {
 			CeL.debug(vote_type + ': → ' + section.vote_list[vote_type].length,
 					2, 'cross_out_vote');
 		} else {
-			CeL.warn('cross_out_vote: Can not dealc with ' + token);
+			CeL.warn('cross_out_vote: Cannot deal with ' + token);
 		}
 	}
 
