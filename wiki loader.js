@@ -84,7 +84,7 @@ CeL.env.domain_location = CeL.env.resources_directory_name + '/';
 // CeL.env.no_catch = true;
 // CeL.set_debug(3);
 CeL.run([ 'interact.DOM', 'application.debug',
-// 載入不同地區語言的功能 for wiki.work()。
+// 載入不同地區語言的功能 for CeL.gettext(), wiki.work()。
 'application.locale',
 // 載入操作維基百科的主要功能。
 'application.net.wiki',

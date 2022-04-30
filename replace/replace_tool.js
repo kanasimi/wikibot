@@ -58,7 +58,10 @@ require('../wiki loader.js');
 // Load modules.
 CeL.run([
 	// for CeL.assert()
-	'application.debug.log']);
+	'application.debug.log',
+	// 載入不同地區語言的功能 for CeL.gettext()。
+	'application.locale',
+]);
 
 
 // 20190913.replace.js
@@ -213,6 +216,7 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 		if (matched) {
 			meta_configuration.language = matched[1];
 			CeL.info(['replace_tool: ', {
+				// gettext_config:{"id":"treat-$1-as-language-$2"}
 				T: ['Treat %1 as language: %2.', JSON.stringify(meta_configuration.section_title), CeL.gettext.get_alias(language_code) || language_code]
 			}]);
 		} else {
@@ -498,7 +502,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 					return;
 				}
 
-				CeL.warn(`get_move_configuration_from_section: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+				CeL.warn(`${get_move_configuration_from_section.name}: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
 				discussion_link = null;
 				return section.each.exit;
 			});
