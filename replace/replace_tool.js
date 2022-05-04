@@ -220,7 +220,9 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 				T: ['Treat %1 as language: %2.', JSON.stringify(meta_configuration.section_title), CeL.gettext.get_alias(language_code) || language_code]
 			}]);
 		} else {
-			const message = `replace_tool: Cannot detect language of ${JSON.stringify(meta_configuration.section_title)}!`;
+			const message = 'replace_tool: '
+				// gettext_config:{"id":"cannot-detect-language-of-$1"}
+				+ CeL.gettext('Cannot detect language of %1!', JSON.stringify(meta_configuration.section_title));
 			CeL.error(message);
 			if (!meta_configuration.ignore_language)
 				throw new Error(message);
@@ -307,7 +309,10 @@ function get_move_configuration_from_command_line(meta_configuration) {
 					meta_configuration.task_configuration_from_args = task_configuration_from_args;
 				} catch (e) {
 					//if (!CeL.is_Object(CeL.env.arg_hash.task_configuration))
-					CeL.error(`Invalid task_configuration (should be JSON): (${typeof CeL.env.arg_hash.task_configuration}) ${CeL.env.arg_hash.task_configuration}`);
+					CeL.error([get_move_configuration_from_command_line.name, {
+						// gettext_config:{"id":"invalid-task_configuration-(should-be-$2)-{$3}-$1"}
+						T: ['Invalid task_configuration (should be %2): {%3} %1', CeL.env.arg_hash.task_configuration, CeL.is_type(JSON), typeof CeL.env.arg_hash.task_configuration]
+					}]);
 				}
 				//assert: !meta_configuration.task_configuration_from_args || CeL.is_Object(meta_configuration.task_configuration_from_args)
 			}
@@ -322,7 +327,10 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			//> node "YYYYMMDD.section title.js" "section_title=select this section title"
 			// e.g., "20200704.「一条ぎょく子」→「一条頊子」の改名に伴うリンク修正依頼.js"
 			//console.trace(CeL.env.arg_hash);
-			CeL.info(`get_move_configuration_from_command_line: Get ${property_name} from command line argument: ${value}`);
+			CeL.info([get_move_configuration_from_command_line.name, {
+				// gettext_config:{"id":"get-parameter-$1=$2-from-command-line"}
+				T: ['Get parameter %1=%2 from command line', property_name, value]
+			}]);
 			meta_configuration[property_name] = value;
 		}
 

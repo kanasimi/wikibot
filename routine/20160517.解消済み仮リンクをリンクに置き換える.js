@@ -457,9 +457,9 @@ function check_final_work() {
 				var list = error_messages[error_name];
 				if (list.length > 20) {
 					messages.append(list.slice(0, 20));
-					messages.push(message_set.report_1
-					//
-					+ list.length + message_set.report_2);
+					messages.push(message_set.report_1 + list.length + message_set.report_2);
+					if (false)
+						messages.push(CeL.gettext(':: ... Total %1 time(s) occurred.', list.length));
 				} else {
 					messages.append(list);
 				}
