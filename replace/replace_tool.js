@@ -309,7 +309,7 @@ function get_move_configuration_from_command_line(meta_configuration) {
 					meta_configuration.task_configuration_from_args = task_configuration_from_args;
 				} catch (e) {
 					//if (!CeL.is_Object(CeL.env.arg_hash.task_configuration))
-					CeL.error([get_move_configuration_from_command_line.name, {
+					CeL.error([get_move_configuration_from_command_line.name + ': ', {
 						// gettext_config:{"id":"invalid-task_configuration-(should-be-$2)-{$3}-$1"}
 						T: ['Invalid task_configuration (should be %2): {%3} %1', CeL.env.arg_hash.task_configuration, CeL.is_type(JSON), typeof CeL.env.arg_hash.task_configuration]
 					}]);
@@ -327,7 +327,7 @@ function get_move_configuration_from_command_line(meta_configuration) {
 			//> node "YYYYMMDD.section title.js" "section_title=select this section title"
 			// e.g., "20200704.「一条ぎょく子」→「一条頊子」の改名に伴うリンク修正依頼.js"
 			//console.trace(CeL.env.arg_hash);
-			CeL.info([get_move_configuration_from_command_line.name, {
+			CeL.info([get_move_configuration_from_command_line.name + ': ', {
 				// gettext_config:{"id":"get-parameter-$1=$2-from-command-line"}
 				T: ['Get parameter %1=%2 from command line', property_name, value]
 			}]);
@@ -348,7 +348,10 @@ function get_move_configuration_from_command_line(meta_configuration) {
 	if (CeL.env.argv.length > 2 && (section_title = CeL.env.argv[2].trim())) {
 		//> node "YYYYMMDD.section title.js" "select this section title"
 		//console.trace(CeL.env.argv[2]);
-		CeL.info(`get_move_configuration_from_command_line: Get section title from command line argument: ${section_title}`);
+		CeL.info([get_move_configuration_from_command_line.name + ': ', {
+			// gettext_config:{"id":"get-section-title-from-command-line-argument-$1"}
+			T: ['Get section title from command line argument: %1', section_title]
+		}]);
 		meta_configuration.section_title = section_title;
 		return;
 	}
@@ -356,7 +359,10 @@ function get_move_configuration_from_command_line(meta_configuration) {
 	// 可省略 `section_title` 的條件: 檔案名稱即 section_title
 	section_title = script_name;
 	if (section_title) {
-		CeL.info(`get_move_configuration_from_command_line: Get section title from task file name: ${section_title}`);
+		CeL.info([get_move_configuration_from_command_line.name + ': ', {
+			// gettext_config:{"id":"get-section-title-from-task-file-name-$1"}
+			T: ['Get section title from task file name: %1', section_title]
+		}]);
 		meta_configuration.section_title = section_title;
 		return;
 	}
@@ -405,7 +411,14 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 				const _section_title = revision.comment.match(/^\/\*(.+)\*\//)[1].trim();
 				// console.log([section_title, _section_title]);
 				if (section_title !== _section_title) {
-					CeL.info(`Change section_title: ${section_title}→${_section_title}`);
+					CeL.info([get_move_configuration_from_command_line.name + ': ', {
+						// gettext_config:{"id":"change-section-title"}
+						T: 'Change section title:'
+					}]);
+					CeL.log(CeL.display_align([
+						['From\t', section_title],
+						['To→\t', _section_title]
+					]));
 					// TODO: parse
 					section_title = meta_configuration.section_title = _section_title;
 				}
@@ -445,7 +458,12 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 
 	if (diff_to > 0) {
 		meta_configuration.diff_id = diff_from > 0 ? diff_from + '/' + diff_to : diff_to;
-		CeL.info(`Get diff_id from edit summary: [[Special:Diff/${meta_configuration.diff_id}#${section_title}]]`);
+		CeL.info([get_move_configuration_from_command_line.name + ': ', {
+			// gettext_config:{"id":"get-$1-from-edit-summary-$2"}
+			T: ['Get %1 from edit summary: %2',
+				// gettext_config:{"id":"revision-id"}
+				CeL.gettext('revision id') + ` (diff_id)`, CeL.wiki.title_link_of(`Special:Diff/${meta_configuration.diff_id}#${section_title}`)]
+		}]);
 	}
 }
 
@@ -459,7 +477,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 	//console.trace(section_title);
 	if (section_title) {
-		CeL.log_temporary(`Get ${rvlimit} comments of ${CeL.wiki.title_link_of(requests_page)}`);
+		CeL.log_temporary(`Get ${rvlimit} comment(s) of ${CeL.wiki.title_link_of(requests_page)}`);
 		const requests_page_data = await wiki.page(requests_page, {
 			redirects: 1,
 			// rvprop: 'ids|comment|user|content',
@@ -472,7 +490,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 		if (!meta_configuration.diff_id) {
 			// get diff_id from content
-			CeL.log_temporary(`Get ${rvlimit} revisions of ${CeL.wiki.title_link_of(requests_page)}`);
+			CeL.log_temporary(`Get ${rvlimit} revision(s) of ${CeL.wiki.title_link_of(requests_page)}`);
 			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
 				rvprop: 'ids|comment|user|content',
