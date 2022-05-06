@@ -477,7 +477,10 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 	//console.trace(section_title);
 	if (section_title) {
-		CeL.log_temporary(`Get ${rvlimit} comment(s) of ${CeL.wiki.title_link_of(requests_page)}`);
+		CeL.log_temporary({
+			// gettext_config:{"id":"get-$2-edit-summaries-of-$1"}
+			T: ['Get %2 edit {{PLURAL:%2|summary|summaries}} of %1', CeL.wiki.title_link_of(requests_page), rvlimit]
+		});
 		const requests_page_data = await wiki.page(requests_page, {
 			redirects: 1,
 			// rvprop: 'ids|comment|user|content',
@@ -490,7 +493,10 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 		if (!meta_configuration.diff_id) {
 			// get diff_id from content
-			CeL.log_temporary(`Get ${rvlimit} revision(s) of ${CeL.wiki.title_link_of(requests_page)}`);
+			CeL.log_temporary({
+				// gettext_config:{"id":"get-$2-revision(s)-of-$1"}
+				T: ['Get %2 revision(s) of %1', CeL.wiki.title_link_of(requests_page), rvlimit]
+			});
 			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
 				rvprop: 'ids|comment|user|content',
@@ -503,11 +509,15 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	} else if (meta_configuration.diff_id) {
 		// Skip
 	} else {
-		CeL.error(`guess_and_fulfill_meta_configuration: Did not set section_title!`);
+		CeL.error([guess_and_fulfill_meta_configuration.name + ': ', {
+			// gettext_config:{"id":"no-section-title-set"}
+			T: 'No section title set!'
+		}]);
 	}
 
 	if (!meta_configuration.diff_id) {
-		throw new Error(`Cannot extract diff id from ${CeL.wiki.title_link_of(requests_page)} edit summary!`);
+		// gettext_config:{"id":"unable-to-extract-the-revision-difference-id-from-page-edit-summary-of-$1"}
+		throw new Error(CeL.gettext('Unable to extract the revision difference id from page edit summary of %1!', CeL.wiki.title_link_of(requests_page)));
 	}
 
 	// throw new Error(meta_configuration.section_title);
@@ -528,7 +538,14 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 					return;
 				}
 
-				CeL.warn(`${get_move_configuration_from_section.name}: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+				CeL.warn([get_move_configuration_from_section.name + ': ', {
+					// gettext_config:{"id":"multiple-discussion-links-exist"}
+					T: 'Multiple discussion links exist:'
+				}]);
+				CeL.log(CeL.display_align([
+					['\t', CeL.wiki.title_link_of(discussion_link)],
+					['\t', token.toString()]
+				]));
 				discussion_link = null;
 				return section.each.exit;
 			});
@@ -580,7 +597,14 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 					return;
 				}
 
-				CeL.warn(`get_move_configuration_from_section: Multiple discussion links exist: ${CeL.wiki.title_link_of(discussion_link)}, ${token}.`);
+				CeL.warn([get_move_configuration_from_section.name + ': ', {
+					// gettext_config:{"id":"multiple-discussion-links-exist"}
+					T: 'Multiple discussion links exist:'
+				}]);
+				CeL.log(CeL.display_align([
+					['\t', CeL.wiki.title_link_of(discussion_link)],
+					['\t', token.toString()]
+				]));
 				discussion_link = null;
 				return section.each.exit;
 			});
@@ -596,11 +620,17 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 			} catch (e) {
 				//console.trace(meta_configuration);
 				if (meta_configuration.allow_eval) {
-					CeL.error('Not JSON, try eval(): ' + task_options);
+					CeL.error({
+						// gettext_config:{"id":"not-json-try-eval()-$1"}
+						T: ['Not JSON, try eval(): %1', task_options]
+					});
 					eval('task_options = ' + task_options);
 					//console.trace(task_options);
 				} else if (!no_export) {
-					CeL.error('Not JSON, you may want to set allow_eval=true: ' + task_options);
+					CeL.error({
+						// gettext_config:{"id":"not-json-you-may-want-to-set-allow_eval=true-$1"}
+						T: ['Not JSON, you may want to set allow_eval=true: %1', task_options]
+					});
 					throw e;
 				}
 			}
@@ -650,7 +680,10 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 	});
 
 	if (!CeL.is_empty_object(task_configuration_from_section)) {
-		CeL.info(`get_move_configuration_from_section: Get ${Object.keys(task_configuration_from_section).length} task(s) from ${section.section_title.link.toString()}.`);
+		CeL.info([get_move_configuration_from_section.name + ': ', {
+			// gettext_config:{"id":"get-$1-task(s)-from-$2"}
+			T: ['Get %1 task(s) from %2.', Object.keys(task_configuration_from_section).length, section.section_title.link.toString()]
+		}]);
 		//console.trace(task_configuration_from_section);
 		if (!no_export)
 			meta_configuration.task_configuration_from_section = task_configuration_from_section;
@@ -664,7 +697,9 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 	const requests_page_data = await wiki.page(requests_page, { redirects: 1 });
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = requests_page_data.parse();
-	CeL.assert([requests_page_data.wikitext, parsed.toString()], 'wikitext parser check: ' + CeL.wiki.title_link_of(requests_page_data));
+	CeL.assert([requests_page_data.wikitext, parsed.toString()],
+		// gettext_config:{"id":"wikitext-parser-checking-$1"}
+		CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(requests_page_data)));
 
 	const section_title = meta_configuration.section_title;
 	//console.trace(meta_configuration);
