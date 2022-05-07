@@ -525,30 +525,36 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 // Check if there are default move configurations.
 function get_move_configuration_from_section(meta_configuration, section, no_export) {
+	function get_discussion_link(meta_token) {
+		let discussion_link;
+		section.each.call(meta_token, 'link', token => {
+			//console.trace(token);
+			if (!discussion_link) {
+				//discussion_link = token[0] + token[1];
+				discussion_link = token;
+				return;
+			}
+
+			CeL.warn([get_move_configuration_from_section.name + ': ', {
+				// gettext_config:{"id":"multiple-discussion-links-exist"}
+				T: 'Multiple discussion links exist:'
+			}]);
+			CeL.log(CeL.display_align([
+				['\t', CeL.wiki.title_link_of(discussion_link)],
+				['\t', token.toString()]
+			]));
+			discussion_link = null;
+			return section.each.exit;
+		});
+		return discussion_link;
+	}
+
 	if (!meta_configuration.discussion_link) {
 		section.each('list', token => {
 			if (!/議論場所[:：]/.test(token[0]))
 				return;
 
-			let discussion_link;
-			section.each.call(token[0], 'link', token => {
-				if (!discussion_link) {
-					//discussion_link = token[0] + token[1];
-					discussion_link = token;
-					return;
-				}
-
-				CeL.warn([get_move_configuration_from_section.name + ': ', {
-					// gettext_config:{"id":"multiple-discussion-links-exist"}
-					T: 'Multiple discussion links exist:'
-				}]);
-				CeL.log(CeL.display_align([
-					['\t', CeL.wiki.title_link_of(discussion_link)],
-					['\t', token.toString()]
-				]));
-				discussion_link = null;
-				return section.each.exit;
-			});
+			const discussion_link = get_discussion_link(token[0]);
 			if (discussion_link)
 				meta_configuration.discussion_link = discussion_link;
 			// CeL.wiki.parser.parser_prototype.each.exit
@@ -588,26 +594,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		} else if (discussion_link.type === 'link') {
 			//discussion_link = discussion_link[0] + discussion_link[1];
 		} else {
-			discussion_link = null;
-			section.each.call(token.parameters.提案, 'link', token => {
-				//console.trace(token);
-				if (!discussion_link) {
-					//discussion_link = token[0] + token[1];
-					discussion_link = token;
-					return;
-				}
-
-				CeL.warn([get_move_configuration_from_section.name + ': ', {
-					// gettext_config:{"id":"multiple-discussion-links-exist"}
-					T: 'Multiple discussion links exist:'
-				}]);
-				CeL.log(CeL.display_align([
-					['\t', CeL.wiki.title_link_of(discussion_link)],
-					['\t', token.toString()]
-				]));
-				discussion_link = null;
-				return section.each.exit;
-			});
+			discussion_link = get_discussion_link(token.parameters.提案);
 		}
 		//console.trace([token.parameters.提案, discussion_link]);
 
