@@ -197,6 +197,8 @@ var section_column_operators = {
 		var title = section_title.link, adding_link;
 		// 當標題過長時，縮小標題字型。
 		var title_too_long = if_too_long(section.section_title.title), style = title_too_long;
+		// console.trace(CeL.wiki.section_link(title));
+		// console.trace(section.section_title);
 		title = small_title(title, title_too_long);
 
 		var page_configuration = this.page.page_configuration;

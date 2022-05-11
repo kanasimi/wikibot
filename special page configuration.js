@@ -404,6 +404,7 @@ var default_FC_vote_configurations = {
 			var title = section.section_title.title,
 			// 當標題過長時，縮小標題字型。
 			title_too_long = if_too_long(title);
+			// TODO: title = CeL.wiki.parser.section_link(title); ...
 			// @see section_link_toString() @ CeL.wiki
 			title = CeL.wiki.title_link_of(section.section_title.link[0]
 					.replace(/\/(?:提名区|提名區)$/, '')

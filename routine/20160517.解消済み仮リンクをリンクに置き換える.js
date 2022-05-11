@@ -108,6 +108,8 @@ template_orders = {
 	}
 },
 
+gettext = CeL.gettext,
+
 /** {Object}L10n messages. 符合當地語言的訊息內容。 */
 message_set = {
 	ja : {
@@ -120,13 +122,6 @@ message_set = {
 				'Category:解消済み仮リンクを含むページ' ],
 		report_page : '修正が必要な仮リンク',
 		fix_category : 'Category:修正が必要な仮リンクを含む記事',
-		report_summary : '解消済み仮リンクを内部リンクに置き換える作業の報告',
-		// 手動修正必要。
-		manual_correction_required : 'このリストは手動で修正する必要のある記事群です。リストはボットによって自動更新されます。',
-		generate_date : '生成時間：',
-		edit : '編',
-		report_1 : ':: ……合計',
-		report_2 : '回発生しました。',
 		// 網羅所有 interlanguage link templates。
 		// @see
 		// https://ja.wikipedia.org/w/index.php?title=%E7%89%B9%E5%88%A5:%E3%83%AA%E3%83%B3%E3%82%AF%E5%85%83/Template:%E4%BB%AE%E3%83%AA%E3%83%B3%E3%82%AF&namespace=10&limit=500&hidetrans=1&hidelinks=1
@@ -149,14 +144,6 @@ message_set = {
 			}, template_orders.LF)
 		},
 
-		summary_prefix : 'bot: 解消済み仮リンク',
-		summary_separator : '、',
-		summary_postfix : 'を内部リンクに置き換えます',
-
-		no_template : 'テンプレートを発見できません。',
-		// 仮リンクに記されるべき「他言語版の言語コード」が空白である場合
-		// 仮リンクに記されるべき「他言語版へのリンク先」が空白である場合
-		invalid_template : 'テンプレートの使用に誤りがある。',
 		// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
 		missing_foreign : '他言語版記事自体存在しません。',
 		// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
@@ -181,6 +168,7 @@ message_set = {
 
 	en : {
 		Category_has_local_page : 'Category:Interlanguage link template existing link',
+		report_page : 'Interlanguage link templates need to fix',
 		fix_category : 'Category:Wikipedia backlog',
 		// 2016‎/11 全部統合到 {{Interlanguage link}}
 		template_order_of_name : {
@@ -228,12 +216,6 @@ message_set = {
 		// fix_category : 'Category:跨語言連結有問題的頁面', Category:連結格式不正確的條目,
 		// Category:维基百科积压工作, Category:需要清理的条目, Category:维基百科条目清理
 		fix_category : 'Category:维基百科条目清理',
-		report_summary : '跨語言連結清理報告',
-		manual_correction_required : '這裡列出了需人工修正的跨語言連結。本列表將由機器人自動更新。',
-		generate_date : '產生時間：',
-		edit : '編',
-		report_1 : ':: ……共發生了',
-		report_2 : '次。',
 		// TODO: 這邊尚未列舉完成
 		template_order_of_name : {
 			'interlanguage link multi' : template_orders.LcF_en,
@@ -248,12 +230,6 @@ message_set = {
 			}, template_orders.LF)
 		},
 
-		summary_prefix : 'bot: 清理跨語言連結',
-		summary_separator : '、',
-		summary_postfix : '成為內部連結:編輯摘要的red link經繁簡轉換後存在',
-
-		no_template : '未發現跨語言連結模板',
-		invalid_template : '跨語言連結模板的格式錯誤。',
 		// 對應頁面, 指向的頁面
 		missing_foreign : '所對應的外語條目不存在。',
 		foreign_is_disambiguation : '所對應的外語頁面為消歧義頁。',
@@ -274,23 +250,9 @@ message_set = {
 
 	// default messages
 	'*' : {
-		report_page : 'Interlanguage link templates need to fix',
-		report_summary : 'Report of converting interlanguage link templates',
-		// Manual correction required.
-		manual_correction_required : 'Here lists some templates need to be checked manually. The list will be automatically refreshed by the bot.',
-		generate_date : 'Generate date: ',
-		edit : 'E',
-		report_1 : ':: ... Total ',
-		report_2 : ' times occurred.',
-
-		summary_prefix : 'bot: Convert ',
-		summary_separator : ', ',
-		// internal link
-		summary_postfix : ' to wikilink',
-
-		no_template : 'No interwiki link template found.',
-		// 語法錯誤
-		invalid_template : 'Syntax error',
+		report_notification :
+		// gettext_config:{"id":"here-is-a-list-of-interlanguage-links-that-need-to-be-manually-corrected.-this-list-will-be-updated-automatically-by-the-robot"}
+		gettext('Here is a list of interlanguage links that need to be manually corrected. This list will be updated automatically by the robot.'),
 		// manually
 		// 可能純粹為了註記關聯性（譯名）而存在，因此缺 foreign page。
 		missing_foreign : 'Missing foreign page.',
@@ -449,17 +411,19 @@ function check_final_work() {
 			// an external link rather than as an wikilink
 			// TODO: use {{fullurl}}
 			+ ' ([{{fullurl:' + title + '|action=edit}} '
-			//
-			+ message_set.edit + '])');
+			// gettext_config:{"id":"edit-mark"}
+			+ gettext('edit-mark') + '])');
 
 			Object.keys(error_messages).sort().forEach(function(error_name) {
 				messages.push(':; ' + error_name);
 				var list = error_messages[error_name];
 				if (list.length > 20) {
 					messages.append(list.slice(0, 20));
-					messages.push(message_set.report_1 + list.length + message_set.report_2);
-					if (false)
-						messages.push(CeL.gettext(':: ... Total %1 time(s) occurred.', list.length));
+					messages.push(':: ' + gettext(
+					// gettext_config:{"id":"a-total-of-$1-occurrences"}
+					'... A total of %1 {{PLURAL:%1|occurrence|occurrences}}.'
+					//
+					, list.length));
 				} else {
 					messages.append(list);
 				}
@@ -473,11 +437,13 @@ function check_final_work() {
 			// 本次報告僅列出所有出問題頁面的大約 ?%。
 			+ ' of all problematic pages.',
 			//
-			message_set.manual_correction_required + '\n'
+			message_set.report_notification + '\n'
 			// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-			+ '* ' + message_set.generate_date
+			+ '* ' + gettext(
+			// gettext_config:{"id":"report-generation-date-$1"}
+			'Report generation date: %1', '<onlyinclude>~~~~~</onlyinclude>')
 			//
-			+ '<onlyinclude>~~~~~</onlyinclude>\n'
+			+ '\n'
 			// + '== Problematic pages ==\n'
 			);
 			this.summary += ' ' + listed + '/' + all;
@@ -492,7 +458,9 @@ function check_final_work() {
 	}, {
 		// section : 'new',
 		// sectiontitle : '結果報告',
-		summary : message_set.report_summary,
+		summary : gettext(
+		// gettext_config:{"id":"cleanup-report-for-interlanguage-link-templates"}
+		'Cleanup report for interlanguage link templates'),
 		nocreate : 1,
 		bot : 1
 	});
@@ -701,11 +669,11 @@ function for_each_page(page_data, messages) {
 			).edit(last_content, {
 				// section : 'new',
 				// sectiontitle : title,
-				summary : message_set.summary_prefix
 				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
-				+ changed.join(message_set.summary_separator)
-				//
-				+ message_set.summary_postfix,
+				// gettext_config:{"id":"convert-$1-to-wikilink"}
+				summary : gettext('Convert %1 to wikilink',
+				// gettext_config:{"id":"Comma-separator"}
+				changed.join(gettext('Comma-separator'))),
 				nocreate : 1,
 				minor : 1,
 				bot : 1
@@ -1025,7 +993,11 @@ function for_each_page(page_data, messages) {
 								// 若在 Tool Labs 取得 wikipedia 的資料，
 								// 卻遇上 domain name not found，
 								// 通常表示 language (API_URL) 設定錯誤。
-								check_page(message_set.invalid_template);
+								check_page(gettext(
+								// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
+								'Syntax error in the interlanguage link template.'
+								//
+								));
 							} else {
 								check_page(message_set.retrive_foreign_error);
 							}
@@ -1095,10 +1067,20 @@ function for_each_page(page_data, messages) {
 	parser.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
-		CeL.warn('for_each_page: ' + CeL.wiki.title_link_of(title)
-		// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
-		+ ' 未發現已登記之跨語言連結模板。'
-				+ '也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？');
+		CeL
+				.warn([
+						'for_each_page: ',
+						CeL.wiki.title_link_of(title) + ': ',
+						{
+							// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
+							// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
+							T : 'No registered interwiki link templates were found.'
+						},
+						{
+							T :
+							// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
+							'Maybe there are unregistered interwiki link templates, or some transcluded templates/articles with interwiki link templates that have local articles (usually in the last section of the page)?'
+						} ]);
 		// check_page(message_set.no_template);
 		check_final_work();
 		return;

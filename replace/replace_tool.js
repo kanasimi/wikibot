@@ -215,12 +215,12 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 		const matched = language_code && language_code.match(/^([a-z]+)\-/);
 		if (matched) {
 			meta_configuration.language = matched[1];
-			CeL.info(['replace_tool: ', {
+			CeL.info([CeL.env.script_name + ': ', {
 				// gettext_config:{"id":"treat-$1-as-language-$2"}
 				T: ['Treat %1 as language: %2.', JSON.stringify(meta_configuration.section_title), CeL.gettext.get_alias(language_code) || language_code]
 			}]);
 		} else {
-			const message = 'replace_tool: '
+			const message = CeL.env.script_name + ': '
 				// gettext_config:{"id":"cannot-detect-language-of-$1"}
 				+ CeL.gettext('Cannot detect language of %1!', JSON.stringify(meta_configuration.section_title));
 			CeL.error(message);
@@ -718,8 +718,8 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 // auto-notice: Starting replace task
 async function notice_to_edit(wiki, meta_configuration) {
 	const options = {
-		// 着手します
-		summary: use_language === 'ja' ? '作業を始めます' : 'Starting bot request task.'
+		// gettext_config:{"id":"the-requested-robot-task-begins"}
+		summary: CeL.gettext('The requested robot task begins.')
 	};
 
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
@@ -789,7 +789,8 @@ async function notice_finished(wiki, meta_configuration) {
 	const options = {
 		// 完了、確認待ち 
 		// +{{解決済み}}: @ general_replace.js
-		summary: use_language === 'ja' ? '作業が終了しました' : 'Bot request task finished.'
+		// gettext_config:{"id":"the-requested-robot-task-finished"}
+		summary: CeL.gettext('The requested robot task finished.')
 	};
 	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
 
