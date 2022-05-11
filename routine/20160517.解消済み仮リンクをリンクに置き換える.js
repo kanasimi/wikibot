@@ -26,6 +26,7 @@
  TODO:
  如果來自{{Translation/Ref}}所引起的話，則請檢查<article>參數。
  {{main|{{跨語言連結}}}} → {{main|連結}}, NOT {{main|[[連結]]}} 要把連結也拿掉
+ 模板解析功能放進 CeL.application.net.wiki.template_functions
 
  */
 
@@ -144,8 +145,6 @@ message_set = {
 			}, template_orders.LF)
 		},
 
-		// 仮リンクに記された「他言語版へのリンク先」が存在せず（赤リンク）、どの記事からもリンクされていないもの
-		missing_foreign : '他言語版記事自体存在しません。',
 		// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
 		foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページです。',
 		// [[ja:Help:セクション]]
@@ -230,8 +229,6 @@ message_set = {
 			}, template_orders.LF)
 		},
 
-		// 對應頁面, 指向的頁面
-		missing_foreign : '所對應的外語條目不存在。',
 		foreign_is_disambiguation : '所對應的外語頁面為消歧義頁。',
 		foreign_redirect_to_section : '所對應的外語頁面重定向到了條目章節。',
 		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到正確的Wikidata項目。',
@@ -253,9 +250,6 @@ message_set = {
 		report_notification :
 		// gettext_config:{"id":"here-is-a-list-of-interlanguage-links-that-need-to-be-manually-corrected.-this-list-will-be-updated-automatically-by-the-robot"}
 		gettext('Here is a list of interlanguage links that need to be manually corrected. This list will be updated automatically by the robot.'),
-		// manually
-		// 可能純粹為了註記關聯性（譯名）而存在，因此缺 foreign page。
-		missing_foreign : 'Missing foreign page.',
 		foreign_is_disambiguation : 'Foreign page is disambiguation.',
 		foreign_redirect_to_section : 'Foreign page redirects to section.',
 		missing_converted_local : 'Missing converted local page, or the foreign / local page is not link to wikidata.',
@@ -871,7 +865,10 @@ function for_each_page(page_data, messages) {
 
 		function for_foreign_page(foreign_page_data) {
 			if (!CeL.wiki.content_of.page_exists(foreign_page_data)) {
-				check_page(message_set.missing_foreign);
+				// 需要手動修正的錯誤: 可能純粹為了註記關聯性（譯名）而存在，因此缺 foreign page。
+				check_page(gettext(
+				// gettext_config:{"id":"the-corresponding-foreign-language-page-does-not-exist"}
+				'The corresponding foreign language page does not exist.'));
 				return;
 			}
 
@@ -937,7 +934,9 @@ function for_each_page(page_data, messages) {
 
 		function for_WD(entity, error) {
 			if (error || !entity) {
-				check_page(message_set.missing_foreign);
+				check_page(gettext(
+				// gettext_config:{"id":"the-corresponding-foreign-language-page-does-not-exist"}
+				'The corresponding foreign language page does not exist.'));
 				return;
 			}
 
@@ -1041,7 +1040,9 @@ function for_each_page(page_data, messages) {
 						throw new Error('Array.isArray(redirect_data)');
 					}
 					if (!redirect_data) {
-						check_page(message_set.invalid_template);
+						check_page(gettext(
+						// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
+						'Syntax error in the interlanguage link template.'));
 						return;
 					}
 
@@ -1051,7 +1052,9 @@ function for_each_page(page_data, messages) {
 
 			} else {
 				setImmediate(function() {
-					check_page(message_set.invalid_template);
+					check_page(gettext(
+					// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
+					'Syntax error in the interlanguage link template.'));
 				});
 			}
 		}
@@ -1081,7 +1084,10 @@ function for_each_page(page_data, messages) {
 							// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
 							'Maybe there are unregistered interwiki link templates, or some transcluded templates/articles with interwiki link templates that have local articles (usually in the last section of the page)?'
 						} ]);
-		// check_page(message_set.no_template);
+		if (false) {
+			// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
+			check_page(gettext('No registered interwiki link templates were found.'));
+		}
 		check_final_work();
 		return;
 	}
