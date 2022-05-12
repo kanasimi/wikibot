@@ -906,7 +906,9 @@ async function check_page(target_page_data, options) {
 	const for_each_page_options = {
 		notification_name: 'anchor-fixing',
 		no_message: true, no_warning: true,
-		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('修正失效的網頁錨點')),
+		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+			// gettext_config:{"id":"fixing-broken-anchor"}
+			CeL.gettext('修正失效的網頁錨點')),
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
@@ -1013,11 +1015,15 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				this.summary += (anchor_token ? ', ' : '') + CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors);
+				this.summary += (anchor_token ? ', ' : '')
+					// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
+					+ CeL.gettext('提醒移除%1個失效網頁錨點', removed_anchors);
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
-					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${CeL.gettext('移除%1個失效網頁錨點提醒', removed_anchors)}`);
+					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${
+						// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
+						CeL.gettext('提醒移除%1個失效網頁錨點', removed_anchors)}`);
 				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
@@ -1068,23 +1074,29 @@ async function check_page(target_page_data, options) {
 			const target_link = move_to_page_title_via_link && (move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : ''));
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki> ${move_to_page_title_via_link
-				? CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((anchor_token.article_index ? anchor_token[anchor_token.anchor_index] : anchor_token[0]) + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
+				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
+				? CeL.gettext('網頁錨點 %1 連結到專屬頁面頁面：%2。', CeL.wiki.title_link_of((anchor_token.article_index ? anchor_token[anchor_token.anchor_index] : anchor_token[0]) + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
 				: ''
 				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 					? `${record.disappear ?
 						// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
+						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
 						CeL.gettext('此網頁錨點（%2）之前[[Special:Diff/%1|曾被其他用戶刪除過]]。', record.disappear.revid, anchor_token[1]) : ''
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 					} <!-- ${JSON.stringify(record)} -->` : ''}`;
-			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${
+				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
+				CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		}
 
 		//console.trace(anchor_token);
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			// Notification of broken anchor
 			notification_name: 'anchor-fixing',
-			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
+			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
+				CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
 			bot: 1,
 			//minor: 1,
 			//nocreate: false,
@@ -1148,6 +1160,7 @@ async function check_page(target_page_data, options) {
 			// [[#A_B]] → [[#A B]]
 			const section_title = section_title_history[token.anchor]?.title;
 			change_to_anchor(section_title);
+			// gettext_config:{"id":"update-links-to-archived-section-$1-$2"}
 			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			add_summary(this, message);
@@ -1183,8 +1196,10 @@ async function check_page(target_page_data, options) {
 				// 請注意: 網頁錨點有區分大小寫與繁簡體。
 				if (variant[1] === rename_to) {
 					if (variant[0] === MARK_case_change) {
+						// gettext_config:{"id":"incorrect-capitalization-spaced-section-title"}
 						type = CeL.gettext('大小寫或空白相異的網頁錨點');
 					} else {
+						// gettext_config:{"id":"inconsistency-between-traditional-and-simplified-chinese"}
 						type = CeL.gettext('繁簡不符匹配而失效的網頁錨點');
 					}
 					return true;
@@ -1195,7 +1210,9 @@ async function check_page(target_page_data, options) {
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: ${original_anchor}${ARROW_SIGN}${hash}`);
-			add_summary(this, `${type || `[[Special:Diff/${record.disappear.revid}|${new Date(record.disappear.timestamp).format({ format: '%Y-%2m-%2d', zone: 0 })}]]${record?.very_different ? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
+			add_summary(this, `${type || `[[Special:Diff/${record.disappear.revid}|${new Date(record.disappear.timestamp).format({ format: '%Y-%2m-%2d', zone: 0 })}]]${record?.very_different
+				// gettext_config:{"id":"very-different"}
+				? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
 				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`);
 
 			change_to_anchor(rename_to);
@@ -1212,7 +1229,8 @@ async function check_page(target_page_data, options) {
 			if (change_to_page_title(move_to_page_title_via_link[0]))
 				return;
 			const target_link = move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : '');
-			const message = CeL.gettext('%1 已有專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
+			// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
+			const message = CeL.gettext('網頁錨點 %1 連結到專屬頁面頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
 			add_summary(this, message);
@@ -1244,6 +1262,7 @@ async function check_page(target_page_data, options) {
 			const num_rename_to = rename_to.replace(/[^\d]/g, '');
 			const need_check = !num_token || !num_rename_to || num_token.includes(num_rename_to) || num_rename_to.includes(num_token) ? ''
 				// 當阿拉伯數字都增刪時較容易出問題。
+				// gettext_config:{"id":"please-help-to-check-this-edit"}
 				: CeL.gettext('請幫忙檢核此次編輯。');
 			if ((!need_check
 				// 必須避免已移去存檔頁面之 anchor。 e.g., [[w:zh:Special:Diff/65523646]]
@@ -1251,6 +1270,7 @@ async function check_page(target_page_data, options) {
 				&& wiki.is_talk_namespace(linking_page_data)
 				// 假如 token.anchor 消失時和 rename_to 共存，則不該是 token.anchor 換成 rename_to。
 			) && !(section_title_history[rename_to]?.appear?.revid < section_title_history[token.anchor]?.disappear?.revid)) {
+				// gettext_config:{"id":"$1→most-alike-anchor-$2"}
 				add_summary(this, `${CeL.gettext('%1→當前最近似的網頁錨點%2', original_anchor, CeL.wiki.title_link_of(target_page_data.title + '#' + rename_to))
 					}${need_check}`);
 				if (section_title_history[token.anchor]) {
