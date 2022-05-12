@@ -27,6 +27,7 @@
  如果來自{{Translation/Ref}}所引起的話，則請檢查<article>參數。
  {{main|{{跨語言連結}}}} → {{main|連結}}, NOT {{main|[[連結]]}} 要把連結也拿掉
  模板解析功能放進 CeL.application.net.wiki.template_functions
+ TODO: Q6099744 [[Template:Interwiki conflict]]
 
  */
 
@@ -143,26 +144,7 @@ message_set = {
 			'link-en' : Object.assign({
 				'|foreign_language' : 'en'
 			}, template_orders.LF)
-		},
-
-		// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
-		foreign_is_disambiguation : '他言語版項目リンク先が曖昧さ回避ページです。',
-		// [[ja:Help:セクション]]
-		foreign_redirect_to_section : '他言語版項目リンク先がセクションへ転送します。',
-		// リンク先が他言語版とリンクしていないもの
-		missing_converted_local : '他言語版項目リンク先からの日本語版項目が存在しないか、他言語版とリンクしていません。',
-		// リンク先の他言語版とのリンクが仮リンクに記されているものと違うもの
-		// 仮リンクに記された「他言語版へのリンク先」とリンクしている「日本語版のページ名」が「第1引数のリンク先」と一致しないもの
-		// TODO: Q6099744
-		different_local_title : '日本語版項目名が違う記事です。',
-		redirect_back_to_page_itself : '[[WP:SELF|自己言及]]リンク。',
-		not_exist : '存在しません',
-		from_parameter : '引数から',
-		translated_from_foreign_title : '他言語版項目リンク先から',
-		skip_talk_pages : '個人の発言が含まれているため修正しない',
-
-		preserved : '強制表示引数(preserve)を指定するなので、修正の必要がありません。',
-		retrive_foreign_error : '他言語版項目を取得できず、次回実行する時に再試行します。'
+		}
 	},
 
 	en : {
@@ -227,44 +209,14 @@ message_set = {
 			le : Object.assign({
 				'|foreign_language' : 'en'
 			}, template_orders.LF)
-		},
-
-		foreign_is_disambiguation : '所對應的外語頁面為消歧義頁。',
-		foreign_redirect_to_section : '所對應的外語頁面重定向到了條目章節。',
-		missing_converted_local : '外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到正確的Wikidata項目。',
-		// 由於一些重定向不是常用的名稱，因此由機器人直接重定向可能不太妥當。這時仍需人工判別。
-		different_local_title : '所對應的中文條目標題與模板參數所列出的不相符。',
-		redirect_back_to_page_itself : '所對應的中文條目重定向到了頁面本身。[[WP:CIRCULAR]]或可擴充重定向？',
-		local_title_too_new : '中文條目過新，將過幾天再測試。',
-		not_exist : '不存在',
-		from_parameter : '從模板參數',
-		translated_from_foreign_title : '從外語頁面對應的中文條目',
-		skip_talk_pages : '本作業不處理使用者發言',
-
-		preserved : '指定了強制顯示參數，不做修改。',
-		retrive_foreign_error : '無法取得所對應的外語條目。將於下次執行時再做嘗試。'
+		}
 	},
 
 	// default messages
 	'*' : {
 		report_notification :
 		// gettext_config:{"id":"here-is-a-list-of-interlanguage-links-that-need-to-be-manually-corrected.-this-list-will-be-updated-automatically-by-the-robot"}
-		gettext('Here is a list of interlanguage links that need to be manually corrected. This list will be updated automatically by the robot.'),
-		foreign_is_disambiguation : 'Foreign page is disambiguation.',
-		foreign_redirect_to_section : 'Foreign page redirects to section.',
-		missing_converted_local : 'Missing converted local page, or the foreign / local page is not link to wikidata.',
-		// gets form langlinks
-		different_local_title : 'The local title is different from title gets form wikidata.',
-		redirect_back_to_page_itself : 'The local link target links back to the page itself. [[MOS:CIRCULAR]]?',
-		local_title_too_new : 'The local page is too new. Will test later.',
-		not_exist : 'Not exist',
-		from_parameter : 'From the parameter of template',
-		translated_from_foreign_title : 'Translated from foreign title',
-		skip_talk_pages : 'This task does not process user talk',
-
-		// always display
-		preserved : 'Preserve interlanguage links for the "preserve" parameter is set.',
-		retrive_foreign_error : 'Cannot retrive foreign page. I will retry next time.'
+		gettext('Here is a list of interlanguage links that need to be manually corrected. This list will be updated automatically by the robot.')
 	}
 };
 
@@ -677,7 +629,12 @@ function for_each_page(page_data, messages) {
 		function modify_link(link_target) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]]
 			if (parameters.preserve || parameters.display) {
-				check_page(message_set.preserved, true);
+				check_page(
+						gettext(
+						// gettext_config:{"id":"preserve-interlanguage-links-because-of-the-preserve-parameter-is-set"}
+						'Preserve interlanguage links because of the "preserve" parameter is set.'),
+						true);
+				// always display
 				return;
 			}
 
@@ -724,7 +681,8 @@ function for_each_page(page_data, messages) {
 			// [[利用者‐会話:Kanashimi#Wikipedia空間の投票コメントの書き換え]]
 			// Wikipedia空間には投票コメントなど個人の発言が含まれているため修正しないほうがよいでしょう（例えば今回の仮リンクには「当時、記事は存在していなかった」という記号の役割もあります）。もし個人の発言ページを区別するのが困難なのであれば、Wikipedia空間全体をノート同様に書き換え禁止としたほうが安全です。
 			|| page_data.title.startsWith('Wikipedia:削除依頼/')) {
-				check_page(message_set.skip_talk_pages);
+				// gettext_config:{"id":"the-task-does-not-process-talk-pages"}
+				check_page(gettext('The task does not process talk pages'));
 				return;
 			}
 			modify_link();
@@ -745,9 +703,18 @@ function for_each_page(page_data, messages) {
 				if (page_data.title === title) {
 					// @see [[w:en:MOS:CIRCULAR]]
 					CeL.info('Skip '
-							+ CeL.wiki.title_link_of(converted_local_title)
-							+ ': ' + message_set.redirect_back_to_page_itself);
-					check_page(message_set.redirect_back_to_page_itself);
+					//
+					+ CeL.wiki.title_link_of(converted_local_title) + ': '
+							+ gettext(
+							// gettext_config:{"id":"the-local-link-target-links-back-to-the-page-itself.-mos-circular"}
+							'The local link target links back to the page itself. [[MOS:CIRCULAR]]?'
+							//
+							));
+					check_page(gettext(
+					// gettext_config:{"id":"the-local-link-target-links-back-to-the-page-itself.-mos-circular"}
+					'The local link target links back to the page itself. [[MOS:CIRCULAR]]?'
+					//
+					));
 
 				} else if (Date.now() - page_data.creation_Date > 7 * 24 * 60
 						* 60 * 1000) {
@@ -755,9 +722,16 @@ function for_each_page(page_data, messages) {
 
 				} else {
 					CeL.info('Skip '
-							+ CeL.wiki.title_link_of(converted_local_title)
-							+ ': ' + message_set.local_title_too_new);
-					check_page(message_set.local_title_too_new, true);
+					//
+					+ CeL.wiki.title_link_of(converted_local_title) + ': '
+					//
+					+ gettext(
+					// gettext_config:{"id":"the-local-page-is-too-new.-will-try-again-next-time"}
+					'The local page is too new. Will try again next time.'));
+					check_page(gettext(
+					// gettext_config:{"id":"the-local-page-is-too-new.-will-try-again-next-time"}
+					'The local page is too new. Will try again next time.'),
+							true);
 				}
 			}, {
 				// 順便取得頁面內容。
@@ -789,7 +763,9 @@ function for_each_page(page_data, messages) {
 						// 從外語言條目連結無法取得本地頁面的情況。
 						if (redirect_data) {
 							// 存在本地頁面。e.g., redirected page
-							check_page(message_set.missing_converted_local);
+							check_page(gettext(
+							// gettext_config:{"id":"missing-converted-local-page-or-the-foreign-local-page-is-not-link-to-wikidata"}
+							'外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到正確的Wikidata項目。'));
 						} else {
 							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
 							// 此應屬正常。
@@ -836,24 +812,33 @@ function for_each_page(page_data, messages) {
 					token.error_message
 					//
 					= redirect_data ? redirect_data === local_title ? ''
-							: ' → ' + CeL.wiki.title_link_of(redirect_data)
-							: ': ' + message_set.not_exist;
+					//
+					: ' → ' + CeL.wiki.title_link_of(redirect_data) : ': '
+					// gettext_config:{"id":"does-not-exist"}
+					+ gettext('Does not exist');
 					token.error_message = ':: '
-							+ message_set.from_parameter
-							+ ': '
-							+ CeL.wiki.title_link_of(local_title)
-							+ ' '
-							+ token.error_message
-							+ '. '
-							+ message_set.translated_from_foreign_title
-							+ ': '
-							+ (converted_local_title ? CeL.wiki
-									.title_link_of(converted_local_title)
-									: message_set.not_exist);
+					// gettext_config:{"id":"from-the-parameter-of-template"}
+					+ gettext('From the parameter of template') + ': '
+							+ CeL.wiki.title_link_of(local_title) + ' '
+							+ token.error_message + '. '
+							// gettext_config:{"id":"from-foreign-language-title"}
+							+ gettext('From foreign language title') + ': '
+							+ (converted_local_title
+							//
+							? CeL.wiki.title_link_of(converted_local_title)
+							// gettext_config:{"id":"does-not-exist"}
+							: gettext('Does not exist'));
 
+					// gets form langlinks
+					// TODO: Q6099744 [[Template:Interwiki conflict]]
+					// 由於一些重定向不是常用的名稱，因此由機器人直接重定向可能不太妥當。這時仍需人工判別。
 					// test:
 					// <!-- リダイレクト先の「[[...]]」は、[[:en:...]] とリンク -->
-					check_page(message_set.different_local_title);
+					check_page(gettext(
+					// gettext_config:{"id":"the-local-title-is-different-from-the-one-given-by-the-template-parameters"}
+					'The local title is different from the one given by the template parameters.'
+					//
+					));
 				});
 				return;
 			}
@@ -879,7 +864,9 @@ function for_each_page(page_data, messages) {
 						+ foreign_language + ':' + foreign_title + ']] @ '
 						+ CeL.wiki.title_link_of(title));
 			} else if ('disambiguation' in foreign_page_data.pageprops) {
-				check_page(message_set.foreign_is_disambiguation);
+				// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
+				// gettext_config:{"id":"the-corresponding-foreign-language-page-is-a-disambiguation-page"}
+				check_page(gettext('The corresponding foreign language page is a disambiguation page.'));
 				return;
 			}
 
@@ -897,7 +884,9 @@ function for_each_page(page_data, messages) {
 				redirect_data = redirect_data[0];
 				// test #REDIRECT [[title#section]]
 				if (redirect_data.tofragment) {
-					check_page(message_set.foreign_redirect_to_section);
+					// [[ja:Help:セクション]]
+					// gettext_config:{"id":"the-corresponding-foreign-language-page-is-redirected-to-a-section"}
+					check_page(gettext('The corresponding foreign language page is redirected to a section.'));
 					return;
 				}
 			}
@@ -941,7 +930,8 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (CeL.wiki.data.is_DAB(entity)) {
-				check_page(message_set.foreign_is_disambiguation);
+				// gettext_config:{"id":"the-corresponding-foreign-language-page-is-a-disambiguation-page"}
+				check_page(gettext('The corresponding foreign language page is a disambiguation page.'));
 				return;
 			}
 
@@ -998,7 +988,11 @@ function for_each_page(page_data, messages) {
 								//
 								));
 							} else {
-								check_page(message_set.retrive_foreign_error);
+								check_page(gettext(
+								// gettext_config:{"id":"could-not-retrieve-the-foreign-page.-i-will-retry-next-time"}
+								'Could not retrieve the foreign page. I will retry next time.'
+								//
+								));
 							}
 							/**
 							 * do next action. 警告: 若是自行設定 .onfail，則需要自行善後。
@@ -1070,20 +1064,15 @@ function for_each_page(page_data, messages) {
 	parser.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
-		CeL
-				.warn([
-						'for_each_page: ',
-						CeL.wiki.title_link_of(title) + ': ',
-						{
-							// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
-							// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
-							T : 'No registered interwiki link templates were found.'
-						},
-						{
-							T :
-							// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
-							'Maybe there are unregistered interwiki link templates, or some transcluded templates/articles with interwiki link templates that have local articles (usually in the last section of the page)?'
-						} ]);
+		CeL.warn([ 'for_each_page: ', CeL.wiki.title_link_of(title) + ': ', {
+			// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
+			// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
+			T : 'No registered interwiki link templates were found.'
+		}, {
+			T :
+			// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
+			'也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？'
+		} ]);
 		if (false) {
 			// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
 			check_page(gettext('No registered interwiki link templates were found.'));

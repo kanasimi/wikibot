@@ -118,7 +118,7 @@ clean_wiki_sandbox(
 		'<noinclude>{{Sandbox}}</noinclude>\n== Please start your testing below this line ==\n',
 		// Specify page title to prevent redirecting to important page.
 		'Wikipedia:Sandbox',
-		'Clearing the sandbox. If you want to keep a longer time, please test in the [[Special:MyPage/Sandbox|personal sandbox]], and you may want to check the revision history of the sandbox as well.');
+		'Clear the sandbox. If you want to keep it longer, please test it in [[Special:MyPage/Sandbox|personal sandbox]], you can also check the revision history of the sandbox.');
 
 // --------------------------
 

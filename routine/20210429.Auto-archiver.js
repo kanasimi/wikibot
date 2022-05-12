@@ -59,7 +59,7 @@ async function for_each_discussion_page(page_data) {
 	// Will use the first matched as configuration.
 	const archive_configuration = parsed.find_template(archive_template_name)?.parameters;
 	if (!archive_configuration) {
-		CeL.console.error(`Cannot find {{${archive_template_name}}} in ${CeL.wiki.title_link_of(page_data)}`);
+		CeL.error(`Cannot find {{${archive_template_name}}} in ${CeL.wiki.title_link_of(page_data)}`);
 		return;
 	}
 	//console.log(archive_configuration);

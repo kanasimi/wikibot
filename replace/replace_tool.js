@@ -725,7 +725,7 @@ async function notice_to_edit(wiki, meta_configuration) {
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
 		//console.trace(section);
 		meta_configuration.bot_requests_section = section;
-		//委託人
+		// 委託人
 		meta_configuration.bot_requests_user = section.users[0];
 		//console.trace(meta_configuration.bot_requests_user);
 
@@ -739,7 +739,10 @@ async function notice_to_edit(wiki, meta_configuration) {
 		// PATTERN =
 		// new RegExp(PATTERN.source + ' .+?' + meta_configuration.wiki.token.login_user_name, PATTERN.flags);
 		if (section.toString().includes(doing_message) /*PATTERN.test(section.toString())*/) {
-			CeL.info(`Already noticed doning: ${meta_configuration.section_title}`);
+			CeL.info({
+				// gettext_config:{"id":"already-reminded-that-the-operation-is-in-progress-$1"}
+				T: ['Already reminded that the operation is in progress: %1', meta_configuration.section_title]
+			});
 			options.need_edit = false;
 			return;
 		}
@@ -771,7 +774,8 @@ async function notice_to_edit(wiki, meta_configuration) {
 		if (warning_messages.length > 0)
 			parsed[index] += '\n' + warning_messages.join('\n');
 		if (meta_configuration.abort_operation) {
-			options.summary = 'Add warning messages.';
+			// gettext_config:{"id":"add-warning-messages"}
+			options.summary = CeL.gettext('Add warning messages.');
 		} else {
 			parsed[index] += `\n* ${doing_message}`;
 		}
@@ -781,6 +785,7 @@ async function notice_to_edit(wiki, meta_configuration) {
 	}, options);
 
 	if (options.need_edit === undefined) {
+		// 未發現這個標題:""
 		CeL.info(`No title ${JSON.stringify(meta_configuration.section_title)} found. Will NOT auto-notice starting to edit!`);
 	}
 }
@@ -800,9 +805,9 @@ async function notice_finished(wiki, meta_configuration) {
 			|| (wiki_language === 'ja' ?
 				// {{利用者の投稿記録リンク|Example|50|20100820121030|4}}
 				// {{BOTREQ|済}} こちらのリンクからご確認下さい
-				`{{BOTREQ|完了}} 修正しなかった場合や望ましくない状況があるなら、お教えください。今後の参考になります。全て問題無い場合は{{tl|確認}}でご確認をお願いします。`
+				`{{BOTREQ|完了}} 修正しなかった場合や好ましくない状況がありましたら、お知らせください。今後の参考にさせていただきます。全て問題無い場合は{{tl|確認}}でご確認をお願いします。`
 				: wiki_language === 'zh' ? '{{BOTREQ|done}}: 請協助檢查錯誤，並不吝提供些意見，謝謝。'
-					: '{{Done}} Please check the result and tell me if there are something going wrong, thank you.')
+					: '{{Done}} Please check the results and let me know if there is something wrong, thank you.')
 			+ (_log_to ? ` - ${CeL.wiki.title_link_of(_log_to, 'log')}` : '');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
@@ -928,11 +933,11 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			task_configuration.move_to_link = await wiki.redirects_root(move_from_link);
 			CeL.info(`prepare_operation: ${CeL.wiki.title_link_of(move_from_link)} redirects to → ${CeL.wiki.title_link_of(task_configuration.move_to_link)}`);
 			if (move_from_link === task_configuration.move_to_link) {
-				CeL.error('prepare_operation: Target the same with move source! ' + CeL.wiki.title_link_of(task_configuration.move_to_link));
+				CeL.error('prepare_operation: The moving target is the same as the moving source! ' + CeL.wiki.title_link_of(task_configuration.move_to_link));
 			}
 
 		} else if (move_from_link === task_configuration.move_to_link) {
-			CeL.warn(`Target is the same as source: ${CeL.wiki.title_link_of(move_from_link)}`);
+			CeL.warn(`The moving target is the same as the moving source: ${CeL.wiki.title_link_of(move_from_link)}`);
 		}
 		//console.trace(task_configuration);
 
@@ -1756,10 +1761,13 @@ function for_each_link(token, index, parent) {
 	//if (page_title.includes(this.move_from.page_name))console.log(token);
 
 	if (!page_title_data
+		// 檢查命名空間是否正確。排除錯誤的命名空間。
 		|| page_title_data.ns !== this.move_from.ns
 		// this.wiki.normalize_title(this.move_from.page_name): 這邊的 (this.move_from.page_name) 可能是 no_upper_case_initial 的。
 		|| page_title_data.page_name !== this.wiki.normalize_title(this.move_from.page_name)
+		// 排除錯誤的 anchor。
 		|| typeof this.move_from.anchor === 'string' && this.move_from.anchor !== token.anchor
+		// 排除錯誤的 display text。
 		|| typeof this.move_from.display_text === 'string' && this.move_from.display_text !== (token[2] || '').toString().trim()
 		// 排除連結標的與頁面名稱相同的情況。
 		//|| this.page_data.title === this.move_to_link
@@ -1788,6 +1796,13 @@ function for_each_link(token, index, parent) {
 			// e.g., リダイレクト解消
 			CeL.assert(token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main'), `${for_each_link.name}: namesapce must be main when delete page`);
 		}
+		return;
+	}
+
+	if (CeL.data.is_DAB(page_title) && !CeL.data.is_DAB(this.move_to.page_title)
+		// 避免消歧義頁被連結到特定定義頁面。 e.g., [[w:ja:Special:Diff/89467425|沙崙駅 (曖昧さ回避)]]
+		&& this.move_to.page_title.startsWith(this.move_from.page_title) && /^ *\([^()]+\)$/.test(this.move_to.page_title.slice(this.move_from.page_title.length))
+	) {
 		return;
 	}
 
