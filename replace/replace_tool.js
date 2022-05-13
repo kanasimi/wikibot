@@ -785,8 +785,13 @@ async function notice_to_edit(wiki, meta_configuration) {
 	}, options);
 
 	if (options.need_edit === undefined) {
-		// 未發現這個標題:""
-		CeL.info(`No title ${JSON.stringify(meta_configuration.section_title)} found. Will NOT auto-notice starting to edit!`);
+		CeL.info([{
+			//  gettext_config:{"id":"no-title-found-for-$1"}
+			T: ['No title found for %1.', JSON.stringify(meta_configuration.section_title)]
+		}, {
+			// gettext_config:{"id":"will-not-automatically-notify-the-task-begins"}
+			T: 'Will not automatically notify the task begins!'
+		}]);
 	}
 }
 
@@ -824,7 +829,10 @@ async function notice_finished(wiki, meta_configuration) {
 	}, options);
 
 	if (options.need_edit === undefined) {
-		CeL.info('Will NOT auto-notice finished!');
+		CeL.info({
+			// gettext_config:{"id":"will-not-automatically-notify-the-task-finished"}
+			T: 'Will not automatically notify the task finished!'
+		});
 	}
 }
 

@@ -1,4 +1,11 @@
-﻿'use strict';
+﻿/*
+
+TODO:
+[[1920年以前香港命案列表]]	"|date=1907-09-25 work=香港華字日報 }}"
+
+*/
+
+'use strict';
 
 // Load replace tools.
 const replace_tool = require('../replace/replace_tool.js');
@@ -75,7 +82,12 @@ async function main_process() {
 			namespace: 0,
 			for_template,
 			list_types: 'categorymembers',
-		}
+		},
+		'Category:引文格式1错误：日期': {
+			namespace: 0,
+			for_template,
+			list_types: 'categorymembers',
+		},
 	});
 }
 
@@ -158,7 +170,8 @@ function for_template(token, index, parent) {
 			// e.g., 'July 14, 2020'
 			&& !/^[a-z]{3,9}\s+[0-3]?\d\s*,\s*[12]\d{3}$/i.test(value)
 			// e.g., '2013-1-24'
-			&& !/^[12]\d{3}[.\/\-–－—─~～〜﹣][01]?\d[.\/\-–－—─~～〜﹣][0-3]?\d$/i.test(value)
+			// e.g., '2013--1-24'
+			&& !/^[12]\d{3}[.\/\-–－—─~～〜﹣]{1,3}[01]?\d[.\/\-–－—─~～〜﹣]{1,3}[0-3]?\d$/i.test(value)
 		) {
 			unknown_format = true;
 		}
@@ -180,7 +193,7 @@ function for_template(token, index, parent) {
 		// e.g., '2/12/2007'
 		// e.g., '05.02.2013'
 		matched = value.match(/(\d+)[\s.\/\-–－—─~～〜﹣]+(\d+)[\s.\/\-–－—─~～〜﹣]+(\d{4})/);
-		if (matched && +matched[1] <= 12 && +matched[2] <= 12) {
+		if (matched && +matched[1] <= 12 && +matched[2] <= 12 && +matched[1] !== +matched[2]) {
 			CeL.log(`Cannot determine month or date: |${parameter_name}=${original_value}|`);
 			invalid_date = true;
 			continue;

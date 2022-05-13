@@ -26,9 +26,8 @@
  TODO:
  如果來自{{Translation/Ref}}所引起的話，則請檢查<article>參數。
  {{main|{{跨語言連結}}}} → {{main|連結}}, NOT {{main|[[連結]]}} 要把連結也拿掉
- 模板解析功能放進 CeL.application.net.wiki.template_functions
+ 模板解析功能放進 CeL.application.net.wiki.template_functions。 Other configurations moving to wiki.latest_task_configuration.general
  Q6099744 [[Template:Interwiki conflict]]
- move message_set to wiki.latest_task_configuration.general
 
  */
 
