@@ -394,7 +394,8 @@ async function get_PubMed_ID_list(start_date, end_date) {
 
 // ----------------------------------------------------------------------------
 
-const summary_source_posifix = ` [[${problematic_data_page_title}|from NCBI, Europe PMC and CrossRef]]`;
+const summary_source_posifix = ` [[${problematic_data_page_title}|from NCBI, Europe PMC and CrossRef]]`
+	&& ` from NCBI, Europe PMC and CrossRef`;
 
 async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 	// https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary

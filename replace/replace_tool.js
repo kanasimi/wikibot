@@ -61,6 +61,8 @@ CeL.run([
 	'application.debug.log',
 	// 載入不同地區語言的功能 for CeL.gettext()。
 	'application.locale',
+	// CeL.wiki.data.is_DAB()
+	'application.net.wiki.data',
 ]);
 
 
@@ -260,7 +262,9 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 // ---------------------------------------------------------------------//
 
 const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_nochange', 'allow_empty'];
-const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'replace_text_pattern', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace', 'no_task_configuration_from_section', 'get_task_configuration_from', 'caption', 'allow_eval'].append(work_option_switches);
+const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'replace_text_pattern', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace',
+	'no_task_configuration_from_section', 'get_task_configuration_from', 'min_list_length',
+	'caption', 'allow_eval'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -440,6 +444,7 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 					const parsed = CeL.wiki.parser(added_text, meta_configuration.wiki.append_session_to_options()).parse();
 					let found;
 					parsed.each('section_title', section_title_token => {
+						//console.log([section_title, section_title_token.title]);
 						found = section_title === section_title_token.title;
 						if (found) {
 							return parsed.each.exit;
@@ -495,7 +500,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 			// get diff_id from content
 			CeL.log_temporary({
 				// gettext_config:{"id":"get-$2-revision(s)-of-$1"}
-				T: ['Get %2 revision(s) of %1', CeL.wiki.title_link_of(requests_page), rvlimit]
+				T: ['Get %2 {{PLURAL:%2|revision|revisions}} of %1', CeL.wiki.title_link_of(requests_page), rvlimit]
 			});
 			const requests_page_data = await wiki.page(requests_page, {
 				redirects: 1,
@@ -578,7 +583,8 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 	} else if (meta_configuration.get_task_configuration_from === 'list') {
 		section.each('list', list_token => {
 			//console.log(list_token);
-			if (list_token.length >= 3) {
+			//console.log(meta_configuration);
+			if (list_token.length >= (meta_configuration.min_list_length || 3)) {
 				parse_move_pairs_from_link(list_token, task_configuration_from_section, meta_configuration);
 			}
 		});
@@ -669,7 +675,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 	if (!CeL.is_empty_object(task_configuration_from_section)) {
 		CeL.info([get_move_configuration_from_section.name + ': ', {
 			// gettext_config:{"id":"get-$1-task(s)-from-$2"}
-			T: ['Get %1 task(s) from %2.', Object.keys(task_configuration_from_section).length, section.section_title.link.toString()]
+			T: ['Get %1 {{PLURAL:%1|task|tasks}} from %2.', Object.keys(task_configuration_from_section).length, section.section_title.link.toString()]
 		}]);
 		//console.trace(task_configuration_from_section);
 		if (!no_export)
@@ -715,6 +721,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 	}
 }
 
+// 自動提醒/通知
 // auto-notice: Starting replace task
 async function notice_to_edit(wiki, meta_configuration) {
 	const options = {
@@ -807,15 +814,14 @@ async function notice_finished(wiki, meta_configuration) {
 	await for_bot_requests_section(wiki, meta_configuration, function (section) {
 		const wiki_language = wiki.site_name({ get_all_properties: true }).language;
 		const finished_message = meta_configuration.finished_message
-			|| (wiki_language === 'ja' ?
-				// {{利用者の投稿記録リンク|Example|50|20100820121030|4}}
-				// {{BOTREQ|済}} こちらのリンクからご確認下さい
-				`{{BOTREQ|完了}} 修正しなかった場合や好ましくない状況がありましたら、お知らせください。今後の参考にさせていただきます。全て問題無い場合は{{tl|確認}}でご確認をお願いします。`
-				: wiki_language === 'zh' ? '{{BOTREQ|done}}: 請協助檢查錯誤，並不吝提供些意見，謝謝。'
-					: '{{Done}} Please check the results and let me know if there is something wrong, thank you.')
+			// gettext_config:{"id":"robot-task-completion-notification"}
+			|| '{{Done}} Please check the results and let me know if there is something wrong, thank you.'
 			+ (_log_to ? ` - ${CeL.wiki.title_link_of(_log_to, 'log')}` : '');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
-			CeL.info(`Already noticed finished: ${meta_configuration.section_title}`);
+			CeL.info({
+				// gettext_config:{"id":"already-notified-that-the-task-is-finished-$1"}
+				T: ['Already notified that the task is finished: %1', meta_configuration.section_title]
+			});
 			options.need_edit = false;
 			return;
 		}
@@ -908,7 +914,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		// 中文條目也必須處理語言變體（繁簡轉換）情形。
 		if (meta_configuration.language === 'cmn' && !task_configuration.list_title
 			// 確認是有必要轉換的，不是完全英文標題。
-			&& !/^[\w\s]*$/.test(move_from_link)) {
+			// /[\u4e00-\u9fa5]/: 匹配中文。
+			&& /[\u4e00-\u9fff]/.test(move_from_link)) {
 			let varianttitle = await meta_configuration.wiki.convert_Chinese(move_from_link, { uselang: 'zh-hant' });
 			if (varianttitle === move_from_link) {
 				varianttitle = await meta_configuration.wiki.convert_Chinese(move_from_link, { uselang: 'zh-hans' });
@@ -939,9 +946,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		} else if (task_configuration.move_to_link === REDIRECT_TARGET) {
 			task_configuration.move_to_link = await wiki.redirects_root(move_from_link);
-			CeL.info(`prepare_operation: ${CeL.wiki.title_link_of(move_from_link)} redirects to → ${CeL.wiki.title_link_of(task_configuration.move_to_link)}`);
+			CeL.info(`${prepare_operation.name}: ${CeL.wiki.title_link_of(move_from_link)} redirects to → ${CeL.wiki.title_link_of(task_configuration.move_to_link)}`);
 			if (move_from_link === task_configuration.move_to_link) {
-				CeL.error('prepare_operation: The moving target is the same as the moving source! ' + CeL.wiki.title_link_of(task_configuration.move_to_link));
+				CeL.error(`${prepare_operation.name}: The moving target is the same as the moving source! ` + CeL.wiki.title_link_of(task_configuration.move_to_link));
 			}
 
 		} else if (move_from_link === task_configuration.move_to_link) {
@@ -1062,19 +1069,19 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		} else if (typeof diff_id === 'string') {
 			diff_id = diff_id.match(/^(\d+)\/(\d+)$/);
 			if (!diff_id) {
-				CeL.warn(`prepare_operation: Invalid diff_id: ${diff_id}`);
+				CeL.warn(`${prepare_operation.name}: Invalid diff_id: ${diff_id}`);
 			} else if (diff_id[1] > diff_id[2]) {
-				CeL.warn(`prepare_operation: Swap diff_id: ${diff_id[0]}`);
+				CeL.warn(`${prepare_operation.name}: Swap diff_id: ${diff_id[0]}`);
 				diff_id = `${diff_id[2]}/${diff_id[1]}`;
 			} else if (diff_id[1] === diff_id[2]) {
-				CeL.warn(`prepare_operation: Using diff_id: ${diff_id[1]}`);
+				CeL.warn(`${prepare_operation.name}: Using diff_id: ${diff_id[1]}`);
 				diff_id = diff_id[1];
 			} else {
 				diff_id = diff_id[0];
 			}
 		} else if (meta_configuration.speedy_criteria) {
 		} else if (typeof diff_id !== 'number' || !(diff_id > 0) || Math.floor(diff_id) !== diff_id) {
-			CeL.warn(`prepare_operation: Invalid diff_id: ${diff_id}`);
+			CeL.warn(`${prepare_operation.name}: Invalid diff_id: ${diff_id}`);
 		}
 
 		task_configuration.summary = {
@@ -1130,8 +1137,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			} catch (e) {
 				if (e.code !== 'missingtitle' && e.code !== 'articleexists') {
 					if (e.code) {
-						CeL.error(`Failed to move ${CeL.wiki.title_link_of(move_from_link)} → ${CeL.wiki.title_link_of(task_configuration.move_to_link)
-							}: [${e.code}] ${e.info}`);
+						CeL.error([prepare_operation.name + ': ', {
+							// gettext_config:{"id":"move-$1-to-$2-failed-$3"}
+							T: ['Move %1 to %2 failed: %3', CeL.wiki.title_link_of(move_from_link), CeL.wiki.title_link_of(task_configuration.move_to_link), `[${e.code}] ${e.info}`]
+						}]);
 					} else {
 						console.error(e);
 					}
@@ -1435,7 +1444,10 @@ async function get_list(task_configuration, list_configuration) {
 						&& !replace_to.toLowerCase().includes(replace_from.toLowerCase())) {
 						const also_replace_display_text = [new RegExp(CeL.to_RegExp_pattern(replace_from), 'g'), replace_to];
 						//console.trace(also_replace_display_text);
-						CeL.info(`Auto-replace display text: ${also_replace_display_text[0]}→${also_replace_display_text[1]}`);
+						CeL.info({
+							// gettext_config:{"id":"automatically-replace-the-display-text-of-links-$1→$2"}
+							T: ['Automatically replace the display text of links: %1→%2', also_replace_display_text[0].toString(), also_replace_display_text[1]]
+						});
 						if (!task_configuration.also_replace_display_text)
 							task_configuration.also_replace_display_text = [];
 						task_configuration.also_replace_display_text.push(also_replace_display_text);
@@ -1468,10 +1480,8 @@ async function get_list(task_configuration, list_configuration) {
 				move_from_string = move_from_string[1];
 				let replace_from = move_from_string.match(CeL.PATTERN_RegExp);
 				if (replace_from) {
-					// Should use {'note':{move_from_link:/move from
-					// string/,move_to_link:'move to string'}}
-					// instead of {'insource:/move from string/':'move to
-					// string'}
+					// Should use {'note':{move_from_link:/move from string/,move_to_link:'move to string'}}
+					// instead of {'insource:/move from string/':'move to string'}
 					replace_from = new RegExp(replace_from[1], 'g' + (replace_from[2].includes('i') ? 'i' : ''));
 				} else {
 					// e.g., {'insource:"move from string"':'move to string'}
@@ -1510,16 +1520,30 @@ async function get_list(task_configuration, list_configuration) {
 		//page_list = await wiki.page(page_list, { rvprop: 'ids' });
 		//console.trace(page_list);
 		//console.trace(page_list[0]);
-		CeL.info(`${get_list.name}: Process ${page_list.length} pages...`);
+		CeL.info([get_list.name + ': ', {
+			// gettext_config:{"id":"processed-$1-pages"}
+			T: ['Processed %1 {{PLURAL:%1|page|pages}}.', page_list.length]
+		}]);
 		need_unique = true;
 		// Warning: Should filter 'Wikipedia|User' yourself!
 	} else {
 		page_list = null;
-		CeL.info(`${get_list.name}: Get types: ${list_types.join(', ')}`
-			+ (list_title_list ? ` of ${wiki.site_name()}: ${list_types.join() === 'search' ? list_title_list : CeL.wiki.title_link_of(list_title_list)}` : '')
-			+ (list_configuration.move_from_link && list_configuration.move_from_link !== list_title_list ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '')
-			+ (` (namespace: ${list_options.namespace})`)
-		);
+		const allitional_notes = list_configuration.move_from_link && list_configuration.move_from_link !== list_title_list ? ` (${JSON.stringify(list_configuration.move_from_link)})` : '';
+		CeL.info([get_list.name + ': ', list_title_list ? {
+			// gettext_config:{"id":"get-list-of-$1-from-$2"}
+			T: ['Get list of %1 from %2.',
+				(list_types.join() === 'search' ? list_title_list : CeL.wiki.title_link_of(list_title_list)) + allitional_notes,
+				wiki.site_name()
+			]
+		} : allitional_notes, {
+			// gettext_config:{"id":"list-types-$1"}
+			T: ['List types: %1.',
+				// gettext_config:{"id":"Comma-separator"}
+				list_types.join(CeL.gettext('Comma-separator'))]
+		}, {
+			// gettext_config:{"id":"namespaces-$1"}
+			T: ['Namespaces: %1.', list_options.namespace]
+		}]);
 		const list_filter = list_configuration.list_filter;
 		for (const list_title of (Array.isArray(list_title_list) ? list_title_list : [list_title_list])) {
 			for (const type of list_types) {
@@ -1574,7 +1598,10 @@ async function get_list(task_configuration, list_configuration) {
 		if (page_list_options)
 			page_list.options = page_list_options;
 	} else {
-		CeL.info(`${get_list.name}: Get ${page_list.length} page(s) from ${list_label}`);
+		CeL.info([get_list.name + ': ', {
+			// gettext_config:{"id":"get-$1-pages-from-$2"}
+			T: ['Get %1 {{PLURAL:%1|page|pages}} from %2', page_list.length, list_label]
+		}]);
 	}
 
 	// for debug
@@ -1807,7 +1834,7 @@ function for_each_link(token, index, parent) {
 		return;
 	}
 
-	if (CeL.data.is_DAB(page_title) && !CeL.data.is_DAB(this.move_to.page_title)
+	if (CeL.wiki.data.is_DAB(page_title) && !CeL.wiki.data.is_DAB(this.move_to.page_title)
 		// 避免消歧義頁被連結到特定定義頁面。 e.g., [[w:ja:Special:Diff/89467425|沙崙駅 (曖昧さ回避)]]
 		&& this.move_to.page_title.startsWith(this.move_from.page_title) && /^ *\([^()]+\)$/.test(this.move_to.page_title.slice(this.move_from.page_title.length))
 	) {
@@ -2363,7 +2390,7 @@ async function parse_move_pairs_from_page(page_title, options) {
 		});
 	} else {
 		section_token.each('list', list_token => {
-			if (list_token.length > 5)
+			if (list_token.length >= (options.min_list_length || 5))
 				parse_move_pairs_from_link(list_token, move_title_pair, options);
 		});
 	}

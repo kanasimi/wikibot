@@ -3,7 +3,8 @@
 node general_replace.js 車站編號標誌 get_task_configuration_from=list namespace=Module also_replace_text_insource
 node general_replace.js 車站編號標誌 get_task_configuration_from=list skip_nochange=false
 
-node general_replace.js 電影產地模板2 get_task_configuration_from=list
+node general_replace.js 郑州南站改为郑州航空港站 get_task_configuration_from=list min_list_length=1
+node general_replace.js "請求替換用戶頁中的模板：{{Youtube User}} → {{User YouTube}}" get_task_configuration_from=list min_list_length=1 namespace=user
 
 */
 
