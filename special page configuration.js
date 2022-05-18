@@ -1281,6 +1281,8 @@ function check_BOTREQ_status(section, section_index) {
 
 			Declined : true,
 			駁回 : true,
+			拒絕 : true,
+			拒绝 : true,
 			'Thrown out' : true,
 			却下 : true,
 
