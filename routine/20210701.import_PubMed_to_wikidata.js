@@ -171,8 +171,10 @@ async function main_process() {
 		// PMID: 19790808 was deleted because it is a duplicate of PMID: 9541661
 		// Tested:
 		//|| [19790808, '17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077', 33513662, 4721605]
+		&& [166623, 165946, 168322, 178485, 178486]
 
-		|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10);
+		//|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
+		;
 
 	const link_list = [];
 	const start_time = Date.now();
@@ -340,7 +342,10 @@ async function search_DOIs(DOI_list) {
 	for (let index = 0; index < DOI_list.length;) {
 		let this_slice = '';
 		while (index < DOI_list.length && this_slice.length < MAX_slice_length) {
-			this_slice += JSON.stringify(DOI_list[index++].toUpperCase()) + ' ';
+			// https://www.wikidata.org/wiki/Property_talk:P356
+			// Uppercase recommended.
+			const DOI = DOI_list[index++].toUpperCase();
+			this_slice += JSON.stringify(DOI) + ' ' + JSON.stringify(DOI.toLowerCase()) + ' ';
 		}
 		const item_list = await wiki.SPARQL(`
 SELECT ?doi ?item ?itemLabel WHERE {
@@ -350,12 +355,37 @@ SELECT ?doi ?item ?itemLabel WHERE {
 }`);
 		item_list.forEach(item_data =>
 			DOI_to_item_id_mapping.set(
-				CeL.wiki.data.value_of(item_data.doi),
+				CeL.wiki.data.value_of(item_data.doi).toUpperCase(),
 				// [ item id, itemLabel ]
 				[CeL.wiki.data.value_of(item_data.item).match(/\/(Q\d+)$/)[1], CeL.wiki.data.value_of(item_data.itemLabel)]
 			)
 		);
 	}
+
+
+	// https://www.mediawiki.org/wiki/Help:Extension:WikibaseCirrusSearch
+	if (false) {
+		const DOI_entity_list = await wiki.search('haswbstatement:' + JSON.stringify(DOI_list.map(DOI => 'P356=' + DOI).join('|')), { namespace: 0 });
+		DOI_entity_list.forEach(item_data =>
+			DOI_to_item_id_mapping.set(
+				// TODO
+			)
+		);
+
+		for (let DOI of DOI_list) {
+			DOI = DOI.toUpperCase();
+			const DOI_entity_list = await wiki.search('haswbstatement:' + JSON.stringify('P356=' + DOI), { namespace: 0 });
+			DOI_entity_list.forEach(item_data => {
+				if (!DOI_to_item_id_mapping.has(DOI))
+					DOI_to_item_id_mapping.set(
+						DOI,
+						// [ item id, itemLabel ]
+						[item_data.title]
+					)
+			});
+		}
+	}
+
 
 	//console.trace(DOI_to_item_id_mapping);
 	return DOI_to_item_id_mapping;
@@ -800,7 +830,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		return;
 	}
 	if (!NCBI_article_data || !Europe_PMC_article_data) {
-		CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: Fault to get data!`);
+		CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: Failed to get data!`);
 		return;
 	}
 	console.assert(PubMed_ID.toString() === NCBI_article_data.uid && NCBI_article_data.uid === Europe_PMC_article_data.id && Europe_PMC_article_data.id === Europe_PMC_article_data.pmid);
@@ -860,12 +890,28 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		});
 	}
 
+	data_to_modify.title_list = new Set();
+
 	function add_title_claim(references, title, language) {
+		if (!title)
+			title = main_title;
+
 		const claim = {
 			// title 標題 (P1476)
-			P1476: title || main_title,
+			P1476: title,
 			references
 		};
+
+		if (data_to_modify.title_list.has(title)) {
+			// 無須添加重複的標題。
+			return;
+		}
+
+		data_to_modify.title_list.add(title);
+		if (!data_to_modify.title_list.preferred_claim) {
+			// 把第一個當最佳的。
+			data_to_modify.title_list.preferred_claim = claim;
+		}
 
 		if (language)
 			claim.language = language;
@@ -1275,6 +1321,8 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			}, [])
 		);
 		//console.trace(DOI_to_item_id_mapping);
+
+		// TODO: 找出確實的文章項目。例如 Q37036571 的參考資料。
 		for (let index = 0; index < CrossRef_article_data.reference.length;) {
 			const reference_data = CrossRef_article_data.reference[index];
 
@@ -1282,6 +1330,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				// series ordinal (P1545) 系列序號
 				P1545: ++index,
 			};
+
 			// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
 			if (reference_data.volume) {
 				qualifiers.P478 = reference_data.volume;
@@ -1290,10 +1339,6 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				// page(s) (P304)
 				qualifiers.P304 = reference_data['first-page'];
 				// cf. number of pages (P1104)
-			}
-			if (reference_data['article-title']) {
-				// native label (P1705)
-				qualifiers.P1705 = reference_data['article-title'];
 			}
 			if (reference_data.author) {
 				// author name string (P2093) 作者姓名字符串
@@ -1309,20 +1354,27 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				references: CrossRef_article_data.wikidata_references
 			};
 
+			let cites_work_title;
+
 			if (reference_data.DOI) {
 				const DOI = reference_data.DOI.toUpperCase();
 				if (!DOI_to_item_id_mapping.has(DOI))
 					continue;
 				//qualifiers[NCBI_articleid_properties_mapping.doi] = DOI;
-				// cites work (P2860)
-				claim.P2860 = DOI_to_item_id_mapping.get(DOI)[0];
-				data_to_modify.claims.push(claim);
-				continue;
+				cites_work_title = DOI_to_item_id_mapping.get(DOI)[0];
+
+			} else if (reference_data['article-title']) {
+				// native label (P1705)
+				// qualifiers.P1705 = reference_data['article-title'];
+				cites_work_title = reference_data['article-title'];
+
+			} else if (reference_data['journal-title']) {
+				cites_work_title = reference_data['journal-title'];
 			}
 
-			if (reference_data['journal-title']) {
+			if (cites_work_title) {
 				// cites work (P2860)
-				claim.P2860 = reference_data['journal-title'];
+				claim.P2860 = cites_work_title;
 				data_to_modify.claims.push(claim);
 				continue;
 			}
@@ -1330,7 +1382,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			if (
 				// title only
 				reference_data['series-title']
-				// 供應商尚未處理
+				// 供應商尚未處理。
 				|| reference_data.unstructured
 				// key only
 				|| Object.keys(reference_data).join() === 'key'
@@ -1392,14 +1444,18 @@ ORDER BY DESC (?item)
 				// https://www.wikidata.org/wiki/Property_talk:P356
 				// Uppercase recommended.
 				id = id.toUpperCase();
+				// For case-insensitive search
+				id_filter.push(`
+				{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`, `
+				{ ?item wdt:${property_id} ${JSON.stringify(id.toLowerCase())}. } UNION`);
 				break;
 			case 'pmc':
 				id = id.replace(/^PMC/, '');
 				console.assert(CeL.is_digits(id));
+				id_filter.push(`
+				{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
 				break;
 		}
-		id_filter.push(`
-	{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
 
 		data_to_modify.claims.push({
 			[property_id]: id,
@@ -1438,6 +1494,7 @@ ORDER BY DESC (?item)
 		delete data_to_modify.publication_date_claim;
 		delete data_to_modify.publication_date;
 		delete data_to_modify.publication_in_claim_qualifiers;
+		delete data_to_modify.title_list;
 		delete data_to_modify.author_list;
 		delete data_to_modify.main_subject;
 	}
@@ -1471,13 +1528,51 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			delete data_to_modify.descriptions[language_code];
 	}
 
+	// 刪除有問題且正規化後會重複的 title 標題 (P1476)，例如標題結尾有 "."。
+	if (Array.isArray(article_item.claims.P1476)) {
+		for (const statement of article_item.claims.P1476) {
+			const original_title = CeL.wiki.data.value_of(statement);
+			const normalized_title = normalize_article_title(original_title)[0];
+			if (original_title === normalized_title) {
+				data_to_modify.claims = data_to_modify.claims.filter(statement => {
+					// 跳過重複的新設定。
+					return statement.P1476 !== normalized_title;
+				});
+				data_to_modify.title_list.delete(normalized_title);
+				continue;
+			}
+			if (!data_to_modify.title_list.has(normalized_title)) {
+				// Left the original title untouched.
+				data_to_modify.title_list.add(normalized_title);
+				continue;
+			}
+			data_to_modify.claims.push({
+				P1476: original_title,
+				remove: true
+			});
+		}
+	}
+
+	// 超過一個標題，應該選出一個最佳標題。
+	if (data_to_modify.title_list.size > 1
+		// 必須原文是英文，才該把最佳標題設成英文標題。
+		&& !data_to_modify.is_non_English_title
+		&& data_to_modify.title_list.preferred_claim
+		&& !data_to_modify.title_list.preferred_claim.qualifiers) {
+		data_to_modify.title_list.preferred_claim.rank = 'preferred';
+		data_to_modify.title_list.preferred_claim.qualifiers = {
+			// reason for preferred rank (P7452) = most precise value (Q71536040)
+			P7452: 'Q71536040'
+		};
+	}
+	//console.trace(data_to_modify.claims);
+
 	// 檢測原先就有的 author (P50) 作者，例如手動加入的。
 	if (Array.isArray(article_item.claims.P50) && (data_to_modify.author_list.no_item_count || Array.isArray(article_item.claims.P2093))) {
 		//console.trace(article_item.claims.P50);
 		const author_list = data_to_modify.author_list;
 		// author (P50) 作者
-		for (let index = 0; index < article_item.claims.P50.length; index++) {
-			const statement = article_item.claims.P50[index];
+		for (const statement of article_item.claims.P50) {
 			let ordinal = CeL.wiki.data.value_of(statement.qualifiers?.P1545);
 			if (!ordinal || !((ordinal = +ordinal[0]) > 0) || author_list.has_item[ordinal]) return;
 			const entity_id = CeL.wiki.data.value_of(statement);

@@ -11,7 +11,7 @@
  # 以函數 for_each_page() + for_each_template() 檢查每一個頁面，找出所有跨語言模板。
  # 以函數 for_foreign_page() 檢查跨語言模板模板所指引的外語言條目連結是否合適。
  # 以函數 for_local_page() 檢查外語言條目連結所指向的本地條目連結是否合適。
- # 以函數 check_local_creation_date() 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
+ # 以函數 check_local_creation_date() 檢查本地頁面是否創建夠久(7天)。新文章必須過一禮拜才能當作穩定，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
  # 以函數 exclude_talk_page() 排除使用者發言。
  # 對於通過測試的跨語言模板連結，以函數 modify_link() 修改跨語言模板。
  # 以函數 check_page() 收尾每一個頁面的工作。
@@ -688,7 +688,7 @@ function for_each_page(page_data, messages) {
 			modify_link();
 		}
 
-		// 檢查本地頁面是否創建夠久(7天)，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
+		// 檢查本地頁面是否創建夠久(7天)。新文章必須過一禮拜才能當作穩定，跳過一禮拜內新建（或有更新）頁面，有刪除模板的亦跳過之。
 		// TODO: 並且檢查沒掛上刪除模板。
 		// TODO: リンク先が曖昧さ回避であるもの（{{要曖昧さ回避}}が後置されている場合も有り）
 		function check_local_creation_date(converted_local_title) {
