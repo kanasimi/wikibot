@@ -155,7 +155,7 @@ async function main_process() {
 
 	// --------------------------------------------------------------------------------------------
 
-	await infinite_execution();
+	//await infinite_execution();
 
 	const start_date = new Date('2021-02-01');
 	// Set to yesterday.
@@ -171,7 +171,7 @@ async function main_process() {
 		// PMID: 19790808 was deleted because it is a duplicate of PMID: 9541661
 		// Tested:
 		//|| [19790808, '17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077', 33513662, 4721605]
-		&& [166623, 165946, 168322, 178485, 178486]
+		&& [/*166623, 165946, 168322, 178485, 178486,*/178685]
 
 		//|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
 		;
@@ -335,7 +335,7 @@ WHERE
 	CeL.debug(`${published_source_mapping.size - initial_size}/${source_item_list.length} sources filled.`, 1, 'fill_published_source_mapping');
 }
 
-const MAX_slice_length = 4000;
+const MAX_slice_length = 2000;
 async function search_DOIs(DOI_list) {
 	const DOI_to_item_id_mapping = new Map();
 
@@ -892,6 +892,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	data_to_modify.title_list = new Set();
 
+	function title_to_id(title) {
+		return title.toUpperCase();
+	}
+
 	function add_title_claim(references, title, language) {
 		if (!title)
 			title = main_title;
@@ -902,12 +906,13 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			references
 		};
 
-		if (data_to_modify.title_list.has(title)) {
+		const title_id = title_to_id(title);
+		if (data_to_modify.title_list.has(title_id)) {
 			// 無須添加重複的標題。
 			return;
 		}
 
-		data_to_modify.title_list.add(title);
+		data_to_modify.title_list.add(title_id);
 		if (!data_to_modify.title_list.preferred_claim) {
 			// 把第一個當最佳的。
 			data_to_modify.title_list.preferred_claim = claim;
@@ -1422,18 +1427,19 @@ ORDER BY DESC (?item)
 	// ids of NCBI are relatively complete
 	NCBI_article_data.articleids.forEach(articleid => {
 		const idtype = articleid.idtype;
+		//console.trace([articleid, idtype]);
 		if (!(idtype in NCBI_articleid_properties_mapping)) {
 			//console.trace(NCBI_article_data);
 			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to NCBI_articleid_properties_mapping!`);
 		}
 		let property_id = NCBI_articleid_properties_mapping[idtype];
 		if (!property_id) {
-			// Do not use this id.
+			// Do not use this id. e.g., rid, eid
 			return;
 		}
 
 		let id = articleid.value;
-		if (!+id) {
+		if (!id) {
 			// 未提供本種類ID
 			// https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id=1201098
 			return;
@@ -1449,11 +1455,20 @@ ORDER BY DESC (?item)
 				{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`, `
 				{ ?item wdt:${property_id} ${JSON.stringify(id.toLowerCase())}. } UNION`);
 				break;
+
 			case 'pmc':
 				id = id.replace(/^PMC/, '');
-				console.assert(CeL.is_digits(id));
-				id_filter.push(`
-				{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
+				if (CeL.is_digits(id)) {
+					id_filter.push(`
+					{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
+				}
+				break;
+
+			case 'pubmed':
+				if (CeL.is_digits(id)) {
+					id_filter.push(`
+						{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
+				}
 				break;
 		}
 
@@ -1467,7 +1482,7 @@ ORDER BY DESC (?item)
 		// TODO:
 	}
 
-	//console.trace(SPARQL.join(''));
+	//console.trace(SPARQL_check_duplicates.join(''));
 	const article_item_list = await wiki.SPARQL(SPARQL_check_duplicates.join(''));
 	//console.trace(article_item_list);
 	//console.trace(article_item_list.id_list());
@@ -1533,17 +1548,18 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 		for (const statement of article_item.claims.P1476) {
 			const original_title = CeL.wiki.data.value_of(statement);
 			const normalized_title = normalize_article_title(original_title)[0];
+			const title_id = title_to_id(normalized_title);
 			if (original_title === normalized_title) {
 				data_to_modify.claims = data_to_modify.claims.filter(statement => {
 					// 跳過重複的新設定。
 					return statement.P1476 !== normalized_title;
 				});
-				data_to_modify.title_list.delete(normalized_title);
+				data_to_modify.title_list.delete(title_id);
 				continue;
 			}
-			if (!data_to_modify.title_list.has(normalized_title)) {
+			if (!data_to_modify.title_list.has(title_id)) {
 				// Left the original title untouched.
-				data_to_modify.title_list.add(normalized_title);
+				data_to_modify.title_list.add(title_id);
 				continue;
 			}
 			data_to_modify.claims.push({
