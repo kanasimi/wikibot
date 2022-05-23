@@ -9,6 +9,9 @@ TODO:
 添加 corrigendum / erratum (P2507) 勘誤的標示
 	https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC1201098&resulttype=core&format=json
 
+remove bad cite
+merge items
+
 依照 series ordinal 調整作者排序
 https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
 P921 https://www.wikidata.org/w/index.php?title=Q69566581&diff=prev&oldid=1566235568&diffmode=source
@@ -155,7 +158,7 @@ async function main_process() {
 
 	// --------------------------------------------------------------------------------------------
 
-	//await infinite_execution();
+	await infinite_execution();
 
 	const start_date = new Date('2021-02-01');
 	// Set to yesterday.
@@ -171,7 +174,7 @@ async function main_process() {
 		// PMID: 19790808 was deleted because it is a duplicate of PMID: 9541661
 		// Tested:
 		//|| [19790808, '17246615', '1201098', '32650478', '33914448', '33932783', '11373397', '34380020', '34411149', '34373751', '33772245', '34572048', '34433058', '33914447', '33914446', '33915672', '33910271', '33910272', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, '10615162', '10615163', '10615181', '10615182',  '21451737', '21456434', '21456435', '21456436', '28210669', '28210670', '28210672', '28955519', '33693211', '33733121', '33747299', '33778691', '30830320', '30830336', '30830341', '30830358', '32126504', '32294188', '32294189', '32626077', 33513662, 4721605]
-		&& [/*166623, 165946, 168322, 178485, 178486,*/178685]
+		&& [/*166623, 165946, 168322, 178485, 178486, 178685,*/178686, 178687, 178688,]
 
 		//|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
 		;
@@ -622,14 +625,15 @@ function are_equivalent_person_names(name_1, name_2) {
 		name = name.trim().replace(/\s+/g, ' ');
 		let matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
 		if (matched) name = matched[2] + ' ' + matched[1];
-		matched = name.match(/^([A-Z][a-z]+)\s+([A-Z]+)$/);
+		// [[德語字母]], [[:de:Deutsches Alphabet]]
+		matched = name.match(/^((?:(?:[A-Z][a-zäöüß]+|der)\s+)+)([A-Z]+)$/);
 		if (matched) {
 			// "Huennekens FM" → "F M Huennekens"
-			name = matched[2].split('').join(' ') + ' ' + matched[1];
+			name = matched[2].split('').join(' ') + ' ' + matched[1].trimEnd();
 		}
 		name = name.replace(/\./g, '')
 			// 保留姓氏全稱，其他改縮寫。
-			.replace(/([A-Z])[a-z]+\s/g, '$1 ');
+			.replace(/([A-Z])[a-zäöüß]+\s/g, '$1 ');
 		return name;
 	}
 
@@ -639,6 +643,10 @@ function are_equivalent_person_names(name_1, name_2) {
 	// "Adam Smith" ≡ "A. Smith"
 	// "Stephen William Hawking" ≡ "Stephen W. Hawking" ≡ "S. W. Hawking"
 	// "Huennekens FM" ≡ "F M Huennekens"
+	// "Zöller H" ≡ "H. Zöller"
+	// "Van Zeeland AA" ≡ "A. A. Van Zeeland"
+	// "Van der Eb AJ" ≡ "A. J. Van der Eb"
+	// "Schülke B" ≡ "B. Schülke"
 	if (normalize_person_name(name_1) === normalize_person_name(name_2)) return true;
 	// TODO: "Stephen William Hawking" ≡ "Hawking, Stephen"
 }
@@ -1440,7 +1448,7 @@ ORDER BY DESC (?item)
 
 		let id = articleid.value;
 		if (!id) {
-			// 未提供本種類ID
+			// 未提供本種類 ID
 			// https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id=1201098
 			return;
 		}
@@ -1543,26 +1551,54 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			delete data_to_modify.descriptions[language_code];
 	}
 
-	// 刪除有問題且正規化後會重複的 title 標題 (P1476)，例如標題結尾有 "."。
+	// 刪除原有的、有問題且正規化後會重複的 title 標題 (P1476)，例如標題結尾有 "."。
+	// 作業原則: 盡可能不動到原有的標題。
+	// 若是原有標題有轉成id之後重複的，則選擇最接近正規化的標題留存。
 	if (Array.isArray(article_item.claims.P1476)) {
+		// original_title_list.get(title_id) === [ original_title, original_title === normalized_title ]
+		const original_title_list = new Map();
 		for (const statement of article_item.claims.P1476) {
 			const original_title = CeL.wiki.data.value_of(statement);
 			const normalized_title = normalize_article_title(original_title)[0];
 			const title_id = title_to_id(normalized_title);
+			//console.trace([normalized_title, title_id, original_title === normalized_title, data_to_modify.title_list.has(title_id), original_title_list.has(title_id)]);
 			if (original_title === normalized_title) {
-				data_to_modify.claims = data_to_modify.claims.filter(statement => {
-					// 跳過重複的新設定。
-					return statement.P1476 !== normalized_title;
+				// 要以現在這個原有的標題為主。
+				if (data_to_modify.title_list.has(title_id)) {
+					data_to_modify.title_list.delete(title_id);
+					data_to_modify.claims = data_to_modify.claims.filter(statement => {
+						// 跳過重複的新設定。
+						return statement.P1476 !== normalized_title;
+					});
+				}
+				if (!original_title_list.has(title_id)) {
+					original_title_list.set(title_id, [original_title, true]);
+					continue;
+				}
+
+				// 去掉重複的原有標題。假如先前的標題已經是正規化後的標題就留存下來，刪掉現在這個標題。否則刪掉先前的原有標題。
+				data_to_modify.claims.push({
+					P1476: original_title_list.get(title_id)[1] ? original_title : original_title_list.get(title_id)[0],
+					remove: true
 				});
-				data_to_modify.title_list.delete(title_id);
+				if (!original_title_list.get(title_id)[1])
+					original_title_list.set(title_id, [original_title, true]);
 				continue;
 			}
-			if (!data_to_modify.title_list.has(title_id)) {
+
+			if (!original_title_list.has(title_id) && !data_to_modify.title_list.has(title_id)) {
 				// Left the original title untouched.
-				data_to_modify.title_list.add(title_id);
+				original_title_list.set(title_id, [original_title, false]);
 				continue;
 			}
+
+			// 要以新的設定為主。
+			if (original_title_list.has(title_id)) {
+				original_title_list.delete(title_id, [original_title, false]);
+			}
+
 			data_to_modify.claims.push({
+				// 刪掉現在這個標題。
 				P1476: original_title,
 				remove: true
 			});
@@ -1645,7 +1681,12 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
 	//console.trace(data_to_modify);
-	await article_item.modify(data_to_modify, { bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}` });
+	await article_item.modify(data_to_modify, {
+		bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}`,
+		// 避免 cites work (P2860) 佔據太多記憶體。
+		search_without_cache: true,
+		no_skip_attributes_note: true,
+	});
 	return article_item;
 }
 
