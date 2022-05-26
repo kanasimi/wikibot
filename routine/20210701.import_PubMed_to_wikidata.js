@@ -1335,7 +1335,6 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		);
 		//console.trace(DOI_to_item_id_mapping);
 
-		// TODO: 找出確實的文章項目。例如 Q37036571 的參考資料。
 		for (let index = 0; index < CrossRef_article_data.reference.length;) {
 			const reference_data = CrossRef_article_data.reference[index];
 
@@ -1343,24 +1342,6 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				// series ordinal (P1545) 系列序號
 				P1545: ++index,
 			};
-
-			// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
-			if (reference_data.volume) {
-				qualifiers.P478 = reference_data.volume;
-			}
-			if (reference_data['first-page']) {
-				// page(s) (P304)
-				qualifiers.P304 = reference_data['first-page'];
-				// cf. number of pages (P1104)
-			}
-			if (reference_data.author) {
-				// author name string (P2093) 作者姓名字符串
-				qualifiers.P2093 = reference_data.author;
-			}
-			if (reference_data.year) {
-				// publication date (P577) 出版日期
-				qualifiers.P577 = reference_data.year.to_Date({ zone: 0 });
-			}
 
 			const claim = {
 				qualifiers,
@@ -1377,12 +1358,30 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				cites_work_title = DOI_to_item_id_mapping.get(DOI)[0];
 
 			} else if (reference_data['article-title']) {
+				// 找出確實的文章項目。例如 Q37036571 的參考資料。
 				// native label (P1705)
 				// qualifiers.P1705 = reference_data['article-title'];
 				cites_work_title = reference_data['article-title'];
 
 			} else if (reference_data['journal-title']) {
 				cites_work_title = reference_data['journal-title'];
+				// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
+				if (reference_data.volume) {
+					qualifiers.P478 = reference_data.volume;
+				}
+				if (reference_data['first-page']) {
+					// page(s) (P304)
+					qualifiers.P304 = reference_data['first-page'];
+					// cf. number of pages (P1104)
+				}
+				if (reference_data.author) {
+					// author name string (P2093) 作者姓名字符串
+					qualifiers.P2093 = reference_data.author;
+				}
+				if (reference_data.year) {
+					// publication date (P577) 出版日期
+					qualifiers.P577 = reference_data.year.to_Date({ zone: 0 });
+				}
 			}
 
 			if (cites_work_title) {
@@ -1617,6 +1616,7 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			P7452: 'Q71536040'
 		};
 	}
+	// TODO: 去除非英語標題, Q40043914
 	//console.trace(data_to_modify.claims);
 
 	// 檢測原先就有的 author (P50) 作者，例如手動加入的。
