@@ -110,6 +110,11 @@ async function for_each_discussion_page(page_data) {
 				if (not_yet_expired)
 					return parsed.each.exit;
 			}
+			// avoid being archived
+			if (wiki.is_template('Pin section', template_token)) {
+				not_yet_expired = true;
+				return parsed.each.exit;
+			}
 		}, {
 			max_depth: 1
 		});
@@ -245,16 +250,21 @@ async function archive_page(configuration) {
 
 	const summary = [CeL.wiki.title_link_of(
 		// wiki.to_namespace(archive_template_name, 'template') && 'Project:ARCHIVE'
-		'Template:' + archive_template_name, use_language === 'zh' ? '歸檔封存作業' : use_language === 'ja' ? '記録保存' : 'Archiving') + ':',
+		'Template:' + archive_template_name,
+		// gettext_config:{"id":"archiving-operation"}
+		CeL.gettext('Archiving operation')) + ':',
 	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
 		.join(' ');
 	const summary_tail = `: ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
 	//console.trace([archive_to_page, summary, summary_tail]);
 
 	// 寫入存檔失敗則 throw，不刪除原討論頁內容。
-	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n',
-		// TODO: 1件のスレッドを「%1」より過去ログ化 (7日以上経過、過去ログ満杯)
-		{ bot: 1, minor: 1, summary: `${summary}: Append ${sections_need_to_archive.length} topic(s)${summary_tail}` });
+	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n', {
+		bot: 1, minor: 1, summary: summary + ': '
+			// TODO: 1件のスレッドを「%1」より過去ログ化 (7日以上経過、過去ログ満杯)
+			// gettext_config:{"id":"append-$1-topics"}
+			+ CeL.gettext('Append %1 {{PLURAL:%1|topic|topics}}', sections_need_to_archive.length) + summary_tail
+	});
 
 	// TODO: updating broken links
 	sections_need_to_archive.forEach(
@@ -263,5 +273,9 @@ async function archive_page(configuration) {
 		)
 	);
 	// TODO: 1件のスレッドを「%1」へ過去ログ化 (7日以上経過、過去ログ満杯)
-	await wiki.edit_page(target_root_page, parsed.toString(), { nocreate: 1, bot: 1, minor: 1, summary: `${summary}: Remove ${sections_need_to_archive.length} topic(s)${summary_tail}` });
+	await wiki.edit_page(target_root_page, parsed.toString(), {
+		nocreate: 1, bot: 1, minor: 1, summary: summary + ': '
+			// gettext_config:{"id":"remove-$1-topics"}
+			+ CeL.gettext('Remove %1 {{PLURAL:%1|topic|topics}}', sections_need_to_archive.length) + summary_tail
+	});
 }
