@@ -105,6 +105,8 @@ const published_source_mapping = new Map((() => {
 	});
 })());
 
+const journal_title_mapping = new Map([]);
+
 // problematic items
 const problematic_data_page_title = log_to + '/problematic articles';
 let problematic_data_list = [['PubMed ID', 'Problem']];
@@ -1364,23 +1366,29 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				cites_work_title = reference_data['article-title'];
 
 			} else if (reference_data['journal-title']) {
-				cites_work_title = reference_data['journal-title'];
-				// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
-				if (reference_data.volume) {
-					qualifiers.P478 = reference_data.volume;
-				}
-				if (reference_data['first-page']) {
-					// page(s) (P304)
-					qualifiers.P304 = reference_data['first-page'];
-					// cf. number of pages (P1104)
-				}
-				if (reference_data.author) {
-					// author name string (P2093) 作者姓名字符串
-					qualifiers.P2093 = reference_data.author;
-				}
-				if (reference_data.year) {
-					// publication date (P577) 出版日期
-					qualifiers.P577 = reference_data.year.to_Date({ zone: 0 });
+				let journal_title = reference_data['journal-title'];
+				journal_title = journal_title_mapping.get(journal_title) || journal_title;
+				// 去掉太過簡短的期刊標題
+				// e.g., https://api.crossref.org/works/10.1007/BF02773739
+				if (!/^\w{1,10}$/.test(journalTitle)) {
+					cites_work_title = journal_title;
+					// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
+					if (reference_data.volume) {
+						qualifiers.P478 = reference_data.volume;
+					}
+					if (reference_data['first-page']) {
+						// page(s) (P304)
+						qualifiers.P304 = reference_data['first-page'];
+						// cf. number of pages (P1104)
+					}
+					if (reference_data.author) {
+						// author name string (P2093) 作者姓名字符串
+						qualifiers.P2093 = reference_data.author;
+					}
+					if (reference_data.year) {
+						// publication date (P577) 出版日期
+						qualifiers.P577 = reference_data.year.to_Date({ zone: 0 });
+					}
 				}
 			}
 
