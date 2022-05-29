@@ -22,6 +22,11 @@ TODO:
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+// Load modules.
+CeL.run([
+	// for template_token.message_expire_date
+	'application.net.wiki.template_functions',]);
+
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
@@ -105,13 +110,7 @@ async function for_each_discussion_page(page_data) {
 		let not_yet_expired;
 		// This section is pinned and will not be automatically archived.
 		section.each('template', template_token => {
-			if (0 < template_token.message_expire_date) {
-				not_yet_expired = NOW < template_token.message_expire_date;
-				if (not_yet_expired)
-					return parsed.each.exit;
-			}
-			// avoid being archived
-			if (wiki.is_template('Pin section', template_token)) {
+			if (NOW < +template_token.message_expire_date) {
 				not_yet_expired = true;
 				return parsed.each.exit;
 			}
@@ -161,6 +160,7 @@ async function for_each_discussion_page(page_data) {
 		return;
 	}
 
+	//console.trace({ archive_configuration, sections_need_to_archive, target_root_page, parsed });
 	await archive_page({ archive_configuration, sections_need_to_archive, target_root_page, parsed });
 }
 
