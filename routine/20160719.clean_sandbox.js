@@ -167,6 +167,12 @@ clean_wiki_sandbox(zhwiktionary, general_announcement, 'Template:沙盒');
 
 // --------------------------
 
+var zhwikibooks = Wiki(true, 'zh.wikibooks');
+clean_wiki_sandbox(zhwikibooks, general_announcement);
+clean_wiki_sandbox(zhwikibooks, general_announcement, 'Template:沙盒');
+
+// --------------------------
+
 // 由於維基文庫參與人數太少，沙盒清理可以放寬期限，例如每週一次。
 if (force || JD % 7 === 0) {
 	clean_wiki_sandbox('zh.wikisource', general_announcement, 'Wikisource:沙盒');
