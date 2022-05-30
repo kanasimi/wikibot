@@ -26,6 +26,7 @@ jstop cron-tools.anchor-corrector-20201008.fix_anchor.zh
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.ja
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.moegirl
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks
 
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.en -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=en
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.simple -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=simple
@@ -33,6 +34,7 @@ jstop cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.ja -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=ja
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=wiktionary
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=zh.wikibooks
 
 
 
@@ -136,7 +138,7 @@ async function adapt_configuration(latest_task_configuration) {
 		general.action_for_blank_talk_page = general.action_for_blank_talk_page.toString().replace(/({{)tl[a-z]?\s*\|/, '$1');
 	}
 
-	await wiki.register_redirects(['Section link', 'Broken anchors'].append(CeL.wiki.parse.anchor.essential_templates), {
+	await wiki.register_redirects(['Section link', 'Broken anchors', general.remove_template_when_reminde_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
 	console.trace(wiki.latest_task_configuration.general);
@@ -1033,6 +1035,17 @@ async function check_page(target_page_data, options) {
 			if (has_broken_anchors_template || !wikitext_to_add) {
 				wikitext_to_add = parsed.toString();
 				return wikitext_to_add.trim() ? wikitext_to_add : wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
+			}
+
+			// 提醒失效連結時刪除這個模板。
+			if (wiki.latest_task_configuration.general.remove_template_when_reminde_broken_anchors) {
+				parsed.each(token => {
+					if (wiki.is_template(token, wiki.latest_task_configuration.general.remove_template_when_reminde_broken_anchors)) {
+						return parsed.each.remove_token;
+					}
+				}), {
+					max_depth: 1
+				};
 			}
 
 			wikitext_to_add = `{{Broken anchors|${LINKS_PARAMETER}=${wikitext_to_add}\n}}`;
