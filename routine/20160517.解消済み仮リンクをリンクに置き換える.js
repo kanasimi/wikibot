@@ -765,7 +765,7 @@ function for_each_page(page_data, messages) {
 							// 存在本地頁面。e.g., redirected page
 							check_page(gettext(
 							// gettext_config:{"id":"missing-converted-local-page-or-the-foreign-local-page-is-not-link-to-wikidata"}
-							'外語條目沒有相對應的中文條目，或應該對應的中文條目並沒有連結到正確的Wikidata項目。'));
+							'外語條目沒有相對應的中文條目，或應對應的中文條目並沒有連結到正確的Wikidata項目。'));
 						} else {
 							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
 							// 此應屬正常。
