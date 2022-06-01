@@ -138,7 +138,7 @@ async function adapt_configuration(latest_task_configuration) {
 		general.action_for_blank_talk_page = general.action_for_blank_talk_page.toString().replace(/({{)tl[a-z]?\s*\|/, '$1');
 	}
 
-	await wiki.register_redirects(['Section link', 'Broken anchors', general.remove_template_when_reminde_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
+	await wiki.register_redirects(['Section link', 'Broken anchors', general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
 	console.trace(wiki.latest_task_configuration.general);
@@ -1038,9 +1038,9 @@ async function check_page(target_page_data, options) {
 			}
 
 			// 提醒失效連結時刪除這個模板。
-			if (wiki.latest_task_configuration.general.remove_template_when_reminde_broken_anchors) {
+			if (wiki.latest_task_configuration.general.remove_the_template_when_reminding_broken_anchors) {
 				parsed.each(token => {
-					if (wiki.is_template(token, wiki.latest_task_configuration.general.remove_template_when_reminde_broken_anchors)) {
+					if (wiki.is_template(token, wiki.latest_task_configuration.general.remove_the_template_when_reminding_broken_anchors)) {
 						return parsed.each.remove_token;
 					}
 				}), {
