@@ -1088,7 +1088,7 @@ async function check_page(target_page_data, options) {
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki> ${move_to_page_title_via_link
 				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
-				? CeL.gettext('網頁錨點 %1 連結到專屬頁面頁面：%2。', CeL.wiki.title_link_of((anchor_token.article_index ? anchor_token[anchor_token.anchor_index] : anchor_token[0]) + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
+				? CeL.gettext('網頁錨點 %1 連結到專屬頁面：%2。', CeL.wiki.title_link_of((anchor_token.article_index ? anchor_token[anchor_token.anchor_index] : anchor_token[0]) + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
 				: ''
 				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
@@ -1243,7 +1243,7 @@ async function check_page(target_page_data, options) {
 				return;
 			const target_link = move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : '');
 			// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
-			const message = CeL.gettext('網頁錨點 %1 連結到專屬頁面頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
+			const message = CeL.gettext('網頁錨點 %1 連結到專屬頁面：%2。', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
 			add_summary(this, message);
@@ -1273,10 +1273,12 @@ async function check_page(target_page_data, options) {
 			const rename_to = section_title_history[KEY_lower_cased_section_titles][reduced_section_includes_anchor[0]] || section_title_history[reduced_section_includes_anchor[0]].title;
 			const num_token = token.anchor.replace(/[^\d]/g, '');
 			const num_rename_to = rename_to.replace(/[^\d]/g, '');
+			// 當阿拉伯數字都增刪時較容易出問題。
 			const need_check = !num_token || !num_rename_to || num_token.includes(num_rename_to) || num_rename_to.includes(num_token) ? ''
-				// 當阿拉伯數字都增刪時較容易出問題。
+				// 應採用不存在的頁面名稱，將用紅色連結顯示以突顯警告效果。
+				: '[['
 				// gettext_config:{"id":"please-help-to-check-this-edit"}
-				: CeL.gettext('請幫忙檢核此次編輯。');
+				+ CeL.gettext('請幫忙檢核此次編輯。') + ']]';
 			if ((!need_check
 				// 必須避免已移去存檔頁面之 anchor。 e.g., [[w:zh:Special:Diff/65523646]]
 				|| !/20\d{2}/.test(token.anchor) && !/\d月/.test(token.anchor)
