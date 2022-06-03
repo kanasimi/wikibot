@@ -6,21 +6,25 @@ jstop cron-20170915.topic_list.zh;
 jstop cron-20170915.topic_list.zh-classical;
 jstop cron-20170915.topic_list.wikinews;
 jstop cron-20170915.topic_list.ja;
+jstop cron-20170915.topic_list.en;
 jstop cron-20170915.topic_list.wikisource;
 jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
 jstop cron-20170915.topic_list.moegirl;
 jstop cron-20170915.topic_list.wiktionary;
+jstop cron-20170915.topic_list.wikibooks;
 
 /usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh-classical
 /usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikinews
 /usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=ja
+/usr/bin/jstart -N cron-20170915.topic_list.en -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
 /usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
 /usr/bin/jstart -N cron-20170915.topic_list.wiktionary -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wiktionary
+/usr/bin/jstart -N cron-20170915.topic_list.wikibooks -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -544,7 +548,8 @@ function start_main_work() {
 			// language : use_language,
 			// options.use_SQL: Try to use SQL. Use SQL as possibile.
 			// commonswiki 得要使用 API 才不會漏。
-			use_SQL : CeL.wiki.site_name(wiki) !== 'commonswiki',
+			use_SQL : [ 'commonswiki', 'enwiki' ].includes(CeL.wiki
+					.site_name(wiki)),
 			parameters : {
 				// 跳過機器人所做的編輯。
 				// You need the "patrol" or "patrolmarks" right to request the
