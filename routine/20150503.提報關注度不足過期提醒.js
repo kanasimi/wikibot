@@ -146,8 +146,8 @@ function report_notability(page_data) {
 				//
 				? message_set.do_not_notify + ': ' + denied[0]
 				// [[WP:AFD]]
-				: (denied = CeL.wiki.edit.denied(content, wiki.token.login_user_name,
-						'AFD'))
+				: (denied = CeL.wiki.edit.denied(content,
+						wiki.token.login_user_name, 'AFD'))
 						&& (message_set.bots_denied + ': ' + denied)
 						: message_set.no_user_talk;
 				if (user_denied[user])
@@ -285,7 +285,11 @@ function report_notability(page_data) {
 					// 若您不想接受關注度提醒，請利用{{bots|optout=afd}}模板。
 					notification_name : 'afd',
 					section : 'new',
-					sectiontitle : summary + ':' + page_list.join('、'),
+					sectiontitle : summary + ':'
+					// 避免繁簡轉換「劉杰叡」變成「劉傑叡」
+					+ page_list.map(function(page_title) {
+						return '-{' + page_title + '}-';
+					}).join('、'),
 					summary : 'bot: ' + summary,
 					// tags : 'user talk page editing',
 					// redirect 常會出現 editconflict
