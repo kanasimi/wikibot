@@ -360,7 +360,9 @@ function upload_media(media_data) {
 	//
 	+ track_maps_category
 	// Category:2019 Pacific hurricane season track maps
-	+ ' ' + fill_type_name(media_data) + ' season track maps';
+	+ ' ' + fill_type_name(media_data) + ' season';
+	if (!media_data.filename.includes('satellite'))
+		track_maps_category += ' track maps';
 
 	var categories = media_data.categories ? media_data.categories.clone() : [];
 	categories.push(track_maps_category);
