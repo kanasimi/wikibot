@@ -285,11 +285,11 @@ function report_notability(page_data) {
 					// 若您不想接受關注度提醒，請利用{{bots|optout=afd}}模板。
 					notification_name : 'afd',
 					section : 'new',
-					sectiontitle : summary + ':'
+					sectiontitle : summary + ':' + page_list
 					// 避免繁簡轉換「劉杰叡」變成「劉傑叡」
-					+ page_list.map(function(page_title) {
-						return '-{' + page_title + '}-';
-					}).join('、'),
+					// Flow 沒有辦法使用語言轉換，還是別用好了。
+					// .map(function(page_title){return '-{'+page_title+'}-';})
+					.join('、'),
 					summary : 'bot: ' + summary,
 					// tags : 'user talk page editing',
 					// redirect 常會出現 editconflict
