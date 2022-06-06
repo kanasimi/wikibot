@@ -293,7 +293,9 @@ async function for_badge_to_process(options) {
 	const FC_of_local_language = all_featured_contents[use_language];
 	//console.log(Wikimedia_article_badges[badge_entity_id_to_process]);
 	const local_badge_name = Wikimedia_article_badges[badge_entity_id_to_process].label;
-	wiki.latest_task_configuration.general.summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('更新%1', local_badge_name)) + ': ';
+	wiki.latest_task_configuration.general.summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+		// gettext_config:{"id":"updating-$1"}
+		CeL.gettext('更新%1', local_badge_name)) + ': ';
 	//console.trace(wiki.latest_task_configuration.general.summary_prefix);
 
 	const FC_sitelinks = (await wiki.data(`Wikipedia:${local_badge_name}`)).sitelinks;
@@ -607,9 +609,8 @@ ORDER BY DESC(?count)
 			}
 			const type_count = type_entity_ids.length;
 			type_entity_ids = type_entity_ids.map(type_entity_id => `{{label|${type_entity_id}}}`)
-				// [[translatewiki:MediaWiki:Comma-separator]]
-				// Should the same as <code>{{int:Comma-separator}}</code>.
-				.join(wiki.latest_task_configuration.general.comma_separator || ', ');
+				// gettext_config:{"id":"Comma-separator"}
+				.join(CeL.gettext('Comma-separator'));
 
 			if (type_count.length > 3)
 				type_entity_ids = '<small>' + type_entity_ids + '</small>';
@@ -639,10 +640,14 @@ ORDER BY DESC(?count)
 
 		let row = ['data-sort-type="number" | #', CeL.gettext('%1版條目', language_name), '{{label|P31}}', CeL.gettext('%1版條目', local_language_name),
 			// 言語版数
-			'data-sort-type="number" | ' + CeL.gettext('語言數')];
+			'data-sort-type="number" | '
+			// gettext_config:{"id":"count-of-languages"}
+			+ CeL.gettext('語言數')];
 		table.unshift(row);
 
-		row = ['', CeL.gettext('Average'), '',
+		row = ['',
+			// gettext_config:{"id":"average"}
+			CeL.gettext('平均'), '',
 			(show_style ? 'style="background:#afa;" | ' : '✓ ')
 			//`${local_count.all} / ${count} (${(100 * local_count.all / count).to_fixed(1)}%) ${local_language_name}版あり`
 			+ CeL.gettext('有%1版', local_language_name) + `: ${local_language_code}/${language_code} (${language_name}) = ${local_count.all}/${count} (${(100 * local_count.all / count).to_fixed(1)}%)`
@@ -650,7 +655,9 @@ ORDER BY DESC(?count)
 		row.class = 'sortbottom';
 		table.push(row);
 
-		row = ['', CeL.gettext('Sum'), '',
+		row = ['',
+			// gettext_config:{"id":"sum"}
+			CeL.gettext('合計'), '',
 			(show_style ? 'style="background:#faa;" | ' : '✗ ')
 			+ CeL.gettext('%1 同名條目或無此條目、%2 無標籤', count - local_count.all - no_label_count, no_label_count), total_linkcount.toLocaleString(use_language)];
 		row.class = 'sortbottom';
@@ -661,12 +668,14 @@ ORDER BY DESC(?count)
 			CeL.wiki.title_link_of(`:${language_code}:`, CeL.gettext('%1版', language_name)),
 			FC_sitelinks[CeL.wiki.site_name(language_code)]?.title ? `[[:${language_code}:${FC_sitelinks[CeL.wiki.site_name(language_code)].title}|${CeL.gettext('「Wikipedia:%1」條目一覽', local_badge_name)}]]` : CeL.gettext('「Wikipedia:%1」條目一覽', local_badge_name)
 		);
-		let content_to_write = [`{{Shortcut|${CeL.gettext('Shortcut:%1/%2', Wikimedia_article_badges[badge_entity_id_to_process].icon, wiki.latest_task_configuration.general.uppercased_shortcut? language_code.toUpperCase() : language_code)}}}`];
+		let content_to_write = [`{{Shortcut|${CeL.gettext('Shortcut:%1/%2', Wikimedia_article_badges[badge_entity_id_to_process].icon, wiki.latest_task_configuration.general.uppercased_shortcut ? language_code.toUpperCase() : language_code)}}}`];
 		if (CeL.gettext('Wikipedia:諸語言的維基百科%1/header', local_badge_name))
 			content_to_write.push(`{{${CeL.gettext('Wikipedia:諸語言的維基百科%1/header', local_badge_name)}}}`);
 		content_to_write.push('', '__TOC__');
 		content_to_write.push(
-			'', `== ${sub_page_title || CeL.gettext('條目一覽')} ==`, CeL.wiki.array_to_table(table, {
+			'', `== ${sub_page_title
+			// gettext_config:{"id":"article-list"}
+			|| CeL.gettext('條目一覽')} ==`, CeL.wiki.array_to_table(table, {
 				class: 'wikitable sortable',
 				caption,
 			}));
@@ -681,7 +690,9 @@ ORDER BY DESC(?count)
 			// ~~~~~
 			//'', '== 集計 ==', `Total ${local_language_code}/${language_code} (${language_name}) = ${local_count.all}/${count} (${(100 * local_count.all / count).to_fixed(1)}%) articles existing in ${local_language_name}.`,
 			// https://translatewiki.net/wiki/MediaWiki:Seealso/ja
-			'', `== ${CeL.gettext('See also')} ==`, `* ${caption}`, '',
+			'', `== ${CeL.gettext(
+				// gettext_config:{"id":"see-also"}
+				'See also')} ==`, `* ${caption}`, '',
 		);
 		if (CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon))
 			content_to_write.push(`{{${CeL.gettext('Template:諸語言的%1', Wikimedia_article_badges[badge_entity_id_to_process].icon)}|state=uncollapsed}}`);
@@ -774,16 +785,26 @@ async function update_all_sites_menu(options) {
 	// reset index
 	table.forEach((row, index) => row[0] = index + 1);
 
-	let row = ['data-sort-type="number" | #', '{{label|Q315}}', '{{label|P424}}', `data-sort-type="number" | ${CeL.gettext('%1數', Wikimedia_article_badges[badge_entity_id_to_process].icon)}`, `data-sort-type="number" | ${CeL.gettext('有%1版', local_language_code)}`, `data-sort-type="number" | ${CeL.gettext('無標籤')}`];
+	let row = ['data-sort-type="number" | #', '{{label|Q315}}', '{{label|P424}}',
+		`data-sort-type="number" | ${CeL.gettext('%1數', Wikimedia_article_badges[badge_entity_id_to_process].icon)}`,
+		`data-sort-type="number" | ${CeL.gettext('有%1版', local_language_code)}`,
+		`data-sort-type="number" | ${CeL.gettext(
+			// gettext_config:{"id":"no-label"}
+			'無標籤')}`];
 	// 其中屬於本地語言之%3的條目數。
 	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(`data-sort-type="number" | ${CeL.gettext('%1版的%2%3', local_language_code, `{{icon|${Wikimedia_article_badges[badge_entity_id].icon}}}`, `{{label|${badge_entity_id}}}`)}`));
 	table.unshift(row);
 
-	row = ['', CeL.gettext('平均'), '', (article_count / count).to_fixed(1), (article_with_local_count / count).to_fixed(1), (no_label_count / count).to_fixed(1)];
+	row = ['',
+		// gettext_config:{"id":"average"}
+		CeL.gettext('平均'), '', (article_count / count).to_fixed(1), (article_with_local_count / count).to_fixed(1), (no_label_count / count).to_fixed(1)];
 	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push((local_count[badge_entity_id] / count).to_fixed(1)));
 	row.class = 'sortbottom';
 	table.push(row);
-	row = ['', CeL.gettext('合計'), '', article_count.toLocaleString(use_language), article_with_local_count.toLocaleString(use_language), no_label_count.toLocaleString(use_language)];
+
+	row = ['',
+		// gettext_config:{"id":"sum"}
+		CeL.gettext('合計'), '', article_count.toLocaleString(use_language), article_with_local_count.toLocaleString(use_language), no_label_count.toLocaleString(use_language)];
 	_badge_entity_ids_to_count.forEach(badge_entity_id => row.push(local_count[badge_entity_id].toLocaleString(use_language)));
 	row.class = 'sortbottom';
 	table.push(row);
