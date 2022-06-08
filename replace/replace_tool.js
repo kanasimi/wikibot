@@ -815,7 +815,7 @@ async function notice_finished(wiki, meta_configuration) {
 		const wiki_language = wiki.site_name({ get_all_properties: true }).language;
 		const finished_message = meta_configuration.finished_message
 			// gettext_config:{"id":"robot-task-completion-notification"}
-			|| '{{Done}} Please check the results and let me know if there is something wrong, thank you.'
+			|| CeL.gettext('{{Done}} Please check the results and let me know if there is something wrong, thank you.')
 			+ (_log_to ? ` - ${CeL.wiki.title_link_of(_log_to, 'log')}` : '');
 		if (section.toString().includes(finished_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info({
@@ -1353,6 +1353,8 @@ async function get_list(task_configuration, list_configuration) {
 	} else {
 		list_types = default_list_types;
 	}
+	if (!task_configuration.list_types)
+		task_configuration.list_types = list_types;
 
 	if (typeof list_types === 'string') {
 		list_types = list_types.split('|');
@@ -1397,9 +1399,9 @@ async function get_list(task_configuration, list_configuration) {
 				...list_configuration.move_from
 			};
 			list_configuration.move_from_link = wiki.normalize_title(list_configuration.move_from_link);
-			// console.trace(task_configuration.move_from);
+			//console.trace([task_configuration.move_from, list_configuration.list_types, list_configuration.move_from.ns]);
 			// 手動設定另當別論。
-			if (!list_configuration.list_types && list_configuration.move_from.ns !== wiki.namespace('Category')) {
+			if (list_types.includes('embeddedin') && list_configuration.move_from.ns !== wiki.namespace('Category')) {
 				list_types = list_types.filter(type => type !== 'categorymembers');
 				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
 					const redirect_list = (await wiki.register_redirects(list_configuration.move_from_link))?.redirect_list;
@@ -1576,6 +1578,7 @@ async function get_list(task_configuration, list_configuration) {
 		page_list.forEach(page_data => {
 			if (wiki.is_namespace(page_data, 'Template') || wiki.is_namespace(page_data, 'Module')) {
 				const title = CeL.wiki.title_of(page_data);
+				// ks: '/دَستاویز'
 				if (title.endsWith('/doc') || page_list.includes(title + '/doc'))
 					return;
 				const doc_title = title + '/doc';
@@ -1646,6 +1649,8 @@ async function main_move_process(task_configuration, meta_configuration) {
 
 	const wiki = task_configuration.wiki;
 	const work_config = {
+		// Allow content to be emptied. 允許內容被清空。白紙化。
+		allow_empty: /talk/.test(task_configuration.namespace),
 		task_configuration,
 		// for 「株式会社リクルートホールディングス」の修正
 		// for リクルートをパイプリンクにする
@@ -1719,7 +1724,8 @@ async function for_each_page(page_data) {
 	//console.trace(task_configuration);
 
 	if (task_configuration.text_processor) {
-		return task_configuration.text_processor(page_data.wikitext, page_data, /* work_config */this) || Wikiapi.skip_edit;
+		const replace_to = task_configuration.text_processor(page_data.wikitext, page_data, /* work_config */this);
+		return typeof replace_to === 'string' ? replace_to : Wikiapi.skip_edit;
 	}
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -1729,16 +1735,20 @@ async function for_each_page(page_data) {
 
 	task_configuration.page_data = page_data;
 
-	if (task_configuration.move_to_link || task_configuration.for_each_link) {
+	const list_types = task_configuration.list_types;
+	//console.trace([list_types, task_configuration.move_from]);
+
+	if ((list_types.includes('backlinks') || list_types.includes('redirects'))
+		&& (task_configuration.move_to_link || task_configuration.for_each_link)) {
 		parsed.each('link', for_each_link.bind(task_configuration));
 	}
-	if (task_configuration.move_to_link) {
+	if (list_types.includes('fileusage') && task_configuration.move_to_link) {
 		parsed.each('file', for_each_file.bind(task_configuration));
 	}
-	if (task_configuration.move_to_link && task_configuration.move_from.ns === CeL.wiki.namespace('Category')) {
+	if (list_types.includes('categorymembers') && task_configuration.move_to_link && task_configuration.move_from.ns === CeL.wiki.namespace('Category')) {
 		parsed.each('category', for_each_category.bind(task_configuration));
 	}
-	if (!task_configuration.move_from.anchor && !task_configuration.move_from.display_text) {
+	if (list_types.includes('embeddedin') && !task_configuration.move_from.anchor && !task_configuration.move_from.display_text) {
 		await parsed.each('template', for_each_template.bind(this, page_data), task_configuration.for_each_template_options);
 	}
 	//console.trace(`${for_each_page.name}: ${page_data.title}`);
@@ -2207,6 +2217,8 @@ async function for_each_template(page_data, token, index, parent) {
 	const move_from_is_not_template = !task_configuration.move_from || task_configuration.move_from.ns && task_configuration.move_from.ns !== task_configuration.wiki.namespace('Template');
 	const is_move_from = !move_from_is_not_template && task_configuration.wiki.is_template(task_configuration.move_from.page_name, token);
 	//console.trace([move_from_is_not_template, is_move_from, task_configuration.move_from.page_name, token.name]);
+	//console.trace(task_configuration);
+
 	if ((move_from_is_not_template || is_move_from) && task_configuration.for_template
 		// task_configuration.for_template() return: 改變內容，之後會做善後處理。
 		&& true === await task_configuration.for_template.call(this, token, index, parent)) {
