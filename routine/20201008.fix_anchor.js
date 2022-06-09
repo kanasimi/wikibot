@@ -1379,6 +1379,7 @@ async function check_page(target_page_data, options) {
 
 		if (!Array.isArray(this.summary))
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
+		this.minor = this.summary.length < 5;
 		this.summary = this.summary[0] + this.summary.slice(1).join(', ');
 		pages_modified++;
 		return parsed.toString();
