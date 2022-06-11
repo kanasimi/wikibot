@@ -638,7 +638,11 @@ ORDER BY DESC(?count)
 		// reset index
 		table.forEach((row, index) => row[0] = index + 1);
 
-		let row = ['data-sort-type="number" | #', CeL.gettext('%1版條目', language_name), '{{label|P31}}', CeL.gettext('%1版條目', local_language_name),
+		let row = ['data-sort-type="number" | #',
+			// gettext_config:{"id":"articles-in-$1"}
+			CeL.gettext('%1版條目', language_name), '{{label|P31}}',
+			// gettext_config:{"id":"articles-in-$1"}
+			CeL.gettext('%1版條目', local_language_name),
 			// 言語版数
 			'data-sort-type="number" | '
 			// gettext_config:{"id":"count-of-languages"}
