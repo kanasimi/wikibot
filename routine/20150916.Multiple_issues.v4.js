@@ -325,7 +325,7 @@ async function check_pages_including_maintenance_template(page_data) {
 		}
 
 		if (this.maintenance_template_inside.length === 0 && Multiple_issues_template_token.parameters[1] && Multiple_issues_template_token.parameters[1].toString().trim()) {
-			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The parameter 1 is strange, so I cannot remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${Multiple_issues_template_token.parameters[1].toString()}`);
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: The parameter "1" is strange, so we cannot remove {{${configuration.Multiple_issues_template_name_without_namespace}}}: ${Multiple_issues_template_token.parameters[1].toString()}`);
 			configuration.problematic_articles.push(page_data.title);
 			return Wikiapi.skip_edit;
 		}
