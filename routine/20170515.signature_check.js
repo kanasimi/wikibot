@@ -6,6 +6,7 @@ jstop cron-20170515.signature_check.zh
 jstop cron-20170515.signature_check.zh-classical
 jstop cron-20170515.signature_check.wikisource
 jstop cron-20170515.signature_check.wikiversity
+jstop cron-20170515.signature_check.wikibooks
 jstop cron-20170515.signature_check.moegirl
 
 /usr/bin/jstart -N cron-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_language=zh
@@ -13,6 +14,7 @@ jstop cron-20170515.signature_check.moegirl
 /usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikinews
 /usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikisource
 /usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikiversity
+/usr/bin/jstart -N cron-20170515.signature_check.wikibooks -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=zh.wikibooks
 /usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=zhmoegirl
 
 
@@ -689,10 +691,12 @@ function for_each_row(row) {
 					CeL.debug('跳過: 只幫忙加入存檔模板。', 2, 'check_diff_pair');
 					return;
 				}
-				check_log.push([
-						gettext('這一段編輯只添加、修改了模板、章節標題、格式排版或者沒有具體意義的文字'),
-						row.diff.to.slice(to_diff_start_index,
-								to_diff_end_index + 1).join('') ]);
+				check_log
+						.push([
+								// gettext_config:{"id":"only-inserted-or-modified-templates-section-titles-non-specific-meaning-text"}
+								gettext('Only inserted or modified templates / section titles / non-specific-meaning-text'),
+								row.diff.to.slice(to_diff_start_index,
+										to_diff_end_index + 1).join('') ]);
 				return;
 			}
 
@@ -882,13 +886,16 @@ function for_each_row(row) {
 						section_wikitext.trim())) {
 			// 可能需要人工手動檢查。可能是 diff 操作仍有可改善之處。寧可跳過漏報，不可錯殺。
 			// e.g., [[w:zh:Special:Diff/45311637]]
-			check_log.push([ gettext('此筆編輯之前就已經有這一段文字'), section_wikitext ]);
+			// gettext_config:{"id":"pre-existing-text"}
+			check_log.push([ gettext('Pre-existing text'), section_wikitext ]);
 			return;
 		}
 
 		if (PATTERN_symbol_only.test(section_wikitext)) {
 			// @see [[w:zh:Special:Diff/45254729]]
-			check_log.push([ gettext('此筆編輯僅僅添加了符號'), section_wikitext ]);
+			// gettext_config:{"id":"only-inserted-punctuation-symbols"}
+			check_log.push([ gettext('Only inserted punctuation / symbols'),
+					section_wikitext ]);
 			return;
 		}
 
@@ -913,7 +920,8 @@ function for_each_row(row) {
 				check_log
 						.push([
 								gettext(
-										'這段修改中有[[WP:TRANS|嵌入包含]]宣告<code>&lt;%1&gt;</code>，因此跳過不處理',
+										// gettext_config:{"id":"skip-the-edit-for-including-wp-trans-transclusion-<code>&lt-$1&gt-<-code>"}
+										'Skip the edit for including [[WP:TRANS|transclusion]] <code>&lt;%1&gt;</code>',
 										matched[1]), section_wikitext ]);
 				return;
 			}
@@ -988,7 +996,8 @@ function for_each_row(row) {
 				check_log
 						.push([
 								gettext(
-										'%1 可能編輯了 %2 署名的文字（也可能是用戶 %1代簽名、幫忙修正錯誤格式、特意提及、搬移條目討論，或是還原/撤銷編輯）',
+										// gettext_config:{"id":"maybe-user-$1-edit-text-signed-by-$2-or-$1-help-correcting-the-text"}
+										'Maybe user %1 edit text signed by %2, or %1 help correcting the text',
 										row.user, user_list.join(', ')),
 								section_wikitext ]);
 			} else {
@@ -1011,11 +1020,10 @@ function for_each_row(row) {
 		// {{Unsigned|1=user=user|2=2016年10月17日 (一) 23:45‎}}
 		|| CeL.wiki.parse.date(last_token, wiki)) {
 			// 但是若僅僅在文字中提及時，可能會被漏掉，因此加個警告做紀錄。
-			check_log
-					.push([
-							gettext(
-									'用戶 %1 似乎未以連結的形式加上簽名。例如只寫了用戶名或日期（請注意，只寫日期也會被跳過不補簽名），但是沒有加連結的情況。也有可能把<code>~~<nowiki />~~</code>輸入成<code><nowiki>~~~~~</nowiki></code>了',
-									row.user), section_wikitext ]);
+			check_log.push([ gettext(
+			// gettext_config:{"id":"it-seems-the-user-$1-did-not-signed-with-link"}
+			'It seems the user %1 did not signed with link.', row.user),
+					section_wikitext ]);
 			is_no_link_user = true;
 			added_signs_or_notice++;
 			return;
@@ -1031,19 +1039,30 @@ function for_each_row(row) {
 		// 在diffs中，IPv6位址被寫成了小寫字母。這導致了死連結，因為Special:使用者貢獻只接受大寫的IP。這個問題已經被修正。
 		var is_IP_user = CeL.is_IP(row.user);
 
-		check_log.push([ (/([12]\d{3})年(1?\d)月([1-3]?\d)日 /.test(last_token)
-		//
-		? '編輯者或許已經加上日期與簽名，但是並不明確。仍然' : '')
-		// 會有編輯動作時，特別加強色彩。可以只看著色的部分，這些才是真正會補簽名的。
-		+ '<b style="color:orange">' + gettext(
-		//
-		'需要在最後補上%1 %2 的簽名', gettext(is_IP_user ? 'IP用戶' : '用戶'),
-		// <b>中不容許有另一個<b>，只能改成<span>。
-		'<span style="color:blue">' + row.user + '</span>') + '</b>',
-		// 一整段的文字。
-		row.diff.to.slice(to_diff_start_index,
-		//
-		last_diff_index_before_next_section + 1).join('') ]);
+		check_log
+				.push([
+						gettext(
+								/([12]\d{3})年(1?\d)月([1-3]?\d)日 /
+										.test(last_token) ?
+								// gettext_config:{"id":"the-user-may-have-appended-date-and-signature-but-it-is-not-clear.-still-need-to-append-signature-for-$1-$2"}
+								"The user may have appended date and signature, but it is not clear. Still '''need to append signature for %1 %2'''"
+										// gettext_config:{"id":"need-to-append-signature-for-$1-$2"}
+										: "'''Need to append signature for %1 %2'''",
+								gettext(is_IP_user
+								// gettext_config:{"id":"ip-user"}
+								? 'IP user'
+								// gettext_config:{"id":"user"}
+								: 'user'),
+								// <b>中不容許有另一個<b>，只能改成<span>。
+								'<span style="color:blue">' + row.user
+										+ '</span>')
+						// 會有編輯動作時，特別加強色彩。可以只看著色的部分，這些才是真正會補簽名的。
+						.replace(/'''(.+?)'''/,
+								'<b style="color:orange">$1</b>'),
+						// 一整段的文字。
+						row.diff.to.slice(to_diff_start_index,
+						//
+						last_diff_index_before_next_section + 1).join('') ]);
 
 		// 添加簽名。
 		is_unsigned_user = true;
@@ -1079,7 +1098,9 @@ function for_each_row(row) {
 				return log;
 			}
 			// 維基語法元素與包含換行的字串長
-			log[0] += ' ' + gettext('(本段修改共 %1 字元)', log[1].length)
+			log[0] += ' ' + gettext(
+			// gettext_config:{"id":"($1-characters-modified)"}
+			'(%1 {{PLURAL:%1|character|characters}} modified)', log[1].length)
 					+ ':\n<pre><nowiki>';
 			// 不需要顯示太多換行。
 			log[1] = log[1].trim();
@@ -1098,16 +1119,16 @@ function for_each_row(row) {
 		? '; [[Special:Diff/' + row.revid + '|' + row.title + ']]'
 		// 新頁面
 		: '; [[Special:Permalink/' + row.revid + '|' + row.title + ']] '
-				+ gettext('(新頁面)')
+		// gettext_config:{"id":"(new-page)"}
+		+ gettext('(new page)')
 		//
-		)
-				+ ': '
-				// add [[Help:編輯摘要]]。
-				+ (row.comment ? '<code><nowiki>' + row.comment
-				//
-				+ '</nowiki></code> ' : '')
-				// add timestamp
-				+ '--' + row.user + ' ' + get_parsed_time(row)
+		) + ': '
+		// add [[Help:編輯摘要]]。
+		+ (row.comment ? '<code><nowiki>' + row.comment
+		//
+		+ '</nowiki></code> ' : '')
+		// add timestamp
+		+ '--' + row.user + ' ' + get_parsed_time(row)
 		//
 		);
 
@@ -1153,23 +1174,35 @@ function for_each_row(row) {
 		CeL.debug('用戶討論頁提示：如果留言者簽名沒有連結 ' + notification_limit_count
 				+ ' 次以上，通知使用者記得要改變簽名。', 1);
 		var pages_to_notify = get_pages_to_notify(row, no_link_user_hash);
-		var message = gettext('{{%1|%2}}', gettext('subst:Uw-signlink'),
-				gettext('2=簽名沒有連結的頁面例如 %1。謝謝您參與討論。 --~~~~', pages_to_notify
-						.join(', ')));
-		wiki.page('User talk:' + row.user, {
-			redirects : 1
-		}).edit(message, {
-			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
-			notification_name : 'SIGN',
-			section : 'new',
-			sectiontitle : gettext('您好，可能需要麻煩改變一下您的留言簽名格式'),
-			tags : edit_tags,
-			summary : gettext('[[%1|提醒簽名時要加上連結]]，例如在文中所列的 %2 個頁面。',
-			//
-			log_to, pages_to_notify.length)
-			//
-			+ gettext('若是您更新了過去的留言，也請您在最後加上個簽名的連結。')
-		});
+		var message = '{{subst:'
+				+ (project_name.startsWith('zh') ? 'Uw-signlink' : 'Uw-siglink')
+				+ '|2='
+				+ gettext(
+						// gettext_config:{"id":"pages-that-are-not-linked-to-the-signature-such-as-$1.-thank-you-for-your-participation"}
+						'Pages that are not linked to the signature, such as %1. Thank you for your participation.',
+						pages_to_notify.join(', ')) + ' --~~~~}}';
+		wiki
+				.page('User talk:' + row.user, {
+					redirects : 1
+				})
+				.edit(
+						message,
+						{
+							// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
+							notification_name : 'SIGN',
+							section : 'new',
+							sectiontitle : gettext(
+							// gettext_config:{"id":"hi-maybe-you-can-change-the-format-of-your-signature"}
+							'Hi, maybe you can change the format of your signature'),
+							tags : edit_tags,
+							summary : gettext(
+									// gettext_config:{"id":"$1-remind-you-to-add-a-link-when-signing-such-as-the-$2-pages-listed-in-the-notification"}
+									'[[%1|Remind you to add a link when signing]], such as the %2 {{PLURAL:%2|page|pages}} listed in the notification.',
+									//
+									log_to, pages_to_notify.length)
+									// gettext_config:{"id":"if-you-have-updated-your-past-messages-please-add-a-signature-at-the-end"}
+									+ gettext('If you have updated your past messages, please add a signature at the end.')
+						});
 	}
 
 	// -------------------------------------------
@@ -1191,31 +1224,46 @@ function for_each_row(row) {
 		// 補簽名的編輯加上bot flag，這樣可以不顯示討論頁面中次要編輯的新訊息提示 (nominornewtalk)。
 		bot : 1,
 		// TODO: add section_title
-		summary : gettext('為[[Special:Diff/%1|%2的編輯]][[%3|補簽名]]。',
+		// gettext_config:{"id":"$3-signing-special-diff-$1-comment-by-$2"}
+		summary : gettext('[[%3|Signing]] [[Special:Diff/%1|comment by %2]].',
 		//
-		row.revid, row.user, log_to) + gettext('本工具僅為紀錄用。')
-		//
-		+ gettext('若您只是暫存，請在編輯註解加上"暫存"字樣即可避免補簽名。若您希望自行手動補簽名，請逕行修改即可。')
+		row.revid, row.user, log_to)
+		// gettext_config:{"id":"this-tool-is-only-for-recording"}
+		+ gettext('This tool is only for recording.')
+		// gettext_config:{"id":"you-may-re-edit-the-text-whatever-you-want"}
+		+ gettext('You may re-edit the text whatever you want.')
 	});
 
 	if (add_count(row, unsigned_user_hash) >= notification_limit_count) {
 		CeL.debug('用戶討論頁提示：如果未簽名編輯了 ' + notification_limit_count
 				+ ' 次，通知使用者記得簽名。', 1);
 		var pages_to_notify = get_pages_to_notify(row, unsigned_user_hash);
-		var message = gettext('{{%1|%2}}', gettext('subst:Uw-tilde'), gettext(
-				'2=可能需要簽名的頁面例如 %1。謝謝您的參與。 --~~~~', pages_to_notify.join(', ')));
-		wiki.page('User talk:' + row.user, {
-			redirects : 1
-		}).edit(message, {
-			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
-			notification_name : 'SIGN',
-			section : 'new',
-			sectiontitle : gettext('請記得在留言時署名'),
-			tags : edit_tags,
-			summary : gettext('[[%1|提醒記得簽名]]，例如在文中所列的 %2 個頁面。',
-			//
-			log_to, pages_to_notify.length)
-		});
+		var message = '{{subst:'
+				+ 'Uw-tilde'
+				+ '|2='
+				+ gettext(
+						// gettext_config:{"id":"pages-that-may-require-a-signature-such-as-$1.-thank-you-for-your-participation"}
+						'Pages that may require a signature, such as %1. Thank you for your participation.',
+						pages_to_notify.join(', ')) + ' --~~~~}}';
+		wiki
+				.page('User talk:' + row.user, {
+					redirects : 1
+				})
+				.edit(
+						message,
+						{
+							// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
+							notification_name : 'SIGN',
+							section : 'new',
+							// gettext_config:{"id":"please-remember-to-sign-when-you-leave-messages"}
+							sectiontitle : gettext('Please remember to sign when you leave messages'),
+							tags : edit_tags,
+							summary : gettext(
+									// gettext_config:{"id":"$1-remind-to-sign-such-as-the-$2-pages-listed-in-the-notification"}
+									'[[%1|Remind to sign]], such as the %2 pages listed in the notification.',
+									//
+									log_to, pages_to_notify.length)
+						});
 	}
 
 }
