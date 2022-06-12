@@ -45,7 +45,9 @@ async function adapt_configuration(latest_task_configuration) {
 	}
 
 	// 匯入 工具頁面
-	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, CeL.gettext('同步通用頁面')) + ': ';
+	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+		// gettext_config:{"id":"synchronizing-common-pages"}
+		CeL.gettext('Synchronizing common pages')) + ': ';
 
 	console.log(wiki.latest_task_configuration);
 }
@@ -120,7 +122,9 @@ async function main_process() {
 		const source_page_title = options.source_title || options.title || page_id;
 		const target_page_title = options.target_title || options.title || page_id;
 
-		CeL.info(`${main_process.name}: ${++page_count}/${page_length} ${CeL.gettext('同步 %1', source_page_title)}${source_page_title === target_page_title ? '' : ` → ${target_page_title}`}`);
+		CeL.info(`${main_process.name}: ${++page_count}/${page_length} ${CeL.gettext(
+			// gettext_config:{"id":"synchronizing-$1"}
+			'Synchronizing %1', source_page_title)}${source_page_title === target_page_title ? '' : ` → ${target_page_title}`}`);
 
 		await for_each_page_pair(source_page_title, target_page_title, options);
 	}
@@ -175,6 +179,7 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 	delete options.depended_on_by;
 
 	if (wiki.is_namespace(target_page_title, 'template')) {
+		// ks: '/دَستاویز'
 		await edit_page(source_page_title + '/doc', target_page_title + '/doc', options);
 		// https://en.wikipedia.org/wiki/Wikipedia:TemplateStyles
 		await edit_page(source_page_title + '/styles.css', target_page_title + '/styles.css', options);
@@ -184,7 +189,11 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			const redirects_list = await source_wiki.redirects(base_source_page_data);
 			//console.trace(redirects_list);
 			if (redirects_list.length > 0) {
-				CeL.info(`${for_each_page_pair.name}: ${CeL.gettext('添加與原維基項目頁面同名的重定向:')} ${CeL.wiki.title_link_of(base_source_page_data)} ← ${redirects_list.map(redirects_page_data => CeL.wiki.title_link_of(redirects_page_data)).join(', ')}`);
+				CeL.info(`${for_each_page_pair.name}: ` + CeL.gettext(
+					// gettext_config:{"id":"create-a-redirect-with-the-same-name-as-the-original-wiki-project-page-$1"}
+					'Create a redirect with the same name as the original wiki project page: %1',
+					CeL.wiki.title_link_of(base_source_page_data) + ' ← ' + redirects_list.map(redirects_page_data => CeL.wiki.title_link_of(redirects_page_data)).join(', ')
+				));
 				for (const redirects_page_data of redirects_list) {
 					//console.trace([redirects_page_data, source_wiki.is_namespace(redirects_page_data, base_source_page_data)]);
 					if (source_wiki.is_namespace(redirects_page_data, base_source_page_data))
@@ -199,7 +208,8 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			if (need_skip_page(source_module_title, source_wiki))
 				continue;
 			CeL.info(`${for_each_page_pair.name}: `
-				+ CeL.gettext('%1 依賴於 module → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_module_title))
+				// gettext_config:{"id":"$1-dependent-on-module-→-$2"}
+				+ CeL.gettext('%1 dependent on module → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_module_title))
 			);
 			await for_each_page_pair(source_module_title, source_module_title, { ...options, depended_on_by: base_source_page_data });
 		}
@@ -212,7 +222,8 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			if (need_skip_page(source_template_title, source_wiki, matched[1]))
 				continue;
 			CeL.info(`${for_each_page_pair.name}: `
-				+ CeL.gettext('%1 依賴於 → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_template_title))
+				// gettext_config:{"id":"$1-dependent-on-→-$2"}
+				+ CeL.gettext('%1 dependent on → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_template_title))
 			);
 			await for_each_page_pair(source_template_title, source_template_title, { ...options, depended_on_by: base_source_page_data });
 		}
@@ -224,7 +235,8 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			//console.assert(sub_page_data.title.startsWith(base_source_page_data.title + '/'));
 			if (!sub_page_data.title.startsWith(base_source_page_data.title + '/')) {
 				CeL.warn(`${for_each_page_pair.name}: `
-					+ CeL.gettext('%1 並非以 %2 為開頭', CeL.wiki.title_link_of(sub_page_data.title), CeL.wiki.title_link_of(base_source_page_data.title + '/'))
+					// gettext_config:{"id":"$1-does-not-start-with-$2"}
+					+ CeL.gettext('%1 does not start with %2', CeL.wiki.title_link_of(sub_page_data.title), base_source_page_data.title + '/')
 				);
 				return;
 			}
@@ -241,7 +253,8 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			if (need_skip_page(source_module_title, source_wiki))
 				continue;
 			CeL.info(`${for_each_page_pair.name}: `
-				+ CeL.gettext('%1 依賴於 module → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_module_title))
+				// gettext_config:{"id":"$1-dependent-on-module-→-$2"}
+				+ CeL.gettext('%1 dependent on module → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_module_title))
 			);
 			await for_each_page_pair(source_module_title, source_module_title, { ...options, depended_on_by: base_source_page_data });
 		}
@@ -265,7 +278,11 @@ async function edit_page(source_page_title, target_page_title, options) {
 			//console.trace(revision.timestamp);
 			CeL.warn(`${edit_page.name}: ${source_page_link}: `
 				+ CeL.gettext(
-					revision?.timestamp ? '最新版本於%1編輯，時間過近，小於%2，跳過此頁面。' : '不存在此頁面，跳過此頁面。'
+					revision?.timestamp
+						// gettext_config:{"id":"the-latest-version-was-edited-in-$1-too-close-to-time-later-than-$2-skip-this-page"}
+						? 'The latest version was edited in %1, too close to time, later than %2, skip this page.'
+						// gettext_config:{"id":"this-page-does-not-exist-skip-this-page"}
+						: 'This page does not exist, skip this page.'
 					, CeL.date.indicate_date_time(revision?.timestamp)
 					, CeL.date.age_of(Date.now() - min_interval)
 				)
@@ -313,23 +330,31 @@ async function edit_page(source_page_title, target_page_title, options) {
 		if (target_redirect_to) {
 			if (source_wiki.normalize_title(target_redirect_to) !== source_wiki.normalize_title(source_redirect_to)) {
 				CeL.error(`${edit_page.name}: `
-					+ CeL.gettext('來源維基項目 %1 重定向至→ %2，但目標維基項目重定向至→ %3，兩者不同！跳過此頁面。', source_page_link, CeL.wiki.title_link_of(source_redirect_to), CeL.wiki.title_link_of(target_redirect_to))
+					// gettext_config:{"id":"the-page-$1-of-the-source-wiki-project-redirects-to-$2-but-the-same-page-of-the-target-wiki-project-redirects-to-$3-they-are-different!-skip-this-page"}
+					+ CeL.gettext('The page %1 of the source wiki project redirects to %2, but the same page of the target wiki project redirects to %3, they are different! Skip this page.', source_page_link, CeL.wiki.title_link_of(source_redirect_to), CeL.wiki.title_link_of(target_redirect_to))
 				);
 			}
 			return;
 		}
 
 	} else {
-		const prefix = CeL.gettext('本頁面複製自%1，由機器人定期更新。請直接編輯原維基項目頁面，或自設定頁面%2去除本頁面之後再編輯。', source_page_link, CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title));
+		// gettext_config:{"id":"this-page-is-copied-from-$1-and-updated-regularly-by-the-robot.-please-edit-the-original-wiki-project-page-directly-or-edit-this-page-after-removing-it-from-$2-of-the-custom-page"}
+		const prefix = CeL.gettext('This page is copied from %1 and updated regularly by the robot. Please edit the original wiki project page directly, or edit this page after removing it from %2 of the custom page.', source_page_link, CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title));
 		const is_template = wiki.is_namespace(target_page_title, 'template'), is_module = wiki.is_namespace(target_page_title, 'module');
 		if ((is_template || is_module) && target_page_title.endsWith('/doc')) {
-			if (!additional_description) additional_description = CeL.gettext('輔助理解用的模板說明文件');
+			if (!additional_description) {
+				// gettext_config:{"id":"template-documentation-to-assist-in-understanding"}
+				additional_description = CeL.gettext('Template documentation to assist in understanding');
+			}
 			// e.g., [[Module:InfoboxImage/doc]]
 			wikitext = `<noinclude><!-- ${prefix} --></noinclude>` + wikitext;
 
 		} else if (is_template && target_page_title.endsWith('/styles.css')) {
 			// assert: contentmodel:sanitized-css
-			if (!additional_description) additional_description = CeL.gettext('必要的模板樣式文件');
+			if (!additional_description) {
+				// gettext_config:{"id":"required-template-style-file"}
+				additional_description = CeL.gettext('Required template style file');
+			}
 			wikitext = `/* ${prefix} */\n` + wikitext;
 
 		} else if (is_template) {
@@ -345,7 +370,9 @@ async function edit_page(source_page_title, target_page_title, options) {
 
 	if (target_page_data.wikitext !== wikitext && target_page_data.wikitext !== source_page_data.wikitext) {
 		if (target_page_data.wikitext) {
-			CeL.info(`${edit_page.name}: ` + CeL.gettext('覆蓋目標頁面 %1', CeL.wiki.title_link_of(target_page_data)));
+			CeL.info(`${edit_page.name}: `
+				// gettext_config:{"id":"overwrite-target-page-$1"}
+				+ CeL.gettext('Overwrite target page %1', CeL.wiki.title_link_of(target_page_data)));
 		}
 		try {
 			await wiki.edit_page(target_page_title, wikitext, {
@@ -354,14 +381,24 @@ async function edit_page(source_page_title, target_page_title, options) {
 				summary: summary_prefix
 					// 自中文維基百科匯入Template:Fullurl2的版本58191651
 					+ source_page_link + ' ' + new Date(revision.timestamp).format('%Y-%2m-%2d') + ' '
-					+ CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid, CeL.gettext('版本%1', revision.revid))
+					+ CeL.wiki.title_link_of(source_site_info.interwiki_prefix + 'Special:PermanentLink/' + revision.revid,
+						// gettext_config:{"id":"revision-id-$1"}
+						CeL.gettext('Revision id %1', revision.revid))
 					// 加上原版本註解
 					+ (revision.comment ? ` (${revision.comment})` : '')
-					+ (replace_text.length > 0 ? ' ' + CeL.gettext('經過微調') : '')
+					+ (replace_text.length > 0 ? ' '
+						// gettext_config:{"id":"fine-tuned"}
+						+ CeL.gettext('Fine-tuned') : '')
 					// 受 options.depended_on_by 所依賴
-					+ (options.depended_on_by ? ' (' + CeL.gettext('受 %1 所需', CeL.wiki.title_link_of(options.depended_on_by)) + ')' : '')
+					+ (options.depended_on_by ? ' ('
+						// gettext_config:{"id":"required-by-$1"}
+						+ CeL.gettext('Required by %1', CeL.wiki.title_link_of(options.depended_on_by)) + ')' : '')
 					+ (additional_description ? ` (${additional_description})` : '')
-					+ (source_redirect_to ? ` (${CeL.gettext('添加與原維基項目頁面同名的重定向:')} ${CeL.wiki.title_link_of(target_page_title)}→${CeL.wiki.title_link_of(source_redirect_to)})` : '')
+					+ (source_redirect_to ? ` (${CeL.gettext(
+						// gettext_config:{"id":"create-a-redirect-with-the-same-name-as-the-original-wiki-project-page-$1"}
+						'Create a redirect with the same name as the original wiki project page: %1',
+						CeL.wiki.title_link_of(target_page_title) + '→' + CeL.wiki.title_link_of(source_redirect_to)
+					)})` : '')
 			});
 		} catch (e) {
 			//CeL.error(e);
@@ -394,6 +431,7 @@ async function edit_page(source_page_title, target_page_title, options) {
 					sitelinks: { [target_site_info.site]: target_page_data.title }
 				}, {
 					bot: 1,
+					// gettext_config:{"id":"adding-sitelinks-when-synchronizing-common-pages-$1-→-$2"}
 					summary: CeL.gettext('Adding sitelinks when synchronizing common pages: %1 → %2', source_site_info.site, target_site_info.site)
 				});
 			} catch (e) {
