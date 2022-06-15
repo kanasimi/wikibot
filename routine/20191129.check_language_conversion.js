@@ -80,6 +80,7 @@ async function main_process() {
 		await wiki.embeddedin('Template:NoteTA', { namespace: 0 }),
 		for_NoteTA_article, {
 		no_message: true,
+		// 去除與公共轉換組/全文轉換重複的轉換規則
 		summary: '[[Wikipedia:机器人/申请/Cewbot/24|去除重複的轉換規則]]:'
 	});
 
