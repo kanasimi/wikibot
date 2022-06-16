@@ -1071,7 +1071,7 @@ function for_each_page(page_data, messages) {
 		}, {
 			T :
 			// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
-			'也許有尚未登記的跨語言連結模板，或是被嵌入的文件/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？'
+			'也許有尚未登記的跨語言連結模板，或是被嵌入的檔案/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？'
 		} ]);
 		if (false) {
 			// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
