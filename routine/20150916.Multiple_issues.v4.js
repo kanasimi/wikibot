@@ -137,7 +137,6 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	// 報表添加維護分類
 	// gettext_config:{"id":"categories-added-to-report"}
 	let categories = configuration[gettext('Categories added to the report')];
 	if (categories) {
@@ -474,27 +473,29 @@ async function generate_report() {
 		// gettext_config:{"id":"articles-containing-maintenance-templates"}
 		gettext('Articles containing maintenance templates')]);
 
-	content =
+	content._heading = new gettext.Sentence_combination();
+	content._heading.push(
 		// __NOTITLECONVERT__
-		'__NOCONTENTCONVERT__\n'
+		'__NOCONTENTCONVERT__\n',
 		// gettext_config:{"id":"the-articles-containing-too-many-maintenance-templates-are-listed-below"}
-		+ gettext('The articles containing too many maintenance templates are listed below:')
+		gettext('The articles containing too many maintenance templates are listed below:'),
 		// gettext_config:{"id":"total-$1-articles"}
-		+ gettext('Total %1 {{PLURAL:%1|article|articles}}.', all_count) + '\n'
-		+ '* '
+		gettext('Total %1 {{PLURAL:%1|article|articles}}.', all_count), '\n',
+		'* ',
 		// gettext_config:{"id":"the-report-will-be-updated-weekly-by-the-robot"}
-		+ gettext('The report will be updated weekly by the robot.')
+		gettext('The report will be updated weekly by the robot.'),
 		// gettext_config:{"id":"you-can-change-the-configuration-from-$1"}
-		+ gettext('You can change the configuration from %1.',
+		gettext('You can change the configuration from %1.',
 			CeL.wiki.title_link_of(configuration.configuration_page_title,
 				// gettext_config:{"id":"the-configuration-page"}
-				gettext('the configuration page')))
-		+ '\n'
+				gettext('the configuration page'))), '\n',
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-		+ '* '
+		'* ',
 		// gettext_config:{"id":"generate-date-$1"}
-		+ gettext('Generate date: %1', '<onlyinclude>~~~~~</onlyinclude>') + '\n\n' + '{{see|' + log_to + '}}\n\n<!-- report begin -->\n'
-		+ CeL.wiki.array_to_table(content, { 'class': "wikitable" });
+		gettext('Generate date: %1', '<onlyinclude>~~~~~</onlyinclude>'), '\n\n',
+		'{{see|' + log_to + '}}\n\n<!-- report begin -->\n'
+	);
+	content = content._heading + CeL.wiki.array_to_table(content, { 'class': "wikitable" });
 	if (configuration.problematic_articles.length > 0) {
 		content += `\n\n== ${gettext(
 			// gettext_config:{"id":"problematic-articles"}
