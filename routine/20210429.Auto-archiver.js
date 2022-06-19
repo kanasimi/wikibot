@@ -10,6 +10,7 @@ node 20210429.Auto-archiver.js use_project=zh.wiktionary
 2021/5/2 8:41:44	初版試營運。
 
 [[w:en:Help:Archiving a talk page#Automated archiving]]
+https://github.com/kanasimi/wikibot/issues/8
 
 TODO:
 {{Save to}}
