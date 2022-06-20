@@ -1470,6 +1470,8 @@ function insert_sub_pages() {
 // ----------------------------------------------------------------------------
 // 生成菜單的主函數
 
+var exit_program_timer;
+
 function generate_topic_list(page_data) {
 	// setup_list_legend
 	normalize_time_style_hash(short_to_long);
@@ -1631,13 +1633,23 @@ function generate_topic_list(page_data) {
 		tags : edit_tags,
 		summary : CeL.wiki.title_link_of(
 		//
-		configuration.configuration_page_title, 'generate topic list') + ': '
+		configuration.configuration_page_title,
+		// gettext_config:{"id":"generate-topic-list-$1-topics"}
+		CeL.gettext('Generate topic list: %1 {{PLURAL:%1|topic|topics}}',
 		// -1: 跳過頁首設定與公告區。
-		+ topic_count + ' topics'
+		topic_count))
 		//
 		+ (new_topics.length > 0
 		//
 		? '; new reply: ' + new_topics.join(', ') : '')
+	}, function(data, error) {
+		if (error)
+			return;
+		clearTimeout(exit_program_timer);
+		exit_program_timer = setTimeout(function() {
+			CeL.error('經過一整天都無成功的編輯！直接跳出！');
+			process.exit();
+		}, CeL.to_millisecond('1d'));
 	})
 	// 更新所嵌入的頁面。通常是主頁面。
 	.purge(page_configuration.purge_page || page_data.title);
