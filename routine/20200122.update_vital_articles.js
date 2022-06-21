@@ -208,6 +208,8 @@ async function get_page_info() {
 		}
 	});
 	//console.log(wiki.FC_data_hash['Windows 10']);
+	//console.log(wiki.FC_data_hash['Philippines']);
+	//console.trace(wiki.FC_data_hash['Pope John Paul II']);
 
 	// ---------------------------------------------
 
@@ -1013,7 +1015,7 @@ function check_page_count() {
 		const category_level = category_level_of_page[page_title];
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
-			CeL.log(`${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
+			CeL.log(`${check_page_count.name}: ${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
 			// pages that is not listed in the Wikipedia:Vital articles/Level/*
 			need_edit_VA_template[page_title] = {
 				// When an article is not listed {{Vital article}} should be removed, not just blanking the |level=.
@@ -1043,10 +1045,10 @@ function check_page_count() {
 		});
 		if (min_level !== category_level) {
 			if (1 <= min_level && min_level <= 5) {
-				CeL.log(`${CeL.wiki.title_link_of(page_title)}: level ${category_level}→${min_level}`);
+				CeL.log(`${check_page_count.name}: ${CeL.wiki.title_link_of(page_title)}: level ${category_level}→${min_level}`);
 				need_edit_VA_template[page_title] = min_level_info;
 			} else {
-				CeL.error(`Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${JSON.stringify(article_info_list)}`);
+				CeL.error(`${check_page_count.name}: Invalid level of ${CeL.wiki.title_link_of(page_title)}: ${JSON.stringify(article_info_list)}`);
 			}
 		}
 
@@ -1101,6 +1103,18 @@ async function maintain_VA_template() {
 	// CeL.info('need_edit_VA_template: ');
 	// console.log(need_edit_VA_template);
 
+	// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
+	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
+	try {
+		await wiki.for_each_page(Object.keys(need_edit_VA_template), function (main_page_data) {
+			const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
+			if (!main_article_exists) {
+				delete need_edit_VA_template[main_page_data.original_title || main_page_data.title];
+			}
+		});
+	} catch (e) {
+	}
+
 	let main_title_of_talk_title = Object.create(null);
 	try {
 		await wiki.for_each_page(Object.keys(need_edit_VA_template).map(title => {
@@ -1114,9 +1128,8 @@ async function maintain_VA_template() {
 			// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
 			//redirects: 1,
 
-			// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
-			// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
-			//nocreate: false,
+			// assert: The main article exists.
+			nocreate: false,
 
 			bot: 1,
 			log_to: null,
@@ -1222,13 +1235,20 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// normalize_class(): e.g., for [[Talk:Goosebumps]]
 		class: normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? class_from_other_templates ?? '')
 	};
-	// 高重要度層級的設定，應當覆蓋低重要度的。
-	if (!(VA_template_token?.parameters.level >= 1) || !(+VA_template_token?.parameters.level <= +article_info.level)
+	// console.trace([VA_template_token?.parameters, article_info, +VA_template_token?.parameters.level !== +article_info.level]);
+	// 2022/6/21:	對於這三者，皆應以列表為主。若有誤應修改列表。
+	if (true
+		|| !(VA_template_token?.parameters.level >= 1)
+		// 高重要度層級的設定，應當覆蓋低重要度的。
+		// 2022/6/21:	但假如此文章在列表中被降格，還是應該記錄。應該遵循、修改的是列表而非談話頁面上的模板。
+		|| +VA_template_token?.parameters.level !== +article_info.level
 		|| !VA_template_token?.parameters.topic && article_info.topic) {
 		for (const property of ['level', 'topic', 'subpage']) {
 			if ((property in article_info)
 				// 取最小 level 之設定，其他的不覆蓋原有值。
-				&& (+article_info.level <= + VA_template_token?.parameters.level || !VA_template_token?.parameters[property])) {
+				// 2022/6/21:	但假如此文章在列表中被降格，還是應該記錄。應該遵循、修改的是列表而非談話頁面上的模板。
+				//&& (+article_info.level <= + VA_template_token?.parameters.level || !VA_template_token?.parameters[property])
+			) {
 				VA_template_object[property] = article_info[property];
 			}
 		}
@@ -1242,7 +1262,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			article_info.reason += `: [[${VA_template_object.link}]]`;
 		}
 	}
-	// console.log(VA_template_object);
+	// console.trace(VA_template_object);
 	let wikitext_to_add;
 	if (VA_template_token) {
 		CeL.wiki.parse.replace_parameter(VA_template_token, VA_template_object, { value_only: true, force_add: true, append_key_value: true });
