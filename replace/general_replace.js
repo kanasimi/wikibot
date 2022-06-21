@@ -97,7 +97,8 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 			section_title: need_close.length === 1 && need_close[0],
 			for_section_options: {
 				need_edit: true,
-				summary: `${need_close.length > 1 ? `Close ${need_close.length} requests` : 'Close request'}: ${need_close.join(', ')}`
+				// gettext_config:{"id":"close-$1-requests-$2"}
+				summary: CeL.gettext('Close %1 {{PLURAL:%1|request|requests}}: %2', need_close.length, need_close.join(', '))
 			}
 		});
 		//console.trace(meta_configuration);
