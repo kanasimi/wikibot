@@ -1689,6 +1689,22 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
 	//console.trace(data_to_modify);
+	if (data_to_modify.descriptions && !CeL.is_empty_object(data_to_modify.descriptions)) {
+		const descriptions = data_to_modify.descriptions;
+		delete data_to_modify.descriptions;
+		// https://doc.wikimedia.org/Wikibase/master/php/md_docs_topics_changeop_serializations.html
+		for (const [language_code, description] of Object.entries(descriptions)) {
+			descriptions[language_code] = { language: language_code, value: description };
+		}
+		//console.trace(descriptions);
+		await article_item.modify({ descriptions }, {
+			bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}`,
+			// 合併請求。
+			wbeditentity_only: true,
+		});
+	}
+
+	//console.trace(data_to_modify);
 	await article_item.modify(data_to_modify, {
 		bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}`,
 		// 避免 cites work (P2860) 佔據太多記憶體。
