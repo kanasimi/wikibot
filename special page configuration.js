@@ -804,6 +804,22 @@ var jawiki_week_AFD_options = {
 	}
 };
 
+
+// ----------------------------------------------
+
+
+// 檢查議體進度/狀態。
+function check_Status_template(section, section_index) {
+	var status_token;
+	section.each('Template:Status', function(token) {
+		status_token = token;
+		token.push('prefix=');
+		return section.each.exit;
+	});
+	return status_token && status_token.toString();
+}
+
+
 // ================================================================================================
 
 // page configurations for all supported talk pages
@@ -986,16 +1002,7 @@ var page_configurations = {
 			status : '狀態'
 		},
 		operators : {
-			// 議體進度/狀態。
-			status : function check_Status_template(section, section_index) {
-				var status_token;
-				section.each('Template:Status', function(token) {
-					status_token = token;
-					token.push('prefix=');
-					return section.each.exit;
-				});
-				return status_token && status_token.toString();
-			}
+			status : check_Status_template
 		}
 	}),
 	'zhwiki:Wikipedia:存廢覆核請求' : Object.assign(Object.create(null),
@@ -1009,17 +1016,24 @@ var page_configurations = {
 			status : '狀態'
 		},
 		operators : {
-			// 議體進度/狀態。
-			status : function check_Status_template(section, section_index) {
-				var status_token;
-				section.each('Template:Status', function(token) {
-					status_token = token;
-					token.push('prefix=');
-					return section.each.exit;
-				});
-				return status_token && status_token.toString();
-			}
+			status : check_Status_template
 		}
+	}),
+	'zhwiki:Wikipedia:新闻动态候选' : Object.assign(Object.create(null),
+	//
+	general_page_configuration, {
+		topic_page : general_topic_page,
+		timezone : 8,
+		columns : 'NO;title;status;discussions;participants;last_user_set',
+		column_to_header : {
+			// 處理情況
+			status : '狀態'
+		},
+		operators : {
+			status : check_Status_template
+		},
+		// 要篩選的章節標題層級。 cf. .show_subtopic
+		level_filter : 3
 	}),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({
