@@ -680,7 +680,9 @@ function for_each_page(page_data, messages) {
 			if (wiki.is_talk_namespace(page_data)
 			// [[利用者‐会話:Kanashimi#Wikipedia空間の投票コメントの書き換え]]
 			// Wikipedia空間には投票コメントなど個人の発言が含まれているため修正しないほうがよいでしょう（例えば今回の仮リンクには「当時、記事は存在していなかった」という記号の役割もあります）。もし個人の発言ページを区別するのが困難なのであれば、Wikipedia空間全体をノート同様に書き換え禁止としたほうが安全です。
-			|| page_data.title.startsWith('Wikipedia:削除依頼/')) {
+			// [利用者‐会話:Kanashimi#Wikipedia空間の仮リンク解消]]
+			// 「個人発言」「書き加え」「業務連絡」である会話ページ・ノートページ・Wikipedia空間投票関連では、置き換えをされないほうがよいと思われます
+			|| /^Wikipedia:(?:削除依頼|リダイレクトの削除依頼)\//.test(page_data.title)) {
 				// gettext_config:{"id":"the-task-does-not-process-talk-pages"}
 				check_page(gettext('The task does not process talk pages'));
 				return;
