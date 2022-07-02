@@ -35,9 +35,12 @@ function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 				+ ' Incase the public sandbox being moved.'
 	};
 
+	var site_name = CeL.wiki.site_name(wiki);
 	var edit_options = {
 		summary : _summary || summary,
 		nocreate : 1,
+		// [[Special:tags]] "tag應該多加一個【Bot】tag"
+		tags : site_name === 'zhmoegirl' ? 'Bot' : '',
 		bot : 1
 	};
 
@@ -48,7 +51,7 @@ function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 		if (time_diff < CeL.date.to_millisecond(min_interval)) {
 			return [ CeL.wiki.edit.cancel,
 			// 這一次沒清理到的話，會等到下一次再清理。
-			'用戶最後編輯時間短於' + min_interval + '，跳過清理。' ];
+			'用戶最後編輯時間短於' + min_interval + '，跳過清理 ' + site_name + '。' ];
 		}
 
 		var
@@ -74,7 +77,7 @@ function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 		'header\n'.trim() === 'header\n== 請在這行文字底下測試 ==\n'.replace(PATTERN, '$1').trim()
 		</code>
 		 */
-		if (CeL.wiki.site_name(wiki) === 'zhwiki'
+		if (site_name === 'zhwiki'
 		// 為 Jimmy-bot 特設, 避免與 Jimmy-bot 編輯戰. e.g., [[Template:沙盒]]
 		&& replace_to.replace(
 		//
@@ -193,25 +196,15 @@ if (force || JD % 2 === 0) {
 // 改2天一次試試。
 if (force || JD % 2 === 0) {
 	/** {Object}wiki operator 操作子. */
-	var moegirl = Wiki(true, 'zhmoegirl');
-	var edit_options = {
-		summary : summary,
-		nocreate : 1,
-		// [[Special:tags]] "tag應該多加一個【Bot】tag"
-		tags : 'Bot',
-		bot : 1
-	};
-
-	moegirl.page('Help:沙盒‎‎')
-	// https://zh.moegirl.org.cn/Special:滥用过滤器/17
-	.edit('<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
+	var zhmoegirl = Wiki(true, 'zhmoegirl');
+	clean_wiki_sandbox(zhmoegirl,
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
-	+ '== 請在這行文字底下開始測試 ==\n', edit_options);
-
-	moegirl.page('Template:沙盒').edit(
-	//
-	'<noinclude><!-- 请勿删除此行 -->{{帮助导航}}{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n',
-			edit_options);
+	'<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
+			+ '== 請在這行文字底下開始測試 ==\n', 'Help:沙盒‎‎');
+	clean_wiki_sandbox(
+			zhmoegirl,
+			'<noinclude><!-- 请勿删除此行 -->{{帮助导航}}{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n',
+			'Template:沙盒');
 }
 
 routine_task_done('7d');
