@@ -804,9 +804,7 @@ var jawiki_week_AFD_options = {
 	}
 };
 
-
 // ----------------------------------------------
-
 
 // 檢查議體進度/狀態。
 function check_Status_template(section, section_index) {
@@ -818,7 +816,6 @@ function check_Status_template(section, section_index) {
 	});
 	return status_token && status_token.toString();
 }
-
 
 // ================================================================================================
 
@@ -1816,8 +1813,8 @@ function FC_section_filter(section) {
 		// CeL.log('oppose: ' + section.vote_list.oppose.length);
 
 		if (parent.type === 'tag_inner' && parent.parent.type === 'tag'
-		// 使用刪除線「<s>...</s>」劃掉。
-		&& parent.parent.tag === 's'
+		// 使用刪除線「<s>...</s>」或「<del>...</del>」劃掉。
+		&& (parent.parent.tag === 's' || parent.parent.tag === 'del')
 		//
 		&& ((token.name in page_configuration.support_templates)
 		//
