@@ -351,7 +351,7 @@ async function check_deletion_discussion_page(page_data) {
 		});
 
 		if (!title_to_delete && section.section_title.length === 1) {
-			// e.g., ==<s>[[:AngelTalk]]</s>==
+			// e.g., ==<s>[[:AngelTalk]]</s>==, ==<del>[[:AngelTalk]]</del>==
 			title_to_delete = section.section_title[0];
 		}
 
@@ -432,10 +432,14 @@ async function check_deletion_discussion_page(page_data) {
 		}
 
 		// 去掉無效請求，或最終保留的：無傷大雅。
-		if (flags.result && (flags.result.toString().trim().toLowerCase() in { cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true })
+		if (flags.result && (flags.result.toString().trim().toLowerCase() in {
+			cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true,
+			// [[User_talk:Kanashimi#維護討論頁之存廢討論紀錄與模板]]
+			cv: true,
+		})
 			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效
 			// 提案者重复提出，请求失效。见下。 改掛關注度模板，三十天後再議
-			|| /[撤收]回|[無无失]效|未到期|天後再議|快速保留|速留/.test(flags.result)) {
+			|| /[撤收]回|[無无失]效|未到期|天後再議|快速保留|速留|转交|轉交/.test(flags.result)) {
 			return;
 		}
 
