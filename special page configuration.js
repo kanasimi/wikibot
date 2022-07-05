@@ -34,48 +34,52 @@ var localized_column_to_header = {
 	// e.g., {{int:filehist-user}} {{int:filehist-datetime}}
 	zh : {
 		// 序號 Topics主題 討論名稱
-		title : '話題',
-		discussions : '<small title="發言數/發言人次 (實際上為計算簽名數)">發言</small>',
-		participants : '<small title="參與討論人數/發言人數">參與</small>',
+		title : '💬 話題',
+		// https://commons.wikimedia.org/wiki/Category:Convenient_Discussions
+		discussions : '<span title="發言數/發言人次 (實際上為計算簽名數)">[[File:Convenient Discussions logo color textless.svg|20px|link=|alt=發言]]</span>',
+		participants : '<span title="參與討論人數/發言人數">🗣️</span>',
 		// first_user_set: 發起人與發起時間(Created)
 
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於 最後回覆時間
-		last_user_set : '最新發言 !! data-sort-type="isoDate" | <small>最後更新(UTC+8)</small>',
+		last_user_set : '[[File:Crystal Clear app personal.png|20px|link=|alt=]] 最新發言 !! data-sort-type="isoDate" | <span title="最後更新">⏰ (UTC+8)</span>',
+		// 🕐 🕑 🕒 🕓 🕔 🕕 🕖 🕗 🕘 🕙 🕚 🕛 🕜 🕝 🕞 🕟 🕠 🕡 🕢 🕣 🕤 🕥 🕦
+		// 🕧
 
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
-		last_admin_set : '[[WP:ADM|管理員]]發言 !! data-sort-type="isoDate" | <small>管理員更新(UTC+8)</small>',
+		last_admin_set : '<span title="最新管理員發言">[[File:Admin mop.svg|20px|link=|alt=]] [[WP:ADM|管理員]]</span> !! data-sort-type="isoDate" | <span title="管理員更新">⏰ (UTC+8)</span>',
 
 		// last_BAG_set: 特定使用者 special_users.BAG 最後留言者與最後時間(Last BAG editor)
 		// last_BAG_set: 最後BAG編輯者+BAG最後編輯於
-		last_BAG_set : '<small>最新[[WP:BAG|BAG]]發言</small> !! data-sort-type="isoDate" | <small>BAG最後更新(UTC+8)</small>',
+		last_BAG_set : '<span title="最新BAG發言">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="BAG最後更新">⏰ (UTC+8)</span>',
 
-		last_botop_set : '<small>最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <small>機器人操作者更新(UTC+8)</small>'
+		// https://commons.wikimedia.org/wiki/Category:Robot_head_icons
+		last_botop_set : '<small>🤖 最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <span title="機器人操作者更新">⏰ (UTC+8)</span>'
 	},
 	'zh-classical' : {
 		NO : 'data-sort-type="number" | <small>序</small>',
-		title : '議題',
-		discussions : 'data-sort-type="number" | <small title="議論數">論</small>',
-		participants : 'data-sort-type="number" | <small title="參議者數">參議</small>',
-		last_user_set : '末議者 !! data-sort-type="isoDate" | 新易(UTC+8)',
-		last_admin_set : '[[WP:有秩|有秩]] !! data-sort-type="isoDate" | 有秩新易(UTC+8)'
+		title : '💬 議題',
+		discussions : 'data-sort-type="number" | <span title="議論數">[[File:Convenient Discussions logo color textless.svg|20px|link=|alt=論]]</span>',
+		participants : 'data-sort-type="number" | <small title="參議者數">🗣️</small>',
+		last_user_set : '[[File:Crystal Clear app personal.png|20px|link=|alt=]] 末議者 !! data-sort-type="isoDate" | <span title="新易">⏰ (UTC+8)</span>',
+		last_admin_set : '[[File:Admin mop.svg|20px|link=|alt=]] [[WP:有秩|有秩]] !! data-sort-type="isoDate" | <span title="有秩新易">⏰ (UTC+8)</span>'
 	},
 	ja : {
 		// 質問や提案、議論
-		title : '話題',
-		discussions : '<small title="発言数">発言</small>',
-		participants : '<small title="議論に参加する人数">人数</small>',
-		last_user_set : '最終更新者 !! data-sort-type="isoDate" | <small>最終更新日時(UTC+9)</small>',
+		title : '💬 話題',
+		discussions : '<span title="発言数">[[File:Convenient Discussions logo color textless.svg|20px|link=|alt=発言]]</span>',
+		participants : '<span title="議論に参加する人数">🗣️</span>',
+		last_user_set : '[[File:Crystal Clear app personal.png|20px|link=|alt=]] 最終更新者 !! data-sort-type="isoDate" | <span title="最終更新日時">⏰ (UTC+9)</span>',
 		// 審議者・決裁者
-		last_BAG_set : '<small>[[WP:BUR|決裁者]]更新</small> !! data-sort-type="isoDate" | <small>決裁者最後更新(UTC+9)</small>',
-		last_botop_set : '<small>[[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <small>Bot運用者更新日時(UTC+9)</small>'
+		last_BAG_set : '<span title="BUR 決裁者更新">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BUR|決裁者]]</span> !! data-sort-type="isoDate" | <span title="決裁者最後更新">⏰ (UTC+9)</span>',
+		last_botop_set : '<small>🤖 [[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <span title="Bot運用者更新日時">⏰ (UTC+9)</span>'
 	},
 	en : {
-		title : 'Title',
-		discussions : '<small title="count of replies">Replies</small>',
-		participants : '<small title="count of participants">Participants</small>',
-		last_user_set : 'Last editor !! data-sort-type="isoDate" | Date/Time (UTC)',
-		last_BAG_set : '<small>Last BAG editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)',
-		last_botop_set : '<small title="bot owner, bot operator">Last botop editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
+		title : '💬 Title',
+		discussions : '<span title="Count of replies">[[File:Convenient Discussions logo color textless.svg|20px|link=|alt=Replies]]</span>',
+		participants : '<span title="Count of participants">🗣️</span>',
+		last_user_set : '[[File:Crystal Clear app personal.png|20px|link=|alt=]] Last editor !! data-sort-type="isoDate" | <span title="Date/Time">⏰ (UTC)</span>',
+		last_BAG_set : '<span title="Last BAG editor">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="Date/Time">⏰ (UTC)</span>',
+		last_botop_set : '<small title="bot owner, bot operator">🤖 Last botop editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">⏰ (UTC)</span>'
 	}
 };
 localized_column_to_header = localized_column_to_header[use_language]
@@ -827,7 +831,7 @@ var page_configurations = {
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		column_to_header : {
 			status : 'Status',
-			last_botop_set : '<small title="bot owner, bot operator">Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | Date/Time (UTC)'
+			last_botop_set : '<small title="bot owner, bot operator">🤖 Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">⏰ (UTC)</span>'
 		},
 		operators : {
 			// 議體進度/狀態。
@@ -1819,7 +1823,7 @@ function FC_section_filter(section) {
 		&& ((token.name in page_configuration.support_templates)
 		//
 		|| (token.name in page_configuration.oppose_templates))) {
-			// console.log(token);
+			// console.trace(token);
 			cross_out_vote(section, token);
 			// 還是得設定 user, date。
 			latest_vote = token;
