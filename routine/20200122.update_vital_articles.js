@@ -1156,6 +1156,8 @@ const class_alias_to_normalized = {
 // add new {{Vital articles|class=unassessed}}
 // or via ({{WikiProject *|class=start}})
 function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
+	// For [[Talk:Philippines]]
+	console.trace(wiki.FC_data_hash[main_page_title]);
 	const article_info = need_edit_VA_template[main_page_title];
 
 	// There are copies @ 20201008.fix_anchor.js
