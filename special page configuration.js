@@ -350,7 +350,7 @@ var default_FC_vote_configurations = {
 			function(title) {
 				return CeL.wiki.normalize_title(title);
 			}).to_hash(),
-	oppose_templates : 'NoFA|NoFL|NoGA|NoGa|Noga|NoFP'.split('|').map(
+	oppose_templates : 'NoFA|NoFL|NoGA|NoGa|Noga|NoFP|Nofp'.split('|').map(
 			function(title) {
 				return CeL.wiki.normalize_title(title);
 			}).to_hash(),
