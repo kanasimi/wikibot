@@ -45,20 +45,20 @@ var localized_column_to_header = {
 
 		// last_user_set: 最後留言者與最後時間(Last editor) 最後編輯者+最後編輯於 最後回覆時間
 		// [[File:Crystal Clear app personal.png|20px|link=|alt=]] 🧑
-		last_user_set : '🙋 最新發言 !! data-sort-type="isoDate" | <span title="最後更新">🕑 <small>(UTC+8)</small></span>',
+		last_user_set : '🙋 最新發言 !! data-sort-type="isoDate" | <span title="最後更新">🕒 <small>(UTC+8)</small></span>',
 		// ⌚”在蘋果設備上會顯示成意義不明的蘋果手錶
 		// 🕐 🕑 🕒 🕓 🕔 🕕 🕖 🕗 🕘 🕙 🕚 🕛 🕜 🕝 🕞 🕟 🕠 🕡 🕢 🕣 🕤 🕥 🕦
 		// 🕧
 
 		// last_admin_set: 特定使用者 special_users.admin 最後留言者與最後時間
-		last_admin_set : '<span title="最新管理員發言">[[File:Admin mop.svg|20px|link=|alt=]] [[WP:ADM|管理員]]</span> !! data-sort-type="isoDate" | <span title="管理員更新">🕑 <small>(UTC+8)</small></span>',
+		last_admin_set : '<span title="最新管理員發言">[[File:Admin mop.svg|20px|link=|alt=]] [[WP:ADM|管理員]]</span> !! data-sort-type="isoDate" | <span title="管理員更新">🕒 <small>(UTC+8)</small></span>',
 
 		// last_BAG_set: 特定使用者 special_users.BAG 最後留言者與最後時間(Last BAG editor)
 		// last_BAG_set: 最後BAG編輯者+BAG最後編輯於
-		last_BAG_set : '<span title="最新BAG發言">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="BAG最後更新">🕑 <small>(UTC+8)</small></span>',
+		last_BAG_set : '<span title="最新BAG發言">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="BAG最後更新">🕒 <small>(UTC+8)</small></span>',
 
 		// https://commons.wikimedia.org/wiki/Category:Robot_head_icons
-		last_botop_set : '<small>🤖 最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <span title="機器人操作者更新">🕑 <small>(UTC+8)</small></span>'
+		last_botop_set : '<small>🤖 最新[[Template:User bot owner|機器人操作者]]</small> !! data-sort-type="isoDate" | <span title="機器人操作者更新">🕒 <small>(UTC+8)</small></span>'
 	},
 	'zh-classical' : {
 		NO : 'data-sort-type="number" | <small>序</small>',
@@ -66,8 +66,8 @@ var localized_column_to_header = {
 		// 論
 		discussions : 'data-sort-type="number" | <span title="議論數">💬</span>',
 		participants : 'data-sort-type="number" | <small title="參議者數">👥</small>',
-		last_user_set : '🙋 末議者 !! data-sort-type="isoDate" | <span title="新易">🕑 <small>(UTC+8)</small></span>',
-		last_admin_set : '[[File:Admin mop.svg|20px|link=|alt=]] [[WP:有秩|有秩]] !! data-sort-type="isoDate" | <span title="有秩新易">🕑 <small>(UTC+8)</small></span>'
+		last_user_set : '🙋 末議者 !! data-sort-type="isoDate" | <span title="新易">🕒 <small>(UTC+8)</small></span>',
+		last_admin_set : '[[File:Admin mop.svg|20px|link=|alt=]] [[WP:有秩|有秩]] !! data-sort-type="isoDate" | <span title="有秩新易">🕒 <small>(UTC+8)</small></span>'
 	},
 	ja : {
 		// 質問や提案、議論
@@ -75,19 +75,19 @@ var localized_column_to_header = {
 		// 発言
 		discussions : '<span title="発言数">💬</span>',
 		participants : '<span title="議論に参加する人数">👥</span>',
-		last_user_set : '🙋 最終更新者 !! data-sort-type="isoDate" | <span title="最終更新日時">🕑 <small>(UTC+9)</small></span>',
+		last_user_set : '🙋 最終更新者 !! data-sort-type="isoDate" | <span title="最終更新日時">🕒 <small>(UTC+9)</small></span>',
 		// 審議者・決裁者
-		last_BAG_set : '<span title="BUR 決裁者更新">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BUR|決裁者]]</span> !! data-sort-type="isoDate" | <span title="決裁者最後更新">🕑 <small>(UTC+9)</small></span>',
-		last_botop_set : '<small>🤖 [[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <span title="Bot運用者更新日時">🕑 <small>(UTC+9)</small></span>'
+		last_BAG_set : '<span title="BUR 決裁者更新">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BUR|決裁者]]</span> !! data-sort-type="isoDate" | <span title="決裁者最後更新">🕒 <small>(UTC+9)</small></span>',
+		last_botop_set : '<small>🤖 [[Template:User bot owner|Bot運用者]]更新</small> !! data-sort-type="isoDate" | <span title="Bot運用者更新日時">🕒 <small>(UTC+9)</small></span>'
 	},
 	en : {
 		title : '💭 Title',
 		// Replies
 		discussions : '<span title="Count of replies">💬</span>',
 		participants : '<span title="Count of participants">👥</span>',
-		last_user_set : '🙋 Last editor !! data-sort-type="isoDate" | <span title="Date/Time">🕑 <small>(UTC)</small></span>',
-		last_BAG_set : '<span title="Last BAG editor">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="Date/Time">🕑 <small>(UTC)</small></span>',
-		last_botop_set : '<small title="bot owner, bot operator">🤖 Last botop editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">🕑 <small>(UTC)</small></span>'
+		last_user_set : '🙋 Last editor !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>',
+		last_BAG_set : '<span title="Last BAG editor">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>',
+		last_botop_set : '<small title="bot owner, bot operator">🤖 Last botop editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>'
 	}
 };
 localized_column_to_header = localized_column_to_header[use_language]
@@ -845,7 +845,7 @@ var page_configurations = {
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		column_to_header : {
 			status : 'Status',
-			last_botop_set : '<small title="bot owner, bot operator">🤖 Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">🕑 <small>(UTC)</small></span>'
+			last_botop_set : '<small title="bot owner, bot operator">🤖 Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>'
 		},
 		operators : {
 			// 議體進度/狀態。
