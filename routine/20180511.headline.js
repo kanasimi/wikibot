@@ -834,7 +834,7 @@ var source_configurations = {
 		南方日报 : {
 			flag : 'China',
 			url : 'http://epaper.southcn.com/nfdaily/html/'
-					+ use_date.format('%Y-%2m/%2d/') + 'node_2.htm',
+					+ use_date.format('%Y%2m/%2d/') + 'node_A01.htm',
 			parser : parser_南方日报
 		},
 		// http://www.ckxxbao.com/
