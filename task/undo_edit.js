@@ -22,24 +22,22 @@ globalThis.no_task_date_warning = true;
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
-var wiki = Wiki(true, 'commons');
+var wiki = Wiki(true, 'ja');
 
 // ---------------------------------------------------------------------//
 
-// ごめんなさい。
-var edit_summary = 'Sorry, revert error made by bot. ('
+var edit_summary = CeL.gettext(
+// gettext_config:{"id":"very-sorry.-undo-the-robot-s-wrong-edits.-($1)"}
+"Very Sorry. Undo the robot's wrong edits. (%1)",
 // 加上時間戳記以方便要回復這次 undo 時使用。
-+ (new Date).toISOString() + ')';
+(new Date).toISOString());
 // 向前追溯筆數。
 var trace_forward_length = 'max';
 
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	// return summary.includes('The article is NOT listed in any vital article
-	// list page');
-	return summary
-			.includes('Language clarification on UK legislation uploads by Fae. (incategory:')
+	return summary.includes('護衛艦#多用途護衛艦（DDA）')
 	// && wiki.is_namespace(page_data, 'Category')
 	;
 
@@ -66,7 +64,8 @@ check_usercontribs, {
 });
 
 function check_usercontribs(list) {
-	CeL.log('Get ' + list.length + ' edits from ' + CeL.wiki.site_name(wiki));
+	CeL.log('check_usercontribs: ' + 'Get ' + list.length + ' edits from '
+			+ CeL.wiki.site_name(wiki));
 
 	var undo_page_hash = Object.create(null);
 
