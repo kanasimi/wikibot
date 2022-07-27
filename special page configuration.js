@@ -243,11 +243,12 @@ var default_BRFA_configurations = {
 	columns : 'NO;title;status;discussions;participants;last_user_set;last_BAG_set',
 	column_to_header : {
 		zh : {
-			title : '機器人申請',
+			// [[Bot awake.svg]]
+			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] 機器人申請',
 			status : '進度'
 		},
 		ja : {
-			title : 'Bot使用申請',
+			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] Bot使用申請',
 			status : '進捗'
 		}
 	}[use_language],
