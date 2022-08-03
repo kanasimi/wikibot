@@ -997,7 +997,7 @@ function check_date_page() {
 	+ CeL.wiki.title_link_of(configuration.configuration_page_title
 	//
 	+ '#一般設定', '更改設定參數')
-	// <s>不簽名，避免一日之中頻繁變更。 " --~~~~"</s>
+	// <del>不簽名，避免一日之中頻繁變更。 " --~~~~"</del>
 	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n'
 	//

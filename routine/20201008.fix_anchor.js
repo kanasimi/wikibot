@@ -5,11 +5,14 @@ node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
+node 20201008.fix_anchor.js use_language=ja "check_page=フジテレビのアナウンサー一覧"
+node 20201008.fix_anchor.js use_language=ja "check_page=鬼平犯科帳 (松本幸四郎)"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出场的铁路车站列表"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=赛马娘 Pretty Derby/成句与梗"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=User:玄微子/萌百史记/维护组部分"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=FLOWERS(Innocent Grey)"
+node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=鬼畜/鬼畜全明星列表"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
 node 20201008.fix_anchor.js use_project=en "check_page=Glossary of cricket terms"
@@ -77,6 +80,9 @@ fix [[Special:PermanentLink]]
 
 https://en.wikipedia.org/w/index.php?title=Bibliography_of_works_on_Davy_Crockett&diff=prev&oldid=1080437075&diffmode=source
 https://en.wikipedia.org/w/index.php?title=Brands_Hatch_race_winners&curid=39487649&diff=1084263902&oldid=1083976678&diffmode=source
+
+網頁錨點中的空白會被消掉
+https://zh.moegirl.org.cn/Talk:%E6%B3%9B%E5%BC%8F
 
 檢核頁面分割、剪貼移動的情況。
 假如是 level 3 之後的 section title，可 link 至上一層？

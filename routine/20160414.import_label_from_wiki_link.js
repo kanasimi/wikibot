@@ -2,6 +2,8 @@
 
 /*
 
+** 修改過錯誤文章後，必須先刪除cache才能避免重複發生錯誤。
+
  base_directory/
  all_pages.*.json	存有當前語言維基百科當前所有的頁面id以及最新版本 (*:當前語言)
  common_title.json	存有所有語言常用標題之資料維基數據
