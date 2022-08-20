@@ -367,19 +367,16 @@ function upload_media(media_data) {
 					: ' track maps');
 
 	var categories = media_data.categories ? media_data.categories.clone() : [];
-	if (!(explicit_track_maps_category in category_to_parent_hash)) {
-		// track_maps_category 應該都存在。
-		// 假如不存在 explicit_track_maps_category 的話，就加入 track_maps_category
-		// 以確保必定有個歸屬。
-		// TODO: 自動創建 explicit_track_maps_category
-		categories.push(track_maps_category);
-	}
+	categories.push(explicit_track_maps_category in category_to_parent_hash
+	// track_maps_category 應該都存在。
+	// 假如不存在 explicit_track_maps_category 的話，就加入 track_maps_category
+	// 以確保必定有個歸屬。
+	// NG: 自動創建 explicit_track_maps_category
+	? explicit_track_maps_category : track_maps_category);
 
 	if (media_data.link)
 		categories.push('Category:' + media_data.link);
 	categories.forEach(check_category_exists);
-
-	categories.push(explicit_track_maps_category);
 
 	media_data = Object.assign(Object.create(null), media_data, {
 		categories : categories,
