@@ -22,6 +22,8 @@ login_options_for_project[DEFAULT_PROJECT_KEY] = {
 // use_project=lingualibre
 login_options_for_project.lingualibre = {
 	API_URL : 'https://lingualibre.org/api.php',
+	data_API_URL : 'https://lingualibre.org/api.php',
+	SPARQL_API_URL : 'https://lingualibre.org/bigdata/namespace/wdq/sparql',
 	user_name : 'bot name@bot name',
 	password : 'bot password given'
 };
