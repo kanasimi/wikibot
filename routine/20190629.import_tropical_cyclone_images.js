@@ -849,7 +849,7 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 // ============================================================================
 
 function start_CIMSS() {
-	var base_URL = 'http://tropic.ssec.wisc.edu/';
+	var base_URL = 'https://tropic.ssec.wisc.edu/';
 
 	var media_data = {
 		base_URL : base_URL,
@@ -1461,7 +1461,7 @@ function start_PAGASA() {
 	return;
 
 	// http://bagong.pagasa.dost.gov.ph/
-	var base_URL = 'http://www.pagasa.dost.gov.ph/';
+	var base_URL = 'https://www.pagasa.dost.gov.ph/';
 
 	var media_data = {
 		base_URL : base_URL,
