@@ -1,6 +1,9 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh; date) >> 解消済み仮リンクをリンクに置き換える/log &
+﻿/*
+(cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh; date) >> 解消済み仮リンクをリンクに置き換える/log &
 
-/*
+
+node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh
+
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
  [[:ja:Wikipedia:井戸端/subj/仮リンクの解消の作業手順について]]
@@ -206,6 +209,9 @@ message_set = {
 			tsl : template_orders.cFL,
 			translink : template_orders.cFL,
 
+			lj : Object.assign({
+				'|foreign_language' : 'ja'
+			}, template_orders.LF),
 			le : Object.assign({
 				'|foreign_language' : 'en'
 			}, template_orders.LF)
@@ -232,7 +238,7 @@ if (use_language === 'zh') {
 		}, template_orders.LF);
 		message_set.template_order_of_name
 		// {{Internal link helper}}子模板
-		['interlanguage link multi/' + language_code] = order;
+		['internal link helper/' + language_code] = order;
 		message_set.template_order_of_name
 		//
 		['link-' + language_code] = order;
@@ -1108,6 +1114,7 @@ function main_work() {
 			// only for debug {{ill}}s on specified page
 			// this.list = [ 'Wikipedia:沙盒' ];
 			// this.list = [ 'Wikipedia:サンドボックス' ];
+			// this.list = [ '泉站' ];
 		}
 
 	}, false && {
