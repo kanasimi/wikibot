@@ -209,6 +209,12 @@ message_set = {
 			tsl : template_orders.cFL,
 			translink : template_orders.cFL,
 
+			'link-zh-yue' : Object.assign({
+				'|foreign_language' : 'yue'
+			}, template_orders.LF),
+			ly : Object.assign({
+				'|foreign_language' : 'yue'
+			}, template_orders.LF),
 			lj : Object.assign({
 				'|foreign_language' : 'ja'
 			}, template_orders.LF),
