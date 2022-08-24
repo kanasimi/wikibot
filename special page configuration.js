@@ -83,8 +83,9 @@ var localized_column_to_header = {
 	en : {
 		title : '💭 Title',
 		// Replies
-		discussions : '<span title="Count of replies">💬</span>',
-		participants : '<span title="Count of participants">👥</span>',
+		discussions : '<span title="Count of comments">💬</span>',
+		participants : '<span title="Count of peoples in discussion">👥</span>',
+		// Latest comment
 		last_user_set : '🙋 Last editor !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>',
 		last_BAG_set : '<span title="Last BAG editor">[[File:BAG laurier.svg|20px|link=WP:BAG|alt=]] [[WP:BAG|BAG]]</span> !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>',
 		last_botop_set : '<small title="bot owner, bot operator">🤖 Last botop editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>'
