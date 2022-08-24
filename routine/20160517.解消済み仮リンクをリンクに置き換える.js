@@ -212,6 +212,12 @@ message_set = {
 			lj : Object.assign({
 				'|foreign_language' : 'ja'
 			}, template_orders.LF),
+			lk : Object.assign({
+				'|foreign_language' : 'ko'
+			}, template_orders.LF),
+			ld : Object.assign({
+				'|foreign_language' : 'de'
+			}, template_orders.LF),
 			le : Object.assign({
 				'|foreign_language' : 'en'
 			}, template_orders.LF)
