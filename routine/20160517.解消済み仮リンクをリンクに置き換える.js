@@ -212,6 +212,12 @@ message_set = {
 			'link-zh-yue' : Object.assign({
 				'|foreign_language' : 'yue'
 			}, template_orders.LF),
+			'link-zza' : Object.assign({
+				'|foreign_language' : 'diq'
+			}, template_orders.LF),
+			'zza-link' : Object.assign({
+				'|foreign_language' : 'diq'
+			}, template_orders.LF),
 			ly : Object.assign({
 				'|foreign_language' : 'yue'
 			}, template_orders.LF),
@@ -251,6 +257,7 @@ if (use_language === 'zh') {
 		message_set.template_order_of_name
 		// {{Internal link helper}}子模板
 		['internal link helper/' + language_code] = order;
+		[ 'ilh/' + language_code ] = order;
 		message_set.template_order_of_name
 		//
 		['link-' + language_code] = order;
