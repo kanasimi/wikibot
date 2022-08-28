@@ -1,26 +1,13 @@
 ﻿/*
 
-node 20201008.fix_anchor.js use_language=ja check_page=JR東日本209系電車
-node 20201008.fix_anchor.js use_language=ja "check_page=クイーン (バンド)"
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
-node 20201008.fix_anchor.js use_language=ja "check_page=フジテレビのアナウンサー一覧"
-node 20201008.fix_anchor.js use_language=ja "check_page=鬼平犯科帳 (松本幸四郎)"
-node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=ACGN作品中出场的铁路车站列表"
-node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=赛马娘 Pretty Derby/成句与梗"
-node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=User:玄微子/萌百史记/维护组部分"
+node 20201008.fix_anchor.js use_language=ja "check_page=鬼畜系"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
-node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=FLOWERS(Innocent Grey)"
-node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=鬼畜/鬼畜全明星列表"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
-node 20201008.fix_anchor.js use_project=en "check_page=Island Line, Isle of Wight"
-node 20201008.fix_anchor.js use_project=en "check_page=Glossary of cricket terms"
-node 20201008.fix_anchor.js use_project=en "check_page=Boeing C-17 Globemaster III"
-
-
 // [[Political divisions of the United States#Counties in the United States|counties]]
-node 20201008.fix_anchor.js use_project=en only_modify_pages=Wikipedia:Sandbox "check_page=Political divisions of the United States"
+node 20201008.fix_anchor.js use_project=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 
 
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
