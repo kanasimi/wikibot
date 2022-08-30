@@ -257,13 +257,9 @@ if (use_language === 'zh') {
 		message_set.template_order_of_name
 		// {{Internal link helper}}子模板
 		['internal link helper/' + language_code] = order;
-		[ 'ilh/' + language_code ] = order;
-		message_set.template_order_of_name
-		//
-		['link-' + language_code] = order;
-		message_set.template_order_of_name
-		//
-		[language_code + '-link'] = order;
+		message_set.template_order_of_name['ilh/' + language_code] = order;
+		message_set.template_order_of_name['link-' + language_code] = order;
+		message_set.template_order_of_name[language_code + '-link'] = order;
 	});
 }
 
