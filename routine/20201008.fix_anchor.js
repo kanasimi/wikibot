@@ -98,6 +98,9 @@ const wiki = new Wikiapi;
 // @see {{Broken anchors|links=}}
 const LINKS_PARAMETER = 'links';
 
+/** {String}Notification of broken anchor */
+let notification_name = 'anchor-fixing';
+
 // Ignore these tags
 const ignore_tags = [
 	//'mw-reverted',
@@ -192,6 +195,7 @@ async function main_process() {
 
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
+		notification_name += '|links-to-archived-section';
 		const page_list_with_archives = [];
 		for (let template_name of wiki.latest_task_configuration.general.archive_template_list) {
 			page_list_with_archives
@@ -899,7 +903,7 @@ async function check_page(target_page_data, options) {
 	// [[w:ja:Help:セクション#セクションへのリンク]]
 	// [[w:en:MOS:BROKENSECTIONLINKS]]
 	const for_each_page_options = {
-		notification_name: 'anchor-fixing',
+		notification_name,
 		no_message: true, no_warning: true,
 		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
 			// gettext_config:{"id":"fixing-broken-anchor"}
@@ -1098,8 +1102,7 @@ async function check_page(target_page_data, options) {
 
 		//console.trace(anchor_token);
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
-			// Notification of broken anchor
-			notification_name: 'anchor-fixing',
+			notification_name,
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
 				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
 				CeL.gettext('提醒失效的網頁錨點'))}: ${anchor_token || ''}`,
