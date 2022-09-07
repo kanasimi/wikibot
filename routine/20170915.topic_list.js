@@ -246,9 +246,9 @@ var section_column_operators = {
 		}
 
 		if (style) {
-			style = 'max-width: '
+			style = 'max-width: ' + (page_configuration.max_title_display_width
 			// 限制標題欄的寬度。要考慮比較窄的螢幕。
-			+ (configuration.general.max_title_display_width || '24em');
+			|| configuration.general.max_title_display_width || '24em');
 		} else
 			style = '';
 		// style += CSS_toString(section.CSS);
