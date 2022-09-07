@@ -419,7 +419,7 @@ function adapt_configuration(latest_task_configuration) {
 
 		CeL.info('+ Listen to page: '
 				+ CeL.wiki.title_link_of(page_title)
-				+ (page_config ? ' using config plan: '
+				+ (page_config ? ' using configuration plan: '
 						+ (typeof page_config === 'string' ? page_config : JSON
 								.stringify(page_config)) : ''));
 		if (global.special_page_configuration[page_config]) {
@@ -975,7 +975,9 @@ function get_list_legend(page_configuration) {
 	}
 
 	// {{clearright}}, {{-}}
-	list_legend_used.push('|}', '{{Clear}}');
+	list_legend_used.push('|}');
+	if (!page_configuration.no_tail_clear)
+		list_legend_used.push('{{Clear}}');
 
 	return list_legend_used;
 }
@@ -1627,7 +1629,7 @@ function generate_topic_list(page_data) {
 		redirects : 1
 	}).edit(
 	// TODO: CeL.wiki.array_to_table(section_table)
-	section_table.join('\n'), {
+	section_table.join('\n').trim(), {
 		bot : 1,
 		nocreate : 1,
 		tags : edit_tags,
