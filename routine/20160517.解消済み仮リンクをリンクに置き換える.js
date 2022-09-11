@@ -660,7 +660,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (!link_target) {
-				link_target = local_title;
+				link_target = token.use_link_target || local_title;
 			}
 
 			/** {String}link 當前處理的 token 已改成了這段文字。summary 用。 */
@@ -686,7 +686,9 @@ function for_each_page(page_data, messages) {
 
 			if (!changed.includes(link)) {
 				// console.trace('記錄確認已經有改變的文字連結。');
-				changed.push(link);
+				changed.push(link
+						+ (token.additional_summary ? '('
+								+ token.additional_summary + ')' : ''));
 				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
 						+ ': ' + token.toString() + ' → ' + link);
 			}
@@ -726,9 +728,8 @@ function for_each_page(page_data, messages) {
 				if (page_data.title === title) {
 					// @see [[w:en:MOS:CIRCULAR]]
 					CeL.info('Skip '
-					//
-					+ CeL.wiki.title_link_of(converted_local_title) + ': '
-							+ gettext(
+							+ CeL.wiki.title_link_of(converted_local_title)
+							+ ': ' + gettext(
 							// gettext_config:{"id":"the-local-link-target-links-back-to-the-page-itself.-mos-circular"}
 							'The local link target links back to the page itself. [[MOS:CIRCULAR]]?'
 							//
@@ -814,8 +815,8 @@ function for_each_page(page_data, messages) {
 						// converted_local_title。
 						// 直接採用 parameters 指定的 title，不再多做改變；
 						// 盡可能讓表現/顯示出的文字與原先相同。
-						// e.g., [[Special:Diff/59964828]]
-						// TODO: [[Special:Diff/59964827]]
+						// e.g., [[w:ja:Special:Diff/59964828]]
+						// TODO: [[w:ja:Special:Diff/59964827]]
 						check_local_creation_date(converted_local_title);
 						return;
 
@@ -830,6 +831,30 @@ function for_each_page(page_data, messages) {
 						// [[local_title]] redirect to:
 						// [[redirect_data]] = [[converted_local_title]]
 						for_local_page(converted_local_title);
+					}
+
+					if (foreign_title === local_title) {
+						// 可直接換成本地標題。但必須改 link_target。
+						token.use_link_target = converted_local_title;
+						token.additional_summary = gettext(
+						// gettext_config:{"id":"the-local-title-in-the-interlanguage-template-is-same-as-the-foreign-language-title"}
+						'跨語言模板的本地標題與外語標題相同');
+						check_local_creation_date(converted_local_title);
+						return;
+					}
+
+					if (converted_local_title
+					// 本地頁面標題包含連結中的本地標題。
+					&& converted_local_title.includes(local_title)) {
+						// 可直接換成本地標題。但必須改 link_target。
+						token.use_link_target = converted_local_title;
+						token.additional_summary = gettext(
+						// gettext_config:{"id":"local-page-title-contains-the-local-title-in-the-interlanguage-template"}
+						'Local page title contains the local title in the interlanguage template'
+						//
+						);
+						check_local_creation_date(converted_local_title);
+						return;
 					}
 
 					token.error_message
@@ -1130,6 +1155,7 @@ function main_work() {
 			// this.list = [ 'Wikipedia:沙盒' ];
 			// this.list = [ 'Wikipedia:サンドボックス' ];
 			// this.list = [ '泉站' ];
+			// this.list = [ '2022年', '1995年电影' ];
 		}
 
 	}, false && {
