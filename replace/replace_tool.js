@@ -1725,7 +1725,9 @@ async function for_each_page(page_data) {
 
 	if (task_configuration.text_processor) {
 		const replace_to = task_configuration.text_processor(page_data.wikitext, page_data, /* work_config */this);
-		return typeof replace_to === 'string' ? replace_to : Wikiapi.skip_edit;
+		return typeof replace_to === 'string' && replace_to
+			// 完全相同，放棄修改。 options.changed_only
+			&& replace_to !== page_data.wikitext ? replace_to : Wikiapi.skip_edit;
 	}
 
 	/** {Array} parsed page content 頁面解析後的結構。 */
@@ -1774,7 +1776,7 @@ async function for_each_page(page_data) {
 	}
 
 	if (wikitext === page_data.wikitext) {
-		// 完全相同，放棄修改。
+		// 完全相同，放棄修改。 options.changed_only
 		return Wikiapi.skip_edit;
 	}
 	// return wikitext modified.
@@ -2279,6 +2281,12 @@ async function for_each_template(page_data, token, index, parent) {
 		}
 	}
 
+	// for zhwiki
+	if (/^Babel(-\d)?$/.test(token.name)) {
+		// TODO:
+		console.warn(token);
+	}
+
 	// ----------------------------------------------------
 
 	// 不可處理: {{改名提案}}
@@ -2328,6 +2336,7 @@ async function for_each_template(page_data, token, index, parent) {
 		C: 1,
 	}, 1)) return;
 
+	// Special cases
 	if (replace_link_parameter(task_configuration, token, {
 		// [1], [3], ...
 		// [[w:ja:Template:Redirect]]
