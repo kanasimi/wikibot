@@ -927,6 +927,7 @@ async function check_page(target_page_data, options) {
 			return;
 		}
 
+		const pages_to_delete = new Set;
 		function add_note_for_broken_anchors(talk_page_data) {
 			// Modify from 20200122.update_vital_articles.js
 			// TODO: fix disambiguation
@@ -1033,7 +1034,16 @@ async function check_page(target_page_data, options) {
 
 			if (has_broken_anchors_template || !wikitext_to_add) {
 				wikitext_to_add = parsed.toString();
-				return wikitext_to_add.trim() ? wikitext_to_add : wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
+				if (wikitext_to_add.trim())
+					return wikitext_to_add;
+				// Nothing left.
+				if (wiki.latest_task_configuration.general.action_for_blank_talk_page === 'DELETE') {
+					// 錨點修復後刪除頁面。
+					pages_to_delete.add(talk_page_data);
+					return Wikiapi.skip_edit;
+				}
+				// 錨點修復後懸掛即將刪除模板。
+				return wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
 			}
 
 			// 提醒失效連結時刪除這個模板。
@@ -1114,6 +1124,11 @@ async function check_page(target_page_data, options) {
 			tags: wiki.latest_task_configuration.general.tags,
 			allow_empty: 1,
 		});
+
+		// 錨點修復後刪除頁面。
+		for (const talk_page_data of pages_to_delete.values()) {
+			await wiki.delete(talk_page_data);
+		}
 	}
 
 	// ----------------------------------------------------
