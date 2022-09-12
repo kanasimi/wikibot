@@ -7,6 +7,7 @@ jstop cron-20170915.topic_list.zh-classical;
 jstop cron-20170915.topic_list.wikinews;
 jstop cron-20170915.topic_list.ja;
 jstop cron-20170915.topic_list.en;
+#jstop cron-20170915.topic_list.test;
 jstop cron-20170915.topic_list.wikisource;
 jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
@@ -19,6 +20,7 @@ jstop cron-20170915.topic_list.wikibooks;
 /usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikinews
 /usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=ja
 /usr/bin/jstart -N cron-20170915.topic_list.en -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en
+/usr/bin/jstart -N cron-20170915.topic_list.testwiki -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en use_project=test
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
@@ -1157,10 +1159,13 @@ function pre_fetch_sub_pages(page_data, error) {
 	CeL.debug((new Date).format() + ' 處理頁面 '
 			+ CeL.wiki.title_link_of(page_data), 1, 'pre_fetch_sub_pages');
 	if (!page_data) {
+		CeL.error('pre_fetch_sub_pages: 頁面不存在?');
 		console.trace(page_data);
+		return;
 	}
 	if (page_data.title in sub_page_to_main) {
-		CeL.debug('更改了子頁面，得要重新處理主要頁面。', 1, 'pre_fetch_sub_pages');
+		CeL.debug('pre_fetch_sub_pages: 更改了子頁面，得要重新處理主要頁面。', 1,
+				'pre_fetch_sub_pages');
 		wiki.page(sub_page_to_main[page_data.title], pre_fetch_sub_pages);
 		return;
 	}
@@ -1567,10 +1572,12 @@ function generate_topic_list(page_data) {
 		});
 		TOC_list.push(row);
 
-		// new_topics的操作放在最後，讓column_operators可以更改section.section_title.title。
+		// new_topics 的操作放在最後，
+		// 讓 column_operators 可以更改 section.section_title.title。
 		if (Date.now() - section.dates[section.last_update_index] < CeL
 				.to_millisecond('1m')) {
-			new_topics.push(section.section_title.title);
+			// new_topics.push(section.section_title.title);
+			new_topics.push(section.section_title);
 		}
 	}, {
 		get_users : true,
@@ -1618,10 +1625,13 @@ function generate_topic_list(page_data) {
 	}
 
 	if (new_topics.length < 3) {
-		new_topics = new_topics.map(function(topic) {
-			return CeL.wiki.title_link_of(
-			//
-			page_data.title + '#' + topic, topic);
+		new_topics = new_topics.map(function(section_title) {
+			// 採用 .link 才能處理重複標題連結的問題。
+			return section_title.link;
+		});
+	} else {
+		new_topics = new_topics.map(function(section_title) {
+			return section_title.title;
 		});
 	}
 
