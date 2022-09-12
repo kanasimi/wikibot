@@ -1,4 +1,4 @@
-﻿/*
+/*
 (cd ~/wikibot && date && hostname && nohup time node 20170515.signature_check.js use_language=zh-classical; date) >> modify_link/log &
 
 jstop cron-20170515.signature_check.wikinews
@@ -400,8 +400,7 @@ function get_diff_text(diff_array) {
 
 var user_info_Map = new Map;
 /** 受信任的使用者權限 */
-var trusted_user_privileges = new Set([ 'bot', 'extendedconfirmed',
-		'rollbacker', 'sysop' ]);
+var trusted_user_privileges = wiki.API_URL.includes('moegirl') ? new Set([ 'bot', 'staff','patroller', 'sysop' ]): new Set([ 'bot', 'extendedconfirmed','rollbacker', 'sysop' ]);
 
 // for debug
 var latest_revid = 0;
