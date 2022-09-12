@@ -177,7 +177,10 @@ function login_options_of_API_URL(API_URL) {
 		if (check_section) {
 			// 本工具將產生之記錄頁面。 log to page
 			log_to = 'User:'
-					+ CeL.wiki.extract_login_user_name(login_options.user_name)
+			// 設定頁面與記錄頁面所參考的使用者名稱。
+			+ (login_options.user_name_refer_to
+			//
+			|| CeL.wiki.extract_login_user_name(login_options.user_name))
 					+ '/log/' + check_section;
 			login_options.log_to = log_to;
 			// wiki.latest_task_configuration.configuration_page_title
