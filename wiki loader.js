@@ -164,7 +164,8 @@ function login_options_of_API_URL(API_URL) {
 	var login_options = Object.assign({
 		preserve_password : true
 	// configuration_adapter : null
-	}, login_options_for_project[DEFAULT_PROJECT_KEY],
+	}, login_options_for_project[API_URL]
+			|| login_options_for_project[DEFAULT_PROJECT_KEY],
 	// preserve _global.login_options.configuration_adapter
 	_global.login_options);
 	if (API_URL)
