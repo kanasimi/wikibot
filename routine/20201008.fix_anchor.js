@@ -195,6 +195,7 @@ async function main_process() {
 
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
+		// 更新指向存檔的連結時加上另一個 notification name。
 		notification_name += '|links-to-archived-section';
 		const page_list_with_archives = [];
 		for (let template_name of wiki.latest_task_configuration.general.archive_template_list) {
@@ -273,6 +274,7 @@ function filter_row(row) {
 	}
 
 	//console.log([wiki.is_namespace(row, 'Draft'), wiki.is_namespace(row, 'User talk')]);
+	// 萌娘百科沒有Draft命名空間，但一樣可照預期的執行。
 	if (wiki.is_namespace(row, 'Draft')
 		//|| wiki.is_namespace(row, 'User talk')
 	) {
@@ -356,7 +358,7 @@ async function for_each_row(row) {
 	});
 
 	if (removed_section_titles.length > 3) {
-		if (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Wikipedia talk')) {
+		if (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Project talk')) {
 			// 去除剪貼移動式 archive 的情況。
 			CeL.info(`${for_each_row.name}: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just archived?`);
 			return;

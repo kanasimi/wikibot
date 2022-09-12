@@ -123,7 +123,7 @@ page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikip
 		'Wikisource:管理员',
 		// [[w:zh:Special:Diff/54719338]]
 		// 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
-		/Module_talk:.+\/testcases/ ],
+		/Module_talk:.+\/testcases/, /萌娘百科 talk:提案\/讨论中提案\/.+/ ],
 
 user_denylist = new Set,
 
@@ -146,11 +146,15 @@ PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来
 // https://commons.wikimedia.org/wiki/Commons:GlobalReplace
 // "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
 // @see [[Wikipedia:Twinkle]] ([[WP:TW]])
-PATTERN_revert_or_bot_summary = /還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|Wikipedia:TW|Wikipedia:AWB|Project:AWB|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
+PATTERN_revert_or_bot_summary = /還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|维护|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|Wikipedia:TW|Wikipedia:AWB|Project:AWB|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
 // Ignore these tags
-ignore_tags = [ 'AWB', 'twinkle', 'WPCleaner', 'huggle', 'mw-new-redirect',
-		'mw-rollback', 'mw-reverted', 'mw-undo', 'mw-manual-revert',
-		'mw-blank', 'mw-new-redirect', 'mw-replace' ],
+ignore_tags = [ 'AWB', 'twinkle',
+// @ 萌娘百科
+'Bot', 'Automation tool',
+//
+'WPCleaner', 'huggle', 'mw-new-redirect', 'mw-rollback', 'mw-reverted',
+		'mw-undo', 'mw-manual-revert', 'mw-blank', 'mw-new-redirect',
+		'mw-replace' ],
 // 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
 // 請機器人注意: 本頁面不採用補簽名。
 PATTERN_ignore = /本頁面不.{0,3}補簽名/,
@@ -400,7 +404,9 @@ function get_diff_text(diff_array) {
 
 var user_info_Map = new Map;
 /** 受信任的使用者權限 */
-var trusted_user_privileges = wiki.API_URL.includes('moegirl') ? new Set([ 'bot', 'staff','patroller', 'sysop' ]): new Set([ 'bot', 'extendedconfirmed','rollbacker', 'sysop' ]);
+var trusted_user_privileges = wiki.API_URL.includes('moegirl') ? new Set([
+		'bot', 'staff', 'patroller', 'sysop' ]) : new Set([ 'bot',
+		'extendedconfirmed', 'rollbacker', 'sysop' ]);
 
 // for debug
 var latest_revid = 0;
@@ -1244,25 +1250,22 @@ function for_each_row(row) {
 						// gettext_config:{"id":"pages-that-may-require-a-signature-such-as-$1.-thank-you-for-your-participation"}
 						'Pages that may require a signature, such as %1. Thank you for your participation.',
 						pages_to_notify.join(', ')) + ' --~~~~}}';
-		wiki
-				.page('User talk:' + row.user, {
-					redirects : 1
-				})
-				.edit(
-						message,
-						{
-							// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
-							notification_name : 'SIGN',
-							section : 'new',
-							// gettext_config:{"id":"please-remember-to-sign-when-you-leave-messages"}
-							sectiontitle : gettext('Please remember to sign when you leave messages'),
-							tags : edit_tags,
-							summary : gettext(
-									// gettext_config:{"id":"$1-remind-to-sign-such-as-the-$2-pages-listed-in-the-notification"}
-									'[[%1|Remind to sign]], such as the %2 pages listed in the notification.',
-									//
-									log_to, pages_to_notify.length)
-						});
+		wiki.page('User talk:' + row.user, {
+			redirects : 1
+		}).edit(message, {
+			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
+			notification_name : 'SIGN',
+			section : 'new',
+			sectiontitle : gettext(
+			// gettext_config:{"id":"please-remember-to-sign-when-you-leave-messages"}
+			'Please remember to sign when you leave messages'),
+			tags : edit_tags,
+			summary : gettext(
+			// gettext_config:{"id":"$1-remind-to-sign-such-as-the-$2-pages-listed-in-the-notification"}
+			'[[%1|Remind to sign]], such as the %2 pages listed in the notification.'
+			//
+			, log_to, pages_to_notify.length)
+		});
 	}
 
 }
