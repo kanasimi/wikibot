@@ -178,7 +178,7 @@ function login_options_of_API_URL(API_URL) {
 			// 本工具將產生之記錄頁面。 log to page
 			log_to = 'User:'
 			// 設定頁面與記錄頁面所參考的使用者名稱。
-			+ (login_options.user_name_refer_to
+			+ (login_options.user_name_referenced
 			//
 			|| CeL.wiki.extract_login_user_name(login_options.user_name))
 					+ '/log/' + check_section;

@@ -37,6 +37,8 @@ login_options_for_project.zhmoegirl = {
 	API_URL : 'https://mzh.moegirl.org.cn/api.php',
 	site_name : 'zhmoegirl',
 	user_name : 'Main account name@bot name',
+	// 設定頁面與記錄頁面所參考的使用者名稱。 @see "wiki loader.js"
+	// user_name_referenced : '',
 	password : 'bot password given'
 };
 
