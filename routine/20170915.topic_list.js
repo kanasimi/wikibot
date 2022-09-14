@@ -1658,10 +1658,13 @@ function generate_topic_list(page_data) {
 		if (error)
 			return;
 		clearTimeout(exit_program_timer);
+		var timeout_interval = CeL.to_millisecond('6H');
 		exit_program_timer = setTimeout(function() {
-			CeL.error('經過一整天都無成功的編輯！直接跳出！');
+			CeL.error('經過' + CeL.age_of(0, timeout_interval)
+			//
+			+ '都無成功的編輯！直接跳出！');
 			process.exit();
-		}, CeL.to_millisecond('1d'));
+		}, timeout_interval);
 	})
 	// 更新所嵌入的頁面。通常是主頁面。
 	.purge(page_configuration.purge_page || page_data.title);
