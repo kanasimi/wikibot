@@ -663,6 +663,12 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 				move_to_link = normalize_page_token(move_to_link);
 			}
 			task_configuration.move_to_link = move_to_link;
+			if (task_configuration_from_section[move_from_link]) {
+				CeL.error([get_move_configuration_from_section.name + ': ', {
+					// gettext_config:{"id":"duplicate-task-name-$1!-will-overwrite-old-task-with-new-task-$2→$3"}
+					T: ['Duplicate task name %1! Will overwrite old task with new task: %2→%3', JSON.stringify(move_from_link), '\n' + JSON.stringify(task_configuration_from_section[move_from_link]) + '\n', '\n' + JSON.stringify(task_configuration) + '\n']
+				}]);
+			}
 			task_configuration_from_section[move_from_link] = task_configuration;
 			if (Array.isArray(meta_configuration.also_replace_text_insource) ? meta_configuration.also_replace_text_insource.includes(move_from_link) : meta_configuration.also_replace_text_insource) {
 				// Also replace text in source of **non-linked** pages
@@ -2470,7 +2476,12 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 	}
 
 	let from, to;
-	CeL.wiki.parser.parser_prototype.each.call(line, 'link', link_token => {
+	CeL.wiki.parser.parser_prototype.each.call(line, 'link', (link_token, index, parent) => {
+		// 去掉簽名之後的連結。
+		if (wiki.is_namespace(link_token[0].toString(), 'User') && index > 0 && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith('--')) {
+			return CeL.wiki.parser.parser_prototype.each.exit;
+		}
+
 		if (link_token[1]) {
 			CeL.error(`parse_move_pairs_from_link: Link with anchor: ${line}`);
 			throw new Error(`Link with anchor: ${line}`);
@@ -2481,7 +2492,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 		} else if (!to) {
 			to = link_token;
 		} else {
-			CeL.error(`parse_move_pairs_from_link: Too many links: ${line}`);
+			CeL.error(`parse_move_pairs_from_link: Too many links: Still process ${line}`);
 		}
 	});
 
@@ -2493,7 +2504,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 			} else if (!to) {
 				to = link;
 			} else {
-				CeL.error(`parse_move_pairs_from_link: Too many links: ${line}`);
+				CeL.error(`parse_move_pairs_from_link: Too many links: Still process ${line}`);
 			}
 		});
 	}
@@ -2511,9 +2522,15 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 		|| CeL.wiki.PATTERN_BOT_NAME.test(wiki.remove_namespace(to)))
 		return;
 
-	CeL.debug(CeL.wiki.title_link_of(from) + ' → ' + CeL.wiki.title_link_of(to), 2);
+	CeL.debug(CeL.wiki.title_link_of(from) + ' → ' + CeL.wiki.title_link_of(to), 0, 'parse_move_pairs_from_link');
 	if (move_title_pair) {
 		//task_configuration_from_section[from] = to;
+		if (move_title_pair[from]) {
+			CeL.error([parse_move_pairs_from_link.name + ': ', {
+				// gettext_config:{"id":"duplicate-task-name-$1!-will-overwrite-old-task-with-new-task-$2→$3"}
+				T: ['Duplicate task name %1! Will overwrite old task with new task: %2→%3', CeL.wiki.title_link_of(from), CeL.wiki.title_link_of(move_title_pair[from]), CeL.wiki.title_link_of(to)]
+			}]);
+		}
 		move_title_pair[from] = to;
 		if (Array.isArray(options.also_replace_text_insource) ? options.also_replace_text_insource.includes(from) : options.also_replace_text_insource) {
 			// Also replace text in source of **non-linked** pages
