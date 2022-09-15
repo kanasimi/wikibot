@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160719.clean_sandbox.js; date) >> clean_sandbox/log &
+// (cd ~/wikibot && date && hostname && nohup time node 20160719.clean_sandbox.js; date) >> clean_sandbox/log &
 
 /*
 
@@ -206,12 +206,15 @@ clean_wiki_sandbox(zhmoegirl,
 	'Template:沙盒');
 clean_wiki_sandbox(zhmoegirl,
 	'',
-	'Help:沙盒/styles.css');
+	'Help:沙盒/styles.css',
+	'沙盒清理作业。如有需要请查阅页面历史并再次编辑本页。');
 clean_wiki_sandbox(zhmoegirl,
 	'/* [[Category:在模板名字空间下的CSS页面]] */',
-	'Template:沙盒/styles.css');
+	'Template:沙盒/styles.css',
+	'沙盒清理作业。如有需要请查阅页面历史并再次编辑本页。');
 clean_wiki_sandbox(zhmoegirl,
 	'',
-	'模块:Sandbox');
+	'模块:Sandbox',
+	'沙盒清理作业。如有长期测试需要请创建以「模块:Sandbox/您的用户名」命名的子页面。');
 
 routine_task_done('7d');
