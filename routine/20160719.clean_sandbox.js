@@ -1,4 +1,4 @@
-﻿// (cd ~/wikibot && date && hostname && nohup time node 20160719.clean_sandbox.js; date) >> clean_sandbox/log &
+// (cd ~/wikibot && date && hostname && nohup time node 20160719.clean_sandbox.js; date) >> clean_sandbox/log &
 
 /*
 
@@ -194,17 +194,27 @@ if (force || JD % 2 === 0) {
 
 // 一天個人認為還是略嫌小。——From AnnAngela the sysop
 // 改2天一次試試。
-if (force || JD % 2 === 0) {
-	/** {Object}wiki operator 操作子. */
-	var zhmoegirl = Wiki(true, 'zhmoegirl');
-	clean_wiki_sandbox(zhmoegirl,
-	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
-	'<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
-			+ '== 請在這行文字底下開始測試 ==\n', 'Help:沙盒‎‎');
-	clean_wiki_sandbox(
-			zhmoegirl,
-			'<noinclude><!-- 请勿删除此行 -->{{帮助导航}}{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n',
-			'Template:沙盒');
-}
+// 恢复1日。—— 星海子
+/** {Object}wiki operator 操作子. */
+var zhmoegirl = Wiki(true, 'zhmoegirl');
+clean_wiki_sandbox(zhmoegirl,
+// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
+'<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
+	+ '== 请在这行文字底下开始测试 ==\n', 'Help:沙盒');
+clean_wiki_sandbox(zhmoegirl,
+	'<noinclude><!-- 请勿删除此行 -->{{帮助导航}}{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n',
+	'Template:沙盒');
+clean_wiki_sandbox(zhmoegirl,
+	'',
+	'Help:沙盒/styles.css',
+	'沙盒清理作业。如有需要请查阅页面历史并再次编辑本页。');
+clean_wiki_sandbox(zhmoegirl,
+	'/* [[Category:在模板名字空间下的CSS页面]] */',
+	'Template:沙盒/styles.css',
+	'沙盒清理作业。如有需要请查阅页面历史并再次编辑本页。');
+clean_wiki_sandbox(zhmoegirl,
+	'',
+	'模块:Sandbox',
+	'沙盒清理作业。如有长期测试需要请创建以「模块:Sandbox/您的用户名」命名的子页面。');
 
 routine_task_done('7d');
