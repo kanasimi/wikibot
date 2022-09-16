@@ -28,8 +28,7 @@ JD = CeL.date.Julian_day(new Date);
 function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 	if (!CeL.wiki.is_wiki_API(wiki)) {
 		if (use_project && use_project !== wiki) {
-			CeL.debug('跳過非指定 wiki' + (wiki ? ' ' + wiki : ''), 1,
-					'clean_wiki_sandbox');
+			CeL.debug('跳過非指定 wiki project: ' + wiki, 1, 'clean_wiki_sandbox');
 			return;
 		}
 		/** {Object}wiki operator 操作子. */
@@ -142,29 +141,35 @@ clean_wiki_sandbox(
 
 // --------------------------
 
-var zhwiki = Wiki(true, 'zh'),
-// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
-// ここから下に書き込んでください。
-zhwiki_announcement = '{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n';
-clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-);
+if (!use_project || use_project === 'zh') {
+	var zhwiki = Wiki(true, 'zh'),
+	// <!-- 請注意：請不要變更這行文字以及這行文字以上的部份！ -->\n\n
+	// ここから下に書き込んでください。
+	zhwiki_announcement = '{{請注意：請在這行文字底下進行您的測試，請不要刪除或變更這行文字以及這行文字以上的部份。}}\n{{请注意：请在这行文字底下进行您的测试，请不要删除或变更这行文字以及这行文字以上的部分。}}\n';
+	clean_wiki_sandbox(zhwiki, zhwiki_announcement
+	// + '== 請在這行文字底下進行您的測試 ==\n'
+	);
 
-// 預防改完以後又被 Jimmy-bot 改過來，現在採用相同的格式。
+	// 預防改完以後又被 Jimmy-bot 改過來，現在採用相同的格式。
 
-// @see [[Special:链入页面/Template:Sandbox]]
-// TODO: [[模块:沙盒]], [[File:沙盒.png]]
-clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-, 'Wikipedia:使用指南 (编辑)/沙盒');
-clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-, 'Draft:沙盒');
-clean_wiki_sandbox(zhwiki, zhwiki_announcement// + '== 請在這行文字底下進行您的測試 ==\n'
-, 'Category:Foo');
-clean_wiki_sandbox(zhwiki, '<noinclude>' + zhwiki_announcement.trim()
-// + '== 請在這行文字底下進行您的測試 =='
-+ '</noinclude>\n', 'Template:沙盒');
-clean_wiki_sandbox(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
-// + '== 請在這行文字底下進行您的測試 ==\n'
-, 'User talk:Sandbox for user warnings~zhwiki');
+	// @see [[Special:链入页面/Template:Sandbox]]
+	// TODO: [[模块:沙盒]], [[File:沙盒.png]]
+	clean_wiki_sandbox(zhwiki, zhwiki_announcement
+	// + '== 請在這行文字底下進行您的測試 ==\n'
+	, 'Wikipedia:使用指南 (编辑)/沙盒');
+	clean_wiki_sandbox(zhwiki, zhwiki_announcement
+	// + '== 請在這行文字底下進行您的測試 ==\n'
+	, 'Draft:沙盒');
+	clean_wiki_sandbox(zhwiki, zhwiki_announcement
+	// + '== 請在這行文字底下進行您的測試 ==\n'
+	, 'Category:Foo');
+	clean_wiki_sandbox(zhwiki, '<noinclude>' + zhwiki_announcement.trim()
+	// + '== 請在這行文字底下進行您的測試 =='
+	+ '</noinclude>\n', 'Template:沙盒');
+	clean_wiki_sandbox(zhwiki, zhwiki_announcement + '{{S/wnote}}\n'
+	// + '== 請在這行文字底下進行您的測試 ==\n'
+	, 'User talk:Sandbox for user warnings~zhwiki');
+}
 
 // --------------------------
 
@@ -181,15 +186,19 @@ clean_wiki_sandbox('zh.wikinews', general_announcement,
 
 // --------------------------
 
-var zhwiktionary = Wiki(true, 'zh.wiktionary');
-clean_wiki_sandbox(zhwiktionary, general_announcement);
-clean_wiki_sandbox(zhwiktionary, general_announcement, 'Template:沙盒');
+if (!use_project || use_project === 'zh.wiktionary') {
+	var zhwiktionary = Wiki(true, 'zh.wiktionary');
+	clean_wiki_sandbox(zhwiktionary, general_announcement);
+	clean_wiki_sandbox(zhwiktionary, general_announcement, 'Template:沙盒');
+}
 
 // --------------------------
 
-var zhwikibooks = Wiki(true, 'zh.wikibooks');
-clean_wiki_sandbox(zhwikibooks, general_announcement);
-clean_wiki_sandbox(zhwikibooks, general_announcement, 'Template:沙盒');
+if (!use_project || use_project === 'zh.wikibooks') {
+	var zhwikibooks = Wiki(true, 'zh.wikibooks');
+	clean_wiki_sandbox(zhwikibooks, general_announcement);
+	clean_wiki_sandbox(zhwikibooks, general_announcement, 'Template:沙盒');
+}
 
 // --------------------------
 
@@ -209,12 +218,14 @@ if (force || JD % 2 === 0) {
 
 // --------------------------------------------------------
 
+// zhmoegirl only
 if (use_project === 'zhmoegirl') {
 	// 一天個人認為還是略嫌小。——From AnnAngela the sysop
 	// 改2天一次試試。
 	// 2022/9/15 恢复1日。—— 星海子
 	/** {Object}wiki operator 操作子. */
 	var zhmoegirl = Wiki(true, use_project);
+	// https://zh.moegirl.org.cn/index.php?title=User:%E6%9C%BA%E5%A8%98%E9%AC%BC%E5%BD%B1233%E5%8F%B7
 	clean_wiki_sandbox(zhmoegirl,
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
 	'<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
