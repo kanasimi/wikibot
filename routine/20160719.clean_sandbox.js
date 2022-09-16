@@ -27,9 +27,9 @@ JD = CeL.date.Julian_day(new Date);
 
 function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 	if (!CeL.wiki.is_wiki_API(wiki)) {
-		if (!login_options_for_project[use_project]
-				&& !login_options_for_project[DEFAULT_PROJECT_KEY]) {
-			CeL.debug('無 login 資料', 1, 'clean_wiki_sandbox');
+		if (use_project && use_project !== wiki) {
+			CeL.debug('跳過非指定 wiki' + (wiki ? ' ' + wiki : ''), 1,
+					'clean_wiki_sandbox');
 			return;
 		}
 		/** {Object}wiki operator 操作子. */
@@ -214,7 +214,7 @@ if (use_project === 'zhmoegirl') {
 	// 改2天一次試試。
 	// 2022/9/15 恢复1日。—— 星海子
 	/** {Object}wiki operator 操作子. */
-	var zhmoegirl = Wiki(true, 'zhmoegirl');
+	var zhmoegirl = Wiki(true, use_project);
 	clean_wiki_sandbox(zhmoegirl,
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
 	'<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'
