@@ -19,12 +19,19 @@ summary = '沙盒清理作業。若想保留較長時間，可以在[[Special:My
 // 強制更新。
 var force = CeL.env.arg_hash && CeL.env.arg_hash.force,
 // 若是最後編輯時間到執行的時刻小於這個時間間隔，則跳過清理。
-min_interval = '30m', JD = CeL.date.Julian_day(new Date);
+min_interval = CeL.date.to_millisecond('30m'),
+// JD now
+JD = CeL.date.Julian_day(new Date);
 
 // --------------------------------------------------------
 
 function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 	if (!CeL.wiki.is_wiki_API(wiki)) {
+		if (!login_options_for_project[use_project]
+				&& !login_options_for_project[DEFAULT_PROJECT_KEY]) {
+			CeL.debug('無 login 資料', 1, 'clean_wiki_sandbox');
+			return;
+		}
 		/** {Object}wiki operator 操作子. */
 		wiki = Wiki(true, wiki);
 	}
@@ -48,10 +55,12 @@ function clean_wiki_sandbox(wiki, replace_to, page, _summary) {
 		// 在執行清理工作前，先行檢查用戶最後編輯時間。
 		var time_diff = Date.now()
 				- Date.parse(page_data.revisions[0].timestamp);
-		if (time_diff < CeL.date.to_millisecond(min_interval)) {
+		if (time_diff < min_interval) {
 			return [ CeL.wiki.edit.cancel,
 			// 這一次沒清理到的話，會等到下一次再清理。
-			'用戶最後編輯時間短於' + min_interval + '，跳過清理 ' + site_name + '。' ];
+			'用戶最後編輯時間 ' + CeL.indicate_date_time(-time_diff)
+			//
+			+ ' 短於' + CeL.age_of(0, min_interval) + '，跳過清理 ' + site_name + '。' ];
 		}
 
 		var
