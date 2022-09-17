@@ -351,12 +351,14 @@ _global.prepare_directory = function prepare_directory(directory, clean) {
 	CeL.create_directory(directory);
 };
 
-_global.fetch = _global.fetch || function fetch(url) {
-	if (CeL.platform.is_interactive) {
-		CeL.log_temporary('fetch ' + url);
-	}
-	return CeL.fetch(url);
-};
+if (!_global.fetch) {
+	_global.fetch = function fetch(url) {
+		if (CeL.platform.is_interactive) {
+			CeL.log_temporary('fetch ' + url);
+		}
+		return CeL.fetch(url);
+	};
+}
 
 // ----------------------------------------------------------------------------
 
@@ -440,6 +442,12 @@ function check_routine_task(session) {
 	});
 }
 
+/**
+ * 紀錄/檢查與上次執行時間是否過久。
+ * 
+ * @param {String|Number}interval
+ *            每隔 interval 就應該執行一次。
+ */
 function routine_task_done(interval) {
 	CeL.info('routine_task_done: ' + (task_name || script_name) + ': '
 			+ (new Date).format() + '	done.');
