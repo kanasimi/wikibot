@@ -69,6 +69,10 @@ replace_tool.replace({
 		// for debug or 直接指定頁面列表。
 		page_list: [],
 
+		// Get list from this page, Search `get_task_configuration_from`
+		get_list_from_page: '',
+		get_task_configuration_from: 'table',
+
 		also_replace_display_text: ["/from/to/g",],
 		// Replace text in target pages link to `move_to_link`.
 		// 本文表記/地の文についても修正します。

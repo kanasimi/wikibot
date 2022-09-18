@@ -80,11 +80,13 @@ const bot_requests_page = 'Project:BOTREQ';
 
 // ---------------------------------------------------------------------//
 
+// .wiki
+const KEY_wiki_session = 'wiki';
 async function setup_wiki_session(meta_configuration) {
 	/** {Object}wiki operator 操作子. */
-	let wiki = meta_configuration.wiki;
+	let wiki = meta_configuration[KEY_wiki_session];
 	if (!wiki) {
-		wiki = meta_configuration.wiki = new Wikiapi;
+		wiki = meta_configuration[KEY_wiki_session] = new Wikiapi;
 
 		//console.trace(login_options);
 		await wiki.login(login_options);
@@ -200,8 +202,8 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 	if (meta_configuration.use_language)
 		meta_configuration.language = meta_configuration.use_language;
 
-	if (!meta_configuration.language && meta_configuration.wiki) {
-		meta_configuration.language = meta_configuration.wiki.append_session_to_options().session.language;
+	if (!meta_configuration.language && meta_configuration[KEY_wiki_session]) {
+		meta_configuration.language = meta_configuration[KEY_wiki_session].append_session_to_options().session.language;
 	}
 
 	if (!meta_configuration.language) {
@@ -441,7 +443,7 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 					const [removed_text, added_text] = diff;
 					if (!added_text || typeof added_text !== 'string')
 						return;
-					const parsed = CeL.wiki.parser(added_text, meta_configuration.wiki.append_session_to_options()).parse();
+					const parsed = CeL.wiki.parser(added_text, meta_configuration[KEY_wiki_session].append_session_to_options()).parse();
 					let found;
 					parsed.each('section_title', section_title_token => {
 						//console.log([section_title, section_title_token.title]);
@@ -540,7 +542,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 				return;
 			}
 
-			CeL.warn([get_move_configuration_from_section.name + ': ', {
+			CeL.info([get_move_configuration_from_section.name + ': ', {
 				// gettext_config:{"id":"multiple-discussion-links-exist"}
 				T: 'Multiple discussion links exist:'
 			}]);
@@ -678,16 +680,16 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		}
 	});
 
-	if (!CeL.is_empty_object(task_configuration_from_section)) {
-		CeL.info([get_move_configuration_from_section.name + ': ', {
-			// gettext_config:{"id":"get-$1-task(s)-from-$2"}
-			T: ['Get %1 {{PLURAL:%1|task|tasks}} from %2.', Object.keys(task_configuration_from_section).length, section.section_title.link.toString()]
-		}]);
-		//console.trace(task_configuration_from_section);
-		if (!no_export)
-			meta_configuration.task_configuration_from_section = task_configuration_from_section;
-		return task_configuration_from_section;
-	}
+	//if (!CeL.is_empty_object(task_configuration_from_section)) return;
+
+	CeL.info([get_move_configuration_from_section.name + ': ', {
+		// gettext_config:{"id":"get-$1-task(s)-from-$2"}
+		T: ['Get %1 {{PLURAL:%1|task|tasks}} from %2.', Object.keys(task_configuration_from_section).length, section.section_title.link.toString()]
+	}]);
+	//console.trace(task_configuration_from_section);
+	if (!no_export)
+		meta_configuration.task_configuration_from_section = task_configuration_from_section;
+	return task_configuration_from_section;
 }
 
 async function for_bot_requests_section(wiki, meta_configuration, for_section, options) {
@@ -744,13 +746,14 @@ async function notice_to_edit(wiki, meta_configuration) {
 
 		// 必須執行以從章節讀取設定!
 		const task_configuration_from_section = get_move_configuration_from_section(meta_configuration, section);
+		//console.trace(task_configuration_from_section);
 
 		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ?
 			//{{BOTREQ|着手}}
 			'{{BOTREQ|作業中}}' : '{{Doing}}');
 		// let PATTERN = /\n[:* ]*{{BOTREQ\|作業中}}/i;
 		// PATTERN =
-		// new RegExp(PATTERN.source + ' .+?' + meta_configuration.wiki.token.login_user_name, PATTERN.flags);
+		// new RegExp(PATTERN.source + ' .+?' + meta_configuration[KEY_wiki_session].token.login_user_name, PATTERN.flags);
 		if (section.toString().includes(doing_message) /*PATTERN.test(section.toString())*/) {
 			CeL.info({
 				// gettext_config:{"id":"already-reminded-that-the-operation-is-in-progress-$1"}
@@ -868,7 +871,7 @@ function unshift_move_configuration(move_configuration, items_to_unshift) {
 
 async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
-	const wiki = meta_configuration.wiki;
+	const wiki = meta_configuration[KEY_wiki_session];
 
 	if (!meta_configuration.not_bot_requests)
 		await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
@@ -882,7 +885,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	if (typeof move_configuration === 'function') {
 		async function setup_move_configuration(meta_configuration, options) {
 			/** {Object}wiki operator 操作子. */
-			const wiki = meta_configuration.wiki;
+			const wiki = meta_configuration[KEY_wiki_session];
 		}
 		move_configuration = await move_configuration(meta_configuration, { bot_requests_page });
 		// console.log(move_configuration);
@@ -922,9 +925,9 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			// 確認是有必要轉換的，不是完全英文標題。
 			// /[\u4e00-\u9fa5]/: 匹配中文。
 			&& /[\u4e00-\u9fff]/.test(move_from_link)) {
-			let varianttitle = await meta_configuration.wiki.convert_Chinese(move_from_link, { uselang: 'zh-hant' });
+			let varianttitle = await meta_configuration[KEY_wiki_session].convert_Chinese(move_from_link, { uselang: 'zh-hant' });
 			if (varianttitle === move_from_link) {
-				varianttitle = await meta_configuration.wiki.convert_Chinese(move_from_link, { uselang: 'zh-hans' });
+				varianttitle = await meta_configuration[KEY_wiki_session].convert_Chinese(move_from_link, { uselang: 'zh-hans' });
 			}
 			if (varianttitle === move_from_link) {
 				CeL.warn(`${prepare_operation.name}: ${move_from_link} 可能是繁簡混雜？`);
@@ -1205,7 +1208,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		}
 		//console.trace(task_configuration.replace_text_pattern);
 
-		task_configuration.wiki = wiki;
+		task_configuration[KEY_wiki_session] = wiki;
 		await main_move_process(task_configuration, meta_configuration);
 		//console.trace(`Done: ${task_configuration.summary}`);
 	}
@@ -1220,7 +1223,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 async function finish_work(meta_configuration) {
 	/** {Object}wiki operator 操作子. */
-	const wiki = meta_configuration.wiki;
+	const wiki = meta_configuration[KEY_wiki_session];
 
 	if (!meta_configuration.no_notice)
 		await notice_finished(wiki, meta_configuration);
@@ -1336,7 +1339,13 @@ async function get_list(task_configuration, list_configuration) {
 		list_configuration = { move_from_link: list_configuration };
 	}
 
-	const wiki = task_configuration.wiki;
+	const wiki = task_configuration[KEY_wiki_session];
+
+	//console.trace([task_configuration, list_configuration]);
+	if (list_configuration.get_task_configuration_from && !list_configuration.page_list) {
+		const get_list_from_page = list_configuration.get_list_from_page || list_configuration.move_from_link;
+		list_configuration.page_list = await parse_move_pairs_from_page(get_list_from_page, { [KEY_wiki_session]: wiki, ...list_configuration, is_list: true });
+	}
 
 	let list_types;
 	if (list_configuration.list_types) {
@@ -1653,7 +1662,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 	//console.log(page_list.length);
 	//console.log(page_list.slice(0, 10));
 
-	const wiki = task_configuration.wiki;
+	const wiki = task_configuration[KEY_wiki_session];
 	const work_config = {
 		// Allow content to be emptied. 允許內容被清空。白紙化。
 		allow_empty: /talk/.test(task_configuration.namespace),
@@ -1805,8 +1814,8 @@ function remove_duplicated_display_text(token, index, parent) {
 
 function for_each_link(token, index, parent) {
 	// token: [ page_name, anchor / section_title, displayed_text ]
-	const page_title = this.wiki.normalize_title(token[0].toString() || this.page_data.title);
-	const page_title_data = parse_move_link(page_title, this.wiki);
+	const page_title = this[KEY_wiki_session].normalize_title(token[0].toString() || this.page_data.title);
+	const page_title_data = parse_move_link(page_title, this[KEY_wiki_session]);
 	//console.trace([page_title, page_title_data, this.move_from]);
 
 	// if (page_title === this.move_from.page_title) console.log(token);
@@ -1816,8 +1825,8 @@ function for_each_link(token, index, parent) {
 	if (!page_title_data
 		// 檢查命名空間是否正確。排除錯誤的命名空間。
 		|| page_title_data.ns !== this.move_from.ns
-		// this.wiki.normalize_title(this.move_from.page_name): 這邊的 (this.move_from.page_name) 可能是 no_upper_case_initial 的。
-		|| page_title_data.page_name !== this.wiki.normalize_title(this.move_from.page_name)
+		// this[KEY_wiki_session].normalize_title(this.move_from.page_name): 這邊的 (this.move_from.page_name) 可能是 no_upper_case_initial 的。
+		|| page_title_data.page_name !== this[KEY_wiki_session].normalize_title(this.move_from.page_name)
 		// 排除錯誤的 anchor。
 		|| typeof this.move_from.anchor === 'string' && this.move_from.anchor !== token.anchor
 		// 排除錯誤的 display text。
@@ -1838,16 +1847,16 @@ function for_each_link(token, index, parent) {
 	if (this.move_to_link === DELETE_PAGE) {
 		// e.g., [[.move_from.page_title]]
 		// console.log(token);
-		if (token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main')) {
-			if (this.move_from.ns !== this.wiki.namespace('Main')) {
+		if (token[2] || !token[1] && this.move_from.ns === this[KEY_wiki_session].namespace('Main')) {
+			if (this.move_from.ns !== this[KEY_wiki_session].namespace('Main')) {
 				// 直接只使用 displayed_text。
-				CeL.info(`${for_each_link.name}: Using displayed text directly: ${CeL.wiki.title_link_of(this.page_data)}`);
+				CeL.info(`${for_each_link.name}: Using displayed text directly: ${CeL[KEY_wiki_session].title_link_of(this.page_data)}`);
 			}
 			// リンクを外してその文字列にして
 			parent[index] = token[2] || token[0];
 		} else {
 			// e.g., リダイレクト解消
-			CeL.assert(token[2] || !token[1] && this.move_from.ns === this.wiki.namespace('Main'), `${for_each_link.name}: namesapce must be main when delete page`);
+			CeL.assert(token[2] || !token[1] && this.move_from.ns === this[KEY_wiki_session].namespace('Main'), `${for_each_link.name}: namesapce must be main when delete page`);
 		}
 		return;
 	}
@@ -1870,7 +1879,7 @@ function for_each_link(token, index, parent) {
 		// e.g., [[.move_from.page_title]] →
 		// [[move_to_link|.move_from.page_title]]
 		// [[.move_from.page_title|顯示名稱]] → [[move_to_link|顯示名稱]]
-		CeL.assert(this.move_from.ns === this.wiki.namespace('Main') || this.move_from.ns === this.wiki.namespace('Category'), `${for_each_link.name}: keep_display_text: Must be article (namesapce: main) or Category`);
+		CeL.assert(this.move_from.ns === this[KEY_wiki_session].namespace('Main') || this.move_from.ns === this[KEY_wiki_session].namespace('Category'), `${for_each_link.name}: keep_display_text: Must be article (namesapce: main) or Category`);
 		// 將原先的頁面名稱轉成顯示名稱。
 		// keep original title
 		// [[原先的頁面名稱#anchor]] → [[move_to_link]]
@@ -1936,7 +1945,7 @@ function for_each_link(token, index, parent) {
 	} else {
 		// TODO: [[wikinews:File:f1]] will → [[File:f2]], NOT [[:File:f2]]
 
-		let initial_char_original = this.keep_initial_case && this.wiki.remove_namespace(token[0].toString()).charAt(0);
+		let initial_char_original = this.keep_initial_case && this[KEY_wiki_session].remove_namespace(token[0].toString()).charAt(0);
 		if (initial_char_original && initial_char_original !== initial_char_original.toUpperCase()) {
 			// 對於一些原先就希望是小寫開頭連結文字的處理。
 			// e.g., [[the best (髙橋真梨子のアルバム)]] ({{小文字|title=the best}})
@@ -1979,7 +1988,7 @@ function for_each_link(token, index, parent) {
 
 	if (!token[2]) {
 		;
-	} else if (!token[1] && this.wiki.normalize_title(CeL.wiki.wikitext_to_plain_text(token[2]), { no_upper_case_initial: true }) === this.move_to.page_title) {
+	} else if (!token[1] && this[KEY_wiki_session].normalize_title(CeL.wiki.wikitext_to_plain_text(token[2]), { no_upper_case_initial: true }) === this.move_to.page_title) {
 		// 去掉與頁面標題相同的 display_text。 preserve 大小寫變化 [[PH|pH]], [[iOS]]。
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
@@ -2022,7 +2031,7 @@ function for_each_link(token, index, parent) {
 	// [[...字]]A → [[...T]] A
 	// A[[字...]] → A[[T...]]
 
-	if (this.move_from.ns === this.wiki.namespace('Category')) {
+	if (this.move_from.ns === this[KEY_wiki_session].namespace('Category')) {
 		if (this.page_data.hook && this.page_data.hook[this.move_to.page_title]) {
 			// 相同類別只允許單一 [[Category:]]。刪除當前（後面）的。
 			if (token[2] && !this.page_data.hook[this.move_to.page_title][2])
@@ -2071,7 +2080,7 @@ function for_each_file(token, index, parent) {
 async function subst_template(token, index, parent) {
 	token[0] = 'subst:' + token[0];
 	const page_title = this.page_to_edit.title;
-	//this.task_configuration.wiki.append_session_to_options().session;
+	//this.task_configuration[KEY_wiki_session].append_session_to_options().session;
 
 	if (CeL.wiki.parser.token_is_children_of(parent,
 		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery'
@@ -2082,13 +2091,13 @@ async function subst_template(token, index, parent) {
 		// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
 		// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
 
-		// TODO: this.task_configuration.wiki.expandtemplates(), this.task_configuration.wiki.compare()
+		// TODO: this.task_configuration[KEY_wiki_session].expandtemplates(), this.task_configuration[KEY_wiki_session].compare()
 		// useless:
-		//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration.wiki.append_session_to_options()));
+		//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration[KEY_wiki_session].append_session_to_options()));
 
-		//console.trace(this.task_configuration.wiki.append_session_to_options().session);
+		//console.trace(this.task_configuration[KEY_wiki_session].append_session_to_options().session);
 		//console.trace(token);
-		let wikitext = await this.task_configuration.wiki.query({
+		let wikitext = await this.task_configuration[KEY_wiki_session].query({
 			action: "compare",
 			fromtitle: page_title,
 			fromslots: "main",
@@ -2132,11 +2141,11 @@ function replace_template_parameter(value, parameter_name, template_token) {
 	if (!move_to_link)
 		return;
 
-	const link = parse_move_link(value && value.toString(), this.wiki);
+	const link = parse_move_link(value && value.toString(), this[KEY_wiki_session]);
 	if (!link || (template_token.name in no_ns_templates
 		? no_ns_templates[template_token.name] !== true && no_ns_templates[template_token.name] !== parameter_name
-		|| link.ns || this.wiki.normalize_title(link.page_name) !== this.move_from.page_name
-		: this.wiki.normalize_title(link.page_title) !== this.move_from.page_title)) {
+		|| link.ns || this[KEY_wiki_session].normalize_title(link.page_name) !== this.move_from.page_name
+		: this[KEY_wiki_session].normalize_title(link.page_title) !== this.move_from.page_title)) {
 		return;
 	}
 	// assert: link.display_text === undefined
@@ -2222,8 +2231,8 @@ function replace_link_parameter(task_configuration, template_token, template_has
 
 async function for_each_template(page_data, token, index, parent) {
 	const { task_configuration } = this;
-	const move_from_is_not_template = !task_configuration.move_from || task_configuration.move_from.ns && task_configuration.move_from.ns !== task_configuration.wiki.namespace('Template');
-	const is_move_from = !move_from_is_not_template && task_configuration.wiki.is_template(task_configuration.move_from.page_name, token);
+	const move_from_is_not_template = !task_configuration.move_from || task_configuration.move_from.ns && task_configuration.move_from.ns !== task_configuration[KEY_wiki_session].namespace('Template');
+	const is_move_from = !move_from_is_not_template && task_configuration[KEY_wiki_session].is_template(task_configuration.move_from.page_name, token);
 	//console.trace([move_from_is_not_template, is_move_from, task_configuration.move_from.page_name, token.name]);
 	//console.trace(task_configuration);
 
@@ -2257,7 +2266,7 @@ async function for_each_template(page_data, token, index, parent) {
 		}
 		if (task_configuration.move_to?.page_name
 			&& task_configuration.move_from.ns === task_configuration.move_to.ns
-			&& task_configuration.move_from.ns === task_configuration.wiki.namespace('Template')) {
+			&& task_configuration.move_from.ns === task_configuration[KEY_wiki_session].namespace('Template')) {
 			// 直接替換模板名稱。注意: 這會刪除最後的 /[\t ]/
 			token[0] = task_configuration.move_to.page_name
 				// 保留模板名最後的換行。
@@ -2364,7 +2373,6 @@ async function for_each_template(page_data, token, index, parent) {
 
 // ---------------------------------------------------------------------//
 
-const KEY_wiki_session = CeL.wiki.KEY_SESSION;
 function session_of_options(options) {
 	return options && options[KEY_wiki_session] || options;
 }
@@ -2378,6 +2386,7 @@ async function get_move_pairs_page(page_title, options) {
 
 	const wiki = session_of_options(options);
 	options = { ...options };
+	// 避免污染。
 	delete options[KEY_wiki_session];
 
 	const list_page_data = await wiki.page(page_title, options);
@@ -2408,11 +2417,12 @@ async function get_move_pairs_page(page_title, options) {
 async function parse_move_pairs_from_page(page_title, options) {
 	const section_token = await get_move_pairs_page(page_title, options);
 
-	const move_title_pair = Object.create(null);
+	const move_title_pair = options.is_list ? [] : Object.create(null);
 
-	if (options.using_table || options.caption) {
+	const using_table = options.using_table || options.get_task_configuration_from === 'table';
+	if (using_table || options.caption) {
 		section_token.each('table', table => {
-			if (options.using_table || table.caption === options.caption)
+			if (using_table || table.caption === options.caption)
 				parse_move_pairs_from_link(table, move_title_pair, options);
 		});
 	} else {
@@ -2467,7 +2477,7 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 
 	// ---------------------------------------------
 
-	const wiki = options.wiki;
+	const wiki = options[KEY_wiki_session];
 	function preprocess_link(link) {
 		// move_to: ":File:name.jpg" → "File:name.jpg"
 		link = wiki ? wiki.normalize_title(link) : CeL.wiki.normalize_title(link);
@@ -2507,6 +2517,11 @@ function parse_move_pairs_from_link(line, move_title_pair, options) {
 				CeL.error(`parse_move_pairs_from_link: Too many links: Still process ${line}`);
 			}
 		});
+	}
+
+	if (from && Array.isArray(move_title_pair)) {
+		move_title_pair.push(from);
+		return;
 	}
 
 	//console.log([from, to]);

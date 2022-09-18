@@ -25,6 +25,6 @@ const reason = '[[Special:Diff/962140938#52 articles on French railway stations|
 })();
 
 async function main_process() {
-	const move_title_pair = await replace_tool.parse_move_pairs_from_reverse_moved_page('Captain scarlet', { ucstart: new Date('2020-05-30 09:34 UTC'), ucend: new Date('2020-05-30 09:54 UTC'), session: wiki });
+	const move_title_pair = await replace_tool.parse_move_pairs_from_reverse_moved_page('Captain scarlet', { ucstart: new Date('2020-05-30 09:34 UTC'), ucend: new Date('2020-05-30 09:54 UTC'), wiki });
 	await replace_tool.move_via_title_pair(move_title_pair, { noredirect: false, reason, session: wiki });
 }
