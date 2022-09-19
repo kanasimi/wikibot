@@ -7,6 +7,8 @@ node 20210429.Auto-archiver.js use_project=zh.wikiversity
 node 20210429.Auto-archiver.js use_project=zh.wikinews
 node 20210429.Auto-archiver.js use_project=zh.wiktionary
 
+自動存檔嵌入{{tl|Auto-archive}}的頁面。
+
 2021/5/2 8:41:44	初版試營運。
 
 [[w:en:Help:Archiving a talk page#Automated archiving]]
@@ -31,7 +33,7 @@ CeL.run([
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-const archive_template_name = 'Auto-archive';
+let archive_template_name = 'Auto-archive';
 
 // ----------------------------------------------------------------------------
 
@@ -43,6 +45,11 @@ async function adapt_configuration(latest_task_configuration) {
 
 	const { general } = latest_task_configuration;
 
+	wiki.register_redirects(general?.no_archive_templates);
+	if (general?.archive_template_name)
+		archive_template_name = wiki.remove_namespace(general?.archive_template_name);
+
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------
@@ -52,9 +59,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//console.log(login_options);
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
-	await wiki.for_each_page(await wiki.embeddedin(
-		// wiki.to_namespace(archive_template_name, 'template')
-		'Template:' + archive_template_name), for_each_discussion_page);
+	await wiki.for_each_page(await wiki.embeddedin(wiki.to_namespace(archive_template_name, 'template')), for_each_discussion_page);
 
 	routine_task_done('1d');
 })();
@@ -111,7 +116,8 @@ async function for_each_discussion_page(page_data) {
 		let not_yet_expired;
 		// This section is pinned and will not be automatically archived.
 		section.each('template', template_token => {
-			if (NOW < +template_token.message_expire_date) {
+			if (NOW < +template_token.message_expire_date
+				|| wiki.is_template(wiki.latest_task_configuration?.general?.no_archive_templates, template_token)) {
 				not_yet_expired = true;
 				return parsed.each.exit;
 			}
@@ -250,8 +256,9 @@ async function archive_page(configuration) {
 	}
 
 	const summary = [CeL.wiki.title_link_of(
-		// wiki.to_namespace(archive_template_name, 'template') && 'Project:ARCHIVE'
-		'Template:' + archive_template_name,
+		wiki.to_namespace(archive_template_name, 'template')
+		// && 'Project:ARCHIVE'
+		,
 		// gettext_config:{"id":"archiving-operation"}
 		CeL.gettext('Archiving operation')) + ':',
 	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
