@@ -333,7 +333,7 @@ async function get_page_info() {
 
 					// Plenty of unclassified articles out there, perhaps it may prompt someone to take a closer look at an article.
 					class: VA_class === 'FL' ? 'LIST' : VA_class === 'FA' ? '' : '',
-					reason: `The article is no more a ${VA_class}.`
+					reason: `The article is no longer a ${VA_class}.`
 				};
 				return true;
 			}
@@ -1157,7 +1157,7 @@ const class_alias_to_normalized = {
 // or via ({{WikiProject *|class=start}})
 function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// For [[Talk:Philippines]]
-	console.trace(wiki.FC_data_hash[main_page_title]);
+	//console.trace(wiki.FC_data_hash[main_page_title]);
 	const article_info = need_edit_VA_template[main_page_title];
 
 	// There are copies @ 20201008.fix_anchor.js
