@@ -3,7 +3,7 @@
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
-node 20201008.fix_anchor.js use_language=ja "check_page=鬼畜系"
+node 20201008.fix_anchor.js use_language=ja "check_page=心不全"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 // [[Political divisions of the United States#Counties in the United States|counties]]
@@ -371,6 +371,8 @@ async function for_each_row(row) {
 			} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])}` : 'removed'
 			} by ${CeL.wiki.title_link_of('User:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
 
+		// 當只有單一章節標題改變時，機器人就知道該怎麼自動修正。用這個方法或許就不用{{t|Anchors}}了。
+		// たった一つの章のタイトルが変わった場合、ボットはそれを自動的に修正することができます。この方法では、{{t|Anchors}}が不要になる場合があります。
 		try {
 			//console.trace(row.revisions[0].slots);
 			const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
@@ -1019,13 +1021,13 @@ async function check_page(target_page_data, options) {
 			if (removed_anchors > 0) {
 				this.summary += (anchor_token ? ', ' : '')
 					// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
-					+ CeL.gettext('提醒移除%1個失效網頁錨點', removed_anchors);
+					+ CeL.gettext('提醒移除%1個失效網頁{{PLURAL:%1|錨點}}', removed_anchors);
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${
 						// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
-						CeL.gettext('提醒移除%1個失效網頁錨點', removed_anchors)}`);
+						CeL.gettext('提醒移除%1個失效網頁{{PLURAL:%1|錨點}}', removed_anchors)}`);
 				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
