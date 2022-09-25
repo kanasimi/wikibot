@@ -8,6 +8,7 @@ node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列
 node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_project=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
+node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
@@ -204,6 +205,9 @@ async function main_process() {
 					.filter(page_data => !/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
 						&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)));
 		}
+		//page_list_with_archives.truncate();
+		//page_list_with_archives.push('Wikipedia:互助客栈/方针');
+
 		//console.trace(page_list_with_archives);
 		const length = page_list_with_archives.length;
 		while (page_list_with_archives.length > 0) {
@@ -211,7 +215,10 @@ async function main_process() {
 			const NO = length - page_list_with_archives.length;
 			process.title = `${NO}/${length}${progress_to_percent(NO / length, true)} ${page_data.title}`;
 			try {
-				await check_page(page_data, { is_archive: true, force_check: true, namespace: '*', progress: NO / length });
+				await check_page(page_data, {
+					is_archive: true, force_check: true, namespace: '*', progress: NO / length,
+					only_modify_pages: CeL.env.arg_hash.only_modify_pages,
+				});
 			} catch (e) {
 				CeL.error(`Error process ${page_data.title}`);
 				console.error(e);
