@@ -686,7 +686,8 @@ const descriptions_configuration = {
 	sr: ['научни чланак', (type, date) => `${type} објављен ${date}`],
 	bg: ['научна статия', (type, date) => `${type}, публикувана на ${date}`],
 	ru: ['научная статья', (type, date) => `${type} опубликованная ${date}`],
-	uk: ['наукова стаття', (type, date) => `${type} опублікована ${date}`],
+	// [[d:User talk:Kanashimi#On descriptions for scientific articles in Ukrainian]]
+	uk: ['наукова стаття', (type, date) => `${type}, опублікована ${date.replace(/\s*р\.$/, '')}`],
 	vi: ['bài báo khoa học', (type, date) => `${type} xuất bản ngày ${date}`],
 	tr: ['bilimsel makale', (type, date) => `${date}'de yayımlanmış ${type}`],
 
