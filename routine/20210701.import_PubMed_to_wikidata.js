@@ -1555,6 +1555,12 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 	for (const [language_code, modify_to] of Object.entries(data_to_modify.descriptions)) {
 		const original_value = CeL.wiki.data.value_of(article_item.descriptions[language_code]);
 		//console.log([original_value, modify_to]);
+
+		// [[d:User talk:Kanashimi#On descriptions for scientific articles in Ukrainian]]
+		// appropriate substitutions in Wikidata
+		if (language_code === 'uk' && original_value && original_value.replace(/\s*р\.$/, '').length < modify_to.length)
+			continue;
+
 		if (original_value?.length >= modify_to.length)
 			delete data_to_modify.descriptions[language_code];
 	}
