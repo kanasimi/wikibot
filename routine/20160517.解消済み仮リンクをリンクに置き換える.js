@@ -221,6 +221,10 @@ message_set = {
 			ly : Object.assign({
 				'|foreign_language' : 'yue'
 			}, template_orders.LF),
+			// ** jp不是標準的ISO編碼
+			'link-jp' : Object.assign({
+				'|foreign_language' : 'ja'
+			}, template_orders.LF),
 			lj : Object.assign({
 				'|foreign_language' : 'ja'
 			}, template_orders.LF),
@@ -462,8 +466,8 @@ function for_each_page(page_data, messages) {
 	&& page_data.ns !== 14
 	// Wikipedia
 	&& (page_data.ns !== 4 ||
-	// e.g., [[Wikipedia:典范条目/存档]]
-	/^Wikipedia:(?:典范条目|典範條目|特色內容|特色圖片|特色列表|優良條目|优良条目)/.test(title))
+	// 去掉這些頁面。 e.g., [[Wikipedia:典范条目/存档]]
+	/^Wikipedia:(?:典范条目|典範條目|特色內容|特色圖片|特色列表|優良條目|优良条目|削除依頼\/)/.test(title))
 	// template
 	&& (page_data.ns !== 10
 	// 不處理跨語言連結模板系列。
@@ -613,8 +617,8 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			// console.trace(parser);
-			var last_content = parser.toString();
+			// console.trace(parsed);
+			var last_content = parsed.toString();
 			if (CeL.wiki.content_of(page_data) === last_content) {
 				CeL.warn('The contents are the same.');
 				denote_page_processed();
@@ -902,6 +906,7 @@ function for_each_page(page_data, messages) {
 				check_page(gettext(
 				// gettext_config:{"id":"the-corresponding-foreign-language-page-does-not-exist"}
 				'The corresponding foreign language page does not exist.'));
+				// TODO: 可能對調了本地語言與外語參數。
 				return;
 			}
 
@@ -989,127 +994,130 @@ function for_each_page(page_data, messages) {
 		// ----------------------------
 		// main work for each link
 
-		if (normalized_param) {
-			// console.trace(normalized_param);
-			template_count++;
-			token.page_data = page_data;
-			// console.log(token);
-			parameters = token.parameters;
-			local_title = normalized_param.local_title;
-			foreign_language = normalized_param.foreign_language;
-			foreign_title = normalized_param.foreign_title;
-			WD = normalized_param.WD;
-			CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
+		if (!normalized_param) {
+			return;
+		}
 
-			if (foreign_language && foreign_language.includes('{')
-			//
-			&& !foreign_language.includes('}')) {
-				CeL.error('parser error @ '
-				//
-				+ CeL.wiki.title_link_of(title) + '?');
-				console.log(token);
-			}
+		// console.trace(normalized_param);
+		template_count++;
+		token.page_data = page_data;
+		// console.log(token);
+		parameters = token.parameters;
+		local_title = normalized_param.local_title;
+		foreign_language = normalized_param.foreign_language;
+		foreign_title = normalized_param.foreign_title;
+		WD = normalized_param.WD;
+		CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
 
-			if (local_title && foreign_language && foreign_title) {
-				// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
-				wiki.page([ foreign_language, foreign_title ],
-				//
-				for_foreign_page, {
-					query_props : 'pageprops',
-					redirects : 1,
-					save_response : true,
-					get_URL_options : {
-						onfail : function(error) {
-							CeL.error('for_each_page: get_URL error: '
-									+ CeL.wiki.title_link_of(foreign_language
-											+ ':' + foreign_title) + ':');
-							console.error(error);
-							if (error.code === 'ENOTFOUND'
+		if (/^https?:\/\//i.test(local_title)
+		// e.g., [[Special:PermanentLink/72981220|馮仁稚]]
+		|| /^https?:\/\//i.test(foreign_title)) {
+			CeL.error('parser error: URL @ ' + CeL.wiki.title_link_of(title)
+					+ ': ' + token);
+			return;
+		}
+
+		if (foreign_language && foreign_language.includes('{')
+		//
+		&& !foreign_language.includes('}')) {
+			CeL.error('parser error @ ' + CeL.wiki.title_link_of(title) + '?');
+			console.log(token);
+		}
+
+		if (local_title && foreign_language && foreign_title) {
+			// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
+			wiki.page([ foreign_language, foreign_title ], for_foreign_page, {
+				query_props : 'pageprops',
+				redirects : 1,
+				save_response : true,
+				get_URL_options : {
+					onfail : function(error) {
+						CeL.error('for_each_page: get_URL error: '
+								+ CeL.wiki.title_link_of(foreign_language + ':'
+										+ foreign_title) + ':');
+						console.error(error);
+						if (error.code === 'ENOTFOUND' && CeL.wiki.wmflabs) {
+							// 若在 Tool Labs 取得 wikipedia 的資料，
+							// 卻遇上 domain name not found，
+							// 通常表示 language (API_URL) 設定錯誤。
+							check_page(gettext(
+							// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
+							'Syntax error in the interlanguage link template.'
 							//
-							&& CeL.wiki.wmflabs) {
-								// 若在 Tool Labs 取得 wikipedia 的資料，
-								// 卻遇上 domain name not found，
-								// 通常表示 language (API_URL) 設定錯誤。
-								check_page(gettext(
-								// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
-								'Syntax error in the interlanguage link template.'
-								//
-								));
-							} else {
-								check_page(gettext(
-								// gettext_config:{"id":"could-not-retrieve-the-foreign-page.-i-will-retry-next-time"}
-								'Could not retrieve the foreign page. I will retry next time.'
-								//
-								));
-							}
-							/**
-							 * do next action. 警告: 若是自行設定 .onfail，則需要自行善後。
-							 * 例如可能得在最後自行執行(手動呼叫) wiki.next()， 使
-							 * wiki_API.prototype.next() 知道應當重新啟動以處理 queue。
-							 */
-							wiki.next();
+							));
+						} else {
+							check_page(gettext(
+							// gettext_config:{"id":"could-not-retrieve-the-foreign-page.-i-will-retry-next-time"}
+							'Could not retrieve the foreign page. I will retry next time.'
+							//
+							));
 						}
+						/**
+						 * do next action. 警告: 若是自行設定 .onfail，則需要自行善後。
+						 * 例如可能得在最後自行執行(手動呼叫) wiki.next()， 使
+						 * wiki_API.prototype.next() 知道應當重新啟動以處理 queue。
+						 */
+						wiki.next();
 					}
-				});
-
-			} else if (local_title && WD) {
-				if (foreign_language) {
-					CeL.warn('for_each_page: Using language ['
-							+ foreign_language + '] in '
-							+ CeL.wiki.title_link_of('d:' + WD) + ' @ '
-							+ CeL.wiki.title_link_of(title) + '.');
 				}
-				// for [[d:Q1]]
-				foreign_language = 'd';
-				wiki.data(WD, for_WD, {
-					get_URL_options : {
-						onfail : function(error) {
-							// TODO
-							throw error;
-						}
-					}
-				});
+			});
 
-			} else if (local_title && !foreign_title
-			// 確保 foreign_language 非 title。
-			&& (!foreign_language || /^[a-z]{2}$/.test(foreign_language))) {
-				wiki.redirect_to(local_title,
-				//
-				function(redirect_data, page_data) {
-					if (Array.isArray(redirect_data)) {
-						// TODO: Array.isArray(redirect_data)
-						console.log(redirect_data);
-						throw new Error('Array.isArray(redirect_data)');
+		} else if (local_title && WD) {
+			if (foreign_language) {
+				CeL.warn('for_each_page: Using language [' + foreign_language
+						+ '] in ' + CeL.wiki.title_link_of('d:' + WD) + ' @ '
+						+ CeL.wiki.title_link_of(title) + '.');
+			}
+			// for [[d:Q1]]
+			foreign_language = 'd';
+			wiki.data(WD, for_WD, {
+				get_URL_options : {
+					onfail : function(error) {
+						// TODO
+						throw error;
 					}
-					if (!redirect_data) {
-						check_page(gettext(
-						// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
-						'Syntax error in the interlanguage link template.'));
-						return;
-					}
+				}
+			});
 
-					// e.g., {{仮リンク|存在する記事}}, {{仮リンク|存在する記事|en}}
-					check_local_creation_date(local_title);
-				});
-
-			} else {
-				setImmediate(function() {
+		} else if (local_title && !foreign_title
+		// 確保 foreign_language 非 title。
+		&& (!foreign_language || /^[a-z]{2}$/.test(foreign_language))) {
+			wiki.redirect_to(local_title,
+			//
+			function(redirect_data, page_data) {
+				if (Array.isArray(redirect_data)) {
+					// TODO: Array.isArray(redirect_data)
+					console.log(redirect_data);
+					throw new Error('Array.isArray(redirect_data)');
+				}
+				if (!redirect_data) {
 					check_page(gettext(
 					// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
 					'Syntax error in the interlanguage link template.'));
-				});
-			}
+					return;
+				}
+
+				// e.g., {{仮リンク|存在する記事}}, {{仮リンク|存在する記事|en}}
+				check_local_creation_date(local_title);
+			});
+
+		} else {
+			setImmediate(function() {
+				check_page(gettext(
+				// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
+				'Syntax error in the interlanguage link template.'));
+			});
 		}
 
 	}
 
 	// 這一步頗耗時間。
-	var parser = CeL.wiki.parser(page_data).parse();
-	if (CeL.wiki.content_of(page_data) !== parser.toString()) {
+	var parsed = CeL.wiki.parser(page_data).parse();
+	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
 		// debug 用. check parser, test if parser working properly.
 		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 	}
-	parser.each('template', for_each_template);
+	parsed.each('template', for_each_template);
 	template_parsed = true;
 	if (template_count === 0) {
 		CeL.warn([ 'for_each_page: ', CeL.wiki.title_link_of(title) + ': ', {
@@ -1156,6 +1164,8 @@ function main_work() {
 			// this.list = [ 'Wikipedia:サンドボックス' ];
 			// this.list = [ '泉站' ];
 			// this.list = [ '2022年', '1995年电影' ];
+			// this.list = [ '好莱坞唱片' ];
+			// this.list = [ '台中藍鯨女子足球隊' ];
 		}
 
 	}, false && {
