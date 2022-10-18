@@ -95,6 +95,13 @@ archive topics:
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+// Load modules.
+CeL.run([ 'application.net.wiki.template_functions',
+// for CeL.assert()
+'application.debug.log' ]);
+
+// Error.stackTraceLimit = 30;
+
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */
 /* global Wiki */
@@ -1156,6 +1163,7 @@ function get_column_operators(page_configuration) {
 // ----------------------------------------------------------------------------
 
 function pre_fetch_sub_pages(page_data, error) {
+	process.title = script_name + ': ' + CeL.wiki.title_link_of(page_data);
 	CeL.debug((new Date).format() + ' 處理頁面 '
 			+ CeL.wiki.title_link_of(page_data), 1, 'pre_fetch_sub_pages');
 	if (!page_data) {
@@ -1203,6 +1211,8 @@ function pre_fetch_sub_pages(page_data, error) {
 	}
 
 	var parsed = CeL.wiki.parser(page_data, {
+		// set options[KEY_SESSION]
+		session : wiki,
 		preprocess_section_link_token
 		//
 		: page_configuration.preprocess_section_link_token,
@@ -1402,7 +1412,10 @@ function for_each_sub_page_index(index) {
 	var content;
 	if (transclusion_section) {
 		// Support for section transclusion
-		var parsed = CeL.wiki.parser(this.sub_page_data);
+		var parsed = CeL.wiki.parser(this.sub_page_data, {
+			// set options[KEY_SESSION]
+			session : wiki
+		});
 		parsed.each_section(function(section, section_index) {
 			if (false) {
 				console.log([ transclusion_section,
@@ -1463,6 +1476,8 @@ function insert_sub_pages() {
 	if (this.transclusions > 0) {
 		// content changed. re-parse
 		CeL.wiki.parser(page_data, {
+			// set options[KEY_SESSION]
+			session : wiki,
 			preprocess_section_link_token
 			//
 			: page_data.page_configuration.preprocess_section_link_token,
@@ -1487,7 +1502,10 @@ function generate_topic_list(page_data) {
 	// console.log(general_page_configuration);
 	// console.trace(CeL.wiki.content_of(page_data));
 
-	var parsed = CeL.wiki.parser(page_data),
+	var parsed = CeL.wiki.parser(page_data, {
+		// set options[KEY_SESSION]
+		session : wiki
+	}),
 	//
 	page_configuration = page_data.page_configuration, TOC_list = [],
 	//
@@ -1529,6 +1547,16 @@ function generate_topic_list(page_data) {
 		//
 		&& section.section_title.toString().includes('中文Vocaloid编辑团队')) {
 			console.log(section);
+		}
+		if (false && / Adding {{/.test(section.section_title)) {
+			// console.trace(section.section_title);
+			// console.trace(section.section_title.link);
+			// console.trace(section.section_title.link.imprecise_tokens);
+			console.trace(CeL.wiki.parser('== Adding {{t|r to category}} ==\n',
+					{
+						// set options[KEY_SESSION]
+						session : wiki
+					}).parse()[0]);
 		}
 
 		if (!section.section_title) {
