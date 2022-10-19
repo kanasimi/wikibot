@@ -7,6 +7,11 @@
 // Load CeJS library and modules.
 require('./wiki loader.js');
 
+// Load modules.
+CeL.run([ 'application.net.wiki.template_functions',
+// for CeL.assert()
+'application.debug.log' ]);
+
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 /* global CeL */
 /* global Wiki */
@@ -82,7 +87,7 @@ var localized_column_to_header = {
 	},
 	en : {
 		title : '💭 Title',
-		// Replies
+		// Replies = discussions - 1
 		discussions : '<span title="Count of comments">💬</span>',
 		participants : '<span title="Count of peoples in discussion">👥</span>',
 		// Latest comment
@@ -174,7 +179,10 @@ function is_bot_user(user_name, section, using_special_users) {
 }
 
 function if_too_long(title) {
-	title = CeL.wiki.parser(title);
+	title = CeL.wiki.parser(title, {
+	// set options[KEY_SESSION]
+	// session : this.wiki
+	});
 	title.each('convert', function(token, index, parent) {
 		var keys;
 		if (token.no_convert
@@ -243,14 +251,19 @@ var default_BRFA_configurations = {
 	topic_page : general_topic_page,
 	columns : 'NO;title;status;discussions;participants;last_user_set;last_BAG_set',
 	column_to_header : {
-		zh : {
+		en : {
 			// [[Bot awake.svg]]
-			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] 機器人申請',
-			status : '進度'
+			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] Bot request',
+			status : 'Status'
 		},
 		ja : {
 			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] Bot使用申請',
 			status : '進捗'
+		},
+		zh : {
+			// [[Bot awake.svg]]
+			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] 機器人申請',
+			status : '進度'
 		}
 	}[use_language],
 	// 要含入並且監視的頁面。
@@ -802,7 +815,10 @@ var jawiki_week_AFD_options = {
 			});
 			global.listen_to_sub_page(sub_page_title, page_data);
 			wiki.page(sub_page_title, function(page_data) {
-				var parsed = CeL.wiki.parser(page_data);
+				var parsed = CeL.wiki.parser(page_data, {
+					// set options[KEY_SESSION]
+					session : wiki
+				});
 				var page_list = [];
 				parsed.each('transclusion', function(token, index, parent) {
 					// e.g., for Error: 取得了未設定的頁面:
@@ -846,8 +862,22 @@ var page_configurations = {
 		timezone : 0,
 		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
 		column_to_header : {
+			title : 'Bot request',
 			status : 'Status',
 			last_botop_set : '<small title="bot owner, bot operator">🤖 Last [[:Category:Commons bot owners|botop]] editor</small> !! data-sort-type="isoDate" | <span title="Date/Time">🕒 <small>(UTC)</small></span>'
+		},
+		operators : {
+			// 議體進度/狀態。
+			status : check_BOTREQ_status
+		}
+	},
+
+	'enwiki:Wikipedia:Bot requests' : {
+		topic_page : general_topic_page,
+		columns : 'NO;title;status;discussions;participants;last_user_set;last_botop_set',
+		column_to_header : {
+			title : 'Bot request',
+			status : 'Status'
 		},
 		operators : {
 			// 議體進度/狀態。
@@ -1224,7 +1254,10 @@ function check_BOTREQ_status(section, section_index) {
 			return to_exit;
 		}
 
-		if (token.name === 'BOTREQ') {
+		if (token.name in {
+			BOTREQ : true,
+			Botreq : true
+		}) {
 			// [[Template:BOTREQ]]
 			status = (token[1] || '').toString().toLowerCase().trim();
 			if (status in {
@@ -1321,6 +1354,10 @@ function check_BOTREQ_status(section, section_index) {
 			無效 : true
 		}) {
 			status = 'style="background-color: #fbb;" | ' + token;
+		} else if (token.name in {
+			'BRFA filed' : true
+		}) {
+			status = token.toString();
 		}
 
 		// TODO: [[Template:Moved discussion to]], [[模板:移動至]]
@@ -1456,7 +1493,8 @@ function check_BRFA_status(section) {
 		} else if (token.name in {
 			BotStatus : true,
 			BotComment : true,
-			BOTREQ : true
+			BOTREQ : true,
+			Botreq : true
 		}) {
 			status = token.toString();
 		}
