@@ -275,6 +275,7 @@ const command_line_argument_alias = {
 
 function convert_special_move_to(move_to_link) {
 	switch (move_to_link) {
+		// remove_page
 		case 'DELETE_PAGE':
 			return DELETE_PAGE;
 
@@ -624,7 +625,7 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 				} else if (!no_export) {
 					CeL.error({
 						// gettext_config:{"id":"not-json-you-may-want-to-set-allow_eval=true-$1"}
-						T: ['Not JSON, you may want to set allow_eval=true: %1', task_options]
+						T: ['Not JSON, you may want to set "allow_eval=true": %1', task_options]
 					});
 					throw e;
 				}
@@ -633,6 +634,10 @@ function get_move_configuration_from_section(meta_configuration, section, no_exp
 		}
 
 		function match_link(link) {
+			if (typeof link !== 'string') {
+				// e.g., Symbol(DELETE_PAGE)
+				return;
+			}
 			// e.g., <nowiki>[[title|display text]]</nowiki>
 			const matched = link.match(/\[\[([^\[\]]+)\]\]/);
 			return matched;
@@ -1847,6 +1852,10 @@ function for_each_link(token, index, parent) {
 	if (this.move_to_link === DELETE_PAGE) {
 		// e.g., [[.move_from.page_title]]
 		// console.log(token);
+		if (this.move_from.ns === this[KEY_wiki_session].namespace('Category')
+			|| this.move_from.ns === this[KEY_wiki_session].namespace('File')) {
+			return remove_token;
+		}
 		if (token[2] || !token[1] && this.move_from.ns === this[KEY_wiki_session].namespace('Main')) {
 			if (this.move_from.ns !== this[KEY_wiki_session].namespace('Main')) {
 				// 直接只使用 displayed_text。
@@ -1856,7 +1865,7 @@ function for_each_link(token, index, parent) {
 			parent[index] = token[2] || token[0];
 		} else {
 			// e.g., リダイレクト解消
-			CeL.assert(token[2] || !token[1] && this.move_from.ns === this[KEY_wiki_session].namespace('Main'), `${for_each_link.name}: namesapce must be main when delete page`);
+			CeL.assert(token[2] || !token[1] && this.move_from.ns === this[KEY_wiki_session].namespace('Main'), `${for_each_link.name}: namesapce must be main or category / file when delete page`);
 		}
 		return;
 	}
@@ -2156,6 +2165,12 @@ function replace_template_parameter(value, parameter_name, template_token) {
 		return;
 	}
 
+	//console.trace([value, move_to_link]);
+	if (move_to_link === DELETE_PAGE) {
+		// TODO: remove Category:日本の悪役俳優 @ [[ゆーとぴあ]]
+		return CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+	}
+
 	//console.trace(template_token);
 	const this_parameter = template_token[template_token.index_of[parameter_name]];
 	//console.trace(this_parameter);
@@ -2194,7 +2209,9 @@ function check_link_parameter(task_configuration, template_token, parameter_name
 		return;
 	}
 
+	//console.trace([template_token, parameter_name]);
 	CeL.wiki.parse.replace_parameter(template_token, parameter_name, replace_template_parameter.bind(task_configuration));
+	//console.trace(template_token.toString());
 	if (template_token.toString().includes('|=')) {
 		// e.g., `{{pathnav|らんま1/2|=frame=1}}` @ [[らんま1/2 悪夢!春眠香]]
 		console.log([template_token, parameter_name, task_configuration.move_to_link]);
@@ -2210,8 +2227,8 @@ function replace_link_parameter(task_configuration, template_token, template_has
 	if (!(template_token.name in template_hash))
 		return false;
 
-	//console.trace(template_token);
-	if (!task_configuration.move_to_link || task_configuration.move_to_link === DELETE_PAGE
+	//console.trace([template_token, task_configuration.move_to_link]);
+	if (!task_configuration.move_to_link
 		|| task_configuration.move_to && !task_configuration.move_to.page_name
 		// [[w:ja:Special:Diff/79399447|Template:Latest stable software release/Android]] should not use this
 		//|| task_configuration.page_data.ns !== task_configuration.move_from.ns
@@ -2306,6 +2323,8 @@ async function for_each_template(page_data, token, index, parent) {
 
 	// 不可處理: {{改名提案}}
 	// TODO: {{仮リンク|鉄原郡 (南)|ko|철원군 (남)|label=鉄原郡|redirect=1}}
+
+	//console.trace(token);
 
 	// templates that ONLY ONE parament is treated as a link.
 	if (replace_link_parameter(task_configuration, token, {
