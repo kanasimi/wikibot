@@ -1122,7 +1122,7 @@ function check_date_page() {
 
 				return generate_help_message(date_page_title,
 				//		
-				'似乎並非標準的嵌入包含頁面格式，請幫忙處理');
+				'似乎並非標準的嵌入包含頁面格式，這會造成計數錯誤，請幫忙處理');
 
 			}, DISCUSSION_edit_options).run(check_month_list);
 			return;

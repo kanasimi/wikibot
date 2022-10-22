@@ -457,8 +457,8 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 	const results = Object.create(null);
 	await Promise.allSettled([
 		//(await (await CeL.fetch(NCBI_API_URL.toString())).json()).result[PubMed_ID]
-		CeL.fetch(NCBI_API_URL.toString()).then(result => result.json()).then(result => results.NCBI_article_data = result.result[PubMed_ID], console.error),
-		CeL.fetch(Europe_PMC_API_URL.toString()).then(result => result.json()).then(result => results.Europe_PMC_article_data = result.resultList.result[0], console.error),
+		CeL.fetch(NCBI_API_URL.toString()).then(result => result.json()).then(result => results.NCBI_article_data = result.result[PubMed_ID], error => { CeL.error('fetch_PubMed_ID_data_from_service: ' + NCBI_API_URL.toString()); console.error(error); }),
+		CeL.fetch(Europe_PMC_API_URL.toString()).then(result => result.json()).then(result => results.Europe_PMC_article_data = result.resultList.result[0], error => { CeL.error('fetch_PubMed_ID_data_from_service: ' + Europe_PMC_API_URL.toString()); console.error(error); }),
 	]);
 
 	// ----------------------------------------------------
@@ -509,7 +509,10 @@ async function fetch_DOI_data_from_service(DOI) {
 
 	const results = Object.create(null);
 	await Promise.allSettled([
-		CeL.fetch(CrossRef_API_URL.toString()).then(result => result.json()).then(result => results.CrossRef_article_data = result.message, console.error),
+		CeL.fetch(CrossRef_API_URL.toString(), {
+			// https://api.crossref.org/swagger-ui/index.html
+			headers: { 'User-Agent': 'CeL; mailto:https://www.wikidata.org/wiki/User_talk:Kanashimi' },
+		}).then(result => result.json()).then(result => results.CrossRef_article_data = result.message, error => { CeL.error('fetch_DOI_data_from_service: ' + CrossRef_API_URL); console.error(error); }),
 	]);
 
 	// ----------------------------------------------------
@@ -651,6 +654,7 @@ function are_equivalent_person_names(name_1, name_2) {
 	// "Schülke B" ≡ "B. Schülke"
 	if (normalize_person_name(name_1) === normalize_person_name(name_2)) return true;
 	// TODO: "Stephen William Hawking" ≡ "Hawking, Stephen"
+	// TODO: "Cissée H" ≡ "H. Cissée"
 }
 
 // ------------------------------------
@@ -1371,7 +1375,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				journal_title = journal_title_mapping.get(journal_title) || journal_title;
 				// 去掉太過簡短的期刊標題
 				// e.g., https://api.crossref.org/works/10.1007/BF02773739
-				if (!/^\w{1,10}$/.test(journalTitle)) {
+				if (!/^\w{1,10}$/.test(journal_title)) {
 					cites_work_title = journal_title;
 					// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
 					if (reference_data.volume) {
