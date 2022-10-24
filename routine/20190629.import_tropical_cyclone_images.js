@@ -1689,15 +1689,16 @@ function start_NRL() {
 		license : '{{PD-USGov-Navy}}',
 		// Satellite images of tropical cyclones by NRL
 		categories : [ 'Category:NRL images of tropical cyclones' ],
+		// https://www.nrlmry.navy.mil/TC.html
 		source_url : base_URL + 'TC.html'
 	};
 
-	// https://www.nrlmry.navy.mil/TC.html
-	// console.log(base_media_data.source_url);
+	// console.trace(base_media_data.source_url);
 	return fetch(base_media_data.source_url).then(function(response) {
 		return response.text();
 
 	}).then(function(html) {
+		// console.trace(html);
 		if (false) {
 			base_media_data.year = html.match(/YEAR=(20\d{2})&/);
 			if (base_media_data.year) {
@@ -1859,6 +1860,8 @@ function for_each_NRL_cyclone_typed_image(image_directory_URL, media_data) {
 		});
 
 		return promise;
+	})['catch'](function(error) {
+		console.error(error);
 	});
 }
 
