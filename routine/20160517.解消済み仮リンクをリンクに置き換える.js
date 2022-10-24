@@ -449,7 +449,7 @@ function for_each_page(page_data, messages) {
 	// page_data =
 	// {pageid:0,ns:0,title:'',revisions:[{revid:0,parentid:0,user:'',timestamp:''},...]}
 
-	var template_count = 0, template_parsed,
+	var _this = this, template_count = 0, template_parsed,
 	/** {String}page title = page_data.title */
 	title = CeL.wiki.title_of(page_data),
 	// 記錄確認已經有改變的文字連結。
@@ -644,7 +644,9 @@ function for_each_page(page_data, messages) {
 				// gettext_config:{"id":"convert-$1-to-wikilink"}
 				summary : gettext('Convert %1 to wikilink',
 				// gettext_config:{"id":"Comma-separator"}
-				changed.join(gettext('Comma-separator'))),
+				changed.join(gettext('Comma-separator')))
+				//
+				+ ' (' + (_this.progress * 100).pad(1) + '%)',
 				nocreate : 1,
 				minor : 1,
 				bot : 1
