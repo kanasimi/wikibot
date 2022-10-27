@@ -3,9 +3,10 @@
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
-node 20201008.fix_anchor.js use_language=ja "check_page=心不全"
+node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
-node 20201008.fix_anchor.js use_project=en "check_page=Daniel Ricciardo"
+node 20201008.fix_anchor.js use_project=en "check_page=WABC (AM)"
+node 20201008.fix_anchor.js use_project=en "check_page=User:Formula Downforce/sandbox"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_project=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
@@ -135,6 +136,9 @@ async function adapt_configuration(latest_task_configuration) {
 		general.action_for_blank_talk_page = general.action_for_blank_talk_page.toString().replace(/({{)tl[a-z]?\s*\|/, '$1');
 	}
 
+	if (!(general.MAX_LINK_FROM) >= 0)
+		general.MAX_LINK_FROM = 800;
+
 	await wiki.register_redirects(['Section link', 'Broken anchors', general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
@@ -207,6 +211,12 @@ async function main_process() {
 		}
 		//page_list_with_archives.truncate();
 		//page_list_with_archives.push('Wikipedia:互助客栈/方针');
+		//while (page_list_with_archives[0]?.title !== 'Wikipedia:互助客栈/技术') page_list_with_archives.shift();
+		//page_list_with_archives.splice(0, 100);
+		if (page_list_with_archives[1]?.title === 'Wikipedia:互助客栈/方针') {
+			// 花費太長時間。
+			//page_list_with_archives.splice(1, 1);
+		}
 
 		//console.trace(page_list_with_archives);
 		const length = page_list_with_archives.length;
@@ -220,7 +230,7 @@ async function main_process() {
 					only_modify_pages: CeL.env.arg_hash.only_modify_pages,
 				});
 			} catch (e) {
-				CeL.error(`Error process ${page_data.title}`);
+				CeL.error(`處理 ${page_data.title} 時出錯！`);
 				console.error(e);
 			}
 		}
@@ -350,6 +360,7 @@ async function get_sections_moved_to(page_data, options) {
 }
 
 async function for_each_row(row) {
+	process.title = `${script_name}: ${row.title}`;
 	if (await is_bad_edit(row)) {
 		return;
 	}
@@ -357,42 +368,57 @@ async function for_each_row(row) {
 	//CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}`);
 	const diff_list = row.diff;
 	const removed_section_titles = [], added_section_titles = [];
-	diff_list.forEach(diff => {
+	const options = wiki.append_session_to_options({
+		on_page_title: row.title,
+		try_to_expand_templates: true,
+	});
+	for (const diff of diff_list) {
 		//const [removed_text, added_text] = diff;
 		// all_converted: 避免遺漏。 e.g., [[w:en:Special:Diff/812844088]]
-		removed_section_titles.append(CeL.wiki.parse.anchor(diff[0], wiki.append_session_to_options()));
-		added_section_titles.append(CeL.wiki.parse.anchor(diff[1], wiki.append_session_to_options()));
-	});
+		removed_section_titles.append(await CeL.wiki.parse.anchor(diff[0], options));
+		added_section_titles.append(await CeL.wiki.parse.anchor(diff[1], options));
+	}
+
+	if (removed_section_titles.length === 0) {
+		// 僅添加了新的網頁錨點。這種情況應該不需要修改網頁錨點。
+		return;
+	}
 
 	if (removed_section_titles.length > 3) {
-		if (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Project talk')) {
+		if (added_section_titles.length === 0 && (wiki.is_namespace(row, 'User talk') || wiki.is_namespace(row, 'Project talk'))) {
 			// 去除剪貼移動式 archive 的情況。
 			CeL.info(`${for_each_row.name}: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just archived?`);
 			return;
 		}
 	}
 
-	if (removed_section_titles.length > 0) {
-		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])
-			}${removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''
-			} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])}` : 'removed'
-			} by ${CeL.wiki.title_link_of('User:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
-
-		// 當只有單一章節標題改變時，機器人就知道該怎麼自動修正。用這個方法或許就不用{{t|Anchors}}了。
-		// たった一つの章のタイトルが変わった場合、ボットはそれを自動的に修正することができます。この方法では、{{t|Anchors}}が不要になる場合があります。
-		try {
-			//console.trace(row.revisions[0].slots);
-			const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
-			// pages_modified maybe undefined
-			CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
-			if (pages_modified > 0) {
-				CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) linking to ${CeL.wiki.title_link_of(row.title)}`);
-			}
-		} catch (e) {
-			console.error(e);
-		}
-		CeL.log('-'.repeat(60));
+	// 5 minutes ago
+	if (Date.now() - row.last_query_time > 5 * 60 * 1000 && removed_section_titles.every(anchor => anchor.startsWith('CITEREF'))) {
+		// 去除調整/刪除參考文獻模板的情況。
+		CeL.info(`${for_each_row.name}: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just adjustment/deletion of reference template(s)?`);
+		//console.trace(removed_section_titles);
+		return;
 	}
+
+	CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])
+		}${removed_section_titles.length > 1 ? ` and other ${removed_section_titles.length - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''
+		} is ${removed_section_titles.length === 1 && added_section_titles.length === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])}` : 'removed'
+		} by ${CeL.wiki.title_link_of('User:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
+
+	// 當只有單一章節標題改變時，機器人就知道該怎麼自動修正。用這個方法或許就不用{{t|Anchors}}了。
+	// たった一つの章のタイトルが変わった場合、ボットはそれを自動的に修正することができます。この方法では、{{t|Anchors}}が不要になる場合があります。
+	try {
+		//console.trace(row.revisions[0].slots);
+		const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
+		// pages_modified maybe undefined
+		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
+		if (pages_modified > 0) {
+			CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) linking to ${CeL.wiki.title_link_of(row.title)}`);
+		}
+	} catch (e) {
+		console.error(e);
+	}
+	CeL.log('-'.repeat(60));
 }
 
 // ----------------------------------------------------------------------------
@@ -452,7 +478,7 @@ function set_section_title(section_title_history, section_title, data, options) 
 function mark_language_variants(recent_section_title_list, section_title_history, revision) {
 	function mark_list(converted_list) {
 		const language_variant = this;
-		//console.trace(variant + ': ' + converted_list);
+		//console.trace(language_variant + ': ' + converted_list);
 		recent_section_title_list.forEach((section_title, index) => {
 			const converted = converted_list[index];
 			if (section_title === converted)
@@ -485,7 +511,11 @@ function mark_language_variants(recent_section_title_list, section_title_history
 
 // get section title history
 async function tracking_section_title_history(page_data, options) {
-	options = CeL.setup_options(options);
+	options = {
+		on_page_title: page_data.title,
+		try_to_expand_templates: true,
+		...options
+	};
 	//section_title_history[section_title]={appear:{revid:0},disappear:{revid:0},rename_to:''}
 	const section_title_history = options.section_title_history || {
 		// 所有頁面必然皆有的 default anchors [[w:en:Help:Link#Table row linking]]
@@ -494,8 +524,9 @@ async function tracking_section_title_history(page_data, options) {
 		[KEY_lower_cased_section_titles]: Object.create(null),
 	};
 
-	function set_recent_section_title(wikitext, revision) {
-		const anchor_list = CeL.wiki.parse.anchor(wikitext, wiki.append_session_to_options(options));
+	async function set_recent_section_title(wikitext, revision) {
+		const anchor_list = await CeL.wiki.parse.anchor(wikitext, wiki.append_session_to_options(options));
+		//console.trace(anchor_list);
 		mark_language_variants(anchor_list, section_title_history, revision);
 		anchor_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
@@ -510,7 +541,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	if (options.set_recent_section_only) {
 		page_data = await wiki.page(page_data);
-		set_recent_section_title(page_data.wikitext);
+		await set_recent_section_title(page_data.wikitext);
 		if (options?.print_anchors) {
 			CeL.info(`${tracking_section_title_history.name}: reduced anchors:`);
 			console.trace(section_title_history[KEY_lower_cased_section_titles]);
@@ -585,10 +616,10 @@ async function tracking_section_title_history(page_data, options) {
 
 	CeL.info(`${tracking_section_title_history.name}: Trying to traversal all revisions of ${CeL.wiki.title_link_of(page_data)}...`);
 
-	await wiki.tracking_revisions(page_data, (diff, revision, old_revision) => {
+	await wiki.tracking_revisions(page_data, async (diff, revision, old_revision) => {
 		//  `diff` 為從舊的版本 `old_revision` 改成 `revision` 時的差異。
 		if (!section_title_history[KEY_latest_page_data]) {
-			set_recent_section_title(CeL.wiki.revision_content(revision), revision);
+			await set_recent_section_title(CeL.wiki.revision_content(revision), revision);
 		}
 
 		//console.trace(diff);
@@ -596,11 +627,16 @@ async function tracking_section_title_history(page_data, options) {
 		//console.trace([diff, removed_text, revision, added_text]);
 		//console.trace([removed_text, revision.previous_text_is_different, added_text]);
 
-		const _options = wiki.append_session_to_options();
+		const _options = wiki.append_session_to_options({
+			on_page_title: page_data.title,
+			try_to_expand_templates: true,
+		});
 
-		// using get_all_anchors()
-		const removed_anchors = CeL.wiki.parse.anchor(removed_text, _options);
-		const added_anchors = CeL.wiki.parse.anchor(added_text, _options);
+		//console.trace('using get_all_anchors()');
+		const removed_anchors = await CeL.wiki.parse.anchor(removed_text, _options);
+		//console.trace(removed_anchors);
+		const added_anchors = await CeL.wiki.parse.anchor(added_text, _options);
+		//console.trace(added_anchors);
 
 		// "|| ''" 避免跳出警告
 		removed_text = CeL.wiki.parser(removed_text || '', _options).parse();
@@ -730,17 +766,17 @@ async function tracking_section_title_history(page_data, options) {
 			// 檢查變更紀錄可以找出變更章節名稱的情況。一增一減時，才當作是改變章節名稱。
 			// TODO: 整次編輯幅度不大，且一增一減時，才當作是改變章節名稱。
 			if (!has_newer_data && revision.removed_section_titles.length === 1 && revision.added_section_titles.length === 1) {
-				const from = revision.removed_section_titles[0], to = revision.added_section_titles[0];
+				const from_page_title = revision.removed_section_titles[0], to_page_title = revision.added_section_titles[0];
 				//assert: Object.keys(revision.replaced_anchors).length === 1
-				if (!revision.replaced_anchors[from] || revision.replaced_anchors[from] === to) {
-					// or: revision.removed_section_titles.remove(from); revision.added_section_titles.remove(to);
+				if (!revision.replaced_anchors[from_page_title] || wiki.normalize_title(revision.replaced_anchors[from_page_title]) === to_page_title) {
+					// or: revision.removed_section_titles.remove(from_page_title); revision.added_section_titles.remove(to_page_title);
 					//delete revision.removed_section_titles;
 					//delete revision.added_section_titles;
-					check_rename_to(from, to);
+					check_rename_to(from_page_title, to_page_title);
 					if (CeL.is_empty_object(revision.replaced_anchors))
 						delete revision.replaced_anchors;
-				} else if (revision.replaced_anchors[from]) {
-					CeL.warn(`一對一有疑義: ${from}→${to}, replaced_anchors to ${revision.replaced_anchors[from]}`);
+				} else if (revision.replaced_anchors[from_page_title]) {
+					CeL.warn(`一對一網頁錨點有疑義: ${from_page_title}→${to_page_title}, replaced_anchors to ${revision.replaced_anchors[from_page_title]}`);
 					delete revision.replaced_anchors;
 				}
 
@@ -782,7 +818,7 @@ async function tracking_section_title_history(page_data, options) {
 					// 測試 from 是否已經有更匹配的 to。
 					if (modify_hash[from]) return;
 					modify_hash[from] = to;
-					if (!revision.replaced_anchors[from] || revision.replaced_anchors[from] === to) {
+					if (!revision.replaced_anchors[from] || wiki.normalize_title(revision.replaced_anchors[from]) === to) {
 						//revision.removed_section_titles.remove(from);
 						//revision.added_section_titles.remove(to);
 						check_rename_to(from, to);
@@ -890,7 +926,7 @@ async function check_page(target_page_data, options) {
 		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
 	));
 
-	if (link_from.length > 800 && !options.force_check
+	if (link_from.length > wiki.latest_task_configuration.general.MAX_LINK_FROM && !options.force_check
 		// 連結的頁面太多時，只挑選較確定是改變章節名稱的。
 		&& !(options.removed_section_titles && options.removed_section_titles.length === 1 && options.added_section_titles.length === 1)) {
 		CeL.warn(`${check_page.name}: Too many pages (${link_from.length}) linking to ${CeL.wiki.title_link_of(target_page_data)}. Skip this page.`);
@@ -1026,6 +1062,7 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
+				// TODO: 加上移除了哪些錨點的註解。
 				this.summary += (anchor_token ? ', ' : '')
 					// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
 					+ CeL.gettext('提醒移除%1個失效網頁{{PLURAL:%1|錨點}}', removed_anchors);
@@ -1092,6 +1129,7 @@ async function check_page(target_page_data, options) {
 				}
 			}
 
+			//if (talk_page_data.title === 'Wikipedia talk:互助客栈/其他') CeL.set_debug();
 			// assert: !!parsed.toString() === true
 			return parsed.toString();
 		}
@@ -1133,6 +1171,7 @@ async function check_page(target_page_data, options) {
 			tags: wiki.latest_task_configuration.general.tags,
 			allow_empty: 1,
 		});
+		//CeL.set_debug(0);
 
 		// 錨點修復後刪除頁面。
 		for (const [talk_page_data, options] of pages_to_delete.entries()) {
@@ -1201,8 +1240,8 @@ async function check_page(target_page_data, options) {
 			change_to_anchor(section_title);
 			// gettext_config:{"id":"update-links-to-archived-section-$1-$2"}
 			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
-			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			add_summary(this, message);
+			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
+			add_summary(this, message + ` (${CeL.wiki.title_link_of(target_page_data)})`);
 			return true;
 		}
 
@@ -1210,7 +1249,7 @@ async function check_page(target_page_data, options) {
 			if (working_queue) {
 				working_queue.list.push(linking_page_data);
 			} else {
-				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision of ${CeL.wiki.title_link_of(linking_page_data)}.`);
+				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision in ${CeL.wiki.title_link_of(linking_page_data)}.`);
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 					.catch(error => console.error(error))
@@ -1342,9 +1381,10 @@ async function check_page(target_page_data, options) {
 		// console.log(parsed);
 		CeL.assert([linking_page_data.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page_data));
 		if (!wiki.is_namespace(linking_page_data, 0) && linking_page_data.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
-			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_KB(linking_page_data.wikitext.length)} chars`);
+			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_1000_prefix(linking_page_data.wikitext.length)} chars`);
 		}
 
+		//CeL.log_temporary(`${this.progress.pad(1)}% ${CeL.wiki.title_link_of(linking_page_data)}`);
 		const { skip_comments } = wiki.latest_task_configuration.general;
 		let changed, _this = this;
 		parsed.each_section(function (section, section_index) {
@@ -1371,7 +1411,7 @@ async function check_page(target_page_data, options) {
 						}
 					}
 
-					token.page_title = wiki.normalize_title(token.parameters[1].toString()) || linking_page_data.title;
+					token.page_title = wiki.normalize_title(token.parameters[1]?.toString()) || linking_page_data.title;
 					//console.trace(token);
 					token.article_index = ARTICLE_INDEX;
 					for (let index = 2; index < token.length; index++) {
