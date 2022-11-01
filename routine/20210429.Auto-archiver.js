@@ -45,11 +45,13 @@ async function adapt_configuration(latest_task_configuration) {
 
 	const { general } = latest_task_configuration;
 
-	wiki.register_redirects(general?.no_archive_templates);
+	if (general?.no_archive_templates)
+		wiki.register_redirects(general.no_archive_templates);
 	if (general?.archive_template_name)
-		archive_template_name = wiki.remove_namespace(general?.archive_template_name);
+		archive_template_name = wiki.remove_namespace(general.archive_template_name);
 
 	console.log(wiki.latest_task_configuration);
+	//CeL.set_debug(6);
 }
 
 // ----------------------------------------------------------------------------
@@ -59,6 +61,7 @@ async function adapt_configuration(latest_task_configuration) {
 	//console.log(login_options);
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
+	//console.trace(wiki.to_namespace(archive_template_name, 'template'));
 	await wiki.for_each_page(await wiki.embeddedin(wiki.to_namespace(archive_template_name, 'template')), for_each_discussion_page);
 
 	routine_task_done('1d');
@@ -66,6 +69,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 async function for_each_discussion_page(page_data) {
 	let target_root_page = page_data;
+	//console.trace(target_root_page);
 	let parsed = target_root_page.parse();
 	// Will use the first matched as configuration.
 	const archive_configuration = parsed.find_template(archive_template_name)?.parameters;
