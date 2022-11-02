@@ -445,6 +445,7 @@ function check_final_work() {
 function for_each_page(page_data, messages) {
 	// TODO: 處理模板，並 action=purge&forcelinkupdate=1 更新所有包含模板的頁面
 	// https://doc.wikimedia.org/mediawiki-core/master/php/ApiPurge_8php_source.html
+	this.pages_finished++;
 
 	// page_data =
 	// {pageid:0,ns:0,title:'',revisions:[{revid:0,parentid:0,user:'',timestamp:''},...]}
@@ -455,9 +456,7 @@ function for_each_page(page_data, messages) {
 	// 記錄確認已經有改變的文字連結。
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
-	if (false) {
-		CeL.log_temporary('' + CeL.wiki.title_link_of(title) + ': ');
-	}
+	process.title = page_remains + ' ' + title;
 
 	if (!ignore_ns && page_data.ns !== 0
 	// file / image
@@ -486,7 +485,7 @@ function for_each_page(page_data, messages) {
 
 	var overall_resolve, overall_reject;
 	function denote_page_processed() {
-		// console.trace('denote_page_processed');
+		// console.trace([ page_remains, title ]);
 		overall_resolve();
 		// check_final_work() 得要放在本函數 return 之前執行。
 		// setTimeout(): 您不能在 callback 中呼叫 .edit() 之類的 wiki 函數！
@@ -646,7 +645,9 @@ function for_each_page(page_data, messages) {
 				// gettext_config:{"id":"Comma-separator"}
 				changed.join(gettext('Comma-separator')))
 				//
-				+ ' (' + (_this.progress * 100).pad(1) + '%)',
+				+ ' (' + (100 * _this.pages_finished /
+				//
+				_this.initial_target_length).to_fixed(1) + '%)',
 				nocreate : 1,
 				minor : 1,
 				bot : 1
@@ -997,6 +998,7 @@ function for_each_page(page_data, messages) {
 		// main work for each link
 
 		if (!normalized_param) {
+			// 非跨語言連結模板。
 			return;
 		}
 
@@ -1011,11 +1013,16 @@ function for_each_page(page_data, messages) {
 		WD = normalized_param.WD;
 		CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
 
+		// `template_count++` 之後所有 return 都必須經過 check_page()。
+
 		if (/^https?:\/\//i.test(local_title)
 		// e.g., [[Special:PermanentLink/72981220|馮仁稚]]
 		|| /^https?:\/\//i.test(foreign_title)) {
-			CeL.error('parser error: URL @ ' + CeL.wiki.title_link_of(title)
-					+ ': ' + token);
+			CeL.error('Get URL @ ' + CeL.wiki.title_link_of(title) + ': '
+					+ token);
+			check_page(gettext(
+			// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
+			'Syntax error in the interlanguage link template.'));
 			return;
 		}
 
@@ -1023,7 +1030,7 @@ function for_each_page(page_data, messages) {
 		//
 		&& !foreign_language.includes('}')) {
 			CeL.error('parser error @ ' + CeL.wiki.title_link_of(title) + '?');
-			console.log(token);
+			console.trace(token);
 		}
 
 		if (local_title && foreign_language && foreign_title) {
@@ -1116,11 +1123,13 @@ function for_each_page(page_data, messages) {
 	// 這一步頗耗時間。
 	var parsed = CeL.wiki.parser(page_data).parse();
 	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
+		CeL.error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 		// debug 用. check parser, test if parser working properly.
 		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 	}
 	parsed.each('template', for_each_template);
 	template_parsed = true;
+	// console.trace([ page_remains, title, template_count ]);
 	if (template_count === 0) {
 		CeL.warn([ 'for_each_page: ', CeL.wiki.title_link_of(title) + ': ', {
 			// 記事が読み込んでいるテンプレートの方に仮リンクが使われている場合もあります。
@@ -1187,6 +1196,7 @@ function main_work() {
 			// 設定此初始值，可跳過之前已經處理過的。
 			list = list.slice(0 * test_limit, 1 * test_limit);
 		}
+		// while (list[0].title !== '爱尔兰') list.shift();
 
 		// CeL.set_debug(6);
 		// setup ((page_remains))
@@ -1194,6 +1204,7 @@ function main_work() {
 		wiki.work({
 			no_edit : true,
 			each : for_each_page,
+			pages_finished : 0,
 			page_options : {
 				rvprop : 'ids|content|timestamp'
 			}
