@@ -12,8 +12,17 @@ cd /d D:\USB\cgi-bin\program\wiki && node
 
 // At .js file:
 
+// 採用指定的 wiki project。
+globalThis.use_project = 'zh.wikinews';
+
 // Load CeJS library and modules.
 require('./wiki loader.js');
+
+// Load modules.
+CeL.run([
+	// for CeL.assert()
+	'application.debug.log',
+]);
 // for CeL.wiki.cache(), CeL.fs_mkdir()
 CeL.run('application.platform.nodejs');
 // 在非 Windows 平台上避免 fatal 錯誤。
@@ -155,7 +164,7 @@ _global.summary = script_name;
 _global.use_language = '';
 
 // project = language_code.family
-_global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project;
+_global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project || _global.use_project;
 
 function login_options_of_API_URL(API_URL) {
 	if (API_URL && API_URL.API_URL) {
