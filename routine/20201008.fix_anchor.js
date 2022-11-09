@@ -157,7 +157,8 @@ async function adapt_configuration(latest_task_configuration) {
 
 function progress_to_percent(progress, add_brackets) {
 	if (0 < progress && progress < 1) {
-		const percent = `${(1000 * progress | 0) / 10}%`;
+		// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
+		const percent = CeL.gettext('本次bot作業共完成%1%', (100 * progress).to_fixed(1));
 		return add_brackets ? ` (${percent})` : percent;
 	}
 	return '';
@@ -226,7 +227,9 @@ async function main_process() {
 			process.title = `${NO}/${length}${progress_to_percent(NO / length, true)} ${page_data.title}`;
 			try {
 				await check_page(page_data, {
-					is_archive: true, force_check: true, namespace: '*', progress: NO / length,
+					is_archive: true, force_check: true, namespace: '*',
+					// 整體作業進度 overall progress
+					overall_progress: NO / length,
 					only_modify_pages: CeL.env.arg_hash.only_modify_pages,
 				});
 			} catch (e) {
@@ -933,7 +936,7 @@ async function check_page(target_page_data, options) {
 		return;
 	}
 
-	CeL.info(`${check_page.name}: ${progress_to_percent(options.progress)} Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
+	CeL.info(`${check_page.name}: ${progress_to_percent(options.overall_progress)} Checking ${link_from.length} page(s) linking to ${CeL.wiki.title_link_of(target_page_data)}...`);
 	//console.log(link_from);
 
 	let working_queue;
@@ -1239,7 +1242,9 @@ async function check_page(target_page_data, options) {
 			const section_title = section_title_history[token.anchor]?.title;
 			change_to_anchor(section_title);
 			// gettext_config:{"id":"update-links-to-archived-section-$1-$2"}
-			const message = CeL.gettext('更新指向存檔的連結%1：%2', progress_to_percent(options.progress, true), token.toString());
+			const message = CeL.gettext('更新指向存檔的連結%1：%2',
+				// 整體作業進度 overall progress
+				progress_to_percent(options.overall_progress, true), token.toString());
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			add_summary(this, message + ` (${CeL.wiki.title_link_of(target_page_data)})`);
 			return true;
@@ -1384,7 +1389,7 @@ async function check_page(target_page_data, options) {
 			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_1000_prefix(linking_page_data.wikitext.length)} chars`);
 		}
 
-		//CeL.log_temporary(`${this.progress.pad(1)}% ${CeL.wiki.title_link_of(linking_page_data)}`);
+		//CeL.log_temporary(`${progress_to_percent(options.overall_progress)} ${CeL.wiki.title_link_of(linking_page_data)}`);
 		const { skip_comments } = wiki.latest_task_configuration.general;
 		let changed, _this = this;
 		parsed.each_section(function (section, section_index) {
