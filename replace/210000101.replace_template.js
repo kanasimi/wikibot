@@ -97,6 +97,7 @@ replace_tool.replace({
 		keep_display_text: true,
 		// 標準名前空間が対象です。 options={"namespace": "main"}
 		namespace: 'Category',
+		namespace: '*',
 
 		// 對於追蹤類別 [[Category:Tracking categories]]，不會算入 [[Template:name/doc]]。例如 [[Category:Pages using deprecated source tags]]
 		is_tracking_category: true,

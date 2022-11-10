@@ -1291,6 +1291,7 @@ function check_BOTREQ_status(section, section_index) {
 			// --------------
 
 			Done : true,
+			DONE : true,
 			完成 : true,
 			済 : true,
 
@@ -1428,7 +1429,7 @@ function check_BRFA_status(section) {
 			// 狀態模板提供「prefix」參數，可以此參數隱去「狀態」二字。
 			status = token.toString().replace(/(}})$/, '|prefix=$1');
 			var _BRFA_status = token.parameters[1] || 'new';
-			if (/^(?:\+|Done|done|完成)$/.test(_BRFA_status)) {
+			if (/^(?:\+|done|完成)$/i.test(_BRFA_status)) {
 				status = 'style="background-color: #ccf;" | ' + status;
 			} else if (
 			//

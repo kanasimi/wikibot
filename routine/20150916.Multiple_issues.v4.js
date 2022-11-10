@@ -180,7 +180,7 @@ async function main_process() {
 
 	// for debug specified article
 	if (false) {
-		setTimeout(() => check_articles_embeddedin_template(['Mass killings under communist regimes']), 0);
+		setTimeout(() => check_articles_embeddedin_template(['List of Cars characters']), 0);
 		return;
 	}
 
@@ -230,7 +230,7 @@ async function check_articles_embeddedin_template(template_name) {
 
 	// await wiki.setup_layout_elements();
 	await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
-		log_to: log_to,
+		log_to,
 		// 規範多個問題模板
 		/** {String}編輯摘要。總結報告。 */
 		// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]:
@@ -366,6 +366,7 @@ async function check_pages_including_maintenance_template(page_data) {
 			CeL.wiki.parser.remove_token(token, undefined, undefined, true);
 		});
 		const Multiple_issues_template_token = this.Multiple_issues_template_token;
+		//console.trace(Multiple_issues_template_token);
 		if (Multiple_issues_template_token) {
 			// 本來就已經含有{{多個問題}}模板。
 			this.summary += `: ${gettext(
@@ -408,8 +409,8 @@ async function check_pages_including_maintenance_template(page_data) {
 		token.parent[token.index] = token.parameters[1] && token.parameters[1].toString().trim();
 	}
 
-	//	console.log(parsed.toString());
-	//	console.log(parsed);
+	//console.log(parsed.toString());
+	//console.log(parsed);
 	return parsed.toString();
 }
 

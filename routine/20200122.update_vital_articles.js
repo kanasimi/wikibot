@@ -660,6 +660,7 @@ async function for_each_list_page(list_page_data) {
 						article_count_of_icon[icon]++;
 					else
 						article_count_of_icon[icon] = 1;
+					//{{Class/icon}}
 					return `{{Icon|${icon}}}`;
 				});
 

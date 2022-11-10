@@ -36,6 +36,8 @@ let summary_prefix;
 // 讀入手動設定 manual settings。
 async function adapt_configuration(latest_task_configuration) {
 	const { general } = latest_task_configuration;
+	if (!general)
+		return;
 
 	if (Array.isArray(general.skip_pages)) {
 		general.skip_pages = general.skip_pages.map(page_title => {

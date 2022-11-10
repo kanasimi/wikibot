@@ -11,7 +11,7 @@ jstop cron-20170915.topic_list.en;
 jstop cron-20170915.topic_list.wikisource;
 jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
-jstop cron-20170915.topic_list.moegirl;
+#jstop cron-20170915.topic_list.moegirl;
 jstop cron-20170915.topic_list.wiktionary;
 jstop cron-20170915.topic_list.wikibooks;
 
@@ -24,7 +24,7 @@ jstop cron-20170915.topic_list.wikibooks;
 /usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
 /usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
-/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
+#/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
 /usr/bin/jstart -N cron-20170915.topic_list.wiktionary -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wiktionary
 /usr/bin/jstart -N cron-20170915.topic_list.wikibooks -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks
 

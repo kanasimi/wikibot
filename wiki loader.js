@@ -12,8 +12,8 @@ cd /d D:\USB\cgi-bin\program\wiki && node
 
 // At .js file:
 
-// 採用指定的 wiki project。
-globalThis.use_project = 'zh.wikinews';
+// 採用指定的 wiki project。Should use `login_options.API_URL = 'zh.wikinews';`
+//globalThis.use_project = 'zh.wikinews';
 
 // Load CeJS library and modules.
 require('./wiki loader.js');

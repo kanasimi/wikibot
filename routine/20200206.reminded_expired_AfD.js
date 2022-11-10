@@ -282,7 +282,7 @@ async function get_AfD_discussions(target_page_title, AfD_page_data) {
 		// parse date from the AfD
 		let timestamp = CeL.wiki.parse.date(content, {
 			get_timevalue: true,
-			get_all_list: true
+			get_date_list: true
 		});
 		if (timestamp && (timestamp = timestamp.max_timevalue)) {
 			timestamp = (new Date(timestamp)).toISOString();
@@ -456,7 +456,7 @@ async function for_AfD(AfD_page_data) {
 
 	let already_noticed;
 	(AfD_page_data.wikitext + '\n').each_between(PROD_MESSAGE_PREFIX, '\n', token => {
-		const date_list = CeL.wiki.parse.date(token, { language: use_language, get_timevalue: true, get_all_list: true });
+		const date_list = CeL.wiki.parse.date(token, { language: use_language, get_timevalue: true, get_date_listt: true });
 		// console.log([AfD_page_data.title, token, date_list]);
 		if (Date.now() - date_list.min_timevalue < CeL.to_millisecond('7D')) {
 			already_noticed = date_list.min_timevalue;

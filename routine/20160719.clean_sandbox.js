@@ -225,7 +225,7 @@ if (use_project === 'zhmoegirl') {
 	// 2022/9/15 恢复1日。—— 星海子
 	/** {Object}wiki operator 操作子. */
 	var zhmoegirl = Wiki(true, use_project);
-	// https://zh.moegirl.org.cn/index.php?title=User:%E6%9C%BA%E5%A8%98%E9%AC%BC%E5%BD%B1233%E5%8F%B7
+	// https://zh.moegirl.org.cn/User:%E6%9C%BA%E5%A8%98%E9%AC%BC%E5%BD%B1233%E5%8F%B7
 	clean_wiki_sandbox(zhmoegirl,
 	// 對於沙盒編輯區域的提示以二級標題作為分割，可方便點選章節標題旁之"編輯"按鈕開始編輯。
 	'<noinclude><!-- 请勿删除此行 -->{{沙盒顶部}}<!-- 请勿删除此行 --></noinclude>\n'

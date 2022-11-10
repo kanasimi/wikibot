@@ -14,7 +14,7 @@ TODO:
 
 'use strict';
 
-globalThis.use_project = 'zh.wikinews';
+//globalThis.use_project = 'zh.wikinews';
 
 // Load CeJS library and modules.
 require('../wiki loader.js');
@@ -39,6 +39,7 @@ async function adapt_configuration(latest_task_configuration) {
 // ----------------------------------------------------------------------------
 
 (async () => {
+	login_options.API_URL = 'zh.wikinews';
 	login_options.configuration_adapter = adapt_configuration;
 	//console.log(login_options);
 	await wiki.login(login_options);
@@ -104,7 +105,7 @@ async function create_day_category(date) {
 [[Category:${date.format('%Y年%m月')}|${date.format('%2d日')}]]
 
 [[fr:Category:${date.toLocaleDateString('fr', { year: 'numeric', month: 'long', day: 'numeric' }).replace(/^1 /, '1er ')}]]
-`;
+`.trimStart();
 	}, {
 		bot: 1,
 		summary: '創建每日新聞分類'
@@ -122,7 +123,7 @@ async function create_month_category(date) {
 [[Category:${date.format('%Y年')}|${date.format('%2m月')}]]
 
 [[fr:Category:${date.toLocaleDateString('fr', { year: 'numeric', month: 'long' }).toTitleCase()}]]
-`;
+`.trimStart();
 	}, {
 		bot: 1,
 		summary: '創建每月新聞分類'
@@ -155,7 +156,7 @@ async function create_day_project_page(date) {
 		return `
 <onlyinclude><DynamicPageList>
 category=已发布
-category=${date.format('%Y年%m月')}
+category=${date.format('%Y年%m月%d日')}
 notcategory=删除请求
 notcategory=未发表
 suppresserrors=true
@@ -166,7 +167,7 @@ ordermethod=lastedit
 [[Category:${date.format('%Y年%m月')}|W${date.format('%2d日')}]]
 
 [[fr:Wikinews:${date.format('%Y')}/${date.toLocaleDateString('fr', { month: 'long' })}/${date.format('%2d')}]]
-`;
+`.trimStart();
 	}, {
 		bot: 1,
 		summary: '創建每日新聞摘要頁面'
@@ -211,18 +212,19 @@ async function create_month_project_page(date) {
 		const content = [`
 {{Purge}}
 {{${date.toLocaleDateString('en', { month: 'long' }).toTitleCase()}Calendar|StartDOW=${date.getDay()}|1=${date_of_previous_month.format('%m月')}|2=${date_of_next_month.format('%m月')}|3=${date.format('%Y年')}|4=${date_of_previous_month.format('%Y年')}|5=${date_of_next_month.format('%Y年')}|6=#|7=日|color=#c0c0ff|color2=#eeeeff|float=right|EndNote=新聞存檔}}__NOTOC__
-`];
+`.trimStart()];
 		const tail = `[[Category:${date.format('%Y年')}|${date.format('%2m月')}]]
 [[Category:${date.format('%Y年%m月')}]]
 
 [[fr:Wikinews:${date.format('%Y')}/${date.toLocaleDateString('fr', { month: 'long' })}]]
-`;
+`.trimStart();
 
 		const month = date.getMonth();
 		while (month === date.getMonth()) {
-			content.push(`== [[/${date.format('%d日')}|${date.format('%m月%d日')}]] ==
+			content.push(`
+== [[/${date.format('%d日')}|${date.format('%m月%d日')}]] ==
 {{/${date.format('%d日')}}}
-`);
+`.trimStart());
 			date.setDate(date.getDate() + 1);
 		}
 

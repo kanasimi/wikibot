@@ -212,7 +212,7 @@ function for_each_topic(topic_token, section_index) {
 		topic_token.each('text', function(token, index) {
 			var date_list = CeL.wiki.parse.date(token.toString(), {
 				get_timevalue : true,
-				get_all_list : true
+				get_date_list : true
 			});
 			CeL.debug('[' + token.toString()
 			//

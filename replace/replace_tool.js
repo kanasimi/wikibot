@@ -19,7 +19,8 @@ The `replace_tool.replace()` will:
 # main_move_process(): Starting replace task
 # finish_work(): finish up
 
-
+警告:
+每個 task_configuration 必須有獨立的 {Object} 設定，避免先前 prepare_operation() 設定過 .move_from_link 之類。
 
 @see 20160923.modify_link.リンク元修正.js	20170828.search_and_replace.js	20161112.modify_category.js
 @see https://www.mediawiki.org/wiki/Manual:Pywikibot/replace.py
@@ -35,6 +36,8 @@ The `replace_tool.replace()` will:
 
 
 TODO:
+自動處理move from之繁簡轉換
+auto add section title @ summary
 除重定向頁為 (曖昧さ回避)外，將所有 move_from 的重定向也一起修正
 檢查是否為討論頁。 e.g., [[w:ja:Special:Diff/80384825]]
 移動頁面相關的機器人或機器使用者需要提出對所有不同頁面內容模型的處理計畫，JSON頁沒有重新導向功能。一般頁面與模板都能重導向。分類頁面則必須移動所有包含的頁面。module 可用<code>return require( 'Module:name' );</code>重導向。
@@ -720,7 +723,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 		for_section.apply(parsed, arguments);
 	}, {
 		get_users: true,
-		level_filter: use_language === 'zh' ? 3 : 2,
+		level_filter: /*use_language === 'zh' ? 3 :*/ 2,
 	});
 
 	if (options && options.need_edit) {
@@ -1132,13 +1135,17 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			+ task_configuration.summary.log_to;
 		//console.trace(task_configuration.summary);
 
+		// .also_move_page
 		if (task_configuration.do_move_page) {
 			if (typeof move_from_link !== 'string') {
 				throw new TypeError('`move_from_link` should be {String}!');
 			}
 			// 作業前先移動原頁面。
 			task_configuration.do_move_page = {
+				// https://www.mediawiki.org/wiki/API:Move
 				reason: task_configuration.summary,
+				movetalk: 1,
+				//movesubpages: 1, noredirect: 1,
 				...task_configuration.do_move_page
 			};
 			try {
@@ -1788,10 +1795,15 @@ async function for_each_page(page_data) {
 	// {Object}task_configuration.replace_text: only replace the text in the target pages
 	if (task_configuration.replace_text_pattern) {
 		// Warning: 必須排除 {{Redirect|text}}, [[text|]] 之類！
+		//console.trace([task_configuration.replace_text_pattern.replace, task_configuration.replace_text_pattern, task_configuration.replace_text, wikitext]);
 		if (task_configuration.replace_text_pattern.replace) {
 			wikitext = task_configuration.replace_text_pattern.replace(wikitext);
 		} else {
-			wikitext = wikitext.replace(task_configuration.replace_text_pattern, matched_all => task_configuration.replace_text[matched_all]);
+			wikitext = wikitext.replace(task_configuration.replace_text_pattern, (matched_all, replace_from_text) => {
+				const replace_to = task_configuration.replace_text[typeof replace_from_text === 'string' && replace_from_text || matched_all];
+				//console.trace([matched_all, replace_from_text, replace_to]);
+				return replace_to || matched_all;
+			});
 		}
 	}
 

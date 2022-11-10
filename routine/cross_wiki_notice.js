@@ -31,7 +31,7 @@ function notice_wiki(API_URL) {
 		wiki.page('User talk:' + login_options.owner_name, function(page_data) {
 			date_list = CeL.wiki.parse.date(CeL.wiki.content_of(page_data), {
 				get_timevalue : true,
-				get_all_list : true
+				get_date_list : true
 			});
 			max = Math.max.apply(null, date_list);
 			CeL.log(new Date(max));
