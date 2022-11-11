@@ -1,7 +1,7 @@
 ﻿/*
 
 node 20200122.update_vital_articles.js using_cache
-node 20200122.update_vital_articles.js "base_page=Wikipedia:Vital people" using_cache
+node 20200122.update_vital_articles.js "base_page=Wikipedia:Vital people"
 TODO:
 node 20200122.update_vital_articles.js "base_page=Wikipedia:基礎條目" use_language=zh
 
@@ -835,18 +835,18 @@ async function for_each_list_page(list_page_data) {
 		if (token.type === 'tag') {
 			// e.g., the whole list is wrapped up with <div>.
 			token = token[1];
-			if (Array.isArray(token))
-				token.some(for_root_token);
-			return;
+			//console.trace(token.length);
+			return Array.isArray(token) && token.some((sub_token, index, root) =>
+				sub_token.type === 'plain' ? sub_token.forEach(for_root_token)
+					: for_root_token(sub_token, index, root)
+			);
 		}
 
 		if (token.type === 'transclusion' && token.name === 'Columns-list') {
 			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games and recreation]]
 			token = token.parameters[1];
 			// console.log(token);
-			if (Array.isArray(token))
-				token.some(for_root_token);
-			return;
+			return Array.isArray(token) && token.some(for_root_token);
 		}
 
 		if (token.type === 'list') {
@@ -856,12 +856,8 @@ async function for_each_list_page(list_page_data) {
 
 		if (token.type === 'section_title') {
 			//if (list_page_data.title.includes('Military personnel, revolutionaries, and activists')) console.log(token);
-			// e.g., [[Wikipedia:Vital articles]]
-			if (/See also/i.test(token[0].toString())) {
-				return true;
-			}
-			set_latest_section_title(token);
-			return;
+			// quit on "See also" section. e.g., [[Wikipedia:Vital articles]]
+			return /See also/i.test(token[0].toString()) || set_latest_section_title(token);
 		}
 
 		section_text_to_title(token, index, root);
