@@ -1,6 +1,7 @@
 ﻿/*
 
-node 20200122.update_vital_articles.js "base_page=Wikipedia:Vital people"
+node 20200122.update_vital_articles.js using_cache
+node 20200122.update_vital_articles.js "base_page=Wikipedia:Vital people" using_cache
 TODO:
 node 20200122.update_vital_articles.js "base_page=Wikipedia:基礎條目" use_language=zh
 
@@ -31,7 +32,7 @@ set_language('en');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-const using_cache = false;
+const using_cache = CeL.env.arg_hash?.using_cache;
 if (using_cache)
 	prepare_directory(base_directory);
 
@@ -186,13 +187,22 @@ async function main_process() {
 
 	check_page_count();
 
-	if (modify_talk_pages)
-		await maintain_VA_template();
+	let no_editing_of_talk_pages;
+	if (modify_talk_pages) {
+		const talk_pages_to_edit = Object.keys(need_edit_VA_template).length;
+		if (talk_pages_to_edit > wiki.latest_task_configuration.general.talk_page_limit_for_editing
+			&& !CeL.env.arg_hash?.forced_edit) {
+			no_editing_of_talk_pages = true;
+			CeL.warn(`編輯談話頁面數量${talk_pages_to_edit}篇，超越編輯數量上限${wiki.latest_task_configuration.general.talk_page_limit_for_editing}。執行時請設定命令列參數 forced_edit 以強制編輯。`);
+		} else {
+			await maintain_VA_template();
+		}
+	}
 
 	// ----------------------------------------------------
 
 	if (modify_talk_pages)
-		await generate_report();
+		await generate_report({ no_editing_of_talk_pages });
 
 	routine_task_done('1d');
 }
@@ -822,13 +832,20 @@ async function for_each_list_page(list_page_data) {
 	}
 
 	function for_root_token(token, index, root) {
+		if (token.type === 'tag') {
+			// e.g., the whole list is wrapped up with <div>.
+			token = token[1];
+			if (Array.isArray(token))
+				token.some(for_root_token);
+			return;
+		}
+
 		if (token.type === 'transclusion' && token.name === 'Columns-list') {
 			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games and recreation]]
 			token = token.parameters[1];
 			// console.log(token);
-			if (Array.isArray(token)) {
-				token.forEach(for_root_token);
-			}
+			if (Array.isArray(token))
+				token.some(for_root_token);
 			return;
 		}
 
@@ -949,6 +966,8 @@ async function for_each_list_page(list_page_data) {
 		}
 		summary_table.push([`{{Icon|${icon}}} ${category_name || icon}`, article_count_of_icon[icon].toLocaleString()]);
 	}
+
+	//console.trace(`${list_page_data.title}: ${total_articles}`);
 	// ~~~~~
 	wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `$1\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
 		'class': "wikitable sortable"
@@ -1314,8 +1333,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 const report_mark_start = '\n<!-- report begin -->\n';
 const report_mark_end = '\n<!-- report end -->';
 
-async function generate_report() {
-	const records_limit = 500;
+async function generate_report(options) {
+	const records_limit = wiki.latest_task_configuration.general.records_limit || 100;
 	if (report_lines.length > records_limit) {
 		report_lines.skipped_records += report_lines.length - records_limit;
 		report_lines.truncate(records_limit);
@@ -1344,7 +1363,7 @@ async function generate_report() {
 			'class': "wikitable sortable"
 		});
 		if (!CeL.is_empty_object(need_edit_VA_template))
-			report_wikitext = `* ${Object.keys(need_edit_VA_template).length} talk pages to edit.\n` + report_wikitext;
+			report_wikitext = `* ${Object.keys(need_edit_VA_template).length} talk pages to edit${options.no_editing_of_talk_pages ? ' (The amount of talk pages to edit exceeds the value of talk_page_limit_for_editing on the configuration page. Do not edit the talk pages at all.)' : ''}.\n` + report_wikitext;
 		if (report_lines.skipped_records > 0)
 			report_wikitext = `* Skip ${report_lines.skipped_records.toLocaleString()} records.\n` + report_wikitext;
 	} else {
