@@ -158,7 +158,7 @@ async function adapt_configuration(latest_task_configuration) {
 function progress_to_percent(progress, add_brackets) {
 	if (0 < progress && progress < 1) {
 		// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-		const percent = CeL.gettext('本次bot作業共完成%1%', (100 * progress).to_fixed(1));
+		const percent = CeL.gettext('本次bot作業已進行%1%', (100 * progress).to_fixed(1));
 		return add_brackets ? ` (${percent})` : percent;
 	}
 	return '';
