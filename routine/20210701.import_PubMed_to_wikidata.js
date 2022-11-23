@@ -631,14 +631,14 @@ function are_equivalent_person_names(name_1, name_2) {
 		let matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
 		if (matched) name = matched[2] + ' ' + matched[1];
 		// [[德語字母]], [[:de:Deutsches Alphabet]]
-		matched = name.match(/^((?:(?:[A-Z][a-zäöüß]+|der)\s+)+)([A-Z]+)$/);
+		matched = name.match(/^((?:(?:(?:Mc|L')?[A-Z][a-z'áäéöüß]+(?:-[A-Z][a-z]+)?|der)\s+)+)([A-Z]+)$/);
 		if (matched) {
 			// "Huennekens FM" → "F M Huennekens"
 			name = matched[2].split('').join(' ') + ' ' + matched[1].trimEnd();
 		}
 		name = name.replace(/\./g, '')
 			// 保留姓氏全稱，其他改縮寫。
-			.replace(/([A-Z])[a-zäöüß]+\s/g, '$1 ');
+			.replace(/([A-Z])[a-z'áäéöüß]+\s/g, '$1 ');
 		return name;
 	}
 
@@ -652,9 +652,15 @@ function are_equivalent_person_names(name_1, name_2) {
 	// "Van Zeeland AA" ≡ "A. A. Van Zeeland"
 	// "Van der Eb AJ" ≡ "A. J. Van der Eb"
 	// "Schülke B" ≡ "B. Schülke"
+	// "Cissée H" ≡ "H. Cissée"
+	// "Drazd'áková M" ≡ "M. Drazd'áková"
+	// "Crouzat-Reynes G" ≡ "G. Crouzat-Reynes"
+	// "Büttner-Ennever JA" ≡ "J. A. Büttner-Ennever"
+	// "McKaigney E" ≡ "E. McKaigney"
+	// "L'Hermite M" ≡ "M. L'Hermite"
 	if (normalize_person_name(name_1) === normalize_person_name(name_2)) return true;
-	// TODO: "Stephen William Hawking" ≡ "Hawking, Stephen"
-	// TODO: "Cissée H" ≡ "H. Cissée"
+	// TODO:
+	// "Stephen William Hawking" ≡ "Hawking, Stephen"
 }
 
 // ------------------------------------
