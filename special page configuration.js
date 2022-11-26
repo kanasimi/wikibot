@@ -1268,7 +1268,7 @@ function check_BOTREQ_status(section, section_index) {
 				done : true
 			}) {
 				status = 'style="background-color: #dfd;" | ' + token;
-				if (project === 'jawiki') {
+				if (use_language === 'ja') {
 					// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
 					status += '、確認待ち';
 				}
@@ -1308,7 +1308,7 @@ function check_BOTREQ_status(section, section_index) {
 			已確認 : true
 		}) {
 			status = 'style="background-color: #dfd;" | ' + token;
-			if (project === 'jawiki'
+			if (use_language === 'ja'
 			// 「完了」と「解決済み」は紛らわしいから、もうちょっと説明を加えて。
 			&& token.name === '完了') {
 				status += '、確認待ち';
@@ -1363,6 +1363,22 @@ function check_BOTREQ_status(section, section_index) {
 
 		// TODO: [[Template:Moved discussion to]], [[模板:移動至]]
 		// {{移動至|Namespace:Pagename#Topic}}
+		if (/^Moved? ?to$/i.test(token.name)) {
+			status = 'style="color: #888;" | '
+					+ (use_language === 'zh' ? '已移動' : 'Moved');
+			section.moved = true;
+		}
+
+		if (token.name in {
+			Atop : true,
+			'Archive top' : true
+		}) {
+			// e.g., "Closing, ..."
+			var matched = String(token[1]).match(/^([A-Z][a-z]+)[,.]/);
+			status = 'style="color: #888;" | '
+					+ (matched ? matched[1] : (use_language === 'zh' ? '已關閉'
+							: 'Closed'));
+		}
 
 	});
 	return status || '';
@@ -1517,7 +1533,8 @@ function check_MarkAsResolved_status(section, section_index) {
 		}
 
 		if (/^Moved? ?to$/i.test(token.name)) {
-			status = 'style="color: #888;" | ' + '已移動';
+			status = 'style="color: #888;" | '
+					+ (use_language === 'zh' ? '已移動' : 'Moved');
 			section.moved = true;
 		}
 

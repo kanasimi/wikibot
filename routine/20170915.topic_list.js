@@ -763,7 +763,8 @@ function general_row_style(section, section_index) {
 		}
 
 		if (token.type === 'transclusion' && (token.name in {
-			// zhwiki: 下列討論已經關閉，請勿修改。
+			// enwiki, zhwiki: 下列討論已經關閉，請勿修改。
+			Atop : true,
 			'Archive top' : true,
 			// 本框內討論文字已關閉，相關文字不再存檔。
 			TalkH : true,
@@ -780,6 +781,7 @@ function general_row_style(section, section_index) {
 		//
 		&& token.type === 'transclusion' && (token.name in {
 			// 下列討論已經關閉，請勿修改。
+			Abot : true,
 			'Archive bottom' : true,
 			// 本框內討論文字已關閉，相關文字不再存檔。
 			TalkF : true,
