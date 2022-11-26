@@ -1363,9 +1363,11 @@ function check_BOTREQ_status(section, section_index) {
 
 		// TODO: [[Template:Moved discussion to]], [[模板:移動至]]
 		// {{移動至|Namespace:Pagename#Topic}}
-		if (/^Moved? ?to$/i.test(token.name)) {
+		// {{Moved discussion to}}, {{Moved discussion to}}
+		if (/^Moved? ?([a-z]+ )?to/i.test(token.name)) {
 			status = 'style="color: #888;" | '
-					+ (use_language === 'zh' ? '已移動' : 'Moved');
+			// + (use_language === 'zh' ? '已移動' : 'Moved')
+			+ '{{' + token.name + '}}';
 			section.moved = true;
 		}
 
@@ -1532,9 +1534,10 @@ function check_MarkAsResolved_status(section, section_index) {
 			section.archived = true;
 		}
 
-		if (/^Moved? ?to$/i.test(token.name)) {
+		if (/^Moved? ?([a-z]+ )?to/i.test(token.name)) {
 			status = 'style="color: #888;" | '
-					+ (use_language === 'zh' ? '已移動' : 'Moved');
+			// + (use_language === 'zh' ? '已移動' : 'Moved')
+			+ '{{' + token.name + '}}';
 			section.moved = true;
 		}
 
