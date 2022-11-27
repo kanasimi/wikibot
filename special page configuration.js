@@ -1366,6 +1366,7 @@ function check_BOTREQ_status(section, section_index) {
 		// {{Moved discussion to}}, {{Moved discussion to}}
 		if (/^Moved? ?([a-z]+ )?to/i.test(token.name)) {
 			status = 'style="color: #888;" | '
+			// [[File:Symbol redirect vote.svg|20px|link=|alt=]]&nbsp;
 			// + (use_language === 'zh' ? '已移動' : 'Moved')
 			+ '{{' + token.name + '}}';
 			section.moved = true;
@@ -1536,6 +1537,7 @@ function check_MarkAsResolved_status(section, section_index) {
 
 		if (/^Moved? ?([a-z]+ )?to/i.test(token.name)) {
 			status = 'style="color: #888;" | '
+			// [[File:Symbol redirect vote.svg|20px|link=|alt=]]&nbsp;
 			// + (use_language === 'zh' ? '已移動' : 'Moved')
 			+ '{{' + token.name + '}}';
 			section.moved = true;

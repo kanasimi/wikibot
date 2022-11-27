@@ -267,9 +267,15 @@ async function main_process() {
 function filter_row(row) {
 	//console.trace(row);
 
+	// 20 minutes ago
+	if (row.query_delay > 20 * 60 * 1000 && (row.newlen > 100000 || row.oldlen > 100000)) {
+		// 當延遲時間過高時就不處理過大的頁面。
+		return;
+	}
+
 	// There are too many vandalism by IP users...
 	// [[w:en:User talk:Kanashimi#Bot is now erroneously changing links and anchors]]
-	if (CeL.is_IP(row.user)) {
+	if ('anon' in row /*CeL.is_IP(row.user)*/) {
 		return;
 	}
 
@@ -396,7 +402,7 @@ async function for_each_row(row) {
 	}
 
 	// 5 minutes ago
-	if (Date.now() - row.last_query_time > 5 * 60 * 1000 && removed_section_titles.every(anchor => anchor.startsWith('CITEREF'))) {
+	if (row.query_delay > 5 * 60 * 1000 && removed_section_titles.every(anchor => anchor.startsWith('CITEREF'))) {
 		// 去除調整/刪除參考文獻模板的情況。
 		CeL.info(`${for_each_row.name}: It seems ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])} is just adjustment/deletion of reference template(s)?`);
 		//console.trace(removed_section_titles);
@@ -929,7 +935,8 @@ async function check_page(target_page_data, options) {
 		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
 	));
 
-	if (link_from.length > wiki.latest_task_configuration.general.MAX_LINK_FROM && !options.force_check
+	if (!options.force_check
+		&& link_from.length > wiki.latest_task_configuration.general.MAX_LINK_FROM
 		// 連結的頁面太多時，只挑選較確定是改變章節名稱的。
 		&& !(options.removed_section_titles && options.removed_section_titles.length === 1 && options.added_section_titles.length === 1)) {
 		CeL.warn(`${check_page.name}: Too many pages (${link_from.length}) linking to ${CeL.wiki.title_link_of(target_page_data)}. Skip this page.`);

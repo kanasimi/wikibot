@@ -28,7 +28,10 @@ require('../wiki loader.js');
 // Load modules.
 CeL.run([
 	// For JSON.from_XML()
-	'data.XML']);
+	'data.XML',
+	// For CeL.assert()
+	'application.debug.log',
+]);
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('en');
@@ -614,6 +617,83 @@ function is_imprecise_date(date_string) {
 		|| /^[a-z]{3,},? \d{4}$/i.test(date_string);
 }
 
+
+// https://www.w3.org/International/questions/qa-personal-names
+function normalize_person_name(name) {
+	name = name.trim().replace(/\s+/g, ' ');
+	let matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
+	if (matched) {
+		name = matched[2] + ' ' + matched[1];
+	} else {
+		// e.g., "Chylack LT Jr", "Hartman HA Jr"
+		name = name.replace(/( [A-Z]+) (?:Jr|2nd|3rd|[4-9]th)$/, '$1');
+	}
+	// https://en.wikipedia.org/wiki/Latin-1_Supplement
+	// https://en.wikipedia.org/wiki/Latin_Extended-A
+	// [[德語字母]], [[:de:Deutsches Alphabet]]
+	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|La|d'|da |de |del |dos |Den|De|Di|Du|Ja|van )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
+	//console.log(matched);
+	if (matched && matched[2] === matched[2].toLowerCase() && (!matched[3] || matched[3] === matched[3].toLowerCase())) {
+		// "Huennekens FM" → "F M Huennekens"
+		name = matched[4].split('').join(' ') + ' ' + matched[1].trimEnd();
+	}
+	name = name.replace(/\./g, '')
+		// 保留姓氏全稱，其他改縮寫。
+		.replace(/([A-Z])[a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+\s/g, '$1 ');
+	return name;
+}
+
+[
+	["S. W. Hawking", "S W Hawking"],
+	["Adam Smith", "A. Smith"],
+	["Stephen William Hawking", "Stephen W. Hawking", "S. W. Hawking"],
+	["Huennekens FM", "F M Huennekens"],
+	["Zöller H", "H. Zöller"],
+	["Van Zeeland AA", "A. A. Van Zeeland"],
+	["Van der Eb AJ", "A. J. Van der Eb"],
+	["van Bogaert LJ", "L. J. van Bogaert"],
+	["Schülke B", "B. Schülke"],
+	["Cissée H", "H. Cissée"],
+	["Drazd'áková M", "M. Drazd'áková"],
+	["Crouzat-Reynes G", "G. Crouzat-Reynes"],
+	["Büttner-Ennever JA", "J. A. Büttner-Ennever"],
+	["McKaigney E", "E. McKaigney"],
+	["L'Hermite M", "M. L'Hermite"],
+	["DenBesten L", "L. DenBesten"],
+	["dos Santos RR", "R. R. dos Santos"],
+	["Timoşca SF", "S. F. Timoşca"],
+	["DiBona DR", "D. R. DiBona"],
+	["Mazanek-Szymańska E", "E. Mazanek-Szymańska"],
+	["Serafińska D", "D. Serafińska"],
+	["Sokołowska K", "K. Sokołowska"],
+	["Cantù P", "P. Cantù"],
+	["Grimm-Jørgensen Y", "Y. Grimm-Jørgensen"],
+	["Chylack LT Jr", "L. T. Chylack"],
+	["Hartman HA Jr", "H. A. Hartman"],
+	["Pusateri RJ 3rd", "R. J. Pusateri"],
+	["Woods RD 2nd", "R. D. Woods"],
+	["de Mello RT", "R. T. de Mello"],
+	["LaBelle JW", "J. W. LaBelle"],
+	["da Silva LA", "L. A. da Silva"],
+	["MacDonald DM", "D. M. MacDonald"],
+	["D'Incalci M", "M. D'Incalci"],
+	["DuCharme LL", "L. L. DuCharme"],
+
+	["d'Azambuja S", "S. d'Azambuja"],
+	["del Castillo J", "J. del Castillo"],
+	["DeSanctis RW", "R. W. DeSanctis"],
+	["JaRo MF", "M. F. JaRo"],
+	/*
+	TODO:
+	["Stephen William Hawking", "Hawking, Stephen"],
+	["Rautenshteĭn IaI", "Ia I. Rautenshteĭn"],
+	["Savranskaia SIa", "S. Ia Savranskaia"],
+	["Filippov IuV", "Iu V. Filippov"],
+	["Riznichenko GIu", "G. Iu Riznichenko"],
+	["Ganbarov KhG", "Kh G. Ganbarov"],
+	*/
+].forEach(pair => CeL.assert([normalize_person_name(pair[0]), normalize_person_name(pair[1])]));
+
 /**
  * 測試兩姓名是否等價。
  * 
@@ -626,41 +706,9 @@ function is_imprecise_date(date_string) {
 function are_equivalent_person_names(name_1, name_2) {
 	if (!name_1 || !name_2) return false;
 
-	function normalize_person_name(name) {
-		name = name.trim().replace(/\s+/g, ' ');
-		let matched = name.match(/^([\w ]+),\s+([\w ]+)$/);
-		if (matched) name = matched[2] + ' ' + matched[1];
-		// [[德語字母]], [[:de:Deutsches Alphabet]]
-		matched = name.match(/^((?:(?:(?:Mc|L')?[A-Z][a-z'áäéöüß]+(?:-[A-Z][a-z]+)?|der)\s+)+)([A-Z]+)$/);
-		if (matched) {
-			// "Huennekens FM" → "F M Huennekens"
-			name = matched[2].split('').join(' ') + ' ' + matched[1].trimEnd();
-		}
-		name = name.replace(/\./g, '')
-			// 保留姓氏全稱，其他改縮寫。
-			.replace(/([A-Z])[a-z'áäéöüß]+\s/g, '$1 ');
-		return name;
-	}
-
 	//console.trace([name_1, normalize_person_name(name_1), name_2, normalize_person_name(name_2)]);
 
-	// "S. W. Hawking" ≡ "S W Hawking"
-	// "Adam Smith" ≡ "A. Smith"
-	// "Stephen William Hawking" ≡ "Stephen W. Hawking" ≡ "S. W. Hawking"
-	// "Huennekens FM" ≡ "F M Huennekens"
-	// "Zöller H" ≡ "H. Zöller"
-	// "Van Zeeland AA" ≡ "A. A. Van Zeeland"
-	// "Van der Eb AJ" ≡ "A. J. Van der Eb"
-	// "Schülke B" ≡ "B. Schülke"
-	// "Cissée H" ≡ "H. Cissée"
-	// "Drazd'áková M" ≡ "M. Drazd'áková"
-	// "Crouzat-Reynes G" ≡ "G. Crouzat-Reynes"
-	// "Büttner-Ennever JA" ≡ "J. A. Büttner-Ennever"
-	// "McKaigney E" ≡ "E. McKaigney"
-	// "L'Hermite M" ≡ "M. L'Hermite"
 	if (normalize_person_name(name_1) === normalize_person_name(name_2)) return true;
-	// TODO:
-	// "Stephen William Hawking" ≡ "Hawking, Stephen"
 }
 
 // ------------------------------------
@@ -1084,7 +1132,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	if (Europe_PMC_article_data.firstPublicationDate) {
 		// UTC+0: 確保日期不跑掉
 		const publication_date = (Europe_PMC_article_data.firstPublicationDate + ' UTC+0').to_Date();
-		if (publication_date.getTime() > 0
+		if (publication_date?.getTime() > 0
 			// 假如只能取得當月1號的日期，則直接採用 NCBI_article_data.pubdate 就好
 			&& (publication_date.getUTCDate() > 1 || !NCBI_article_data.pubdate)) {
 			data_to_modify.publication_date = publication_date;
@@ -1103,7 +1151,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			// 避免不精確的日期 "2021 May" 被認作當月1號 https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33910271
 			// "1975 Jun" https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=1
 			|| is_imprecise_date(NCBI_article_data.pubdate)) && NCBI_article_data.epubdate || NCBI_article_data.pubdate) + ' UTC+0').to_Date();
-		if (publication_date.getTime() > 0) {
+		if (publication_date?.getTime() > 0) {
 			data_to_modify.publication_date = publication_date;
 			Object.assign(data_to_modify.publication_date_claim, {
 				// publication date (P577) 出版日期
@@ -1121,7 +1169,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			// UTC+0: 確保日期不跑掉
 			const publication_date = (record.date + ' UTC+0').to_Date();
 			//console.trace([record.date, publication_date, publication_date.precision]);
-			if (publication_date.getTime() > 0) {
+			if (publication_date?.getTime() > 0) {
 				Object.assign(data_to_modify.publication_date_claim, {
 					// publication date (P577) 出版日期
 					P577: publication_date,
