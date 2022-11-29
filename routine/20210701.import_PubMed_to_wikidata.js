@@ -9,6 +9,9 @@ TODO:
 添加 corrigendum / erratum (P2507) 勘誤的標示
 	https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC1201098&resulttype=core&format=json
 
+
+[[Q39686984]]: de label
+
 remove bad cite
 merge items
 
@@ -631,7 +634,7 @@ function normalize_person_name(name) {
 	// https://en.wikipedia.org/wiki/Latin-1_Supplement
 	// https://en.wikipedia.org/wiki/Latin_Extended-A
 	// [[德語字母]], [[:de:Deutsches Alphabet]]
-	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|La|d'|da |de |del |dos |Den|De|Di|Du|Ja|van )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
+	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|d'|da |de |del |dos |Den|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-)?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
 	//console.log(matched);
 	if (matched && matched[2] === matched[2].toLowerCase() && (!matched[3] || matched[3] === matched[3].toLowerCase())) {
 		// "Huennekens FM" → "F M Huennekens"
@@ -678,11 +681,21 @@ function normalize_person_name(name) {
 	["MacDonald DM", "D. M. MacDonald"],
 	["D'Incalci M", "M. D'Incalci"],
 	["DuCharme LL", "L. L. DuCharme"],
-
 	["d'Azambuja S", "S. d'Azambuja"],
 	["del Castillo J", "J. del Castillo"],
 	["DeSanctis RW", "R. W. DeSanctis"],
 	["JaRo MF", "M. F. JaRo"],
+	["van den Broek PJ", "P. J. van den Broek"],
+	["van der Meer JW", "J. W. van der Meer"],
+	["el-Azab EA", "E. A. el-Azab"],
+	["O'Fallon JR", "J. R. O'Fallon"],
+	["von Strandtmann M", "M. von Strandtmann"],
+	["De la Cruz A", "A. De la Cruz"],
+	["DaMassa AJ", "A. J. DaMassa"],
+	["Van den Eijnden DH", "D. H. Van den Eijnden"],
+	["vd Heiden C", "C. vd Heiden"],
+	["v Sprang FJ", "F. J. v Sprang"],
+	["de la Vega PF", "P. F. de la Vega"],
 	/*
 	TODO:
 	["Stephen William Hawking", "Hawking, Stephen"],
@@ -691,8 +704,19 @@ function normalize_person_name(name) {
 	["Filippov IuV", "Iu V. Filippov"],
 	["Riznichenko GIu", "G. Iu Riznichenko"],
 	["Ganbarov KhG", "Kh G. Ganbarov"],
+	["Khimerik TIu", "T. Iu Khimerik"],
+	["Sloventantor VIu", "V. Iu Sloventantor"],
+	["Khmelevskiĭ IaM", "Ia M. Khmelevskiĭ"],
+	["Il'inskiĭ IuA", "Iu A. Il'inskiĭ"],
+	["Chicherin IuV", "Iu V. Chicherin"],
+	[ "Kozlova IuI", "Iu I. Kozlova"],
+	["Korogodina IuV", "Iu V. Korogodina"],
+	["Malashenko IuR", "Iu R. Malashenko"],
+	["Chicherin IuV", "Iu V. Chicherin"],
+	["Bol'shakova NIa", "N. Ia Bol'shakova"],
+	["Sidorovskiĭ IuI", "Iu I. Sidorovskiĭ"],
 	*/
-].forEach(pair => CeL.assert([normalize_person_name(pair[0]), normalize_person_name(pair[1])]));
+].forEach(pair => CeL.assert([normalize_person_name(pair[0]), normalize_person_name(pair[1])], `${normalize_person_name.name}: ${pair}`));
 
 /**
  * 測試兩姓名是否等價。
