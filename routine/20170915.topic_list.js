@@ -752,7 +752,7 @@ function general_row_style(section, section_index) {
 		}
 
 		if (token.type === 'transclusion' && (token.name in {
-			// zhmoegirl: 標記已完成討論串的模板別名列表
+			// zhmoegirl: 標記已完成討論串的模板別名列表。
 			MarkAsResolved : true,
 			MAR : true,
 			标记为完成 : true

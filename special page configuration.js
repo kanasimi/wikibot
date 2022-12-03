@@ -1539,7 +1539,8 @@ function check_MarkAsResolved_status(section, section_index) {
 			status = 'style="color: #888;" | '
 			// [[File:Symbol redirect vote.svg|20px|link=|alt=]]&nbsp;
 			// + (use_language === 'zh' ? '已移動' : 'Moved')
-			+ '{{' + token.name + '}}';
+			// zhmoegirl: 模板:Movedto 需要目標頁面。
+			+ (project === 'zhmoegirl' ? '已移動' : '{{' + token.name + '}}')
 			section.moved = true;
 		}
 
@@ -1551,7 +1552,7 @@ function check_MarkAsResolved_status(section, section_index) {
 		}
 
 		if (token.name in {
-			// zhmoegirl: 標記已完成討論串的模板別名列表
+			// zhmoegirl: 標記已完成討論串的模板別名列表。
 			MarkAsResolved : true,
 			MAR : true,
 			标记为完成 : true
