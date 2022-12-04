@@ -189,6 +189,7 @@ async function main_process() {
 	if (CeL.env.arg_hash.check_page) {
 		await check_page(CeL.env.arg_hash.check_page, {
 			force_check: true,
+			namespace: CeL.env.arg_hash.namespace,
 			// .recheck_talk_page 不論有無修正 anchors，皆強制檢查 talk page。
 			force_check_talk_page: 'check_talk_page' in CeL.env.arg_hash ? CeL.env.arg_hash.check_talk_page : true,
 			// 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。這會檢查並刪除已不存在的 check_page 連結報告。
@@ -387,6 +388,7 @@ async function for_each_row(row) {
 		removed_section_titles.append(await CeL.wiki.parse.anchor(diff[0], options));
 		added_section_titles.append(await CeL.wiki.parse.anchor(diff[1], options));
 	}
+	//console.trace({ title: row.title, removed_section_titles, added_section_titles, diff_list });
 
 	if (removed_section_titles.length === 0) {
 		// 僅添加了新的網頁錨點。這種情況應該不需要修改網頁錨點。
@@ -893,6 +895,7 @@ async function get_all_links(page_data, options) {
 
 async function check_page(target_page_data, options) {
 	options = CeL.setup_options(options);
+	//console.trace(options);
 	const link_from = await wiki.redirects_here(target_page_data);
 	//console.log(link_from);
 	const target_page_redirects = Object.create(null);
@@ -974,11 +977,12 @@ async function check_page(target_page_data, options) {
 	// ----------------------------------------------------
 
 	async function add_note_to_talk_page_for_broken_anchors(linking_page_data, anchor_token, record) {
-		if (target_page_data.title === linking_page_data.title && anchor_token
+		if (!wiki.latest_task_configuration.general.add_note_to_talk_page_for_broken_anchors
+			// The cases will be modified at last.
+			|| target_page_data.title === linking_page_data.title && anchor_token
 			&& (!anchor_token[anchor_token.article_index || 0]
 				|| anchor_token[anchor_token.article_index || 0] === target_page_data.title)
 		) {
-			// Will be modified at last.
 			return;
 		}
 
@@ -1169,6 +1173,7 @@ async function check_page(target_page_data, options) {
 				CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
 		}
 
+		//Error.stackTraceLimit = Infinity;
 		//console.trace(anchor_token);
 		await wiki.edit_page(talk_page_title, add_note_for_broken_anchors, {
 			notification_name,
@@ -1379,7 +1384,7 @@ async function check_page(target_page_data, options) {
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${original_anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
-		if (!options.is_archive && wiki.latest_task_configuration.general.add_note_to_talk_page_for_broken_anchors) {
+		if (!options.is_archive) {
 			add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
