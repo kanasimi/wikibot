@@ -250,7 +250,7 @@ async function main_process() {
 		// also get diff
 		with_diff: { LCS: true, line: true },
 		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章 anchor 網頁錨點。
-		//namespace: 0,
+		namespace: wiki.site_name() === 'enwiki' ? 0 : undefined,
 		parameters: {
 			// 跳過機器人所做的編輯。
 			// You need the "patrol" or "patrolmarks" right to request the
@@ -265,11 +265,13 @@ async function main_process() {
 	routine_task_done('1d');
 }
 
+const MIN_CONTENT_LENGTH = 100, MAX_CONTENT_LENGTH_WHEN_DELAY = 100_000;
 function filter_row(row) {
 	//console.trace(row);
 
-	// 20 minutes ago
-	if (row.query_delay > 20 * 60 * 1000 && (row.newlen > 100000 || row.oldlen > 100000)) {
+	if (!row.newlen || row.newlen < MIN_CONTENT_LENGTH
+		// 20 minutes ago
+		|| row.query_delay > 20 * 60 * 1000 && (row.newlen > MAX_CONTENT_LENGTH_WHEN_DELAY || row.oldlen > MAX_CONTENT_LENGTH_WHEN_DELAY)) {
 		// 當延遲時間過高時就不處理過大的頁面。
 		return;
 	}
@@ -321,14 +323,17 @@ function filter_row(row) {
 }
 
 async function is_bad_edit(page_data) {
-	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 =
-	 * CeL.wiki.revision_content(revision)
-	 */
-	const content = CeL.wiki.content_of(page_data, 0);
-	if (!content || content.length < 100) {
-		//console.trace(`ページの白紙化 or rediects? (${content.length}) ` + JSON.stringify(content).slice(0, 200));
-		return true;
+	// 已在 filter_row(row) 處理過了。
+	if (false) {
+		/**
+		 * {String}page content, maybe undefined. 條目/頁面內容 =
+		 * CeL.wiki.revision_content(revision)
+		 */
+		const content = CeL.wiki.content_of(page_data, 0);
+		if (!content || content.length < MIN_CONTENT_LENGTH) {
+			//console.trace(`ページの白紙化 or rediects? (${content.length}) ` + JSON.stringify(content).slice(0, 200));
+			return true;
+		}
 	}
 }
 
@@ -370,10 +375,11 @@ async function get_sections_moved_to(page_data, options) {
 }
 
 async function for_each_row(row) {
-	process.title = `${script_name}: ${row.title}`;
 	if (await is_bad_edit(row)) {
 		return;
 	}
+
+	process.title = `${script_name}: ${row.title} (${CeL.indicate_date_time(Date.parse(CeL.wiki.content_of.revision(row).timestamp))})`;
 
 	//CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}`);
 	const diff_list = row.diff;
@@ -429,7 +435,7 @@ async function for_each_row(row) {
 	} catch (e) {
 		console.error(e);
 	}
-	CeL.log('-'.repeat(60));
+	CeL.log('-'.repeat(70));
 }
 
 // ----------------------------------------------------------------------------
