@@ -250,7 +250,7 @@ async function main_process() {
 		// also get diff
 		with_diff: { LCS: true, line: true },
 		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章 anchor 網頁錨點。
-		namespace: wiki.site_name() === 'enwiki' ? 0 : undefined,
+		namespace: wiki.site_name() === 'enwiki' ? 0 : '*',
 		parameters: {
 			// 跳過機器人所做的編輯。
 			// You need the "patrol" or "patrolmarks" right to request the
