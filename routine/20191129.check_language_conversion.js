@@ -39,6 +39,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 	const { general } = latest_task_configuration;
 
+	console.trace(wiki.latest_task_configuration.general);
 }
 
 // ----------------------------------------------------------------------------
