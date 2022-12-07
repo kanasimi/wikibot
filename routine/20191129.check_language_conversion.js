@@ -1,4 +1,5 @@
 ﻿/*
+調整頁面的字詞轉換規則
 
 2019/12/2 20:2:11	初版試營運
 
@@ -20,15 +21,31 @@ set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
-const main_category = 'Category:公共轉換組模板';
-const report_base = 'Wikipedia:字詞轉換處理/公共轉換組/';
-const conversion_list_page = report_base + '各頁面包含字詞';
-const duplicated_report_page = report_base + '重複字詞報告';
 const conversion_table_file = `conversion_table.${use_language}.json`;
 
 // ----------------------------------------------------------------------------
 
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。
+ */
+async function adapt_configuration(latest_task_configuration) {
+	//console.log(latest_task_configuration);
+	// console.log(wiki);
+
+	// ----------------------------------------------------
+
+	const { general } = latest_task_configuration;
+
+}
+
+// ----------------------------------------------------------------------------
+
 (async () => {
+	login_options.configuration_adapter = adapt_configuration;
+	//console.log(login_options);
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
@@ -81,7 +98,7 @@ async function main_process() {
 		for_NoteTA_article, {
 		no_message: true,
 		// 去除與公共轉換組/全文轉換重複的轉換規則
-		summary: '[[Wikipedia:机器人/申请/Cewbot/24|去除重複的轉換規則]]:'
+		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '去除重複的轉換規則') + ':'
 	});
 
 	routine_task_done('1 week');
@@ -109,7 +126,7 @@ function get_group_name_of_page(page_data) {
 // 公共轉換組
 async function check_CGroup_pages() {
 	const conversion_group = Object.create(null);
-	const category_tree = await wiki.category_tree(main_category, {
+	const category_tree = await wiki.category_tree(wiki.latest_task_configuration.general.main_category, {
 		namespace: [NS_Module, NS_Template],
 	});
 	// console.log(page_list.subcategories);
@@ -310,7 +327,7 @@ function ascending(a, b) {
 }
 
 async function write_conversion_list() {
-	CeL.info(`Writing report to ${CeL.wiki.title_link_of(conversion_list_page)}...`);
+	CeL.info(`Writing report to ${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.conversion_list_page)}...`);
 	const report_lines = [];
 	for (let [page_title, conversion_list] of Object.entries(conversion_of_page)) {
 		conversion_list = Object.keys(conversion_list).sort()
@@ -326,12 +343,12 @@ async function write_conversion_list() {
 		'class': "wikitable sortable"
 	});
 
-	await update_report(conversion_list_page, report_wikitext, `總共${report_count}個公共轉換組頁面。`, report_count + '個公共轉換組頁面');
+	await update_report(wiki.latest_task_configuration.general.conversion_list_page, report_wikitext, `總共${report_count}個公共轉換組頁面。`, report_count + '個公共轉換組頁面');
 	return report_count;
 }
 
 async function write_duplicated_report() {
-	CeL.info(`Writing report to ${CeL.wiki.title_link_of(duplicated_report_page)}...`);
+	CeL.info(`Writing report to ${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.duplicated_report_page)}...`);
 	const report_lines = [];
 	for (let [vocabulary, page_list] of Object.entries(duplicated_items)) {
 		page_list = page_list.sort().unique();
@@ -350,7 +367,7 @@ async function write_duplicated_report() {
 		report_wikitext = "* '''太好了！無特殊頁面。'''";
 	}
 
-	await update_report(duplicated_report_page, report_wikitext, `出現在多個不同的公共轉換組中的詞彙：總共${report_count}個詞彙。`, report_count + '個重複詞彙');
+	await update_report(wiki.latest_task_configuration.general.duplicated_report_page, report_wikitext, `出現在多個不同的公共轉換組中的詞彙：總共${report_count}個詞彙。`, report_count + '個重複詞彙');
 	return report_count;
 }
 

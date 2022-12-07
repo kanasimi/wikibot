@@ -29,7 +29,12 @@ const wiki = new Wikiapi;
 
 // ----------------------------------------------------------------------------
 
-// 讀入手動設定 manual settings。
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。
+ */
 async function adapt_configuration(latest_task_configuration) {
 	const { general } = latest_task_configuration;
 

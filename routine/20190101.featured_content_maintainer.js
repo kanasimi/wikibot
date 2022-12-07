@@ -196,7 +196,12 @@ wiki.run(main_work);
 
 // ---------------------------------------------------------------------//
 
-// 讀入手動設定 manual settings。
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。
+ */
 function adapt_configuration(latest_task_configuration) {
 	configuration = latest_task_configuration;
 	// console.log(configuration);

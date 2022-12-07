@@ -120,7 +120,12 @@ const MAX_error_reported = 1000;
 
 // ----------------------------------------------
 
-// 讀入手動設定 manual settings。
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。
+ */
 async function adapt_configuration(latest_task_configuration) {
 	//console.log(latest_task_configuration);
 	// console.log(wiki);
@@ -634,7 +639,7 @@ function normalize_person_name(name) {
 	// https://en.wikipedia.org/wiki/Latin-1_Supplement
 	// https://en.wikipedia.org/wiki/Latin_Extended-A
 	// [[德語字母]], [[:de:Deutsches Alphabet]]
-	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|d'|da |de |del |dos |Den|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-)?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
+	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|d'|da |de |del |dos |Den|Des|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-|ter )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
 	//console.log(matched);
 	if (matched && matched[2] === matched[2].toLowerCase() && (!matched[3] || matched[3] === matched[3].toLowerCase())) {
 		// "Huennekens FM" → "F M Huennekens"
@@ -696,6 +701,8 @@ function normalize_person_name(name) {
 	["vd Heiden C", "C. vd Heiden"],
 	["v Sprang FJ", "F. J. v Sprang"],
 	["de la Vega PF", "P. F. de la Vega"],
+	["DesRosiers C", "C. DesRosiers"],
+	["ter Laak HJ", "H. J. ter Laak"],
 	/*
 	TODO:
 	["Stephen William Hawking", "Hawking, Stephen"],
@@ -715,6 +722,17 @@ function normalize_person_name(name) {
 	["Chicherin IuV", "Iu V. Chicherin"],
 	["Bol'shakova NIa", "N. Ia Bol'shakova"],
 	["Sidorovskiĭ IuI", "Iu I. Sidorovskiĭ"],
+	["Khaliullina KhV", "Kh V. Khaliullina"],
+	["Beburov MIu", "M. Iu Beburov"],
+	["Sharets IuD", "Iu D. Sharets"],
+	["Melikova MIu", "M. Iu Melikova"],
+	["Grosser PIu", "P. Iu Grosser"],
+	["Popov Ch", "Ch. Popov"],
+	["Mangoni di S Stefano C", "C. Mangoni di S Stefano"],
+	["Semenov KhKh", "Kh Kh Semenov"],
+	["Smirnov IuV", "Iu V. Smirnov"],
+	["Zadvornov IuN", "Iu N. Zadvornov"],
+	["Velichko AIa", "A. Ia Velichko"],
 	*/
 ].forEach(pair => CeL.assert([normalize_person_name(pair[0]), normalize_person_name(pair[1])], `${normalize_person_name.name}: ${pair}`));
 

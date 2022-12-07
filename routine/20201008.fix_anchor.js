@@ -16,7 +16,6 @@ jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.simple
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.zh
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.ja
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.moegirl
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks
 
@@ -24,10 +23,12 @@ jstop cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.simple -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=simple
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.zh -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=zh
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.ja -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=ja
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=wiktionary
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=zh.wikibooks
 
+
+jstop cron-tools.mgp-cewbot-20201008.fix_anchor.moegirl
+/usr/bin/jstart -N cron-tools.mgp-cewbot-20201008.fix_anchor.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/mgp-cewbot/wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl
 
 
 node 20201008.fix_anchor.js use_language=en
@@ -111,7 +112,12 @@ const ignore_tags = [
 
 // ----------------------------------------------
 
-// 讀入手動設定 manual settings。
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。
+ */
 async function adapt_configuration(latest_task_configuration) {
 	//console.log(latest_task_configuration);
 	//console.log(wiki);
