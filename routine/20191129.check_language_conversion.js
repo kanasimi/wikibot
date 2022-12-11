@@ -156,9 +156,10 @@ async function main_process() {
 			}),
 		for_NoteTA_article, {
 		no_message: true,
+		pages_finished: 0,
+		tags: wiki.latest_task_configuration.general.tags,
 		// 去除與公共轉換組/全文轉換重複的轉換規則
 		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '去除重複的轉換規則') + ':',
-		pages_finished: 0,
 	});
 
 	routine_task_done('1 week');
@@ -554,6 +555,7 @@ ${update_Variable_Map.format('report')}
 	await wiki.edit_page(report_page, update_Variable_Map, {
 		bot: 1,
 		nocreate: 1,
+		tags: wiki.latest_task_configuration.general.tags,
 		summary
 	});
 }
