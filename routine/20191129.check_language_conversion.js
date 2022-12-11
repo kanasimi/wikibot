@@ -27,7 +27,7 @@ const wiki = new Wikiapi;
 // for debug
 const debug_page =
 	// 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰'
-	undefined;
+	undefined || 'Wikipedia:沙盒';
 
 const conversion_table_file = `conversion_table.${use_language}.json`;
 
@@ -641,8 +641,14 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	//console.log([page_data.title, conversion_list]);
 	//OK: return Wikiapi.skip_edit;
 
-	let changed;
-	parsed.each('Template:NoteTA', token => {
+	let changed, NoteTA_token, no_registration_groups = [];
+	parsed.each('Template:NoteTA', (token, index, parent) => {
+		if (!NoteTA_token) {
+			token.index = index;
+			token.parent = parent;
+			NoteTA_token = token;
+		}
+
 		if (false) {
 			console.log([page_data.title,
 			token.conversion_list.groups,
@@ -650,12 +656,14 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			conversion_list.map(conversion => conversion.toString('rule')),
 			]);
 		}
+
 		// 登記{{NoteTA}}中的轉換規則
 		// assert: token.type === 'transclusion'
 		token.conversion_list.forEach(
 			conversion => conversion_hash[conversion.toString('rule')] = token
 		);
 		//console.trace(token.conversion_list);
+
 		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
 		token.conversion_list.groups.forEach(
 			group_name => {
@@ -663,6 +671,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 					const normalized_group_name = conversion_alias[group_name] || conversion_alias[normalize_group_name(group_name)];
 					if (!normalized_group_name) {
 						CeL.warn(`${for_NoteTA_article.name}: 在${CeL.wiki.title_link_of(page_data)}中使用了未登記的公共轉換組: ${JSON.stringify(group_name)}`);
+						no_registration_groups.push(group_name);
 						//console.trace('登記的公共轉換組: ' + Object.keys(conversion_of_group).join());
 						return;
 					}
@@ -736,8 +745,31 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	const conversion_rule_list = Object.keys(conversion_hash);
 	parsed.each('convert', (token, index, parent) => {
 		if (token.flag === 'A' || token.flag === 'H') {
-			// TODO: move -{A|...}-, -{H|...}- to {{NoteTA}}
-			return;
+			// move -{A|...}-, -{H|...}- into {{NoteTA}}
+			if (!NoteTA_token) {
+				NoteTA_token = CeL.wiki.parse('{{NoteTA\n}}');
+				parsed.unshift(NoteTA_token, '\n');
+				NoteTA_token.index = 0;
+				NoteTA_token.parent = parsed;
+			}
+
+			let index = 0;
+			while (++index in NoteTA_token.parameters);
+			// 尋找下一個可用的 parameter serial。
+			NoteTA_token.push(`${index}=${token[0].toString().trim()}\n`);
+			// Update {{NoteTA}} token
+			index = CeL.wiki.scan_token_index(NoteTA_token);
+			const new_NoteTA_token = CeL.wiki.parse(NoteTA_token.toString());
+			new_NoteTA_token.index = NoteTA_token.index;
+			new_NoteTA_token.parent = NoteTA_token.parent;
+			NoteTA_token = new_NoteTA_token;
+			if (index !== /*NOT_FOUND*/ -1) {
+				NoteTA_token.parent[NoteTA_token.index] = NoteTA_token;
+			}
+
+			changed = true;
+			if (token.flag === 'H')
+				return parsed.each.remove_token;
 		}
 
 		const rule = token.toString('rule');
@@ -826,6 +858,32 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		changed = true;
 		return convert_to;
 	}, true);
+
+	// ------------------------------------------------------------------------
+
+	if (no_registration_groups.length > 0) {
+		const no_registration_groups_template_name = wiki.latest_task_configuration.general.no_registration_groups_template_name;
+		if (no_registration_groups_template_name) {
+			await wiki.edit_page(wiki.to_talk_page(page_data), page_data => {
+				const parsed = page_data.parse();
+				let no_registration_groups_template = parsed.find_template(no_registration_groups_template_name);
+				if (!no_registration_groups_template) {
+					no_registration_groups_template = CeL.wiki.parse(`{{${no_registration_groups_template_name}}}`);
+					parsed.unshift(no_registration_groups_template);
+				}
+				let index_of_links = no_registration_groups_template.index_of.links;
+				if (!index_of_links || !no_registration_groups_template[index_of_links]) {
+					index_of_links = no_registration_groups_template.length;
+					no_registration_groups_template.push('links=');
+				}
+				let wikitext = no_registration_groups_template[index_of_links].toString().trimEnd();
+				no_registration_groups_template[index_of_links] = wikitext
+					// TODO: use list_item
+					+ no_registration_groups.filter(group_name => !new RegExp('\\n\\*\\s*' + group_name + '\\s*($|\\n)').test(wikitext))
+						.map(group_name => `\n* ${group_name}`);
+			});
+		}
+	}
 
 	if (!changed) {
 		return Wikiapi.skip_edit;
