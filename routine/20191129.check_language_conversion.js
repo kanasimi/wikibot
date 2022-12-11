@@ -1,6 +1,8 @@
 ﻿/*
 調整頁面的字詞轉換規則
 
+node routine/20191129.check_language_conversion.js use_project=zhmoegirl
+
 2019/12/2 20:2:11	初版試營運
 2022/12/10 19:37:4	+ function check_system_conversions(), 更正繁簡轉換錯誤之公共轉換組名
 
@@ -75,7 +77,7 @@ async function main_process() {
 	const items = await write_duplicated_report();
 
 	CeL.write_file(conversion_table_file, conversion_table);
-	CeL.info(pages + '個公共轉換組，' + items + '個重複詞彙');
+	CeL.info(pages + '個公共轉換組，' + items + '個重複詞彙。');
 
 	// ---------------------------------------------
 	// 只會消除正規化後完全相同的轉換規則。
@@ -654,7 +656,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 					// 已經正規化過了。
 					//normalized_group_name = conversion_of_group[normalized_group_name].group_name;
-					this.summary += ` 更正繁簡轉換錯誤或重定向到模板之公共轉換組名: ${group_name}→${normalized_group_name}`;
+					this.summary += ` 更正繁簡轉換錯誤，或已有模組卻重定向到模板之公共轉換組名: ${group_name}→${normalized_group_name}`;
 					const group_data = token.conversion_list.group_data[group_name];
 					group_name = normalized_group_name;
 					//token[group_data.index][2] = group_name;
