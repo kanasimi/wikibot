@@ -98,6 +98,10 @@ async function main_process() {
 	// Array.isArray(conversion_of_group[group_name])
 	// → conversion_of_group[group_name] = [ normalized rule, normalized rule, ... ]
 	for (const [group_name, conversion_list] of Object.entries(conversion_of_group)) {
+		if (conversion_list[KEY_error]) {
+			(conversion_of_group[group_name] = []).error = conversion_list[KEY_error];
+			continue;
+		}
 		const redirect_to = conversion_list[KEY_redirect_to];
 		if (redirect_to) {
 			(conversion_of_group[group_name] = []).redirect_to = redirect_to;
@@ -423,6 +427,7 @@ const NS_Template = CeL.wiki.namespace('Template');
 
 const KEY_transclusions = Symbol('transclusions');
 const KEY_redirect_to = Symbol('redirect_to');
+const KEY_error = Symbol('redirect_to');
 async function for_each_conversion_group_page(page_data) {
 	// assert: page_data.ns === NS_MediaWiki || page_data.ns === NS_Module ||
 	// page_data.ns === NS_Template
@@ -436,7 +441,9 @@ async function for_each_conversion_group_page(page_data) {
 		conversion_of_page[page_data.title][KEY_page] = page_data.title;
 	}
 
-	if (conversion_list.redirect_to) {
+	if (conversion_list.error) {
+		conversion_of_page[page_data.title][KEY_error] = conversion_list.error;
+	} else if (conversion_list.redirect_to) {
 		conversion_of_page[page_data.title][KEY_redirect_to] = conversion_list.redirect_to;
 	} else if (conversion_list.transclusions) {
 		if (conversion_list.categories.some(
@@ -474,11 +481,12 @@ async function write_conversion_list() {
 			// needless: .unique()
 			;
 		report_lines.push([CeL.wiki.title_link_of(page_title),
-		conversion_list.length || !vocabulary[KEY_redirect_to] ? conversion_list.length : '',
+		conversion_list.length || !vocabulary[KEY_error] && !vocabulary[KEY_redirect_to] ? conversion_list.length : '',
 		`data-sort-value="${conversion_list.length}"|`
-		+ (vocabulary[KEY_redirect_to] ? `Redirect to → ${CeL.wiki.title_link_of(vocabulary[KEY_redirect_to])}${conversion_list.length > 0 ? '\n\n' : ''}`
-			: vocabulary[KEY_transclusions] ? `嵌入轉換組 ${vocabulary[KEY_transclusions].join(', ')}`
-				: '')
+		+ (vocabulary[KEY_error] ? `<span style="color:red">'''${vocabulary[KEY_error]}'''</span>`
+			: vocabulary[KEY_redirect_to] ? `Redirect to → ${CeL.wiki.title_link_of(vocabulary[KEY_redirect_to])}${conversion_list.length > 0 ? '\n\n' : ''}`
+				: vocabulary[KEY_transclusions] ? `嵌入轉換組 ${vocabulary[KEY_transclusions].join(', ')}`
+					: '')
 		+ conversion_list.join('; ')
 		]);
 	}
