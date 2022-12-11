@@ -27,7 +27,7 @@ const wiki = new Wikiapi;
 // for debug
 const debug_page =
 	// 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰'
-	undefined || 'Wikipedia:沙盒';
+	undefined;
 
 const conversion_table_file = `conversion_table.${use_language}.json`;
 
