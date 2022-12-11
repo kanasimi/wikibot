@@ -52,6 +52,9 @@ async function adapt_configuration(latest_task_configuration) {
 		main_category_list = [main_category_list];
 	general.main_category_list = wiki.remove_namespace(main_category_list);
 
+	if (!general.tags)
+		general.tags = '';
+
 	console.trace(wiki.latest_task_configuration.general);
 }
 
@@ -84,7 +87,7 @@ async function main_process() {
 
 	for (const group_name in conversion_of_group) {
 		const transclusions = conversion_of_group[group_name][KEY_transclusions];
-		// TODO: 後出現者為準。
+		// TODO: 應以後出現者為準。
 		if (Array.isArray(transclusions)) {
 			transclusions.forEach(
 				source_group_name => Object.entries(conversion_of_group[source_group_name]).forEach(
@@ -325,7 +328,7 @@ const duplicated_items = Object.create(null);
 
 const KEY_duplicate_list = Symbol('duplicate list');
 
-// 後出現者為準。
+// 以後出現者為準。
 function add_duplicated(vocabulary, from_conversion, to_conversion) {
 	if (CeL.is_debug()) {
 		CeL.warn('add_duplicated: Overwrite ' + JSON.stringify(vocabulary));
@@ -405,7 +408,7 @@ function add_conversion(item, from_page) {
 			conv = conv.conversion;
 		// console.log([vocabulary, conv]);
 
-		// 後出現者為準。
+		// 以後出現者為準。
 		conversion_of_page[from_page.title][vocabulary] = conv;
 
 		conv[KEY_page] = from_page.title;
@@ -417,7 +420,7 @@ function add_conversion(item, from_page) {
 			&& conversion_table[vocabulary][KEY_page] !== conv[KEY_page]) {
 			add_duplicated(vocabulary, conversion_table[vocabulary], conv);
 		}
-		// 後出現者為準。
+		// 以後出現者為準。
 		conversion_table[vocabulary] = conv;
 	}
 }
@@ -732,8 +735,8 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 	const conversion_rule_list = Object.keys(conversion_hash);
 	parsed.each('convert', (token, index, parent) => {
-		if (token.flag === 'A') {
-			// TODO: move -{A|...}- to {{NoteTA}}
+		if (token.flag === 'A' || token.flag === 'H') {
+			// TODO: move -{A|...}-, -{H|...}- to {{NoteTA}}
 			return;
 		}
 
