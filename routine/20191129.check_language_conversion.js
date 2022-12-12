@@ -918,6 +918,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				}
 			}, {
 				bot: 1,
+				tags: wiki.latest_task_configuration.general.tags,
 				summary: this.summary + ` 提醒使用了未登記的公共轉換組 ${no_registration_groups_Array.join(', ')}`
 			});
 		}
