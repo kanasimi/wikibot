@@ -783,6 +783,25 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		}
 	}, true);
 
+	function normalized_general_rule(token) {
+		return (CeL.wiki.parse('-{A|' + token.toString('rule') + '}-', {
+			normalize: true,
+		})).toString('rule')
+			// 通用的轉換式不該為連結。
+			.replace(/:\[\[([^\[\]]+)\]\]($|;)/g, ':$1$2').replace(/^\[\[([^\[\]]+)\]\]$/g, '$1');
+	}
+
+	const deleted_conversion_rule_Set = new Set();
+	// 登記 -{-|...}- 的規則。
+	parsed.each('convert', (token, index, parent) => {
+		if (token.flag !== '-') {
+			return;
+		}
+
+		const rule = normalized_general_rule(token);
+		deleted_conversion_rule_Set.add(rule);
+	});
+
 	const conversion_rule_list = Object.keys(conversion_hash);
 	/**
 	 * 檢查 full_piece 會不會匹配既有 conversion rule (conversion_rule_list)。
@@ -804,16 +823,22 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	}
 
 	parsed.each('convert', (token, index, parent) => {
+		if (token.flag === '-') {
+			// No change to -{-|...}-
+			return;
+		}
+
 		// 正規化以避免排列順序、";"結尾而不匹配的問題。
 		// @see function parse_template_NoteTA(token, options) @ CeL.application.net.wiki.template_functions.zhwiki
 		// TODO: 檢查 conversion_hash 裡面更完整的情況。
-		const rule = (CeL.wiki.parse('-{A|' + token.toString('rule') + '}-', {
-			normalize: true,
-		})).toString('rule')
-			// 通用的轉換式不該為連結。
-			.replace(/:\[\[([^\[\]]+)\]\]($|;)/g, ':$1$2').replace(/^\[\[([^\[\]]+)\]\]$/g, '$1');
+		const rule = normalized_general_rule(token);
 
 		if (token.flag === 'A' || token.flag === 'H') {
+			if (deleted_conversion_rule_Set.has(rule)) {
+				// 跳過有被刪除的規則。
+				return;
+			}
+
 			// <code>-{A|...}-</code>, <code>-{H|...}-</code> 的實際效用是從插入此標籤起新增這個規則，而 <code>-{-|...}-</code> 是從插入此標籤起刪除這個規則，僅在插入後才發生作用，並非真的從頭到尾全文轉換。因此 {{tl|NoteTA}} 必須放置於文章開頭。[[User:Cewbot/log/20191129/configuration]] 會嘗試將 <code>-{A|...}-</code>, <code>-{H|...}-</code> 合併至 {{tl|NoteTA}}。
 			// move -{A|...}-, -{H|...}- into {{NoteTA}}
 			if (!NoteTA_token) {
