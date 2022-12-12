@@ -26,8 +26,7 @@ const wiki = new Wikiapi;
 
 // for debug
 const debug_page = undefined
-	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰'
-	//|| '操作系统'
+	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰' '操作系统' '上海市'
 	;
 
 const conversion_table_file = `conversion_table.${use_language}.json`;
@@ -68,6 +67,8 @@ async function adapt_configuration(latest_task_configuration) {
 	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
+
+let talk_pages_transclusion_notification;
 
 async function main_process() {
 
@@ -151,6 +152,13 @@ async function main_process() {
 	await wiki.register_redirects('NoteTA', {
 		namespace: 'Template'
 	});
+
+	talk_pages_transclusion_notification = new Set(
+		wiki.latest_task_configuration.general.no_registration_groups_template_name
+		&& (await wiki.embeddedin(wiki.to_namespace(wiki.latest_task_configuration.general.no_registration_groups_template_name, 'Template')))
+			.map(page_data => wiki.remove_namespace(page_data))
+	);
+	//console.trace(talk_pages_transclusion_notification);
 
 	await wiki.for_each_page(
 		debug_page ? Array.isArray(debug_page) ? debug_page : [debug_page]
@@ -648,7 +656,8 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	 * @param {Array} [parent] parent token
 	 */
 	function register_NoteTA_token(token, index, parent) {
-		if (!NoteTA_token) {
+		if (parent) {
+			// 紀錄最後一個{{NoteTA}}模板: 每個{{NoteTA}}只能記30條，多的會分到後面的{{NoteTA}}。
 			token.index = index;
 			token.parent = parent;
 			NoteTA_token = token;
@@ -756,13 +765,34 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	}, true);
 
 	const conversion_rule_list = Object.keys(conversion_hash);
+	/**
+	 * 檢查 full_piece 會不會匹配既有 conversion rule (conversion_rule_list)。
+	 * @param {String}test_piece 加速測試用之必須符合之小片段。
+	 * @param {String}full_piece 欲檢查之 full piece。
+	 * @returns {Boolean}匹配既有 conversion rule。
+	 */
+	function piece_matches_conversion_rule(test_piece, full_piece) {
+		return conversion_rule_list.some(rule => {
+			if (!rule.includes(test_piece))
+				return;
+			//console.trace([rule, test_piece, full_piece]);
+			const token = CeL.wiki.parse(`-{A|${rule}}-`, wiki.append_session_to_options());
+			CeL.wiki.template_functions.adapt_function(token, wiki.append_session_to_options());
+			//console.trace(token);
+			return token.converted ? full_piece.includes(token.converted)
+				: token.conversion && Object.values(token.conversion).some(conversion => full_piece.includes(conversion));
+		});
+	}
+
 	parsed.each('convert', (token, index, parent) => {
 		// 正規化以避免排列順序、";"結尾而不匹配的問題。
 		// @see function parse_template_NoteTA(token, options) @ CeL.application.net.wiki.template_functions.zhwiki
 		// TODO: 檢查 conversion_hash 裡面更完整的情況。
 		const rule = (CeL.wiki.parse('-{A|' + token.toString('rule') + '}-', {
 			normalize: true,
-		})).toString('rule');
+		})).toString('rule')
+			// 通用的轉換式不該為連結。
+			.replace(/:\[\[([^\[\]]+)\]\]($|;)/g, ':$1$2').replace(/^\[\[([^\[\]]+)\]\]$/g, '$1');
 
 		if (token.flag === 'A' || token.flag === 'H') {
 			// move -{A|...}-, -{H|...}- into {{NoteTA}}
@@ -810,11 +840,12 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 			// 測試與前一段文字合起來時，會不會被轉換。
 			const previous_piece = parent[index - 1];
+			const following_piece = parent[index + 1];
+			let full_piece = (typeof previous_piece === 'string' ? previous_piece : '') + _convert_to + (typeof following_piece === 'string' ? following_piece : '');
 			if (previous_piece && typeof previous_piece === 'string') {
 				/** 本次測試的文字 */
 				const test_piece = previous_piece.slice(-1) + _convert_to.slice(0, 1);
-				if (conversion_rule_list.some(rule => rule.includes(test_piece))) {
-					//console.trace(test_piece);
+				if (piece_matches_conversion_rule(test_piece, full_piece)) {
 					return;
 				}
 
@@ -823,13 +854,12 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				// TODO: 這個測試不完全，沒包括 _convert_to 在公共轉換組的情況。
 				for (let/** 向後長度 */backward_length = 1; backward_length <= _convert_to.length; ++backward_length) {
 					const base_piece = _convert_to.slice(0, backward_length);
-					for (let/** 本次測試的文字 */test_piece = base_piece,/** 向前追溯長度 */forward_length = 0;
+					for (let/** 本次測試的文字 */test_piece = base_piece,/** 向前追溯長度 */forward_length = 1;
 						forward_length <= previous_piece.length && test_piece.length <= system_conversion_Map.max_key_length;) {
-						//console.trace([test_piece, system_conversion_Map.has(test_piece), !conversion_rule_list.includes(test_piece)]);
+						//console.trace([test_piece, system_conversion_Map.has(test_piece), !piece_matches_conversion_rule(test_piece, full_piece)]);
 						if (system_conversion_Map.has(test_piece)
 							// `{{NoteTA|子里}}子里` 則不會被轉換。
-							&& !conversion_rule_list.includes(test_piece)) {
-							//console.trace(test_piece);
+							&& !piece_matches_conversion_rule(test_piece, full_piece)) {
 							return;
 						}
 						++forward_length;
@@ -839,12 +869,10 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			}
 
 			// 測試與後一段文字合起來時，會不會被轉換。
-			const following_piece = parent[index + 1];
 			if (following_piece && typeof following_piece === 'string') {
 				/** 本次測試的文字 */
 				const test_piece = _convert_to.slice(-1) + following_piece.slice(0, 1);
-				if (conversion_rule_list.some(rule => rule.includes(test_piece))) {
-					//console.trace(test_piece);
+				if (piece_matches_conversion_rule(test_piece, full_piece)) {
 					return;
 				}
 			}
@@ -894,21 +922,28 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 	// ------------------------------------------------------------------------
 
-	if (no_registration_groups_Set.size > 0) {
+	if (no_registration_groups_Set.size > 0 || talk_pages_transclusion_notification.has(page_data.title)) {
 		const no_registration_groups_template_name = wiki.latest_task_configuration.general.no_registration_groups_template_name;
 		if (no_registration_groups_template_name) {
 			const no_registration_groups_Array = Array.from(no_registration_groups_Set);
+			//CeL.set_debug(6);
 			await wiki.edit_page(wiki.to_talk_page(page_data), page_data => {
 				const parsed = page_data.parse();
 				let no_registration_groups_template = parsed.find_template(no_registration_groups_template_name);
+				if (no_registration_groups_Set.size === 0) {
+					if (!no_registration_groups_template)
+						return Wikiapi.skip_edit;
+					parsed.each(wiki.to_namespace(no_registration_groups_template_name, 'Template'), token => parsed.each.remove_token);
+					return parsed.toString();
+				}
+
 				if (!no_registration_groups_template) {
-					no_registration_groups_template = CeL.wiki.parse(`{{${no_registration_groups_template_name}}}`);
-					parsed.unshift(no_registration_groups_template);
+					no_registration_groups_template = CeL.wiki.parse(`{{${wiki.remove_namespace(no_registration_groups_template_name)}}}`);
+					parsed.unshift(no_registration_groups_template, '\n');
 				}
 
 				let index_of_links = no_registration_groups_template.index_of.links;
-				const wikitext = 'links='
-					+ no_registration_groups_Array.map(group_name => `\n* ${group_name}`);
+				const wikitext = ['links='].append(no_registration_groups_Array.map(group_name => `* ${group_name}`)).join('\n') + '\n';
 				if (!index_of_links || !no_registration_groups_template[index_of_links]) {
 					no_registration_groups_template.push(wikitext);
 				} else if (no_registration_groups_template[index_of_links].toString() === wikitext) {
@@ -916,10 +951,11 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				} else {
 					no_registration_groups_template[index_of_links] = wikitext;
 				}
+				return parsed.toString();
 			}, {
 				bot: 1,
 				tags: wiki.latest_task_configuration.general.tags,
-				summary: this.summary + ` 提醒使用了未登記的公共轉換組 ${no_registration_groups_Array.join(', ')}`
+				summary: this.summary + (no_registration_groups_Set.size > 0 ? ` 提醒使用了未登記的公共轉換組 ${no_registration_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`)
 			});
 		}
 	}
