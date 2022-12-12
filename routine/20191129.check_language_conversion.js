@@ -954,6 +954,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				return parsed.toString();
 			}, {
 				bot: 1,
+				tags: wiki.latest_task_configuration.general.tags,
 				summary: this.summary + (no_registration_groups_Set.size > 0 ? ` 提醒使用了未登記的公共轉換組 ${no_registration_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`)
 			});
 		}
