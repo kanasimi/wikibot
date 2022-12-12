@@ -109,7 +109,10 @@ async function main_process() {
 		}
 		const redirect_to = conversion_list[KEY_redirect_to];
 		if (redirect_to) {
-			(conversion_of_group[group_name] = []).redirect_to = redirect_to;
+			conversion_of_group[group_name] = Object.assign([], {
+				group_name: get_group_name_of_page(redirect_to),
+				redirect_to,
+			});
 			continue;
 		}
 
@@ -154,8 +157,8 @@ async function main_process() {
 	});
 
 	talk_pages_transclusion_notification = new Set(
-		wiki.latest_task_configuration.general.no_registration_groups_template_name
-		&& (await wiki.embeddedin(wiki.to_namespace(wiki.latest_task_configuration.general.no_registration_groups_template_name, 'Template')))
+		wiki.latest_task_configuration.general.unregistered_groups_template_name
+		&& (await wiki.embeddedin(wiki.to_namespace(wiki.latest_task_configuration.general.unregistered_groups_template_name, 'Template')))
 			.map(page_data => wiki.remove_namespace(page_data))
 	);
 	//console.trace(talk_pages_transclusion_notification);
@@ -183,6 +186,8 @@ const system_conversion_table = Object.create(null);
 const system_conversion_Map = new Map();
 // 處理內置轉換列表
 async function check_system_conversions() {
+	// 或可選擇其他轉換表版本
+	// e.g., https://raw.githubusercontent.com/wikimedia/mediawiki/REL1_31/languages/data/ZhConversion.php
 	let system_conversion_text = await fetch(`https://raw.githubusercontent.com/wikimedia/mediawiki/master/includes/languages/data/ZhConversion.php`);
 	system_conversion_text = await system_conversion_text.text();
 	//console.trace(system_conversion_text.slice(0, 800));
@@ -581,7 +586,8 @@ const conversion_alias = Object.create(null);
 // 順便正規化大小寫與空格。
 function normalize_group_name(group_name) {
 	return group_name.replace(/[\s_\-–()（）{}「」#＝]/g, '')
-		.replace(/;+$/g, '')
+		// e.g., Unit; Movies
+		.replace(/s?;*$/g, '')
 		//.replace(/（/g, '(').replace(/）/g, ')')
 		.toLowerCase();
 }
@@ -589,22 +595,28 @@ function normalize_group_name(group_name) {
 async function generate_conversion_alias() {
 	const group_name_list = Object.keys(conversion_of_group);
 
-	function register_alias(alias, group_name) {
+	function __register_alias(alias, group_name) {
 		if (!(alias in conversion_of_group) && !conversion_alias[alias]) {
-			if (typeof group_name === 'number') {
-				// treat group_name as index of group_name
-				group_name =
-					// 可考慮不採用正規化過的名稱，若拆分比較不擔心還要重新檢查。
-					//group_name_list[group_name]
-					conversion_of_group[group_name_list[group_name]].group_name;
-			} else {
-				group_name = conversion_of_group[group_name].group_name;
-			}
 			conversion_alias[alias] = group_name;
-			const normalized_alias = normalize_group_name(alias);
-			if (alias !== normalized_alias)
-				register_alias(normalized_alias, group_name);
 		}
+	}
+
+	function register_alias(alias, group_name) {
+		if (typeof group_name === 'number') {
+			// treat group_name as index of group_name
+			group_name = group_name_list[group_name];
+		}
+		const formal_group_name =
+			// 可考慮不採用正規化過的名稱，若拆分比較不擔心還要重新檢查。
+			conversion_of_group[group_name].group_name;
+		__register_alias(group_name, formal_group_name);
+		// TODO: 假如有 conversion_of_group[group_name].redirect_to，檢查標的 conversion_of_group[] 是否存在。
+		group_name = formal_group_name;
+
+		__register_alias(normalize_group_name(group_name), group_name);
+
+		__register_alias(alias, group_name);
+		__register_alias(normalize_group_name(alias), group_name);
 	}
 
 	for (const uselang of ['zh-hant', 'zh-hans']) {
@@ -631,7 +643,8 @@ async function generate_conversion_alias() {
 		}
 	});
 
-	//console.trace(conversion_alias);
+	//console.trace([conversion_of_group, group_name_list, conversion_alias]);
+	//console.trace(conversion_of_group.unit);
 }
 
 // ----------------------------------------------------------------------------
@@ -648,9 +661,10 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	//console.log([page_data.title, conversion_list]);
 	//OK: return Wikiapi.skip_edit;
 
-	let changed, NoteTA_token, no_registration_groups_Set = new Set;
+	let changed, NoteTA_token, unregistered_groups_Set = new Set;
+	const _this = this;
 	/**
-	 * register rules of {{NoteTA}} to conversion_hash, no_registration_groups_Set, etc.
+	 * register rules of {{NoteTA}} to conversion_hash, unregistered_groups_Set, etc.
 	 * @param {Array} token NoteTA token
 	 * @param {Number} [index] 
 	 * @param {Array} [parent] parent token
@@ -681,17 +695,22 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		token.conversion_list.groups.forEach(
 			group_name => {
 				if (!(group_name in conversion_of_group)) {
-					const normalized_group_name = conversion_alias[group_name] || conversion_alias[normalize_group_name(group_name)];
+					let normalized_group_name = normalize_group_name(group_name);
+					if (conversion_of_group[normalized_group_name])
+						normalized_group_name = conversion_of_group[normalized_group_name].group_name || normalized_group_name;
+					else
+						normalized_group_name = conversion_alias[group_name] || conversion_alias[normalized_group_name];
 					if (!normalized_group_name) {
+						//console.trace([group_name, normalize_group_name(group_name)]);
 						CeL.warn(`${for_NoteTA_article.name}: 在${CeL.wiki.title_link_of(page_data)}中使用了未登記的公共轉換組: ${JSON.stringify(group_name)}`);
-						no_registration_groups_Set.add(group_name);
+						unregistered_groups_Set.add(group_name);
 						//console.trace('登記的公共轉換組: ' + Object.keys(conversion_of_group).join());
 						return;
 					}
 
 					// 已經正規化過了。
 					//normalized_group_name = conversion_of_group[normalized_group_name].group_name;
-					this.summary += ` 更正繁簡轉換錯誤，或已有模組卻重定向到模板之公共轉換組名: ${group_name}→${normalized_group_name}`;
+					_this.summary += ` 更正繁簡轉換錯誤，或已有模組卻重定向到模板之公共轉換組名: ${group_name}→${normalized_group_name}`;
 					const group_data = token.conversion_list.group_data[group_name];
 					group_name = normalized_group_name;
 					//token[group_data.index][2] = group_name;
@@ -795,6 +814,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			.replace(/:\[\[([^\[\]]+)\]\]($|;)/g, ':$1$2').replace(/^\[\[([^\[\]]+)\]\]$/g, '$1');
 
 		if (token.flag === 'A' || token.flag === 'H') {
+			// <code>-{A|...}-</code>, <code>-{H|...}-</code> 的實際效用是從插入此標籤起新增這個規則，而 <code>-{-|...}-</code> 是從插入此標籤起刪除這個規則，僅在插入後才發生作用，並非真的從頭到尾全文轉換。因此 {{tl|NoteTA}} 必須放置於文章開頭。[[User:Cewbot/log/20191129/configuration]] 會嘗試將 <code>-{A|...}-</code>, <code>-{H|...}-</code> 合併至 {{tl|NoteTA}}。
 			// move -{A|...}-, -{H|...}- into {{NoteTA}}
 			if (!NoteTA_token) {
 				NoteTA_token = CeL.wiki.parse('{{NoteTA\n}}');
@@ -922,40 +942,52 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 	// ------------------------------------------------------------------------
 
-	if (no_registration_groups_Set.size > 0 || talk_pages_transclusion_notification.has(page_data.title)) {
-		const no_registration_groups_template_name = wiki.latest_task_configuration.general.no_registration_groups_template_name;
-		if (no_registration_groups_template_name) {
-			const no_registration_groups_Array = Array.from(no_registration_groups_Set);
+	function progress_message() {
+		return ' ('
+			// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
+			+ CeL.gettext('本次bot作業已進行%1%', (100 * work_config.pages_finished /
+				// 整體作業進度 overall progress
+				work_config.initial_target_length).to_fixed(1)) + ')';
+	}
+
+	if (unregistered_groups_Set.size > 0 || talk_pages_transclusion_notification.has(page_data.title)) {
+		const unregistered_groups_template_name = wiki.latest_task_configuration.general.unregistered_groups_template_name;
+		if (unregistered_groups_template_name) {
+			const unregistered_groups_Array = Array.from(unregistered_groups_Set);
 			//CeL.set_debug(6);
-			await wiki.edit_page(wiki.to_talk_page(page_data), page_data => {
-				const parsed = page_data.parse();
-				let no_registration_groups_template = parsed.find_template(no_registration_groups_template_name);
-				if (no_registration_groups_Set.size === 0) {
-					if (!no_registration_groups_template)
+			await wiki.edit_page(wiki.to_talk_page(page_data), talk_page_data => {
+				const parsed = talk_page_data.parse();
+				let unregistered_groups_template = parsed.find_template(unregistered_groups_template_name);
+				if (unregistered_groups_Array.length === 0) {
+					if (!unregistered_groups_template)
 						return Wikiapi.skip_edit;
-					parsed.each(wiki.to_namespace(no_registration_groups_template_name, 'Template'), token => parsed.each.remove_token);
-					return parsed.toString();
+					parsed.each(wiki.to_namespace(unregistered_groups_template_name, 'Template'), token => parsed.each.remove_token);
+					const wikitext = parsed.toString();
+					if (!wikitext.trim()) {
+						// TODO: delete page
+					}
+					return wikitext;
 				}
 
-				if (!no_registration_groups_template) {
-					no_registration_groups_template = CeL.wiki.parse(`{{${wiki.remove_namespace(no_registration_groups_template_name)}}}`);
-					parsed.unshift(no_registration_groups_template, '\n');
+				if (!unregistered_groups_template) {
+					unregistered_groups_template = CeL.wiki.parse(`{{${wiki.remove_namespace(unregistered_groups_template_name)}}}`);
+					parsed.unshift(unregistered_groups_template, '\n');
 				}
 
-				let index_of_links = no_registration_groups_template.index_of.links;
-				const wikitext = ['links='].append(no_registration_groups_Array.map(group_name => `* ${group_name}`)).join('\n') + '\n';
-				if (!index_of_links || !no_registration_groups_template[index_of_links]) {
-					no_registration_groups_template.push(wikitext);
-				} else if (no_registration_groups_template[index_of_links].toString() === wikitext) {
+				let index_of_links = unregistered_groups_template.index_of.links;
+				const wikitext = ['links='].append(unregistered_groups_Array.map(group_name => `* ${group_name}`)).join('\n') + '\n';
+				if (!index_of_links || !unregistered_groups_template[index_of_links]) {
+					unregistered_groups_template.push(wikitext);
+				} else if (unregistered_groups_template[index_of_links].toString() === wikitext) {
 					return Wikiapi.skip_edit;
 				} else {
-					no_registration_groups_template[index_of_links] = wikitext;
+					unregistered_groups_template[index_of_links] = wikitext;
 				}
 				return parsed.toString();
 			}, {
 				bot: 1,
 				tags: wiki.latest_task_configuration.general.tags,
-				summary: this.summary + (no_registration_groups_Set.size > 0 ? ` 提醒使用了未登記的公共轉換組 ${no_registration_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`)
+				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message()
 			});
 		}
 	}
@@ -974,11 +1006,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		//else: list.length > 1
 	}
 
-	this.summary += ' ('
-		// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-		+ CeL.gettext('本次bot作業已進行%1%', (100 * work_config.pages_finished /
-			// 整體作業進度 overall progress
-			work_config.initial_target_length).to_fixed(1)) + ')';
+	this.summary += progress_message();
 
 	return parsed.toString();
 }
