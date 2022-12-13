@@ -586,8 +586,11 @@ const conversion_alias = Object.create(null);
 // 順便正規化大小寫與空格。
 function normalize_group_name(group_name) {
 	return group_name.replace(/[\s_\-–()（）{}「」#＝]/g, '')
+		.replace('CGroup/', '')
+		.replace(/^=+/g, '')
+		.replace(/<\/?\w[^<>]*>/g, '')
 		// e.g., Unit; Movies
-		.replace(/s?;*$/g, '')
+		.replace(/s?[;:.，\[\]]*$/g, '').trim()
 		//.replace(/（/g, '(').replace(/）/g, ')')
 		.toLowerCase();
 }
@@ -694,6 +697,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
 		token.conversion_list.groups.forEach(
 			group_name => {
+				let fix_syntax;
 				if (!(group_name in conversion_of_group)) {
 					let normalized_group_name = normalize_group_name(group_name);
 					if (conversion_of_group[normalized_group_name])
@@ -701,16 +705,21 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 					else
 						normalized_group_name = conversion_alias[group_name] || conversion_alias[normalized_group_name];
 					if (!normalized_group_name) {
-						//console.trace([group_name, normalize_group_name(group_name)]);
-						CeL.warn(`${for_NoteTA_article.name}: 在${CeL.wiki.title_link_of(page_data)}中使用了未登記的公共轉換組: ${JSON.stringify(group_name)}`);
-						unregistered_groups_Set.add(group_name);
-						//console.trace('登記的公共轉換組: ' + Object.keys(conversion_of_group).join());
-						return;
+						const matched = group_name.match(/^\[\[([^\[\]\n]+)\]\]$/);
+						if (!matched) {
+							//console.trace([group_name, normalize_group_name(group_name)]);
+							CeL.warn(`${for_NoteTA_article.name}: 在${CeL.wiki.title_link_of(page_data)}中使用了未登記的公共轉換組: ${JSON.stringify(group_name)}`);
+							unregistered_groups_Set.add(group_name);
+							//console.trace('登記的公共轉換組: ' + Object.keys(conversion_of_group).join());
+							return;
+						}
+						normalized_group_name = matched[1];
+						fix_syntax = true;
 					}
 
 					// 已經正規化過了。
 					//normalized_group_name = conversion_of_group[normalized_group_name].group_name;
-					_this.summary += ` 更正繁簡轉換錯誤，或已有模組卻重定向到模板之公共轉換組名: ${group_name}→${normalized_group_name}`;
+					_this.summary += ` 更正繁簡轉換錯誤、已有模組卻重定向到模板，或格式錯誤且可修正之公共轉換組名: ${group_name}→${normalized_group_name}`;
 					const group_data = token.conversion_list.group_data[group_name];
 					group_name = normalized_group_name;
 					//token[group_data.index][2] = group_name;
@@ -720,11 +729,13 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 					changed = true;
 				}
 
-				//CeL.info(`${group_name}: ${conversion_of_group[group_name].length} rule(s)`);
-				// assert: {String}group_name, and {Array}conversion_of_group[group_name]
-				conversion_of_group[group_name].forEach(
-					rule => conversion_hash[rule] = group_name
-				);
+				if (!fix_syntax) {
+					//CeL.info(`${group_name}: ${conversion_of_group[group_name].length} rule(s)`);
+					// assert: {String}group_name, and {Array}conversion_of_group[group_name]
+					conversion_of_group[group_name].forEach(
+						rule => conversion_hash[rule] = group_name
+					);
+				}
 			}
 		);
 	}
@@ -1011,8 +1022,9 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				return parsed.toString();
 			}, {
 				bot: 1,
+				allow_empty: 1,
 				tags: wiki.latest_task_configuration.general.tags,
-				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message()
+				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message(),
 			});
 		}
 	}
