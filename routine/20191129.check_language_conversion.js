@@ -794,14 +794,6 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		}
 	}, true);
 
-	function normalized_general_rule(token) {
-		return (CeL.wiki.parse('-{A|' + token.toString('rule') + '}-', {
-			normalize: true,
-		})).toString('rule')
-			// 通用的轉換式不該為連結。
-			.replace(/:\[\[([^\[\]]+)\]\]($|;)/g, ':$1$2').replace(/^\[\[([^\[\]]+)\]\]$/g, '$1');
-	}
-
 	const deleted_conversion_rule_Set = new Set();
 	// 登記 -{-|...}- 的規則。
 	parsed.each('convert', (token, index, parent) => {
@@ -809,7 +801,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			return;
 		}
 
-		const rule = normalized_general_rule(token);
+		const rule = token.toString('normalized rule', true);
 		deleted_conversion_rule_Set.add(rule);
 	});
 
@@ -842,7 +834,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		// 正規化以避免排列順序、";"結尾而不匹配的問題。
 		// @see function parse_template_NoteTA(token, options) @ CeL.application.net.wiki.template_functions.zhwiki
 		// TODO: 檢查 conversion_hash 裡面更完整的情況。
-		const rule = normalized_general_rule(token);
+		const rule = token.toString('normalized rule', true);
 
 		if (token.flag === 'A' || token.flag === 'H') {
 			if (deleted_conversion_rule_Set.has(rule)) {
