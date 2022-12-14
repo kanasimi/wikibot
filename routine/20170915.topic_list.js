@@ -17,15 +17,14 @@ jstop cron-20170915.topic_list.wikibooks;
 
 /usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh
 /usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh-classical
-/usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikinews
 /usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=ja
 /usr/bin/jstart -N cron-20170915.topic_list.en -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en
 /usr/bin/jstart -N cron-20170915.topic_list.testwiki -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en use_project=test
-/usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikisource
-/usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wikiversity
+/usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikinews
+/usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikisource
+/usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikiversity
 /usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
-#/usr/bin/jstart -N cron-20170915.topic_list.moegirl -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zhmoegirl
-/usr/bin/jstart -N cron-20170915.topic_list.wiktionary -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=wiktionary
+/usr/bin/jstart -N cron-20170915.topic_list.wiktionary -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wiktionary
 /usr/bin/jstart -N cron-20170915.topic_list.wikibooks -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks
 
 2017/9/10 22:31:46	開始計畫。
@@ -656,7 +655,7 @@ function get_special_users(callback, options) {
 	// TODO: 這裡的篩選方法會把頁面中所有的使用者都納入這個群體，包括不活躍與離職的。
 	// TODO: using [[Template:BAG_topicon]]
 	wiki.page('Project:BAG', function(page_data) {
-		var title = CeL.wiki.title_of(page_data),
+		var title = wiki.title_of(page_data),
 		/**
 		 * {String}page content, maybe undefined. 條目/頁面內容 =
 		 * CeL.wiki.revision_content(revision)
@@ -1363,7 +1362,7 @@ function detect_sub_pages_to_fetch(page_title_list, error) {
 }
 
 function listen_to_sub_page(sub_page_data, main_page_data) {
-	var sub_page_title = CeL.wiki.title_of(sub_page_data);
+	var sub_page_title = wiki.title_of(sub_page_data);
 	// assert: !!(sub_page_title && main_page_data) === true
 	if (!sub_page_title || !main_page_data) {
 		throw new Error(
