@@ -8,6 +8,9 @@ node routine/20191129.check_language_conversion.js use_project=zhmoegirl
 
 @see [[w:zh:Wikipedia:互助客栈/其他/存档/2019年11月#有关于公共字词转换组的若干讨论]]
 
+TODO:
+[[Wikipedia:机器人/作业请求#修正一些条目的NoteTA中的不当中文变体]]
+
  */
 
 'use strict';
@@ -144,7 +147,7 @@ async function main_process() {
 			if (redirect_to_data)
 				conversion_of_group[group_name] = redirect_to_data;
 			else
-				CeL.error(`無重定向標的之資料: ${group_name} → ${redirect_to}`);
+				CeL.error(`無重定向標之資料，已轉為模組？ ${group_name} → ${redirect_to}`);
 		}
 	}
 	//console.trace(Object.keys(conversion_of_group).join());
@@ -291,12 +294,13 @@ async function check_CGroup_pages() {
 	}
 	//console.trace(Object.keys(conversion_group).join());
 
-	if (false) {
-		// 可能有漏: prefixsearch 無法取得 [[Template:CGroup/Free License]]
-		// 處理別名 e.g., [[Template:CGroup/諾貝爾獎]]
-		add_page_list((await wiki.prefixsearch('Template:CGroup/'))
-			.filter(page_data => /^Template:CGroup\/[^\/]+$/.test(page_data.title)));
-	}
+	// for [[Template:CGroup/Canada]]: 未列入 general.main_category
+	// 可能有漏: prefixsearch 無法取得 [[Template:CGroup/Free License]]
+	// 處理別名 e.g., [[Template:CGroup/諾貝爾獎]]
+	add_page_list((await wiki.prefixsearch('Template:CGroup/'))
+		.filter(page_data => /^Template:CGroup\/[^\/]+$/.test(page_data.title)));
+	add_page_list((await wiki.prefixsearch('Module:CGroup/'))
+		.filter(page_data => /^Module:CGroup\/[^\/]+$/.test(page_data.title)));
 
 	//console.trace(Object.keys(conversion_group).join());
 
@@ -610,8 +614,9 @@ async function generate_conversion_alias() {
 			group_name = group_name_list[group_name];
 		}
 		const formal_group_name =
-			// 可考慮不採用正規化過的名稱，若拆分比較不擔心還要重新檢查。
-			conversion_of_group[group_name].group_name;
+			// .group_name 可能為 undefined。e.g., 空內容的 module
+			conversion_of_group[group_name].group_name || group_name;
+		// 可考慮不採用正規化過的名稱，若拆分比較不擔心還要重新檢查。
 		__register_alias(group_name, formal_group_name);
 		// TODO: 假如有 conversion_of_group[group_name].redirect_to，檢查標的 conversion_of_group[] 是否存在。
 		group_name = formal_group_name;
@@ -973,7 +978,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	function progress_message() {
 		return ' ('
 			// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-			+ CeL.gettext('本次bot作業已進行%1%', (100 * work_config.pages_finished /
+			+ CeL.gettext('本次機械人作業已完成%1%', (100 * work_config.pages_finished /
 				// 整體作業進度 overall progress
 				work_config.initial_target_length).to_fixed(1)) + ')';
 	}
