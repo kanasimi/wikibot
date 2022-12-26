@@ -5,10 +5,12 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
-node 20201008.fix_anchor.js use_project=en "check_page=WABC (AM)"
-node 20201008.fix_anchor.js use_project=en "check_page=User:Formula Downforce/sandbox"
+node 20201008.fix_anchor.js use_language=en "check_page=WABC (AM)"
+node 20201008.fix_anchor.js use_language=en "check_page=User:Formula Downforce/sandbox"
 // [[Political divisions of the United States#Counties in the United States|counties]]
-node 20201008.fix_anchor.js use_project=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
+node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
+node 20201008.fix_anchor.js use_language=en "check_page=List of Falcon 9 first-stage boosters"
+node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 
@@ -89,7 +91,8 @@ read {{cbignore}}?
 require('../wiki loader.js');
 
 // Load modules.
-CeL.run(['application.net.wiki.template_functions',
+CeL.run([
+	'application.net.wiki.template_functions',
 	// for CeL.assert()
 	'application.debug.log']);
 
@@ -145,6 +148,9 @@ async function adapt_configuration(latest_task_configuration) {
 	if (!(general.MAX_LINK_FROM) >= 0)
 		general.MAX_LINK_FROM = 800;
 
+	if (!general.tags)
+		general.tags = '';
+
 	await wiki.register_redirects(['Section link', 'Broken anchors', general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
@@ -164,7 +170,7 @@ async function adapt_configuration(latest_task_configuration) {
 function progress_to_percent(progress, add_brackets) {
 	if (0 < progress && progress < 1) {
 		// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-		const percent = CeL.gettext('本次bot作業已進行%1%', (100 * progress).to_fixed(1));
+		const percent = CeL.gettext('本次機械人作業已完成%1%', (100 * progress).to_fixed(1));
 		return add_brackets ? ` (${percent})` : percent;
 	}
 	return '';
@@ -434,7 +440,11 @@ async function for_each_row(row) {
 		//console.trace(row.revisions[0].slots);
 		const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
 		// pages_modified maybe undefined
-		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${pages_modified > 0 ? pages_modified : 'No'} page(s) modified.`);
+		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${CeL.gettext(pages_modified > 0
+			//TODO
+			? '%1 page(s) modified.'
+			//TODO
+			: 'No page modified.', pages_modified)}`);
 		if (pages_modified > 0) {
 			CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) linking to ${CeL.wiki.title_link_of(row.title)}`);
 		}
@@ -451,6 +461,8 @@ const KEY_got_full_revisions = Symbol('got full revisions');
 const KEY_lower_cased_section_titles = Symbol('lower cased section titles');
 const MARK_case_change = 'case change';
 
+// @see function normalize_group_name(group_name) @ routine/20191129.check_language_conversion.js
+// 順便正規化大小寫與空格。
 function reduce_section_title(section_title) {
 	// ＝: e.g., パリからポン＝タヴァン
 	return section_title.replace(/[\s_\-–()（）{}「」#＝]/g, '')
@@ -939,7 +951,7 @@ async function check_page(target_page_data, options) {
 		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章 anchor 網頁錨點。
 		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
 	})).filter(page_data =>
-		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
+		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
 		// [[User:Cewbot/log/20151002/存檔5]]
 		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
 		// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
@@ -1031,6 +1043,7 @@ async function check_page(target_page_data, options) {
 				if (!wiki.is_template('Broken anchors', template_token))
 					return;
 
+				//console.trace(template_token);
 				has_broken_anchors_template = true;
 				const link_index = template_token.index_of[LINKS_PARAMETER];
 				if (!link_index) {
@@ -1039,8 +1052,10 @@ async function check_page(target_page_data, options) {
 					return parsed.each.exit;
 				}
 
+				//console.trace(template_token[link_index]);
 				// remove unknown anchors
 				parsed.each.call(template_token[link_index], 'list', list_token => {
+					//console.trace(list_token);
 					for (let index = 0; index < list_token.length; index++) {
 						const first_token = list_token[index][0]?.type && list_token[index][0];
 						if (first_token && first_token.type === 'tag' && first_token.tag === 'nowiki'
@@ -1182,7 +1197,7 @@ async function check_page(target_page_data, options) {
 					} <!-- ${JSON.stringify(record)} -->` : ''}`;
 			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${
 				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
-				CeL.gettext('提醒失效的網頁錨點')}: ${CeL.wiki.title_link_of(talk_page_title)}`);
+				CeL.gettext('提醒失效的網頁錨點')}: ${anchor_token || ''}`);
 		}
 
 		//Error.stackTraceLimit = Infinity;
@@ -1282,7 +1297,7 @@ async function check_page(target_page_data, options) {
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 					.catch(error => console.error(error))
-					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title records from page revisions. Continue to check ${working_queue.list.length} pages.`))
+					.then(() => CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: Get ${Object.keys(section_title_history).length} section title record(s) from page revisions. Continue to check ${working_queue.list.length} page(s).`))
 					//.then(() => console.trace(section_title_history))
 					.then(() => wiki.for_each_page(working_queue.list, resolve_linking_page, for_each_page_options))
 					// Release memory. 釋放被占用的記憶體。
@@ -1312,12 +1327,16 @@ async function check_page(target_page_data, options) {
 					return true;
 				}
 			});
-			const ARROW_SIGN = record?.is_directly_rename_to || type ? '→' : '⇝';
+			const ARROW_SIGN = record.is_directly_rename_to || type ? '→' : '⇝';
 			const hash = '#' + rename_to;
 
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}${ARROW_SIGN}${hash} (${JSON.stringify(record)})`);
 			CeL.error(`${type ? type + ' ' : ''}${CeL.wiki.title_link_of(linking_page_data)}: ${original_anchor}${ARROW_SIGN}${hash}`);
-			add_summary(this, `${type || `[[Special:Diff/${record.disappear.revid}|${new Date(record.disappear.timestamp).format({ format: '%Y-%2m-%2d', zone: 0 })}]]${record?.very_different
+			if (record.very_different) {
+				// 取消小編輯標籤，提醒人們注意此編輯。
+				delete this.minor;
+			}
+			add_summary(this, `${type || `[[Special:Diff/${record.disappear.revid}|${new Date(record.disappear.timestamp).format({ format: '%Y-%2m-%2d', zone: 0 })}]]${record.very_different
 				// gettext_config:{"id":"very-different"}
 				? ` (${CeL.gettext('差異極大')} ${record.very_different})` : ''}`
 				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`);
@@ -1424,6 +1443,7 @@ async function check_page(target_page_data, options) {
 
 			// handle [[link#anchor|display text]]
 			section.each('link', token => {
+				//console.trace(token);
 				if (check_token.call(_this, token, linking_page_data))
 					changed = true;
 			}, { use_global_index: true });
@@ -1465,7 +1485,7 @@ async function check_page(target_page_data, options) {
 		});
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
-			// check talk page, 刪掉已有沒問題之 anchors。
+			//console.trace('check talk page, 刪掉已有沒問題之 anchors。');
 			add_note_to_talk_page_for_broken_anchors(linking_page_data);
 		}
 
@@ -1474,7 +1494,7 @@ async function check_page(target_page_data, options) {
 
 		if (!Array.isArray(this.summary))
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
-		this.minor = this.summary.length < 5;
+		if (this.minor) this.minor = this.summary.length < 5;
 		this.summary = this.summary[0] + this.summary.slice(1).join(', ');
 		pages_modified++;
 		return parsed.toString();
