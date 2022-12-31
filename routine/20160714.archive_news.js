@@ -219,7 +219,7 @@ function archive_pages() {
 				CeL.info('for_each_page_not_archived: Write report: '
 						+ error_count + ' lines.');
 				if (error_count > 0) {
-					error_logs.unshift('<!-- 本條目會定期更新，毋須手動修正。 -->\n'
+					error_logs.unshift('<!-- 本頁面會定期更新，毋須手動修正。 -->\n'
 							+ '請幫忙修復這些文章。機器人將在修復完畢、待時限過後自動保護。 --~~~~');
 					error_logs.push(
 					//

@@ -905,7 +905,7 @@ async function generate_report() {
 		// __NOTITLECONVERT__
 		'__NOCONTENTCONVERT__\n'
 		+ `總共編輯${page_count}個討論頁，列出其中${report_count}筆特別情況紀錄。\n`
-		+ '* 本條目會定期更新，毋須手動修正。\n'
+		+ '* 本頁面會定期更新，毋須手動修正。\n'
 		// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 		+ '* 產生時間：<onlyinclude>~~~~~</onlyinclude>\n\n<!-- report begin -->\n'
 		+ report_wikitext + '\n<!-- report end -->', {

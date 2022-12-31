@@ -22,7 +22,8 @@ globalThis.no_task_date_warning = true;
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
-var wiki = Wiki(true, 'ja');
+// var wiki = Wiki(true, 'ja');
+var wiki = Wiki(true, 'zh');
 
 // ---------------------------------------------------------------------//
 
@@ -37,7 +38,7 @@ var trace_forward_length = 'max';
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	return summary.includes('護衛艦#多用途護衛艦（DDA）')
+	return summary.includes('本次bot作業已進行')
 	// && wiki.is_namespace(page_data, 'Category')
 	;
 
@@ -80,6 +81,13 @@ function check_usercontribs(list) {
 			return;
 		}
 
+		if (false && Date.parse('2022-12-11 17:47 UTC+8') > Date
+				.parse(page_data.timestamp)) {
+			return;
+		}
+
+		// ------------------------------------------------
+
 		// page_title
 		var title = CeL.wiki.title_of(page_data);
 		if (false && !page_data.title.includes('世宗 (朝鮮王)')) {
@@ -102,12 +110,16 @@ function check_usercontribs(list) {
 		// ------------------------------------------------
 
 		undo_page_hash[title] = true;
+		// console.log('>>> ' + title);
 	});
 
+	// console.trace(undo_page_hash);
 	list = Object.keys(undo_page_hash);
 
 	CeL.info('check_usercontribs: ' + list.length + ' pages need to test.');
-	// console.trace(list.slice(0, 5).join(', '));
+	// console.trace(list.slice(0, 5).join(', ') + '...' +
+	// list.slice(-5).join(', '));
+	// console.trace(list);
 
 	list.run_serial(for_each_page);
 
@@ -194,7 +206,9 @@ function for_each_page(run_next, title, index, list) {
 			// console.log(diff_list);
 		}
 
-		CeL.log('Undo edit on ' + (index + 1) + '/' + list.length + ' '
+		process.title = 'Undo ' + (index + 1) + '/' + list.length + ' '
+				+ CeL.wiki.title_link_of(title);
+		CeL.log('Undo edit ' + (index + 1) + '/' + list.length + ' '
 				+ CeL.wiki.title_link_of(title));
 		if (false) {
 			run_next();

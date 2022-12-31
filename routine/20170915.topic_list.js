@@ -525,6 +525,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:Bot/使用申請' ];
 	// main_talk_pages = [ '萌娘百科 talk:讨论版/页面相关' ];
 	// main_talk_pages = [ 'Wikipedia:可靠来源/布告板' ];
+	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 
 	// ----------------------------------------------------
 
@@ -1697,7 +1698,7 @@ function generate_topic_list(page_data) {
 			CeL.error('經過' + CeL.age_of(0, timeout_interval)
 			//
 			+ '都無成功的編輯！直接跳出！');
-			process.exit();
+			process.exit(3);
 		}, timeout_interval);
 	})
 	// 更新所嵌入的頁面。通常是主頁面。

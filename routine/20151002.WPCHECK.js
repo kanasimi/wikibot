@@ -105,24 +105,28 @@ CeL.get_URL_cache(checkwiki_api_URL + 'view=all&orderby=id', function(data) {
 }, base_directory + use_language + '.htm');
 
 function main_work() {
-	// 200: test checkwiki #0~199
-	new Array(200).fill(null).forEach(function(fix_function, checking_index) {
+	var checking_index = -1;
+	function run_next_test() {
+		// 200: test checkwiki #0~199
+		if (++checking_index > 200)
+			return;
+
 		if (only_check) {
 			if (Array.isArray(only_check)) {
 				if (only_check === not_approved) {
 					if (approved.includes(checking_index))
-						return;
+						return run_next_test();
 				} else if (!only_check.includes(checking_index))
-					return;
+					return run_next_test();
 			} else if (only_check > 0 && checking_index !== only_check)
-				return;
+				return run_next_test();
 		}
 
-		fix_function = eval('typeof fix_' + checking_index
+		var fix_function = eval('typeof fix_' + checking_index
 		// global 無效。
 		+ ' === "function" && fix_' + checking_index + ';');
 		if (!fix_function)
-			return;
+			return run_next_test();
 
 		CeL.debug('Add #' + checking_index, 2);
 		CeL.get_URL_cache(checkwiki_api_URL_id
@@ -139,14 +143,17 @@ function main_work() {
 				'utf8').split('\n');
 
 			// CeL.set_debug(3);
-			if (page_list.length === 0)
-				return;
+			// console.trace(page_list);
 
 			if (Array.isArray(處理頁面數))
 				page_list = page_list.slice(處理頁面數[0], 處理頁面數[1]);
 			else if (處理頁面數 > 0)
 				page_list = page_list.slice(0, 處理頁面數);
 
+			if (page_list.length === 0)
+				return run_next_test();
+
+			// console.trace(page_list);
 			// process pages
 			wiki.work({
 				each : function(page_data, messages, config) {
@@ -159,10 +166,16 @@ function main_work() {
 					if (page_data.ns !== 0) {
 						return [ CeL.wiki.edit.cancel, '本作業僅處理條目命名空間' ];
 					}
-					return fix_function.call(
+					var modified = fix_function.call(
 					//
 					this, content, page_data, messages, config);
+					return modified !== content ? modified
+					//
+					: [ CeL.wiki.edit.cancel, 'skip' ];
 					// TODO: Set article as done
+				},
+				last : function() {
+					run_next_test();
 				},
 				// ((fix function)).title = {String}Error name / Reason
 				summary : summary + ' ' + checking_index
@@ -186,11 +199,15 @@ function main_work() {
 					// 僅取得 <pre> 間的 data。
 					data = data.between('<pre>', '</pre>');
 				}
-				data = data.trim().split(/\r?\n/);
+				// console.trace(data);
+				data = data.trim();
+				data = data ? data.split(/\r?\n/) : [];
 				return JSON.stringify(data);
 			}
 		});
-	});
+	}
+
+	run_next_test();
 }
 
 // ---------------------------------------------------------------------//
@@ -215,7 +232,8 @@ var PATTERN_plain_text_br = /\n(([*#:;]+|[= ]|{\|)(?:-{[^{}\n]*}-|\[\[[^\[\]]+\]
 PATTERN_invalid_self_closed_HTML_tags = /(<(b|p|div|span|td|th|tr|center|small)(?:\s[^<>]*)?>([\s\S]*?))<\2\s*\/>/ig;
 
 // Category:使用无效自封闭HTML标签的页面 , [[phab:T134423]]
-// 在主命名空間 ns0 裡面，替換<small/>為</small>，替換<center/>為</center>，以消除[[:Category:使用無效自封閉HTML標籤的頁面]]。
+// 在主命名空間 ns0
+// 裡面，替換<small/>為</small>，替換<center/>為</center>，以消除[[:Category:使用無效自封閉HTML標籤的頁面]]。
 // 不正な HTML tag を修正する。例えば <b><b/> → <b></b>
 fix_2_simple.title = '修正不正確的 HTML tag 如 <b><b/> → <b></b>';
 function fix_2_simple(content, page_data, messages, config) {
@@ -758,6 +776,8 @@ function fix_16(content, page_data, messages, config) {
 	.replace(PATTERN_invisible_start2, '{{')
 	//
 	.replace(PATTERN_invisible_end2, '}}')
+	// Zero width space
+	.replace(/\u200B([ \n\-,]|$)/g, '$1').replace(/([ \n\-,]|^)\u200B/g, '$1')
 
 	// 處理特殊情況。
 	.replace(/([a-z]{2,})\u200E('|\s*\|)/ig, '$1$2').replace(
@@ -965,9 +985,8 @@ CeL.assert([ '[[Wiki]]', fix_64('[[ wiki|Wiki]]') ]);
 // 2016/2/24 20:30:57
 fix_65.title = '檔案或圖片的描述以換行結尾';
 function fix_65(content, page_data, messages, config) {
-	content = CeL.wiki.parser(content).parse()
-	//
-	.each('file', function(token, index, parent) {
+	var parsed = CeL.wiki.parser(content);
+	parsed.each('file', function(token, index, parent) {
 		return token.toString()
 		// fix error
 		.replace_till_stable(/(.)(?:\s|&nbsp;)*<br\s*[\/\\]?>\s*(\||\]\])/ig,
@@ -980,9 +999,9 @@ function fix_65(content, page_data, messages, config) {
 				head += ' ';
 			return head + tail;
 		});
-	}, true).toString();
+	}, true);
 
-	return content;
+	return parsed.toString();
 }
 
 // ------------------------------------
@@ -1027,16 +1046,15 @@ function fix_69(content, page_data, messages, config) {
 // CeL.wiki.parse('[[File:a.jpg|thumb|d]]')
 fix_76.title = '檔案或圖片的連結中包含空格';
 function fix_76(content, page_data, messages, config) {
-	content = CeL.wiki.parser(content).parse()
-	//
-	.each('file', function(token, index, parent) {
+	var parsed = CeL.wiki.parser(content);
+	parsed.each('file', function(token, index, parent) {
 		// [0]: 僅處理連結部分。
 		token[0] = token[0].toString()
 		// fix error
 		.replace(/%20/g, ' ');
-	}, true).toString();
+	}, true);
 
-	return content;
+	return parsed.toString();
 }
 
 // ------------------------------------
@@ -1113,9 +1131,8 @@ function fix_85(content, page_data, messages, config) {
 // CeL.wiki.parse('[[http://www.wikipedia.org Wikipedia]]');
 fix_86.title = '使用內部連結之雙括號表現外部連結';
 function fix_86(content, page_data, messages, config) {
-	content = CeL.wiki.parser(content).parse()
-	//
-	.each('link', function(token, index, parent) {
+	var parsed = CeL.wiki.parser(content);
+	parsed.each('link', function(token, index, parent) {
 		// 取得內部資料。
 		// e.g., 'http://www.wikipedia.org Wikipedia'
 		var text = token.toString().slice(2, -2);
@@ -1139,7 +1156,8 @@ function fix_86(content, page_data, messages, config) {
 		}
 
 		return CeL.wiki.parse.wiki_URL(text, true);
-	}, true).toString();
+	}, true);
+	content = parsed.toString();
 
 	return content;
 }
@@ -1215,9 +1233,8 @@ function check_tag(token, parent) {
 // TODO: | <sub>...<sub> | → | <sub>...</sub> |
 fix_98.title = 'sub/sup tag 未首尾對應';
 function fix_98(content, page_data, messages, config) {
-	content = CeL.wiki.parser(content).parse()
-	//
-	.each('plain', function(token, index, parent) {
+	var parsed = CeL.wiki.parser(content);
+	parsed.each('plain', function(token, index, parent) {
 		if (parent.type === "table_cell"
 		// 此 token 不為最後一個。
 		? index < parent.length - 1
@@ -1237,9 +1254,9 @@ function fix_98(content, page_data, messages, config) {
 
 		// TODO:末尾為 <ref> 時添加在前一個。
 
-	}, true).toString();
+	}, true);
 
-	return content;
+	return parsed.toString();
 }
 
 var fix_99 = fix_98;
@@ -1282,9 +1299,8 @@ function fix_102(content, page_data, messages, config) {
 // 這種做法大多放在模板中。只是現在的 MediaWiki 版本已經不需要如此的避諱方法。
 fix_103.title = '連結中包含 pipe magic word';
 function fix_103(content, page_data, messages, config) {
-	content = CeL.wiki.parser(content).parse()
-	//
-	.each('link', function(token, index, parent) {
+	var parsed = CeL.wiki.parser(content);
+	parsed.each('link', function(token, index, parent) {
 		var link;
 		if (token.length === 1 && token[0].length === 1
 		//
@@ -1292,9 +1308,9 @@ function fix_103(content, page_data, messages, config) {
 		//
 		&& link.split('{{!}}').length === 2)
 			token[0][0] = link.replace('{{!}}', '|');
-	}, true).toString();
+	}, true);
 
-	return content;
+	return parsed.toString();
 }
 
 // ------------------------------------

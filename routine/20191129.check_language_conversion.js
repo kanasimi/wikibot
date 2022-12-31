@@ -295,7 +295,7 @@ async function check_CGroup_pages() {
 	//console.trace(Object.keys(conversion_group).join());
 
 	// for [[Template:CGroup/Canada]]: 未列入 general.main_category
-	// 可能有漏: prefixsearch 無法取得 [[Template:CGroup/Free License]]
+	// 僅用 prefixsearch 可能有漏: prefixsearch 無法取得 [[Template:CGroup/Free License]]
 	// 處理別名 e.g., [[Template:CGroup/諾貝爾獎]]
 	add_page_list((await wiki.prefixsearch('Template:CGroup/'))
 		.filter(page_data => /^Template:CGroup\/[^\/]+$/.test(page_data.title)));

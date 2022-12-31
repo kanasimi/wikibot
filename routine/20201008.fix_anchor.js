@@ -4,6 +4,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
+node 20201008.fix_anchor.js use_language=ja "check_page=チオペンタール"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 node 20201008.fix_anchor.js use_language=en "check_page=WABC (AM)"
 node 20201008.fix_anchor.js use_language=en "check_page=User:Formula Downforce/sandbox"
@@ -11,6 +12,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=User:Formula Downforce/s
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=List of Falcon 9 first-stage boosters"
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
+node 20201008.fix_anchor.js use_language=en "check_page=Spanish dialects and varieties"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 
@@ -560,8 +562,9 @@ async function tracking_section_title_history(page_data, options) {
 	};
 
 	async function set_recent_section_title(wikitext, revision) {
+		//console.trace(options);
 		const anchor_list = await CeL.wiki.parse.anchor(wikitext, wiki.append_session_to_options(options));
-		//console.trace(anchor_list);
+		//console.trace([wikitext, anchor_list, options]);
 		mark_language_variants(anchor_list, section_title_history, revision);
 		anchor_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
@@ -1105,6 +1108,7 @@ async function check_page(target_page_data, options) {
 			if (removed_anchors > 0) {
 				// TODO: 加上移除了哪些錨點的註解。
 				this.summary += (anchor_token ? ', ' : '')
+					// TODO: "移除%1個非失效網頁{{PLURAL:%1|錨點}}"
 					// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
 					+ CeL.gettext('提醒移除%1個失效網頁{{PLURAL:%1|錨點}}', removed_anchors);
 				//this.summary += '（全部です）';
