@@ -12,7 +12,9 @@ node 20201008.fix_anchor.js use_language=en "check_page=User:Formula Downforce/s
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=List of Falcon 9 first-stage boosters"
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
+node 20201008.fix_anchor.js use_language=en "check_page=Euphoria (American TV series)"
 node 20201008.fix_anchor.js use_language=en "check_page=Spanish dialects and varieties"
+node 20201008.fix_anchor.js use_language=en "check_page=Kingdom of Italy"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 
@@ -401,6 +403,7 @@ async function for_each_row(row) {
 	const options = wiki.append_session_to_options({
 		on_page_title: row.title,
 		try_to_expand_templates: true,
+		skip_variable_anchors: true,
 	});
 	for (const diff of diff_list) {
 		//const [removed_text, added_text] = diff;
@@ -548,11 +551,12 @@ function mark_language_variants(recent_section_title_list, section_title_history
 
 // get section title history
 async function tracking_section_title_history(page_data, options) {
-	options = {
+	options = wiki.append_session_to_options({
 		on_page_title: page_data.title,
 		try_to_expand_templates: true,
+		skip_variable_anchors: true,
 		...options
-	};
+	});
 	//section_title_history[section_title]={appear:{revid:0},disappear:{revid:0},rename_to:''}
 	const section_title_history = options.section_title_history || {
 		// 所有頁面必然皆有的 default anchors [[w:en:Help:Link#Table row linking]]
@@ -563,7 +567,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	async function set_recent_section_title(wikitext, revision) {
 		//console.trace(options);
-		const anchor_list = await CeL.wiki.parse.anchor(wikitext, wiki.append_session_to_options(options));
+		const anchor_list = await CeL.wiki.parse.anchor(wikitext, options);
 		//console.trace([wikitext, anchor_list, options]);
 		mark_language_variants(anchor_list, section_title_history, revision);
 		anchor_list.forEach(section_title =>
@@ -580,7 +584,7 @@ async function tracking_section_title_history(page_data, options) {
 	if (options.set_recent_section_only) {
 		page_data = await wiki.page(page_data);
 		await set_recent_section_title(page_data.wikitext);
-		if (options?.print_anchors) {
+		if (options.print_anchors) {
 			CeL.info(`${tracking_section_title_history.name}: reduced anchors:`);
 			console.trace(section_title_history[KEY_lower_cased_section_titles]);
 		}
@@ -668,6 +672,7 @@ async function tracking_section_title_history(page_data, options) {
 		const _options = wiki.append_session_to_options({
 			on_page_title: page_data.title,
 			try_to_expand_templates: true,
+			skip_variable_anchors: true,
 		});
 
 		//console.trace('using get_all_anchors()');
