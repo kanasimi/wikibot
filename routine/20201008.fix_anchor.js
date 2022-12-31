@@ -1113,15 +1113,14 @@ async function check_page(target_page_data, options) {
 			if (removed_anchors > 0) {
 				// TODO: 加上移除了哪些錨點的註解。
 				this.summary += (anchor_token ? ', ' : '')
-					// TODO: "移除%1個非失效網頁{{PLURAL:%1|錨點}}"
-					// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
-					+ CeL.gettext('提醒移除%1個失效網頁{{PLURAL:%1|錨點}}', removed_anchors);
+					// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
+					+ CeL.gettext('移除%1個非失效網頁{{PLURAL:%1|錨點}}', removed_anchors);
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${
-						// gettext_config:{"id":"reminder-to-remove-$1-inactive-anchors"}
-						CeL.gettext('提醒移除%1個失效網頁{{PLURAL:%1|錨點}}', removed_anchors)}`);
+						// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
+						CeL.gettext('移除%1個非失效網頁{{PLURAL:%1|錨點}}', removed_anchors)}`);
 				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
