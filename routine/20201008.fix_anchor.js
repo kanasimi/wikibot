@@ -403,7 +403,7 @@ async function for_each_row(row) {
 	const options = wiki.append_session_to_options({
 		on_page_title: row.title,
 		try_to_expand_templates: true,
-		skip_variable_anchors: true,
+		ignore_variable_anchors: true,
 	});
 	for (const diff of diff_list) {
 		//const [removed_text, added_text] = diff;
@@ -554,7 +554,7 @@ async function tracking_section_title_history(page_data, options) {
 	options = wiki.append_session_to_options({
 		on_page_title: page_data.title,
 		try_to_expand_templates: true,
-		skip_variable_anchors: true,
+		ignore_variable_anchors: true,
 		...options
 	});
 	//section_title_history[section_title]={appear:{revid:0},disappear:{revid:0},rename_to:''}
@@ -672,7 +672,7 @@ async function tracking_section_title_history(page_data, options) {
 		const _options = wiki.append_session_to_options({
 			on_page_title: page_data.title,
 			try_to_expand_templates: true,
-			skip_variable_anchors: true,
+			ignore_variable_anchors: true,
 		});
 
 		//console.trace('using get_all_anchors()');
