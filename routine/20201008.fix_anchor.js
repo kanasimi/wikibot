@@ -443,13 +443,16 @@ async function for_each_row(row) {
 	// たった一つの章のタイトルが変わった場合、ボットはそれを自動的に修正することができます。この方法では、{{t|Anchors}}が不要になる場合があります。
 	try {
 		//console.trace(row.revisions[0].slots);
-		const pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
+		let pages_modified = await check_page(row, { removed_section_titles, added_section_titles });
 		// pages_modified maybe undefined
+		let [main_pages_modified, talk_pages_modified] = Array.isArray(pages_modified) ? pages_modified : [];
+		if (Array.isArray(pages_modified))
+			pages_modified = main_pages_modified + talk_pages_modified;
 		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${CeL.gettext(pages_modified > 0
-			//TODO
-			? '%1 page(s) modified.'
-			//TODO
-			: 'No page modified.', pages_modified)}`);
+			// gettext_config:{"id":"$1-pages-modified"}
+			? '%1 {{PLURAL:1|page|pages}} modified' + '.'
+			// gettext_config:{"id":"no-page-modified"}
+			: 'No page modified' + '.', `${main_pages_modified}+${talk_pages_modified}`)}`);
 		if (pages_modified > 0) {
 			CeL.error(`${for_each_row.name}: Modify ${pages_modified} page(s) linking to ${CeL.wiki.title_link_of(row.title)}`);
 		}
@@ -801,7 +804,7 @@ async function tracking_section_title_history(page_data, options) {
 					set_rename_to(from, to);
 				} else if (to !== section_title_history[from].rename_to) {
 					// 這個時間點之後，`from` 有再次出現並且重新命名過。
-					CeL.warn(`#${from} is renamed to #${section_title_history[from].rename_to} in newer revision, but also renamed to #${to} in older revision`);
+					CeL.warn(`${JSON.stringify('#' + from)} is renamed to ${JSON.stringify('#' + section_title_history[from].rename_to)} in newer revision, but also renamed to ${JSON.stringify('#' + to)} in older revision`);
 					// TODO: ignore reverted edit
 				}
 			}
@@ -1015,10 +1018,11 @@ async function check_page(target_page_data, options) {
 			&& (!anchor_token[anchor_token.article_index || 0]
 				|| anchor_token[anchor_token.article_index || 0] === target_page_data.title)
 		) {
-			return;
+			return 0;
 		}
 
 		const pages_to_delete = new Map;
+		let _talk_pages_modified = 0;
 		function add_note_for_broken_anchors(talk_page_data) {
 			// Modify from 20200122.update_vital_articles.js
 			// TODO: fix disambiguation
@@ -1178,6 +1182,7 @@ async function check_page(target_page_data, options) {
 				}
 			}
 
+			_talk_pages_modified++;
 			//if (talk_page_data.title === 'Wikipedia talk:互助客栈/其他') CeL.set_debug();
 			// assert: !!parsed.toString() === true
 			return parsed.toString();
@@ -1231,6 +1236,8 @@ async function check_page(target_page_data, options) {
 				...options
 			});
 		}
+
+		return _talk_pages_modified + pages_to_delete.size;
 	}
 
 	// ----------------------------------------------------
@@ -1424,13 +1431,13 @@ async function check_page(target_page_data, options) {
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
 		if (!options.is_archive) {
-			add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
+			talk_pages_modified += add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
 
 	// ------------------------------------------
 
-	let pages_modified = 0;
+	let main_pages_modified = 0, talk_pages_modified = 0;
 	function resolve_linking_page(linking_page_data) {
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = linking_page_data.parse();
@@ -1494,7 +1501,7 @@ async function check_page(target_page_data, options) {
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
 			//console.trace('check talk page, 刪掉已有沒問題之 anchors。');
-			add_note_to_talk_page_for_broken_anchors(linking_page_data);
+			talk_pages_modified += add_note_to_talk_page_for_broken_anchors(linking_page_data);
 		}
 
 		if (!changed)
@@ -1504,14 +1511,14 @@ async function check_page(target_page_data, options) {
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
 		if (this.minor) this.minor = this.summary.length < 5;
 		this.summary = this.summary[0] + this.summary.slice(1).join(', ');
-		pages_modified++;
+		main_pages_modified++;
 		return parsed.toString();
 	}
 
 	await wiki.for_each_page(options.only_modify_pages?.split('|') || link_from, resolve_linking_page, for_each_page_options);
 	await working_queue;
 
-	await add_note_to_talk_page_for_broken_anchors(target_page_data);
+	talk_pages_modified += await add_note_to_talk_page_for_broken_anchors(target_page_data);
 
-	return pages_modified;
+	return [main_pages_modified, talk_pages_modified];
 }
