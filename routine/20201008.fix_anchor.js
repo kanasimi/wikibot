@@ -450,7 +450,7 @@ async function for_each_row(row) {
 			pages_modified = main_pages_modified + talk_pages_modified;
 		CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title)}: ${CeL.gettext(pages_modified > 0
 			// gettext_config:{"id":"$1-pages-modified"}
-			? '%1 {{PLURAL:1|page|pages}} modified' + '.'
+			? '%1 {{PLURAL:%1|page|pages}} modified' + '.'
 			// gettext_config:{"id":"no-page-modified"}
 			: 'No page modified' + '.', `${main_pages_modified}+${talk_pages_modified}`)}`);
 		if (pages_modified > 0) {
