@@ -5,6 +5,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
 node 20201008.fix_anchor.js use_language=ja "check_page=チオペンタール"
+node 20201008.fix_anchor.js use_language=zh "check_page=中国驻美国大使列表"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 node 20201008.fix_anchor.js use_language=en "check_page=WABC (AM)"
 node 20201008.fix_anchor.js use_language=en "check_page=User:Formula Downforce/sandbox"
@@ -15,6 +16,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)"
 node 20201008.fix_anchor.js use_language=en "check_page=Euphoria (American TV series)"
 node 20201008.fix_anchor.js use_language=en "check_page=Spanish dialects and varieties"
 node 20201008.fix_anchor.js use_language=en "check_page=Kingdom of Italy"
+node 20201008.fix_anchor.js use_language=en "check_page=List of Toy Story characters"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 
@@ -484,6 +486,7 @@ function get_section_title_data(section_title_history, section_title) {
 
 	// get possible section name variants: lowercased
 	const reduced_section = reduce_section_title(section_title), original_section_title = section_title_history[KEY_lower_cased_section_titles][reduced_section];
+	//console.trace([section_title, reduced_section, original_section_title]);
 	if (original_section_title) {
 		return {
 			title: reduced_section,
@@ -589,7 +592,7 @@ async function tracking_section_title_history(page_data, options) {
 		await set_recent_section_title(page_data.wikitext);
 		if (options.print_anchors) {
 			CeL.info(`${tracking_section_title_history.name}: reduced anchors:`);
-			console.trace(section_title_history[KEY_lower_cased_section_titles]);
+			console.trace('lower_cased_section_titles', section_title_history[KEY_lower_cased_section_titles]);
 		}
 		return section_title_history;
 	}
@@ -929,6 +932,7 @@ async function get_all_links(page_data, options) {
 }
 
 async function check_page(target_page_data, options) {
+	//CeL.info(`${check_page.name}: ${CeL.wiki.title_link_of(target_page_data)}`);
 	options = CeL.setup_options(options);
 	//console.trace(options);
 	const link_from = await wiki.redirects_here(target_page_data);
@@ -1040,7 +1044,7 @@ async function check_page(target_page_data, options) {
 			if (!wiki.is_namespace(talk_page_data, 'talk')) {
 				// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
 				CeL.warn(`${add_note_for_broken_anchors.name}: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
-				//console.log(article_info);
+				console.trace(talk_page_data);
 				return Wikiapi.skip_edit;
 			}
 
@@ -1051,6 +1055,7 @@ async function check_page(target_page_data, options) {
 
 			let has_broken_anchors_template;
 			let removed_anchors = 0;
+			const remove_reason = { non_exist: 0, is_present: 0 };
 			parsed.each('template', template_token => {
 				if (!wiki.is_template('Broken anchors', template_token))
 					return;
@@ -1073,8 +1078,10 @@ async function check_page(target_page_data, options) {
 						if (first_token && first_token.type === 'tag' && first_token.tag === 'nowiki'
 							&& !main_page_wikitext.includes(first_token[1].toString())) {
 							// remove item that is not in main article.
+							console.trace([main_page_wikitext, first_token, first_token[1].toString()]);
 							list_token.splice(index--, 1);
 							removed_anchors++;
+							remove_reason.non_exist++;
 							continue;
 						}
 
@@ -1083,6 +1090,7 @@ async function check_page(target_page_data, options) {
 						if (section_title_history[link_token.anchor]?.is_present) {
 							list_token.splice(index--, 1);
 							removed_anchors++;
+							remove_reason.is_present++;
 							continue;
 						}
 					}
@@ -1115,16 +1123,18 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
+				// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
+				const message = CeL.gettext('移除%1個非失效網頁{{PLURAL:%1|錨點}}', removed_anchors)
+					// 不再存在於 wikitext 中, 不在被使用
+					+ (remove_reason.non_exist > 0 ? ` (No longer used: ${remove_reason.non_exist})` : '')
+					+ (remove_reason.is_present > 0 ? ` (Anchors now working: ${remove_reason.is_present})` : '')
+					;
 				// TODO: 加上移除了哪些錨點的註解。
-				this.summary += (anchor_token ? ', ' : '')
-					// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
-					+ CeL.gettext('移除%1個非失效網頁{{PLURAL:%1|錨點}}', removed_anchors);
+				this.summary += (anchor_token ? ', ' : '') + message;
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
 					//this.allow_empty = 1;
-					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${
-						// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
-						CeL.gettext('移除%1個非失效網頁{{PLURAL:%1|錨點}}', removed_anchors)}`);
+					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${message}`);
 				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
