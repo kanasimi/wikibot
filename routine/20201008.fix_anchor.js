@@ -745,7 +745,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	}, {
 		revision_post_processor(revision) {
-			// save memory 刪除不需要的提醒內容
+			// save memory 刪除不需要的提醒內容。
 			delete revision.slots;
 			delete revision.diff_list;
 
@@ -1078,7 +1078,9 @@ async function check_page(target_page_data, options) {
 						if (first_token && first_token.type === 'tag' && first_token.tag === 'nowiki'
 							&& !main_page_wikitext.includes(first_token[1].toString())) {
 							// remove item that is not in main article.
-							console.trace([main_page_wikitext, first_token, first_token[1].toString()]);
+							//Error.stackTraceLimit = Infinity;
+							//console.trace([main_page_wikitext, linking_page_data.wikitext, linking_page_data, first_token, first_token[1].toString()]);
+							//Error.stackTraceLimit = 10;
 							list_token.splice(index--, 1);
 							removed_anchors++;
 							remove_reason.non_exist++;
@@ -1198,7 +1200,9 @@ async function check_page(target_page_data, options) {
 			return parsed.toString();
 		}
 
-		const main_page_wikitext = linking_page_data.wikitext;
+		const main_page_wikitext = linking_page_data.wikitext
+			// 有時頁面內容在 revision_post_processor(revision) 被刪掉了。
+			|| linking_page_data.parsed.toString();
 		const talk_page_title = wiki.to_talk_page(linking_page_data);
 		// text inside <nowiki> must extractly the same with the linking wikitext in the main article.
 		let wikitext_to_add;
