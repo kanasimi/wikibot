@@ -127,9 +127,10 @@ replace_tool.replace({
 	},
 
 	'Template:from_title': {
-		//use this page(s) as list title list
-		list_title_list: '',
+		// use this page(s) as list title list
+		list_title: '',
 		list_types: 'embeddedin',
+		excluding_categories: ['Category to exclude'],
 		for_template(token, index, parent) { CeL.wiki.parse.replace_parameter(token, config, 'parameter_name_only'); },
 	},
 

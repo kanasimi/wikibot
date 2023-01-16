@@ -131,7 +131,7 @@ async function get_all_sections(meta_configuration) {
 
 		// TODO: 必須避免如 <nowiki>{{確認}}</nowiki>
 
-		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\| *(?:着手|準備中|作業中|仕様)) *[|}]/);
+		matched = section_wikitext.match(/{{ *(Doing|BOTREQ *\| *(?:着手|調査中|準備中|作業中|仕様)) *[|}]/);
 		if (matched) {
 			set_process('doing');
 		}
@@ -530,6 +530,12 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	}
 
 	if (!meta_configuration.diff_id) {
+		if (use_language === 'zh' || use_language === 'cmn') {
+			CeL.error([guess_and_fulfill_meta_configuration.name + ': ', {
+				T: '請注意標題繁體簡體必須相符！'
+			}]);
+			// e.g., 刪除小天體模板時，[[Template:小天体]] redirect to [[Template:小天體]]?
+		}
 		// gettext_config:{"id":"unable-to-extract-the-revision-difference-id-from-page-edit-summary-of-$1"}
 		throw new Error(CeL.gettext('Unable to extract the revision difference id from page edit summary of %1!', CeL.wiki.title_link_of(requests_page)));
 	}
@@ -943,7 +949,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			}
 			if (varianttitle === move_from_link) {
 				CeL.warn(`${prepare_operation.name}: ${move_from_link} 可能是繁簡混雜？`);
-			} else {
+			} else if (typeof task_configuration.move_to_link === 'string') {
+				// ↑ 預防 DELETE_PAGE 之類的 Symbol。
 				CeL.warn(`${prepare_operation.name}: ${move_from_link}: 亦自動轉換 ${varianttitle} → ${task_configuration.move_to_link}`);
 				move_configuration.splice(move_configuration_index + 1, 0, [pair[0], {
 					...task_configuration,
@@ -1603,8 +1610,37 @@ async function get_list(task_configuration, list_configuration) {
 		}
 	}
 
-	if (need_unique)
+	// ------------------------------------------------------------------------
+
+	let excluding_pages = new Set();
+
+	// 排除類別。
+	if (list_configuration.excluding_categories) {
+		for (const category_name of list_configuration.excluding_categories) {
+			const excluding_page_list = await wiki.categorymembers(category_name);
+			//console.trace([category_name, excluding_page_list]);
+			excluding_page_list.forEach(page_data => excluding_pages.add(page_data.title));
+		}
+		//need_unique = excluding_pages.size > 0;
+	}
+	//console.trace([list_configuration.excluding_categories, excluding_pages]);
+
+	if (excluding_pages.size > 0) {
+		const page_list_Set = new Set();
+		const new_page_list = [];
+		for (const page_data of page_list) {
+			const page_title = page_data.title;
+			if (!page_list_Set.has(page_title) && !excluding_pages.has(page_title)) {
+				page_list_Set.add(page_title);
+				new_page_list.push(page_data);
+			}
+		}
+		page_list = new_page_list;
+	} else if (need_unique) {
 		page_list = page_list.unique(page_data => CeL.wiki.title_of(page_data));
+	}
+	//console.trace(page_list);
+
 	if (/*list_configuration.is_tracking_category && */list_configuration.move_from.ns === wiki.namespace('Category')) {
 		page_list.forEach(page_data => {
 			if (wiki.is_namespace(page_data, 'Template') || wiki.is_namespace(page_data, 'Module')) {
@@ -1888,6 +1924,7 @@ function for_each_link(token, index, parent) {
 			// リンクを外してその文字列にして
 			parent[index] = token[2] || token[0];
 		} else {
+			console.trace(token);
 			// e.g., リダイレクト解消
 			CeL.assert(token[2] || !token[1] && this.move_from.ns === this[KEY_wiki_session].namespace('Main'), `${for_each_link.name}: namesapce must be main or category / file when delete page`);
 		}
@@ -2421,6 +2458,7 @@ async function for_each_template(page_data, token, index, parent) {
 		About: 3,
 	}, 2)) return;
 
+	// TODO: [[w:zh:Template:Include]] 移除模板沒有被移除
 }
 
 // ---------------------------------------------------------------------//
