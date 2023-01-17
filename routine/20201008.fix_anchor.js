@@ -521,9 +521,8 @@ function set_section_title(section_title_history, section_title, data, options) 
 }
 
 // 偵測繁簡轉換 字詞轉換 section_title
-function mark_language_variants(recent_section_title_list, section_title_history, revision) {
-	function mark_list(converted_list) {
-		const language_variant = this;
+async function mark_language_variants(recent_section_title_list, section_title_history, revision) {
+	function mark_list(language_variant, converted_list) {
 		//console.trace(language_variant + ': ' + converted_list);
 		recent_section_title_list.forEach((section_title, index) => {
 			const converted = converted_list[index];
@@ -550,8 +549,8 @@ function mark_language_variants(recent_section_title_list, section_title_history
 	}
 
 	for (const language_variant of ['zh-hant', 'zh-hans']) {
-		//await
-		wiki.convert_Chinese(recent_section_title_list, language_variant).then(mark_list.bind(language_variant));
+		const converted_list = await wiki.convert_Chinese(recent_section_title_list, language_variant)
+		mark_list(language_variant, converted_list);
 	}
 }
 
@@ -575,7 +574,7 @@ async function tracking_section_title_history(page_data, options) {
 		//console.trace(options);
 		const anchor_list = await CeL.wiki.parse.anchor(wikitext, options);
 		//console.trace([wikitext, anchor_list, options]);
-		mark_language_variants(anchor_list, section_title_history, revision);
+		await mark_language_variants(anchor_list, section_title_history, revision);
 		anchor_list.forEach(section_title =>
 			set_section_title(section_title_history, section_title, {
 				title: section_title,
@@ -589,6 +588,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	if (options.set_recent_section_only) {
 		page_data = await wiki.page(page_data);
+		//console.trace(page_data);
 		await set_recent_section_title(page_data.wikitext);
 		if (options.print_anchors) {
 			CeL.info(`${tracking_section_title_history.name}: reduced anchors:`);
@@ -745,7 +745,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	}, {
 		revision_post_processor(revision) {
-			// save memory 刪除不需要的提醒內容。
+			// save memory 刪除不需要的提醒內容，否則會在對話頁上留下太多頁面內容。
 			delete revision.slots;
 			delete revision.diff_list;
 
@@ -1042,7 +1042,7 @@ async function check_page(target_page_data, options) {
 
 			// the bot only fix namespace=talk.
 			if (!wiki.is_namespace(talk_page_data, 'talk')) {
-				// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
+				// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]], [[Template‐ノート:]]
 				CeL.warn(`${add_note_for_broken_anchors.name}: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
 				console.trace(talk_page_data);
 				return Wikiapi.skip_edit;
