@@ -135,6 +135,7 @@ var category_to_parent_hash = Object.create(null);
 		// parent categories
 		'Category:University of Wisconsin CIMSS images',
 		'Category:NRL images of tropical cyclones',
+		'JTWC Tropical cyclone warning graphic',
 		'Category:Central Weather Bureau ROC',
 		'Category:Japan Meteorological Agency',
 		'Category:Images from the Japan Meteorological Agency',
@@ -1732,6 +1733,10 @@ function start_NRL() {
 		 */
 		function(area_text) {
 			var year = area_text.match(/YEAR=(20\d{2})&/)[1];
+			var category_name = 'Category:' + year + 'NRL images of tropical cyclones';
+			if (category_name in category_to_parent_hash) {
+				base_media_data.categories = [ category_name ];
+			}
 			var area = area_text.between('<font color="black">', '</font>');
 			// "Southern Hem. <BR>Season:"
 			area = (area.between(null, '<BR>') || area).trim();
