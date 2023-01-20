@@ -7,7 +7,7 @@ jstop cron-20170915.topic_list.zh-classical;
 jstop cron-20170915.topic_list.wikinews;
 jstop cron-20170915.topic_list.ja;
 jstop cron-20170915.topic_list.en;
-#jstop cron-20170915.topic_list.test;
+jstop cron-20170915.topic_list.test;
 jstop cron-20170915.topic_list.wikisource;
 jstop cron-20170915.topic_list.wikiversity;
 jstop cron-20170915.topic_list.commons;
@@ -260,6 +260,12 @@ var section_column_operators = {
 		} else
 			style = '';
 		// style += CSS_toString(section.CSS);
+
+		if (section.has_集中討論重定向模板) {
+			// [[w:zh:Template:集中討論重定向]]
+			title = '[[File:Treffpunkt.svg|20px|link=|alt=集中討論重定向|集中討論重定向]] '
+					+ title;
+		}
 
 		return (style ? 'style="' + style + '" | ' : '') + title;
 	},
@@ -765,6 +771,16 @@ function general_row_style(section, section_index) {
 			// style = '';
 			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
 			return to_exit;
+		}
+
+		// [[w:zh:Template:集中討論重定向]]
+		if (token.type === 'transclusion' && (token.name in {
+			CDTR : true,
+			集中讨论重定向 : true,
+			集中討論重定向 : true
+		})) {
+			section.has_集中討論重定向模板 = true;
+			return;
 		}
 
 		if (token.type === 'transclusion' && (token.name in {
