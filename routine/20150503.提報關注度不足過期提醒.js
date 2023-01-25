@@ -298,6 +298,8 @@ function report_notability(page_data) {
 				});
 			});
 
+			var user_count = messages.length;
+
 			// 最終將處理結果寫入提報關注度不足頁面。
 			wiki.page(notability_report, {
 				redirects : 1
@@ -345,7 +347,7 @@ function report_notability(page_data) {
 				});
 			}
 
-			messages.unshift(messages.length + ' 用戶 @ '
+			messages.unshift(user_count + ' 用戶 @ '
 					+ (new Date).format('%4Y%2m%2d'));
 			// 將報告結果寫入 log 頁面。
 			wiki.page(log_to, {
