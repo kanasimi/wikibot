@@ -198,10 +198,18 @@ var section_column_operators = {
 	},
 	// 議題的標題。
 	title : function(section) {
+		// 在 transclusion 的時候，空白不會被自動轉為 "_"。
+		function convert_anchor(link) {
+			return link.replace(/#[^|]+/, function(all) {
+				return all.replace(/ /g, '_');
+			});
+		}
+
 		// [[Template:Small]]
 		function small_title(title, set_small) {
 			// call function section_link_toString(page_title, style)
-			title = title.toString(null, CSS_toString(section.CSS));
+			title = title.toString(null, CSS_toString(section.CSS), true);
+			// console.trace(title);
 			return set_small ? '<small>' + title + '</small>' : title;
 		}
 
@@ -234,6 +242,7 @@ var section_column_operators = {
 					// @see section_link_toString() @ CeL.wiki
 					adding_link += '#' + section.section_title.link[1];
 				}
+				adding_link = convert_anchor(adding_link);
 				var display_text = adding_link.replace(/#.*$/, '');
 				title_too_long = if_too_long(display_text);
 				adding_link = CSS_toString(section.CSS) ? '[[' + adding_link
