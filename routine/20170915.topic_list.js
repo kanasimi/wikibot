@@ -1686,11 +1686,10 @@ function generate_topic_list(page_data) {
 		});
 	}
 
-	wiki.page(topic_page, {
-		redirects : 1
-	}).edit(
-	// TODO: CeL.wiki.array_to_table(section_table)
-	section_table.join('\n').trim(), {
+	var edit_options = {
+		// for .page()
+		redirects : 1,
+
 		bot : 1,
 		nocreate : 1,
 		tags : edit_tags,
@@ -1705,7 +1704,10 @@ function generate_topic_list(page_data) {
 		+ (new_topics.length > 0
 		//
 		? '; new reply: ' + new_topics.join(', ') : '')
-	}, function(data, error) {
+	};
+	wiki.page(topic_page, edit_options).edit(
+	// TODO: CeL.wiki.array_to_table(section_table)
+	section_table.join('\n').trim(), edit_options, function(data, error) {
 		if (error)
 			return;
 		clearTimeout(exit_program_timer);

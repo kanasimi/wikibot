@@ -276,12 +276,10 @@ function report_notability(page_data) {
 				messages.push('* [[User_talk:' + user + '|]]: '
 				//
 				+ page_list.join('<span style="color:#777;">、</span>'));
-				// 提醒個別用戶，作出通知。
-				wiki.page('User talk:' + user, {
-					redirects : 1
-				})
-				// {{Notability-talk}}此模板前面會自動加上分行，對非WP:Flow頁面，後面須自行加上簽名。
-				.edit(user_messages.join('\n') + ' --~~~~', {
+				var edit_options = {
+					// for .page()
+					redirects : 1,
+
 					// 若您不想接受關注度提醒，請利用{{bots|optout=afd}}模板。
 					notification_name : 'afd',
 					section : 'new',
@@ -295,19 +293,26 @@ function report_notability(page_data) {
 					// redirect 常會出現 editconflict
 					// redirect : 1,
 					nocreate : 1
-				});
+				};
+				// 提醒個別用戶，作出通知。
+				wiki.page('User talk:' + user, edit_options)
+				// {{Notability-talk}}此模板前面會自動加上分行，對非WP:Flow頁面，後面須自行加上簽名。
+				.edit(user_messages.join('\n') + ' --~~~~', edit_options);
 			});
 
 			var user_count = messages.length;
 
-			// 最終將處理結果寫入提報關注度不足頁面。
-			wiki.page(notability_report, {
-				redirects : 1
-			}).edit(關注度不足提報頁面內容.join('\n'), {
+			var edit_options = {
+				// for .page()
+				redirects : 1,
+
 				summary : 'bot: ' + summary + '處理結果',
 				bot : 1,
 				nocreate : 1
-			});
+			};
+			// 最終將處理結果寫入提報關注度不足頁面。
+			wiki.page(notability_report, edit_options).edit(
+					關注度不足提報頁面內容.join('\n'), edit_options);
 			if (0 <= 移除過期_start_line && 移除過期_start_line < 移除過期_end_line
 			// 未做空白章節test，會造成僅僅有空白章節時，卻不會被消掉。但這還是會在下次有東西消除時除去。
 			// || 空白日章節_PATTERN.test(關注度不足提報頁面內容.join('\n'))
@@ -338,21 +343,26 @@ function report_notability(page_data) {
 				// 移除無用之年章節。
 				.replace(空白年章節_PATTERN, '\n$1\n');
 				CeL.debug('關注度不足提報頁面內容:\n' + 關注度不足提報頁面內容.slice(0, 600), 2);
-				wiki.edit(關注度不足提報頁面內容, {
+				var edit_options = {
+					// for .page()
+					redirects : 1,
+
 					summary : 'bot: 清空' + delete_days
 					//
 					+ '天前提報關注度不足的條目，以保持頁面整潔。',
 					bot : 1,
 					nocreate : 1
-				});
+				};
+				wiki.page(notability_report, edit_options).edit(關注度不足提報頁面內容,
+						edit_options);
 			}
 
 			messages.unshift(user_count + ' 用戶 @ '
 					+ (new Date).format('%4Y%2m%2d'));
-			// 將報告結果寫入 log 頁面。
-			wiki.page(log_to, {
-				redirects : 1
-			}).edit(messages.join('\n'), {
+			var edit_options = {
+				// for .page()
+				redirects : 1,
+
 				section : 'new',
 				sectiontitle : summary + ' ' + (new Date).format('%Y%2m%2d'),
 				summary : 'bot: ' + summary + '報告',
@@ -361,7 +371,10 @@ function report_notability(page_data) {
 				nocreate : 1,
 				// 就算設定停止編輯作業，仍強制編輯。一般僅針對自己的頁面，例如寫入 log。
 				skip_stopped : true
-			});
+			};
+			// 將報告結果寫入 log 頁面。
+			wiki.page(log_to, edit_options).edit(messages.join('\n'),
+					edit_options);
 		},
 		log_to : false
 	}, pages);
