@@ -1282,9 +1282,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 	}
 	if (article_info.link) {
-		VA_template_object.link = article_info.link[0];
+		// 關於link與anchor參數，一開始是因為機器人沒設定topic的方法。現在有方法了。
+		// VA_template_object.link = article_info.link[0];
 		if (article_info.link[1]) {
-			VA_template_object.anchor = article_info.link[1];
+			// VA_template_object.anchor = article_info.link[1];
 			article_info.reason += `: [[${VA_template_object.link}#${VA_template_object.anchor}|${VA_template_object.anchor}]]`;
 		} else {
 			article_info.reason += `: [[${VA_template_object.link}]]`;
@@ -1297,7 +1298,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: ${VA_template_token.toString()}`);
 		//console.trace([VA_template_object, VA_template_token]);
 
-	} else if (WikiProject_banner_shell_token) {
+	} else if (false && WikiProject_banner_shell_token) {
+		// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
+
 		// uses the {{WikiProject banner shell}}
 		// adding the Vital article template to the bottom of the banner shell
 		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
@@ -1310,7 +1313,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// There are copies @ 20201008.fix_anchor.js
 		wikitext_to_add = CeL.wiki.parse.template_object_to_wikitext(VA_template_name, VA_template_object);
 		CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${wikitext_to_add.trim()}`);
-		parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
+		// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
+		parsed.insert_layout_token(wikitext_to_add, 'hatnote_templates');
 	}
 
 	const wikitext = parsed.toString();
