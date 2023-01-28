@@ -68,7 +68,7 @@ jstop cron-tools.cewbot-20201008.fix_anchor.ja
 
 # Listen to edits modifying section title in ARTICLE.
 # Checking all pages linking to the ARTICLE.
-# If there are links with old anchor, modify it to the newer one.
+# If there are links with old anchor, modify it to the newer one. 機器人會監視維基項目的更動，基本上會運作在除了黑名單外的頁面。機器人會比對兩次更動間各個段落新增與刪除的網頁錨點，藉以判斷是否更名。對於一分為二之類的，機器人會認作無法判別，這時不會更動，只會在談話頁面提醒找不到網頁錨點。您可以參考本機器人在英語維基百科的行為，來試想若未來在本維基百科上可以怎麼做。
 # If need, the bot will search revisions to find previous renamed section title.
 # The bot also notify broken anchors in the talk page via {{tl|Broken anchors}}.
 
@@ -268,7 +268,7 @@ async function main_process() {
 		// also get diff
 		with_diff: { LCS: true, line: true },
 		// Only check edits in these namespaces. 只檢查這些命名空間中壞掉的文章 anchor 網頁錨點。
-		namespace: wiki.site_name() === 'enwiki' ? 0 : '*',
+		namespace: wiki.latest_task_configuration.namespace ?? '*',
 		parameters: {
 			// 跳過機器人所做的編輯。
 			// You need the "patrol" or "patrolmarks" right to request the
@@ -278,6 +278,8 @@ async function main_process() {
 			rcprop: 'title|ids|sizes|flags|user|tags'
 		},
 		interval: '5s',
+		// for LCS()
+		no_throw_when_stack_size_is_exceeded: true,
 	});
 
 	routine_task_done('1d');
@@ -549,7 +551,7 @@ async function mark_language_variants(recent_section_title_list, section_title_h
 	}
 
 	for (const language_variant of ['zh-hant', 'zh-hans']) {
-		const converted_list = await wiki.convert_Chinese(recent_section_title_list, language_variant)
+		const converted_list = await wiki.convert_Chinese(recent_section_title_list, language_variant);
 		mark_list(language_variant, converted_list);
 	}
 }
@@ -662,7 +664,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	//if (section_title_history[KEY_got_full_revisions]) return section_title_history;
 
-	CeL.info(`${tracking_section_title_history.name}: Trying to traversal all revisions of ${CeL.wiki.title_link_of(page_data)}...`);
+	CeL.info(`${tracking_section_title_history.name}: Traverse all revisions of ${CeL.wiki.title_link_of(page_data)}...`);
 
 	await wiki.tracking_revisions(page_data, async (diff, revision, old_revision) => {
 		//  `diff` 為從舊的版本 `old_revision` 改成 `revision` 時的差異。
@@ -1004,9 +1006,12 @@ async function check_page(target_page_data, options) {
 	const for_each_page_options = {
 		notification_name,
 		no_message: true, no_warning: true,
-		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
-			// gettext_config:{"id":"fixing-broken-anchor"}
-			CeL.gettext('修正失效的網頁錨點')),
+		// [es:Wikipedia:Bot/Autorizaciones#Cewbot|Bot in tests: Repairing broken anchors]]
+		summary: use_language === 'es' ? '[[Wikipedia:Bot/Autorizaciones#Cewbot|Bot in tests: Repairing broken anchors]]' :
+			CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+				// gettext_config:{"id":"fixing-broken-anchor"}
+				CeL.gettext('修正失效的網頁錨點')
+			),
 		bot: 1, minor: 1, nocreate: 1,
 		// [badtags] The tag "test" is not allowed to be manually applied.
 		//tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
