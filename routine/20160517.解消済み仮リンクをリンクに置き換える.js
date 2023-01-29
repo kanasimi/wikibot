@@ -1,4 +1,6 @@
 ﻿/*
+解消済み仮リンクをリンクに置き換える Convert interlanguage link templates with local article to wikilinks 將跨語言連結模板轉為內部連結（一般 wikilink）
+
 (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh; date) >> 解消済み仮リンクをリンクに置き換える/log &
 
 
@@ -31,11 +33,6 @@ node 20160517.解消済み仮リンクをリンクに置き換える.js use_lang
  {{main|{{跨語言連結}}}} → {{main|連結}}, NOT {{main|[[連結]]}} 要把連結也拿掉
  模板解析功能放進 CeL.application.net.wiki.template_functions。 Other configurations moving to wiki.latest_task_configuration.general
  Q6099744 [[Template:Interwiki conflict]]
-
- */
-
-/*
- 解消済み仮リンクをリンクに置き換える Convert interlanguage link templates with local article to wikilinks 將跨語言連結模板轉為內部連結（一般 wikilink）
 
  */
 
@@ -199,7 +196,8 @@ message_set = {
 		report_page : '需要修正的跨語言連結',
 		// fix_category : 'Category:跨語言連結有問題的頁面', Category:連結格式不正確的條目,
 		// Category:维基百科积压工作, Category:需要清理的条目, Category:维基百科条目清理
-		fix_category : 'Category:维基百科条目清理',
+		// [[User_talk:Kanashimi#Cewbot建議]]
+		fix_category : 'Category:維基百科連結清理',
 		// TODO: 這邊尚未列舉完成
 		template_order_of_name : {
 			'interlanguage link multi' : template_orders.LcF_en,
@@ -781,6 +779,7 @@ function for_each_page(page_data, messages) {
 				// → [[漁獲可能量|譲渡性個別割当制度]]
 
 				// TODO: 處理繁簡轉換的情況:有可能目標頁面存在，只是繁簡不一樣。
+				// TODO: 地區詞處理。
 				wiki.redirect_to(local_title,
 				// 檢查 parameters 指定的本地連結 local_title 是否最終也導向
 				// converted_local_title。
