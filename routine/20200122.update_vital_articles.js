@@ -1175,7 +1175,7 @@ const class_alias_to_normalized = {
 
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
-// or via ({{WikiProject *|class=start}})
+// or via {{WikiProject banner shell|class=}}, ({{WikiProject *|class=start}})
 function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// For [[Talk:Philippines]]
 	//console.trace(wiki.FC_data_hash[main_page_title]);
@@ -1241,13 +1241,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 		} else if (wiki.is_template('WikiProject banner shell', token)) {
 			WikiProject_banner_shell_token = token;
-			// {{WikiProject banner shell}} has no .class
+			// {{WikiProject banner shell|class=*}}
+			if (token.parameters.class)
+				class_from_other_templates = token.parameters.class;
 
 		} else if (token.parameters.class
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			&& /project|rating/i.test(token.name)) {
 			// TODO: verify if class is the same.
-			class_from_other_templates = token.parameters.class;
+			if (token.parameters.class)
+				class_from_other_templates = token.parameters.class;
 		}
 	});
 	// console.log([class_from_other_templates, VA_template_token]);
