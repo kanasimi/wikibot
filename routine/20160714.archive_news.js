@@ -79,8 +79,9 @@ function page_data_to_String(page_data) {
 }
 
 function main_work(template_name_redirect_to) {
+	// console.trace(wiki.cache);
 
-	CeL.wiki.cache([ {
+	wiki.cache([ {
 		type : 'redirects_here',
 		list : template_name_redirect_to.template_publish,
 		reget : true,
@@ -180,7 +181,7 @@ function main_work(template_name_redirect_to) {
 		// default options === this
 		namespace : 0,
 		// [SESSION_KEY]
-		session : wiki,
+		// session : wiki,
 		// title_prefix : 'Template:',
 		// cache path prefix
 		prefix : base_directory
