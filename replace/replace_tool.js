@@ -671,7 +671,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 
 		for (let index = 1; token.parameters[index] && token.parameters[index + 1]; index += 2) {
 			const move_from_link = normalize_page_token(index);
-			//if (move_from_link.includes('IOS (Apple)')) { console.trace(`Ignore ${move_from_link}`); continue; }
+			//if (move_from_link.includes('IOS (Apple)')) { console.trace(`Ignore ${CeL.wiki.title_link_of(move_from_link)}`); continue; }
 			let move_to_link = convert_special_move_to(normalize_page_token(index + 1, true));
 			const task_configuration = {
 				discussion_link,
@@ -948,10 +948,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				varianttitle = await meta_configuration[KEY_wiki_session].convert_Chinese(move_from_link, { uselang: 'zh-hans' });
 			}
 			if (varianttitle === move_from_link) {
-				CeL.warn(`${prepare_operation.name}: ${move_from_link} 可能是繁簡混雜？`);
+				CeL.warn(`${prepare_operation.name}: ${CeL.wiki.title_link_of(move_from_link)} 可能是繁簡混雜？`);
 			} else if (typeof task_configuration.move_to_link === 'string') {
 				// ↑ 預防 DELETE_PAGE 之類的 Symbol。
-				CeL.warn(`${prepare_operation.name}: ${move_from_link}: 亦自動轉換 ${varianttitle} → ${task_configuration.move_to_link}`);
+				CeL.warn(`${prepare_operation.name}: ${CeL.wiki.title_link_of(move_from_link)}: 亦自動轉換 ${CeL.wiki.title_link_of(varianttitle)} → ${CeL.wiki.title_link_of(task_configuration.move_to_link)}`);
 				move_configuration.splice(move_configuration_index + 1, 0, [pair[0], {
 					...task_configuration,
 					//is_additional_task_for_varianttitles: true,
@@ -1339,7 +1339,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 
 	if (wikitext.includes(move_from_link)) {
 		// e.g., {{Cite web|url=...}}
-		CeL.warn(`${text_processor_for_exturlusage.name}: There is still "${move_from_link}" left!`);
+		CeL.warn(`${text_processor_for_exturlusage.name}: There is still "${CeL.wiki.title_link_of(move_from_link)}" left!`);
 	}
 	if (changed)
 		return wikitext;
@@ -1501,7 +1501,7 @@ async function get_list(task_configuration, list_configuration) {
 				if (task_configuration.move_from.page_title === task_configuration.move_to.page_title && !task_configuration.move_to.display_text) {
 					if (task_configuration.move_to.display_text === '') {
 						// @see function prepare_operation()
-						CeL.error(`將替換成 [[${task_configuration.move_to_link}]]。應明確指定要改成的標的，避免這種表示法。若您想保持原 display_text，可將 move_to_link 設定為 ${JSON.stringify(`${task_configuration.move_from.page_title}|${task_configuration.move_from.page_title}`)}。`);
+						CeL.error(`將替換成 [[${CeL.wiki.title_link_of(task_configuration.move_to_link)}]]。應明確指定要改成的標的，避免這種表示法。若您想保持原 display_text，可將 move_to_link 設定為 ${JSON.stringify(`${task_configuration.move_from.page_title}|${task_configuration.move_from.page_title}`)}。`);
 					} else if (task_configuration.move_from.display_text) {
 						CeL.warn(`移動前後的頁面標題 ${JSON.stringify(list_configuration.move_from_link)} 相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！`);
 					}

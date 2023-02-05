@@ -1035,6 +1035,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		if (/* title_converted || */ data_to_modify.is_non_English_title) {
 			// https://www.wikidata.org/wiki/Property:P1476#P1476$f785f365-4c6d-6e2c-c3ab-8ab2d109f9df
 			// set English title in square brackets to deprecated rank
+			// https://www.wikidata.org/wiki/Wikidata:Project_chat#Should_cites_IMDb_(Q103598310),_cites_Wikidata_(Q103598309)_and_cites_Wikipedia_(Q103598308)_exist?
 			claim.rank = 'deprecated';
 			claim.qualifiers = {
 				// reason for deprecated rank (P2241) = translation instead of the original (Q110678154)

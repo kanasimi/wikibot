@@ -137,7 +137,7 @@ function get_page_contents(run_next, lint_error_page, index, linterrors) {
 	// CeL.set_debug(6);
 
 	if (CeL.is_debug(3)) {
-		console.log(lint_error_page);
+		console.trace(lint_error_page);
 	}
 
 	// TODO: 一次取得多個個頁面的內容。
@@ -353,7 +353,8 @@ function for_bogus_image_options(page_data) {
 	/** {String}page title = page_data.title */
 	var title = CeL.wiki.title_of(page_data),
 	/**
-	 * {String}page content, maybe undefined. 條目/頁面內容 = CeL.wiki.revision_content(revision)
+	 * {String}page content, maybe undefined. 條目/頁面內容 =
+	 * CeL.wiki.revision_content(revision)
 	 */
 	content = CeL.wiki.content_of(page_data);
 

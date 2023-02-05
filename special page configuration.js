@@ -751,6 +751,7 @@ var jawiki_week_AFD_options = {
 			return vote_count || '';
 		}
 	},
+	// TODO: using expand_transclusion()
 	preprocess_section_link_token : function(token) {
 		if (token.type === 'transclusion') {
 			// console.log(token);

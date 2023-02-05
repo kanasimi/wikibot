@@ -2,6 +2,7 @@
 
 node 20210429.Auto-archiver.js use_language=zh
 node 20210429.Auto-archiver.js use_language=ks
+node 20210429.Auto-archiver.js use_language=en
 node 20210429.Auto-archiver.js use_project=wikidata
 node 20210429.Auto-archiver.js use_project=zh.wikiversity
 node 20210429.Auto-archiver.js use_project=zh.wikinews

@@ -198,7 +198,7 @@ var section_column_operators = {
 	},
 	// 議題的標題。
 	title : function(section) {
-		// 在 transclusion 的時候，空白不會被自動轉為 "_"。
+		// 2023/1/26 在頁面被 transclusion 的時候，空白不會被自動轉為 "_"。
 		function convert_anchor(link) {
 			return link.replace(/#[^|]+/, function(all) {
 				return all.replace(/ /g, '_');

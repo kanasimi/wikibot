@@ -10,6 +10,7 @@ node general_replace.js 郑州南站改为郑州航空港站 get_task_configurat
 node general_replace.js "請求替換用戶頁中的模板：{{Youtube User}} → {{User YouTube}}" get_task_configuration_from=list min_list_length=1 namespace=user
 node general_replace.js "移除小天體模板所有鏈入" "task_configuration={""Template:小天體"":""DELETE_PAGE""}" no_task_configuration_from_section
 node general_replace.js "将条目中使用 模板 Imdb与IMDB的替换为 IMDb name" get_task_configuration_from=list min_list_length=1
+node general_replace.js "清理{{悠遊卡}}、{{一卡通}}嵌入" "task_configuration={""Template:悠遊卡"":""DELETE_PAGE"",""Template:一卡通"":""DELETE_PAGE"",""Template:Icash"":""DELETE_PAGE""}" no_task_configuration_from_section
 
 */
 
