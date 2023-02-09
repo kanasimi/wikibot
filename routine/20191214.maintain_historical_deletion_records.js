@@ -436,6 +436,8 @@ async function check_deletion_discussion_page(page_data) {
 			cc: true, ir: true, rr: true, rep: true, k: true, sk: true, os: true,
 			// [[User_talk:Kanashimi#維護討論頁之存廢討論紀錄與模板]]
 			cv: true,
+			// 重新提交討論
+			relist: true,
 		})
 			// e.g., 提刪者撤回 提請者收回 請求無效 無效提名 重複提出，無效 全部重複／未到期，請求無效
 			// 提案者重复提出，请求失效。见下。 改掛關注度模板，三十天後再議
