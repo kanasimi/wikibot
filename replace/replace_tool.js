@@ -2274,7 +2274,7 @@ function check_link_parameter(task_configuration, template_token, parameter_name
 		if ((isNaN(parameter_name) || parameter_name == 1)
 			&& (!(template_token.name in no_essential_parameter_templates)
 				|| parameter_name != no_essential_parameter_templates[template_token.name])) {
-			CeL.warn(`check_link_parameter: There is {{${template_token.name}}} without essential parameter: ${JSON.stringify(parameter_name)}.`);
+			CeL.debug(`There is {{${template_token.name}}} without (essential) link parameter: ${JSON.stringify(parameter_name)}.`, 1, 'check_link_parameter');
 		}
 		return;
 	}
@@ -2423,6 +2423,9 @@ async function for_each_template(page_data, token, index, parent) {
 		'Infobox rail system-route': 'logo_filename',
 
 		リダイレクトの所属カテゴリ: '*',
+
+		// {{Cite book|...|authorlink=...|...}}
+		'Cite book': 'authorlink',
 	})) return;
 
 	// templates that ALL NUMERAL parameters are treated as links.
