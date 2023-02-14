@@ -2257,10 +2257,12 @@ const no_essential_parameter_templates = {
 };
 
 function check_link_parameter(task_configuration, template_token, parameter_name) {
-	let options;
 	if (Array.isArray(parameter_name)) {
-		//TODO
-		[options, parameter_name] = parameter_name;
+		// TODO: options
+		for (let _parameter_name of parameter_name) {
+			check_link_parameter(task_configuration, template_token, _parameter_name);
+		}
+		return;
 	}
 
 	if (parameter_name === '*') {
@@ -2426,6 +2428,8 @@ async function for_each_template(page_data, token, index, parent) {
 
 		// {{Cite book|...|authorlink=...|...}}
 		'Cite book': 'authorlink',
+
+		'基礎情報 過去の国': ['先代1', '先代2', '先代3', '先代4', '先代5', '次代1', '次代2', '次代3', '次代4', '次代5',],
 	})) return;
 
 	// templates that ALL NUMERAL parameters are treated as links.
