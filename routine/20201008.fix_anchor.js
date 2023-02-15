@@ -5,6 +5,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
 node 20201008.fix_anchor.js use_language=ja "check_page=チオペンタール"
+node 20201008.fix_anchor.js use_language=ja "check_page=マリオカート8"
 node 20201008.fix_anchor.js use_language=zh "check_page=中国驻美国大使列表"
 node 20201008.fix_anchor.js use_language=zh "check_page=国有企业"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
