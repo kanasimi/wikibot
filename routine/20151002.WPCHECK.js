@@ -1011,7 +1011,8 @@ function fix_65(content, page_data, messages, config) {
 // prevent: "title -sub_title- ISBN..."
 // TODO: {{ISBNT|ISBN 123456789}}, {{ISBN|ISBN 123456789}}
 // TODO: <nowiki>ISBN 1234567890</nowiki>, <nowiki>ISBN </nowiki>1234567890
-var PATTERN_ISBN = /([^\d])(1[03])?([ ]*\-?)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:：\s#.]*([\dx\-\s]{10,})/gi;
+// 必須避免 [[w:zh:Special:Diff/74294709]]
+var PATTERN_ISBN = /([^\w\d=])(1[03])?([ ]*\-?)(?:ISBN|\[\[\s*ISBN\s*\]\])[\-\s]*(?:1[03])?[:：\s#.]*([\dx\-\s]{10,})/ig;
 // 不可更改 parameter 為 "ISBN = ..." 的情況!
 fix_69.title = 'ISBN用法錯誤';
 function fix_69(content, page_data, messages, config) {
