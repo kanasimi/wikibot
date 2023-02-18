@@ -78,6 +78,7 @@ jstop cron-tools.cewbot-20201008.fix_anchor.ja
 TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
 fix [[Special:PermanentLink]]
+"#a" 與 "# a" 共存時，大小寫、空白出問題的處理。
 
 https://en.wikipedia.org/w/index.php?title=Bibliography_of_works_on_Davy_Crockett&diff=prev&oldid=1080437075&diffmode=source
 https://en.wikipedia.org/w/index.php?title=Brands_Hatch_race_winners&curid=39487649&diff=1084263902&oldid=1083976678&diffmode=source
@@ -1048,9 +1049,9 @@ async function check_page(target_page_data, options) {
 				return Wikiapi.skip_edit;
 			}
 
-			// the bot only fix namespace=talk.
-			if (!wiki.is_namespace(talk_page_data, 'talk')) {
-				// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]], [[Template‐ノート:]]
+			// the bot only fix talk pages.
+			if (!wiki.is_talk_namespace(talk_page_data)) {
+				// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
 				CeL.warn(`${add_note_for_broken_anchors.name}: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
 				console.trace(talk_page_data);
 				return Wikiapi.skip_edit;
