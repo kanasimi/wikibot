@@ -4,21 +4,11 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
-node 20201008.fix_anchor.js use_language=ja "check_page=チオペンタール"
-node 20201008.fix_anchor.js use_language=ja "check_page=マリオカート8"
-node 20201008.fix_anchor.js use_language=zh "check_page=中国驻美国大使列表"
 node 20201008.fix_anchor.js use_language=zh "check_page=国有企业"
 node 20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
-node 20201008.fix_anchor.js use_language=en "check_page=WABC (AM)"
-node 20201008.fix_anchor.js use_language=en "check_page=User:Formula Downforce/sandbox"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
-node 20201008.fix_anchor.js use_language=en "check_page=List of Falcon 9 first-stage boosters"
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
-node 20201008.fix_anchor.js use_language=en "check_page=Euphoria (American TV series)"
-node 20201008.fix_anchor.js use_language=en "check_page=Spanish dialects and varieties"
-node 20201008.fix_anchor.js use_language=en "check_page=Kingdom of Italy"
-node 20201008.fix_anchor.js use_language=en "check_page=List of Toy Story characters"
 node 20201008.fix_anchor.js use_language=en "check_page=Tropical cyclone scales"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
@@ -49,7 +39,7 @@ node 20201008.fix_anchor.js use_language=simple
 node 20201008.fix_anchor.js use_project=zhmoegirl
 node 20201008.fix_anchor.js use_project=wiktionary
 
-fix archived:
+修正討論議題被存檔後頁面連結改變的問題:
 node 20201008.fix_anchor.js use_language=en archives
 node 20201008.fix_anchor.js use_language=zh archives
 node 20201008.fix_anchor.js use_language=ja archives
