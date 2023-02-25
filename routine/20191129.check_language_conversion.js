@@ -10,6 +10,7 @@ node routine/20191129.check_language_conversion.js use_project=zhmoegirl
 
 TODO:
 [[Wikipedia:机器人/作业请求#修正一些条目的NoteTA中的不当中文变体]]
+{{Lan}}
 
  */
 
