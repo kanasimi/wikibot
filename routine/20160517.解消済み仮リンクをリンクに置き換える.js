@@ -643,7 +643,7 @@ function for_each_page(page_data, messages) {
 				// gettext_config:{"id":"Comma-separator"}
 				changed.join(gettext('Comma-separator'))) + ' ('
 				// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-				+ gettext('本次機械人作業已完成%1%', (100 * _this.pages_finished /
+				+ gettext('The bot operation is completed %1% in total', (100 * _this.pages_finished /
 				// 整體作業進度 overall progress
 				_this.initial_target_length).to_fixed(1)) + ')',
 				nocreate : 1,

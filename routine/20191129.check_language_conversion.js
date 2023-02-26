@@ -979,7 +979,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	function progress_message() {
 		return ' ('
 			// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-			+ CeL.gettext('本次機械人作業已完成%1%', (100 * work_config.pages_finished /
+			+ CeL.gettext('The bot operation is completed %1% in total', (100 * work_config.pages_finished /
 				// 整體作業進度 overall progress
 				work_config.initial_target_length).to_fixed(1)) + ')';
 	}
