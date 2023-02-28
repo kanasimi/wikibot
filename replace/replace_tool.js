@@ -766,6 +766,15 @@ async function notice_to_edit(wiki, meta_configuration) {
 		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section);
 		//console.trace(task_configuration_from_section);
 
+		if (CeL.is_empty_object(task_configuration_from_section)) {
+			CeL.warn([notice_to_edit.name + ': ', {
+				// gettext_config:{"id":"the-section-does-not-set-the-task-configuration-$1"}
+				T: ['本章節未設定任務內容: %1', meta_configuration.section_title]
+			}]);
+			options.need_edit = false;
+			return;
+		}
+
 		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ?
 			//{{BOTREQ|着手}}
 			'{{BOTREQ|作業中}}' : '{{Doing}}');
@@ -773,10 +782,10 @@ async function notice_to_edit(wiki, meta_configuration) {
 		// PATTERN =
 		// new RegExp(PATTERN.source + ' .+?' + meta_configuration[KEY_wiki_session].token.login_user_name, PATTERN.flags);
 		if (section.toString().includes(doing_message) /*PATTERN.test(section.toString())*/) {
-			CeL.info({
+			CeL.info([notice_to_edit.name + ': ', {
 				// gettext_config:{"id":"already-reminded-that-the-operation-is-in-progress-$1"}
 				T: ['Already reminded that the operation is in progress: %1', meta_configuration.section_title]
-			});
+			}]);
 			options.need_edit = false;
 			return;
 		}
@@ -838,8 +847,14 @@ async function notice_finished(wiki, meta_configuration) {
 	};
 	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
 
-	await for_bot_requests_section(wiki, meta_configuration, function (section) {
-		const wiki_language = wiki.site_name({ get_all_properties: true }).language;
+	await for_bot_requests_section(wiki, meta_configuration, async function (section) {
+		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section);
+		if (CeL.is_empty_object(task_configuration_from_section)) {
+			options.need_edit = false;
+			return;
+		}
+
+		//const wiki_language = wiki.site_name({ get_all_properties: true }).language;
 		const finished_message = meta_configuration.finished_message
 			// gettext_config:{"id":"robot-task-completion-notification"}
 			|| CeL.gettext('{{Done}} Please check the results and let me know if there is something wrong, thank you.')
