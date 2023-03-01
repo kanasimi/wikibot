@@ -151,7 +151,10 @@ async function adapt_configuration(latest_task_configuration) {
 	if (!general.tags)
 		general.tags = '';
 
-	await wiki.register_redirects(['Section link', 'Broken anchors', general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
+	if (!general.broken_anchor_template)
+		general.broken_anchor_template = 'Broken anchors';
+
+	await wiki.register_redirects(['Section link', general.broken_anchor_template, general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
 	console.trace(wiki.latest_task_configuration.general);
@@ -1001,7 +1004,7 @@ async function check_page(target_page_data, options) {
 		notification_name,
 		no_message: true, no_warning: true,
 		// [es:Wikipedia:Bot/Autorizaciones#Cewbot|Bot in tests: Repairing broken anchors]]
-		summary: use_language === 'es' ? '[[Wikipedia:Bot/Autorizaciones#Cewbot|Bot in tests: Repairing broken anchors]]' :
+		summary: //use_language === 'es' ? '[[Wikipedia:Bot/Autorizaciones#Cewbot|Bot in tests: Repairing broken anchors]]' :
 			CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
 				// gettext_config:{"id":"fixing-broken-anchor"}
 				CeL.gettext('Fixing broken anchor')
@@ -1056,7 +1059,7 @@ async function check_page(target_page_data, options) {
 			let removed_anchors = 0;
 			const remove_reason = { non_exist: 0, is_present: 0 };
 			parsed.each('template', template_token => {
-				if (!wiki.is_template('Broken anchors', template_token))
+				if (!wiki.is_template(wiki.latest_task_configuration.general.broken_anchor_template, template_token))
 					return;
 
 				//console.trace(template_token);
@@ -1114,7 +1117,7 @@ async function check_page(target_page_data, options) {
 			});
 
 			parsed.each('template', template_token => {
-				if (!wiki.is_template('Broken anchors', template_token))
+				if (!wiki.is_template(wiki.latest_task_configuration.general.broken_anchor_template, template_token))
 					return;
 				if (template_token.parameters[LINKS_PARAMETER]?.toString()?.trim() === '') {
 					// 移除掉整個 {{Broken anchors}}。
@@ -1167,7 +1170,7 @@ async function check_page(target_page_data, options) {
 				};
 			}
 
-			wikitext_to_add = `{{Broken anchors|${LINKS_PARAMETER}=${wikitext_to_add}\n}}`;
+			wikitext_to_add = `{{${wiki.latest_task_configuration.general.broken_anchor_template}|${LINKS_PARAMETER}=${wikitext_to_add}\n}}`;
 			parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
 			if (false) {
 				// @deprecated
