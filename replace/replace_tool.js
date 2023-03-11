@@ -493,7 +493,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	const section_title = meta_configuration.section_title;
 	//'max'
-	const rvlimit = meta_configuration.requests_page_rvlimit || 80;
+	const rvlimit = meta_configuration.requests_page_rvlimit || 100;
 
 	//console.trace(section_title);
 	if (section_title) {
@@ -536,14 +536,19 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	}
 
 	if (!meta_configuration.diff_id) {
+		if (section_title) {
+			CeL.error(guess_and_fulfill_meta_configuration.name + ': 無法找到是哪個版本添加了此標題，可能是標題較舊，且所設定的回溯 rvlimit 不足? ' + section_title);
+		}
 		if (use_language === 'zh' || use_language === 'cmn') {
 			CeL.error([guess_and_fulfill_meta_configuration.name + ': ', {
 				T: '請注意標題繁體簡體必須相符！'
 			}]);
 			// e.g., 刪除小天體模板時，[[Template:小天体]] redirect to [[Template:小天體]]?
 		}
-		// gettext_config:{"id":"unable-to-extract-the-revision-difference-id-from-page-edit-summary-of-$1"}
-		throw new Error(CeL.gettext('Unable to extract the revision difference id from page edit summary of %1!', CeL.wiki.title_link_of(requests_page)));
+		if (false) {
+			// gettext_config:{"id":"unable-to-extract-the-revision-difference-id-from-page-edit-summary-of-$1"}
+			throw new Error(CeL.gettext('Unable to extract the revision difference id from page edit summary of %1!', CeL.wiki.title_link_of(requests_page)));
+		}
 	}
 
 	// throw new Error(meta_configuration.section_title);
@@ -912,8 +917,11 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration[KEY_wiki_session];
 
-	if (!meta_configuration.not_bot_requests)
+	if (!meta_configuration.not_bot_requests) {
 		await guess_and_fulfill_meta_configuration(wiki, meta_configuration);
+		if (!meta_configuration.diff_id)
+			return;
+	}
 
 	if (!meta_configuration.no_notice)
 		await notice_to_edit(wiki, meta_configuration);

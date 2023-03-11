@@ -6,6 +6,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backli
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
 node 20201008.fix_anchor.js use_language=zh "check_page=国有企业"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
+node 20201008.fix_anchor.js use_language=zh "check_page=美国驻华大使列表" "only_modify_pages=马康卫" check_talk_page=true
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
