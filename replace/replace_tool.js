@@ -493,7 +493,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 	// 可省略 `diff_id` 的條件: 以新章節增加請求，且編輯摘要包含 `/* section_title */`
 	const section_title = meta_configuration.section_title;
 	//'max'
-	const rvlimit = meta_configuration.requests_page_rvlimit || 100;
+	const rvlimit = meta_configuration.requests_page_rvlimit || 80;
 
 	//console.trace(section_title);
 	if (section_title) {
@@ -537,7 +537,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 
 	if (!meta_configuration.diff_id) {
 		if (section_title) {
-			CeL.error(guess_and_fulfill_meta_configuration.name + ': 無法找到是哪個版本添加了此標題，可能是標題較舊，且所設定的回溯 rvlimit 不足? ' + section_title);
+			CeL.error(guess_and_fulfill_meta_configuration.name + ': 無法找到是哪個版本添加了此標題，可能是標題較舊，且所設定的回溯 rvlimit 不足?\n' + CeL.wiki.title_link_of(requests_page + '#' + section_title));
 		}
 		if (use_language === 'zh' || use_language === 'cmn') {
 			CeL.error([guess_and_fulfill_meta_configuration.name + ': ', {
