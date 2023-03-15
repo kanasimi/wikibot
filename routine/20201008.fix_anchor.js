@@ -20,6 +20,7 @@ node routine/20201008.fix_anchor.js use_project=zhmoegirl 'check_page=THE IDOLM@
 
 
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
+jstop cron-tools.anchor-corrector-20201008.fix_anchor.de
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.simple
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.zh
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.ja
@@ -27,6 +28,7 @@ jstop cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks
 
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.en -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=en
+/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.de -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=de
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.simple -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=simple
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.zh -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=zh
 /usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.ja -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=ja
@@ -39,6 +41,7 @@ jstop cron-tools.mgp-cewbot-20201008.fix_anchor.moegirl
 
 
 node 20201008.fix_anchor.js use_language=en
+node 20201008.fix_anchor.js use_language=de
 node 20201008.fix_anchor.js use_language=zh
 node 20201008.fix_anchor.js use_language=ja
 node 20201008.fix_anchor.js use_language=simple
