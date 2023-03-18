@@ -4,18 +4,13 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
-node 20201008.fix_anchor.js use_language=zh "check_page=国有企业"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
-node 20201008.fix_anchor.js use_language=zh "check_page=美国驻华大使列表" "only_modify_pages=马康卫" check_talk_page=true
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
-node 20201008.fix_anchor.js use_language=en "check_page=Tropical cyclone scales"
-node 20201008.fix_anchor.js use_language=en "check_page=Gotham (season 2)"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
-node routine/20201008.fix_anchor.js use_project=zhmoegirl 'check_page=THE IDOLM@STER M@STERS OF IDOL WORLD!!!!!2023'
 
 
 
