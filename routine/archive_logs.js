@@ -25,7 +25,13 @@ wiki = Wiki(true);
 var
 /** {String}只檢查這個命名空間下面的所有頁面。 20: for 20dd年 */
 title_prefix = 'User:'
-		+ CeL.wiki.extract_login_user_name(login_options.user_name) + '/log/20',
+		+ CeL.wiki.extract_login_user_name(login_options.user_name, {
+			get_bot_name : true
+		}) + '/log/20';
+
+CeL.info('檢查頁面前綴: ' + title_prefix);
+
+var
 /**
  * log_root (所有個別項目之記錄頁面) 的模式。其下視為子頁面，其上不被視作記錄頁面。
  * 
