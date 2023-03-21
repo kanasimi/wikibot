@@ -1,5 +1,5 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node archive_logs.js use_language=zh && date
-// cd /d D:\USB\cgi-bin\program\wiki && node archive_logs.js use_language=zh
+﻿// cd ~/wikibot && date && time /shared/bin/node 20160323.archive_bot_logs.js use_language=zh && date
+// cd /d D:\USB\cgi-bin\program\wiki && node 20160323.archive_bot_logs.js use_language=zh
 // archive logs. 歸檔封存機器人執行的記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
 /*
@@ -11,14 +11,27 @@
 
 'use strict';
 
-globalThis.no_task_date_warning = true;
+// globalThis.no_task_date_warning = true;
 
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+login_options.configuration_adapter = adapt_configuration;
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true);
+
+// ---------------------------------------------------------------------//
+
+// 讀入手動設定 manual settings。
+function adapt_configuration(latest_task_configuration) {
+	// console.log(latest_task_configuration);
+	// console.log(wiki);
+
+	CeL.log('Task configuration:');
+	console.log(wiki.latest_task_configuration);
+}
 
 // ---------------------------------------------------------------------//
 
@@ -109,6 +122,56 @@ function get_log_pages(callback) {
 		}).sort());
 	}, {
 		limit : 'max'
+	});
+}
+
+function handle_log_pages(log_pages) {
+	CeL.debug(
+	//
+	'PATTERN_log_archive: ' + PATTERN_log_archive, 1, 'get_log_pages');
+	var
+	/** {Array}filter log root. e.g., [[User:bot_name/log/20010101]] */
+	log_root = log_pages.filter(function(title) {
+		if (false && !title.includes('20150916')) {
+			return;
+		}
+		// 篩選出存檔頁面
+		var matched = title.match(PATTERN_log_archive);
+		if (matched) {
+			CeL.debug(matched, 1, 'get_log_pages');
+			var index = matched[3] | 0;
+			if (matched[1] in lastest_archive) {
+				if (archive_prefix_hash[matched[1]] !== matched[2]) {
+					CeL.warn('[[' + matched[1] + ']] 的存檔頁面有兩種不同的 prefix: '
+							+ archive_prefix_hash[matched[1]] + ', '
+							+ matched[2] + '。將以數字最大者為主。');
+				}
+				if (index < lastest_archive[matched[1]]) {
+					// 不作設定。
+					index = null;
+				}
+			}
+			if (index) {
+				// 設定 index
+				// 中間即使有空的編號，也會跳號不考慮。
+				lastest_archive[matched[1]] = index;
+				archive_prefix_hash[matched[1]] = matched[2];
+			}
+		}
+		return PATTERN_LOG_TITLE.test(title);
+	});
+	// console.log(log_root);
+	// console.log(lastest_archive);
+	// console.log(archive_prefix_hash);
+
+	wiki.page(log_root, function(pages, error) {
+		if (error) {
+			CeL.error(error);
+		} else {
+			pages.forEach(for_log_page);
+		}
+	}, {
+		multi : true
 	});
 }
 
@@ -203,6 +266,7 @@ function for_log_page(page_data) {
 			// remove log.
 			summary : summary + ' #2/2 移除記錄',
 			bot : 1,
+			tags : wiki.latest_task_configuration.general.tags,
 			nocreate : had_failed ? 0 : 1
 		}, function(title, error) {
 			if (error)
@@ -228,6 +292,7 @@ function for_log_page(page_data) {
 			// append log. 附加，增補。
 			summary : summary + ' #1/2 添附記錄',
 			bot : 1,
+			tags : wiki.latest_task_configuration.general.tags,
 			section : 'new',
 			sectiontitle : (new Date).format('%4Y%2m%2d') + '歸檔封存'
 		};
@@ -251,9 +316,24 @@ function for_log_page(page_data) {
 			|| (typeof log_page === 'string' ? log_page.length + log_size
 			// 頁面大小系統上限 2,048 KB = 2 MB = Math.pow(8, 7)。
 			<= 2e6 : !config.nocreate)) {
-				return "'''{{font color|#54f|#ff6|存檔長度" + log_size
-				// TODO: internationalization
-				+ "字元。}}'''\n" + content.slice(matched.index).trim();
+				// 字數統計總結
+				var word_count_summary
+				//
+				= CeL.gettext(wiki.latest_task_configuration
+				//
+				.general.word_count_summary
+				// gettext_config:{"id":"archive-$1-chars"}
+				|| "Archive %1 {{PLURAL:%1|char|chars}}.", log_size);
+				if (!/{{|'''|</.test(word_count_summary)) {
+					word_count_summary
+					//
+					= "<span style=\"color:#54f;background-color:#ff6\">'''"
+					//
+					+ word_count_summary + "'''</span>";
+				}
+				return word_count_summary + "'\n"
+				//
+				+ content.slice(matched.index).trim();
 			}
 
 		}, config, function(title, error) {
@@ -294,52 +374,4 @@ function for_log_page(page_data) {
 
 // CeL.set_debug(2);
 
-get_log_pages(function(log_pages) {
-	CeL.debug(
-	//
-	'PATTERN_log_archive: ' + PATTERN_log_archive, 1, 'get_log_pages');
-	var
-	/** {Array}filter log root. e.g., [[User:bot_name/log/20010101]] */
-	log_root = log_pages.filter(function(title) {
-		if (false && !title.includes('20150916')) {
-			return;
-		}
-		// 篩選出存檔頁面
-		var matched = title.match(PATTERN_log_archive);
-		if (matched) {
-			CeL.debug(matched, 1, 'get_log_pages');
-			var index = matched[3] | 0;
-			if (matched[1] in lastest_archive) {
-				if (archive_prefix_hash[matched[1]] !== matched[2]) {
-					CeL.warn('[[' + matched[1] + ']] 的存檔頁面有兩種不同的 prefix: '
-							+ archive_prefix_hash[matched[1]] + ', '
-							+ matched[2] + '。將以數字最大者為主。');
-				}
-				if (index < lastest_archive[matched[1]]) {
-					// 不作設定。
-					index = null;
-				}
-			}
-			if (index) {
-				// 設定 index
-				// 中間即使有空的編號，也會跳號不考慮。
-				lastest_archive[matched[1]] = index;
-				archive_prefix_hash[matched[1]] = matched[2];
-			}
-		}
-		return PATTERN_LOG_TITLE.test(title);
-	});
-	// console.log(log_root);
-	// console.log(lastest_archive);
-	// console.log(archive_prefix_hash);
-
-	wiki.page(log_root, function(pages, error) {
-		if (error) {
-			CeL.error(error);
-		} else {
-			pages.forEach(for_log_page);
-		}
-	}, {
-		multi : true
-	});
-});
+wiki.run(get_log_pages.bind(null, handle_log_pages));

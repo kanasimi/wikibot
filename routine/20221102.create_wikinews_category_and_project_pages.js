@@ -38,6 +38,7 @@ const wiki = new Wikiapi;
 async function adapt_configuration(latest_task_configuration) {
 	const { general } = latest_task_configuration;
 
+	CeL.log('Task configuration:');
 	console.log(wiki.latest_task_configuration);
 }
 
