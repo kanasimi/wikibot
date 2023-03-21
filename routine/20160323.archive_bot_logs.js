@@ -331,7 +331,7 @@ function for_log_page(page_data) {
 					//
 					+ word_count_summary + "'''</span>";
 				}
-				return word_count_summary + "'\n"
+				return word_count_summary + "\n"
 				//
 				+ content.slice(matched.index).trim();
 			}
