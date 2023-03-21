@@ -1,4 +1,4 @@
-﻿// cd ~/wikibot && date && time /shared/bin/node 20160323.archive_bot_logs.js use_language=zh && date
+// cd ~/wikibot && date && time /shared/bin/node 20160323.archive_bot_logs.js use_language=zh && date
 // cd /d D:\USB\cgi-bin\program\wiki && node 20160323.archive_bot_logs.js use_language=zh
 // archive logs. 歸檔封存機器人執行的記錄子頁面。若程式運作紀錄超過1筆，而且長度過長(≥min_length)，那麼就將所有的記錄搬到存檔中。
 
@@ -331,7 +331,7 @@ function for_log_page(page_data) {
 					//
 					+ word_count_summary + "'''</span>";
 				}
-				return word_count_summary + "'\n"
+				return word_count_summary + "\n"
 				//
 				+ content.slice(matched.index).trim();
 			}
