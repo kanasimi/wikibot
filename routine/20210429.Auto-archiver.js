@@ -276,7 +276,7 @@ async function archive_page(configuration) {
 	const summary_tail = `: ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
 	//console.trace([archive_to_page, summary, summary_tail]);
 
-	// 寫入存檔失敗則 throw，不刪除原討論頁內容。
+	// 添附記錄: 寫入存檔失敗則 throw，不刪除原討論頁內容。
 	await wiki.edit_page(archive_to_page, (archive_to_page.wikitext ? archive_to_page.wikitext.trim() + '\n\n' : '') + archive_wikitext.trim() + '\n\n', {
 		bot: 1, minor: 1, summary: summary + ': '
 			// TODO: 1件のスレッドを「%1」より過去ログ化 (7日以上経過、過去ログ満杯)
@@ -290,6 +290,7 @@ async function archive_page(configuration) {
 			&& CeL.gettext(archive_configuration.left_link.toString(), section.section_title.link[0] + '#' + section.section_title.link[1])
 		)
 	);
+	// 移除記錄
 	// TODO: 1件のスレッドを「%1」へ過去ログ化 (7日以上経過、過去ログ満杯)
 	await wiki.edit_page(target_root_page, parsed.toString(), {
 		nocreate: 1, bot: 1, minor: 1, summary: summary + ': '
