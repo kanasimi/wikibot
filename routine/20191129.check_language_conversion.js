@@ -1,6 +1,7 @@
 ﻿/*
-調整頁面的字詞轉換規則
+調整頁面的字詞轉換規則。
 
+node 20191129.check_language_conversion.js use_project=zh
 node routine/20191129.check_language_conversion.js use_project=zhmoegirl
 
 2019/12/2 20:2:11	初版試營運
@@ -30,7 +31,7 @@ const wiki = new Wikiapi;
 
 // for debug
 const debug_page = undefined
-	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰' '操作系统' '上海市'
+	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰' '操作系统' '上海市' '余思明'
 	;
 
 const conversion_table_file = `conversion_table.${use_language}.json`;
@@ -199,6 +200,7 @@ async function check_system_conversions() {
 	const PATTERN_system_conversion_table_array = /(\w+)\s*=\s*(\[[^\[\]]+\])/g;
 	let matched, max_key_length = 0;
 	while (matched = PATTERN_system_conversion_table_array.exec(system_conversion_text)) {
+		//console.trace(matched[2]);
 		const conversions = CeL.wiki.parse.lua_object(matched[2], { force_parse: true });
 		system_conversion_table[matched[1]] = new Map(Object.entries(/*conversions*/ {}));
 		for (const [key, value] of Object.entries(conversions)) {
@@ -206,6 +208,7 @@ async function check_system_conversions() {
 				if (max_key_length < key.length) {
 					max_key_length = key.length;
 				}
+				//console.trace(key, value);
 				system_conversion_Map.set(key, value);
 			}
 		}
@@ -214,6 +217,7 @@ async function check_system_conversions() {
 
 	CeL.info(`${check_system_conversions.name}: All ${system_conversion_Map.size} entries in ${Object.keys(system_conversion_table).length} tables: ${Object.keys(system_conversion_table).join(', ')}`);
 	//console.trace(system_conversion_table);
+	//console.trace(system_conversion_Map);
 }
 
 // ----------------------------------------------------------------------------
@@ -877,8 +881,11 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			//console.trace([rule in conversion_hash, rule]);
 		}
 
+		//console.trace([rule in conversion_hash, rule]);
 		if (!(rule in conversion_hash)) {
 			// 有自己特殊的 rule。
+			// TODO: 檢查若是不會被轉換，那就直接消除本特殊 rule。
+			// e.g., [[w:zh:Special:Diff/76576605|余思明]]
 			return;
 		}
 
@@ -894,31 +901,19 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 			// 測試與前一段文字合起來時，會不會被轉換。
 			const previous_piece = parent[index - 1];
+			// assert: typeof previous_piece === 'string' && previous_piece.trim() && typeof parent[index - 2] !== 'string'
+			// 因此不必再向前測試，對於 full_piece 亦同。
 			const following_piece = parent[index + 1];
+			/** {Number}_convert_to在full_piece中，起始的index。在測試期間可能為負數。 */
+			let _convert_to_start_index = typeof previous_piece === 'string' ? previous_piece.length : 0;
 			let full_piece = (typeof previous_piece === 'string' ? previous_piece : '') + _convert_to + (typeof following_piece === 'string' ? following_piece : '');
+			//console.trace([previous_piece, following_piece, full_piece, _convert_to]);
 			if (previous_piece && typeof previous_piece === 'string') {
 				/** 本次測試的文字 */
 				const test_piece = previous_piece.slice(-1) + _convert_to.slice(0, 1);
+				//console.trace([test_piece, full_piece, piece_matches_conversion_rule(test_piece, full_piece)]);
 				if (piece_matches_conversion_rule(test_piece, full_piece)) {
 					return;
-				}
-
-				// 測試 _convert_to 會被 system_conversion_Map 系統轉換的情況。
-				// e.g., [[三芝區]] `{{NoteTA|里}}子里` 在TW下依然會被轉成 "子裡"。
-				// TODO: 這個測試不完全，沒包括 _convert_to 在公共轉換組的情況。
-				for (let/** 向後長度 */backward_length = 1; backward_length <= _convert_to.length; ++backward_length) {
-					const base_piece = _convert_to.slice(0, backward_length);
-					for (let/** 本次測試的文字 */test_piece = base_piece,/** 向前追溯長度 */forward_length = 1;
-						forward_length <= previous_piece.length && test_piece.length <= system_conversion_Map.max_key_length;) {
-						//console.trace([test_piece, system_conversion_Map.has(test_piece), !piece_matches_conversion_rule(test_piece, full_piece)]);
-						if (system_conversion_Map.has(test_piece)
-							// `{{NoteTA|子里}}子里` 則不會被轉換。
-							&& !piece_matches_conversion_rule(test_piece, full_piece)) {
-							return;
-						}
-						++forward_length;
-						test_piece = previous_piece.slice(-forward_length) + base_piece;
-					}
 				}
 			}
 
@@ -926,9 +921,37 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			if (following_piece && typeof following_piece === 'string') {
 				/** 本次測試的文字 */
 				const test_piece = _convert_to.slice(-1) + following_piece.slice(0, 1);
+				//console.trace([test_piece, full_piece, piece_matches_conversion_rule(test_piece, full_piece)]);
 				if (piece_matches_conversion_rule(test_piece, full_piece)) {
 					return;
 				}
+			}
+
+			// 測試 _convert_to 與前後文組合後，會被 system_conversion_Map 系統轉換的情況。
+			// e.g., [[三芝區]] `{{NoteTA|里}}子里` 在TW下依然會被轉成 "子裡"。
+			// e.g., [[余思明]] `{{NoteTA|余}}思明` 在TW下依然會被轉成 "餘思"。
+			// TODO: 這個測試不完全，沒包括 _convert_to 在公共轉換組的情況。
+			if (_convert_to_start_index >= system_conversion_Map.max_key_length) {
+				full_piece = full_piece.slice(_convert_to_start_index - system_conversion_Map.max_key_length + 1);
+				_convert_to_start_index = system_conversion_Map.max_key_length - 1;
+			}
+			while (_convert_to_start_index + _convert_to.length >= 0) {
+				//console.trace([full_piece, _convert_to_start_index]);
+				for (let/** 本次測試的文字。 */test_piece = full_piece.slice(0, system_conversion_Map.max_key_length);
+					test_piece.length > 0 && test_piece.length > _convert_to_start_index;
+					// 檢測縮減1個字元的片段。
+					test_piece = test_piece.slice(0, -1)) {
+					//console.trace([test_piece, system_conversion_Map.has(test_piece), !piece_matches_conversion_rule(test_piece, full_piece)]);
+					if (system_conversion_Map.has(test_piece)
+						// 因為公共轉換組覆寫了規則，`{{NoteTA|子里}}子里` 不會被轉換。
+						&& !piece_matches_conversion_rule(test_piece, full_piece)) {
+						// `system_conversion_Map.has(test_piece)`, 代表假如移除了這個轉換，系統轉換會產生作用。所以必須留存這個轉換，否則將產生不同的結果。
+						return;
+					}
+				}
+				// 檢測下一個字元。
+				full_piece = full_piece.slice(1);
+				_convert_to_start_index--;
 			}
 
 			convert_to = _convert_to;
@@ -989,6 +1012,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		if (unregistered_groups_template_name) {
 			const unregistered_groups_Array = Array.from(unregistered_groups_Set);
 			//CeL.set_debug(6);
+			// 編輯條目討論頁上的提示模板。
 			await wiki.edit_page(wiki.to_talk_page(page_data), talk_page_data => {
 				const parsed = talk_page_data.parse();
 				let unregistered_groups_template = parsed.find_template(unregistered_groups_template_name);
@@ -1008,6 +1032,14 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 					parsed.unshift(unregistered_groups_template, '\n');
 				}
 
+				// 去掉所有 parameters。
+				while (unregistered_groups_template.length > 1)
+					unregistered_groups_template.pop();
+				unregistered_groups_Array.forEach(group_name => unregistered_groups_template.push(group_name));
+				//console.trace([wiki.to_talk_page(page_data), unregistered_groups_template.toString()]);
+				return parsed.toString();
+
+				// @deprecated: 不再採用 links
 				let index_of_links = unregistered_groups_template.index_of.links;
 				const wikitext = ['links='].append(unregistered_groups_Array.map(group_name => `* ${group_name}`)).join('\n') + '\n';
 				if (!index_of_links || !unregistered_groups_template[index_of_links]) {
@@ -1022,12 +1054,16 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				bot: 1,
 				allow_empty: 1,
 				tags: wiki.latest_task_configuration.general.tags,
+				skip_nochange: true,
 				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message(),
 			});
 		}
 	}
 
-	if (!changed) {
+	if (!changed || debug_page) {
+		if (debug_page) {
+			CeL.info(`for_NoteTA_article: ${changed ? `跳過編輯debug頁面${CeL.wiki.title_link_of(page_data)}。` : `不會改變debug頁面${CeL.wiki.title_link_of(page_data)}。`}`);
+		}
 		return Wikiapi.skip_edit;
 	}
 	//console.trace(parsed.toString());
