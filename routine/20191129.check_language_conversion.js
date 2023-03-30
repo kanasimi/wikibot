@@ -886,6 +886,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			// 有自己特殊的 rule。
 			// TODO: 檢查若是不會被轉換，那就直接消除本特殊 rule。
 			// e.g., [[w:zh:Special:Diff/76576605|余思明]]
+			CeL.debug(`${CeL.wiki.title_link_of(page_data)}: ${token}`, 3, 'for_NoteTA_article');
 			return;
 		}
 
@@ -1058,6 +1059,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message(),
 			});
 		}
+		//console.trace(changed);
 	}
 
 	if (!changed || debug_page) {
