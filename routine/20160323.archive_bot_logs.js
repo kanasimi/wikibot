@@ -125,6 +125,7 @@ function get_log_pages(callback) {
 	});
 }
 
+// @see CeL.detect_serial_pattern(subpages)
 function handle_log_pages(log_pages) {
 	CeL.debug(
 	//
