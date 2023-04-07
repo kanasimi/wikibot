@@ -40,8 +40,9 @@ async function adapt_configuration(latest_task_configuration) {
 
 	if (!general.redirect_template_name)
 		general.redirect_template_name = 'Template:Category redirect';
-	if (!general.min_interval)
-		general.min_interval = '1d';
+	let min_interval = general.min_interval && CeL.to_millisecond(general.min_interval);
+	if (!(min_interval >= 0))
+		general.min_interval = CeL.to_millisecond('1d');
 
 	console.trace(wiki.latest_task_configuration.general);
 }
@@ -70,7 +71,7 @@ async function for_category(category_page_data) {
 		// 分類重定向24小時後再操作，以免破壞者惡意重定向分類導致機器人大量錯誤編輯。
 		const page_modify_time = Date.parse(category_page_data.revisions[0].timestamp);
 		const page_age = Date.now() - page_modify_time;
-		if (page_age < CeL.to_millisecond(wiki.latest_task_configuration.general.min_interval)) {
+		if (page_age < wiki.latest_task_configuration.general.min_interval) {
 			CeL.info(`${for_category.name}: 跳過${CeL.indicate_date_time(page_modify_time)}更改的分類: ${CeL.wiki.title_link_of(category_page_data)}`);
 			return;
 		}
@@ -99,7 +100,7 @@ async function for_category(category_page_data) {
 		return;
 
 	if (false && !wiki.is_namespace(move_to_link, 'Category')) {
-		CeL.error('');
+		CeL.error('僅處理 category');
 		return;
 	}
 
@@ -118,7 +119,7 @@ async function for_category(category_page_data) {
 		use_language,
 		not_bot_requests: true,
 		no_move_configuration_from_command_line: true,
-		summary: `清理重定向的分類: ${CeL.wiki.title_link_of(category_page_data)}→${CeL.wiki.title_link_of(move_to_link)}`
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '清理重定向的分類')}: ${CeL.wiki.title_link_of(category_page_data)}→${CeL.wiki.title_link_of(move_to_link)}`
 		//+ ' 人工監視檢測中 '
 		,
 	}, {
