@@ -209,7 +209,8 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 		meta_configuration = CeL.setup_options(meta_configuration);
 	}
 
-	get_move_configuration_from_command_line(meta_configuration);
+	if (!meta_configuration.no_move_configuration_from_command_line)
+		get_move_configuration_from_command_line(meta_configuration);
 	//console.trace(meta_configuration);
 	if (meta_configuration.use_language)
 		meta_configuration.language = meta_configuration.use_language;
@@ -364,7 +365,9 @@ function get_move_configuration_from_command_line(meta_configuration) {
 	}
 
 	let section_title;
-	if (CeL.env.argv.length > 2 && (section_title = CeL.env.argv[2].trim())) {
+	if (CeL.env.argv.length > 2 && (section_title = CeL.env.argv[2].trim())
+		// e.g., "use_project=zh.wikinews"
+		&& !/^[\w]+=/.test(section_title)) {
 		//> node "YYYYMMDD.section title.js" "select this section title"
 		//console.trace(CeL.env.argv[2]);
 		CeL.info([get_move_configuration_from_command_line.name + ': ', {
@@ -923,7 +926,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			return;
 	}
 
-	if (!meta_configuration.no_notice)
+	if (!meta_configuration.no_notice && meta_configuration.section_title)
 		await notice_to_edit(wiki, meta_configuration);
 
 	if (meta_configuration.abort_operation)
