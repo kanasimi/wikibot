@@ -38,14 +38,20 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
+	if (!latest_task_configuration.general)
+		latest_task_configuration.general = Object.create(null);
 	const { general } = latest_task_configuration;
+
+	//console.trace(wiki.latest_task_configuration.general);
 }
 
 // ----------------------------------------------------------------------------
 
 (async () => {
-	//login_options.configuration_adapter = adapt_configuration;
+	login_options.configuration_adapter = adapt_configuration;
+	//console.log(login_options);
 	await wiki.login(login_options);
+	// await wiki.login(null, null, use_language);
 	await main_process();
 })();
 
@@ -79,6 +85,7 @@ async function main_process() {
 		wiki,
 		use_language,
 		not_bot_requests: true,
+		no_move_configuration_from_command_line: true,
 		summary: '[[Wikipedia:机器人/申请/Cewbot/25|正規化日期格式、清理引文模組未知參數]]'
 		//+ ' 人工監視檢測中 '
 		,
