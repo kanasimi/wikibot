@@ -1476,6 +1476,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 					cites_work_title = journal_title;
 					// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
 					if (reference_data.volume) {
+						// volume (P478)
 						qualifiers.P478 = reference_data.volume;
 					}
 					if (reference_data['first-page']) {
