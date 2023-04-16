@@ -3,8 +3,8 @@
 
 (cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh; date) >> 解消済み仮リンクをリンクに置き換える/log &
 
-
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh
+node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=simple
 
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
