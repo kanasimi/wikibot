@@ -57,18 +57,29 @@ async function adapt_configuration(latest_task_configuration) {
 // ----------------------------------------------------------------------------
 
 async function main_process() {
-	// https://quarry.wmcloud.org/query/72263
-	const template_list = await get_template_list();
-	console.log(`${template_list.size} templates to process.`);
+	const FF0D_template_list = await get_FF0D_template_list();
+	console.log(`${FF0D_template_list.size} FF0D templates to process.`);
 
-	await wiki.for_each_page(template_list, for_each_template, {
-		//summary: '[[Special:PermanentLink/76861061#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用em dash。',
-		summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
+	await wiki.for_each_page(FF0D_template_list, for_each_FF0D_template, {
+		summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 	});
+
+	if (false)
+		await wiki.allpages({
+			namespace: 'template',
+			for_each_slice: async page_list => {
+				//console.trace(page_list);
+				await wiki.for_each_page(page_list, for_each_template, {
+					page_options: { prop: 'revisions|links', pllimit: 'max' },
+					summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
+				});
+			}
+		});
 }
 
 
-async function get_template_list() {
+async function get_FF0D_template_list() {
+	// https://quarry.wmcloud.org/query/72263
 	const items = CeL.parse_CSV(await (await fetch('https://quarry.wmcloud.org/run/725605/output/0/tsv')).text(), { has_title: true, skip_title: true });
 	//console.log(items);
 
@@ -78,6 +89,35 @@ async function get_template_list() {
 	}
 
 	return template_list;
+}
+
+async function for_each_FF0D_template(template_page_data) {
+	//console.log(template_page_data);
+
+	const parsed = CeL.wiki.parser(template_page_data).parse();
+
+	/**	link from → redirect target */
+	const convert_map = new Map;
+
+	parsed.each('link', link_token => {
+		const link_title = link_token[0].toString();
+		// U+FF0D: '－'
+		if (!link_title.includes('\uFF0D'))
+			return;
+
+		// TODO: 檢測重新導向標的
+		const redirects_title = link_title.replace(/\uFF0D/g, '—');
+		link_token[0] = redirects_title;
+		convert_map.set(link_title, redirects_title);
+	});
+
+	// TODO: 多語言模板也需要處理
+
+	if (convert_map.size === 0)
+		return Wikiapi.skip_edit;
+
+	this.summary += Array.from(convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1])).join(', ');
+	return parsed.toString();
 }
 
 
@@ -94,12 +134,13 @@ async function for_each_template(template_page_data) {
 		return Wikiapi.skip_edit;
 
 	const redirects_data = await wiki.page(link_list, {
-		redirects : 1,
-		prop : 'info',
+		redirects: 1,
+		prop: 'info',
 		multi: true,
 	});
 	const title_data_map = redirects_data.title_data_map;
 	//console.log(link_list.map(page_title => title_data_map[page_title]));
+	/**	link from → redirect target */
 	const convert_map = new Map;
 
 	parsed.each('link', link_token => {
