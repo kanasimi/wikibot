@@ -60,21 +60,37 @@ async function main_process() {
 	const FF0D_template_list = await get_FF0D_template_list();
 	console.log(`${FF0D_template_list.size} FF0D templates to process.`);
 
-	await wiki.for_each_page(FF0D_template_list, for_each_FF0D_template, {
-		summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
+	if (false)
+		await wiki.for_each_page(FF0D_template_list, for_each_FF0D_template, {
+			summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
+		});
+
+	await wiki.for_each_page(FF0D_template_list && ['Template:CONFiDENCE日劇大獎最佳劇本'], for_each_template, {
+		summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
+	});
+	return;
+
+	await wiki.allpages({
+		namespace: 'template',
+		for_each_slice: async function (page_list) {
+			//console.trace(page_list);
+			//console.trace(page_list.slice(0, 10));
+			//return CeL.wiki.list.exit;
+
+			//CeL.set_debug();
+			await wiki.for_each_page(page_list, for_each_template, {
+				page_options: {
+					// TODO:
+					//prop: 'revisions|links',
+					// OK:
+					//prop: 'revisions',
+					pllimit: 'max'
+				},
+				summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
+			});
+		}
 	});
 
-	if (false)
-		await wiki.allpages({
-			namespace: 'template',
-			for_each_slice: async page_list => {
-				//console.trace(page_list);
-				await wiki.for_each_page(page_list, for_each_template, {
-					page_options: { prop: 'revisions|links', pllimit: 'max' },
-					summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
-				});
-			}
-		});
 }
 
 
@@ -122,38 +138,78 @@ async function for_each_FF0D_template(template_page_data) {
 
 
 async function for_each_template(template_page_data) {
-	//console.log(template_page_data);
+	//console.trace(template_page_data);
+	//console.trace('>> ' + template_page_data.title);
 
 	const parsed = CeL.wiki.parser(template_page_data).parse();
-	const link_list = [];
+	const link_list = [], link_token_list = [];
 	parsed.each('link', link_token => {
 		link_list.push(link_token[0].toString());
+		link_token_list.push(link_token);
 	});
 
-	if (link_list.length === 0)
+	if (link_list.length === 0) {
+		// No link found.
 		return Wikiapi.skip_edit;
+	}
 
-	const redirects_data = await wiki.page(link_list, {
-		redirects: 1,
-		prop: 'info',
+	const redirected_targets = await wiki.redirects_root(link_list, {
 		multi: true,
 	});
-	const title_data_map = redirects_data.title_data_map;
-	//console.log(link_list.map(page_title => title_data_map[page_title]));
-	/**	link from → redirect target */
-	const convert_map = new Map;
+	//console.trace(redirected_targets.original_result.redirects);
+	if (!redirected_targets.original_result.redirect_from) {
+		// There is no redirects in the link_list.
+		return Wikiapi.skip_edit;
+	}
+	// assert: typeof redirected_targets.original_result.redirect_from === 'object'
 
-	parsed.each('link', link_token => {
-		const link_title = link_token[0].toString();
-		const redirects_to = title_data_map[link_title];
-		if (!redirects_to.original_title)
-			return;
-		let redirects_title = redirects_to.title;
-		if (wiki.is_namespace(redirects_to, 'File') || wiki.is_namespace(redirects_to, 'Category'))
-			redirects_title = ':' + redirects_title;
-		convert_map.set(link_title, redirects_title);
-		link_token[0] = redirects_title;
-	});
+	const convert_map = new Map;
+	if (redirected_targets.length !== link_list.length) {
+		// 有重複的標題?
+		console.error([link_list, redirected_targets]);
+		throw new Error('取得長度不同@' + template_page_data.title);
+	}
+	for (let index = 0; index < link_list.length; index++) {
+		const link_title = link_list[index];
+		const redirected_target = redirected_targets[index];
+		const matched = redirected_target.match(/^([^#]+)#(.+)$/);
+		if (!redirected_targets.original_result.redirect_from[matched ? matched[1] : redirected_target]) {
+			// e.g., 繁簡轉換標題。
+			continue;
+		}
+		// 不論命名空間以及空白底線的差異。
+		if (wiki.normalize_title(link_title) === wiki.normalize_title(redirected_target))
+			continue;
+
+		if (redirected_target.charAt(0) !== link_title.charAt(0)
+			// e.g., iMac
+			&& redirected_target.charAt(0) === link_title.charAt(0).toUpperCase()) {
+			redirected_target = link_title.charAt(0) + redirected_target.slice(1);
+		}
+
+		CeL.log(`${for_each_template.name}: ${link_title}→${redirected_target}`);
+		convert_map.set(link_title, redirected_target);
+
+		const link_token = link_token_list[index];
+		if (wiki.is_namespace(redirected_target, 'File') || wiki.is_namespace(redirected_target, 'Category'))
+			redirected_target = ':' + redirected_target;
+		if (!link_token[2]
+			// 轉換後長度增加太多時才保留原標題為展示文字。
+			&& redirected_target.length - link_title.length > 4) {
+			// preserve display text
+			link_token[2] = link_title;
+		}
+
+		// TODO: 保留命名空間之類格式
+		if (!matched) {
+			link_token[0] = redirected_target;
+		} else if (!link_token[1].toString()) {
+			CeL.error(`${for_each_template.name}: ${link_token}本身已包含網頁錨點，無法改成${CeL.wiki.title_link_of(redirected_target)}`);
+		} else {
+			link_token[0] = matched[1];
+			link_token[1] = matched[2];
+		}
+	}
 
 	if (convert_map.size === 0)
 		return Wikiapi.skip_edit;
