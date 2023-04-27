@@ -65,8 +65,14 @@ async function main_process() {
 			summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 		});
 
-	await wiki.for_each_page(FF0D_template_list && ['Template:CONFiDENCE日劇大獎最佳劇本'], for_each_template, {
-		summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
+	await wiki.for_each_page(FF0D_template_list
+		//&& [ 'Template:US military navbox' ]
+		//&& [ 'Template:中华人民共和国国家级风景名胜区' ]
+		//&& ['Template:云南历史']
+		//&& ['Template:台灣地景']
+		//&& ['Template:文革编年史']
+		, for_each_template, {
+		summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
 	});
 	return;
 
@@ -86,7 +92,7 @@ async function main_process() {
 					//prop: 'revisions',
 					pllimit: 'max'
 				},
-				summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標原標題: ',
+				summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
 			});
 		}
 	});
@@ -137,6 +143,22 @@ async function for_each_FF0D_template(template_page_data) {
 }
 
 
+function get_converted_title(link_title, redirected_targets) {
+	const converted = redirected_targets.original_result.converted;
+	if (!converted)
+		return link_title;
+	//console.trace(link_title);
+
+	for (const data of converted) {
+		if (data.from === link_title) {
+			//console.trace(data);
+			return data.to;
+		}
+	}
+
+	return link_title;
+}
+
 async function for_each_template(template_page_data) {
 	//console.trace(template_page_data);
 	//console.trace('>> ' + template_page_data.title);
@@ -156,6 +178,7 @@ async function for_each_template(template_page_data) {
 	const redirected_targets = await wiki.redirects_root(link_list, {
 		multi: true,
 	});
+	//console.trace(redirected_targets.original_result);
 	//console.trace(redirected_targets.original_result.redirects);
 	if (!redirected_targets.original_result.redirect_from) {
 		// There is no redirects in the link_list.
@@ -172,7 +195,7 @@ async function for_each_template(template_page_data) {
 	for (let index = 0; index < link_list.length; index++) {
 		const link_title = link_list[index];
 		const redirected_target = redirected_targets[index];
-		const matched = redirected_target.match(/^([^#]+)#(.+)$/);
+		const matched = redirected_target.match(/^([^#]+)(#.+)$/);
 		if (!redirected_targets.original_result.redirect_from[matched ? matched[1] : redirected_target]) {
 			// e.g., 繁簡轉換標題。
 			continue;
@@ -187,15 +210,27 @@ async function for_each_template(template_page_data) {
 			redirected_target = link_title.charAt(0) + redirected_target.slice(1);
 		}
 
-		CeL.log(`${for_each_template.name}: ${link_title}→${redirected_target}`);
+		CeL.log(`${for_each_template.name}: ${link_title}\t→${redirected_target}`);
 		convert_map.set(link_title, redirected_target);
 
 		const link_token = link_token_list[index];
 		if (wiki.is_namespace(redirected_target, 'File') || wiki.is_namespace(redirected_target, 'Category'))
 			redirected_target = ':' + redirected_target;
-		if (!link_token[2]
+		if (link_token[2]) {
+			;
+		} else if (
 			// 轉換後長度增加太多時才保留原標題為展示文字。
-			&& redirected_target.length - link_title.length > 4) {
+			redirected_target.length - link_title.length > 4
+			// e.g. [[Title 1]]→[[Title 2 (type)]]
+			|| !/ \([^()]+\)$/.test(link_title) && / \([^()]+\)$/.test(matched ? matched[1] : redirected_target)
+
+			// e.g. [[媧皇宮]]應替換為[[娲皇宫及石刻|媧皇宮]]
+			|| redirected_target.length > link_title.length && (redirected_target.includes(link_title)
+				// e.g. [[媧皇宮]]應替換為[[娲皇宫及石刻|媧皇宮]]
+				|| redirected_target.includes(get_converted_title(link_title, redirected_targets)))
+
+		) {
+			//console.trace(link_title);
 			// preserve display text
 			link_token[2] = link_title;
 		}
@@ -203,12 +238,26 @@ async function for_each_template(template_page_data) {
 		// TODO: 保留命名空間之類格式
 		if (!matched) {
 			link_token[0] = redirected_target;
-		} else if (!link_token[1].toString()) {
+		} else if (link_token[1].toString()) {
 			CeL.error(`${for_each_template.name}: ${link_token}本身已包含網頁錨點，無法改成${CeL.wiki.title_link_of(redirected_target)}`);
 		} else {
+			if (!link_token[2]) {
+				// 保留原標題為展示文字。
+				// e.g. [[九九峰自然保留區]]→[[九九峰#九九峰自然保留區|九九峰自然保留區]]
+				link_token[2] = link_title;
+			}
 			link_token[0] = matched[1];
 			link_token[1] = matched[2];
 		}
+
+		if (!link_token[1] && link_token[2]
+			// using wiki.normalize_title()?
+			// TODO: [[IMac|iMac]]→[[iMac]], [[IMac#ABC|iMac]]→no change
+			&& link_token[0].toString() === link_token[2].toString()) {
+			// assert: link_token.length === 2
+			link_token.pop();
+		}
+		//console.trace(link_token.toString(), link_token);
 	}
 
 	if (convert_map.size === 0)
