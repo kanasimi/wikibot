@@ -2,8 +2,12 @@
 node 20230418.Fix_redirected_wikilinks_of_templates.js
 
 這個任務會清理導航模板的重導向內部連結。
+由於這個任務會遍歷所有模板，很遺憾的 MediaWiki API 並未提供進度指示，所以無法顯示進度。
 
 2023/4/18 6:49:54	初版試營運
+
+TODO:
+檢查重定向至消歧義頁面的情況
 
 */
 
@@ -57,24 +61,20 @@ async function adapt_configuration(latest_task_configuration) {
 // ----------------------------------------------------------------------------
 
 async function main_process() {
-	const FF0D_template_list = await get_FF0D_template_list();
-	console.log(`${FF0D_template_list.size} FF0D templates to process.`);
+	if (false) {
+		const FF0D_template_list = await get_FF0D_template_list();
+		console.log(`${FF0D_template_list.size} FF0D templates to process.`);
 
-	if (false)
-		await wiki.for_each_page(FF0D_template_list, for_each_FF0D_template, {
-			summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
+		await wiki.for_each_page(FF0D_template_list
+			//&& [ 'Template:US military navbox' ]
+			&& ['Template:中华人民共和国国家级风景名胜区', 'Template:台灣地景']
+			//&& ['Template:云南历史']
+			//&& ['Template:文革编年史']
+			, for_each_template, {
+			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
+			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
 		});
-
-	await wiki.for_each_page(FF0D_template_list
-		//&& [ 'Template:US military navbox' ]
-		//&& [ 'Template:中华人民共和国国家级风景名胜区' ]
-		//&& ['Template:云南历史']
-		//&& ['Template:台灣地景']
-		//&& ['Template:文革编年史']
-		, for_each_template, {
-		summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
-	});
-	return;
+	}
 
 	await wiki.allpages({
 		namespace: 'template',
@@ -165,9 +165,21 @@ async function for_each_template(template_page_data) {
 
 	const parsed = CeL.wiki.parser(template_page_data).parse();
 	const link_list = [], link_token_list = [];
+	/**	from display text → to display text */
+	const display_text_convert_map = new Map;
 	parsed.each('link', link_token => {
 		link_list.push(link_token[0].toString());
 		link_token_list.push(link_token);
+		return;
+
+		// 所有顯示文字中的 U+FF0D 轉為 U+2014: 在能判別詞條類別之前，顯示文字還是維持現狀。
+		const display_text = link_token[2]?.toString();
+		// U+FF0D: '－'
+		if (display_text?.includes('\uFF0D')) {
+			const new_display_text = display_text.replace(/\uFF0D/g, '—');
+			link_token[2] = new_display_text;
+			display_text_convert_map.set(display_text, new_display_text);
+		}
 	});
 
 	if (link_list.length === 0) {
@@ -180,13 +192,15 @@ async function for_each_template(template_page_data) {
 	});
 	//console.trace(redirected_targets.original_result);
 	//console.trace(redirected_targets.original_result.redirects);
+	//console.trace(redirected_targets.original_result.converted);
 	if (!redirected_targets.original_result.redirect_from) {
 		// There is no redirects in the link_list.
 		return Wikiapi.skip_edit;
 	}
 	// assert: typeof redirected_targets.original_result.redirect_from === 'object'
 
-	const convert_map = new Map;
+	/**	link from → redirect target */
+	const link_convert_map = new Map;
 	if (redirected_targets.length !== link_list.length) {
 		// 有重複的標題?
 		console.error([link_list, redirected_targets]);
@@ -195,9 +209,10 @@ async function for_each_template(template_page_data) {
 	for (let index = 0; index < link_list.length; index++) {
 		const link_title = link_list[index];
 		const redirected_target = redirected_targets[index];
+		/** {Array}表示重定向至章節標題: [ 重定向標的, 頁面標題, 章節標題 ] */
 		const matched = redirected_target.match(/^([^#]+)(#.+)$/);
 		if (!redirected_targets.original_result.redirect_from[matched ? matched[1] : redirected_target]) {
-			// e.g., 繁簡轉換標題。
+			// e.g., 非重定向的繁簡轉換標題，因此沒有重定向紀錄。
 			continue;
 		}
 		// 不論命名空間以及空白底線的差異。
@@ -211,23 +226,28 @@ async function for_each_template(template_page_data) {
 		}
 
 		CeL.log(`${for_each_template.name}: ${link_title}\t→${redirected_target}`);
-		convert_map.set(link_title, redirected_target);
+		link_convert_map.set(link_title, redirected_target);
 
 		const link_token = link_token_list[index];
 		if (wiki.is_namespace(redirected_target, 'File') || wiki.is_namespace(redirected_target, 'Category'))
 			redirected_target = ':' + redirected_target;
-		if (link_token[2]) {
+		if (link_token[2] || link_token[1]) {
 			;
 		} else if (
+			// 現在只有在繁簡轉換後相同的情況下才不保留標題。
+			redirected_target !== link_title
+			&& redirected_target !== get_converted_title(link_title, redirected_targets)
+
+			// 以下為舊的考量:
 			// 轉換後長度增加太多時才保留原標題為展示文字。
-			redirected_target.length - link_title.length > 4
+			//redirected_target.length - link_title.length > 4
 			// e.g. [[Title 1]]→[[Title 2 (type)]]
-			|| !/ \([^()]+\)$/.test(link_title) && / \([^()]+\)$/.test(matched ? matched[1] : redirected_target)
+			//|| !/ \([^()]+\)$/.test(link_title) && / \([^()]+\)$/.test(matched ? matched[1] : redirected_target)
 
 			// e.g. [[媧皇宮]]應替換為[[娲皇宫及石刻|媧皇宮]]
-			|| redirected_target.length > link_title.length && (redirected_target.includes(link_title)
-				// e.g. [[媧皇宮]]應替換為[[娲皇宫及石刻|媧皇宮]]
-				|| redirected_target.includes(get_converted_title(link_title, redirected_targets)))
+			//|| redirected_target.length > link_title.length && (redirected_target.includes(link_title)
+			// e.g. [[媧皇宮]]應替換為[[娲皇宫及石刻|媧皇宮]]
+			//|| redirected_target.includes(get_converted_title(link_title, redirected_targets)))
 
 		) {
 			//console.trace(link_title);
@@ -239,7 +259,7 @@ async function for_each_template(template_page_data) {
 		if (!matched) {
 			link_token[0] = redirected_target;
 		} else if (link_token[1].toString()) {
-			CeL.error(`${for_each_template.name}: ${link_token}本身已包含網頁錨點，無法改成${CeL.wiki.title_link_of(redirected_target)}`);
+			CeL.error(`${for_each_template.name}: ${link_token}本身已包含章節標題/網頁錨點，無法改成${CeL.wiki.title_link_of(redirected_target)}`);
 		} else {
 			if (!link_token[2]) {
 				// 保留原標題為展示文字。
@@ -260,9 +280,15 @@ async function for_each_template(template_page_data) {
 		//console.trace(link_token.toString(), link_token);
 	}
 
-	if (convert_map.size === 0)
+
+	const summary_list = [];
+	if (link_convert_map.size > 0)
+		summary_list.push(Array.from(link_convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1])).join(', '));
+	if (display_text_convert_map.size > 0)
+		summary_list.push(Array.from(display_text_convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1]) + ' (轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題)').join(', '));
+	if (summary_list.length === 0)
 		return Wikiapi.skip_edit;
 
-	this.summary += Array.from(convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1])).join(', ');
+	this.summary += summary_list.join('; ');
 	return parsed.toString();
 }
