@@ -61,15 +61,16 @@ async function adapt_configuration(latest_task_configuration) {
 // ----------------------------------------------------------------------------
 
 async function main_process() {
-	if (false) {
+	if (1 || false) {
 		const FF0D_template_list = await get_FF0D_template_list();
 		console.log(`${FF0D_template_list.size} FF0D templates to process.`);
 
 		await wiki.for_each_page(FF0D_template_list
-			//&& [ 'Template:US military navbox' ]
+			&& ['Template:US military navbox']
+			&& ['Template:云南历史']
+			&& ['Template:文革编年史']
 			&& ['Template:中华人民共和国国家级风景名胜区', 'Template:台灣地景']
-			//&& ['Template:云南历史']
-			//&& ['Template:文革编年史']
+			&& ['Template:中華民國外交部部長']
 			, for_each_template, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
@@ -93,6 +94,7 @@ async function main_process() {
 					pllimit: 'max'
 				},
 				summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
+				log_to,
 			});
 		}
 	});
