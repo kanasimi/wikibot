@@ -971,7 +971,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			: { move_from_link, move_to_link: original_move_to_link };
 
 		// 中文條目也必須處理語言變體（繁簡轉換）情形。
-		if (meta_configuration.language === 'cmn' && !task_configuration.list_title
+		//console.trace(meta_configuration.language);
+		if ((meta_configuration.language === 'zh' || meta_configuration.language === 'cmn') && !task_configuration.list_title
 			// 確認是有必要轉換的，不是完全英文標題。
 			// /[\u4e00-\u9fa5]/: 匹配中文。
 			&& /[\u4e00-\u9fff]/.test(move_from_link)) {
@@ -980,7 +981,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				varianttitle = await meta_configuration[KEY_wiki_session].convert_Chinese(move_from_link, { uselang: 'zh-hans' });
 			}
 			if (varianttitle === move_from_link) {
-				CeL.warn(`${prepare_operation.name}: ${CeL.wiki.title_link_of(move_from_link)} 可能是繁簡混雜？`);
+				CeL.warn(`${prepare_operation.name}: ${CeL.wiki.title_link_of(move_from_link)} 可能是繁簡相同或繁簡混雜？`);
 			} else if (typeof task_configuration.move_to_link === 'string') {
 				// ↑ 預防 DELETE_PAGE 之類的 Symbol。
 				CeL.warn(`${prepare_operation.name}: ${CeL.wiki.title_link_of(move_from_link)}: 亦自動轉換 ${CeL.wiki.title_link_of(varianttitle)} → ${CeL.wiki.title_link_of(task_configuration.move_to_link)}`);
@@ -1280,7 +1281,7 @@ async function finish_work(meta_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration[KEY_wiki_session];
 
-	if (!meta_configuration.no_notice)
+	if (!meta_configuration.no_notice && meta_configuration.section_title)
 		await notice_finished(wiki, meta_configuration);
 }
 
@@ -1857,7 +1858,10 @@ async function for_each_page(page_data) {
 	if (list_types.includes('categorymembers') && task_configuration.move_to_link && task_configuration.move_from.ns === CeL.wiki.namespace('Category')) {
 		parsed.each('category', for_each_category.bind(task_configuration));
 	}
-	if (list_types.includes('embeddedin') && !task_configuration.move_from.anchor && !task_configuration.move_from.display_text) {
+	if ((list_types.includes('embeddedin')
+		// e.g., using {{分類|...}} @ 20230406.Clean_up_redirected_categories.js
+		|| list_types.includes('categorymembers'))
+		&& !task_configuration.move_from.anchor && !task_configuration.move_from.display_text) {
 		await parsed.each('template', for_each_template.bind(this, page_data), task_configuration.for_each_template_options);
 	}
 	//console.trace(`${for_each_page.name}: ${page_data.title}`);
@@ -2226,6 +2230,7 @@ async function subst_template(token, index, parent) {
 
 // --------------------------------------------------------
 
+// 這些模板連結到頁面時不加上 namesapce。
 const no_ns_templates = {
 	Pathnav: true,
 	子記事: true,
@@ -2236,6 +2241,15 @@ const no_ns_templates = {
 
 	'Infobox 鐵道路線': '標誌',
 	'Infobox rail system-route': 'logo_filename',
+
+	// [[n:zh:Template:分類]]
+	分類: true,
+	分类: true,
+	Category: true,
+	// [[n:zh:Template:Topic]]
+	Topic: true,
+	// [[n:zh:Template:Headline navbox]]
+	'Headline navbox': true,
 };
 
 function replace_template_parameter(value, parameter_name, template_token) {
@@ -2244,6 +2258,7 @@ function replace_template_parameter(value, parameter_name, template_token) {
 		return;
 
 	const link = parse_move_link(value && value.toString(), this[KEY_wiki_session]);
+	//console.trace([ template_token.name, template_token.name in no_ns_templates ]);
 	if (!link || (template_token.name in no_ns_templates
 		? no_ns_templates[template_token.name] !== true && no_ns_templates[template_token.name] !== parameter_name
 		|| link.ns || this[KEY_wiki_session].normalize_title(link.page_name) !== this.move_from.page_name
@@ -2266,7 +2281,7 @@ function replace_template_parameter(value, parameter_name, template_token) {
 
 	//console.trace(template_token);
 	const this_parameter = template_token[template_token.index_of[parameter_name]];
-	//console.trace(this_parameter);
+	//console.trace([ template_token.name, this_parameter ]);
 	//保留 comments
 	parameter_name = this_parameter[0].toString().trim() || parameter_name;
 	const factor = {
@@ -2281,6 +2296,7 @@ function replace_template_parameter(value, parameter_name, template_token) {
 	return factor;
 }
 
+// 這些模板沒有必要的 parameter。
 const no_essential_parameter_templates = {
 	// {{{1|{{PAGENAME}}}}}
 	Catmore: 1,
@@ -2430,9 +2446,9 @@ async function for_each_template(page_data, token, index, parent) {
 
 	//console.trace(token);
 
-	// templates that ONLY ONE parament is treated as a link.
+	// templates that ONLY specified parameter(s) is treated as a link.
 	if (replace_link_parameter(task_configuration, token, {
-		// templates that the first parament is displayed as link.
+		// templates that the first parameter is displayed as link.
 		// e.g., {{tl|.move_from.page_title}}
 		Tl: 1,
 		Tlg: 1,
@@ -2462,7 +2478,16 @@ async function for_each_template(page_data, token, index, parent) {
 		'Cite book': 'authorlink',
 
 		'基礎情報 過去の国': ['先代1', '先代2', '先代3', '先代4', '先代5', '次代1', '次代2', '次代3', '次代4', '次代5',],
+
+		// [[n:zh:Template:Headline navbox]]
+		'Headline navbox': 1,
 	})) return;
+
+	// 需要檢核多個 parameters 的情況: 不 return。
+	replace_link_parameter(task_configuration, token, {
+		// [[n:zh:Template:Topic]]
+		Topic: '分类',
+	});
 
 	// templates that ALL NUMERAL parameters are treated as links.
 	if (replace_link_parameter(task_configuration, token, {
@@ -2477,9 +2502,16 @@ async function for_each_template(page_data, token, index, parent) {
 		Pathnav: 1,
 		子記事: 1,
 		C: 1,
+
+		// [[n:zh:Template:分類]]
+		分類: 1,
+		分类: 1,
+		Category: 1,
+		// [[n:zh:Template:Topic]]
+		Topic: 1,
 	}, 1)) return;
 
-	// Special cases
+	// Special cases: 跳一個
 	if (replace_link_parameter(task_configuration, token, {
 		// [1], [3], ...
 		// [[w:ja:Template:Redirect]]
