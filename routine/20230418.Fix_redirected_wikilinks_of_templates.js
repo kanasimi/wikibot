@@ -61,7 +61,7 @@ async function adapt_configuration(latest_task_configuration) {
 // ----------------------------------------------------------------------------
 
 async function main_process() {
-	if (1 || false) {
+	if (false) {
 		const FF0D_template_list = await get_FF0D_template_list();
 		console.log(`${FF0D_template_list.size} FF0D templates to process.`);
 
@@ -71,10 +71,12 @@ async function main_process() {
 			&& ['Template:文革编年史']
 			&& ['Template:中华人民共和国国家级风景名胜区', 'Template:台灣地景']
 			&& ['Template:中華民國外交部部長']
+			&& ['Template:1965年亞洲女籃錦標賽中華民國代表隊']
 			, for_each_template, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
 		});
+		return;
 	}
 
 	await wiki.allpages({
@@ -84,15 +86,21 @@ async function main_process() {
 			//console.trace(page_list.slice(0, 10));
 			//return CeL.wiki.list.exit;
 
+			// 去掉明顯非導航模板之功能頁面。
+			page_list = page_list.filter(page_data => !/\/(doc|draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title));
+
 			//CeL.set_debug();
 			await wiki.for_each_page(page_list, for_each_template, {
+				/*
 				page_options: {
-					// TODO:
+					// 查詢太頻繁，到後期會常出現異常 HTTP 狀態碼 400。
 					//prop: 'revisions|links',
 					// OK:
-					//prop: 'revisions',
-					pllimit: 'max'
+					prop: 'revisions',
+
+					pllimit: 'max',
 				},
+				*/
 				summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
 				log_to,
 			});
@@ -161,7 +169,7 @@ function get_converted_title(link_title, redirected_targets) {
 	return link_title;
 }
 
-async function for_each_template(template_page_data) {
+async function for_each_template(template_page_data, messages) {
 	//console.trace(template_page_data);
 	//console.trace('>> ' + template_page_data.title);
 
@@ -189,6 +197,13 @@ async function for_each_template(template_page_data) {
 		return Wikiapi.skip_edit;
 	}
 
+	const embeddedin_title_Set = new Set(
+		(await wiki.embeddedin(template_page_data)).map(page_data => {
+			return page_data.title;
+		})
+	);
+	//console.trace(embeddedin_title_Set);
+
 	const redirected_targets = await wiki.redirects_root(link_list, {
 		multi: true,
 	});
@@ -210,7 +225,13 @@ async function for_each_template(template_page_data) {
 	}
 	for (let index = 0; index < link_list.length; index++) {
 		const link_title = link_list[index];
-		const redirected_target = redirected_targets[index];
+		let redirected_target = redirected_targets[index];
+		if (redirected_target.charAt(0) !== link_title.charAt(0)
+			// e.g., iMac
+			&& redirected_target.charAt(0) === link_title.charAt(0).toUpperCase()) {
+			redirected_target = link_title.charAt(0) + redirected_target.slice(1);
+		}
+
 		/** {Array}表示重定向至章節標題: [ 重定向標的, 頁面標題, 章節標題 ] */
 		const matched = redirected_target.match(/^([^#]+)(#.+)$/);
 		if (!redirected_targets.original_result.redirect_from[matched ? matched[1] : redirected_target]) {
@@ -221,10 +242,22 @@ async function for_each_template(template_page_data) {
 		if (wiki.normalize_title(link_title) === wiki.normalize_title(redirected_target))
 			continue;
 
-		if (redirected_target.charAt(0) !== link_title.charAt(0)
-			// e.g., iMac
-			&& redirected_target.charAt(0) === link_title.charAt(0).toUpperCase()) {
-			redirected_target = link_title.charAt(0) + redirected_target.slice(1);
+		// 跳過重新導向到章節的連結、將之記錄在日誌中，
+		if (matched) {
+			// User:Ericliu1912: 重新導向到章節的連結都不用修正（除非章節變了）。倒是可以反過來，列出重新導向到章節的連結，說不定有可以給編者手動改善的地方？
+			const message = CeL.wiki.title_link_of(template_page_data) + ': Redirect to section: ' + CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target);
+			CeL.warn(message);
+			messages.push(':' + message);
+			continue;
+		}
+
+		// User:寒吉: 清理該模板有嵌入的頁面連結就好。
+		if (!embeddedin_title_Set.has(matched ? matched[0] : redirected_target)) {
+			// 模板連結到未嵌入模板的頁面
+			const message = CeL.wiki.title_link_of(template_page_data) + ': Links to page without embedded the template: ' + CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target);
+			CeL.warn(message);
+			messages.push(': ' + message);
+			continue;
 		}
 
 		CeL.log(`${for_each_template.name}: ${link_title}\t→${redirected_target}`);
