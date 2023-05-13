@@ -72,7 +72,9 @@ async function main_process() {
 			&& ['Template:中华人民共和国国家级风景名胜区', 'Template:台灣地景']
 			&& ['Template:中華民國外交部部長']
 			&& ['Template:1965年亞洲女籃錦標賽中華民國代表隊']
-			, for_each_template, {
+			&& ['Template:2011年亞足聯亞洲盃A組積分榜']
+			&& ['Template:Bureaucrat candidate']
+			, for_each_template_page, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
 		});
@@ -90,7 +92,7 @@ async function main_process() {
 			page_list = page_list.filter(page_data => !/\/(doc|draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title));
 
 			//CeL.set_debug();
-			await wiki.for_each_page(page_list, for_each_template, {
+			await wiki.for_each_page(page_list, for_each_template_page, {
 				/*
 				page_options: {
 					// 查詢太頻繁，到後期會常出現異常 HTTP 狀態碼 400。
@@ -169,7 +171,7 @@ function get_converted_title(link_title, redirected_targets) {
 	return link_title;
 }
 
-async function for_each_template(template_page_data, messages) {
+async function for_each_template_page(template_page_data, messages) {
 	//console.trace(template_page_data);
 	//console.trace('>> ' + template_page_data.title);
 
@@ -178,7 +180,12 @@ async function for_each_template(template_page_data, messages) {
 	/**	from display text → to display text */
 	const display_text_convert_map = new Map;
 	parsed.each('link', link_token => {
-		link_list.push(link_token[0].toString());
+		const page_title = link_token[0].toString();
+		if (!page_title) {
+			// e.g., [[#anchor]]
+			return;
+		}
+		link_list.push(page_title);
 		link_token_list.push(link_token);
 		return;
 
@@ -204,9 +211,11 @@ async function for_each_template(template_page_data, messages) {
 	);
 	//console.trace(embeddedin_title_Set);
 
+	//console.trace(link_list);
 	const redirected_targets = await wiki.redirects_root(link_list, {
 		multi: true,
 	});
+	//console.trace(redirected_targets);
 	//console.trace(redirected_targets.original_result);
 	//console.trace(redirected_targets.original_result.redirects);
 	//console.trace(redirected_targets.original_result.converted);
@@ -260,7 +269,7 @@ async function for_each_template(template_page_data, messages) {
 			continue;
 		}
 
-		CeL.log(`${for_each_template.name}: ${link_title}\t→${redirected_target}`);
+		CeL.log(`${for_each_template_page.name}: ${link_title}\t→${redirected_target}`);
 		link_convert_map.set(link_title, redirected_target);
 
 		const link_token = link_token_list[index];
@@ -294,7 +303,7 @@ async function for_each_template(template_page_data, messages) {
 		if (!matched) {
 			link_token[0] = redirected_target;
 		} else if (link_token[1].toString()) {
-			CeL.error(`${for_each_template.name}: ${link_token}本身已包含章節標題/網頁錨點，無法改成${CeL.wiki.title_link_of(redirected_target)}`);
+			CeL.error(`${for_each_template_page.name}: ${link_token}本身已包含章節標題/網頁錨點，無法改成${CeL.wiki.title_link_of(redirected_target)}`);
 		} else {
 			if (!link_token[2]) {
 				// 保留原標題為展示文字。
