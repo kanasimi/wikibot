@@ -2,12 +2,13 @@
 node 20230418.Fix_redirected_wikilinks_of_templates.js
 
 這個任務會清理導航模板的重導向內部連結。
-由於這個任務會遍歷所有模板，很遺憾的 MediaWiki API 並未提供進度指示，所以無法顯示進度。
+由於這個任務會遍歷所有模板，很遺憾的 MediaWiki API 並未提供進度指示，所以無法顯示整個任務的進度。現在所顯示的任務進度為相對於5000個條目的進度。
 
 2023/4/18 6:49:54	初版試營運
+2023/5/15 6:33:39	機器人申請測試運作
 
 TODO:
-檢查重定向至消歧義頁面的情況
+
 
 */
 
@@ -74,6 +75,7 @@ async function main_process() {
 			&& ['Template:1965年亞洲女籃錦標賽中華民國代表隊']
 			&& ['Template:2011年亞足聯亞洲盃A組積分榜']
 			&& ['Template:Bureaucrat candidate']
+			&& ['Template:Campaignbox 中越邊境衝突', 'Template:Campaignbox 秦赵战争']
 			, for_each_template_page, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
@@ -204,13 +206,6 @@ async function for_each_template_page(template_page_data, messages) {
 		return Wikiapi.skip_edit;
 	}
 
-	const embeddedin_title_Set = new Set(
-		(await wiki.embeddedin(template_page_data)).map(page_data => {
-			return page_data.title;
-		})
-	);
-	//console.trace(embeddedin_title_Set);
-
 	//console.trace(link_list);
 	const redirected_targets = await wiki.redirects_root(link_list, {
 		multi: true,
@@ -224,6 +219,34 @@ async function for_each_template_page(template_page_data, messages) {
 		return Wikiapi.skip_edit;
 	}
 	// assert: typeof redirected_targets.original_result.redirect_from === 'object'
+
+
+	//console.trace(await wiki.embeddedin(template_page_data));
+	/**{Set} 所有嵌入此模板的頁面名稱 */
+	const embeddedin_title_Set = new Set(
+		(await wiki.embeddedin(template_page_data)).map(page_data => {
+			return page_data.title;
+		})
+	);
+	//console.trace(embeddedin_title_Set);
+	if (embeddedin_title_Set.size === 0) {
+		return Wikiapi.skip_edit;
+	}
+
+
+	/**{Map} language_variant_convert_Map[converted_title] → original_title */
+	const language_variant_convert_Map = new Map;
+	if (use_language === 'zh') {
+		const embeddedin_title_list = Array.from(embeddedin_title_Set);
+		for (const language_variant of ['zh-hant', 'zh-hans']) {
+			const converted_list = await wiki.convert_Chinese(embeddedin_title_list, language_variant);
+			embeddedin_title_list.forEach((title, index) => {
+				if (converted_list[index] !== title)
+					language_variant_convert_Map.set(converted_list[index], title);
+			});
+		}
+	}
+
 
 	/**	link from → redirect target */
 	const link_convert_map = new Map;
@@ -244,7 +267,7 @@ async function for_each_template_page(template_page_data, messages) {
 		/** {Array}表示重定向至章節標題: [ 重定向標的, 頁面標題, 章節標題 ] */
 		const matched = redirected_target.match(/^([^#]+)(#.+)$/);
 		if (!redirected_targets.original_result.redirect_from[matched ? matched[1] : redirected_target]) {
-			// e.g., 非重定向的繁簡轉換標題，因此沒有重定向紀錄。
+			// e.g., 非重定向的繁簡轉換標題，因此沒有重定向紀錄。機器人只會處理有重定向的繁簡標題。假如沒有重定向，機器人會跳過。
 			continue;
 		}
 		// 不論命名空間以及空白底線的差異。
@@ -261,6 +284,7 @@ async function for_each_template_page(template_page_data, messages) {
 		}
 
 		// User:寒吉: 清理該模板有嵌入的頁面連結就好。
+		// 重定向至消歧義頁面，通常會因未嵌入此模板而在此被篩掉。
 		if (!embeddedin_title_Set.has(matched ? matched[0] : redirected_target)) {
 			// 模板連結到未嵌入模板的頁面
 			const message = CeL.wiki.title_link_of(template_page_data) + ': Links to page without embedded the template: ' + CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target);
@@ -281,6 +305,9 @@ async function for_each_template_page(template_page_data, messages) {
 			// 現在只有在繁簡轉換後相同的情況下才不保留標題。
 			redirected_target !== link_title
 			&& redirected_target !== get_converted_title(link_title, redirected_targets)
+
+			// 如果是繁簡重定向，例如原標題繁體=重定向簡體，則直接取代重定向。不使用管道連結保留顯示文字。
+			&& (!language_variant_convert_Map.has(link_title) || language_variant_convert_Map.get(link_title) !== redirected_target)
 
 			// 以下為舊的考量:
 			// 轉換後長度增加太多時才保留原標題為展示文字。
