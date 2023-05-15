@@ -26,6 +26,12 @@ set_language('zh');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+
+/**檢核條目*/
+const start_from_article = 'Template:Feature/15';
+/**{Boolean}已經通過檢核條目，處理所有的條目。*/
+let process_all_articles = !start_from_article;
+
 // ----------------------------------------------
 
 /**
@@ -76,6 +82,9 @@ async function main_process() {
 			&& ['Template:2011年亞足聯亞洲盃A組積分榜']
 			&& ['Template:Bureaucrat candidate']
 			&& ['Template:Campaignbox 中越邊境衝突', 'Template:Campaignbox 秦赵战争']
+			&& ['Template:CatAZ']
+			&& ['Template:English football updater']
+			&& ['Template:Eulipotyphla']
 			, for_each_template_page, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
 			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
@@ -86,6 +95,18 @@ async function main_process() {
 	await wiki.allpages({
 		namespace: 'template',
 		for_each_slice: async function (page_list) {
+			if (!process_all_articles) {
+				while (page_list.length > 0) {
+					if (page_list[0].title === start_from_article) {
+						process_all_articles = true;
+						CeL.info('Start from ' + page_list[0].title);
+						break;
+					}
+					page_list.shift();
+				}
+				if (page_list.length === 0)
+					return;
+			}
 			//console.trace(page_list);
 			//console.trace(page_list.slice(0, 10));
 			//return CeL.wiki.list.exit;
@@ -183,8 +204,8 @@ async function for_each_template_page(template_page_data, messages) {
 	const display_text_convert_map = new Map;
 	parsed.each('link', link_token => {
 		const page_title = link_token[0].toString();
-		if (!page_title) {
-			// e.g., [[#anchor]]
+		if (!page_title || CeL.wiki.PATTERN_invalid_page_name_characters.test(page_title)) {
+			// e.g., [[#anchor]], [[2019–20 {{ENGLs|NPL}}|2019–20]] @ [[w:zh:Template:English football updater]]
 			return;
 		}
 		link_list.push(page_title);
@@ -255,7 +276,7 @@ async function for_each_template_page(template_page_data, messages) {
 		console.error([link_list, redirected_targets]);
 		throw new Error('取得長度不同@' + template_page_data.title);
 	}
-	for (let index = 0; index < link_list.length; index++) {
+	for (let index = 0, message_recorded_Set = new Set; index < link_list.length; index++) {
 		const link_title = link_list[index];
 		let redirected_target = redirected_targets[index];
 		if (redirected_target.charAt(0) !== link_title.charAt(0)
@@ -274,22 +295,29 @@ async function for_each_template_page(template_page_data, messages) {
 		if (wiki.normalize_title(link_title) === wiki.normalize_title(redirected_target))
 			continue;
 
-		// 跳過重新導向到章節的連結、將之記錄在日誌中，
+		function add_message(message_id) {
+			if (message_recorded_Set.has(link_title))
+				return;
+
+			message_recorded_Set.add(link_title);
+			const message = CeL.wiki.title_link_of(template_page_data) + ': ' + CeL.gettext(message_id, CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target));
+			CeL.warn(message);
+			messages.push((messages.finished_count_of_section > 0 ? '#:' : ':::') + message);
+		}
+
+		// 跳過重定向到章節的連結、將之記錄在日誌中，
 		if (matched) {
 			// User:Ericliu1912: 重新導向到章節的連結都不用修正（除非章節變了）。倒是可以反過來，列出重新導向到章節的連結，說不定有可以給編者手動改善的地方？
-			const message = CeL.wiki.title_link_of(template_page_data) + ': Redirect to section: ' + CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target);
-			CeL.warn(message);
-			messages.push(':' + message);
+			// gettext_config:{"en":"Redirect to section: $1"}
+			add_message('連結重定向到章節：%1');
 			continue;
 		}
 
 		// User:寒吉: 清理該模板有嵌入的頁面連結就好。
 		// 重定向至消歧義頁面，通常會因未嵌入此模板而在此被篩掉。
 		if (!embeddedin_title_Set.has(matched ? matched[0] : redirected_target)) {
-			// 模板連結到未嵌入模板的頁面
-			const message = CeL.wiki.title_link_of(template_page_data) + ': Links to page without embedded the template: ' + CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target);
-			CeL.warn(message);
-			messages.push(': ' + message);
+			// gettext_config:{"en":"Links to page without embedded the template: $1"}
+			add_message('連結到未嵌入模板的頁面：%1');
 			continue;
 		}
 
