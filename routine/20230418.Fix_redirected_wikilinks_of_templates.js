@@ -28,7 +28,7 @@ const wiki = new Wikiapi;
 
 
 /**檢核條目*/
-const start_from_article = 'Template:Feature/15';
+const start_from_article = 'Template:Tv-chubu';
 /**{Boolean}已經通過檢核條目，處理所有的條目。*/
 let process_all_articles = !start_from_article;
 
@@ -85,9 +85,12 @@ async function main_process() {
 			&& ['Template:CatAZ']
 			&& ['Template:English football updater']
 			&& ['Template:Eulipotyphla']
+			&& ['Template:Gptw']
+			&& ['Template:告示牌音樂獎']
+			&& ['Template:Lang']
 			, for_each_template_page, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
-			summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
+			summary: `${CeL.wiki.title_link_of(log_to, '轉換')}[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: `,
 		});
 		return;
 	}
@@ -112,7 +115,11 @@ async function main_process() {
 			//return CeL.wiki.list.exit;
 
 			// 去掉明顯非導航模板之功能頁面。
-			page_list = page_list.filter(page_data => !/\/(doc|draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title));
+			page_list = page_list.filter(
+				page_data => !/\/(doc|draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
+					// 去掉中華人民共和國行政區劃
+					&& !/^Template:PRC admin\//.test(page_data.title)
+			);
 
 			//CeL.set_debug();
 			await wiki.for_each_page(page_list, for_each_template_page, {
@@ -126,7 +133,7 @@ async function main_process() {
 					pllimit: 'max',
 				},
 				*/
-				summary: '轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: ',
+				summary: `${CeL.wiki.title_link_of(log_to, '轉換')}[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: `,
 				log_to,
 			});
 		}
@@ -173,7 +180,9 @@ async function for_each_FF0D_template(template_page_data) {
 	if (convert_map.size === 0)
 		return Wikiapi.skip_edit;
 
-	this.summary += Array.from(convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1])).join(', ');
+	this.summary += Array.from(convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1]))
+		// gettext_config:{"id":"Comma-separator"}
+		.join(CeL.gettext('Comma-separator'));
 	return parsed.toString();
 }
 
@@ -233,6 +242,7 @@ async function for_each_template_page(template_page_data, messages) {
 	});
 	//console.trace(redirected_targets);
 	//console.trace(redirected_targets.original_result);
+	//console.trace(redirected_targets.original_result.title_data_map);
 	//console.trace(redirected_targets.original_result.redirects);
 	//console.trace(redirected_targets.original_result.converted);
 	if (!redirected_targets.original_result.redirect_from) {
@@ -243,30 +253,40 @@ async function for_each_template_page(template_page_data, messages) {
 
 
 	//console.trace(await wiki.embeddedin(template_page_data));
-	/**{Set} 所有嵌入此模板的頁面名稱 */
-	const embeddedin_title_Set = new Set(
-		(await wiki.embeddedin(template_page_data)).map(page_data => {
-			return page_data.title;
-		})
-	);
-	//console.trace(embeddedin_title_Set);
-	if (embeddedin_title_Set.size === 0) {
-		return Wikiapi.skip_edit;
-	}
-
-
-	/**{Map} language_variant_convert_Map[converted_title] → original_title */
+	/**{Set} 所有嵌入此模板，並且此模板有連出的頁面名稱 */
+	const embeddedin_and_linked_title_Set = new Set;
 	const language_variant_convert_Map = new Map;
-	if (use_language === 'zh') {
-		const embeddedin_title_list = Array.from(embeddedin_title_Set);
-		for (const language_variant of ['zh-hant', 'zh-hans']) {
-			const converted_list = await wiki.convert_Chinese(embeddedin_title_list, language_variant);
-			embeddedin_title_list.forEach((title, index) => {
-				if (converted_list[index] !== title)
-					language_variant_convert_Map.set(converted_list[index], title);
-			});
+	if (true) {
+		const embeddedin_and_linked_title_list = (await wiki.embeddedin(template_page_data, {
+			// TODO: 取與 redirected_targets 的交集。
+			page_filter(page_data) {
+				//console.trace(page_data);
+				return page_data.title in redirected_targets.original_result.title_data_map;
+			},
+		})).map(page_data => {
+			embeddedin_and_linked_title_Set.add(page_data.title);
+			return page_data.title;
+		});
+		if (embeddedin_and_linked_title_list.length === 0
+			// 若太多個 embeddedin　頁面，代表非導航模板，可跳過不處理。但基本上不會遇到這情況。
+			//|| embeddedin_and_linked_title_list.length > 1000
+		) {
+			return Wikiapi.skip_edit;
+		}
+		//console.trace(embeddedin_and_linked_title_list);
+
+		/**{Map} language_variant_convert_Map[converted_title] → original_title */
+		if (use_language === 'zh') {
+			for (const language_variant of ['zh-hant', 'zh-hans']) {
+				const converted_list = await wiki.convert_Chinese(embeddedin_and_linked_title_list, language_variant);
+				embeddedin_and_linked_title_list.forEach((title, index) => {
+					if (converted_list[index] !== title)
+						language_variant_convert_Map.set(converted_list[index], title);
+				});
+			}
 		}
 	}
+	//console.trace(embeddedin_and_linked_title_Set);
 
 
 	/**	link from → redirect target */
@@ -302,22 +322,22 @@ async function for_each_template_page(template_page_data, messages) {
 			message_recorded_Set.add(link_title);
 			const message = CeL.wiki.title_link_of(template_page_data) + ': ' + CeL.gettext(message_id, CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target));
 			CeL.warn(message);
-			messages.push((messages.finished_count_of_section > 0 ? '#:' : ':::') + message);
+			messages.push((messages.ordered_list_count > 0 ? '#:' : ':::') + message);
 		}
 
 		// 跳過重定向到章節的連結、將之記錄在日誌中，
 		if (matched) {
 			// User:Ericliu1912: 重新導向到章節的連結都不用修正（除非章節變了）。倒是可以反過來，列出重新導向到章節的連結，說不定有可以給編者手動改善的地方？
-			// gettext_config:{"en":"Redirect to section: $1"}
+			// gettext_config:{"id":"redirect-to-section-$1"}
 			add_message('連結重定向到章節：%1');
 			continue;
 		}
 
 		// User:寒吉: 清理該模板有嵌入的頁面連結就好。
 		// 重定向至消歧義頁面，通常會因未嵌入此模板而在此被篩掉。
-		if (!embeddedin_title_Set.has(matched ? matched[0] : redirected_target)) {
-			// gettext_config:{"en":"Links to page without embedded the template: $1"}
-			add_message('連結到未嵌入模板的頁面：%1');
+		if (!embeddedin_and_linked_title_Set.has(matched ? matched[0] : redirected_target)) {
+			// gettext_config:{"id":"links-to-page-without-embedded-the-template-$1"}
+			add_message('連結重定向到未嵌入模板的頁面：%1');
 			continue;
 		}
 
@@ -381,10 +401,16 @@ async function for_each_template_page(template_page_data, messages) {
 
 
 	const summary_list = [];
-	if (link_convert_map.size > 0)
-		summary_list.push(Array.from(link_convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1])).join(', '));
-	if (display_text_convert_map.size > 0)
-		summary_list.push(Array.from(display_text_convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1]) + ' (轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題)').join(', '));
+	if (link_convert_map.size > 0) {
+		summary_list.push(Array.from(link_convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1]))
+			// gettext_config:{"id":"Comma-separator"}
+			.join(CeL.gettext('Comma-separator')));
+	}
+	if (display_text_convert_map.size > 0) {
+		summary_list.push(Array.from(display_text_convert_map).map(pair => CeL.wiki.title_link_of(pair[0]) + '→' + CeL.wiki.title_link_of(pair[1]) + ' (轉換[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題)')
+			// gettext_config:{"id":"Comma-separator"}
+			.join(CeL.gettext('Comma-separator')));
+	}
 	if (summary_list.length === 0)
 		return Wikiapi.skip_edit;
 
