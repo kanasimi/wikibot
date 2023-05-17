@@ -2,7 +2,7 @@
 node 20230418.Fix_redirected_wikilinks_of_templates.js
 
 這個任務會清理導航模板的重導向內部連結。
-由於這個任務會遍歷所有模板，很遺憾的 MediaWiki API 並未提供進度指示，所以無法顯示整個任務的進度。現在所顯示的任務進度為相對於5000個條目的進度。
+由於這個任務會遍歷所有模板，很遺憾的 MediaWiki API 並未提供進度指示，所以無法顯示整個任務的進度。現在所顯示的任務進度為相對於每個區段5000個條目的進度。
 
 2023/4/18 6:49:54	初版試營運
 2023/5/15 6:33:39	機器人申請測試運作
@@ -18,7 +18,11 @@ TODO:
 require('../wiki loader.js');
 
 // Load modules.
-CeL.run('data.CSV');
+CeL.run([
+	'data.CSV',
+	// for CeL.assert()
+	'application.debug.log']);
+
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('zh');
@@ -27,10 +31,8 @@ set_language('zh');
 const wiki = new Wikiapi;
 
 
-/**檢核條目*/
-const start_from_article = 'Template:Tv-chubu';
-/**{Boolean}已經通過檢核條目，處理所有的條目。*/
-let process_all_articles = !start_from_article;
+/**{String}從這個頁面開始檢核。*/
+const start_from_page = 'Template:保泰五年甲辰科庭試進士榜';
 
 // ----------------------------------------------
 
@@ -90,34 +92,19 @@ async function main_process() {
 			&& ['Template:Lang']
 			, for_each_template_page, {
 			//summary: '[[Special:PermanentLink/76925397#需要進行之善後措施|​因應格式手冊修改]]，[[Wikipedia:格式手册/标点符号#连接号|連接號]]改用 em dash: ',
-			summary: `${CeL.wiki.title_link_of(log_to, '轉換')}[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: `,
+			summary: `${CeL.wiki.title_link_of(log_to, '轉換模板中的內部連結為目標頁面標題')}: `,
 		});
 		return;
 	}
 
 	await wiki.allpages({
 		namespace: 'template',
+		apfrom: start_from_page || '',
 		for_each_slice: async function (page_list) {
-			if (!process_all_articles) {
-				while (page_list.length > 0) {
-					if (page_list[0].title === start_from_article) {
-						process_all_articles = true;
-						CeL.info('Start from ' + page_list[0].title);
-						break;
-					}
-					page_list.shift();
-				}
-				if (page_list.length === 0)
-					return;
-			}
-			//console.trace(page_list);
-			//console.trace(page_list.slice(0, 10));
-			//return CeL.wiki.list.exit;
-
 			// 去掉明顯非導航模板之功能頁面。
 			page_list = page_list.filter(
 				page_data => !/\/(doc|draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
-					// 去掉中華人民共和國行政區劃
+					// 跳過中華人民共和國行政區劃。
 					&& !/^Template:PRC admin\//.test(page_data.title)
 			);
 
@@ -133,7 +120,7 @@ async function main_process() {
 					pllimit: 'max',
 				},
 				*/
-				summary: `${CeL.wiki.title_link_of(log_to, '轉換')}[[Wikipedia:格式手册/链接#模板中的内部链接|模板中的內部連結]]為目標頁面標題: `,
+				summary: `${CeL.wiki.title_link_of(log_to, '轉換模板中的內部連結為目標頁面標題')}: `,
 				log_to,
 			});
 		}
@@ -207,7 +194,18 @@ async function for_each_template_page(template_page_data, messages) {
 	//console.trace(template_page_data);
 	//console.trace('>> ' + template_page_data.title);
 
+	if (/^Template:User /.test(template_page_data.title)
+		// 跳過用戶框模板 {{Userbox}}, {{Userbox-2}}。
+		//&& /^\s*{{Userbox/.test(template_page_data.wikitext)
+		&& !template_page_data.wikitext.replace(/<noinclude>[\s\S]*?<\/noinclude>/, '').replace(/{{Userbox[\s\S]+?}}/i, '').replace(/\[\[Category:.+?\]\]/i, '').includes('[[')) {
+		return Wikiapi.skip_edit;
+	}
+
+	CeL.log_temporary(`${for_each_template_page.name}: ${CeL.wiki.title_link_of(template_page_data)}`);
+
 	const parsed = CeL.wiki.parser(template_page_data).parse();
+	CeL.assert([template_page_data.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(template_page_data));
+
 	const link_list = [], link_token_list = [];
 	/**	from display text → to display text */
 	const display_text_convert_map = new Map;
