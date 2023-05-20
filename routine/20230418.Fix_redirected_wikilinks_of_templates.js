@@ -32,7 +32,12 @@ const wiki = new Wikiapi;
 
 
 /**{String}從這個頁面開始檢核。*/
-const start_from_page = 'Template:保泰五年甲辰科庭試進士榜';
+const start_from_page = 'Template:CHT'
+	&& undefined
+	;
+/**{Boolean}已經通過檢核條目，處理所有的條目。*/
+let process_all_pages = !start_from_page;
+
 
 // ----------------------------------------------
 
@@ -65,6 +70,7 @@ async function adapt_configuration(latest_task_configuration) {
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
+	routine_task_done('1 week');
 })();
 
 // ----------------------------------------------------------------------------
@@ -101,11 +107,27 @@ async function main_process() {
 		namespace: 'template',
 		apfrom: start_from_page || '',
 		for_each_slice: async function (page_list) {
+			// apfrom 不一定會剛好從所指定的頁面開始，因此必須有這道篩選。
+			if (!process_all_pages) {
+				while (page_list.length > 0) {
+					if (page_list[0].title === start_from_page) {
+						process_all_pages = true;
+						CeL.info('Start from ' + page_list[0].title);
+						break;
+					}
+					page_list.shift();
+				}
+				if (page_list.length === 0)
+					return;
+			}
+
 			// 去掉明顯非導航模板之功能頁面。
 			page_list = page_list.filter(
 				page_data => !/\/(doc|draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
 					// 跳過中華人民共和國行政區劃。
 					&& !/^Template:PRC admin\//.test(page_data.title)
+					// 跳過用戶框模板 {{Userbox}}, {{Userbox-2}}, {{User language}}。
+					&& !/^Template:User /.test(page_data.title)
 			);
 
 			//CeL.set_debug();
@@ -122,6 +144,7 @@ async function main_process() {
 				*/
 				summary: `${CeL.wiki.title_link_of(log_to, '轉換模板中的內部連結為目標頁面標題')}: `,
 				log_to,
+				notification_name: 'fix_redirected_wikilinks',
 			});
 		}
 	});
@@ -194,10 +217,11 @@ async function for_each_template_page(template_page_data, messages) {
 	//console.trace(template_page_data);
 	//console.trace('>> ' + template_page_data.title);
 
-	if (/^Template:User /.test(template_page_data.title)
-		// 跳過用戶框模板 {{Userbox}}, {{Userbox-2}}。
-		//&& /^\s*{{Userbox/.test(template_page_data.wikitext)
-		&& !template_page_data.wikitext.replace(/<noinclude>[\s\S]*?<\/noinclude>/, '').replace(/{{Userbox[\s\S]+?}}/i, '').replace(/\[\[Category:.+?\]\]/i, '').includes('[[')) {
+	if (!template_page_data.wikitext.replace(/<noinclude>[\s\S]*?<\/noinclude>/, '')
+		// @see PATTERN_redirect @ CeL.application.net.wiki.parser.misc
+		.replace(/^[\s\n]*#(?:REDIRECT|重定向|重新導向|転送|リダイレクト|넘겨주기)\s*(?::\s*)?\[\[([^{}\[\]\|<>\t\n�]+)(?:\|[^\[\]{}]+?)?\]\]/i, '')
+		.replace(/\[\[Category:.+?\]\]/i, '')
+		.includes('[[')) {
 		return Wikiapi.skip_edit;
 	}
 
@@ -319,7 +343,7 @@ async function for_each_template_page(template_page_data, messages) {
 
 			message_recorded_Set.add(link_title);
 			const message = CeL.wiki.title_link_of(template_page_data) + ': ' + CeL.gettext(message_id, CeL.wiki.title_link_of(link_title) + '→' + CeL.wiki.title_link_of(redirected_target));
-			CeL.warn(message);
+			CeL.log(message);
 			messages.push((messages.ordered_list_count > 0 ? '#:' : ':::') + message);
 		}
 
