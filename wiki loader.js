@@ -167,7 +167,8 @@ _global.summary = script_name;
 _global.use_language = '';
 
 // project = language_code.family
-_global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project || _global.use_project;
+_global.use_project = CeL.env.arg_hash && CeL.env.arg_hash.use_project
+		|| _global.use_project;
 
 function login_options_of_API_URL(API_URL) {
 	if (API_URL && API_URL.API_URL) {
@@ -323,7 +324,7 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 	// CeL.set_debug(3);
 	if (typeof check_section === 'string') {
 		session.check_options = {
-			section : check_section
+			check_section : check_section
 		};
 	}
 
