@@ -81,6 +81,7 @@ async function setup_citation_template_list() {
 async function main_process() {
 	await setup_citation_template_list();
 
+	//CeL.set_debug(9);
 	await replace_tool.replace({
 		wiki,
 		use_language,
@@ -94,13 +95,17 @@ async function main_process() {
 			namespace: 0,
 			for_template,
 			list_types: 'categorymembers',
+			// page_list : [ 'Key開發遊戲列表' ],
 		},
 		'Category:引文格式1错误：日期': {
 			namespace: 0,
 			for_template,
 			list_types: 'categorymembers',
+			// page_list : [ '' ],
 		},
 	});
+
+	routine_task_done('1 week');
 }
 
 function for_template(token, index, parent) {
@@ -225,8 +230,10 @@ function for_template(token, index, parent) {
 		//'doi-access',
 	];
 	// 仍無法改正，則不清除 df參數。
-	if (!invalid_date && date_parameters_changed.length > 0)
+	if (!invalid_date && date_parameters_changed.length > 0) {
+		// Remove |df=*
 		parameters_to_remove.push('df');
+	}
 
 	const parameters_changed = [];
 	parameters_to_remove.forEach(parameter_name => {
