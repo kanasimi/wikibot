@@ -961,6 +961,43 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	for (let move_configuration_index = 0; move_configuration_index < move_configuration.length; move_configuration_index++) {
 		const pair = move_configuration[move_configuration_index];
+		if (true) {
+			let move_from_link = pair[1].move_from_link
+				// `CeL.wiki.normalize_title(pair[0])` 可能造成URL、"insource:"出現問題。
+				|| pair[0];
+			if (/^\s*{{/.test(move_from_link) && /}}\s*$/.test(move_from_link)) {
+				// e.g., {{from|...}}→{{to|...}}
+				const move_from_template_pattern = CeL.wiki.parse(move_from_link.toString().trim());
+				if (move_from_template_pattern?.type === "transclusion") {
+					//console.trace(move_from_template_pattern);
+					if (!CeL.is_Object(pair[1])) {
+						pair[1] = {
+							move_to_link: pair[1],
+						};
+					}
+					Object.assign(pair[1], {
+						move_from_link: move_from_template_pattern.page_title,
+						move_from_template_parameters: Object.keys(move_from_template_pattern.parameters).length > 0 && move_from_template_pattern.parameters,
+					});
+
+					const move_to_link = pair[1].move_to_link;
+					if (/^\s*{{/.test(move_to_link) && /}}\s*$/.test(move_to_link)) {
+						const move_to_template_pattern = CeL.wiki.parse(move_to_link.toString().trim());
+						//console.trace(move_to_template_pattern);
+						if (move_to_template_pattern?.type === "transclusion") {
+							Object.assign(pair[1], {
+								move_to_link: move_to_template_pattern.page_title,
+								replace_parameters: Object.keys(move_to_template_pattern.parameters).length > 0 && move_to_template_pattern.parameters,
+								replace_parameter_options: { value_only: true, force_add: true, append_key_value: true },
+							});
+						}
+					}
+					//console.trace(pair);
+				} else {
+					CeL.warn('Invalid template pattern? ' + move_from_link);
+				}
+			}
+		}
 		const move_from_link = pair[1].move_from_link
 			// `CeL.wiki.normalize_title(pair[0])` 可能造成URL、"insource:"出現問題。
 			|| pair[0];
@@ -1758,6 +1795,8 @@ async function main_move_process(task_configuration, meta_configuration) {
 		log_to: 'log_to' in task_configuration ? task_configuration.log_to : log_to,
 		summary: task_configuration.summary,
 		log_section_title_postfix: task_configuration.log_section_title_postfix,
+		...meta_configuration.work_options,
+		...task_configuration.work_options,
 	};
 	//console.trace(work_config);
 	for (const option of work_option_switches) {
@@ -2368,10 +2407,21 @@ function replace_link_parameter(task_configuration, template_token, template_has
 
 async function for_each_template(page_data, token, index, parent) {
 	const { task_configuration } = this;
+	/** {Boolean}改名的來源為模板 */
 	const move_from_is_not_template = !task_configuration.move_from || task_configuration.move_from.ns && task_configuration.move_from.ns !== task_configuration[KEY_wiki_session].namespace('Template');
+	/** {Boolean}本模板正是改名來源 */
 	const is_move_from = !move_from_is_not_template && task_configuration[KEY_wiki_session].is_template(task_configuration.move_from.page_name, token);
 	//console.trace([move_from_is_not_template, is_move_from, task_configuration.move_from.page_name, token.name]);
 	//console.trace(task_configuration);
+
+	if (is_move_from && task_configuration.move_from_template_parameters) {
+		for (const [parameter, value] of Object.entries(task_configuration.move_from_template_parameters)) {
+			if (token.parameters[parameter] !== value) {
+				// Not matched. Leave without change.
+				return;
+			}
+		}
+	}
 
 	if ((move_from_is_not_template || is_move_from) && task_configuration.for_template
 		// task_configuration.for_template() return: 改變內容，之後會做善後處理。
@@ -2394,13 +2444,16 @@ async function for_each_template(page_data, token, index, parent) {
 		}
 
 		if (task_configuration.replace_parameters) {
+			// 依照 task_configuration.replace_parameters 替換模板參數。
 			if (CeL.is_Object(task_configuration.replace_parameters)) {
 				// e.g., `{{リンク修正依頼/改名|options={"replace_parameters":{"from_parameter":"to_parameter"},"parameter_name_only":true} }}`
-				CeL.wiki.parse.replace_parameter(token, task_configuration.replace_parameters, task_configuration.parameter_name_only ? { parameter_name_only: task_configuration.parameter_name_only } : null);
+				CeL.wiki.parse.replace_parameter(token, task_configuration.replace_parameters,
+					task_configuration.replace_parameter_options || task_configuration.parameter_name_only && { parameter_name_only: task_configuration.parameter_name_only });
 			} else {
 				throw new TypeError('.replace_parameters is not a Object');
 			}
 		}
+		//console.trace(token.toString());
 		if (task_configuration.move_to?.page_name
 			&& task_configuration.move_from.ns === task_configuration.move_to.ns
 			&& task_configuration.move_from.ns === task_configuration[KEY_wiki_session].namespace('Template')) {
@@ -2633,6 +2686,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 		for (const _line of line) {
 			await parse_move_pairs_from_link(_line, move_title_pair, options);
 		}
+		//console.trace(move_title_pair);
 		return;
 	}
 
@@ -2658,9 +2712,10 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 	}, true);
 
 	let from, to;
+	// e.g., # [[move from]]=>[[move to]]
 	CeL.wiki.parser.parser_prototype.each.call(line, 'link', (link_token, index, parent) => {
-		// 去掉簽名之後的連結。
-		if (wiki.is_namespace(link_token[0].toString(), 'User') && index > 0 && typeof parent[index - 1] === 'string' && parent[index - 1].endsWith('--')) {
+		// 去掉ping、簽名之後的連結。
+		if (wiki.is_namespace(link_token[0].toString(), 'User') && index > 0 && typeof parent[index - 1] === 'string' && /(?:--|@)$/.test(parent[index - 1])) {
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
 
@@ -2678,6 +2733,9 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 		}
 	});
 
+	if (from && !to) from = to = null;
+
+	// e.g., # [https://...]=>[https://...]
 	if (!from && !to) {
 		CeL.wiki.parser.parser_prototype.each.call(line, 'url', (link, index, parent) => {
 			link = preprocess_link(link[0]);
@@ -2691,6 +2749,28 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 		});
 	}
 
+	if (from && !to) from = to = null;
+
+	// e.g., # <syntaxhighlight lang="wikitext" inline>{{BWF賽事級別索引}}</syntaxhighlight>替換為<syntaxhighlight lang="wikitext" inline>{{羽毛球賽事級別索引|super_series=1|world_tour=1}}</syntaxhighlight>
+	if (!from && !to) {
+		//console.trace(line.toString());
+		CeL.wiki.parser.parser_prototype.each.call(line, 'tag', (tag_token, index, parent) => {
+			if (tag_token.tag !== "syntaxhighlight" || tag_token.attributes.lang !== "wikitext")
+				return;
+			//console.trace(tag_token);
+			tag_token = tag_token[1].toString().trim();
+			if (!from) {
+				from = tag_token;
+			} else if (!to) {
+				to = tag_token;
+			} else if (!options.ignore_multiple_link_warnings) {
+				from = to = null;
+				return CeL.wiki.parser.parser_prototype.each.exit;
+			}
+		});
+	}
+
+	//console.trace({ from, to });
 	if (from && Array.isArray(move_title_pair)) {
 		move_title_pair.push(from);
 		return;
