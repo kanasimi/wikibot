@@ -4,10 +4,17 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
 node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
+node 20201008.fix_anchor.js use_language=ja "check_page=時刻表"
+node 20201008.fix_anchor.js use_language=ja "check_page=魔術士オーフェン (アニメ)"
+node 20201008.fix_anchor.js use_language=ja "check_page=ギャル"
+node 20201008.fix_anchor.js use_language=ja "check_page=住宅"
+node 20201008.fix_anchor.js use_language=ja "check_page=東京大空襲"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
+node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态候选"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
+node 20201008.fix_anchor.js use_language=en "check_page=Jacksonville, Florida"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
@@ -216,6 +223,7 @@ async function main_process() {
 			only_modify_pages: CeL.env.arg_hash.only_modify_pages,
 			print_anchors: true,
 		});
+		CeL.info(`${CeL.wiki.title_link_of(CeL.env.arg_hash.check_page)} done`);
 		return;
 	}
 
@@ -319,7 +327,7 @@ function filter_row(row) {
 	// [[User:Cewbot/log/20150916]]
 	if (/提名區|提名区|\/log\//.test(row.title)
 		// [[Wikipedia:新条目推荐/候选]]
-		|| /(\/Sandbox|\/沙盒|\/候选)$/.test(row.title)) {
+		|| /\/(?:draft|Sandbox|沙盒|te?mp|testcases|候选)$/.test(row.title)) {
 		return;
 	}
 
@@ -926,7 +934,7 @@ async function get_all_links(page_data, options) {
 		reduced_anchor_to_page[reduce_section_title(page_title)] = [page_title];
 
 		// 假如完全刪除 #anchor，但存在 [[[page|anchor]] 則直接改連至 [[page]]
-		var display_text = link_token[2] && link_token[2].toString();
+		var display_text = link_token[2]?.toString();
 		if (display_text)
 			reduced_anchor_to_page[reduce_section_title(display_text)] = [page_title];
 	});
@@ -969,7 +977,7 @@ async function check_page(target_page_data, options) {
 		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章 anchor 網頁錨點。
 		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
 	})).filter(page_data =>
-		!/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
+		!/\/(draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
 		// [[User:Cewbot/log/20151002/存檔5]]
 		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
 		// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
@@ -1262,6 +1270,12 @@ async function check_page(target_page_data, options) {
 
 	// ----------------------------------------------------
 
+	/**
+	 * 檢查並修復網頁錨點 token。
+	 * @param {Array} token 網頁錨點 token。
+	 * @param {Array} linking_page_data 網頁錨點所在頁面。
+	 * @returns {Boolean} token 被修改過。
+	 */
 	function check_token(token, linking_page_data) {
 		const page_title = (
 			// assert: {{Section link}}
@@ -1281,24 +1295,29 @@ async function check_page(target_page_data, options) {
 		//console.trace(token);
 
 		/**
-		 * Change the target page title
+		 * Change the target page title of the link. Only for archived page.
 		 * @param {String} to_page_title
 		 * 
-		 * @returns {Boolean} Nothing changed
+		 * @returns {Boolean} the target page title of the token changed
 		 */
-		function change_to_page_title(to_page_title) {
+		function change__to_page_title(to_page_title) {
 			if (token.article_index) {
 				if (wiki.normalize_title(token[token.article_index]) === to_page_title)
-					return true;
+					return;
 				token[token.article_index] = to_page_title;
 			} else {
 				if (wiki.normalize_title(token[0]) === to_page_title)
-					return true;
+					return;
 				token[0] = to_page_title;
 			}
+			return true;
 		}
 
-		function change_to_anchor(to_anchor) {
+		/**
+		 * Change the anchor of the link.
+		 * @param {String} to_anchor
+		 */
+		function change__to_anchor(to_anchor) {
 			to_anchor = CeL.wiki.section_link_escape(to_anchor, true);
 			if (token.anchor_index) {
 				token[token.anchor_index] = to_anchor || '';
@@ -1310,11 +1329,11 @@ async function check_page(target_page_data, options) {
 		const move_to_page_title = section_title_history[token.anchor]?.move_to_page_title;
 		// https://meta.wikimedia.org/wiki/Community_Wishlist_Survey_2021/Bots_and_gadgets#Talk_page_archiving_bot_updating_incoming_links
 		if (move_to_page_title) {
-			if (change_to_page_title(move_to_page_title))
+			if (!change__to_page_title(move_to_page_title))
 				return;
 			// [[#A_B]] → [[#A B]]
 			const section_title = section_title_history[token.anchor]?.title;
-			change_to_anchor(section_title);
+			change__to_anchor(section_title);
 			// gettext_config:{"id":"update-links-to-archived-section-$1-$2"}
 			const message = CeL.gettext('Update links to archived section %1: %2',
 				// 整體作業進度 overall progress
@@ -1344,10 +1363,17 @@ async function check_page(target_page_data, options) {
 
 		const original_anchor = token.anchor_index ? token[token.anchor_index] : token[1];
 		// assert: token.anchor === CeL.wiki.parse.anchor.normalize_anchor(original_anchor)
+		/** {Object} record of the anchor */
 		const record = get_section_title_data(section_title_history, token.anchor);
 		//console.trace(record);
 		let rename_to = record?.rename_to;
 		if (rename_to && section_title_history[rename_to]?.is_present) {
+			// 避免 [[#2022|2022]]→[[#2021|2022]] 之數字被改變的情況。
+			// https://github.com/kanasimi/wikibot/issues/42
+			if (/\d{3}/.test(token.anchor) && token.display_text?.includes(token.anchor) && !token.display_text?.includes(rename_to)) {
+				return;
+			}
+
 			let type;
 			record.variant_of?.some(variant => {
 				// 請注意: 網頁錨點有區分大小寫與繁簡體。
@@ -1362,6 +1388,7 @@ async function check_page(target_page_data, options) {
 					return true;
 				}
 			});
+			/** {String} What arrow sign to use in the summary */
 			const ARROW_SIGN = record.is_directly_rename_to || type ? '→' : '⇝';
 			const hash = '#' + rename_to;
 
@@ -1376,7 +1403,7 @@ async function check_page(target_page_data, options) {
 				? ` (${CeL.gettext('VERY DIFFERENT')} ${record.very_different})` : ''}`
 				} ${original_anchor}${ARROW_SIGN}${CeL.wiki.title_link_of(target_page_data.title + hash)}`);
 
-			change_to_anchor(rename_to);
+			change__to_anchor(rename_to);
 			//changed = true;
 			return true;
 		}
@@ -1387,7 +1414,7 @@ async function check_page(target_page_data, options) {
 		if (false && move_to_page_title_via_link) {
 			// 有問題: 例如 [[Special:Diff/83294745]] [[名探偵コナンの登場人物#公安警察|風見裕也]] 不該轉為 [[公安警察|風見裕也]]。
 			// 對人名連結可能較有用。
-			if (change_to_page_title(move_to_page_title_via_link[0]))
+			if (!change__to_page_title(move_to_page_title_via_link[0]))
 				return;
 			const target_link = move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : '');
 			// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
@@ -1395,7 +1422,7 @@ async function check_page(target_page_data, options) {
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
 			add_summary(this, message);
-			change_to_anchor(move_to_page_title_via_link[1]);
+			change__to_anchor(move_to_page_title_via_link[1]);
 			return true;
 		}
 
@@ -1439,7 +1466,7 @@ async function check_page(target_page_data, options) {
 				if (section_title_history[token.anchor]) {
 					//console.trace(section_title_history[token.anchor]);
 				}
-				change_to_anchor(rename_to);
+				change__to_anchor(rename_to);
 				return true;
 			}
 		}
@@ -1458,6 +1485,11 @@ async function check_page(target_page_data, options) {
 	// ------------------------------------------
 
 	let main_pages_modified = 0, talk_pages_modified = 0;
+	/**
+	 * 解析並處理連結頁面中的所有連結。
+	 * @param {Array} linking_page_data 網頁錨點所在頁面。
+	 * @returns 處理後的頁面資料。
+	 */
 	function resolve_linking_page(linking_page_data) {
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = linking_page_data.parse();
@@ -1486,6 +1518,7 @@ async function check_page(target_page_data, options) {
 			section.each('template', (token, index, parent) => {
 				// handle {{Section link}}
 				if (wiki.is_template('Section link', token)) {
+					/** {Number} index to the target page title of the link. */
 					const ARTICLE_INDEX = 1;
 					if (token.parameters[ARTICLE_INDEX]) {
 						const matched = token.parameters[ARTICLE_INDEX].toString().includes('#');
