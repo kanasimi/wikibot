@@ -2051,11 +2051,14 @@ function for_each_link(token, index, parent) {
 			}
 		}
 	} else {
+		//console.trace(this.move_to);
 		const display_text = this.move_to.display_text;
 		if (display_text || display_text === '') {
 			token[2] = display_text;
 		}
-		if (/*!this.keep_display_text &&*/ token[2] && !token[1] && token[0].toString().trim() === token[2].toString().trim()) {
+		if (/*!this.keep_display_text &&*/ token[2] && !token[1]
+		// 假如最後會改變 token[0] → this.move_to.page_title，那麼還是保留 token[2]。 e.g., [[A]] → [[B|A]]
+		&& (this.move_to.page_title || token[0]).toString().trim() === token[2].toString().trim()) {
 			// 必須(!this.keep_display_text)，預防 [[A]] → [[A|A]] → [[A]] → [[A (B)]]
 			// 經過 this.keep_display_text 後，可能獲得:
 			// [[A (B)|A (B)]] → [[A (B)]]
@@ -2064,6 +2067,7 @@ function for_each_link(token, index, parent) {
 			token.pop();
 		}
 	}
+	//console.trace(token);
 
 	//console.trace(this.also_replace_display_text);
 	// 替換 display text。
@@ -2101,6 +2105,7 @@ function for_each_link(token, index, parent) {
 			token[0] = this.move_to.page_title;
 		}
 	}
+	//console.trace(token);
 
 	if (typeof this.move_to.anchor === 'string') {
 		token[1] = this.move_to.anchor ? '#' + this.move_to.anchor : '';
@@ -2130,10 +2135,12 @@ function for_each_link(token, index, parent) {
 		}
 		//console.trace([header, tail, parent[index - 1], token, parent[index + 1]]);
 	}
+	//console.trace(token);
 
 	if (!token[2]) {
 		;
 	} else if (!token[1] && this[KEY_wiki_session].normalize_title(CeL.wiki.wikitext_to_plain_text(token[2]), { no_upper_case_initial: true }) === this.move_to.page_title) {
+		//console.trace(token);
 		// 去掉與頁面標題相同的 display_text。 preserve 大小寫變化 [[PH|pH]], [[iOS]]。
 		// e.g., [[.move_from.page_title|move to link]] →
 		// [[.move_to.page_title|move to link]]
@@ -2149,12 +2156,18 @@ function for_each_link(token, index, parent) {
 			token.pop();
 		}
 	} else if (!token[1] && this.move_from.page_title === this.move_to.page_title && this.move_from.display_text && this.move_to.display_text === undefined) {
+		//console.trace(token);
 		// 移動前後的頁面標題相同，卻未設定移動後的 display_text。將會消掉符合條件連結之 display_text！
 		// 消除特定 display_text。 e.g., 設定 [[T|d]] → [[T]]
 		// assert: token.length === 2
 		token.pop();
-	} else if (!/ +\([^()]+\)$/.test(this.move_to.page_title) && this.move_from.page_title !== this.move_to.page_title
-		&& this.move_from.page_title === /*CeL.wiki.wikitext_to_plain_text(token[2], { no_upper_case_initial: true })*/CeL.HTML_to_Unicode(token[2].toString())) {
+	} else if (
+		// 假如特別設定了 .move_to.display_text 就不再處理。
+		!this.move_to.display_text
+		&& !/ +\([^()]+\)$/.test(this.move_to.page_title) && this.move_from.page_title !== this.move_to.page_title
+		&& this.move_from.page_title === /*CeL.wiki.wikitext_to_plain_text(token[2], { no_upper_case_initial: true })*/CeL.HTML_to_Unicode(token[2].toString())
+	) {
+		//console.trace(token);
 		if (!token[1] && token[0] === this.move_to.page_title) {
 			// MeToo → ＃MeToo 則 [[MeToo]] 此時為 [[＃MeToo|MeToo]]，直接改成 [[＃MeToo]]。
 			token.pop();
