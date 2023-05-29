@@ -17,7 +17,7 @@ node 20230406.Clean_up_redirected_categories.js use_project=zh.wikinews
 const replace_tool = require('../replace/replace_tool.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
-set_language('zh');
+//set_language('zh');
 
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
@@ -59,6 +59,7 @@ async function adapt_configuration(latest_task_configuration) {
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
+	routine_task_done('1 week');
 })();
 
 // ----------------------------------------------------------------------------
@@ -85,7 +86,8 @@ async function main_process() {
 
 	await wiki.for_each_page(Array.from(category_Map.values()), for_category, {
 		redirects: 1,
-		page_options: { prop: 'revisions|redirects', rdprop: 'pageid|title|fragment' }
+		page_options: { prop: 'revisions|redirects', rdprop: 'pageid|title|fragment' },
+		no_message: true,
 	});
 }
 
@@ -174,6 +176,7 @@ async function do_replace(move_from_link, move_to_link) {
 	await replace_tool.replace({
 		wiki,
 		use_language,
+		work_options: { no_message: true, },
 		not_bot_requests: true,
 		no_move_configuration_from_command_line: true,
 		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '清理重定向的分類')}: ${CeL.wiki.title_link_of(move_from_link)}→${CeL.wiki.title_link_of(move_to_link)}`
