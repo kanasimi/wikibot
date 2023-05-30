@@ -62,11 +62,11 @@ ignore_ns = false,
 page_remains,
 
 // default parameters 預設index/次序集
-// c: foreign_language: foreign_language code 外文語言代號
-// F: foreign_title: foreign_title 外文條目名
+// c: foreign_language: foreign language code 外文語言代號
+// F: foreign_title: foreign title 外文條目名
 // L: local_title: local title 中文條目名
 // label: label text displayed 顯示名
-// preserve: preserve foreign language link
+// preserve: Keep foreign language links when displayed
 template_orders = {
 	LcF_ja : {
 		local_title : 1,
@@ -643,9 +643,11 @@ function for_each_page(page_data, messages) {
 				// gettext_config:{"id":"Comma-separator"}
 				changed.join(gettext('Comma-separator'))) + ' ('
 				// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-				+ gettext('The bot operation is completed %1% in total', (100 * _this.pages_finished /
+				+ gettext('The bot operation is completed %1% in total',
 				// 整體作業進度 overall progress
-				_this.initial_target_length).to_fixed(1)) + ')',
+				(100 * _this.pages_finished / _this.initial_target_length)
+				//
+				.to_fixed(1)) + ')',
 				nocreate : 1,
 				minor : 1,
 				bot : 1
@@ -842,6 +844,11 @@ function for_each_page(page_data, messages) {
 					if (foreign_title === local_title) {
 						// 可直接換成本地標題。但必須改 link_target。
 						token.use_link_target = converted_local_title;
+						// [[w:zh:Wikipedia:列明来源#文獻參考的格式]]:
+						// 如果參考了非中文文獻，請不要把該參考文獻用中文列出，而是應該使用該文獻的原始語言。
+						if (false) {
+							parameters.label = foreign_title;
+						}
 						token.additional_summary = gettext(
 						// gettext_config:{"id":"the-local-title-in-the-interlanguage-template-is-same-as-the-foreign-language-title"}
 						'跨語言模板的本地標題與外語標題相同');
@@ -1035,6 +1042,7 @@ function for_each_page(page_data, messages) {
 		if (local_title && foreign_language && foreign_title) {
 			// 這裡用太多 CeL.wiki.page() 並列處理，會造成 error.code "EMFILE"。
 			wiki.page([ foreign_language, foreign_title ], for_foreign_page, {
+				// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bpageprops
 				query_props : 'pageprops',
 				redirects : 1,
 				save_response : true,
@@ -1176,6 +1184,7 @@ function main_work() {
 			// this.list = [ '2022年', '1995年电影' ];
 			// this.list = [ '好莱坞唱片' ];
 			// this.list = [ '台中藍鯨女子足球隊' ];
+			// this.list = [ '2019冠狀病毒病知名去世患者列表' ];
 		}
 
 	}, false && {
