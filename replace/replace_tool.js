@@ -763,7 +763,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 
 // 自動提醒/通知
 // auto-notice: Starting replace task
-async function notice_to_edit(wiki, meta_configuration) {
+async function notice_to_edit(wiki, meta_configuration, move_configuration) {
 	const options = {
 		// gettext_config:{"id":"the-requested-robot-task-begins"}
 		summary: CeL.gettext('The requested robot task begins.')
@@ -780,11 +780,14 @@ async function notice_to_edit(wiki, meta_configuration) {
 		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section);
 		//console.trace(task_configuration_from_section);
 
-		if (CeL.is_empty_object(task_configuration_from_section)) {
+		if (CeL.is_empty_object(task_configuration_from_section)
+			&& (!move_configuration || CeL.is_empty_object(move_configuration))
+		) {
 			CeL.warn([notice_to_edit.name + ': ', {
 				// gettext_config:{"id":"the-section-does-not-set-the-task-configuration-$1"}
 				T: ['本章節未設定任務內容: %1', meta_configuration.section_title]
 			}]);
+			//console.trace(meta_configuration, move_configuration);
 			options.need_edit = false;
 			return;
 		}
@@ -852,7 +855,7 @@ async function notice_to_edit(wiki, meta_configuration) {
 	}
 }
 
-async function notice_finished(wiki, meta_configuration) {
+async function notice_finished(wiki, meta_configuration, move_configuration) {
 	const options = {
 		// 完了、確認待ち 
 		// +{{解決済み}}: @ general_replace.js
@@ -863,7 +866,9 @@ async function notice_finished(wiki, meta_configuration) {
 
 	await for_bot_requests_section(wiki, meta_configuration, async function (section) {
 		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section);
-		if (CeL.is_empty_object(task_configuration_from_section)) {
+		if (CeL.is_empty_object(task_configuration_from_section)
+			&& (!move_configuration || CeL.is_empty_object(move_configuration))
+		) {
 			options.need_edit = false;
 			return;
 		}
@@ -927,7 +932,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	}
 
 	if (!meta_configuration.no_notice && meta_configuration.section_title)
-		await notice_to_edit(wiki, meta_configuration);
+		await notice_to_edit(wiki, meta_configuration, move_configuration);
 
 	if (meta_configuration.abort_operation)
 		return;
@@ -1311,15 +1316,15 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		await Promise.allSettled(Array.from(meta_configuration.external_program_running.values()));
 	}
 
-	await finish_work(meta_configuration);
+	await finish_work(meta_configuration, move_configuration);
 }
 
-async function finish_work(meta_configuration) {
+async function finish_work(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration[KEY_wiki_session];
 
 	if (!meta_configuration.no_notice && meta_configuration.section_title)
-		await notice_finished(wiki, meta_configuration);
+		await notice_finished(wiki, meta_configuration, move_configuration);
 }
 
 // separate namespace and page name
@@ -2057,8 +2062,8 @@ function for_each_link(token, index, parent) {
 			token[2] = display_text;
 		}
 		if (/*!this.keep_display_text &&*/ token[2] && !token[1]
-		// 假如最後會改變 token[0] → this.move_to.page_title，那麼還是保留 token[2]。 e.g., [[A]] → [[B|A]]
-		&& (this.move_to.page_title || token[0]).toString().trim() === token[2].toString().trim()) {
+			// 假如最後會改變 token[0] → this.move_to.page_title，那麼還是保留 token[2]。 e.g., [[A]] → [[B|A]]
+			&& (this.move_to.page_title || token[0]).toString().trim() === token[2].toString().trim()) {
 			// 必須(!this.keep_display_text)，預防 [[A]] → [[A|A]] → [[A]] → [[A (B)]]
 			// 經過 this.keep_display_text 後，可能獲得:
 			// [[A (B)|A (B)]] → [[A (B)]]
