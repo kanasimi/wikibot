@@ -350,7 +350,7 @@ async function for_each_template_page(template_page_data, messages) {
 		// 跳過重定向到章節的連結、將之記錄在日誌中，
 		if (matched) {
 			// User:Ericliu1912: 重新導向到章節的連結都不用修正（除非章節變了）。倒是可以反過來，列出重新導向到章節的連結，說不定有可以給編者手動改善的地方？
-			// gettext_config:{"id":"redirect-to-section-$1"}
+			// gettext_config:{"id":"the-link-redirects-to-section-$1"}
 			add_message('連結重定向到章節：%1');
 			continue;
 		}
@@ -358,8 +358,8 @@ async function for_each_template_page(template_page_data, messages) {
 		// User:寒吉: 清理該模板有嵌入的頁面連結就好。
 		// 重定向至消歧義頁面，通常會因未嵌入此模板而在此被篩掉。
 		if (!embeddedin_and_linked_title_Set.has(matched ? matched[0] : redirected_target)) {
-			// gettext_config:{"id":"links-to-page-without-embedded-the-template-$1"}
-			add_message('連結重定向到未嵌入模板的頁面：%1');
+			// gettext_config:{"id":"the-link-redirects-to-a-page-that-is-not-embedded-in-this-template-$1"}
+			add_message('連結重定向到未嵌入該模板的頁面：%1');
 			continue;
 		}
 
