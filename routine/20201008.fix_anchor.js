@@ -1370,8 +1370,11 @@ async function check_page(target_page_data, options) {
 		if (rename_to && section_title_history[rename_to]?.is_present) {
 			// 避免 [[#2022|2022]]→[[#2021|2022]] 之數字被改變的情況。
 			// https://github.com/kanasimi/wikibot/issues/42
-			if (/\d{3}/.test(token.anchor) && token.display_text?.includes(token.anchor) && !token.display_text?.includes(rename_to)) {
-				return;
+			if (token.display_text) {
+				const matched = token.anchor.match(/\d{3,}/);
+				if (matched && token.display_text.includes(matched[0]) && !token.display_text.includes(matched[0])) {
+					return;
+				}
 			}
 
 			let type;
