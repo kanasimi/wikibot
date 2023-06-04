@@ -1513,7 +1513,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				continue;
 			}
 
-			CeL.error(`${for_each_PubMed_ID.name} Skip unknown reference: ${JSON.stringify(reference_data)}`);
+			// PubMed ID=440090
+			// {"key":"10.1016/0076-6879(79)59126-5_BIB4","first-page":"81","volume":"Vol. 4","author":"Cooperman","year":"1978"}
+			CeL.error(`${for_each_PubMed_ID.name}: Skip unknown reference: ${JSON.stringify(reference_data)}`);
 		}
 	}
 
