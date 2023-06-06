@@ -51,6 +51,7 @@ async function adapt_configuration(latest_task_configuration) {
 	await wiki.login(login_options);
 	// await wiki.login(null, null, use_language);
 	await main_process();
+	routine_task_done('1 month');
 })();
 
 // 平移向後一個月。
@@ -94,8 +95,6 @@ async function main_process() {
 			await create_month_year_pages(old_date);
 		}
 	}
-
-	routine_task_done('1 month');
 }
 
 // ----------------------------------------------------------------------------
