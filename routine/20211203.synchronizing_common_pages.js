@@ -249,7 +249,7 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			}
 			const postfix = sub_page_data.title.slice((base_source_page_data.title).length);
 			console.assert(postfix.startsWith('/'));
-			if (/\/(?:sandbox|te?mp|testcases)/i.test(postfix))
+			if (/\/(?:sandbox|沙盒|te?mp|testcases)/i.test(postfix))
 				return;
 			await edit_page(source_page_title + postfix, target_page_title + postfix, options);
 		}
