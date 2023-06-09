@@ -126,6 +126,7 @@ async function for_each_discussion_page(page_data) {
 		let not_yet_expired;
 		// This section is pinned and will not be automatically archived.
 		section.each('template', template_token => {
+			// @see 'Pin message' : parse_template_Pin_message() @ CeL.application.net.wiki.template_functions.general_functions
 			if (NOW < +template_token.message_expire_date
 				|| wiki.is_template(wiki.latest_task_configuration?.general?.no_archive_templates, template_token)) {
 				not_yet_expired = true;

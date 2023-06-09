@@ -79,7 +79,7 @@ replace_tool.replace({
 		replace_text: { "from": "to" },
 		replace_text_pattern: "/from/to/g",
 		// Also replace text in source of **non-linked** pages (using "insource:")
-		// リンクのない本文表記/地の文についても修正します。
+		// リンクのない本文表記/地の文についても修正します。リンク以外の表記も修正します。
 		also_replace_text_insource: true,
 
 		// also run 20201008.fix_anchor.js after maving anchors. 切れたアンカーの修正 + 「切れたアンカーの告知」のテンプレートを除去。
