@@ -68,6 +68,8 @@ TODO:
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+login_options.configuration_adapter = adapt_configuration;
+
 var
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true),
@@ -187,6 +189,15 @@ if (test_mode) {
 	page_allowlist.push('Wikipedia:沙盒');
 }
 
+function adapt_configuration(latest_task_configuration) {
+	var general = wiki.latest_task_configuration.general || Object.create(null);
+
+	if (Array.isArray(general.trusted_user_groups))
+		trusted_user_privileges = new Set(general.trusted_user_groups);
+
+	console.trace(wiki.latest_task_configuration.general);
+}
+
 // CeL.set_debug(2);
 
 function show_page(row) {
@@ -286,64 +297,68 @@ function get_pages_to_notify(row, hash) {
 // ----------------------------------------------------------------------------
 // main process
 
-check_user_denylist();
+wiki.run(main_process);
 
-if (test_the_page_only) {
-	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
-			+ ': 先取得頁面資料。');
-	wiki.page(test_the_page_only, function(page_data) {
-		var revision = CeL.wiki.content_of.revision(page_data);
-		// 解析頁面結構。
-		CeL.wiki.parser(page_data).parse();
-		// 模擬 wiki.listen() 這個函數的工作。
-		// @see add_listener() @ CeL.application.net.wiki
-		Object.assign(page_data, {
-			user : revision.user,
-			timestamp : revision.timestamp,
-			revid : revision.revid,
-			// The edit comment / summary.
-			comment : revision.comment,
-			from_parsed : CeL.wiki.parser(
-					page_data.revisions.length > 1 ? CeL.wiki.content_of(
-							page_data, -1) : '').parse()
+function main_process() {
+	check_user_denylist();
+
+	if (test_the_page_only) {
+		CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
+				+ ': 先取得頁面資料。');
+		wiki.page(test_the_page_only, function(page_data) {
+			var revision = CeL.wiki.content_of.revision(page_data);
+			// 解析頁面結構。
+			CeL.wiki.parser(page_data).parse();
+			// 模擬 wiki.listen() 這個函數的工作。
+			// @see add_listener() @ CeL.application.net.wiki
+			Object.assign(page_data, {
+				user : revision.user,
+				timestamp : revision.timestamp,
+				revid : revision.revid,
+				// The edit comment / summary.
+				comment : revision.comment,
+				from_parsed : CeL.wiki.parser(
+						page_data.revisions.length > 1 ? CeL.wiki.content_of(
+								page_data, -1) : '').parse()
+			});
+
+			page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
+				return token.toString();
+			}), page_data.parsed.map(function(token) {
+				return token.toString();
+			}), Object.assign({
+				diff : true
+			}, with_diff));
+
+			// 處理單一頁面的時候開啟偵錯模式。
+			CeL.set_debug(2);
+			if (CeL.is_debug(2))
+				console.log(page_data);
+			for_each_row(page_data);
+		}, {
+			rvprop : 'ids|timestamp|content|user|comment',
+			rvlimit : 2
 		});
 
-		page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
-			return token.toString();
-		}), page_data.parsed.map(function(token) {
-			return token.toString();
-		}), Object.assign({
-			diff : true
-		}, with_diff));
-
-		// 處理單一頁面的時候開啟偵錯模式。
-		CeL.set_debug(2);
-		if (CeL.is_debug(2))
-			console.log(page_data);
-		for_each_row(page_data);
-	}, {
-		rvprop : 'ids|timestamp|content|user|comment',
-		rvlimit : 2
-	});
-
-} else {
-	CeL.info('檢查簽名的延遲時間: ' + delay_time);
-	// CeL.set_debug(1);
-	wiki.listen(for_each_row, {
-		start : time_back_to,
-		delay : delay_time,
-		filter : filter_row,
-		with_diff : with_diff,
-		parameters : {
-			// 跳過機器人所做的編輯。
-			// You need the "patrol" or "patrolmarks" right
-			// to request the patrolled flag.
-			rcshow : '!bot',
-			// 擷取資料的時候要加上filter_row()需要的資料，例如編輯摘要。
-			rcprop : 'title|ids|sizes|flags|user|tags|comment'
-		},
-		interval : test_mode || time_back_to ? 500 : 60 * 1000
-	});
+	} else {
+		CeL.info('檢查簽名的延遲時間: ' + delay_time);
+		// CeL.set_debug(1);
+		wiki.listen(for_each_row, {
+			start : time_back_to,
+			delay : delay_time,
+			filter : filter_row,
+			with_diff : with_diff,
+			parameters : {
+				// 跳過機器人所做的編輯。
+				// You need the "patrol" or "patrolmarks" right
+				// to request the patrolled flag.
+				rcshow : '!bot',
+				// 擷取資料的時候要加上filter_row()需要的資料，例如編輯摘要。
+				rcprop : 'title|ids|sizes|flags|user|tags|comment'
+			},
+			interval : test_mode || time_back_to ? 500 : 60 * 1000
+		});
+	}
 }
 
 // ---------------------------------------------------------
@@ -558,6 +573,7 @@ function for_each_row(row) {
 		});
 	}
 
+	// console.trace([ trusted_user_privileges, row.user_info.groups ]);
 	row.user_info.latest_edit_date = Date.now();
 	// 視您的編輯次數來判斷是否為您自動補簽。
 	if (row.user_info.editcount > 10000
@@ -610,7 +626,7 @@ function for_each_row(row) {
 		// [ to_diff_start_index, to_diff_end_index ] = diff_pair.index[1]
 		var to_diff_start_index = diff_pair.index[1];
 		if (!to_diff_start_index) {
-			CeL.debug('跳過: 這一段編輯刪除了文字 / deleted。', 2, 'check_diff_pair');
+			CeL.debug('跳過: 這一段編輯僅刪除文字 / deleted。', 2, 'check_diff_pair');
 			return;
 		}
 		var to_diff_end_index = to_diff_start_index[1];
