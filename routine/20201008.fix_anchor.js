@@ -15,6 +15,7 @@ node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态�
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
 node 20201008.fix_anchor.js use_language=en "check_page=Jacksonville, Florida"
+node 20201008.fix_anchor.js use_language=en "check_page=Treaty of Waitangi" "only_modify_pages=Robin Cooke, Baron Cooke of Thorndon"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
@@ -485,10 +486,23 @@ const MARK_case_change = 'case change';
 // @see function normalize_group_name(group_name) @ routine/20191129.check_language_conversion.js
 // 順便正規化大小寫與空格。
 function reduce_section_title(section_title) {
-	// ＝: e.g., パリからポン＝タヴァン
-	return section_title.replace(/[\s_\-–()（）{}「」#＝]/g, '')
+	let reduced_section_title = section_title
+		// 去掉各種符號。
+		// ＝: e.g., パリからポン＝タヴァン
+		.replace(/[\s_\-–=＝()（）{}'"「」#，]/g, '')
 		//.replace(/（/g, '(').replace(/）/g, ')')
-		.toLowerCase();
+		;
+
+	if (reduced_section_title.length < 3)
+		reduced_section_title = section_title.replace(/\s/g, '');
+
+	reduced_section_title = reduced_section_title.toLowerCase();
+
+	if (false && reduced_section_title !== section_title) {
+		console.trace([section_title, reduced_section_title]);
+	}
+
+	return reduced_section_title;
 }
 
 function get_section_title_data(section_title_history, section_title) {
