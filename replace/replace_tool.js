@@ -584,11 +584,11 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 	}
 
 	if (!meta_configuration.discussion_link) {
-		section.each('list', token => {
-			if (!/議論場所[:：]/.test(token[0]))
+		section.each('list', list_token => {
+			if (!/議論場所[:：]/.test(list_token[0]))
 				return;
 
-			const discussion_link = get_discussion_link(token[0]);
+			const discussion_link = get_discussion_link(list_token[0]);
 			if (discussion_link)
 				meta_configuration.discussion_link = discussion_link;
 			// CeL.wiki.parser.parser_prototype.each.exit
@@ -2790,6 +2790,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 			to = link_token;
 		} else if (!options.ignore_multiple_link_warnings) {
 			CeL.error(`${parse_move_pairs_from_link.name}: Too many links: Still process ${parent[index]}`);
+			//console.trace(`${CeL.wiki.title_link_of(from)} → ${CeL.wiki.title_link_of(to)}`);
 		}
 	});
 
@@ -2805,6 +2806,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 				to = link;
 			} else if (!options.ignore_multiple_link_warnings) {
 				CeL.error(`${parse_move_pairs_from_link.name}: Too many urls: Still process ${parent[index]}`);
+				//console.trace(`${CeL.wiki.title_link_of(from)} → ${CeL.wiki.title_link_of(to)}`);
 			}
 		});
 	}
