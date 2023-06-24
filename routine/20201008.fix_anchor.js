@@ -19,6 +19,8 @@ node 20201008.fix_anchor.js use_language=en "check_page=Treaty of Waitangi" "onl
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
+// [[Template:MultiAnchor]]
+node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=影之诗FLAME"
 
 
 
