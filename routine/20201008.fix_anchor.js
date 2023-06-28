@@ -21,7 +21,8 @@ node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 // [[Template:MultiAnchor]]
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=影之诗FLAME"
-
+node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=初音未来 NT殿堂曲" "only_modify_pages=Template:初音未来_NT殿堂曲题头"
+node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=达拉崩吧" "only_modify_pages=VOCALOID中文殿堂曲/梗曲相关"
 
 
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
@@ -1301,7 +1302,10 @@ async function check_page(target_page_data, options) {
 			// for [[#anchor]]
 			|| linking_page_data.title).toString();
 		if (!(wiki.normalize_title(page_title) in target_page_redirects)
-			|| !token.anchor || section_title_history[token.anchor]?.is_present
+			|| !token.anchor
+			// e.g., [[T#{{t}}|T]] @ template
+			|| /{{/.test(token.anchor)
+			|| section_title_history[token.anchor]?.is_present
 		) {
 			// 當前有此 anchor。
 			return;
@@ -1364,6 +1368,7 @@ async function check_page(target_page_data, options) {
 				working_queue.list.push(linking_page_data);
 			} else {
 				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision in ${CeL.wiki.title_link_of(linking_page_data)}.`);
+				//console.trace(token);
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
 					.catch(error => console.error(error))
