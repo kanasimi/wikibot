@@ -894,7 +894,7 @@ function for_each_row(row) {
 		for (var index = to_diff_end_index + 1; index < next_section_index; index++) {
 			var token = row.diff.to[index];
 			section_wikitext.push(token);
-			// TODO: 應該使用 function for_each_token()
+			// TODO: 應該使用 function for_each_subtoken()
 			if (CeL.wiki.parse.user(token)) {
 				break;
 			}
@@ -920,7 +920,7 @@ function for_each_row(row) {
 			return;
 		}
 
-		// TODO: 應該使用 function for_each_token()
+		// TODO: 應該使用 function for_each_subtoken()
 		var user_hash = CeL.wiki.parse.user.all(section_wikitext), user_list = Object
 				.keys(user_hash);
 		CeL.debug('row.user: [' + row.user + ']. 提取出所有簽名: '

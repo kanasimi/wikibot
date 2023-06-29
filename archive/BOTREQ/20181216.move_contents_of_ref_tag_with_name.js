@@ -43,7 +43,7 @@ function move_ref_contents(value, template, page_data) {
 
 		var reference_list = page_data.parsed.parse_references(function(token,
 				index, parent) {
-			// @see options.add_index @ function for_each_token()
+			// @see options.add_index @ function for_each_subtoken()
 			token.index = index;
 			token.parent = parent;
 		})[token.attributes.name];

@@ -341,7 +341,7 @@ function check_maintenance_template_name(page_data) {
 	}
 
 	var changed;
-	// using for_each_token()
+	// using for_each_subtoken()
 	parsed.each('template', function(token, index) {
 		if (!Multiple_issues_template_alias_list.includes(token.name))
 			return;
