@@ -151,7 +151,7 @@ message_set = {
 		Category_has_local_page : 'Category:Interlanguage link template existing link',
 		report_page : 'Interlanguage link templates need to fix',
 		fix_category : 'Category:Wikipedia backlog',
-		// 2016‎/11 全部統合到 {{Interlanguage link}}
+		// 2016/11 全部統合到 {{Interlanguage link}}
 		template_order_of_name : {
 			// When article names would be the same in English and foreign
 			// language Wikipedia
@@ -1185,6 +1185,7 @@ function main_work() {
 			// this.list = [ '好莱坞唱片' ];
 			// this.list = [ '台中藍鯨女子足球隊' ];
 			// this.list = [ '2019冠狀病毒病知名去世患者列表' ];
+			// this.list = [ 'Template:Infobox number/box' ];
 		}
 
 	}, false && {
