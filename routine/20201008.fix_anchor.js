@@ -11,6 +11,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=住宅"
 node 20201008.fix_anchor.js use_language=ja "check_page=東京大空襲"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态候选"
+node 20201008.fix_anchor.js use_language=zh "check_page=原神"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
@@ -1303,11 +1304,11 @@ async function check_page(target_page_data, options) {
 			|| linking_page_data.title).toString();
 		if (!(wiki.normalize_title(page_title) in target_page_redirects)
 			|| !token.anchor
-			// e.g., [[T#{{t}}|T]] @ template
+			// e.g., invalid anchor [[T#{{t}}|T]] @ template
 			|| /{{/.test(token.anchor)
 			|| section_title_history[token.anchor]?.is_present
 		) {
-			// 當前有此 anchor。
+			// 當前有此 anchor 或 invalid anchor。
 			return;
 		}
 		//console.log(section_title_history);

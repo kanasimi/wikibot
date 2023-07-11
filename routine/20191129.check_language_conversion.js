@@ -1,5 +1,5 @@
 ﻿/*
-調整頁面的字詞轉換規則。
+調整頁面的字詞轉換規則。採用的是簡單的 lua object parser parse_lua_object_code()。
 
 node 20191129.check_language_conversion.js use_project=zh
 node routine/20191129.check_language_conversion.js use_project=zhmoegirl
