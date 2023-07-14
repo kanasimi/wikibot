@@ -352,8 +352,9 @@ function for_each_page(page_data, messages) {
 		// in 1758|ハシジロキツツキ}} (カテゴリ)
 		.replace(/^:/, '')
 		// remove disambiguation information.
-		// e.g., [[Special:Diff/518108554]], [[目擊者 (1999年電影)]]
-		.replace(/\([^()]+\)$/, ''));
+		// e.g., [[Special:Diff/518108554]], [[w:zh:目擊者 (1999年電影)]]
+		// e.g., [[:en:Bumper cars|（bumper cars）]] @ [[w:ja:アニー・ホール]]
+		.replace(/[(（][^()（）]+[)）]$/, ''));
 		if (false) {
 			// done by CeL.wiki.normalize_title().
 			label = label.replace(/_/g, ' ');
