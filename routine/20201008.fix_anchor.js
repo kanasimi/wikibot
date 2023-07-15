@@ -17,6 +17,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of t
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
 node 20201008.fix_anchor.js use_language=en "check_page=Jacksonville, Florida"
 node 20201008.fix_anchor.js use_language=en "check_page=Treaty of Waitangi" "only_modify_pages=Robin Cooke, Baron Cooke of Thorndon"
+node 20201008.fix_anchor.js use_language=en "check_page=True Romance" "only_modify_pages=You're So Cool (Hans Zimmer song)"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
