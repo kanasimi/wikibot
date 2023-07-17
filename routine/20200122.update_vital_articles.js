@@ -261,9 +261,10 @@ async function get_page_info() {
 	// [[Category:Wikipedia vital articles by class]]
 	//
 	// [[Wikipedia:Content assessment#Grades]]
-	// FA|FL|GA|List|
+	// FA|FL|GA|List|NA|
 	('A|B|C|Start|Stub|Unassessed'.split('|')).append(synchronize_icons)
-		.forEach(icon => icon_to_category[icon] = `All Wikipedia ${icon}-Class vital articles`);
+		// 2023/7: `All Wikipedia ${icon}-Class vital articles` → `${icon}-Class vital articles`
+		.forEach(icon => icon_to_category[icon] = `${icon}-Class vital articles`);
 	// @see [[Module:Article history/config]], [[Template:Icon]]
 	Object.assign(icon_to_category, {
 		// FFA: 'Wikipedia former featured articles',
