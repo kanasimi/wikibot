@@ -261,10 +261,15 @@ async function get_page_info() {
 	// [[Category:Wikipedia vital articles by class]]
 	//
 	// [[Wikipedia:Content assessment#Grades]]
-	// FA|FL|GA|List|NA|
-	('A|B|C|Start|Stub|Unassessed'.split('|')).append(synchronize_icons)
+	'A|B|C|NA|Start|Stub'.split('|')
+		// FA|FL|GA|List|
+		.append(synchronize_icons)
 		// 2023/7: `All Wikipedia ${icon}-Class vital articles` → `${icon}-Class vital articles`
+		// NA 級是不需要評估的東西，適用於重定向、草稿、類別或消歧頁面等非文章。Unassessed 未評估意味著他們需要評估，但尚未完成。
 		.forEach(icon => icon_to_category[icon] = `${icon}-Class vital articles`);
+	'Unassessed'.split('|')
+		// The unassessed category is [[Category:Unassessed vital articles]], not [[Category:Unassessed-Class vital articles]]
+		.forEach(icon => icon_to_category[icon] = `${icon} vital articles`);
 	// @see [[Module:Article history/config]], [[Template:Icon]]
 	Object.assign(icon_to_category, {
 		// FFA: 'Wikipedia former featured articles',
@@ -286,8 +291,7 @@ async function get_page_info() {
 		// ITN: 'Wikipedia In the news articles',
 		// OTD: 'Article history templates with linked otd dates',
 	});
-	for (const icon in icon_to_category) {
-		const category_name = icon_to_category[icon];
+	for (const [icon, category_name] of Object.entries(icon_to_category)) {
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
 			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
@@ -986,8 +990,7 @@ async function for_each_list_page(list_page_data) {
 async function generate_all_VA_list_page() {
 	const all_articles = Object.create(null);
 	const all_level_1_to_4_articles = Object.create(null);
-	for (const page_title in listed_article_info) {
-		const article_info_list = listed_article_info[page_title];
+	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
 		const prefix = page_title.slice(0, 1);
 		if (!all_articles[prefix])
 			all_articles[prefix] = [];
@@ -1038,8 +1041,7 @@ The list contains ${count} articles. --~~~~`
 // ----------------------------------------------------------------------------
 
 function check_page_count() {
-	for (const page_title in category_level_of_page) {
-		const category_level = category_level_of_page[page_title];
+	for (const [page_title, category_level] of Object.entries(category_level_of_page)) {
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
 			CeL.log(`${check_page_count.name}: ${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
@@ -1088,8 +1090,7 @@ function check_page_count() {
 		}
 	}
 
-	for (const page_title in listed_article_info) {
-		const article_info_list = listed_article_info[page_title];
+	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
 		if (article_info_list.length === 1) {
 			continue;
 		}
