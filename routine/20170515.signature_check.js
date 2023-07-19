@@ -87,7 +87,7 @@ using_subst = !wiki.API_URL.includes('moegirl');
 // 常用的主要設定
 
 var
-// for debug specified pages. 只處理此一頁面。
+// for debug specified pages. 只處理此一頁面。 e.g., "User talk:Kanashimi"
 test_the_page_only = "",
 // true: 測試模式，將不會寫入簽名或者提醒。
 test_mode = !!test_the_page_only,
@@ -190,7 +190,8 @@ if (test_mode) {
 }
 
 function adapt_configuration(latest_task_configuration) {
-	var general = wiki.latest_task_configuration.general || (wiki.latest_task_configuration.general = Object.create(null));
+	var general = wiki.latest_task_configuration.general
+			|| (wiki.latest_task_configuration.general = Object.create(null));
 
 	if (Array.isArray(general.trusted_user_groups))
 		trusted_user_privileges = new Set(general.trusted_user_groups);
@@ -331,7 +332,7 @@ function main_process() {
 			}, with_diff));
 
 			// 處理單一頁面的時候開啟偵錯模式。
-			CeL.set_debug(2);
+			// CeL.set_debug(2);
 			if (CeL.is_debug(2))
 				console.log(page_data);
 			for_each_row(page_data);
@@ -581,7 +582,10 @@ function for_each_row(row) {
 	|| row.user_info.groups && row.user_info.groups.some(function(group) {
 		return trusted_user_privileges.has(group);
 	})) {
-		return;
+		if (!test_mode) {
+			return;
+		}
+		CeL.warn('因為處於測試模式，不顧使用者是否受信任，強制補簽名。');
 	}
 	// console.trace(userinfo);
 
@@ -1184,7 +1188,7 @@ function for_each_row(row) {
 	}
 
 	if (test_mode) {
-		CeL.debug('本次執行為測試模式，將不會寫入簽名或者提醒。', 2);
+		CeL.debug('本次執行為測試模式，將不會寫入簽名或者提醒。', 0);
 		return;
 	}
 
