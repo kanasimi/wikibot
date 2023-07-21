@@ -18,6 +18,8 @@ node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)"
 node 20201008.fix_anchor.js use_language=en "check_page=Jacksonville, Florida"
 node 20201008.fix_anchor.js use_language=en "check_page=Treaty of Waitangi" "only_modify_pages=Robin Cooke, Baron Cooke of Thorndon"
 node 20201008.fix_anchor.js use_language=en "check_page=True Romance" "only_modify_pages=You're So Cool (Hans Zimmer song)"
+node 20201008.fix_anchor.js use_language=en "check_page=Internet in the United Kingdom"
+node 20201008.fix_anchor.js use_language=en "check_page=Sergio Pérez"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
@@ -1058,6 +1060,7 @@ async function check_page(target_page_data, options) {
 			return 0;
 		}
 
+		/** 要刪除的空白頁面。 */
 		const pages_to_delete = new Map;
 		let _talk_pages_modified = 0;
 		function add_note_for_broken_anchors(talk_page_data) {
@@ -1182,7 +1185,7 @@ async function check_page(target_page_data, options) {
 					return wikitext_to_add;
 				// Nothing left.
 				if (wiki.latest_task_configuration.general.action_for_blank_talk_page === 'DELETE') {
-					// 錨點修復後刪除頁面。
+					// 錨點修復後刪除空白頁面。
 					pages_to_delete.set(talk_page_data, { reason: this.summary });
 					return Wikiapi.skip_edit;
 				}
@@ -1275,7 +1278,7 @@ async function check_page(target_page_data, options) {
 		});
 		//CeL.set_debug(0);
 
-		// 錨點修復後刪除頁面。
+		// 錨點修復後刪除空白頁面。
 		for (const [talk_page_data, options] of pages_to_delete.entries()) {
 			await wiki.delete(talk_page_data, {
 				//bot: 1,
