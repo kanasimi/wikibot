@@ -236,7 +236,8 @@ async function get_page_info() {
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	if (get_category_level_of_page) {
 		for (let i = 5; i >= 1; i--) {
-			const page_list = await wiki.categorymembers(`All Wikipedia level-${i} vital articles`, {
+			// 2023/7/24 `All Wikipedia level-${i} vital articles` → `Wikipedia level-${i} vital articles`
+			const page_list = await wiki.categorymembers(`Wikipedia level-${i} vital articles`, {
 				// exclude [[User:Fox News Brasil]]
 				namespace: 'talk'
 			});
