@@ -407,7 +407,12 @@ function for_each_page(page_data, messages) {
 
 			// TODO: CeL.CN_to_TW() is too slow...
 			var label_CHT = CeL.CN_to_TW(label);
-			if (label_CHT !== label) {
+			if (label_CHT !== label
+			// 勛章→勳章 身份→身分
+			// 不代表原先的詞彙就是簡體。
+			// 當原詞彙轉換成繁體之後與原詞彙不同，機器人便會將原詞彙視為簡體詞彙。但假如原詞彙其實是繁體的，就會發生
+			// [[Special:AbuseFilter/234]], [[Special:AbuseFilter/235]] 問題。
+			&& !/[份裡佔後託勛]/.test(label)) {
 				// 詞條標題中，使用'里'這個字的機會大多了。
 				label_CHT = label_CHT.replace(/裡/g, '里').replace(/佔/g, '占')
 						.replace(/([王皇太天])後/g, '$1后');
@@ -417,7 +422,9 @@ function for_each_page(page_data, messages) {
 					label_CHT = label_CHT.replace(/託/g, '托').replace(/理察/g,
 							'理查').replace(/伊麗/g, '伊莉');
 				}
-				if (label_CHT !== label) {
+				if (label_CHT !== label
+				// 人名常使用'舍'這個字。
+				&& label_CHT.replace(/捨/g, '舍') !== label) {
 					// 加上轉換成繁體的 label
 					add_label(foreign_language, foreign_title, label_CHT,
 							'zh-hant', token, no_need_check);
