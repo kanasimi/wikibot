@@ -840,6 +840,7 @@ function for_each_JTWC_cyclone_image(html, media_data, media_url) {
 
 	var wiki_link = of_wiki_link(media_data);
 	Object.assign(media_data, {
+		// 預測路徑圖
 		description : '{{en|' + media_data.author + "'s tropical warning"
 				+ media_data.variable_Map.format('wiki_link') + '.}}',
 		comment : 'Import JTWC tropical cyclone ' + image_type + wiki_link
@@ -1733,7 +1734,9 @@ function start_NRL() {
 		 */
 		function(area_text) {
 			var year = area_text.match(/YEAR=(20\d{2})&/)[1];
-			var category_name = 'Category:' + year + 'NRL images of tropical cyclones';
+			var category_name = 'Category:' + year
+			//
+			+ 'NRL images of tropical cyclones';
 			if (category_name in category_to_parent_hash) {
 				base_media_data.categories = [ category_name ];
 			}
