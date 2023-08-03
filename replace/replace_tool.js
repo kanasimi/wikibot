@@ -664,21 +664,24 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				// e.g., Symbol(DELETE_PAGE)
 				return;
 			}
-			// e.g., <nowiki>[[title|display text]]</nowiki>
 			const matched = link.match(/\[\[([^\[\]]+)\]\]/);
-			return matched;
+			return matched && matched[1];
 		}
 
 		function normalize_page_token(index, keep_link) {
 			//console.log(token.parameters[index]);
-			let link = typeof index === 'number' ? token.parameters[index].toString().replace(/<!--[\s\S]*-->/g, '').trim().replace(/{{!}}/g, '|') : index;
-			if (!keep_link && match_link(link)) {
-				CeL.error(`${get_move_configuration_from_section.name}: 精確指定了連結形式，將僅處理完全符合此形式的連結：${link}`);
-				const parsed = CeL.wiki.parse(link);
+			let link = typeof index === 'number' ? token.parameters[index].toString().replace(/<!--[\s\S]*-->/g, '')
+				// e.g., <nowiki>[[title|display text]]</nowiki>
+				.replace(/<nowiki\s*>(.*?)<\/nowiki\s*>/g, '$1')
+				.trim().replace(/{{!}}/g, '|') : index;
+			const _link = !keep_link && match_link(link);
+			if (_link) {
+				CeL.error(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${_link}`);
+				const parsed = CeL.wiki.parse(_link);
 				// @see function prepare_operation(meta_configuration, move_configuration)
 				if (!parsed[1]) parsed[1] = '#';
 				if (!parsed[2]) parsed[2] = typeof index === 'number' && index % 2 === 1 ? '' : parsed[0];
-				link = match_link(parsed.toString())[1];
+				link = match_link(parsed.toString());
 			}
 			return link;
 		}
