@@ -2,6 +2,7 @@
 
 TODO:
 [[1920年以前香港命案列表]]	"|date=1907-09-25 work=香港華字日報 }}"
+{{webarchive}}
 
 */
 
@@ -95,13 +96,14 @@ async function main_process() {
 			namespace: 0,
 			for_template,
 			list_types: 'categorymembers',
-			// page_list : [ 'Key開發遊戲列表' ],
+			page_list: [],
+			//page_list : [ 'Key開發遊戲列表' ],
 		},
 		'Category:引文格式1错误：日期': {
 			namespace: 0,
 			for_template,
 			list_types: 'categorymembers',
-			// page_list : [ '' ],
+			page_list: ['互联网档案馆'],
 		},
 	});
 
@@ -127,6 +129,7 @@ function for_template(token, index, parent) {
 		const value = CeL.from_positional_Chinese_numeral(original_value).toString().replace(/\s*<!--DASHBot-->\s*/, '')
 			//e.g., '{{date|2012-10-10|dealurl=no}}'
 			.replace(/{{ *Date *\|([^|]+?)(?:\|.+?)?}}/i, '$1').trim();
+		//console.trace([parameter_name, original_value, value]);
 
 		// 先檢查所有日期參數，判斷日期格式是否正確。若有錯誤日期格式，嘗試修正之。仍無法改正，則不清除 df參數。但這種日期格式修正只在要去除參數的前提下，才當作一種 [[Wikipedia:AutoWikiBrowser/General fixes]] 順便修改。
 		// @see function check_date (date_string, tCOinS_date) @ [[w:zh:Module:Citation/CS1/Date_validation|日期格式驗證函數]]
@@ -134,7 +137,7 @@ function for_template(token, index, parent) {
 		if (/^[12]\d{3}(?:-[01]\d(?:-[0-3]\d)?)?$/.test(value)
 			// e.g., '2018年', '2018年3月', '2018年3月6日'
 			|| /^[12]\d{3}年(?:[01]?\d月(?:[0-3]?\d日)?)?$/.test(value)) {
-			// is valid date
+			//CeL.debug(`${parameter_name} is valid date: ${JSON.stringify(value)}, continue next (可清除 df參數).`);
 			continue;
 		}
 
@@ -166,6 +169,7 @@ function for_template(token, index, parent) {
 			// e.g., '01期'
 			|| /^[\d\s]+[^\d\s]*$/.test(value)
 		) {
+			CeL.debug(`${parameter_name} is invalid date 1: ${JSON.stringify(value)}, continue next.`);
 			invalid_date = true;
 			continue;
 		}
@@ -174,6 +178,7 @@ function for_template(token, index, parent) {
 		if (matched && (matched = value.split(matched[1])).length === 2) {
 			// e.g., '10.12', '10/12'
 			// e.g., '1/5, 2010'
+			CeL.debug(`${parameter_name} is invalid date 2: ${JSON.stringify(value)}, continue next.`);
 			invalid_date = true;
 			continue;
 		}
@@ -190,6 +195,7 @@ function for_template(token, index, parent) {
 			// e.g., '2013--1-24'
 			&& !/^[12]\d{3}[.\/\-–－—─~～〜﹣]{1,3}[01]?\d[.\/\-–－—─~～〜﹣]{1,3}[0-3]?\d$/i.test(value)
 		) {
+			CeL.debug(`${parameter_name} is unknown date format: ${JSON.stringify(value)}.`);
 			unknown_format = true;
 		}
 
@@ -201,6 +207,7 @@ function for_template(token, index, parent) {
 			// e.g., '8 October 2004 (Last Updated/Reviewed on 17 October 2008)'
 			|| /[~`!@#$%^&*_+={}\[\]()|\\`<>?"']/.test(value)
 		) {
+			CeL.debug(`${parameter_name} is invalid date 3: ${JSON.stringify(value)}, continue next.`);
 			if (unknown_format)
 				CeL.log(`Invalid date format: |${parameter_name}=${original_value}|`);
 			invalid_date = true;
@@ -220,7 +227,7 @@ function for_template(token, index, parent) {
 			CeL.error(`Invalid date format: |${parameter_name}=${original_value}| → ${date.format('%Y-%2m-%2d')}`);
 
 		// 由於要刪除 df參數必須判別日期格式，因此順便修正可讀得懂，但是格式錯誤的日期。
-		// Convert to ISO 8601
+		CeL.debug(`Convert to ISO 8601: |${parameter_name}=${original_value}|	→ ${date.format('%Y-%2m-%2d')}`);
 		CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, 'value_only');
 		date_parameters_changed.push(parameter_name);
 	}
@@ -235,9 +242,10 @@ function for_template(token, index, parent) {
 		parameters_to_remove.push('df');
 	}
 
-	const parameters_changed = [];
+	const parameters_changed = date_parameters_changed.slice();
 	parameters_to_remove.forEach(parameter_name => {
 		const index = token.index_of[parameter_name];
+		// TODO: use CeL.wiki.parse.replace_parameter()
 		if (index) {
 			token[index] = '';
 			parameters_changed.push(parameter_name);
