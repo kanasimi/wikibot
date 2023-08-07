@@ -23,14 +23,14 @@ login_options.configuration_adapter = adapt_configuration;
 
 var
 /** {Object}wiki operator 操作子. */
-wiki = Wiki(true),
-
-/** {Object}設定頁面所獲得之手動設定。 */
-configuration;
+wiki = Wiki(true);
 
 // ---------------------------------------------------------------------//
 
-var
+var is_production_environment = CeL.env.arg_hash
+// environment=production
+&& CeL.env.arg_hash.environment === 'production',
+
 // node 20190101.featured_content_maintainer.js type=good
 using_GA = CeL.env.arg_hash && CeL.env.arg_hash.type === 'good',
 /** {String}特色內容將採用的前綴: 'Wikipedia:' + NS_PREFIX */
@@ -200,15 +200,14 @@ wiki.run(main_work);
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 function adapt_configuration(latest_task_configuration) {
-	configuration = latest_task_configuration;
-	// console.log(configuration);
+	// console.log(wiki.latest_task_configuration);
 	// console.log(wiki);
 
 	// 一般設定
-	var general = configuration.general;
+	var general = wiki.latest_task_configuration.general;
 	if (!general) {
 		CeL.info('No configuration');
 		return;
@@ -249,15 +248,18 @@ function adapt_configuration(latest_task_configuration) {
 		TYPE_NAME = general[_key];
 	}
 
+	// 正式寫入每日頁面時，捨棄cache以防[[Wikipedia:典範條目/2023年8月]]1日和7日重複的情況。
+	var force_flush_cache = is_production_environment;
 	var flush_cache_before = general.remove_cache
 			&& CeL.wiki.parse.date(general.remove_cache);
-	if (flush_cache_before) {
+	if (force_flush_cache || flush_cache_before) {
 		// 加上刪除快取選項。
 		var latest_flush_file = base_directory + 'latest_flush.json';
 		var latest_flush = CeL.get_JSON(latest_flush_file)
 				|| Object.create(null);
 		var latest_flush_time = Date.parse(latest_flush.date);
-		if (!latest_flush_time || (flush_cache_before - 0 > 0)
+		if (force_flush_cache || !latest_flush_time
+				|| (flush_cache_before - 0 > 0)
 				&& !(latest_flush_time - flush_cache_before > 0)) {
 			CeL.info('設定頁面指定 '
 					+ flush_cache_before.format()
@@ -274,7 +276,7 @@ function adapt_configuration(latest_task_configuration) {
 	}
 
 	CeL.log('Configuration:');
-	console.log(configuration);
+	console.log(wiki.latest_task_configuration);
 }
 
 // ---------------------------------------------------------------------//
@@ -464,20 +466,23 @@ function get_FC_title_to_transclude(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
 	return FC_data[KEY_TRANSCLUDING_PAGE]
 			|| ('Wikipedia:'
-					+ (using_GA ? configuration.general.NS_PREFIX_GA || '優良條目'
-							: FC_data[KEY_IS_LIST] ? configuration.general.NS_PREFIX_FL
+					+ (using_GA ? wiki.latest_task_configuration.general.NS_PREFIX_GA
+							|| '優良條目'
+							: FC_data[KEY_IS_LIST] ? wiki.latest_task_configuration.general.NS_PREFIX_FL
 									|| '特色列表'
-									: configuration.general.NS_PREFIX_FA
+									: wiki.latest_task_configuration.general.NS_PREFIX_FA
 											|| '典範條目') + '/' + FC_title);
 }
 
 // get page name of JDN to transclude
 function get_FC_date_title_to_transclude(JDN) {
 	return 'Wikipedia:'
-			+ (using_GA ? configuration.general.NS_PREFIX_GA || '優良條目'
+			+ (using_GA ? wiki.latest_task_configuration.general.NS_PREFIX_GA
+					|| '優良條目'
 			// 典範JDN: 開始廢棄"特色條目"，採用"典範條目"的日期。
-			: JDN < 典範JDN ? '特色條目' : configuration.general.NS_PREFIX_FA
-					|| '典範條目')
+			: JDN < 典範JDN ? '特色條目'
+					: wiki.latest_task_configuration.general.NS_PREFIX_FA
+							|| '典範條目')
 			+ CeL.Julian_day.to_Date(JDN).format('/%Y年%m月%d日');
 }
 
@@ -956,7 +961,9 @@ function check_date_page() {
 				hit_count += FC_data[KEY_JDN].length;
 			if (JDN_to_generate - JDN
 			// 記錄之前幾天曾經使用過的類別。
-			<= configuration.general.avoid_same_catalog_past_days) {
+			<= wiki.latest_task_configuration.general
+			//
+			.avoid_same_catalog_past_days) {
 				avoid_catalogs.push(FC_data[KEY_CATEGORY]);
 			}
 			return true;
@@ -971,7 +978,11 @@ function check_date_page() {
 		}).join('－'), {
 			bot : 1,
 			nocreate : 1,
-			summary : 'bot: 更新' + (prefix || NS_PREFIX) + '列表'
+			summary : CeL.wiki.title_link_of(
+			//
+			wiki.latest_task_configuration.configuration_page_title,
+			//
+			'更新' + (prefix || NS_PREFIX) + '列表')
 		});
 	}
 
@@ -999,7 +1010,9 @@ function check_date_page() {
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
 	report = '本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
 	//
-	+ CeL.wiki.title_link_of(configuration.configuration_page_title
+	+ CeL.wiki.title_link_of(
+	//
+	wiki.latest_task_configuration.configuration_page_title
 	//
 	+ '#一般設定', '更改設定參數')
 	// <del>不簽名，避免一日之中頻繁變更。 " --~~~~"</del>
@@ -1070,7 +1083,11 @@ function check_date_page() {
 	.edit(report, {
 		bot : 1,
 		nocreate : 1,
-		summary : 'bot: 首頁' + TYPE_NAME + '更新報告: '
+		summary : CeL.wiki.title_link_of(
+		//
+		wiki.latest_task_configuration.configuration_page_title,
+		//
+		'首頁' + TYPE_NAME + '更新報告') + ': '
 		//
 		+ FC_title_sorted.length + '篇' + TYPE_NAME
 		//
@@ -1193,7 +1210,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		if (!is_FC(FC_title))
 			continue;
 		var FC_data = FC_data_hash[FC_title];
-		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production'
+		if (is_production_environment
 		// 每天凌晨零時之前，若是頁面還不存在，就會找一個之前曾經上過首頁的最古老 FC_title 頁面來展示。
 		// assert: 上過首頁的都必定有介紹頁面。
 		&& !FC_data[KEY_LATEST_JDN]) {
@@ -1223,7 +1240,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	if (transcluding_title_now) {
 		// assert: (transcluding_title_now) 為
 		// 現在 (date_page_title) 頁面中嵌入但*有問題*的頁面。
-		if (CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+		if (is_production_environment) {
 			if (transcluding_title === transcluding_title_now) {
 				wiki.page(date_page_title);
 				wiki.edit('', {
@@ -1255,9 +1272,11 @@ function write_date_page(date_page_title, transcluding_title_now) {
 	// 如若不存在，採用嵌入包含的方法寫入隔天首頁將展示的特色內容分頁裡面，展示為下一個首頁特色內容。
 	wiki.edit(write_content, {
 		// bot : 1,
-		summary : 'bot: 自動更新首頁'
+		summary : CeL.wiki.title_link_of(
 		//
-		+ TYPE_NAME + '：' + CeL.wiki.title_link_of(FC_title)
+		wiki.latest_task_configuration.configuration_page_title, '自動更新首頁'
+		//
+		+ TYPE_NAME) + '：' + CeL.wiki.title_link_of(FC_title)
 		//
 		+ (is_FC(FC_title) && FC_data_hash[FC_title][KEY_LATEST_JDN]
 		//
@@ -1267,7 +1286,9 @@ function write_date_page(date_page_title, transcluding_title_now) {
 		//
 		+ '。作業機制請參考'
 		//
-		+ CeL.wiki.title_link_of(configuration.configuration_page_title)
+		+ CeL.wiki.title_link_of(
+		//
+		wiki.latest_task_configuration.configuration_page_title)
 	// 已轉換過
 	// + ' 編輯摘要的red link經繁簡轉換後存在'
 	}, function(page_data, error, result) {
@@ -1367,9 +1388,7 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			return;
 		}
 
-		if (!write_failed
-		// environment=production
-		&& CeL.env.arg_hash && CeL.env.arg_hash.environment === 'production') {
+		if (!write_failed && is_production_environment) {
 			// remove cache 刪除cache。
 			CeL.move_fso(base_directory, base_directory + '.'
 					+ (new Date).format('%Y%2m%2d'));
@@ -1433,7 +1452,11 @@ function check_if_FC_introduction_exists(FC_title, date_page_title,
 			}
 			return introduction_section;
 		}, {
-			summary : '自動創建' + TYPE_NAME + '簡介頁面'
+			summary : CeL.wiki.title_link_of(
+			//
+			wiki.latest_task_configuration.configuration_page_title,
+			//
+			'自動創建' + TYPE_NAME + '簡介頁面')
 		});
 
 		wiki.page(DISCUSSION_PAGE).edit(function(page_data) {
@@ -1507,7 +1530,11 @@ function check_month_list() {
 		}
 		content.push('|}');
 		wiki.page(page_data).edit(content.join('\n'), {
-			summary : 'bot: 自動創建每月' + TYPE_NAME + '存檔'
+			summary : CeL.wiki.title_link_of(
+			//
+			wiki.latest_task_configuration.configuration_page_title,
+			//
+			'自動創建每月' + TYPE_NAME + '存檔')
 		}).run(update_portal);
 	}, get_page_options);
 }
@@ -1518,7 +1545,7 @@ function update_portal() {
 	// 清除首頁快取。刷新首頁緩存。
 	wiki.purge('Wikipedia:首页');
 
-	var portal_item_count = configuration.general.portal_item_count;
+	var portal_item_count = wiki.latest_task_configuration.general.portal_item_count;
 	if (!(portal_item_count >= 1) || using_GA || CeL.env.arg_hash
 			&& (CeL.env.arg_hash.days_later | 0)) {
 		wiki.run(finish_up);
@@ -1528,9 +1555,15 @@ function update_portal() {
 	var edit_options = {
 		bot : 1,
 		nocreate : 1,
-		summary : 'bot: 更新[[Portal:特色內容]]。作業機制請參考'
+		summary : CeL.wiki.title_link_of(
 		//
-		+ CeL.wiki.title_link_of(configuration.configuration_page_title)
+		wiki.latest_task_configuration.configuration_page_title,
+		//
+		'更新[[Portal:特色內容]]。作業機制請參考')
+		//
+		+ CeL.wiki.title_link_of(
+		//
+		wiki.latest_task_configuration.configuration_page_title)
 	};
 
 	// ----------------------------------------------------
