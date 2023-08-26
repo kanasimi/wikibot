@@ -2406,6 +2406,13 @@ const no_essential_parameter_templates = {
 	リダイレクトの所属カテゴリ: 1,
 };
 
+const jawiki_Citation_parameters = [
+	'editor-link', 'editor1-link', 'editor2-link', 'editor3-link', 'editor4-link', 'editor5-link', 'editor6-link', 'editor7-link', 'editor8-link', 'editor9-link',
+	'authorlink', 'authorlink1', 'authorlink2', 'authorlink3', 'authorlink4', 'authorlink5', 'authorlink6', 'authorlink7', 'authorlink8', 'authorlink9',
+	'author-link', 'author1-link', 'author2-link', 'author3-link', 'author4-link', 'author5-link', 'author6-link', 'author7-link', 'author8-link', 'author9-link',
+	'directorlink', 'directorlink2', 'directorlink3', 'directorlink4', 'directorlink5', 'directorlink6', 'directorlink7', 'directorlink8', 'directorlink9',
+];
+
 function check_link_parameter(task_configuration, template_token, parameter_name) {
 	if (Array.isArray(parameter_name)) {
 		// TODO: options
@@ -2590,8 +2597,11 @@ async function for_each_template(page_data, token, index, parent) {
 
 		リダイレクトの所属カテゴリ: '*',
 
+		// {{Citation|editor-link=...}}
+		Citation: jawiki_Citation_parameters,
+		Cite: jawiki_Citation_parameters,
 		// {{Cite book|...|authorlink=...|...}}
-		'Cite book': 'authorlink',
+		'Cite book': jawiki_Citation_parameters,
 
 		'基礎情報 過去の国': ['先代1', '先代2', '先代3', '先代4', '先代5', '次代1', '次代2', '次代3', '次代4', '次代5',],
 
