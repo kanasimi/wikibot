@@ -657,11 +657,11 @@ function for_each_page(page_data, messages) {
 		function modify_link(link_target) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]]
 			if (parameters.preserve || parameters.display) {
-				check_page(
-						gettext(
-						// gettext_config:{"id":"preserve-interlanguage-links-because-of-the-preserve-parameter-is-set"}
-						'Preserve interlanguage links because of the "preserve" parameter is set.'),
-						true);
+				check_page(gettext(
+				// gettext_config:{"id":"preserve-interlanguage-links-because-of-the-preserve-parameter-is-set"}
+				'Preserve interlanguage links because of the "preserve" parameter is set.'
+				//
+				), true);
 				// always display
 				return;
 			}
@@ -698,6 +698,12 @@ function for_each_page(page_data, messages) {
 								+ token.additional_summary + ')' : ''));
 				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
 						+ ': ' + token.toString() + ' → ' + link);
+			}
+
+			if (parameters.italic
+			// retain italic formatting `|italic=y`
+			&& parameters.italic.toString().trim().toLowerCase() === 'y') {
+				link = "''" + link + "''";
 			}
 
 			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
