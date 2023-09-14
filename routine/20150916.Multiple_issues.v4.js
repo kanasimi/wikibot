@@ -180,7 +180,8 @@ async function main_process() {
 		count_list: [],
 		problematic_articles: [],
 		// (pageid in pageid_processed): have processed
-		pageid_processed: Object.create(null)
+		// 記錄這些頁面可能導致記憶體不足！
+		pageid_processed: Object.create(null) && null,
 	});
 
 	// for debug specified article
@@ -234,7 +235,7 @@ async function check_articles_embeddedin_template(template_name) {
 		// limit: 20,
 		// 本作業僅處理條目命名空間
 		namespace: 0,
-		page_filter: page_data => !(page_data.pageid in configuration.pageid_processed)
+		page_filter: configuration.pageid_processed && (page_data => !(page_data.pageid in configuration.pageid_processed)),
 	}));
 
 	// await wiki.setup_layout_elements();
@@ -246,6 +247,7 @@ async function check_articles_embeddedin_template(template_name) {
 		summary: `[[${configuration.configuration_page_title}|${gettext(
 			// gettext_config:{"id":"normalize-template-$1"}
 			'Normalize {{%1}}', configuration.Multiple_issues_template_name_without_namespace)}]]`,
+		skip_nochange: true,
 		// for debug
 		// tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
 	});
@@ -255,7 +257,8 @@ async function check_articles_embeddedin_template(template_name) {
 
 async function check_pages_including_maintenance_template(page_data) {
 	const configuration = wiki.latest_task_configuration;
-	configuration.pageid_processed[page_data.pageid] = null;
+	if (configuration.pageid_processed)
+		configuration.pageid_processed[page_data.pageid] = null;
 	/** {Array} parsed page content 頁面解析後的結構。 */
 	const parsed = page_data.parse();
 	// for debug 用.
@@ -521,11 +524,12 @@ async function generate_report() {
 		bot: 1,
 		nocreate: 1,
 		redirects: 1,
-		// gettext_config:{"id":"normalize-template-$1"}
-		summary: `${gettext('Normalize {{%1}}', configuration.Multiple_issues_template_name_without_namespace)}: ${gettext(
-			// gettext_config:{"id":"too-many-entries-with-maintenance-templates-in-the-record-$1-entries"}
-			'Too many entries with maintenance templates in the record: %1 {{PLURAL:%1|entrie|entries}}', all_count)} (${gettext(
-				// gettext_config:{"id":"minimum-number-of-templates-to-report-$1"}
-				'Minimum number of templates to report: %1', configuration.template_count_to_be_reported)})`
+		summary: `[[${configuration.configuration_page_title}|${gettext(
+			// gettext_config:{"id":"normalize-template-$1"}
+			'Normalize {{%1}}', configuration.Multiple_issues_template_name_without_namespace)}]]: ${gettext(
+				// gettext_config:{"id":"too-many-entries-with-maintenance-templates-in-the-record-$1-entries"}
+				'Too many entries with maintenance templates in the record: %1 {{PLURAL:%1|entrie|entries}}', all_count)} (${gettext(
+					// gettext_config:{"id":"minimum-number-of-templates-to-report-$1"}
+					'Minimum number of templates to report: %1', configuration.template_count_to_be_reported)})`
 	});
 }
