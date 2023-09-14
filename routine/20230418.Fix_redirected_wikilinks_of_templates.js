@@ -147,6 +147,7 @@ async function main_process() {
 				*/
 				summary: `${CeL.wiki.title_link_of(log_to, '轉換模板中的內部連結為目標頁面標題')}: `,
 				log_to,
+				no_fallback_log_to_on_error: true,
 				notification_name: 'fix_redirected_wikilinks',
 			});
 		}
