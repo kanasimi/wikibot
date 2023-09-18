@@ -639,7 +639,7 @@ function normalize_person_name(name) {
 	// https://en.wikipedia.org/wiki/Latin-1_Supplement
 	// https://en.wikipedia.org/wiki/Latin_Extended-A
 	// [[德語字母]], [[:de:Deutsches Alphabet]]
-	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|d'|da |de |del |dos |Den|Des|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-|ter )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
+	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|la |d'|da |de |del |dos |Den|Des|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-|ter )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
 	//console.log(matched);
 	if (matched && matched[2] === matched[2].toLowerCase() && (!matched[3] || matched[3] === matched[3].toLowerCase())) {
 		// "Huennekens FM" → "F M Huennekens"
@@ -703,6 +703,7 @@ function normalize_person_name(name) {
 	["de la Vega PF", "P. F. de la Vega"],
 	["DesRosiers C", "C. DesRosiers"],
 	["ter Laak HJ", "H. J. ter Laak"],
+	["la Labarthe B", "B. la Labarthe"],
 	/*
 	TODO:
 	["Stephen William Hawking", "Hawking, Stephen"],
