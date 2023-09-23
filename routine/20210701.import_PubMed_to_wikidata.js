@@ -1471,9 +1471,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			} else if (reference_data['journal-title']) {
 				let journal_title = reference_data['journal-title'];
 				journal_title = journal_title_mapping.get(journal_title) || journal_title;
-				// 去掉太過簡短的期刊標題
-				// e.g., https://api.crossref.org/works/10.1007/BF02773739
-				if (!/^\w{1,10}$/.test(journal_title)) {
+				// 去掉太過簡短的期刊標題與縮寫。
+				// e.g., https://api.crossref.org/works/10.1007/BF02773739 https://api.crossref.org/works/10.1177/030089167906500317 ("journal-title":"Bl.")
+				if (!/^[\w.]{1,10}$/.test(journal_title)) {
 					cites_work_title = journal_title;
 					// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
 					if (reference_data.volume) {
