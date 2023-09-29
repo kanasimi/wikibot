@@ -284,9 +284,9 @@ async function check_pages_including_maintenance_template(page_data) {
 	const all_maintenance_template_count = this.maintenance_template_inside.length + this.maintenance_template_outer.length;
 	if (all_maintenance_template_count >= configuration.template_count_to_be_reported) {
 		if (!configuration.count_list[all_maintenance_template_count])
-			configuration.count_list[all_maintenance_template_count] = [];
-		// 統計含有過多個維護模板的條目
-		configuration.count_list[all_maintenance_template_count].push(page_data.title);
+			configuration.count_list[all_maintenance_template_count] = new Set;
+		// 統計含有過多個維護模板的條目。沒 pageid_processed 的情況下可能會重複。
+		configuration.count_list[all_maintenance_template_count].add(page_data.title);
 	}
 
 	//console.trace([all_maintenance_template_count, configuration.template_count_to_be_split]);
@@ -469,16 +469,17 @@ async function generate_report() {
 	let all_count = 0;
 	let content = [];
 
-	configuration.count_list.forEach((list, count) => {
-		all_count += list.length;
+	configuration.count_list.forEach((list_Set, count) => {
+		all_count += list_Set.size;
+		const too_many = list_Set.size > 1e4;
 		// gettext_config:{"id":"total-$1-articles"}
-		content.push([count, gettext('Total %1 {{PLURAL:%1|article|articles}}.', list.length)
+		content.push([count, gettext('Total %1 {{PLURAL:%1|article|articles}}.', list_Set.size)
 			// \n\n
 			+ '\n[['
 			// 避免顯示過多。
-			+ (list.length <= 1e4 ? list : list.slice(0, 1e4))
+			+ (too_many ? Array.from(list_Set).slice(0, 1e4) : Array.from(list_Set))
 				//
-				.join(']], [[') + ']]']);
+				.join(']], [[') + ']]' + (too_many ? '...' : '')]);
 	});
 	content.reverse();
 	content.unshift([
