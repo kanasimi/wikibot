@@ -676,6 +676,16 @@ async function for_each_list_page(list_page_data) {
 					}
 				}
 
+				icons = icons.sort((_1, _2) => {
+					// {String}_1, {String}_2
+					// [[w:en:User talk:Kanashimi/Archive 1#Stop showing the Former Featured Article Candidate icon in the vital article lists]]
+					// my main issue is that the Cewbot keeps putting the FFAC icon first before the actual grade of the article, when it doesn’t do that for the Former Featured Article icon.
+					// 把 FFAC 排到最後。
+					if (_1 === 'FFAC') return 1;
+					if (_2 === 'FFAC') return -1;
+					// 其他的順序不變。
+					return 0;
+				});
 				icons = icons.map(icon => {
 					if (icon in article_count_of_icon)
 						article_count_of_icon[icon]++;
@@ -684,6 +694,7 @@ async function for_each_list_page(list_page_data) {
 					//{{Class/icon}}
 					return `{{Icon|${icon}}}`;
 				});
+
 
 				parsed.each.call(_item[index], (_token, index, parent) => {
 					//console.log(_token);
