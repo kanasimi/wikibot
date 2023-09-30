@@ -235,7 +235,8 @@ async function check_articles_embeddedin_template(template_name) {
 		// limit: 20,
 		// 本作業僅處理條目命名空間
 		namespace: 0,
-		page_filter: configuration.pageid_processed && (page_data => !(page_data.pageid in configuration.pageid_processed)),
+		page_filter: configuration.pageid_processed ? page_data => !(page_data.pageid in configuration.pageid_processed)
+			: page_data => !configuration.count_list.some(list_Set => list_Set.has(page_data.title)),
 	}));
 
 	// await wiki.setup_layout_elements();
@@ -285,7 +286,7 @@ async function check_pages_including_maintenance_template(page_data) {
 	if (all_maintenance_template_count >= configuration.template_count_to_be_reported) {
 		if (!configuration.count_list[all_maintenance_template_count])
 			configuration.count_list[all_maintenance_template_count] = new Set;
-		// 統計含有過多個維護模板的條目。沒 pageid_processed 的情況下可能會重複。
+		// 統計含有過多個維護模板的條目。沒 configuration.pageid_processed 的情況下可能會重複。
 		configuration.count_list[all_maintenance_template_count].add(page_data.title);
 	}
 
