@@ -12,6 +12,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=東京大空襲"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态候选"
 node 20201008.fix_anchor.js use_language=zh "check_page=原神"
+node 20201008.fix_anchor.js use_language=zh "check_page=曾比特"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
@@ -27,6 +28,8 @@ node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之�
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=影之诗FLAME"
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=初音未来 NT殿堂曲" "only_modify_pages=Template:初音未来_NT殿堂曲题头"
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=达拉崩吧" "only_modify_pages=VOCALOID中文殿堂曲/梗曲相关"
+
+node routine/20201008.fix_anchor.js use_project=test
 
 
 jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
@@ -126,9 +129,8 @@ const LINKS_PARAMETER = 'links';
 /** {String}Notification of broken anchor */
 let notification_name = 'anchor-fixing';
 
-// Ignore these tags
+// Ignore these tags. 只該忽略破壞編輯本身。 'mw-reverted', 'mw-manual-revert', 'mw-undo' 可能是破壞後的矯正，不該被忽略。
 const ignore_tags = [
-	//'mw-reverted',
 	'mw-blank',
 ];
 
@@ -302,7 +304,8 @@ async function main_process() {
 	routine_task_done('1d');
 }
 
-const MIN_CONTENT_LENGTH = 100, MAX_CONTENT_LENGTH_WHEN_DELAY = 100_000;
+// 長度太短被視為無意義內容。
+const MIN_CONTENT_LENGTH = 50, MAX_CONTENT_LENGTH_WHEN_DELAY = 100_000;
 function filter_row(row) {
 	//console.trace(row);
 
@@ -1347,6 +1350,12 @@ async function check_page(target_page_data, options) {
 			if (token.anchor_index) {
 				token[token.anchor_index] = to_anchor || '';
 			} else {
+				const original_anchor = token[1]?.toString().replace(/^#/, '');
+				if (original_anchor?.length > 4 && to_anchor?.length > 4 && token[2]) {
+					// 同時修改 anchor 和 display_text。
+					// e.g., [[w:de:Special:Diff/238049015]]: [[#ABCDE|{{lang|en|ABCDE}}]]
+					token[2] = token[2].toString().replace(original_anchor, to_anchor);
+				}
 				token[1] = to_anchor ? '#' + to_anchor : '';
 			}
 		}
