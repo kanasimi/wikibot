@@ -1258,7 +1258,7 @@ async function check_page(target_page_data, options) {
 					? `${record.disappear ?
 						// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
 						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
-						CeL.gettext('The anchor (%2) is no longer available because it was [[Special:Diff/%1|deleted by a user]] before.', record.disappear.revid, anchor_token[1]) : ''
+						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, anchor_token[1]) : ''
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 					} <!-- ${JSON.stringify(record)} -->` : ''}`;
 			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${
