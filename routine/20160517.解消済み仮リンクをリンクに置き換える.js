@@ -657,6 +657,7 @@ function for_each_page(page_data, messages) {
 		function modify_link(link_target) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]]
 			if (parameters.preserve || parameters.display) {
+				// 不提早回傳可檢查錯誤。
 				check_page(gettext(
 				// gettext_config:{"id":"preserve-interlanguage-links-because-of-the-preserve-parameter-is-set"}
 				'Preserve interlanguage links because of the "preserve" parameter is set.'
@@ -782,7 +783,11 @@ function for_each_page(page_data, messages) {
 
 		function for_local_page(converted_local_title) {
 			// converted_local_title: foreign_title 所對應的本地條目。
-			if (!converted_local_title || converted_local_title !== local_title) {
+			if (!converted_local_title || converted_local_title !== local_title
+			// Keep interlanguage link template if the target page is redirect.
+			// リダイレクトの記事化が望まれる場合。
+			// e.g., {{仮リンク|redirect=1}}
+			|| parameters.redirect) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
 
@@ -803,7 +808,7 @@ function for_each_page(page_data, messages) {
 							// 存在本地頁面。e.g., redirected page
 							check_page(gettext(
 							// gettext_config:{"id":"missing-converted-local-page-or-the-foreign-local-page-is-not-link-to-wikidata"}
-							'外語條目沒有相對應的中文條目，或應對應的中文條目並沒有連結到正確的Wikidata項目。'));
+							'缺少轉換後的本地頁面，或者外部/本地頁面未鏈接到維基數據。'));
 						} else {
 							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
 							// 此應屬正常。
@@ -822,9 +827,21 @@ function for_each_page(page_data, messages) {
 						redirect_data = redirect_data.to_link;
 					}
 
+					if (redirect_data && parameters.redirect && local_title
+					//
+					!== CeL.wiki.title_of(redirect_data)) {
+						check_page(
+						// リダイレクトの記事化が望まれる場合。
+						'Keep interlanguage link template for redirected target page.'
+						//
+						, true);
+						return;
+					}
+
+					if (redirect_data
 					// assert: 若 ((converted_local_title === redirect_data))，
 					// 則本地頁面 converted_local_title 存在。
-					if (converted_local_title === redirect_data) {
+					&& converted_local_title === redirect_data) {
 						// local_title 最終導向 redirect_data ===
 						// converted_local_title。
 						// 直接採用 parameters 指定的 title，不再多做改變；
@@ -1151,7 +1168,7 @@ function for_each_page(page_data, messages) {
 		}, {
 			T :
 			// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
-			'也許有尚未登記的跨語言連結模板，或是被嵌入的檔案/模板中存有已存在本地條目之跨語言連結模板（通常位於頁面最後一節）？'
+			'也許存在未註冊的跨維基鏈接模板，或者一些包含本地文章（通常在頁面的最後部分）的跨維基鏈接模板的嵌入模板/文章？'
 		} ]);
 		if (false) {
 			// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}
