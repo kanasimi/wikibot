@@ -73,6 +73,8 @@ const PATTERN_counter_title = new RegExp(/^[\w\s\-–',\/]+MARK$/.source.replace
 const report_lines = [];
 report_lines.skipped_records = 0;
 
+let max_VA_level;
+
 // ----------------------------------------------
 
 /**
@@ -139,7 +141,15 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	const vital_articles_list = (await wiki.prefixsearch(base_page_prefix)) || [
+	function to_title(page_data) {
+		const title = typeof page_data === 'string' ? page_data : page_data.title;
+		//console.log([title, title === base_page_prefix ? level_to_page_title(DEFAULT_LEVEL, true) : '']);
+		if (title === base_page_prefix)
+			return level_to_page_title(DEFAULT_LEVEL, true);
+		return title;
+	}
+
+	const vital_articles_list = ((await wiki.prefixsearch(base_page_prefix)) || [
 		// 1,
 		// 2,
 		// 3 && '',
@@ -154,15 +164,8 @@ async function main_process() {
 		// '5/Everyday life/Sports, games and recreation',
 		// '5/Mathematics',
 		// '5/Geography/Cities',
-	].map(level => level_to_page_title(level));
-
-	function to_title(page_data) {
-		const title = typeof page_data === 'string' ? page_data : page_data.title;
-		//console.log([title, title === base_page_prefix ? level_to_page_title(DEFAULT_LEVEL, true) : '']);
-		if (title === base_page_prefix)
-			return level_to_page_title(DEFAULT_LEVEL, true);
-		return title;
-	}
+	].map(level => level_to_page_title(level)))
+		.filter(page_data => !/\.json$/i.test(to_title(page_data)));
 
 	// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
 	vital_articles_list.sort((page_data_1, page_data_2) => {
@@ -171,6 +174,11 @@ async function main_process() {
 		// assert: to_title(page_data_1) !== to_title(page_data_2)
 		return title_1 < title_2 ? -1 : 1;
 	});
+
+	max_VA_level = vital_articles_list.reduce((max_VA_level, page_data) => {
+		const level = level_of_page_title(page_data);
+		return max_VA_level < level ? level : max_VA_level;
+	}, 0);
 	// assert: 標題應該已按照高重要度 → 低重要度的級別排序。
 
 	//console.log(vital_articles_list.length);
@@ -235,7 +243,7 @@ async function get_page_info() {
 
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	if (get_category_level_of_page) {
-		for (let i = 5; i >= 1; i--) {
+		for (let i = /*max_VA_level*/5; i >= 1; i--) {
 			// 2023/7/24 `All Wikipedia level-${i} vital articles` → `Wikipedia level-${i} vital articles`
 			const page_list = await wiki.categorymembers(`Wikipedia level-${i} vital articles`, {
 				// exclude [[User:Fox News Brasil]]
@@ -483,6 +491,10 @@ async function for_each_list_page(list_page_data) {
 		// 想要更新這些被忽略的頁面，必須做更多測試，避免他們也列入索引。
 		return Wikiapi.skip_edit;
 	}
+	if (CeL.wiki.content_of.revision(list_page_data)?.contentmodel !== 'wikitext') {
+		// e.g., 'json'
+		return Wikiapi.skip_edit;
+	}
 
 	const level = level_of_page_title(list_page_data, true) || DEFAULT_LEVEL;
 	// console.log([list_page_data.title, level]);
@@ -606,6 +618,8 @@ async function for_each_list_page(list_page_data) {
 				}
 				const article_info = {
 					level: level_of_page_title(list_page_data, true),
+					// detailed_level這個參數是為了準確的連結到列表頁面。現在我採用的方法其實是讀取列表頁面之後，取得頁面名稱與章節名稱再來做分類。topic、subpage 其實是從[[User:Cewbot/log/20200122/configuration#Topics]]轉換獲得的，不是靠著一頁一頁讀取文章的talk頁面。其實我一直疑惑，為何像 5/People/Entertainers, directors, producers, and screenwriters 不能夠設定成 subpage=Entertainers, directors, producers, and screenwriters，如此就能少一個轉換的過程。
+					// The <code>detailed_level</code> parameter is to link to the list page accurately. The way I'm using now is to read the list page and then get the page name and chapter name to categorize it. <code>topic</code> and <code>subpage</code> are actually converted from [[User:Cewbot/log/20200122/configuration#Topics]] instead of relying on reading the talk page of the article one by one. In fact, I've been wondering why something like <code>5/People/Entertainers, directors, producers, and screenwriters</code> can't be set to <code>subpage=Entertainers, directors, producers, and screenwriters</code>, so that there is less conversion process.
 					detailed_level: level_of_page_title(list_page_data),
 					link: latest_section_title?.link,
 				};
@@ -686,6 +700,7 @@ async function for_each_list_page(list_page_data) {
 					// 其他的順序不變。
 					return 0;
 				});
+				//if (icons.join(' ').includes('FFAC')) { console.trace(icons); }
 				icons = icons.map(icon => {
 					if (icon in article_count_of_icon)
 						article_count_of_icon[icon]++;
@@ -1002,8 +1017,46 @@ async function for_each_list_page(list_page_data) {
 async function generate_all_VA_list_page() {
 	const all_articles = Object.create(null);
 	const all_level_1_to_4_articles = Object.create(null);
+	const topic_hierarchy = Object.create(null);
+	const VA_data_list_via_prefix = Object.create(null);
 	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
 		const prefix = page_title.slice(0, 1);
+		// assert: prefix.toUpperCase() === prefix
+		// assert: Array.isArray(article_info_list)
+		if (!VA_data_list_via_prefix[prefix])
+			VA_data_list_via_prefix[prefix] = Object.create(null);
+		VA_data_list_via_prefix[prefix][page_title] = article_info_list.map(article_info => {
+			article_info = Object.clone(article_info);
+			delete article_info.link;
+			if (!article_info.level)
+				article_info.level = DEFAULT_LEVEL;
+
+			const topic = article_info.topic;
+			if (topic) {
+				if (!topic_hierarchy[topic]) {
+					topic_hierarchy[topic] = {
+						article_list: []
+					};
+				}
+				let hierarchy = topic_hierarchy[topic];
+				const subpage = article_info.subpage;
+				if (subpage) {
+					if (!hierarchy[subpage]) {
+						hierarchy[subpage] = {
+							article_list: []
+						};
+					}
+					hierarchy = hierarchy[subpage];
+				}
+				hierarchy.article_list.push(page_title);
+			} else if (article_info.level > DEFAULT_LEVEL) {
+				// Need to add in [[User:Cewbot/log/20200122/configuration#Topics]]
+				console.log('No topic:', page_title, article_info);
+			}
+
+			return article_info;
+		});
+
 		if (!all_articles[prefix])
 			all_articles[prefix] = [];
 		all_articles[prefix].push(page_title);
@@ -1016,10 +1069,16 @@ async function generate_all_VA_list_page() {
 				break;
 			}
 		}
+
 	}
 
 	try { await generate_list_page('List of all articles', all_articles); } catch { }
 	try { await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles); } catch { }
+
+	try { await generate_hierarchy_json(topic_hierarchy); } catch (e) { CeL.error(e); }
+	for (const prefix in VA_data_list_via_prefix) {
+		try { await generate_VA_list_json(prefix, VA_data_list_via_prefix); } catch (e) { CeL.error(e); }
+	}
 }
 
 async function generate_list_page(page_name, article_hash) {
@@ -1047,6 +1106,25 @@ The list contains ${count} articles. --~~~~`
 	await wiki.edit_page(page_name, report_wikitext, {
 		bot: 1,
 		summary: `Update list of vital articles: ${count} articles`
+	});
+}
+
+// 生成階層
+async function generate_hierarchy_json(topic_hierarchy) {
+	const page_name = `${base_page_prefix}/data/Topic_hierarchy.json`;
+	await wiki.edit_page(page_name, topic_hierarchy, {
+		bot: 1,
+		summary: `Update topic hierarchy of vital articles: ${Object.keys(topic_hierarchy).length} topics`
+	});
+}
+
+async function generate_VA_list_json(prefix, VA_data_list_via_prefix) {
+	// assert: prefix.length === 1
+	const VA_data_list = VA_data_list_via_prefix[prefix];
+	const page_name = `${base_page_prefix}/data/${prefix}.json`;
+	await wiki.edit_page(page_name, VA_data_list, {
+		bot: 1,
+		summary: `Update list of vital articles: ${Object.keys(VA_data_list).length} article(s)`
 	});
 }
 
