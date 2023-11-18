@@ -24,6 +24,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=Internet in the United K
 node 20201008.fix_anchor.js use_language=en "check_page=Sergio Pérez"
 node 20201008.fix_anchor.js use_language=en "check_page=Wikipedia:Sandbox" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
+node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 // [[Template:MultiAnchor]]
@@ -452,7 +453,10 @@ async function for_each_row(row) {
 		}
 	}
 
-	// assert: removed_section_titles.length > 0
+	if (removed_section_titles.slice().sort().join('#') === added_section_titles.slice().sort().join('#')) {
+		// 增加與刪除的錨點完全相同。就錨點來說沒有改變。
+		return;
+	}
 
 	// 5 minutes ago
 	if (row.query_delay > 5 * 60 * 1000 && removed_section_titles.every(anchor => anchor.startsWith('CITEREF'))) {
@@ -464,7 +468,7 @@ async function for_each_row(row) {
 
 	CeL.info(`${for_each_row.name}: ${CeL.wiki.title_link_of(row.title + '#' + removed_section_titles[0])
 		}${removed_section_titles.anchor_count > 1 ? ` and other ${removed_section_titles.anchor_count - 1} section title(s) (#${removed_section_titles.slice(1).join(', #')})` : ''
-		} is ${removed_section_titles.length === 1 && removed_section_titles.anchor_count === 1
+		} is/are ${removed_section_titles.length === 1 && removed_section_titles.anchor_count === 1
 			&& added_section_titles.length === 1 && added_section_titles.anchor_count === 1 ? `renamed to ${JSON.stringify('#' + added_section_titles[0])}` : 'removed'
 		} by ${CeL.wiki.title_link_of('User:' + row.revisions[0].user)} at ${row.revisions[0].timestamp}.`);
 
@@ -1361,7 +1365,11 @@ async function check_page(target_page_data, options) {
 				token[token.anchor_index] = to_anchor || '';
 			} else {
 				const original_anchor = token[1]?.toString().replace(/^#/, '');
-				if (original_anchor?.length > 4 && to_anchor?.length > 4 && token[2]) {
+				if (original_anchor?.length > 4 && to_anchor?.length > 4 && token[2]
+					// 避免 display_text 本來就是正確的 text。
+					// e.g., 避免 https://de.wikipedia.org/w/index.php?title=Scream_2&diff=prev&oldid=239191220
+					// [[#Synchronisation|Besetzung & Synchronisation]] → [[#Besetzung & Synchronisation|Besetzung & Besetzung & Synchronisation]]
+					&& !token[2].toString().includes(to_anchor)) {
 					// 同時修改 anchor 和 display_text。
 					// e.g., [[w:de:Special:Diff/238049015]]: [[#ABCDE|{{lang|en|ABCDE}}]]
 					token[2] = token[2].toString().replace(original_anchor, to_anchor);
