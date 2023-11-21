@@ -167,19 +167,12 @@ async function main_process() {
 	].map(level => level_to_page_title(level)))
 		.filter(page_data => !/\.json$/i.test(to_title(page_data)));
 
-	// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
-	vital_articles_list.sort((page_data_1, page_data_2) => {
-		const title_1 = to_title(page_data_1);
-		const title_2 = to_title(page_data_2);
-		// assert: to_title(page_data_1) !== to_title(page_data_2)
-		return title_1 < title_2 ? -1 : 1;
-	});
-
 	max_VA_level = vital_articles_list.reduce((max_VA_level, page_data) => {
 		const level = level_of_page_title(page_data);
 		return max_VA_level < level ? level : max_VA_level;
 	}, 0);
-	// assert: 標題應該已按照高重要度 → 低重要度的級別排序。
+	// assert: vital_articles_list 標題應該已按照高重要度 → 低重要度的級別排序。
+	//console.trace(vital_articles_list);
 
 	//console.log(vital_articles_list.length);
 	//console.log(vital_articles_list.map(page_data => page_data.title));
@@ -191,6 +184,13 @@ async function main_process() {
 		minor: false,
 		log_to: null,
 		multi: 'keep order',
+		// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
+		sort_function(page_data_1, page_data_2) {
+			const title_1 = to_title(page_data_1);
+			const title_2 = to_title(page_data_2);
+			// assert: to_title(page_data_1) !== to_title(page_data_2)
+			return title_1 < title_2 ? -1 : 1;
+		},
 		summary: CeL.wiki.title_link_of(base_page_prefix === default_base_page_prefix && wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title, 'Update the section counts and article assessment icons')
 	});
 
@@ -224,6 +224,11 @@ async function main_process() {
 
 const icon_to_category = Object.create(null);
 
+function vital_article_level_to_category(level) {
+	// 2023/7/24 `All Wikipedia level-${level} vital articles` → `Wikipedia level-${level} vital articles`
+	return `Wikipedia level-${level} vital articles`;
+}
+
 // All attributes of articles get from corresponding categories.
 async function get_page_info() {
 
@@ -243,18 +248,17 @@ async function get_page_info() {
 
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	if (get_category_level_of_page) {
-		for (let i = /*max_VA_level*/5; i >= 1; i--) {
-			// 2023/7/24 `All Wikipedia level-${i} vital articles` → `Wikipedia level-${i} vital articles`
-			const page_list = await wiki.categorymembers(`Wikipedia level-${i} vital articles`, {
+		for (let level = /*max_VA_level*/5; level >= 1; level--) {
+			const page_list = await wiki.categorymembers(vital_article_level_to_category(level), {
 				// exclude [[User:Fox News Brasil]]
 				namespace: 'talk'
 			});
 			page_list.forEach(page_data => {
 				const title = wiki.talk_page_to_main(page_data.original_title || page_data);
 				if (title in category_level_of_page) {
-					report_lines.push([title, , `${category_level_of_page[title]}→${i}`]);
+					report_lines.push([title, , `${category_level_of_page[title]}→${level}`]);
 				}
-				category_level_of_page[title] = i;
+				category_level_of_page[title] = level;
 			});
 		}
 		// console.log(category_level_of_page);
@@ -1019,13 +1023,15 @@ async function generate_all_VA_list_page() {
 	const all_level_1_to_4_articles = Object.create(null);
 	const topic_hierarchy = Object.create(null);
 	const VA_data_list_via_prefix = Object.create(null);
+
 	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
 		const prefix = page_title.slice(0, 1);
 		// assert: prefix.toUpperCase() === prefix
+		const data_list_prefix = /^[A-Z]$/.test(prefix) ? prefix : 'others';
+		if (!VA_data_list_via_prefix[data_list_prefix])
+			VA_data_list_via_prefix[data_list_prefix] = Object.create(null);
 		// assert: Array.isArray(article_info_list)
-		if (!VA_data_list_via_prefix[prefix])
-			VA_data_list_via_prefix[prefix] = Object.create(null);
-		VA_data_list_via_prefix[prefix][page_title] = article_info_list.map(article_info => {
+		VA_data_list_via_prefix[data_list_prefix][page_title] = article_info_list.map(article_info => {
 			article_info = Object.clone(article_info);
 			delete article_info.link;
 			if (!article_info.level)
@@ -1055,7 +1061,9 @@ async function generate_all_VA_list_page() {
 			}
 
 			return article_info;
-		});
+		})
+		// 只取最高重要度的一篇文章。 https://en.wikipedia.org/w/index.php?title=Wikipedia_talk%3AVital_articles#List_of_vital_articles
+		[0];
 
 		if (!all_articles[prefix])
 			all_articles[prefix] = [];
@@ -1075,9 +1083,9 @@ async function generate_all_VA_list_page() {
 	try { await generate_list_page('List of all articles', all_articles); } catch { }
 	try { await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles); } catch { }
 
-	try { await generate_hierarchy_json(topic_hierarchy); } catch (e) { CeL.error(e); }
+	try { await generate_hierarchy_json(topic_hierarchy); } catch (e) { CeL.error('generate_all_VA_list_page: ' + e); }
 	for (const prefix in VA_data_list_via_prefix) {
-		try { await generate_VA_list_json(prefix, VA_data_list_via_prefix); } catch (e) { CeL.error(e); }
+		try { await generate_VA_list_json(prefix, VA_data_list_via_prefix); } catch (e) { CeL.error('generate_all_VA_list_page: ' + e); }
 	}
 }
 
@@ -1192,7 +1200,7 @@ function check_page_count() {
 		}
 		if (article_info_list.length === 0) {
 			report_lines.push([page_title, category_level_of_page[page_title],
-				`Did not listed in level ${category_level_of_page[page_title]}.`]);
+				`Its talk page is listed in the ${vital_article_level_to_category(category_level_of_page[page_title])}, but the article is not in the level ${category_level_of_page[page_title]} VA listing page.`]);
 			continue;
 		}
 		const article_info_of_level = [];
@@ -1381,9 +1389,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// VA_template_object.link = article_info.link[0];
 		if (article_info.link[1]) {
 			// VA_template_object.anchor = article_info.link[1];
-			article_info.reason += `: [[${VA_template_object.link}#${VA_template_object.anchor}|${VA_template_object.anchor}]]`;
+			article_info.reason += `: ${article_info.link}.`;
 		} else {
-			article_info.reason += `: [[${VA_template_object.link}]]`;
+			// level 1-3
+			article_info.reason += `: ${article_info.link}.`;
 		}
 	}
 	// console.trace(VA_template_object);
@@ -1475,7 +1484,7 @@ async function generate_report(options) {
 	report_wikitext = `__NOCONTENTCONVERT__
 * Configuration: ${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title)}
 * The report will update automatically.
-* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Please modify the link manually.</ref>
+* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Or the {{tl|Vital article}} is within {{tl|Suppress categories}} so it is not categorized. Please fix this issue manually.</ref>
 * Generate date: <onlyinclude>~~~~~</onlyinclude>
 ${report_mark_start}${report_wikitext}${report_mark_end}
 [[Category:Wikipedia vital articles]]`;
