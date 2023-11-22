@@ -307,6 +307,11 @@ async function get_page_info() {
 	for (const [icon, category_name] of Object.entries(icon_to_category)) {
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
+			if (!wiki.is_namespace(page_data, 'Talk')) {
+				if (!wiki.is_namespace(page_data, 'Category'))
+					CeL.warn(`${get_page_info.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_data)} (${category_name})`);
+				return;
+			}
 			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
 			if (!(title in icons_of_page))
 				icons_of_page[title] = [];
@@ -617,6 +622,10 @@ async function for_each_list_page(list_page_data) {
 				// e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
 				simplify_link(token, normalized_page_title);
+				if (wiki.is_namespace(normalized_page_title, 'Wikipedia')) {
+					// Skip invalid namespaces.
+					return parsed.each.exit;
+				}
 				if (!(normalized_page_title in listed_article_info)) {
 					listed_article_info[normalized_page_title] = [];
 				}
@@ -1200,7 +1209,7 @@ function check_page_count() {
 		}
 		if (article_info_list.length === 0) {
 			report_lines.push([page_title, category_level_of_page[page_title],
-				`Its talk page is listed in the ${vital_article_level_to_category(category_level_of_page[page_title])}, but the article is not in the level ${category_level_of_page[page_title]} VA listing page.`]);
+				`${CeL.wiki.title_link_of(wiki.to_talk_page(page_title))} is listed in the ${CeL.wiki.title_link_of(wiki.to_namespace(vital_article_level_to_category(category_level_of_page[page_title]), 'Category'))}, but ${CeL.wiki.title_link_of(page_title)} is not in the level ${category_level_of_page[page_title]} VA listing page.`]);
 			continue;
 		}
 		const article_info_of_level = [];
@@ -1232,7 +1241,18 @@ async function maintain_VA_template() {
 	// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
 	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
 	try {
-		await wiki.for_each_page(Object.keys(need_edit_VA_template), function (main_page_data) {
+		await wiki.for_each_page(Object.keys(need_edit_VA_template).filter(title => {
+			// the bot only fix namespace=talk.
+			if (wiki.is_namespace(title, 'main')) {
+				return true;
+			}
+
+			// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
+			CeL.warn(`${maintain_VA_template.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(title)} ${need_edit_VA_template[title].reason}`);
+			//console.trace(need_edit_VA_template[title]);
+			delete need_edit_VA_template[title];
+			return false;
+		}), function (main_page_data) {
 			const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
 			if (!main_article_exists) {
 				delete need_edit_VA_template[main_page_data.original_title || main_page_data.title];
@@ -1292,14 +1312,6 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		//console.log(talk_page_data.wikitext);
 		report_lines.push([main_page_title, article_info.level,
 			`${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`]);
-		return Wikiapi.skip_edit;
-	}
-
-	// the bot only fix namespace=talk.
-	if (!wiki.is_namespace(talk_page_data, 'talk')) {
-		// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
-		CeL.warn(`${maintain_VA_template_each_talk_page.name}: Skip invalid namesapce: ${CeL.wiki.title_link_of(talk_page_data)}`);
-		//console.log(article_info);
 		return Wikiapi.skip_edit;
 	}
 
@@ -1467,7 +1479,7 @@ async function generate_report(options) {
 	const report_count = report_lines.length;
 	let report_wikitext;
 	if (report_count > 0) {
-		report_lines.unshift(['Page title', 'Level', 'Situation']);
+		report_lines.unshift(['Page title', 'Detailed level', 'Situation']);
 		report_wikitext = CeL.wiki.array_to_table(report_lines, {
 			'class': "wikitable sortable"
 		});
