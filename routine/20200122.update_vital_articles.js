@@ -72,6 +72,8 @@ const PATTERN_counter_title = new RegExp(/^[\w\s\-–',\/]+MARK$/.source.replace
 
 const report_lines = [];
 report_lines.skipped_records = 0;
+/**{Set}已經警告過的topics */
+report_lines.warned_topics = new Set;
 
 let max_VA_level;
 
@@ -1065,8 +1067,12 @@ async function generate_all_VA_list_page() {
 				}
 				hierarchy.article_list.push(page_title);
 			} else if (article_info.level > DEFAULT_LEVEL) {
-				// Need to add in [[User:Cewbot/log/20200122/configuration#Topics]]
-				console.log('No topic:', page_title, article_info);
+				if (!article_info.detailed_level) {
+					CeL.error(`${generate_all_VA_list_page.name}: No topic and detailed_level: ${page_title} ${JSON.stringify(article_info)}`);
+				} else if (!report_lines.warned_topics.has(article_info.detailed_level)) {
+					report_lines.warned_topics.add(article_info.detailed_level);
+					report_lines.push([page_title, article_info.detailed_level, `Please set the topic/subpage in [[User:Cewbot/log/20200122/configuration#Topics]].`]);
+				}
 			}
 
 			return article_info;
