@@ -1015,11 +1015,24 @@ async function for_each_list_page(list_page_data) {
 		summary_table.push([`{{Icon|${icon}}} ${category_name || icon}`, article_count_of_icon[icon].toLocaleString()]);
 	}
 
+	if (wikitext.includes('<!-- summary table begin')) {
+		wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `<!-- update summary table: The text between update comments will be automatically overwritten by the bot. -->\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
+			'class': "wikitable sortable"
+		}) + '\n<!-- update end: summary table -->');
+
+	} else if (!CeL.wiki.Variable_Map.text_has_mark(wikitext, 'summary table') && /\/[45]\//.test(list_page_data.title)) {
+		wikitext = wikitext.replace(/(\n(==?)(?: *<span [^<>]+><\/span>)?[\w\s\-]+? \(\d+(?:\/\d+)? articles\) *\2)/, '<!-- update summary table: The text between update comments will be automatically overwritten by the bot. --><!-- update end: summary table -->\n$1');
+	}
+	// Remove duplicates 
+	wikitext = wikitext.replace(/<!-- update summary table: .+?-->[\s\S]*?<!-- update end: summary table -->[\s\n]*(<!-- update summary table: .+?-->)/, '$1');
+
 	//console.trace(`${list_page_data.title}: ${total_articles}`);
+	const report_Variable_Map = new CeL.wiki.Variable_Map();
 	// ~~~~~
-	wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `$1\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
+	report_Variable_Map.set('summary table', '\n' + total_articles + '\n' + CeL.wiki.array_to_table(summary_table, {
 		'class': "wikitable sortable"
-	}) + '\n$2');
+	}) + '\n');
+	wikitext = report_Variable_Map.update(wikitext, { force_change: true });
 
 	// console.trace(`${for_each_list_page.name}: return ${wikitext.length} chars`);
 	// console.log(wikitext);
@@ -1044,9 +1057,20 @@ async function generate_all_VA_list_page() {
 		// assert: Array.isArray(article_info_list)
 		VA_data_list_via_prefix[data_list_prefix][page_title] = article_info_list.map(article_info => {
 			article_info = Object.clone(article_info);
+			if (article_info.link[1])
+				article_info.section = article_info.link[1].replace(PATTERN_count_mark, '').trimEnd();
 			delete article_info.link;
 			if (!article_info.level)
 				article_info.level = DEFAULT_LEVEL;
+
+			if (typeof article_info.detailed_level == 'string') {
+				// e.g., 5/People/Scientists, inventors, and mathematicians
+				const _topic_hierarchy = article_info.detailed_level.split('/');
+				article_info.topic = _topic_hierarchy[1];
+				if (_topic_hierarchy.length > 2) {
+					article_info.sublist = _topic_hierarchy.slice(2).join('/');
+				}
+			}
 
 			const topic = article_info.topic;
 			if (topic) {
@@ -1056,16 +1080,17 @@ async function generate_all_VA_list_page() {
 					};
 				}
 				let hierarchy = topic_hierarchy[topic];
-				const subpage = article_info.subpage;
-				if (subpage) {
-					if (!hierarchy[subpage]) {
-						hierarchy[subpage] = {
+				const sublist = article_info.sublist;
+				if (sublist) {
+					if (!hierarchy[sublist]) {
+						hierarchy[sublist] = {
 							article_list: []
 						};
 					}
-					hierarchy = hierarchy[subpage];
+					hierarchy = hierarchy[sublist];
 				}
-				hierarchy.article_list.push(page_title);
+				if (!hierarchy.article_list.includes(page_title))
+					hierarchy.article_list.push(page_title);
 			} else if (article_info.level > DEFAULT_LEVEL) {
 				if (!article_info.detailed_level) {
 					CeL.error(`${generate_all_VA_list_page.name}: No topic and detailed_level: ${page_title} ${JSON.stringify(article_info)}`);
@@ -1074,6 +1099,11 @@ async function generate_all_VA_list_page() {
 					report_lines.push([page_title, article_info.detailed_level, `Please set the topic/subpage in [[User:Cewbot/log/20200122/configuration#Topics]].`]);
 				}
 			}
+
+			// Use article_info.sublist
+			delete article_info.subpage;
+			// We already have article_info.sublist
+			delete article_info.detailed_level;
 
 			return article_info;
 		})
