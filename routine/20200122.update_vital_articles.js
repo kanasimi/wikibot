@@ -1057,12 +1057,11 @@ async function generate_all_VA_list_page() {
 		// assert: Array.isArray(article_info_list)
 		VA_data_list_via_prefix[data_list_prefix][page_title] = article_info_list.map(article_info => {
 			article_info = Object.clone(article_info);
-			if (article_info.link[1])
-				article_info.section = article_info.link[1].replace(PATTERN_count_mark, '').trimEnd();
-			delete article_info.link;
+
 			if (!article_info.level)
 				article_info.level = DEFAULT_LEVEL;
 
+			// use [[Wikipedia:Vital articles/level/topic/sublist#section]]
 			if (typeof article_info.detailed_level == 'string') {
 				// e.g., 5/People/Scientists, inventors, and mathematicians
 				const _topic_hierarchy = article_info.detailed_level.split('/');
@@ -1070,7 +1069,16 @@ async function generate_all_VA_list_page() {
 				if (_topic_hierarchy.length > 2) {
 					article_info.sublist = _topic_hierarchy.slice(2).join('/');
 				}
+			} else {
+
 			}
+
+			if (article_info.link[1]) {
+				article_info.section = article_info.link[1].replace(PATTERN_count_mark, '').trimEnd();
+			}
+			// 裁切過的連結 cf. detailed_level
+			article_info.trimmed_link = article_info.link[0].replace(/^[^\/]+/, '') + (article_info.link[1] ? '#' + article_info.link[1] : '');
+			delete article_info.link;
 
 			const topic = article_info.topic;
 			if (topic) {
@@ -1106,9 +1114,15 @@ async function generate_all_VA_list_page() {
 			delete article_info.detailed_level;
 
 			return article_info;
-		})
+		});
+
+		if (!VA_data_list_via_prefix[data_list_prefix][page_title][0].topic && VA_data_list_via_prefix[data_list_prefix][page_title][1]?.topic) {
+			// At levels 1 and 2, the topic is not needed to make the link, but it is needed to populate categories such as Category:Wikipedia vital articles in Philosophy.
+			VA_data_list_via_prefix[data_list_prefix][page_title][0].topic = VA_data_list_via_prefix[data_list_prefix][page_title][1].topic;
+		}
+
 		// 只取最高重要度的一篇文章。 https://en.wikipedia.org/w/index.php?title=Wikipedia_talk%3AVital_articles#List_of_vital_articles
-		[0];
+		VA_data_list_via_prefix[data_list_prefix][page_title] = VA_data_list_via_prefix[data_list_prefix][page_title][0];
 
 		if (!all_articles[prefix])
 			all_articles[prefix] = [];
