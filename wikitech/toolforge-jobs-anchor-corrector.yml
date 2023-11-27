@@ -1,10 +1,15 @@
-# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+
 # man toolforge-jobs
+# https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework
+
+# https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-deploy/-/blob/main/components/maintain-kubeusers/values/tools.yaml?ref_type=heads
 
 # update bot codes. 更新軟體版本
 - name: k8s-update.wikibot
   command: "./wikibot/init.sh"
   image: tf-bullseye-std
+  #schedule: "@daily"
   schedule: "2 17 * * *"
   emails: onfailure
 
@@ -22,6 +27,7 @@
   continuous: true
   # https://phabricator.wikimedia.org/T350484#9304982
   # continuous: true should not be set when using schedule.
+  #schedule: "@weekly"
   #schedule: "3 * * * *"
   # wait for this normal job before loading the next
   #wait: true
@@ -77,9 +83,12 @@
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=en"
   image: node18
   mem: 6Gi
+  #schedule: "@weekly"
   schedule: "29 0 * * 6"
-  #wait: true
+  # wait for this normal job before loading the next
+  wait: true
   emails: onfailure
+# another normal job after the previous one finished running
 - name: k8s-20201008.fix-anchor.archives.simple
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=simple"
   image: node18
@@ -94,3 +103,4 @@
   #schedule: "29 0 * * 6"
   wait: true
   emails: onfailure
+

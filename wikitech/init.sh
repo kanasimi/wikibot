@@ -1,5 +1,6 @@
 ﻿#!/bin/sh
 # 本檔案原初版本放置於 program/wiki/init.sh
+# TODO: use webhooks: https://wikitech.wikimedia.org/wiki/Help:Toolforge/Auto-update_a_tool_from_GitHub/GitLab
 
 echo "Initialize wiki bot works environment..."
 
