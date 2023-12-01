@@ -137,7 +137,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 async function main_process() {
 	await wiki.register_redirects([VA_template_name, WPBS_template_name, WPDAB_template_name]
-		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()].talk_page_lead), { namespace: 'Template' });
+		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()].talk_page_lead), { namespace: 'Template', no_message: true });
 
 	wiki.FC_data_hash = page_info_cache?.FC_data_hash;
 	if (!wiki.FC_data_hash) {
@@ -351,6 +351,16 @@ async function get_page_info() {
 
 		// List → LIST
 		const VA_class = icons.VA_class.toUpperCase();
+
+		if (Object.keys(need_edit_VA_template).length < 15
+			//|| page_title.includes('')
+		) {
+			need_edit_VA_template[page_title] = {
+				class: VA_class || '',
+				reason: `[[Wikipedia:Templates for discussion/Log/2023 May 17#Template:Vital article|Merge {{VA}} into {{WPBS}}]].`,
+				no_topic_message: true,
+			};
+		}
 
 		// Remove FGAN form ".VA_class = GA".
 		if (former_icon_of_VA_class[VA_class] && icons.includes(former_icon_of_VA_class[VA_class])) {
@@ -1162,7 +1172,7 @@ async function generate_all_VA_list_page() {
 	for (const prefix in VA_data_list_via_prefix) {
 		// async function generate_VA_list_json(prefix, VA_data_list_via_prefix)
 		const VA_data_list = VA_data_list_via_prefix[prefix];
-		pages_to_edit[`${base_page_prefix}/data/${prefix}.json`] = [VA_data_list, `Update list of vital articles: ${Object.keys(VA_data_list).length} article(s)`];
+		pages_to_edit[`${base_page_prefix}/data/${prefix}.json`] = [VA_data_list, `Update list of vital articles: ${Object.keys(VA_data_list).length.toLocaleString()} article(s)`];
 	}
 	await wiki.for_each_page(Object.keys(pages_to_edit), function (page_data) {
 		const data = pages_to_edit[page_data.title];
@@ -1418,7 +1428,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			}
 
 		} else if (wiki.is_template(WPBS_template_name, token)) {
-			if (VA_template_token) {
+			if (WikiProject_banner_shell_token) {
 				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${WPBS_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				WikiProject_banner_shell_token = token;
@@ -1508,6 +1518,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// Already processed above.
 	} else {
 		// uses the {{WikiProject banner shell}}
+		// @see [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 26]]
 
 		// new style from 2023/12: If the {{WikiProject banner shell}} does not exist, create one.
 		let need_insert = false;
@@ -1572,7 +1583,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		if (need_insert) {
 			CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${WikiProject_banner_shell_token.toString().trim()}`);
 			// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
-			parsed.insert_layout_token(WikiProject_banner_shell_token, { location: 'talk_page_lead' });
+			parsed.insert_layout_token(WikiProject_banner_shell_token);
 			// 可考慮插入於原 {{Vital article}} 處？
 		}
 		//console.trace(WPBS_template_object, wikitext_to_add, WikiProject_banner_shell_token, WikiProject_banner_shell_token.toString());
@@ -1581,7 +1592,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	const wikitext = parsed.toString()
 		// e.g., [[Talk:Fiscal policy]]
 		.replace(/{{Suppress categories\s*\|\s*}}\n*/i, '');
-	//console.trace(talk_page_data.title, article_info, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5));
+	//console.trace([talk_page_data.title, article_info, VA_template_object, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5)]);
 	//return Wikiapi.skip_edit;
 
 	if (false) {
@@ -1592,10 +1603,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return Wikiapi.skip_edit;
 		// console.log(wikitext);
 	}
-	this.summary = `${talk_page_summary_prefix}: ${article_info.reason} ${article_info.topic
-		? `Configured as topic=${article_info.topic}${article_info.subpage ? ', subpage=' + article_info.subpage : ''}`
-		: article_info.remove ? ''
-			: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page')}`;
+	this.summary = `${talk_page_summary_prefix}: ${article_info.reason} ${article_info.no_topic_message ? ''
+		: article_info.topic ? `Configured as topic=${article_info.topic}${article_info.subpage ? ', subpage=' + article_info.subpage : ''}`
+			: article_info.remove ? ''
+				: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page')}`;
 	return wikitext;
 }
 
@@ -1646,7 +1657,7 @@ async function generate_report(options) {
 	report_wikitext = `__NOCONTENTCONVERT__
 * Configuration: ${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title)}
 * The report will update automatically.
-* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected.<ref name="e">Redirected or no level assigned in talk page. Or the {{tl|Vital article}} is within {{tl|Suppress categories}} so it is not categorized. Please fix this issue manually.</ref>
+* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected<ref name="e">Redirected or no level assigned in talk page. Or the {{tl|Vital article}} is within {{tl|Suppress categories}} so it is not categorized. Please fix this issue manually.</ref>.
 * Generate date: <onlyinclude>~~~~~</onlyinclude>
 ${report_mark_start}${report_wikitext}${report_mark_end}
 [[Category:Wikipedia vital articles]]`;
@@ -1655,6 +1666,6 @@ ${report_mark_start}${report_wikitext}${report_mark_end}
 		report_wikitext, {
 		bot: 1,
 		nocreate: 1,
-		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, `Vital articles update report`)}: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} records`
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, `Vital articles update report`)}: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} record(s)`
 	});
 }
