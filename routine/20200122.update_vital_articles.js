@@ -240,7 +240,7 @@ async function main_process() {
 
 	if (do_PIQA) {
 		if (!CeL.is_empty_object(have_to_edit_its_talk_page)) {
-			// free
+			// clean
 			Object.keys(have_to_edit_its_talk_page).forEach(page_title => delete have_to_edit_its_talk_page[page_title]);
 		}
 
@@ -253,7 +253,7 @@ async function main_process() {
 
 			for (const page_data of (await wiki.embeddedin(WikiProject_template_data, {
 				limit: 5000
-			})).slice(0, 25)) {
+			})).slice(0, 35)) {
 				const page_title = page_data.title;
 				have_to_edit_its_talk_page[page_title] = {
 					// 所有作業皆經由人工監督。
@@ -262,8 +262,9 @@ async function main_process() {
 					do_PIQA: true,
 					key_is_talk_page: true,
 				};
-				await maintain_VA_template();
 			}
+
+			await maintain_VA_template();
 		}
 
 		//routine_task_done('1 week');
@@ -292,11 +293,10 @@ async function get_page_info() {
 			report_lines.push([FC_title, , `Category conflict: ${data.from}→${CeL.wiki.title_link_of('Category:' + data.category, data.to)}`]);
 		}
 	});
-	//console.log(wiki.FC_data_hash['Windows 10']);
-	//console.trace(wiki.FC_data_hash['Pope John Paul II']);
-	if (!wiki.FC_data_hash['Philippines'].types.includes('GA')) {
-		console.log(wiki.FC_data_hash['Philippines']);
-		throw new Error('Philippines should be a GA!');
+
+	if (!wiki.FC_data_hash['Ambulance']?.types.includes('GA')) {
+		console.trace(wiki.FC_data_hash['Ambulance']);
+		throw new Error('[[Ambulance]] should be a GA!');
 	}
 
 	// ---------------------------------------------
@@ -363,7 +363,7 @@ async function get_page_info() {
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
 			if (!wiki.is_namespace(page_data, 'Talk')) {
-				if (!wiki.is_namespace(page_data, 'Category'))
+				if (!wiki.is_namespace(page_data, 'Category') && !((category_name === 'Wikipedia former featured portals' || category_name === 'Wikipedia featured portals') && wiki.is_namespace(page_data, 'Portal talk')))
 					CeL.warn(`${get_page_info.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_data)} (${category_name})`);
 				return;
 			}
@@ -400,7 +400,7 @@ async function get_page_info() {
 		const VA_class = icons.VA_class.toUpperCase();
 
 		// For the first time do_PIQA
-		if (do_PIQA && Object.keys(have_to_edit_its_talk_page).length < 30
+		if (do_PIQA && Object.keys(have_to_edit_its_talk_page).length < 35
 			//|| page_title.includes('')
 		) {
 			have_to_edit_its_talk_page[page_title] = {
@@ -1360,7 +1360,7 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary_prefix_text = `Maintain {{${VA_template_name}}}`;
+const talk_page_summary_prefix_text = `Maintain vital articles and {{${WPBS_template_name}}}`;
 let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
 //console.log(talk_page_summary_prefix);
 
@@ -1458,7 +1458,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	function normalize_class(_class) {
 		if (!_class)
 			return _class;
-		_class = String(_class);
+		_class = String(_class).trim();
 		//@see [[Category:Wikipedia vital articles by class]]
 		// There is no class named "FFA"!
 		_class = _class.length > 2 ? CeL.wiki.upper_case_initial(_class.toLowerCase()) : _class.toUpperCase();
@@ -1549,7 +1549,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// Because {{VA}} would be eliminated, keep its class in {{WPBS}}.
 		// @see [[Wikipedia:Bots/Requests for approval/Cewbot 12#Discussion]]
 		= normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? '');
-	if (!majority_class) {
+	if (majority_class) {
+		article_info.reason = (article_info.reason || '') + ` (keep the class of vital article: ${majority_class} in {{WPBS}})`;
+	} else {
 		// Get the majority rating
 		for (const [_class, count] of class_from_other_templates_Map) {
 			if (!majority_class || count > majority_class[0]) {
@@ -1637,7 +1639,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// old style before 2023/12:
 			//'1': value => wikitext_to_add + '\n' + (value ? value.toString().trimStart() : ''),
 		};
-		if (!article_info.do_PIQA)
+		if (article_info.do_PIQA ? VA_template_token : !article_info.remove)
 			WPBS_template_object.vital = 'yes';
 
 		// merge other {{WikiProject *}} into WikiProject_banner_shell_token
@@ -1651,21 +1653,24 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
 					if (!wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
-						if (!WikiProject_banner_shell_token.parameters.blp && !WPBS_template_object.blp && wiki.is_template(WPBIO_template_name, token)) {
+						if (wiki.is_template(WPBIO_template_name, token)) {
 							//@see [[w:en:Template:WikiProject Biography]]
 							const parameters_to_remove = [];
 							if (CeL.wiki.Yesno(token.parameters.living || token.parameters.blp || token.parameters.BLP)) {
-								WPBS_template_object.blp = 'yes';
-								parameters_to_remove.push('living', 'blp', 'BLP');
-								if (!WikiProject_banner_shell_token.parameters.activepol && CeL.wiki.Yesno(token.parameters.activepol)) {
+								// No overwrite
+								if (!WikiProject_banner_shell_token.parameters.blp) {
+									WPBS_template_object.blp = 'yes';
+									parameters_to_remove.push('living', 'blp', 'BLP');
+								}
+								if (CeL.wiki.Yesno(token.parameters.activepol) && !WikiProject_banner_shell_token.parameters.activepol) {
 									WPBS_template_object.activepol = 'yes';
 									parameters_to_remove.push('activepol');
 								}
-							} else if (CeL.wiki.Yesno(token.parameters.blpo)) {
+							} else if (CeL.wiki.Yesno(token.parameters.blpo) && !WikiProject_banner_shell_token.parameters.blpo) {
 								WPBS_template_object.blpo = 'yes';
 								parameters_to_remove.push('blpo');
 							}
-							if (token.parameters.listas) {
+							if (token.parameters.listas && !WikiProject_banner_shell_token.parameters.listas) {
 								WPBS_template_object.listas = token.parameters.listas;
 								parameters_to_remove.push('listas');
 							}
@@ -1676,8 +1681,14 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							CeL.wiki.parse.replace_parameter(token, parameters_argument);
 						}
 						// move class rating from project banners
-						if (!has_different_ratings || ('class' in token.parameters && !token.parameters.class.toString().trim()))
+						if (!has_different_ratings || ('class' in token.parameters
+							// remove |class=|
+							&& !token.parameters.class.toString().trim())) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
+						} else if (normalize_class(token.parameters.class) === WPBS_template_object.class) {
+							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
+							article_info.reason = (article_info.reason || '') + ' (Remove the same ratings as {{WPBS}} and keep only the dissimilar ones.)';
+						}
 
 						// TODO: fix [[Category:WikiProject templates with unknown parameters]]
 						// [[Wikipedia:Bots/Requests for approval/BattyBot 79]]
@@ -1702,8 +1713,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				WPBS_template_object[1] = ('\n' + WikiProject_templates.join('\n') + '\n')
 					// 去掉太多的換行。
 					.replace(/\n{2,}/g, '\n');
-				if (!article_info.reason)
-					article_info.reason = WikiProject_templates.length + ' WikiProject template(s).';
+				article_info.reason = WikiProject_templates.length + ' WikiProject template(s). ' + (article_info.reason || '');
 			}
 		}
 
