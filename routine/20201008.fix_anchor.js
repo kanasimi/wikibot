@@ -23,8 +23,12 @@ node 20201008.fix_anchor.js use_language=en "check_page=True Romance" "only_modi
 node 20201008.fix_anchor.js use_language=en "check_page=Internet in the United Kingdom"
 node 20201008.fix_anchor.js use_language=en "check_page=Sergio Pérez"
 node 20201008.fix_anchor.js use_language=en "check_page=Wikipedia:Sandbox" only_modify_pages=Wikipedia:Sandbox
+node 20201008.fix_anchor.js use_language=en "check_page=List of Latin phrases (full)" "only_modify_pages=Quod vide"
+node 20201008.fix_anchor.js use_language=en "check_page=History of India" "only_modify_pages=History of Hinduism"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
+node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "only_modify_pages=負整數"
 node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
+node 20201008.fix_anchor.js use_language=test "check_page=Sections" "only_modify_pages=Anchor test"
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
 // [[Template:MultiAnchor]]
@@ -224,7 +228,7 @@ async function main_process() {
 		await check_page('桜木町駅', { force_check: true });
 	}
 
-	// CeL.env.arg_hash.check_page: check anchors located in what page
+	// CeL.env.arg_hash.check_page: Only check anchors on this page.
 	if (CeL.env.arg_hash.check_page) {
 		await check_page(CeL.env.arg_hash.check_page, {
 			force_check: true,
@@ -236,7 +240,7 @@ async function main_process() {
 			only_modify_pages: CeL.env.arg_hash.only_modify_pages,
 			print_anchors: true,
 		});
-		CeL.info(`${CeL.wiki.title_link_of(CeL.env.arg_hash.check_page)} done`);
+		CeL.info(`${CeL.wiki.title_link_of(CeL.env.arg_hash.check_page)} done.`);
 		return;
 	}
 
@@ -976,6 +980,12 @@ async function get_all_links(page_data, options) {
 	return reduced_anchor_to_page;
 }
 
+/**
+ * Check anchors on `target_page_data`.
+ * @param {Object} target_page_data	目標頁面資料
+ * @param {Object} [options]		
+ * @returns 
+ */
 async function check_page(target_page_data, options) {
 	//CeL.info(`${check_page.name}: ${CeL.wiki.title_link_of(target_page_data)}`);
 	options = CeL.setup_options(options);
@@ -1222,7 +1232,7 @@ async function check_page(target_page_data, options) {
 			}
 
 			wikitext_to_add = `{{${wiki.latest_task_configuration.general.broken_anchor_template}|${LINKS_PARAMETER}=${wikitext_to_add}\n}}`;
-			parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
+			parsed.insert_layout_token(wikitext_to_add, /* talk_page_lead */'lead_templates_end');
 			if (false) {
 				// @deprecated
 				// Modify from 20200122.update_vital_articles.js
@@ -1274,7 +1284,10 @@ async function check_page(target_page_data, options) {
 						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
 						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, anchor_token[1]) : ''
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
-					} <!-- ${JSON.stringify(record)} -->` : ''}`;
+					} <!-- ${JSON.stringify(record)
+						// 預防 其中有 <!-- --> 之類。
+						// e.g., [[w:en:Special:Diff/1166872860]]
+						.replace(/</g, '\\x3C')} -->` : ''}`;
 			CeL.error(`${add_note_to_talk_page_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_title)}: ${
 				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
 				CeL.gettext('Reminder of an inactive anchor')}: ${anchor_token || ''}`);
