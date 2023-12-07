@@ -756,7 +756,7 @@ async function for_each_list_page(list_page_data) {
 						const message = `Category level ${list_page_or_category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
 					}
 					// Use {{r}} to reduce size.
-					const message = `${CeL.wiki.title_link_of(wiki.to_talk_page(normalized_page_title))}: ${list_page_or_category_level ? `Category level ${list_page_or_category_level}.{{r|c}}` : 'No VA template?{{r|e}}'}`;
+					const message = `${CeL.wiki.title_link_of(wiki.to_talk_page(normalized_page_title))}: ${list_page_or_category_level ? `Category level ${list_page_or_category_level}.{{r|c}}` : 'Not set as VA?{{r|e}}'}`;
 					if (!list_page_or_category_level) {
 						have_to_edit_its_talk_page[normalized_page_title] = {
 							...article_info,
@@ -1549,9 +1549,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// Because {{VA}} would be eliminated, keep its class in {{WPBS}}.
 		// @see [[Wikipedia:Bots/Requests for approval/Cewbot 12#Discussion]]
 		= normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? '');
-	if (majority_class) {
-		article_info.reason = (article_info.reason || '') + ` (keep the class of vital article: ${majority_class} in {{WPBS}})`;
-	} else {
+	if (!majority_class) {
 		// Get the majority rating
 		for (const [_class, count] of class_from_other_templates_Map) {
 			if (!majority_class || count > majority_class[0]) {
@@ -1632,6 +1630,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			need_insert_WPBS = true;
 		}
 
+		if (majority_class && majority_class !== normalize_class(WikiProject_banner_shell_token.parameters.class))
+			article_info.reason = (article_info.reason || '') + ` (keep the class of vital article: ${majority_class} in {{WPBS}})`;
 		// new style from 2023/12:
 		const WPBS_template_object = {
 			class: majority_class || WikiProject_banner_shell_token.parameters.class,
@@ -1687,7 +1687,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
 						} else if (normalize_class(token.parameters.class) === WPBS_template_object.class) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
-							article_info.reason = (article_info.reason || '') + ' (Remove the same ratings as {{WPBS}} and keep only the dissimilar ones.)';
+							const _reason = ' (Remove the same ratings as {{WPBS}} and keep only the dissimilar ones.)';
+							if (!article_info.reason || !article_info.reason.includes(_reason))
+								article_info.reason = (article_info.reason || '') + _reason;
 						}
 
 						// TODO: fix [[Category:WikiProject templates with unknown parameters]]
@@ -1807,7 +1809,7 @@ async function generate_report(options) {
 	report_wikitext = `__NOCONTENTCONVERT__
 * Configuration: ${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title)}
 * The report will update automatically.
-* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected<ref name="e">Redirected or no level assigned in talk page. Or the {{tl|Vital article}} is within {{tl|Suppress categories}} so it is not categorized. Please fix this issue manually.</ref>.
+* If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected<ref name="e">Redirected or no level assigned in talk page. Please fix this issue manually.</ref>.
 * Generate date: <onlyinclude>~~~~~</onlyinclude>
 ${report_mark_start}${report_wikitext}${report_mark_end}
 [[Category:Wikipedia vital articles]]`;
