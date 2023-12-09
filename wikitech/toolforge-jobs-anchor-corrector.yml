@@ -1,4 +1,5 @@
 # toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+# https://phabricator.wikimedia.org/T350484
 
 # man toolforge-jobs
 # https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework
@@ -11,74 +12,51 @@
   image: tf-bullseye-std
   #schedule: "@daily"
   schedule: "2 17 * * *"
-  emails: onfailure
 
 # --------------------------------------------------------------------------------------------------
 # Jobs have a hard limit of 63 characters. https://w.wiki/6YL8
 
 # 修正失效的章節標題 Fix broken anchor
-# https://phabricator.wikimedia.org/T350484
 - name: k8s-20201008.fix-anchor.zh
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_language=zh"
   image: node18
   mem: 4Gi
-  #cpu: 2
-  # a continuous job
   continuous: true
-  # https://phabricator.wikimedia.org/T350484#9304982
-  # continuous: true should not be set when using schedule.
-  #schedule: "@weekly"
-  #schedule: "3 * * * *"
-  # wait for this normal job before loading the next
-  #wait: true
-  #retry: 5
-  #no-filelog: true
-  #filelog-stdout: /data/project/user/custom.out
-  #filelog-stderr: /data/project/user/custom.err
-  #emails: all
-  #emails: none
-  emails: onfailure
-  #emails: onfinish
 - name: k8s-20201008.fix-anchor.en
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_language=en"
   image: node18
   mem: 4Gi
   continuous: true
-  emails: onfailure
 - name: k8s-20201008.fix-anchor.de
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_language=de"
   image: node18
   mem: 4Gi
   continuous: true
-  emails: onfailure
 - name: k8s-20201008.fix-anchor.simple
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_language=simple"
   image: node18
   mem: 2Gi
   continuous: true
-  emails: onfailure
 - name: k8s-20201008.fix-anchor.ja
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_language=ja"
   image: node18
   mem: 4Gi
   continuous: true
-  emails: onfailure
 - name: k8s-20201008.fix-anchor.zh.wiktionary
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_project=zh.wiktionary"
   image: node18
   mem: 2Gi
   continuous: true
-  emails: onfailure
 - name: k8s-20201008.fix-anchor.zh.wikibooks
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_project=zh.wikibooks"
   image: node18
   mem: 2Gi
   continuous: true
-  emails: onfailure
 
 # --------------------------------------------------------------------------------------------------
 # Cron jobs have a hard limit of 52 characters.
 
+# 修正已被存檔的失效章節標題 Fix broken anchor caused by archived
 - name: k8s-20201008.fix-anchor.archives.en
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=en"
   image: node18
@@ -87,7 +65,6 @@
   schedule: "29 0 * * 6"
   # wait for this normal job before loading the next
   wait: true
-  emails: onfailure
 # another normal job after the previous one finished running
 - name: k8s-20201008.fix-anchor.archives.simple
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=simple"
@@ -95,12 +72,10 @@
   mem: 6Gi
   #schedule: "29 0 * * 6"
   wait: true
-  emails: onfailure
 - name: k8s-20201008.fix-anchor.archives.zh
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=zh"
   image: node18
   mem: 6Gi
   #schedule: "29 0 * * 6"
-  wait: true
-  emails: onfailure
+  #wait: true
 

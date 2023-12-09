@@ -1,0 +1,58 @@
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+
+# man toolforge-jobs
+# https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework
+
+# https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-deploy/-/blob/main/components/maintain-kubeusers/values/tools.yaml?ref_type=heads
+
+# update bot codes. 更新軟體版本
+- name: k8s-update.wikibot
+  command: "./wikibot/init.sh"
+  image: tf-bullseye-std
+  #image: node18
+  #mem: 4Gi
+  #cpu: 2
+  # a continuous job
+  #continuous: true
+  # https://phabricator.wikimedia.org/T350484#9304982
+  # continuous: true should not be set when using schedule.
+  #schedule: "@daily"
+  #schedule: "@weekly"
+  #schedule: "3 * * * *"
+  schedule: "2 17 * * *"
+  # wait for this normal job before loading the next
+  #wait: true
+  #retry: 5
+  #no-filelog: true
+  #filelog-stdout: /data/project/user/custom.out
+  #filelog-stderr: /data/project/user/custom.err
+  #emails: all
+  #emails: none
+  emails: onfailure
+  #emails: onfinish
+
+# --------------------------------------------------------------------------------------------------
+# Jobs have a hard limit of 63 characters. https://w.wiki/6YL8
+
+# --------------------------------------------------------------------------------------------------
+# Cron jobs have a hard limit of 52 characters.
+
+# 提報關注度不足過期提醒
+- name: k8s-20150503.notability-reminder
+  command: "node ./wikibot/routine/20150503.提報關注度不足過期提醒.js"
+  image: node18
+  mem: 2Gi
+  schedule: "2 0 * * *"
+
+# 合併/拆分{{多個問題}}模板
+- name: k8s-20150916.Multiple-issues.zh
+  command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=zh"
+  image: node18
+  mem: 8Gi
+  schedule: "6 6 * *"
+  wait: true
+- name: k8s-20150916.Multiple-issues.en
+  command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=en"
+  image: node18
+  mem: 8Gi
+  #wait: true
