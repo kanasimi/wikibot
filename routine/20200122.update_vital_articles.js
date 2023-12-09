@@ -81,6 +81,12 @@ const modify_talk_pages = base_page_prefix === default_base_page_prefix;
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `base_page_prefix`
 const DEFAULT_LEVEL = 3;
 
+// There is no category of the icons now, preserve the icon.
+// @see [[Module:Article history/config]], [[Template:Icon]]
+const icon_note = {
+	FFAC: 'Failed featured article candidate'
+};
+
 // @see function set_section_title_count(parent_section)
 // [ all, quota+articles postfix ]
 const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)?\s+articles?\)/i;
@@ -95,6 +101,33 @@ let max_VA_level;
 
 // ----------------------------------------------
 
+const KEY_extra_items = '*';
+function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) {
+	if (!order_Set)
+		return Object.keys(object).sort(extra_sort_function);
+
+	let extra_icons = Object.keys(object).filter(icon => !order_Set.has(icon)).sort(extra_sort_function);
+
+	const icon_order = [];
+	for (const icon of order_Set) {
+		if (icon === KEY_extra_items) {
+			icon_order.append(extra_icons);
+			extra_icons = null;
+		} else if (icon in object) {
+			icon_order.push(icon);
+		}
+	}
+
+	if (extra_icons)
+		icon_order.append(extra_icons);
+
+	return icon_order;
+}
+
+// ----------------------------------------------
+
+let icon_order_Set, icon_order_Map;
+
 /**
  * 由設定頁面讀入手動設定 manual settings。
  * 
@@ -106,9 +139,19 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	const { general } = latest_task_configuration;
-	if (general?.report_page && base_page_prefix === default_base_page_prefix)
+	const general = latest_task_configuration.general || (latest_task_configuration.general = Object.create(null));
+
+	if (general.report_page && base_page_prefix === default_base_page_prefix)
 		talk_page_summary_prefix = CeL.wiki.title_link_of(general.report_page, talk_page_summary_prefix_text);
+
+	if (general.icon_order && typeof general.icon_order === 'string') {
+		icon_order_Map = new Map();
+		icon_order_Set = general.icon_order.split(',').map(icon => icon.trim()).filter(icon => !!icon);
+		icon_order_Set.forEach((icon, order) => icon_order_Map.set(icon, order));
+		icon_order_Set = new Set(icon_order_Set);
+	} else {
+		icon_order_Set = icon_order_Map = null;
+	}
 
 	// ----------------------------------------------------
 
@@ -785,14 +828,9 @@ async function for_each_list_page(list_page_data) {
 				}
 
 				icons = icons.sort((_1, _2) => {
-					// {String}_1, {String}_2
-					// [[w:en:User talk:Kanashimi/Archive 1#Stop showing the Former Featured Article Candidate icon in the vital article lists]]
-					// my main issue is that the Cewbot keeps putting the FFAC icon first before the actual grade of the article, when it doesn’t do that for the Former Featured Article icon.
-					// 把 FFAC 排到最後。
-					if (_1 === 'FFAC') return 1;
-					if (_2 === 'FFAC') return -1;
-					// 其他的順序不變。
-					return 0;
+					const order_1 = icon_order_Map.get(_1) || icon_order_Map.get(KEY_extra_items) || icons.length;
+					const order_2 = icon_order_Map.get(_2) || icon_order_Map.get(KEY_extra_items) || icons.length;
+					return order_1 !== order_2 ? order_1 - order_2 : _1 < _2 ? -1 : _1 > _2 ? 1 : 0;
 				});
 				//if (icons.join(' ').includes('FFAC')) { console.trace(icons); }
 				icons = icons.map(icon => {
@@ -867,8 +905,6 @@ async function for_each_list_page(list_page_data) {
 				// reset icon
 				// _item[index] = '';
 
-				// There is no category of the icons now, preserve the icon.
-				// @see [[Module:Article history/config]], [[Template:Icon]]
 				const icon = token.parameters[1];
 				if (icon === 'FFAC') {
 					icons.push(icon);
@@ -1062,9 +1098,9 @@ async function for_each_list_page(list_page_data) {
 		// CeL.info(`${for_each_list_page.name}: Modify ${CeL.wiki.title_link_of(list_page_data)}`);
 	}
 
-	// summary table / count report table for each page
+	/**summary table / count report table for each page */
 	const summary_table = [['Class', '#Articles']];
-	for (const icon in article_count_of_icon) {
+	sorted_keys_of_Object_by_order(article_count_of_icon, icon_order_Set).forEach(icon => {
 		let category_name = icon_to_category[icon];
 		if (category_name) {
 			category_name = `[[:Category:${category_name}|${icon}]]`;
@@ -1083,8 +1119,8 @@ async function for_each_list_page(list_page_data) {
 				}
 			}
 		}
-		summary_table.push([`{{Icon|${icon}}} ${category_name || icon}`, article_count_of_icon[icon].toLocaleString()]);
-	}
+		summary_table.push([`{{Icon|${icon}}} ${category_name || (icon in icon_note ? `<span title="${icon_note[icon]}">${icon}</span>` : icon)}`, article_count_of_icon[icon].toLocaleString()]);
+	});
 
 	if (wikitext.includes('<!-- summary table begin')) {
 		wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `<!-- update summary table: The text between update comments will be automatically overwritten by the bot. -->\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
