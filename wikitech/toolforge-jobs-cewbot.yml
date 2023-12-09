@@ -1,9 +1,16 @@
 # toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+#
 
 # man toolforge-jobs
 # https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework
 
 # https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-deploy/-/blob/main/components/maintain-kubeusers/values/tools.yaml?ref_type=heads
+
+
+# --------------------------------------------------------------------------------------------------
+# Cron jobs have a hard limit of 52 characters. https://w.wiki/6YL8
+# 'name'.toLowerCase().replace(/[_]/g, '-').slice(0, 52)
+# 'name'.toLowerCase().replace(/[_]/g, '-').length
 
 # update bot codes. 更新軟體版本
 - name: k8s-update.wikibot
@@ -20,7 +27,7 @@
   #schedule: "@weekly"
   #schedule: "3 * * * *"
   schedule: "2 17 * * *"
-  # wait for this normal job before loading the next
+  # wait for this normal job before loading the next. Timeout is 5 min.
   #wait: true
   #retry: 5
   #no-filelog: true
@@ -28,14 +35,9 @@
   #filelog-stderr: /data/project/user/custom.err
   #emails: all
   #emails: none
-  emails: onfailure
+  #emails: onfailure
   #emails: onfinish
 
-# --------------------------------------------------------------------------------------------------
-# Jobs have a hard limit of 63 characters. https://w.wiki/6YL8
-
-# --------------------------------------------------------------------------------------------------
-# Cron jobs have a hard limit of 52 characters.
 
 # 提報關注度不足過期提醒
 - name: k8s-20150503.notability-reminder
@@ -45,14 +47,122 @@
   schedule: "2 0 * * *"
 
 # 合併/拆分{{多個問題}}模板
-- name: k8s-20150916.Multiple-issues.zh
+- name: k8s-20150916.multiple-issues.zh
   command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=zh"
   image: node18
   mem: 8Gi
-  schedule: "6 6 * *"
-  wait: true
-- name: k8s-20150916.Multiple-issues.en
+  schedule: "6 6 * * 5"
+- name: k8s-20150916.multiple-issues.en
   command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=en"
   image: node18
   mem: 8Gi
-  #wait: true
+  schedule: "7 6 * * 5"
+- name: k8s-20150916.multiple-issues.simple
+  command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=simple"
+  image: node18
+  mem: 4Gi
+  schedule: "8 6 * * 5"
+- name: k8s-20150916.multiple-issues.ks
+  command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=ks"
+  image: node18
+  mem: 4Gi
+  schedule: "9 6 * * 5"
+
+- name: k8s-20160517.interlanguage-link-to-wikilinks.ja
+  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=ja"
+  image: node18
+  mem: 3Gi
+  schedule: "1 20 * * 5"
+- name: k8s-20160517.interlanguage-link-to-wikilinks.en
+  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=en"
+  image: node18
+  mem: 3Gi
+  schedule: "2 20 * * 5"
+- name: k8s-20160517.interlanguage-link-to-wikilinks.zh
+  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh"
+  image: node18
+  mem: 3Gi
+  schedule: "3 20 * * 5"
+- name: k8s-20160517.interlanguage-link-to-wikilinks.simple
+  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=simple"
+  image: node18
+  mem: 3Gi
+  schedule: "4 20 * * 5"
+
+# 清理導航模板的重導向內部連結，轉換模板中的內部連結為目標頁面標題。
+# 排在解消済み仮リンクをリンクに置き換える執行完後 在清理完跨語言連結後開始
+- name: k8s-20230418.fix-redirected-wikilinks-of-templates
+  command: "node ./wikibot/routine/20230418.Fix_redirected_wikilinks_of_templates.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "4 2 * * 0"
+
+# 應在月初 dump 前執行一次，checkwiki 後執行一次。
+- name: k8s-20151002.wpcheck.zh
+  command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "57 23 28 * *"
+- name: k8s-20151002.wpcheck.ja
+  command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=ja"
+  image: node18
+  mem: 2Gi
+  schedule: "59 23 28 * *"
+- name: k8s-20151002.wpcheck.zh
+  command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "7 1 11 * *"
+- name: k8s-20151002.wpcheck.ja
+  command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=ja"
+  image: node18
+  mem: 2Gi
+  schedule: "9 1 11 * *"
+
+- name: k8s-20171025.fix-linterrors.zh
+  command: "node ./wikibot/routine/20171025.fix_LintErrors use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "5 21 * * 5"
+- name: k8s-20171025.fix-linterrors.ja
+  command: "node ./wikibot/routine/20171025.fix_LintErrors use_language=ja"
+  image: node18
+  mem: 2Gi
+  schedule: "7 21 * * 5"
+
+- name: k8s-20180125.most-sitelinked-articles-to-write
+  command: "node ./wikibot/routine/20180125.most_sitelinked_articles_to_write.js"
+  image: node18
+  mem: 2Gi
+  schedule: "4 22 * * *"
+
+# 把已經重定向的分類下面的頁面搬到新分類下面。
+- name: k8s-20230406.clean-up-redirected-categories.zhwikinews
+  command: "node ./wikibot/routine/20230406.Clean_up_redirected_categories.js use_project=zh.wikinews"
+  image: node18
+  mem: 2Gi
+  schedule: "2 1 1 * *"
+- name: k8s-20230406.clean-up-redirected-categories.zh
+  command: "node ./wikibot/routine/20230406.Clean_up_redirected_categories.js use_project=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "4 1 1 * *"
+
+# -----------------------------------------------------------------------------
+# zh.wiki
+
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production"
+  image: node18
+  mem: 2Gi
+  schedule: "10 0 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good"
+  image: node18
+  mem: 2Gi
+  schedule: "20 0 * * *"
+
+
+# --------------------------------------------------------------------------------------------------
+# Continuous jobs have a hard limit of 63 characters.
+

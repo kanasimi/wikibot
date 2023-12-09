@@ -1,10 +1,8 @@
 # toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
 # https://phabricator.wikimedia.org/T350484
 
-# man toolforge-jobs
-# https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework
-
-# https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-deploy/-/blob/main/components/maintain-kubeusers/values/tools.yaml?ref_type=heads
+# --------------------------------------------------------------------------------------------------
+# Cron jobs
 
 # update bot codes. 更新軟體版本
 - name: k8s-update.wikibot
@@ -13,8 +11,27 @@
   #schedule: "@daily"
   schedule: "2 17 * * *"
 
+# 修正已被存檔的失效章節標題 Fix broken anchor caused by archived
+- name: k8s-20201008.fix-anchor.archives.en
+  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=en"
+  image: node18
+  mem: 6Gi
+  #schedule: "@weekly"
+  schedule: "29 0 * * 6"
+- name: k8s-20201008.fix-anchor.archives.simple
+  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=simple"
+  image: node18
+  mem: 6Gi
+  schedule: "29 0 * * 6"
+- name: k8s-20201008.fix-anchor.archives.zh
+  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=zh"
+  image: node18
+  mem: 6Gi
+  schedule: "29 0 * * 6"
+
+
 # --------------------------------------------------------------------------------------------------
-# Jobs have a hard limit of 63 characters. https://w.wiki/6YL8
+# Continuous jobs
 
 # 修正失效的章節標題 Fix broken anchor
 - name: k8s-20201008.fix-anchor.zh
@@ -52,30 +69,4 @@
   image: node18
   mem: 2Gi
   continuous: true
-
-# --------------------------------------------------------------------------------------------------
-# Cron jobs have a hard limit of 52 characters.
-
-# 修正已被存檔的失效章節標題 Fix broken anchor caused by archived
-- name: k8s-20201008.fix-anchor.archives.en
-  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=en"
-  image: node18
-  mem: 6Gi
-  #schedule: "@weekly"
-  schedule: "29 0 * * 6"
-  # wait for this normal job before loading the next
-  wait: true
-# another normal job after the previous one finished running
-- name: k8s-20201008.fix-anchor.archives.simple
-  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=simple"
-  image: node18
-  mem: 6Gi
-  #schedule: "29 0 * * 6"
-  wait: true
-- name: k8s-20201008.fix-anchor.archives.zh
-  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=zh"
-  image: node18
-  mem: 6Gi
-  #schedule: "29 0 * * 6"
-  #wait: true
 
