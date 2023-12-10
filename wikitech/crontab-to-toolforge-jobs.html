@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8" />
+	<title data-gettext="Poor tool for convert crontab to toolforge-jobs.yaml"></title>
+</head>
+
+<body>
+	<div>This rudimentary tool is designed to convert crontab items into a single <a
+			href="https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework" accessdate="2023/12/10 5:3"
+			title="Help:Toolforge/Jobs framework - Wikitech">toolforge jobs framework</a> .yaml file.
+		<!-- 這個簡陋的工具是為了轉換 crontab 項目成為單一的 toolforge jobs framework .yaml 檔案。 --><br />Please use this tool on your own
+		responsibility.
+	</div>
+
+	<textarea id="crontab contents" style="width: 40em; height: 40em;">
+# sample
+1 0 * * * /usr/bin/jsub -N job_name -once -quiet node /data/project/cewbot/wikibot/script.js
+</textarea>
+	<button onclick="convert(); return false;">Convert</button>
+	<textarea id="toolforge jobs framework yaml contents" style="width: 40em; height: 40em;"></textarea>
+
+	<script>
+
+		function parse_crontab_item(crontab_item_text) {
+			if (!crontab_item_text || /^\s*#/.test(crontab_item_text))
+				return;
+			const crontab_item = Object.create(null);
+
+			const fields = crontab_item_text.match(/^(?<schedule>(?<min>[^\s]+)\s+(?<hour>[^\s]+)\s+(?<day_of_month>[^\s]+)\s+(?<month>[^\s]+)\s+(?<day_of_week>[^\s]+))\s+(?<command>.+)/);
+			if (!fields)
+				return;
+			//console.trace(fields);
+
+			for (const field of fields) {
+				//console.trace(field);
+			}
+
+			return fields.groups;
+		}
+
+		function parse_crontab(crontab_text, options) {
+			const crontab_content = [];
+			const field_handler = options?.field_handler;
+
+			for (const line of crontab_text.split("\n")) {
+				let field = parse_crontab_item(line) || line;
+				if (field_handler)
+					field = field_handler(field);
+				crontab_content.push(field);
+			}
+
+			return crontab_content;
+		}
+
+		const grid_engine_single_arg_Set = new Set(['stderr', 'once', 'continuous', 'quiet']);
+		const grid_engine_arg_with_value_Set = new Set(['mem', 'umask', 'N']);
+
+		// man jsub
+		function parse_grid_engine_command(grid_engine_command) {
+			const matched = grid_engine_command.match(/(?<script>jsub|jstart|qcronsub)\s+(?<args>.+)/);
+			if (!matched) {
+				console.error(`Cannot parse ${JSON.stringify(grid_engine_command)}`);
+				return;
+			}
+			const grid_engine_item = matched.groups;
+			if (grid_engine_item.script === 'jstart')
+				grid_engine_item.continuous = true;
+			for (let index = 0, args = grid_engine_item.args.split(/\s+/), option_now, command; index < args.length; index++) {
+				const arg = args[index];
+				if (command) {
+					command.push(arg);
+					continue;
+				}
+
+				const matched = arg.match(/^-(.+)/);
+				if (matched) {
+					if (grid_engine_single_arg_Set.has(matched[1])) {
+						grid_engine_item[matched[1]] = true;
+						continue;
+					}
+					if (grid_engine_arg_with_value_Set.has(matched[1])) {
+						option_now = matched[1];
+					} else {
+						console.error(`Unknown option ${matched[1]}`);
+					}
+					continue;
+				}
+
+				if (option_now) {
+					grid_engine_item[option_now] = arg;
+					// reset
+					option_now = null;
+					continue;
+				}
+
+				// assert: !command
+				grid_engine_item.command = command = [arg];
+			}
+
+			if (grid_engine_item.command) {
+				grid_engine_item.command = grid_engine_item.command.join(' ');
+			} else {
+				console.error(`No command for ${JSON.stringify(grid_engine_command)}`);
+				return;
+			}
+			return grid_engine_item;
+		}
+
+		// 縮排
+		const yaml_field_indent = '  ';
+
+		function convert() {
+			const yaml_content = [];
+			const crontab_content = parse_crontab(document.getElementById("crontab contents").value, {
+				field_handler(field) {
+					if (!field || typeof field !== "object") {
+						yaml_content.push(field);
+						return field;
+					}
+
+					const grid_engine_command = parse_grid_engine_command(field.command);
+					if (!grid_engine_command) {
+						yaml_content.push('# ' + field);
+						return field;
+					}
+
+					const yaml_field = {
+						...field,
+						...grid_engine_command,
+					};
+
+					let job_name = grid_engine_command.N.toLowerCase().replace(/[_]/g, '-');
+
+					if (job_name.startsWith('cron-tools.')) {
+						// For cewbot series
+						job_name = job_name
+							// e.g., "cron-tools.anchor-corrector-20201008.fix_anchor.en"
+							.replace(/^cron-tools\..+?-(20[12]\d+\.)/, 'k8s-$1');
+					} else if (/^cron-(20[12]\d+\.)/.test(job_name)) {
+						// For cewbot series
+						job_name = job_name
+							// e.g., "cron-20170915.topic_list.zh-classical"
+							.replace(/^cron-(20[12]\d+\.)/, 'k8s-$1');
+					}
+					if (job_name.startsWith('cron-')) {
+						console.warn(`Informal name? 非正規名稱? ${job_name}`);
+					}
+
+					const MAX_job_name_length = grid_engine_command.continuous ? 63 : 52;
+					// Cron jobs have a hard limit of 52 characters. https://w.wiki/6YL8
+					// Continuous jobs have a hard limit of 63 characters.
+					if (job_name.length > MAX_job_name_length) {
+						const new_job_name = job_name.slice(0, MAX_job_name_length);
+						console.error(`Strip job name: ${JSON.stringify(job_name)} → ${JSON.stringify(new_job_name)}`);
+						job_name = new_job_name;
+					}
+
+					grid_engine_command.command = grid_engine_command.command
+						.replace('/shared/bin/node ', 'node ')
+						.replace(/\/data\/project\/[^\/]+\//g, './')
+						;
+
+					const yaml_field_lines = [
+						`- name: ${job_name}`,
+						`${yaml_field_indent}command: ${JSON.stringify(grid_engine_command.command)}`
+					];
+
+					if (grid_engine_command.command.includes('node ')) {
+						yaml_field.image = 'node18';
+						console.assert(/\s/.test(yaml_field.image) === false);
+						yaml_field_lines.push(`${yaml_field_indent}image: ${yaml_field.image}`);
+					}
+					if (grid_engine_command.mem) {
+						console.assert(/\s/.test(yaml_field.mem) === false);
+						yaml_field_lines.push(`${yaml_field_indent}mem: ${grid_engine_command.mem.replace(/(\d)G$/i, '$1Gi')}`);
+					}
+					if (grid_engine_command.continuous) {
+						yaml_field_lines.push(`${yaml_field_indent}continuous: true`);
+					} else if (field.schedule) {
+						yaml_field_lines.push(`${yaml_field_indent}schedule: ${JSON.stringify(field.schedule)}`);
+					}
+
+					yaml_content.push(yaml_field_lines.join('\n'));
+					return field;
+				}
+			});
+
+			//console.trace(crontab_content);
+			//console.trace(yaml_content);
+
+			document.getElementById("toolforge jobs framework yaml contents").value = yaml_content.join('\n');
+		}
+	</script>
+</body>
+
+</html>

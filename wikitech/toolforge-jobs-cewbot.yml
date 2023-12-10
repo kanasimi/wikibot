@@ -8,9 +8,15 @@
 
 
 # --------------------------------------------------------------------------------------------------
-# Cron jobs have a hard limit of 52 characters. https://w.wiki/6YL8
-# 'name'.toLowerCase().replace(/[_]/g, '-').slice(0, 52)
-# 'name'.toLowerCase().replace(/[_]/g, '-').length
+# Cron jobs
+
+# -----------------------------------------------------------------------------
+# structure
+
+- name: env-on-jobs
+  command: "node /data/project/cewbot/wikibot/env.js"
+  image: node18
+  schedule: "2 20 2 * *"
 
 # update bot codes. 更新軟體版本
 - name: k8s-update.wikibot
@@ -37,7 +43,14 @@
   #emails: none
   #emails: onfailure
   #emails: onfinish
+- name: k8s-update.node
+  command: "./bin/update.node.sh"
+  image: tf-bullseye-std
+  schedule: "2 19 * * *"
 
+
+# -----------------------------------------------------------------------------
+# Multiple wiki projects
 
 # 提報關注度不足過期提醒
 - name: k8s-20150503.notability-reminder
@@ -148,6 +161,123 @@
   mem: 2Gi
   schedule: "4 1 1 * *"
 
+# 更新諸語言的維基百科典範條目
+- name: k8s-20210923.update-foreign-featured-contents.zh
+  command: "node ./wikibot/routine/20210923.update_foreign_featured_contents_list.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "31 17 * * 2,5"
+- name: k8s-20210923.update-foreign-featured-contents.ja
+  command: "node ./wikibot/routine/20210923.update_foreign_featured_contents_list.js use_language=ja"
+  image: node18
+  mem: 2Gi
+  schedule: "45 17 * * 2,5"
+- name: k8s-20210923.update-foreign-featured-contents.en
+  command: "node ./wikibot/routine/20210923.update_foreign_featured_contents_list.js use_language=en"
+  image: node18
+  mem: 2Gi
+  schedule: "51 17 * * 2,5"
+
+# archive bot logs: 封存機器人執行的記錄子頁面
+- name: k8s-20160323.archive-bot-logs.en
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_language=en"
+  image: node18
+  mem: 2Gi
+  schedule: "3 20 * * *"
+- name: k8s-20160323.archive-bot-logs.ja
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_language=ja"
+  image: node18
+  mem: 2Gi
+  schedule: "3 20 * * *"
+- name: k8s-20160323.archive-bot-logs.zh
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "3 20 * * *"
+- name: k8s-20160323.archive-bot-logs.simple
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_language=simple"
+  image: node18
+  mem: 2Gi
+  schedule: "3 20 * * *"
+- name: k8s-20160323.archive-bot-logs.commons
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_project=commons"
+  image: node18
+  mem: 2Gi
+  schedule: "3 20 * * *"
+- name: k8s-20160323.archive-bot-logs.zhwiktionary
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_project=zh.wiktionary"
+  image: node18
+  mem: 2Gi
+  schedule: "3 20 * * *"
+
+- name: k8s-20210429.auto-archiver.en
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=en"
+  image: node18
+  mem: 2Gi
+  schedule: "10 20 * * *"
+- name: k8s-20210429.auto-archiver.ja
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=ja"
+  image: node18
+  mem: 2Gi
+  schedule: "11 20 * * *"
+- name: k8s-20210429.auto-archiver.zh
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "12 20 * * *"
+- name: k8s-20210429.auto-archiver.simple
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=simple"
+  image: node18
+  mem: 2Gi
+  schedule: "13 20 * * *"
+- name: k8s-20210429.auto-archiver.wikidata
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=wikidata"
+  image: node18
+  mem: 2Gi
+  schedule: "14 20 * * *"
+- name: k8s-20210429.auto-archiver.commons
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=commons"
+  image: node18
+  mem: 2Gi
+  schedule: "15 20 * * *"
+- name: k8s-20210429.auto-archiver.zh.wikinews
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wikinews"
+  image: node18
+  mem: 2Gi
+  schedule: "16 20 * * *"
+- name: k8s-20210429.auto-archiver.zh.wiktionary
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wiktionary"
+  image: node18
+  mem: 2Gi
+  schedule: "16 20 * * *"
+- name: k8s-20210429.auto-archiver.zh.wikiversity
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wikiversity"
+  image: node18
+  mem: 2Gi
+  schedule: "17 20 * * *"
+- name: k8s-20210429.auto-archiver.ks
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=ks"
+  image: node18
+  mem: 2Gi
+  schedule: "19 20 * * *"
+- name: k8s-20210429.auto-archiver.zhwiktionary
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wiktionary"
+  image: node18
+  mem: 2Gi
+  schedule: "20 20 * * *"
+
+- name: k8s-20211203.synchronizing-common-pages.zh.wikinews
+  command: "node ./wikibot/routine/20211203.synchronizing_common_pages.js use_project=zh.wikinews"
+  image: node18
+  mem: 2Gi
+  schedule: "5 21 * * *"
+- name: k8s-20211203.synchronizing-common-pages.zhwiktionary
+  command: "node ./wikibot/routine/20211203.synchronizing_common_pages.js use_project=zh.wiktionary"
+  image: node18
+  mem: 2Gi
+  schedule: "15 21 * * *"
+
+
 # -----------------------------------------------------------------------------
 # zh.wiki
 
@@ -155,14 +285,348 @@
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production"
   image: node18
   mem: 2Gi
-  schedule: "10 0 * * *"
+  schedule: "0 0 * * *"
 - name: k8s-20190101.featured-content-maintainer
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good"
   image: node18
   mem: 2Gi
   schedule: "20 0 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=2"
+  image: node18
+  mem: 2Gi
+  schedule: "40 0 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=2 type=good"
+  image: node18
+  mem: 2Gi
+  schedule: "0 1 * * *"
+# 提早兩三天先準備好，避免有時程式庫維護中出錯，造成必須由管理員出面，編輯受保護頁面的情況。
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=3"
+  image: node18
+  mem: 2Gi
+  schedule: "0 7 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=3 type=good"
+  image: node18
+  mem: 2Gi
+  schedule: "20 7 * * *"
+# 每天凌晨零時之前，若是頁面還不存在，就會找一個之前曾經上過首頁的最古老 FC_title 頁面來展示。
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production"
+  image: node18
+  mem: 2Gi
+  schedule: "40 14 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production days_later=2"
+  image: node18
+  mem: 2Gi
+  schedule: "0 15 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good"
+  image: node18
+  mem: 2Gi
+  schedule: "20 15 * * *"
+- name: k8s-20190101.featured-content-maintainer
+  command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good days_later=2"
+  image: node18
+  mem: 2Gi
+  schedule: "40 15 * * *"
+
+- name: k8s-20191129.check-language-conversion
+  command: "node ./wikibot/routine/20191129.check_language_conversion.js"
+  image: node18
+  mem: 2Gi
+  schedule: "4 4 * * 1"
+
+- name: k8s-20191214.maintain-historical-deletion-records
+  command: "node ./wikibot/routine/20191214.maintain_historical_deletion_records.js"
+  image: node18
+  mem: 3Gi
+  schedule: "5 4 * * 6"
+
+- name: k8s-20210411.clean-up-the-unknown-parameters
+  command: "node ./wikibot/routine/20210411.Clean_up_the_unknown_parameters_of_the_citation_module.js"
+  image: node18
+  mem: 2Gi
+  schedule: "6 4 * * 1"
+
+# -----------------------------------------------------------------------------
+# zh.wikinews
+
+# Wikimedia Toolforge 採用UTC，對 UTC+8 的新聞資料來源只能在 0時到 16時之間截取。
+# 國語日報的憑證有問題。node8已無法取得內容，只能用node6。
+- name: k8s-20180511.headline.tw
+  command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  mem: 2Gi
+  schedule: "5 0 * * *"
+- name: k8s-20180511.headline.hk
+  command: "node ./wikibot/routine/20180511.headline.js locale=香港"
+  image: node18
+  mem: 2Gi
+  schedule: "10 0 * * *"
+# 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
+- name: k8s-20180511.headline.world
+  command: "node ./wikibot/routine/20180511.headline.js locale=國際"
+  image: node18
+  mem: 2Gi
+  schedule: "15 0 * * *"
+- name: k8s-20180511.headline.cn
+  command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
+  image: node18
+  mem: 2Gi
+  schedule: "20 0 * * *"
+- name: k8s-20180511.headline.sea
+  command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
+  image: node18
+  mem: 2Gi
+  schedule: "25 0 * * *"
+- name: k8s-20180511.headline.mo
+  command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
+  image: node18
+  mem: 2Gi
+  schedule: "30 0 * * *"
+
+- name: k8s-20180511.headline.tw
+  command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  mem: 2Gi
+  schedule: "5 5 * * *"
+- name: k8s-20180511.headline.hk
+  command: "node ./wikibot/routine/20180511.headline.js locale=香港"
+  image: node18
+  mem: 2Gi
+  schedule: "10 5 * * *"
+- name: k8s-20180511.headline.world
+  command: "node ./wikibot/routine/20180511.headline.js locale=國際"
+  image: node18
+  mem: 2Gi
+  schedule: "15 5 * * *"
+- name: k8s-20180511.headline.cn
+  command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
+  image: node18
+  mem: 2Gi
+  schedule: "20 5 * * *"
+- name: k8s-20180511.headline.sea
+  command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
+  image: node18
+  mem: 2Gi
+  schedule: "25 5 * * *"
+- name: k8s-20180511.headline.mo
+  command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
+  image: node18
+  mem: 2Gi
+  schedule: "30 5 * * *"
+# 晚報頭條新聞標題
+- name: k8s-20180511.headline.tw
+  command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  mem: 2Gi
+  schedule: "5 9 * * *"
+- name: k8s-20180511.headline.hk
+  command: "node ./wikibot/routine/20180511.headline.js locale=香港"
+  image: node18
+  mem: 2Gi
+  schedule: "10 9 * * *"
+- name: k8s-20180511.headline.world
+  command: "node ./wikibot/routine/20180511.headline.js locale=國際"
+  image: node18
+  mem: 2Gi
+  schedule: "15 9 * * *"
+- name: k8s-20180511.headline.cn
+  command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
+  image: node18
+  mem: 2Gi
+  schedule: "20 9 * * *"
+- name: k8s-20180511.headline.sea
+  command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
+  image: node18
+  mem: 2Gi
+  schedule: "25 9 * * *"
+- name: k8s-20180511.headline.mo
+  command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
+  image: node18
+  mem: 2Gi
+  schedule: "30 9 * * *"
+
+# 當天最後一次擷取新聞
+- name: k8s-20180511.headline.tw
+  command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  mem: 2Gi
+  schedule: "35 15 * * *"
+- name: k8s-20180511.headline.hk
+  command: "node ./wikibot/routine/20180511.headline.js locale=香港"
+  image: node18
+  mem: 2Gi
+  schedule: "40 15 * * *"
+- name: k8s-20180511.headline.world
+  command: "node ./wikibot/routine/20180511.headline.js locale=國際"
+  image: node18
+  mem: 2Gi
+  schedule: "45 15 * * *"
+- name: k8s-20180511.headline.cn
+  command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
+  image: node18
+  mem: 2Gi
+  schedule: "50 15 * * *"
+- name: k8s-20180511.headline.sea
+  command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
+  image: node18
+  mem: 2Gi
+  schedule: "55 15 * * *"
+- name: k8s-20180511.headline.mo
+  command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
+  image: node18
+  mem: 2Gi
+  schedule: "58 15 * * *"
+
+# for 華僑報
+- name: k8s-20180511.headline.mo
+  command: "node ./wikibot/routine/20180511.headline.js days_ago=1 locale=澳門"
+  image: node18
+  mem: 2Gi
+  schedule: "15 11 * * *"
+
+
+# 存檔保護作業
+- name: k8s-20160714.archive-news
+  command: "/usr/bin/node ./wikibot/routine/20160714.archive_news.js"
+  image: node18
+  mem: 2Gi
+  schedule: "9 20 * * *"
+
+# 自動定時清理沙盒
+- name: k8s-20160719.clean-sandbox
+  command: "/usr/bin/node ./wikibot/routine/20160719.clean_sandbox.js"
+  image: node18
+  mem: 2Gi
+  schedule: "0 21 * * *"
+
+# 讓機器人自動匯入美國之音(VOA)新的報導
+- name: k8s-20170708.import-voa
+  command: "/usr/bin/node ./wikibot/routine/20170708.import_VOA.js"
+  image: node18
+  mem: 2Gi
+  continuous: true
+
+# 創建每日新聞摘要頁面
+- name: k8s-20221102.create-wikinews-category-and-project
+  command: "1g -once -quiet /usr/bin/node ./wikibot/routine/20221102.create_wikinews_category_and_project_pages.js month_duration=3"
+  image: node18
+  schedule: "2 0 1 * *"
+
+# -----------------------------------------------------------------------------
+# commons.wikimedia.org
+
+- name: k8s-20181016.import-earthquake-shakemap
+  command: "node ./wikibot/routine/20181016.import_earthquake_shakemap.js"
+  image: node18
+  mem: 2Gi
+  schedule: "3 * * * *"
+- name: k8s-20190629.import-tropical-cyclone-images
+  command: "node ./wikibot/routine/20190629.import_tropical_cyclone_images.js"
+  image: node18
+  mem: 2Gi
+  schedule: "5,31 * * * *"
+- name: k8s-20190215.clean-overcategorization
+  command: "node ./wikibot/routine/20190215.clean_overcategorization.js"
+  image: node18
+  mem: 2Gi
+  schedule: "2 0 * * 2"
+- name: k8s-20210901.notify-new-files-in-category
+  command: "node ./wikibot/routine/20210901.notify_new_files_in_category.js"
+  image: node18
+  mem: 2Gi
+  schedule: "3 15 * * *"
+
+# -----------------------------------------------------------------------------
+# www.wikidata.org
+
+# rm processed.zh.json labels.zh.* common_title.* all_pages.zh.json
+# see Q1427966
+# [[zh:Special:Diff/46003943|User talk:Kanashimi]]
+
+- name: k8s-20160915.taibnet
+  command: "node ./wikibot/routine/20160915.TaiBNET.js"
+  image: node18
+  mem: 2Gi
+  schedule: "2 8 3 * *"
+
+- name: k8s-20160414.import-label-from-wiki-link.zh
+  command: "node ./wikibot/routine/20160414.import_label_from_wiki_link.js use_language=zh"
+  image: node18
+  mem: 4Gi
+  schedule: "2 0 * * 3"
+- name: k8s-20160414.import-label-from-wiki-link.ja
+  command: "node ./wikibot/routine/20160414.import_label_from_wiki_link.js use_language=ja"
+  image: node18
+  mem: 4Gi
+  schedule: "2 0 * * 1"
+
+- name: k8s-20210701.import-pubmed-to-wikidata
+  command: "node ./wikibot/routine/20210701.import_PubMed_to_wikidata.js"
+  image: node18
+  mem: 4Gi
+  continuous: true
+
+# -----------------------------------------------------------------------------
+# enwiki
+
+# Update the section counts and article assessment icons for all levels of Wikipedia:Vital articles.
+- name: k8s-20200122.update-vital-articles
+  command: "node ./wikibot/routine/20200122.update_vital_articles.js"
+  image: node18
+  mem: 2Gi
+  schedule: "2 8 * * *"
+
+# Assist administrators to close AfDs. Especially discussions without participants. 協助管理員關閉刪除討論。尤其是無參與者的討論。
+- name: k8s-20200206.reminded-expired-afd
+  command: "node ./wikibot/routine/20200206.reminded_expired_AfD.js"
+  image: node18
+  mem: 2Gi
+  schedule: "2 0 * * *"
+# 有時會出現錯誤。再執行一次，避免忽略執行。
+- name: k8s-20200206.reminded-expired-afd
+  command: "node ./wikibot/routine/20200206.reminded_expired_AfD.js"
+  image: node18
+  mem: 2Gi
+  schedule: "2 12 * * *"
+
+# Sorting category of Thai names
+- name: k8s-20210422.sorting-category-and-sort-key-of-thai
+  command: "node ./wikibot/routine/20210422.Sorting_category_and_sort_key_of_Thai_names.js"
+  image: node18
+  mem: 2Gi
+  schedule: "12 9 * * 6"
+
+# Maintaining challenge templates on corresponding pages.
+- name: k8s-20210902.maintain-challenge-templates
+  command: "node ./wikibot/routine/20210902.maintain_challenge_templates.js"
+  image: node18
+  mem: 2Gi
+  schedule: "10 10 * * *"
+
+
+# -----------------------------------------------------------------------------
+# misc
+
+- name: k8s-cross-wiki-notice
+  command: "node ./wikibot/routine/cross_wiki_notice.js"
+  image: node18
+  mem: 1Gi
+  schedule: "3 21 * * *"
+
 
 
 # --------------------------------------------------------------------------------------------------
-# Continuous jobs have a hard limit of 63 characters.
+# Continuous jobs
+
+# -----------------------------------------------------------------------------
+# misc
+
+# for IRC
+- name: k8s-irc
+  command: "node ./wikibot/IRC/IRC-recorder.js"
+  image: node18
+  mem: 3Gi
+  continuous: true
 

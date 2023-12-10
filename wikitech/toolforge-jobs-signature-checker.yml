@@ -1,0 +1,58 @@
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+
+# --------------------------------------------------------------------------------------------------
+# Cron jobs
+
+# update bot codes. 更新軟體版本
+- name: k8s-update.wikibot
+  command: "./wikibot/init.sh"
+  image: tf-bullseye-std
+  schedule: "2 17 * * *"
+
+
+# --------------------------------------------------------------------------------------------------
+# Continuous jobs
+
+# 幫忙補簽名
+# zhwiki 在 mem 3g 的時候還是可能不夠而 crash
+- name: k8s-20170515.signature-check.simple
+  command: "node ./wikibot/routine/20170515.signature_check.js use_language=simple"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.zh
+  command: "node ./wikibot/routine/20170515.signature_check.js use_language=zh"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.zh-classical
+  command: "node ./wikibot/routine/20170515.signature_check.js use_language=zh-classical"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.wikinews
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikinews"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.wikisource
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikisource"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.wikiversity
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wwikiversity"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.wiktionary
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wwiktionary"
+  image: node18
+  mem: 4Gi
+  continuous: true
+- name: k8s-20170515.signature-check.wikibooks
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikibooks"
+  image: node18
+  mem: 4Gi
+  continuous: true
+

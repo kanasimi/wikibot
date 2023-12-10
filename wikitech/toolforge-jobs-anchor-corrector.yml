@@ -17,17 +17,17 @@
   image: node18
   mem: 6Gi
   #schedule: "@weekly"
-  schedule: "29 0 * * 6"
+  schedule: "29 0 * * 0"
 - name: k8s-20201008.fix-anchor.archives.simple
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=simple"
   image: node18
   mem: 6Gi
-  schedule: "29 0 * * 6"
+  schedule: "29 0 * * 1"
 - name: k8s-20201008.fix-anchor.archives.zh
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_language=zh"
   image: node18
   mem: 6Gi
-  schedule: "29 0 * * 6"
+  schedule: "29 0 * * 2"
 
 
 # --------------------------------------------------------------------------------------------------

@@ -1,0 +1,71 @@
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+
+# --------------------------------------------------------------------------------------------------
+# Cron jobs
+
+# update bot codes. 更新軟體版本
+- name: k8s-update.wikibot
+  command: "./wikibot/init.sh"
+  image: tf-bullseye-std
+  schedule: "2 17 * * *"
+
+
+# -----------------------------------------------------------------------------
+# archive log: 封存機器人執行的記錄子頁面
+- name: k8s-20160323.archive-bot-logs.moegirl
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_project=zhmoegirl"
+  image: node18
+  mem: 2Gi
+  schedule: "15 23 * * *"
+
+- name: k8s-20210429.auto-archiver.moegirl
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zhmoegirl"
+  image: node18
+  mem: 2Gi
+  schedule: "35 23 * * *"
+
+# -----------------------------------------------------------------------------
+# 修正已被存檔的失效章節標題 Fix broken anchor caused by archived
+- name: k8s-20201008.fix-anchor.archives.moegirl
+  command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_project=zhmoegirl"
+  image: node18
+  mem: 6Gi
+  schedule: "55 21 * * 3"
+
+# -----------------------------------------------------------------------------
+# 字词转换
+- name: k8s-20191129.check-language-conversion
+  command: "/usr/bin/node ./wikibot/routine/20191129.check_language_conversion.js use_project=zhmoegirl"
+  image: node18
+  mem: 4Gi
+  schedule: "55 21 * * 6"
+
+
+# --------------------------------------------------------------------------------------------------
+# Continuous jobs
+
+# -----------------------------------------------------------------------------
+# Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
+- name: k8s-20170915.topic-list.moegirl
+  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zhmoegirl"
+  image: node18
+  mem: 2Gi
+  continuous: true
+# 临时增加9点重启以应对5小时无人自动停机的问题。
+
+# -----------------------------------------------------------------------------
+# 修正失效的章節標題 Fix broken anchor
+- name: k8s-20201008.fix-anchor.moegirl
+  command: "node ./wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl"
+  image: node18
+  mem: 4Gi
+  continuous: true
+
+# -----------------------------------------------------------------------------
+# 幫忙補簽名
+- name: k8s-20170515.signature-check.moegirl
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zhmoegirl"
+  image: node18
+  mem: 4Gi
+  continuous: true
+
