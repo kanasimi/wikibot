@@ -1,5 +1,5 @@
-# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
-#
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml
+# https://phabricator.wikimedia.org/T353104
 
 # man toolforge-jobs
 # https://wikitech.wikimedia.org/wiki/Help:Toolforge/Jobs_framework

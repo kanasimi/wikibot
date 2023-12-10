@@ -21,7 +21,8 @@
 	<button onclick="convert(); return false;">Convert</button>
 	<textarea id="toolforge jobs framework yaml contents" style="width: 40em; height: 40em;"></textarea>
 
-	<script>
+	<script type="text/javascript">
+		// 2023/12/10 9:7:58
 
 		function parse_crontab_item(crontab_item_text) {
 			if (!crontab_item_text || /^\s*#/.test(crontab_item_text))

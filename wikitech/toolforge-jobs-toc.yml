@@ -1,4 +1,4 @@
-# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml
 
 # --------------------------------------------------------------------------------------------------
 # Cron jobs
@@ -15,57 +15,57 @@
 
 # Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 - name: k8s-20170915.topic-list.zh
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_language=zh"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_language=zh"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.zh-classical
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_language=zh-classical"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_language=zh-classical"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikinews
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikinews"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikinews"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.ja
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_language=ja"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_language=ja"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.en
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_language=en"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_language=en"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.testwiki
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_language=en use_project=test"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_language=en use_project=test"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikisource
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikisource"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikisource"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikiversity
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikiversity"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikiversity"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.commons
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=commons"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=commons"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wiktionary
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zh.wiktionary"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wiktionary"
   image: node18
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikibooks
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks"
   image: node18
   mem: 2Gi
   continuous: true

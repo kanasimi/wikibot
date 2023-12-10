@@ -1,4 +1,4 @@
-# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml
 # https://phabricator.wikimedia.org/T350484
 
 # --------------------------------------------------------------------------------------------------

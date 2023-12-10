@@ -1,4 +1,4 @@
-# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml&
+# toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml
 
 # --------------------------------------------------------------------------------------------------
 # Cron jobs
@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 # 字词转换
 - name: k8s-20191129.check-language-conversion
-  command: "/usr/bin/node ./wikibot/routine/20191129.check_language_conversion.js use_project=zhmoegirl"
+  command: "node ./wikibot/routine/20191129.check_language_conversion.js use_project=zhmoegirl"
   image: node18
   mem: 4Gi
   schedule: "55 21 * * 6"
@@ -47,7 +47,7 @@
 # -----------------------------------------------------------------------------
 # Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。
 - name: k8s-20170915.topic-list.moegirl
-  command: "/usr/bin/node ./wikibot/routine/20170915.topic_list.js use_project=zhmoegirl"
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zhmoegirl"
   image: node18
   mem: 2Gi
   continuous: true
