@@ -153,6 +153,11 @@ async function adapt_configuration(latest_task_configuration) {
 		icon_order_Set = icon_order_Map = null;
 	}
 
+	if (general.pages_auto_add_summary_table && !CeL.is_RegExp(general.pages_auto_add_summary_table = general.pages_auto_add_summary_table.to_RegExp())) {
+		CeL.error(`${adapt_configuration.name}: Invalid RegExp: ${general.pages_auto_add_summary_table}`);
+		delete general.pages_auto_add_summary_table;
+	}
+
 	// ----------------------------------------------------
 
 	const { Topics } = latest_task_configuration;
@@ -778,6 +783,7 @@ async function for_each_list_page(list_page_data) {
 				// Good: Always count articles.
 				// NG: The bot '''WILL NOT COUNT''' the articles listed in level
 				// other than current page to prevent from double counting.
+				// 先把本章節的條目數量儲存在 .item_count，等到最後 function set_section_title_count(parent_section) 再一次處理。
 				if (latest_section_title) {
 					latest_section_title.item_count++;
 				}
@@ -1041,7 +1047,7 @@ async function for_each_list_page(list_page_data) {
 		if (parent_section.type === 'section_title') {
 			// $1: Target number
 			parent_section[0] = parent_section.join('')
-				.replace(PATTERN_count_mark, `(${item_count.toLocaleString()}$1 ${item_count >= 2 ? 'articles' : 'article'})`);
+				.replace(PATTERN_count_mark, `(${item_count.toLocaleString()}$1 ${item_count === 1 ? 'article' : 'articles'})`);
 			// console.log(parent_section[0]);
 			parent_section.truncate(1);
 		}
@@ -1122,24 +1128,23 @@ async function for_each_list_page(list_page_data) {
 		summary_table.push([`{{Icon|${icon}}} ${category_name || (icon in icon_note ? `<span title="${icon_note[icon]}">${icon}</span>` : icon)}`, article_count_of_icon[icon].toLocaleString()]);
 	});
 
-	if (wikitext.includes('<!-- summary table begin')) {
+	const report_Variable_Map = new CeL.wiki.Variable_Map();
+	if (false && wikitext.includes('<!-- summary table begin')) {
+		// old style 2023/11
 		wikitext = wikitext.replace(/(<!-- summary table begin(?::[\s\S]+?)? -->)[\s\S]*?(<!-- summary table end(?::[\s\S]+?)? -->)/, `<!-- update summary table: The text between update comments will be automatically overwritten by the bot. -->\n${total_articles}\n` + CeL.wiki.array_to_table(summary_table, {
 			'class': "wikitable sortable"
 		}) + '\n<!-- update end: summary table -->');
 
-	} else if (!CeL.wiki.Variable_Map.text_has_mark(wikitext, 'summary table') && /\/[45]\//.test(list_page_data.title)) {
-		wikitext = wikitext.replace(/(\n(==?)(?: *<span [^<>]+><\/span>)?[\w\s\-]+? \(\d+(?:\/\d+)? articles\) *\2)/, '<!-- update summary table: The text between update comments will be automatically overwritten by the bot. --><!-- update end: summary table -->\n$1');
+	} else if (wiki.latest_task_configuration.general.pages_auto_add_summary_table && !CeL.wiki.Variable_Map.text_has_mark(wikitext, 'summary table') && wiki.latest_task_configuration.general.pages_auto_add_summary_table.test(list_page_data.title)) {
+		wikitext = wikitext.replace(/(\n(==?)(?: *<span [^<>]+><\/span>)?[\w\s\-]+? \(\d+(?:\/\d+)? articles\) *\2)/, report_Variable_Map.format('summary table') + '\n$1');
 	}
-	// Remove duplicates 
-	wikitext = wikitext.replace(/<!-- update summary table: .+?-->[\s\S]*?<!-- update end: summary table -->[\s\n]*(<!-- update summary table: .+?-->)/, '$1');
 
 	//console.trace(`${list_page_data.title}: ${total_articles}`);
-	const report_Variable_Map = new CeL.wiki.Variable_Map();
 	// ~~~~~
 	report_Variable_Map.set('summary table', '\n' + total_articles + '\n' + CeL.wiki.array_to_table(summary_table, {
 		'class': "wikitable sortable"
 	}) + '\n');
-	wikitext = report_Variable_Map.update(wikitext, { force_change: true });
+	wikitext = report_Variable_Map.update(wikitext, { force_change: true, remove_duplicates: ['summary table'] });
 
 	// console.trace(`${for_each_list_page.name}: return ${wikitext.length} chars`);
 	// console.log(wikitext);
