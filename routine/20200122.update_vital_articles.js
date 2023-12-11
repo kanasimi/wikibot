@@ -128,6 +128,53 @@ function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) 
 
 let icon_order_Set, icon_order_Map;
 
+function get_topic_of_section(page_and_section, topic) {
+	const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#').replace(/^([^#]+)#$/, '$1') || DEFAULT_LEVEL;
+	if (!topic && typeof page_and_section_id === 'string') {
+		topic = page_and_section_id.replace(/^(?:(\d)\/)?([^#]+)?(?:#(.*))$/, (all, level, page, section) => {
+			if (!level && /^\d$/.test(page)) {
+				// 1, 2級
+				level = page;
+				page = '';
+			}
+			if (level <= DEFAULT_LEVEL) {
+				// 1級的 page, section 不包含 topic 資訊。
+				// 2, 3級的 section title 分割過細，不如採下一等級的。
+				return '';
+			}
+			// sublist do not include section
+			return page;
+		});
+		//console.trace([page_and_section, page_and_section_id, topic]);
+	}
+	if (topic) {
+		const matched = topic.match(/^(.+?)\/(.+)$/);
+		topic = matched ? {
+			topic: matched[1],
+			// sublist
+			subpage: matched[2]
+		} : { topic };
+
+	} else {
+		if (/![12]\//.test(page_and_section_id))
+			CeL.error(`${get_topic_of_section.name}: Cannot determine the topic of ${JSON.stringify(page_and_section_id)}!`);
+		return;
+	}
+
+	const Topics = wiki.latest_task_configuration.Topics;
+	if (!Topics[page_and_section_id]) {
+		delete Topics[page_and_section];
+		Topics[page_and_section_id] = topic;
+	} else if (page_and_section_id === page_and_section) {
+		// `page_and_section` is page and section id
+		Topics[page_and_section_id] = topic;
+	} else {
+		CeL.warn(`${get_topic_of_section.name}: Duplicated topic configuration! ${page_and_section_id} and ${page_and_section}`);
+	}
+	//console.trace([page_and_section, page_and_section_id, Topics[page_and_section_id]]);
+	return Topics[page_and_section_id];
+}
+
 /**
  * 由設定頁面讀入手動設定 manual settings。
  * 
@@ -163,23 +210,11 @@ async function adapt_configuration(latest_task_configuration) {
 	const { Topics } = latest_task_configuration;
 	if (Topics) {
 		for (let [page_and_section, topic] of Object.entries(Topics)) {
-			const matched = topic.match(/^(.+?)\/(.+)$/);
-			topic = matched ? {
-				topic: matched[1],
-				subpage: matched[2]
-			} : { topic };
-
-			const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#').replace(/^([^#]+)#$/, '$1') || DEFAULT_LEVEL;
-			if (!Topics[page_and_section_id]) {
-				Topics[page_and_section_id] = topic;
-				delete Topics[page_and_section];
-			} else if (page_and_section_id === page_and_section) {
-				// `page_and_section` is page and section id
-				Topics[page_and_section_id] = topic;
-			} else {
-				CeL.warn(`${adapt_configuration.name}: Duplicated topic configuration! ${page_and_section_id} and ${page_and_section}`);
-			}
+			get_topic_of_section(page_and_section, topic);
 		}
+	} else {
+		// Initialization
+		latest_task_configuration.Topics = Object.create(null);
 	}
 
 	console.log(latest_task_configuration);
@@ -669,10 +704,10 @@ async function for_each_list_page(list_page_data) {
 		while (section_title_now) {
 			const section_title = section_title_now.title.toString().replace(PATTERN_count_mark, '').trim();
 			//console.trace(section_title);
-			const page_section_id = `${page_id}#${section_title}`;
-			topic_of_current_section = Topics[page_section_id];
+			const page_and_section_id = `${page_id}#${section_title}`;
+			topic_of_current_section = Topics[page_and_section_id] || get_topic_of_section(page_and_section_id);
 			if (topic_of_current_section) {
-				// console.trace([page_section_id, topic_of_current_section]);
+				// console.trace([page_and_section_id, topic_of_current_section]);
 				break;
 			}
 			section_title_now = section_title_now.parent_section_title;
@@ -1028,6 +1063,9 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (token.type === 'section_title') {
+			// for set_section_title_count()
+			//token.index = token;
+
 			//if (list_page_data.title.includes('Military personnel, revolutionaries, and activists')) console.log(token);
 			// quit on "See also" section. e.g., [[Wikipedia:Vital articles]]
 			return /See also/i.test(token[0].toString()) || set_latest_section_title(token);
@@ -1578,8 +1616,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	// ------------------------------------------------------------------------
 
+	const VA_class = normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? '');
 	// Vital article 的 class 也算一票，只添加一次。
-	add_class(article_info.class ?? VA_template_token?.parameters.class);
+	add_class(VA_class);
 	/**Will preserve {{WikiProject *}} rating */
 	let has_different_ratings = class_from_other_templates_Map.size > 1;
 	// {{WikiProject banner shell|class=*}}
@@ -1589,7 +1628,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	let majority_class
 		// Because {{VA}} would be eliminated, keep its class in {{WPBS}}.
 		// @see [[Wikipedia:Bots/Requests for approval/Cewbot 12#Discussion]]
-		= normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? '');
+		= VA_class;
 	if (!majority_class) {
 		// Get the majority rating
 		for (const [_class, count] of class_from_other_templates_Map) {
@@ -1604,7 +1643,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				majority_class = majority_class[1][0];
 			} else if (has_different_ratings) {
 				// assert: Should be ''
-				majority_class = normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? '');
+				majority_class = VA_class;
 			} else {
 				majority_class = '';
 			}
@@ -1616,7 +1655,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// old style before 2023/12:
 		let VA_template_object = {
 			// normalize_class(): e.g., for [[Talk:Goosebumps]]
-			class: normalize_class(article_info.class ?? VA_template_token?.parameters.class ?? class_from_other_templates_Map ?? '')
+			class: normalize_class(VA_class ?? class_from_other_templates_Map ?? '')
 		};
 	}
 	// console.trace([VA_template_token?.parameters, article_info, +VA_template_token?.parameters.level !== +article_info.level]);
@@ -1671,7 +1710,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			need_insert_WPBS = true;
 		}
 
-		if (majority_class && majority_class !== normalize_class(WikiProject_banner_shell_token.parameters.class))
+		if (majority_class && majority_class === VA_class)
 			article_info.reason = (article_info.reason || '') + ` (keep the class of vital article: ${majority_class} in {{WPBS}})`;
 		// new style from 2023/12:
 		const WPBS_template_object = {
