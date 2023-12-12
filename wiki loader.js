@@ -218,6 +218,10 @@ function login_options_of_API_URL(API_URL) {
 		// console.trace(login_options);
 	}
 
+	if (login_options.user_agent) {
+		CeL.get_URL.default_user_agent = login_options.user_agent;
+	}
+
 	return login_options;
 }
 

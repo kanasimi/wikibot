@@ -36,6 +36,7 @@ login_options_for_project.zhmoegirl = {
 	// 移動端網址的防火牆允許的單位時間內請求數較多，故使用mzh.moegirl.org.cn運行機器人能夠降低撞上防火牆的機率。
 	API_URL : 'https://mzh.moegirl.org.cn/api.php',
 	site_name : 'zhmoegirl',
+	user_agent : 'customized user agent',
 	user_name : 'Main account name@bot name',
 	// 設定頁面與記錄頁面所參考的使用者名稱。 @see "wiki loader.js"
 	// user_name_referenced : '',
