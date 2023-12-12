@@ -68,6 +68,7 @@ const VA_template_name = 'Vital article';
 const WPBS_template_name = 'WikiProject banner shell';
 const WPDAB_template_name = 'WikiProject Disambiguation';
 const WPBIO_template_name = 'WikiProject Biography';
+const count_template_name = 'Vital article count';
 
 const WikiProject_template_categories = ['Category:WikiProject banners without quality assessment', 'Category:WikiProject banners with quality assessment', 'Category:Inactive WikiProject banners'];
 const opted_out_WikiProject_template_categories = ['Category:WikiProjects using a non-standard quality scale'];
@@ -88,8 +89,8 @@ const icon_note = {
 };
 
 // @see function set_section_title_count(parent_section)
-// [ all, quota+articles postfix ]
-const PATTERN_count_mark = /\([\d,]+(\/[\d,]+)?\s+articles?\)/i;
+// [ all, quota+articles postfix, quota / target number ]
+const PATTERN_count_mark = /\([\d,]+(\/([\d,]+))?\s+articles?\)/i;
 const PATTERN_counter_title = new RegExp(/^[\w\s\-–',\/]+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
 
 const report_lines = [];
@@ -241,8 +242,9 @@ async function main_process() {
 			});
 	}
 
-	await wiki.register_redirects([VA_template_name, WPBS_template_name, WPDAB_template_name]
+	await wiki.register_redirects([VA_template_name, WPBS_template_name, WPDAB_template_name, count_template_name]
 		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()].talk_page_lead)
+		// includes WPBIO_template_name
 		.append(all_WikiProject_template_list).append(all_opted_out_WikiProject_template_list), { namespace: 'Template', no_message: true });
 
 	// ----------------------------------------------------
@@ -723,6 +725,7 @@ async function for_each_list_page(list_page_data) {
 		[icons_of_page, list_page_level_of_page, category_level_of_page, listed_article_info].forEach(list => {
 			if (redirect_from in list) {
 				if (normalized_redirect_to in list) {
+					//console.trace(listed_article_info[normalized_redirect_to]);
 					CeL.error(`${set_redirect_to.name}: For ${redirect_from}→${normalized_redirect_to}, the target is existed in the list!`);
 					return;
 				}
@@ -782,7 +785,7 @@ async function for_each_list_page(list_page_data) {
 				//console.trace(token);
 			}
 
-			if (token.type === 'link' && !item_replace_to) {
+			if (!item_replace_to && token.type === 'link') {
 				// e.g., [[pH]], [[iOS]]
 				const normalized_page_title = wiki.normalize_title(token[0].toString());
 				simplify_link(token, normalized_page_title);
@@ -939,10 +942,10 @@ async function for_each_list_page(list_page_data) {
 				return true;
 			}
 
-			if (token.type === 'transclusion' && token.name === 'Space'
+			if (token.type === 'transclusion' && wiki.is_template('Space', token)
 				|| !token.toString().trim()) {
 				// Skip
-			} else if (token.type === 'transclusion' && token.name === 'Icon') {
+			} else if (token.type === 'transclusion' && wiki.is_template('Icon', token)) {
 				// reset icon
 				// _item[index] = '';
 
@@ -1047,14 +1050,28 @@ async function for_each_list_page(list_page_data) {
 			return Array.isArray(token) && token.some((sub_token, index, root) =>
 				sub_token.type === 'plain' ? sub_token.forEach(for_root_token)
 					: for_root_token(sub_token, index, root)
-			);
+			) && parsed.each.exit;
 		}
 
-		if (token.type === 'transclusion' && token.name === 'Columns-list') {
+		if (token.type === 'transclusion' && wiki.is_template('Columns-list', token)) {
 			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games and recreation]]
 			token = token.parameters[1];
 			// console.log(token);
-			return Array.isArray(token) && token.some(for_root_token);
+			return Array.isArray(token) && token.some(for_root_token) && parsed.each.exit;
+		}
+
+		if (token.type === 'transclusion' && wiki.is_template(count_template_name, token)) {
+			// for set_section_title_count()
+			if (latest_section_title) {
+				if (latest_section_title.count_template) {
+					CeL.warn(`${for_root_token.name}: Has multiple {{${count_template_name}}}: ${latest_section_title}`);
+					if (!latest_section_title.count_template.parameters.quota && token.parameters.quota > 0)
+						latest_section_title.count_template.push('|quota=' + token.parameters.quota);
+					//return parsed.each.remove_token;
+				} else
+					latest_section_title.count_template = token;
+			}
+			return;
 		}
 
 		if (token.type === 'list') {
@@ -1063,18 +1080,42 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (token.type === 'section_title') {
+			// quit on "See also" section. e.g., [[Wikipedia:Vital articles]]
+			if (/^See also/i.test(token.title))
+				return parsed.each.exit;
+
+			if (token.length > 0) {
+				token.forEach((sub_token, index) => {
+					// e.g., '==<span id="General"></span>General =='
+					let matched = sub_token.toString().match(/^<(\w+)\s+id="([^"]+)"><\/\1>$/);
+					if (matched && matched[2] === token.title) {
+						token[index] = '';
+						return;
+					}
+					// e.g., '=={{anchor|Architecture}}Architecture =='
+					if (wiki.is_template('Anchor', sub_token) && sub_token.parameters[1] === token.title) {
+						token[index] = '';
+						return;
+					}
+				});
+			}
+
 			// for set_section_title_count()
-			//token.index = token;
+			token.index = index;
+			token.parent = root;
+
+			if (/^General$/i.test(token.title) && latest_section_title && token.length === 1) {
+				token[0] = latest_section_title.title.toString().replace(PATTERN_count_mark, '').trim() + ': General';
+			}
 
 			//if (list_page_data.title.includes('Military personnel, revolutionaries, and activists')) console.log(token);
-			// quit on "See also" section. e.g., [[Wikipedia:Vital articles]]
-			return /See also/i.test(token[0].toString()) || set_latest_section_title(token);
+			set_latest_section_title(token);
 		}
 
 		section_text_to_title(token, index, root);
 	}
 
-	parsed.some(for_root_token);
+	parsed.each(for_root_token, { max_depth: 1 });
 
 	// -------------------------------------------------------
 
@@ -1083,11 +1124,29 @@ async function for_each_list_page(list_page_data) {
 		const item_count = parent_section.child_section_titles.reduce((item_count, subsection) => item_count + set_section_title_count(subsection), parent_section.item_count || 0);
 
 		if (parent_section.type === 'section_title') {
-			// $1: Target number
+			let quota;
 			parent_section[0] = parent_section.join('')
-				.replace(PATTERN_count_mark, `(${item_count.toLocaleString()}$1 ${item_count === 1 ? 'article' : 'articles'})`);
+				.replace(PATTERN_count_mark, function (all, quota_articles, _quota) {
+					if (_quota)
+						quota = +_quota.replace(/,/g, '');
+					if (wiki.latest_task_configuration.general.remove_title_counter)
+						return '';
+					return `(${item_count.toLocaleString()}${quota_articles} ${item_count === 1 ? 'article' : 'articles'})`
+				}).replace(/\s{2,}/g, ' ');
 			// console.log(parent_section[0]);
 			parent_section.truncate(1);
+
+			if (parent_section.count_template) {
+				const parameters_argument = {
+					[1]: item_count
+				};
+				if (quota)
+					parameters_argument.quota = quota;
+				CeL.wiki.parse.replace_parameter(parent_section.count_template, parameters_argument, { value_only: true, force_add: true, append_key_value: true });
+			} else if ((item_count > 0 || quota > 0) && wiki.latest_task_configuration.general.auto_add_count_template) {
+				//console.trace(parent_section.parent.slice(parent_section.index, parent_section.index + 2));
+				parent_section.parent[parent_section.index + 1] = `\n{{${count_template_name}|${item_count}${quota ? '|quota=' + quota : ''}}}` + (parent_section.parent[parent_section.index + 1] || '\n');
+			}
 		}
 
 		return item_count;
