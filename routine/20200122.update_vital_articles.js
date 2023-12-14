@@ -1,7 +1,7 @@
 ﻿/*
 
 node 20200122.update_vital_articles.js using_cache
-node 20200122.update_vital_articles.js do_PIQA
+node 20200122.update_vital_articles.js do_PIQA=50
 node 20200122.update_vital_articles.js "base_page=Wikipedia:Vital people"
 TODO:
 node 20200122.update_vital_articles.js "base_page=Wikipedia:基礎條目" use_language=zh
@@ -338,7 +338,7 @@ async function main_process() {
 
 			for (const page_data of (await wiki.embeddedin(WikiProject_template_data, {
 				limit: 5000
-			})).slice(0, 35)) {
+			})).slice(0, do_PIQA)) {
 				const page_title = page_data.title;
 				have_to_edit_its_talk_page[page_title] = {
 					// 所有作業皆經由人工監督。
@@ -485,7 +485,7 @@ async function get_page_info() {
 		const VA_class = icons.VA_class.toUpperCase();
 
 		// For the first time do_PIQA
-		if (do_PIQA && Object.keys(have_to_edit_its_talk_page).length < 35
+		if (do_PIQA && Object.keys(have_to_edit_its_talk_page).length < do_PIQA
 			//|| page_title.includes('')
 		) {
 			have_to_edit_its_talk_page[page_title] = {
@@ -1085,6 +1085,7 @@ async function for_each_list_page(list_page_data) {
 				return parsed.each.exit;
 
 			if (token.length > 0) {
+				// [[Wikipedia talk:Vital articles#Number of articles in headings]]
 				token.forEach((sub_token, index) => {
 					// e.g., '==<span id="General"></span>General =='
 					let matched = sub_token.toString().match(/^<(\w+)\s+id="([^"]+)"><\/\1>$/);
@@ -1129,6 +1130,7 @@ async function for_each_list_page(list_page_data) {
 				.replace(PATTERN_count_mark, function (all, quota_articles, _quota) {
 					if (_quota)
 						quota = +_quota.replace(/,/g, '');
+					// [[Wikipedia talk:Vital articles#Number of articles in headings]]
 					if (wiki.latest_task_configuration.general.remove_title_counter)
 						return '';
 					return `(${item_count.toLocaleString()}${quota_articles} ${item_count === 1 ? 'article' : 'articles'})`
@@ -1792,9 +1794,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
 					if (!wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
+						const parameters_to_remove = [];
 						if (wiki.is_template(WPBIO_template_name, token)) {
 							//@see [[w:en:Template:WikiProject Biography]]
-							const parameters_to_remove = [];
 							if (CeL.wiki.Yesno(token.parameters.living || token.parameters.blp || token.parameters.BLP)) {
 								// No overwrite
 								if (!WikiProject_banner_shell_token.parameters.blp) {
@@ -1813,11 +1815,6 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								WPBS_template_object.listas = token.parameters.listas;
 								parameters_to_remove.push('listas');
 							}
-
-							const parameters_argument = Object.create(null);
-							parameters_to_remove.forEach(parameter => parameters_argument[parameter] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
-							// These parameters will move to {{WikiProject banner shell}}
-							CeL.wiki.parse.replace_parameter(token, parameters_argument);
 						}
 						// move class rating from project banners
 						if (!has_different_ratings || ('class' in token.parameters
@@ -1835,6 +1832,20 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						// [[Wikipedia:Bots/Requests for approval/BattyBot 79]]
 
 						// TODO: [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 24]]
+
+						// [[Wikipedia:Bots/Requests for approval/Cewbot 12]] remove any duplicate listas value
+						for (const [parameter_name, value] of Object.entries(token.parameters)) {
+							if (parameter_name === 'listas' &&
+								(value === WPBS_template_object[parameter_name] || value === WikiProject_banner_shell_token.parameters[parameter_name]))
+								parameters_to_remove.push(parameter_name);
+						}
+
+						if (parameters_to_remove.length > 0) {
+							const parameters_argument = Object.create(null);
+							parameters_to_remove.forEach(parameter => parameters_argument[parameter] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
+							// These parameters will move to {{WikiProject banner shell}}
+							CeL.wiki.parse.replace_parameter(token, parameters_argument);
+						}
 					}
 
 					WikiProject_templates.push(token);
