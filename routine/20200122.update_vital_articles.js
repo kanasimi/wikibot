@@ -1500,7 +1500,7 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary_prefix_text = `Maintain vital articles and {{${WPBS_template_name}}}`;
+const talk_page_summary_prefix_text = `Maintain {{${WPBS_template_name}}} and vital articles`;
 let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
 //console.log(talk_page_summary_prefix);
 
@@ -1766,7 +1766,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 		// new style from 2023/12: If the {{WikiProject banner shell}} does not exist, create one.
 		let need_insert_WPBS = false;
-		if (!WikiProject_banner_shell_token) {
+		if (WikiProject_banner_shell_token) {
+			// Fix to the redirect target: bypass any redirects to {{WikiProject banner shell}} at the same time
+			WikiProject_banner_shell_token[0] = wiki.remove_namespace(wiki.redirect_target_of(WikiProject_banner_shell_token));
+		} else {
 			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(WPBS_template_name));
 			need_insert_WPBS = true;
 		}
@@ -1836,8 +1839,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						// [[Wikipedia:Bots/Requests for approval/Cewbot 12]] remove any duplicate listas value
 						for (const [parameter_name, value] of Object.entries(token.parameters)) {
 							if (parameter_name === 'listas' &&
-								(value === WPBS_template_object[parameter_name] || value === WikiProject_banner_shell_token.parameters[parameter_name]))
+								(value === WPBS_template_object[parameter_name] || value === WikiProject_banner_shell_token.parameters[parameter_name])) {
 								parameters_to_remove.push(parameter_name);
+							}
 						}
 
 						if (parameters_to_remove.length > 0) {
@@ -1851,6 +1855,23 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					WikiProject_templates.push(token);
 					// Fix to the redirect target
 					token[0] = wiki.remove_namespace(wiki.redirect_target_of(token));
+
+					// fix for [[Wikipedia:Bots/Requests for approval/EnterpriseyBot 10]]
+					for (let _index = index; ++_index < parent.length;) {
+						/** 接著的 token */
+						const follow_token = parent[_index];
+						if (follow_token.toString().trim()) {
+							// e.g., "<!-- Formerly assessed as Start-class -->"
+							if (follow_token.type === 'comment' && follow_token.length === 1 && /assessed as (?:\w+-class|class-\w+)/.test(follow_token[0])) {
+								if (!token.parameters.class)
+									CeL.wiki.parse.replace_parameter(token, { class: follow_token }, { value_only: true, force_add: true, no_value_space: true, });
+								for (let i = index; ++i <= _index;)
+									parent[i] = '';
+							}
+							break;
+						}
+					}
+
 					return parsed.each.remove_token;
 				}
 			});
@@ -1947,9 +1968,9 @@ async function generate_report(options) {
 			'class': "wikitable sortable"
 		});
 		if (!CeL.is_empty_object(have_to_edit_its_talk_page))
-			report_wikitext = `* ${Object.keys(have_to_edit_its_talk_page).length} talk pages to edit${options.no_editing_of_talk_pages ? ' (The amount of talk pages to edit exceeds the value of talk_page_limit_for_editing on the configuration page. Do not edit the talk pages at all.)' : ''}.\n` + report_wikitext;
+			report_wikitext = `* ${Object.keys(have_to_edit_its_talk_page).length} talk page(s) to edit${options.no_editing_of_talk_pages ? ' (The amount of talk pages to edit exceeds the value of talk_page_limit_for_editing on the configuration page. Do not edit the talk pages at all.)' : ''}.\n` + report_wikitext;
 		if (report_lines.skipped_records > 0)
-			report_wikitext = `* Skip ${report_lines.skipped_records.toLocaleString()} records.\n` + report_wikitext;
+			report_wikitext = `* Skip ${report_lines.skipped_records.toLocaleString()} record(s).\n` + report_wikitext;
 	} else {
 		report_wikitext = "* '''So good, no news!'''";
 	}
