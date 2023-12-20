@@ -14,6 +14,7 @@ node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态�
 node 20201008.fix_anchor.js use_language=zh "check_page=原神"
 node 20201008.fix_anchor.js use_language=zh "check_page=曾比特"
 node 20201008.fix_anchor.js use_language=zh "check_page=最大負同界角"
+node 20201008.fix_anchor.js use_language=zh "check_page=威世智" "only_modify_pages=威世智"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
@@ -98,6 +99,11 @@ TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
 fix [[Special:PermanentLink]]
 "#a" 與 "# a" 共存時，大小寫、空白出問題的處理。
+
+https://en.wikipedia.org/w/index.php?title=Talk:Anti-humor&diff=prev&oldid=1190130091
+https://en.wikipedia.org/w/index.php?title=J._B._Blanding&diff=prev&oldid=1190818420
+
+https://en.wikipedia.org/w/index.php?title=Q109_(New_York_City_bus)&diff=prev&oldid=1190492763
 
 https://en.wikipedia.org/w/index.php?title=Bibliography_of_works_on_Davy_Crockett&diff=prev&oldid=1080437075&diffmode=source
 https://en.wikipedia.org/w/index.php?title=Brands_Hatch_race_winners&curid=39487649&diff=1084263902&oldid=1083976678&diffmode=source
@@ -190,6 +196,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 // ----------------------------------------------------------------------------
 
+// IIFE
 (async () => {
 	login_options.configuration_adapter = adapt_configuration;
 	//console.trace(login_options);
@@ -1275,14 +1282,14 @@ async function check_page(target_page_data, options) {
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			wikitext_to_add = `\n* <nowiki>${anchor_token}</nowiki> ${move_to_page_title_via_link
 				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
-				? CeL.gettext('Anchor %1 links to a specific web page: %2.', CeL.wiki.title_link_of((anchor_token.article_index ? anchor_token[anchor_token.anchor_index] : anchor_token[0]) + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
+				? CeL.gettext('Anchor %1 links to a specific web page: %2.', CeL.wiki.title_link_of(anchor_token[anchor_token.article_index || 0] + '#' + anchor_token.anchor), CeL.wiki.title_link_of(target_link))
 				: ''
 				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 					? `${record.disappear ?
 						// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
 						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
-						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, anchor_token[1]) : ''
+						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, anchor_token.anchor) : ''
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
 					} <!-- ${JSON.stringify(record)
 						// 預防 其中有 <!-- --> 之類。
@@ -1427,7 +1434,7 @@ async function check_page(target_page_data, options) {
 			return;
 		}
 
-		const original_anchor = token.anchor_index ? token[token.anchor_index] : token[1];
+		const original_anchor = token[token.anchor_index || 1];
 		// assert: token.anchor === CeL.wiki.parse.anchor.normalize_anchor(original_anchor)
 		/** {Object} record of the anchor */
 		const record = get_section_title_data(section_title_history, token.anchor);
@@ -1487,7 +1494,7 @@ async function check_page(target_page_data, options) {
 				return;
 			const target_link = move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : '');
 			// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
-			const message = CeL.gettext('Anchor %1 links to a specific web page: %2.', CeL.wiki.title_link_of((token.article_index ? token[token.anchor_index] : token[0]) + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
+			const message = CeL.gettext('Anchor %1 links to a specific web page: %2.', CeL.wiki.title_link_of(token[token.article_index || 0] + '#' + token.anchor), CeL.wiki.title_link_of(target_link));
 			CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
 			//console.trace(`${original_anchor} → ${move_to_page_title_via_link.join('#')}`);
 			add_summary(this, message);
