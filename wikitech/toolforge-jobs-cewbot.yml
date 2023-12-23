@@ -360,6 +360,7 @@
 # 國語日報的憑證有問題。node8已無法取得內容，只能用node6。
 - name: k8s-20180511.headline.tw-1
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  image: node18
   mem: 2Gi
   schedule: "5 0 * * *"
 - name: k8s-20180511.headline.hk-1
@@ -391,6 +392,7 @@
 
 - name: k8s-20180511.headline.tw-2
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  image: node18
   mem: 2Gi
   schedule: "5 5 * * *"
 - name: k8s-20180511.headline.hk-2
@@ -422,6 +424,7 @@
 # 晚報頭條新聞標題
 - name: k8s-20180511.headline.tw-3
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  image: node18
   mem: 2Gi
   schedule: "5 9 * * *"
 - name: k8s-20180511.headline.hk-3
@@ -453,6 +456,7 @@
 # 當天最後一次擷取新聞
 - name: k8s-20180511.headline.tw-4
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
+  image: node18
   mem: 2Gi
   schedule: "35 15 * * *"
 - name: k8s-20180511.headline.hk-4
