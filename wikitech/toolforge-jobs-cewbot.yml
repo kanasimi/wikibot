@@ -6,6 +6,7 @@
 
 # https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-deploy/-/blob/main/components/maintain-kubeusers/values/tools.yaml?ref_type=heads
 
+# 名稱不可重複
 
 # --------------------------------------------------------------------------------------------------
 # Cron jobs
@@ -111,22 +112,22 @@
   schedule: "4 2 * * 0"
 
 # 應在月初 dump 前執行一次，checkwiki 後執行一次。
-- name: k8s-20151002.wpcheck.zh
+- name: k8s-20151002.wpcheck.zh-1
   command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=zh"
   image: node18
   mem: 2Gi
   schedule: "57 23 28 * *"
-- name: k8s-20151002.wpcheck.ja
+- name: k8s-20151002.wpcheck.ja-1
   command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=ja"
   image: node18
   mem: 2Gi
   schedule: "59 23 28 * *"
-- name: k8s-20151002.wpcheck.zh
+- name: k8s-20151002.wpcheck.zh-2
   command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=zh"
   image: node18
   mem: 2Gi
   schedule: "7 1 11 * *"
-- name: k8s-20151002.wpcheck.ja
+- name: k8s-20151002.wpcheck.ja-2
   command: "node ./wikibot/routine/20151002.WPCHECK.js use_language=ja"
   image: node18
   mem: 2Gi
@@ -281,54 +282,54 @@
 # -----------------------------------------------------------------------------
 # zh.wiki
 
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-01
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production"
   image: node18
   mem: 2Gi
   schedule: "0 0 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-02
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good"
   image: node18
   mem: 2Gi
   schedule: "20 0 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-03
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=2"
   image: node18
   mem: 2Gi
   schedule: "40 0 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-04
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=2 type=good"
   image: node18
   mem: 2Gi
   schedule: "0 1 * * *"
 # 提早兩三天先準備好，避免有時程式庫維護中出錯，造成必須由管理員出面，編輯受保護頁面的情況。
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-05
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=3"
   image: node18
   mem: 2Gi
   schedule: "0 7 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-06
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js days_later=3 type=good"
   image: node18
   mem: 2Gi
   schedule: "20 7 * * *"
 # 每天凌晨零時之前，若是頁面還不存在，就會找一個之前曾經上過首頁的最古老 FC_title 頁面來展示。
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-07
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production"
   image: node18
   mem: 2Gi
   schedule: "40 14 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-08
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production days_later=2"
   image: node18
   mem: 2Gi
   schedule: "0 15 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-09
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good"
   image: node18
   mem: 2Gi
   schedule: "20 15 * * *"
-- name: k8s-20190101.featured-content-maintainer
+- name: k8s-20190101.featured-content-maintainer-10
   command: "node ./wikibot/routine/20190101.featured_content_maintainer.js environment=production type=good days_later=2"
   image: node18
   mem: 2Gi
@@ -357,130 +358,131 @@
 
 # Wikimedia Toolforge 採用UTC，對 UTC+8 的新聞資料來源只能在 0時到 16時之間截取。
 # 國語日報的憑證有問題。node8已無法取得內容，只能用node6。
-- name: k8s-20180511.headline.tw
+- name: k8s-20180511.headline.tw-1
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
   mem: 2Gi
   schedule: "5 0 * * *"
-- name: k8s-20180511.headline.hk
+- name: k8s-20180511.headline.hk-1
   command: "node ./wikibot/routine/20180511.headline.js locale=香港"
   image: node18
   mem: 2Gi
   schedule: "10 0 * * *"
 # 早上七八點的時候可能只有自由時報是今天的新聞，其他都是昨天的。
-- name: k8s-20180511.headline.world
+- name: k8s-20180511.headline.world-1
   command: "node ./wikibot/routine/20180511.headline.js locale=國際"
   image: node18
   mem: 2Gi
   schedule: "15 0 * * *"
-- name: k8s-20180511.headline.cn
+- name: k8s-20180511.headline.cn-1
   command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
   image: node18
   mem: 2Gi
   schedule: "20 0 * * *"
-- name: k8s-20180511.headline.sea
+- name: k8s-20180511.headline.sea-1
   command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
   image: node18
   mem: 2Gi
   schedule: "25 0 * * *"
-- name: k8s-20180511.headline.mo
+- name: k8s-20180511.headline.mo-1
   command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
   image: node18
   mem: 2Gi
   schedule: "30 0 * * *"
 
-- name: k8s-20180511.headline.tw
+- name: k8s-20180511.headline.tw-2
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
   mem: 2Gi
   schedule: "5 5 * * *"
-- name: k8s-20180511.headline.hk
+- name: k8s-20180511.headline.hk-2
   command: "node ./wikibot/routine/20180511.headline.js locale=香港"
   image: node18
   mem: 2Gi
   schedule: "10 5 * * *"
-- name: k8s-20180511.headline.world
+- name: k8s-20180511.headline.world-2
   command: "node ./wikibot/routine/20180511.headline.js locale=國際"
   image: node18
   mem: 2Gi
   schedule: "15 5 * * *"
-- name: k8s-20180511.headline.cn
+- name: k8s-20180511.headline.cn-2
   command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
   image: node18
   mem: 2Gi
   schedule: "20 5 * * *"
-- name: k8s-20180511.headline.sea
+- name: k8s-20180511.headline.sea-2
   command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
   image: node18
   mem: 2Gi
   schedule: "25 5 * * *"
-- name: k8s-20180511.headline.mo
+- name: k8s-20180511.headline.mo-2
   command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
   image: node18
   mem: 2Gi
   schedule: "30 5 * * *"
+  
 # 晚報頭條新聞標題
-- name: k8s-20180511.headline.tw
+- name: k8s-20180511.headline.tw-3
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
   mem: 2Gi
   schedule: "5 9 * * *"
-- name: k8s-20180511.headline.hk
+- name: k8s-20180511.headline.hk-3
   command: "node ./wikibot/routine/20180511.headline.js locale=香港"
   image: node18
   mem: 2Gi
   schedule: "10 9 * * *"
-- name: k8s-20180511.headline.world
+- name: k8s-20180511.headline.world-3
   command: "node ./wikibot/routine/20180511.headline.js locale=國際"
   image: node18
   mem: 2Gi
   schedule: "15 9 * * *"
-- name: k8s-20180511.headline.cn
+- name: k8s-20180511.headline.cn-3
   command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
   image: node18
   mem: 2Gi
   schedule: "20 9 * * *"
-- name: k8s-20180511.headline.sea
+- name: k8s-20180511.headline.sea-3
   command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
   image: node18
   mem: 2Gi
   schedule: "25 9 * * *"
-- name: k8s-20180511.headline.mo
+- name: k8s-20180511.headline.mo-3
   command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
   image: node18
   mem: 2Gi
   schedule: "30 9 * * *"
 
 # 當天最後一次擷取新聞
-- name: k8s-20180511.headline.tw
+- name: k8s-20180511.headline.tw-4
   command: "node ./wikibot/routine/20180511.headline.js locale=臺灣"
   mem: 2Gi
   schedule: "35 15 * * *"
-- name: k8s-20180511.headline.hk
+- name: k8s-20180511.headline.hk-4
   command: "node ./wikibot/routine/20180511.headline.js locale=香港"
   image: node18
   mem: 2Gi
   schedule: "40 15 * * *"
-- name: k8s-20180511.headline.world
+- name: k8s-20180511.headline.world-4
   command: "node ./wikibot/routine/20180511.headline.js locale=國際"
   image: node18
   mem: 2Gi
   schedule: "45 15 * * *"
-- name: k8s-20180511.headline.cn
+- name: k8s-20180511.headline.cn-4
   command: "node ./wikibot/routine/20180511.headline.js locale=中國大陸"
   image: node18
   mem: 2Gi
   schedule: "50 15 * * *"
-- name: k8s-20180511.headline.sea
+- name: k8s-20180511.headline.sea-4
   command: "node ./wikibot/routine/20180511.headline.js locale=東南亞"
   image: node18
   mem: 2Gi
   schedule: "55 15 * * *"
-- name: k8s-20180511.headline.mo
+- name: k8s-20180511.headline.mo-4
   command: "node ./wikibot/routine/20180511.headline.js locale=澳門"
   image: node18
   mem: 2Gi
   schedule: "58 15 * * *"
 
 # for 華僑報
-- name: k8s-20180511.headline.mo
+- name: k8s-20180511.headline.mo-5
   command: "node ./wikibot/routine/20180511.headline.js days_ago=1 locale=澳門"
   image: node18
   mem: 2Gi
@@ -584,12 +586,6 @@
   image: node18
   mem: 2Gi
   schedule: "2 0 * * *"
-# 有時會出現錯誤。再執行一次，避免忽略執行。
-- name: k8s-20200206.reminded-expired-afd
-  command: "node ./wikibot/routine/20200206.reminded_expired_AfD.js"
-  image: node18
-  mem: 2Gi
-  schedule: "2 12 * * *"
 
 # Sorting category of Thai names
 - name: k8s-20210422.sorting-category-and-sort-key-of-thai
