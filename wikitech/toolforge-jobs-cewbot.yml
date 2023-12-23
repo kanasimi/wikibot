@@ -151,7 +151,7 @@
   schedule: "4 22 * * *"
 
 # 把已經重定向的分類下面的頁面搬到新分類下面。
-- name: k8s-20230406.clean-up-redirected-categories.zhwikinews
+- name: k8s-20230406.clean-up-redirected-categories.zh-w
   command: "node ./wikibot/routine/20230406.Clean_up_redirected_categories.js use_project=zh.wikinews"
   image: node18
   mem: 2Gi
@@ -515,6 +515,7 @@
   command: "1g -once -quiet /usr/bin/node ./wikibot/routine/20221102.create_wikinews_category_and_project_pages.js month_duration=3"
   image: node18
   schedule: "2 0 1 * *"
+
 
 # -----------------------------------------------------------------------------
 # commons.wikimedia.org
