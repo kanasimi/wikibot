@@ -877,7 +877,9 @@ async function for_each_list_page(list_page_data) {
 					// detailed_level這個參數是為了準確的連結到列表頁面。現在我採用的方法其實是讀取列表頁面之後，取得頁面名稱與章節名稱再來做分類。topic、subpage 其實是從[[User:Cewbot/log/20200122/configuration#Topics]]轉換獲得的，不是靠著一頁一頁讀取文章的talk頁面。其實我一直疑惑，為何像 5/People/Entertainers, directors, producers, and screenwriters 不能夠設定成 subpage=Entertainers, directors, producers, and screenwriters，如此就能少一個轉換的過程。
 					// The <code>detailed_level</code> parameter is to link to the list page accurately. The way I'm using now is to read the list page and then get the page name and chapter name to categorize it. <code>topic</code> and <code>subpage</code> are actually converted from [[User:Cewbot/log/20200122/configuration#Topics]] instead of relying on reading the talk page of the article one by one. In fact, I've been wondering why something like <code>5/People/Entertainers, directors, producers, and screenwriters</code> can't be set to <code>subpage=Entertainers, directors, producers, and screenwriters</code>, so that there is less conversion process.
 					detailed_level: level_of_page_title(list_page_data),
-					link: latest_section_title?.link,
+					link: latest_section_title?.link
+						// ugly hack
+						|| [list_page_data.title, ''],
 				};
 				listed_article_info[normalized_page_title].push(article_info);
 
@@ -900,6 +902,9 @@ async function for_each_list_page(list_page_data) {
 				// 先把本章節的條目數量儲存在 .item_count，等到最後 function set_section_title_count(parent_section) 再一次處理。
 				if (latest_section_title) {
 					latest_section_title.item_count++;
+				} else {
+					// 記錄用。 e.g., [[w:zh:Wikipedia:基礎條目/第一級]]
+					//article_info.list_page_title = list_page_data.title;
 				}
 
 				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
@@ -1369,7 +1374,7 @@ async function generate_all_VA_list_page() {
 			if (article_info.level > 1 && article_info.link[1]) {
 				article_info.section = article_info.link[1].replace(PATTERN_count_mark, '').trimEnd();
 			}
-			if (!article_info.link) console.trace(article_info);
+			//if (!article_info.link) console.trace(article_info);
 			// 裁切過的連結 cf. detailed_level
 			article_info.trimmed_link = article_info.link[0].replace(/^[^\/]+/, '') + (article_info.link[1] ? '#' + article_info.link[1] : '');
 			delete article_info.link;
