@@ -578,9 +578,9 @@
 # -----------------------------------------------------------------------------
 # enwiki
 
-# Update the section counts and article assessment icons for all levels of Wikipedia:Vital articles.
-- name: k8s-20200122.update-vital-articles
-  command: "node ./wikibot/routine/20200122.update_vital_articles.js"
+# Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
+- name: k8s-20200122.update-vital-articles.en
+  command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=en"
   image: node18
   mem: 2Gi
   schedule: "2 8 * * *"
