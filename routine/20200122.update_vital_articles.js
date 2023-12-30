@@ -398,7 +398,8 @@ async function main_process() {
 
 		//routine_task_done('1 week');
 
-	} else if (wiki.latest_task_configuration.general.modify_talk_pages) {
+	} else {
+		//if (wiki.latest_task_configuration.general.modify_talk_pages)
 		await generate_report({ no_editing_of_talk_pages });
 
 		routine_task_done('1d');
@@ -741,7 +742,7 @@ async function for_each_list_page(list_page_data) {
 	}
 
 	const level = level_of_page_title(list_page_data, true);
-	if (!level) {
+	if (false && !level && wiki.site_name() !== 'zhwiki') {
 		CeL.warn(`${for_each_list_page.name}: Skip ${CeL.wiki.title_link_of(list_page_data)}: Invalid vital articles list page?`);
 		return Wikiapi.skip_edit;
 	}
@@ -918,7 +919,7 @@ async function for_each_list_page(list_page_data) {
 					replace_level_note(_item, index, list_page_or_category_level, '');
 				} else {
 					// `list_page_or_category_level===undefined`: e.g., redirected
-					replace_level_note(_item, index, list_page_or_category_level, list_page_or_category_level ? undefined : '');
+					replace_level_note(_item, index, list_page_or_category_level, level ? list_page_or_category_level ? undefined : '' : '');
 
 					if (false) {
 						const message = `Category level ${list_page_or_category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
@@ -932,7 +933,7 @@ async function for_each_list_page(list_page_data) {
 							reason: `The article is listed in the level ${level} page`
 						};
 					}
-					if (!(list_page_or_category_level < level)) {
+					if (level && !(list_page_or_category_level < level)) {
 						// Only report when list_page_or_category_level (main level) is not
 						// smallar than level list in.
 						report_lines.push([normalized_page_title, list_page_data, message]);
@@ -1333,6 +1334,11 @@ async function for_each_list_page(list_page_data) {
 	// console.log(wikitext);
 	//console.trace('Skip edit ' + list_page_data.title);
 	//return Wikiapi.skip_edit;
+
+	// e.g., " ([[Wikipedia:基礎條目/擴展/人物|第四級/人物]])"
+	if (false && !level && wiki.site_name() === 'zhwiki')
+		wikitext = wikitext.replace(/ \(\[\[Wikipedia:基礎條目[^|\[\]]+\|[^|\[\]]+\]\]\)/g, '');
+
 	return wikitext;
 }
 
@@ -2101,6 +2107,8 @@ async function generate_report(options) {
 		}
 		if (/^[1-5](?:\/.+)?$/.test(record[1])) {
 			record[1] = level_page_link(record[1], true);
+		} else if (record[1].startsWith(wiki.latest_task_configuration.general.base_page)) {
+			record[1] = CeL.wiki.title_link_of(record[1]);
 		}
 	});
 
@@ -2127,7 +2135,8 @@ async function generate_report(options) {
 * If the category level different to the level listed<ref name="c">Category level is different to the level article listed in.</ref>, maybe the article is redirected<ref name="e">Redirected or no level assigned in talk page. Please fix this issue manually.</ref>.
 * Generate date: <onlyinclude>~~~~~</onlyinclude>
 ${report_mark_start}${report_wikitext}${report_mark_end}
-[[Category:Wikipedia vital articles]]`;
+[[${wiki.site_name() === 'zhwiki' ? 'Category:基礎條目' : 'Category:Wikipedia vital articles'}]]
+`;
 
 	await wiki.edit_page(wiki.latest_task_configuration.general.report_page,
 		report_wikitext, {
