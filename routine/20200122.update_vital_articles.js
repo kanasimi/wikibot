@@ -92,7 +92,7 @@ let categories_representing_icons;
 // @see [[Module:Article history/config]], [[Template:Icon]]
 let icon_note;
 
-let max_VA_level;
+let max_VA_level = 1;
 
 // ----------------------------------------------
 
@@ -294,11 +294,11 @@ async function main_process() {
 	// ----------------------------------------------------
 
 	function to_title(page_data) {
-		const title = typeof page_data === 'string' ? page_data : page_data.title;
-		//console.log([title, title === wiki.latest_task_configuration.general.base_page ? level_to_page_title(DEFAULT_LEVEL, true) : '']);
-		if (title === wiki.latest_task_configuration.general.base_page)
+		const page_title = page_data.title || page_data;
+		//console.log([page_title, page_title === wiki.latest_task_configuration.general.base_page ? level_to_page_title(DEFAULT_LEVEL, true) : '']);
+		if (!page_title || page_title === wiki.latest_task_configuration.general.base_page)
 			return level_to_page_title(DEFAULT_LEVEL, true);
-		return title;
+		return page_title;
 	}
 
 	const vital_articles_list = ((await wiki.prefixsearch(wiki.latest_task_configuration.general.base_page)) || [
@@ -317,12 +317,20 @@ async function main_process() {
 		// '5/Mathematics',
 		// '5/Geography/Cities',
 	].map(level => level_to_page_title(level)))
-		.filter(page_data => !/\.json$/i.test(to_title(page_data)));
+		.filter(page_data => {
+			const page_title = to_title(page_data);
+			if (/\.json$/i.test(page_title))
+				return false;
 
-	max_VA_level = vital_articles_list.reduce((max_VA_level, page_data) => {
-		const level = level_of_page_title(page_data);
-		return max_VA_level < level ? level : max_VA_level;
-	}, 0);
+			const level = level_of_page_title(page_title, true);
+			if (level > 0) {
+				page_data.VA_level = level;
+				if (max_VA_level < level)
+					max_VA_level = level;
+			}
+			return true;
+		});
+
 	// assert: vital_articles_list 標題應該已按照高重要度 → 低重要度的級別排序。
 	//console.trace(vital_articles_list);
 
@@ -339,10 +347,17 @@ async function main_process() {
 		skip_nochange: true,
 		// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
 		sort_function(page_data_1, page_data_2) {
-			const title_1 = to_title(page_data_1);
-			const title_2 = to_title(page_data_2);
+			const level_1 = page_data_1.VA_level || level_of_page_title(page_data_1, true) || max_VA_level + 1;
+			const level_2 = page_data_2.VA_level || level_of_page_title(page_data_2, true) || max_VA_level + 1;
+			//console.log('level', [level_1, page_data_1.title, level_2, page_data_2.title]);
+			if (level_1 > 0 && level_2 > 0 && level_1 !== level_2)
+				return level_1 - level_2;
+
+			const page_title_1 = to_title(page_data_1);
+			const page_title_2 = to_title(page_data_2);
+			//console.log('title', [page_title_1, page_data_1, page_title_2, page_data_2]);
 			// assert: to_title(page_data_1) !== to_title(page_data_2)
-			return title_1 < title_2 ? -1 : 1;
+			return page_title_1 < page_title_2 ? -1 : 1;
 		},
 		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title, 'Update the section counts and article assessment icons')
 	});
@@ -541,6 +556,7 @@ async function get_page_info() {
 
 		const FC_type = wiki.FC_data_hash[page_title] && wiki.FC_data_hash[page_title].type;
 		if (FC_type) {
+			//console.trace(page_title, wiki.FC_data_hash[page_title]);
 			if (FC_type !== VA_class) {
 				let category = wiki.get_featured_content_configurations()[FC_type];
 				if (category) {
@@ -577,6 +593,7 @@ async function get_page_info() {
 			continue;
 		}
 
+		//if (page_title === '') console.trace(VA_class, icons);
 		// assert: /^(?:FA|FL|GA)$/.test(VA_class)
 		if (fallback()) {
 			continue;
@@ -909,17 +926,17 @@ async function for_each_list_page(list_page_data) {
 				}
 
 				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
-				// 登記列在本頁面的項目。先到先贏。
-				if (!(normalized_page_title in list_page_level_of_page)) {
-					list_page_level_of_page[normalized_page_title] = level;
-				}
+				//if (normalized_page_title === '月球') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_list_page(list_page_data)]);
 				// The frist link should be the main article.
 				if (list_page_or_category_level === level || is_ignored_list_page(list_page_data)) {
-					// Remove level note. It is unnecessary.
+					//if (normalized_page_title === '月球') console.trace('Remove level note. It is unnecessary.');
 					replace_level_note(_item, index, list_page_or_category_level, '');
 				} else {
 					// `list_page_or_category_level===undefined`: e.g., redirected
-					replace_level_note(_item, index, list_page_or_category_level, level ? list_page_or_category_level ? undefined : '' : '');
+					replace_level_note(_item, index, list_page_or_category_level, !level
+						// 不該列出只從 category 獲得的 level。
+						|| !list_page_level_of_page[normalized_page_title] ? ''
+						: list_page_or_category_level ? undefined : '');
 
 					if (false) {
 						const message = `Category level ${list_page_or_category_level}, also listed in level ${level}. If the article is redirected, please modify the link manually.`;
@@ -951,6 +968,10 @@ async function for_each_list_page(list_page_data) {
 						// e.g., unleveled articles
 						return true;
 					}
+				}
+				// 登記列在本頁面的項目。先到先贏。
+				if (!(normalized_page_title in list_page_level_of_page)) {
+					list_page_level_of_page[normalized_page_title] = level;
 				}
 
 				icons = icons.sort((_1, _2) => {
@@ -1910,8 +1931,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		{
 			const WikiProject_templates = [];
 			parsed.each('template', (token, index, parent) => {
-				if (false && token === WikiProject_banner_shell_token) {
-					console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
+				if (token === WikiProject_banner_shell_token) {
+					//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
+					WikiProject_banner_shell_token.index = index;
+					WikiProject_banner_shell_token.parent = parent;
+					return;
 					//return parsed.each.skip_inner;
 				}
 				// /^WikiProject /.test(token.name)
@@ -2014,11 +2038,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				CeL.wiki.inplace_reparse_token(WikiProject_banner_shell_token, wiki.append_session_to_options());
 				// adding to the bottom of the banner shell
 				if (WikiProject_banner_shell_token.parameters[1]) {
-					WikiProject_templates.unshift(WikiProject_banner_shell_token.parameters[1].toString().trim());
-				}
-				if (WikiProject_banner_shell_token.index_of[1]) {
 					// 避免消除原有內容。
-					extra_contents = WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]].toString().replace(/^\s*1\s*=/, '').trim();
+					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
 				}
 				WPBS_template_object[1] = ('\n' + WikiProject_templates
 					// [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 26]]
@@ -2055,8 +2076,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					return token + extra_contents + '\n';
 				}
 			});
+		} else if (extra_contents) {
+			WikiProject_banner_shell_token.parent.splice(WikiProject_banner_shell_token.index + 1, 0, '\n' + extra_contents);
 		}
-		//console.trace(WPBS_template_object, WikiProject_banner_shell_token, WikiProject_banner_shell_token.toString());
+
+		//console.trace(need_insert_WPBS, WPBS_template_object, WikiProject_banner_shell_token, [extra_contents, WikiProject_banner_shell_token.toString()]);
 	}
 
 	const wikitext = parsed.toString()
