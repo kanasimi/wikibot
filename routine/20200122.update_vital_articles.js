@@ -187,8 +187,10 @@ async function adapt_configuration(latest_task_configuration) {
 
 	//wiki.latest_task_configuration.general.base_page = wiki.normalize_title(wiki.latest_task_configuration.general.base_page.replace(/\/+$/, ''));
 
-	if (general.report_page)
+	if (false && general.report_page) {
+		// 現在多方位，不純粹以 vital article 為主。
 		talk_page_summary_prefix = CeL.wiki.title_link_of(general.report_page, talk_page_summary_prefix_text);
+	}
 
 	if (general.pages_auto_add_summary_table && !CeL.is_RegExp(general.pages_auto_add_summary_table = general.pages_auto_add_summary_table.to_RegExp())) {
 		CeL.error(`${adapt_configuration.name}: Invalid RegExp: ${general.pages_auto_add_summary_table}`);
@@ -389,8 +391,9 @@ async function main_process() {
 		}
 
 		for (const WikiProject_template_data of all_WikiProject_template_list) {
+			continue;
 			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_data)
-				|| !wiki.is_template(WPBIO_template_name, WikiProject_template_data)
+				//|| !wiki.is_template(WPBIO_template_name, WikiProject_template_data)
 			) {
 				continue;
 			}
@@ -401,7 +404,7 @@ async function main_process() {
 				const page_title = do_PIQA >= 1 ? page_data.title : do_PIQA;
 				have_to_edit_its_talk_page[page_title] = {
 					// 所有作業皆經由人工監督。
-					talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
+					//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
 					no_topic_message: true,
 					do_PIQA: true,
 					key_is_talk_page: true,
@@ -411,7 +414,9 @@ async function main_process() {
 			await maintain_VA_template();
 		}
 
-		//routine_task_done('1 week');
+		CeL.info(`${main_process.name}: Do PIQA, skip VA report.`);
+
+		routine_task_done('1 week');
 
 	} else {
 		//if (wiki.latest_task_configuration.general.modify_talk_pages)
@@ -516,7 +521,7 @@ async function get_page_info() {
 		) {
 			have_to_edit_its_talk_page[page_title] = {
 				class: VA_class || '',
-				reason: `[[Wikipedia:Templates for discussion/Log/2023 May 17#Template:Vital article|Merge {{VA}} into {{WPBS}}]].`,
+				reason: `Merge {{VA}} into {{WPBS}}.`,
 				no_topic_message: true,
 			};
 		}
@@ -1613,7 +1618,7 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary_prefix_text = `Maintain {{${WPBS_template_name}}} and vital articles`;
+const talk_page_summary_prefix_text = `Maintain {{${WPBS_template_name && 'WPBS'}}} and vital articles`;
 let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
 //console.log(talk_page_summary_prefix);
 
@@ -1911,8 +1916,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			need_insert_WPBS = true;
 		}
 
+		article_info.reason = article_info.reason ? [article_info.reason] : [];
 		if (majority_class && majority_class === VA_class)
-			article_info.reason = (article_info.reason || '') + ` (keep the class of vital article: ${majority_class} in {{WPBS}})`;
+			article_info.reason.push(`Keep the rating of vital article ${JSON.stringify(majority_class)} in {{WPBS}}.`);
 		// new style from 2023/12:
 		const WPBS_template_object = {
 			// Using WPBS parameter first.
@@ -1983,9 +1989,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
 						} else if (normalize_class(token.parameters.class) === WPBS_template_object.class) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
-							const _reason = ' (Remove the same ratings as {{WPBS}} and keep only the dissimilar ones.)';
-							if (!article_info.reason || !article_info.reason.includes(_reason))
-								article_info.reason = (article_info.reason || '') + _reason;
+							const _reason = 'Remove the same ratings as {{WPBS}} and keep only the dissimilar ones.';
+							if (!article_info.reason.includes(_reason))
+								article_info.reason.push(_reason);
 						}
 
 						// TODO: fix [[Category:WikiProject templates with unknown parameters]]
@@ -2039,6 +2045,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				// adding to the bottom of the banner shell
 				if (WikiProject_banner_shell_token.parameters[1]) {
 					// 避免消除原有內容。
+					// TODO: https://en.wikipedia.org/w/index.php?title=Talk:Amphetamine&diff=prev&oldid=1192899833
 					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
 				}
 				WPBS_template_object[1] = ('\n' + WikiProject_templates
@@ -2050,9 +2057,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					}).join('\n') + '\n')
 					// 去掉太多的換行。
 					.replace(/\n{2,}/g, '\n');
-				article_info.reason = WikiProject_templates.length + ' WikiProject template(s). ' + (article_info.reason || '');
+				article_info.reason.unshift(WikiProject_templates.length + ' WikiProject template(s). ');
 			}
 		}
+
+		if (!WPBS_template_object.class)
+			delete WPBS_template_object.class;
 
 		if (Object.keys(WPBS_template_object).length > 0) {
 			//console.trace([WPBS_template_object, WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]]);
@@ -2066,7 +2076,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// TODO: resort WikiProject_banner_shell_token
 		// <s>可考慮插入於原 {{Vital article}} 處？</s>
 		if (need_insert_WPBS) {
-			CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${WikiProject_banner_shell_token.toString().trim()}`);
+			//CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${WikiProject_banner_shell_token.toString().trim()}`);
+
 			// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
 			parsed.insert_layout_token(WikiProject_banner_shell_token, {
 				post_processor(token) {
@@ -2097,11 +2108,31 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return Wikiapi.skip_edit;
 		// console.log(wikitext);
 	}
-	this.summary = article_info.full_summary
-		|| `${article_info.talk_page_summary_prefix || talk_page_summary_prefix}: ${article_info.reason || ''} ${article_info.no_topic_message ? ''
-			: article_info.topic ? `Configured as topic=${article_info.topic}${article_info.subpage ? ', subpage=' + article_info.subpage : ''}`
-				: article_info.remove ? ''
-					: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page')}`;
+
+	if (article_info.full_summary) {
+		this.summary = article_info.full_summary;
+	} else {
+		this.summary = [(article_info.talk_page_summary_prefix || talk_page_summary_prefix) + ':'];
+		if (article_info.reason) {
+			if (Array.isArray(article_info.reason))
+				this.summary.append(article_info.reason);
+			else
+				this.summary.push(article_info.reason);
+		}
+		if (!article_info.no_topic_message && wiki.latest_task_configuration.Topics) {
+			if (article_info.topic) {
+				let message = `Configured as topic=${article_info.topic}`;
+				if (article_info.subpage)
+					message += ', subpage=' + article_info.subpage;
+				message += '.';
+				this.summary.push(message);
+			} else if (!article_info.remove) {
+				this.summary.push(CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page'));
+			}
+		}
+		this.summary = this.summary.join(' ');
+	}
+
 	return wikitext;
 }
 
