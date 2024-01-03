@@ -172,14 +172,16 @@ async function for_each_item(talk_page_data) {
 	// ------------------------------------------------------------------------
 
 	let wikitext_to_add = `{{${options.template_page}}}`;
-	if (WikiProject_banner_shell_token) {
+	// 2023/12 {{WikiProject banner shell}} 改版，現在不放在裡面。
+	// [[Template talk:WikiProject banner shell#Duplicate banner templates category]]
+	if (false && WikiProject_banner_shell_token) {
 		this.summary += 'into {{WikiProject banner shell}}';
 		CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, {
 			'1': value => wikitext_to_add + '\n' + (value ? value.toString().trimStart() : '')
 		}, 'value_only');
 	} else {
 		this.summary += 'as a hatnote';
-		parsed.insert_layout_token(wikitext_to_add, /* hatnote_templates */'lead_templates_end');
+		parsed.insert_layout_token(wikitext_to_add, /* talk_page_lead */'lead_templates_end');
 	}
 
 	return parsed.toString();
