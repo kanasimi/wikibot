@@ -2,10 +2,10 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=50
+node 20200122.update_vital_articles.js use_language=en do_PIQA=1000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Agnes Mizere"
-TODO:
 node 20200122.update_vital_articles.js use_language=zh
+TODO:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 
 2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
@@ -66,12 +66,14 @@ const listed_article_info = Object.create(null);
  */
 const have_to_edit_its_talk_page = Object.create(null);
 
-let VA_template_name = 'Vital article';
-let WPBS_template_name = 'WikiProject banner shell';
-let WPDAB_template_name = 'WikiProject Disambiguation';
-let WPBIO_template_name = 'WikiProject Biography';
+const template_name_hash = {
+	VA: 'Vital article',
+	WPBS: 'WikiProject banner shell',
+	WPDAB: 'WikiProject Disambiguation',
+	WPBIO: 'WikiProject Biography',
+	VA_count: 'Vital article count',
+};
 const parameters_move_from_WPBIO_to_WPBS = new Set(['living', 'blp', 'BLP', 'activepol', 'blpo', 'listas']);
-let count_template_name = 'Vital article count';
 
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
 const DEFAULT_LEVEL = 3;
@@ -87,16 +89,14 @@ report_lines.skipped_records = 0;
 report_lines.warned_topics = new Set;
 
 /** {Object}代表圖示的分類。將從這些分類取得文章的圖示資訊。*/
-let categories_representing_icons;
-// There is no category of the icons now, preserve the icon.
-// @see [[Module:Article history/config]], [[Template:Icon]]
-let icon_note;
+let icons_schema;
+let icon_order_Set, icon_order_Map;
 
 let max_VA_level = 1;
 
 // ----------------------------------------------
 
-/** others. 其他 categories_representing_icons 沒設定的 */
+/** others. 其他 icons_schema 沒設定的 */
 const KEY_extra_items = '*';
 function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) {
 	if (!order_Set)
@@ -122,8 +122,6 @@ function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) 
 }
 
 // ----------------------------------------------
-
-let icon_order_Set, icon_order_Map;
 
 function get_topic_of_section(page_and_section, topic) {
 	const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#').replace(/^([^#]+)#$/, '$1') || DEFAULT_LEVEL;
@@ -197,14 +195,13 @@ async function adapt_configuration(latest_task_configuration) {
 		delete general.pages_auto_add_summary_table;
 	}
 
-	//console.trace(general.categories_representing_icons);
+	//console.trace(general.icons_schema);
 	// reset
-	categories_representing_icons = Object.create(null);
-	icon_note = Object.create(null);
+	icons_schema = Object.create(null);
 	const icon_order = [];
-	for (let item of general.categories_representing_icons) {
+	for (let item of general.icons_schema) {
 		if (typeof item !== 'string') {
-			CeL.error('Invalid categories_representing_icons: ' + item);
+			CeL.error('Invalid icons_schema: ' + item);
 			continue;
 		}
 		if (item === KEY_extra_items) {
@@ -212,12 +209,12 @@ async function adapt_configuration(latest_task_configuration) {
 			continue;
 		}
 		item = CeL.wiki.parse(item);
-		let icon, category, icon_index;
+		let icon, category_name, icon_index;
 		CeL.wiki.parser.parser_prototype.each.call(item, (token, index, parent) => {
 			if (token.type === 'link') {
 				const link = wiki.normalize_title(token[0].toString());
 				if (wiki.is_namespace(link, 'category'))
-					category = wiki.remove_namespace(link);
+					category_name = wiki.remove_namespace(link);
 			} else if (token.type === 'transclusion' && wiki.is_template('Icon', token)) {
 				//icon = normalize_class(token.parameters[1]);
 				icon = token.parameters[1].toString().trim();
@@ -226,12 +223,16 @@ async function adapt_configuration(latest_task_configuration) {
 		});
 		if (icon) {
 			icon_order.push(icon);
-			if (category)
-				categories_representing_icons[icon] = category;
-			else
-				icon_note[icon] = icon_index[1].slice(icon_index[0]).join('').trim();
+			if (category_name) {
+				icons_schema[icon] = { category_name };
+			} else {
+				// There is no category of the icons now, preserve the icon.
+				// @see [[Module:Article history/config]], [[Template:Icon]]
+				const note = icon_index[1].slice(icon_index[0]).join('').trim();
+				if (note) icons_schema[icon] = { note };
+			}
 		} else {
-			CeL.error('Invalid categories_representing_icons: ' + item);
+			CeL.error('Invalid icons_schema: ' + item);
 		}
 	}
 
@@ -242,7 +243,7 @@ async function adapt_configuration(latest_task_configuration) {
 	} else {
 		icon_order_Set = icon_order_Map = null;
 	}
-	//console.trace({ categories_representing_icons, icon_note, icon_order, icon_order_Set, icon_order_Map });
+	//console.trace({ icons_schema, icon_order, icon_order_Set, icon_order_Map });
 
 	// ----------------------------------------------------
 
@@ -281,17 +282,12 @@ async function main_process() {
 			});
 	}
 
-	await wiki.register_redirects([VA_template_name, WPBS_template_name, WPDAB_template_name, count_template_name,]
-		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead)
-		// includes WPBIO_template_name
-		.append(all_WikiProject_template_list).append(all_opted_out_WikiProject_template_list), { namespace: 'Template', no_message: true });
+	// all_WikiProject_template_list includes template_name_hash.WPBIO
+	await wiki.register_redirects(all_WikiProject_template_list.clone().append(all_opted_out_WikiProject_template_list)
+		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
 
-	VA_template_name = wiki.remove_namespace(wiki.redirect_target_of(VA_template_name, { namespace: 'Template' }));
-	WPBS_template_name = wiki.remove_namespace(wiki.redirect_target_of(WPBS_template_name, { namespace: 'Template' }));
-	WPDAB_template_name = wiki.remove_namespace(wiki.redirect_target_of(WPDAB_template_name, { namespace: 'Template' }));
-	count_template_name = wiki.remove_namespace(wiki.redirect_target_of(count_template_name, { namespace: 'Template' }));
-	WPBIO_template_name = wiki.remove_namespace(wiki.redirect_target_of(WPBIO_template_name, { namespace: 'Template' }));
-	console.trace('Redirect targets:', { VA_template_name, WPBS_template_name, WPDAB_template_name, count_template_name, WPBIO_template_name });
+	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
+	console.log('Redirect targets:', template_name_hash);
 
 	// ----------------------------------------------------
 
@@ -374,7 +370,7 @@ async function main_process() {
 	if (wiki.latest_task_configuration.general.modify_talk_pages) {
 		const talk_pages_to_edit = Object.keys(have_to_edit_its_talk_page).length;
 		if (talk_pages_to_edit > wiki.latest_task_configuration.general.talk_page_limit_for_editing
-			&& !CeL.env.arg_hash?.forced_edit) {
+			&& !do_PIQA && !CeL.env.arg_hash?.forced_edit) {
 			no_editing_of_talk_pages = true;
 			CeL.warn(`編輯談話頁面數量${talk_pages_to_edit}篇，超越編輯數量上限${wiki.latest_task_configuration.general.talk_page_limit_for_editing}。執行時請設定命令列參數 forced_edit 以強制編輯。`);
 		} else {
@@ -390,15 +386,15 @@ async function main_process() {
 			Object.keys(have_to_edit_its_talk_page).forEach(page_title => delete have_to_edit_its_talk_page[page_title]);
 		}
 
-		for (const WikiProject_template_data of all_WikiProject_template_list) {
+		for (const WikiProject_template_title of all_WikiProject_template_list.clone().append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
 			continue;
-			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_data)
-				//|| !wiki.is_template(WPBIO_template_name, WikiProject_template_data)
+			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
+				//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
 			) {
 				continue;
 			}
 
-			for (const page_data of (await wiki.embeddedin(WikiProject_template_data, {
+			for (const page_data of (await wiki.embeddedin(WikiProject_template_title, {
 				limit: 5000
 			})).slice(0, do_PIQA >= 1 ? do_PIQA : 1)) {
 				const page_title = do_PIQA >= 1 ? page_data.title : do_PIQA;
@@ -475,7 +471,9 @@ async function get_page_info() {
 	/**{Object}要與 wiki.FC_data_hash[page_title] 同步的 icons。 */
 	const synchronize_icon_hash = Object.fromEntries(synchronize_icons.map(icon => [icon, true]));
 
-	for (const [icon, category_name] of Object.entries(categories_representing_icons)) {
+	for (const [icon, icon_schema] of Object.entries(icons_schema)) {
+		const { category_name } = icon_schema;
+		if (!category_name) continue;
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
 			if (!wiki.is_namespace(page_data, 'Talk')) {
@@ -580,12 +578,12 @@ async function get_page_info() {
 
 		let icon = 'LIST';
 		// Must test after wiki.FC_data_hash[]
-		if (icons.includes(icon)) {
+		if (icons.includes(icon) && icons_schema[icon]?.category_name) {
 			// e.g., list in [[Category:List-Class List articles]]
 			// but not in [[Category:All Wikipedia List-Class vital articles]]
 			have_to_edit_its_talk_page[page_title] = {
 				class: icon,
-				reason: `The article is listed in list type: [[Category:${categories_representing_icons[icon]}]]`
+				reason: `The article is listed in list type: [[Category:${icons_schema[icon].category_name}]]`
 			};
 			continue;
 		}
@@ -963,7 +961,7 @@ async function for_each_list_page(list_page_data) {
 						// If there is list_page_or_category_level, the page was not redirected.
 						if (!list_page_or_category_level) {
 							// e.g., deleted; redirected (fix latter);
-							// does not has {{`VA_template_name`}}
+							// does not has {{`template_name_hash.VA`}}
 							// (fix @ maintain_VA_template_each_talk_page())
 							need_check_redirected[normalized_page_title] = token;
 						}
@@ -1171,11 +1169,11 @@ async function for_each_list_page(list_page_data) {
 			return Array.isArray(token) && token.some(for_root_token) && parsed.each.exit;
 		}
 
-		if (token.type === 'transclusion' && wiki.is_template(count_template_name, token)) {
+		if (token.type === 'transclusion' && wiki.is_template(template_name_hash.VA_count, token)) {
 			// for set_section_title_count()
 			if (latest_section_title) {
 				if (latest_section_title.count_template) {
-					CeL.warn(`${for_root_token.name}: Has multiple {{${count_template_name}}}: ${latest_section_title}`);
+					CeL.warn(`${for_root_token.name}: Has multiple {{${template_name_hash.VA_count}}}: ${latest_section_title}`);
 					if (!latest_section_title.count_template.parameters.quota && token.parameters.quota > 0)
 						latest_section_title.count_template.push('|quota=' + token.parameters.quota);
 					//return parsed.each.remove_token;
@@ -1258,7 +1256,7 @@ async function for_each_list_page(list_page_data) {
 				CeL.wiki.parse.replace_parameter(parent_section.count_template, parameters_argument, { value_only: true, force_add: true, append_key_value: true });
 			} else if ((item_count > 0 || quota > 0) && wiki.latest_task_configuration.general.auto_add_count_template) {
 				//console.trace(parent_section.parent.slice(parent_section.index, parent_section.index + 2));
-				parent_section.parent[parent_section.index + 1] = `\n{{${count_template_name}|${item_count}${quota ? '|quota=' + quota : ''}}}` + (parent_section.parent[parent_section.index + 1] || '\n');
+				parent_section.parent[parent_section.index + 1] = `\n{{${template_name_hash.VA_count}|${item_count}${quota ? '|quota=' + quota : ''}}}` + (parent_section.parent[parent_section.index + 1] || '\n');
 			}
 		}
 
@@ -1317,7 +1315,8 @@ async function for_each_list_page(list_page_data) {
 	/**summary table / count report table for each page */
 	const summary_table = [['Class', '#Articles']];
 	sorted_keys_of_Object_by_order(article_count_of_icon, icon_order_Set).forEach(icon => {
-		let category_name = categories_representing_icons[icon];
+		const icon_schema = icons_schema[icon];
+		let { category_name } = icon_schema;
 		if (category_name) {
 			category_name = `[[:Category:${category_name}|${icon}]]`;
 		} else if (category_name = wiki.get_featured_content_configurations()) {
@@ -1335,7 +1334,7 @@ async function for_each_list_page(list_page_data) {
 				}
 			}
 		}
-		summary_table.push([`{{Icon|${icon}}} ${category_name || (icon in icon_note ? `<span title="${icon_note[icon]}">${icon}</span>` : icon)}`, article_count_of_icon[icon].toLocaleString()]);
+		summary_table.push([`{{Icon|${icon}}} ${category_name || (icon_schema.note ? `<span title="${icon_schema.note}">${icon}</span>` : icon)}`, article_count_of_icon[icon].toLocaleString()]);
 	});
 
 	const report_Variable_Map = new CeL.wiki.Variable_Map();
@@ -1618,7 +1617,7 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary_prefix_text = `Maintain {{${WPBS_template_name && 'WPBS'}}} and vital articles`;
+const talk_page_summary_prefix_text = `Maintain {{${template_name_hash.WPBS && 'WPBS'}}} and vital articles`;
 let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
 //console.log(talk_page_summary_prefix);
 
@@ -1738,17 +1737,17 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	let WikiProject_template_Map = new Map();
 	parsed.each('template', token => {
-		if (wiki.is_template(WPDAB_template_name, token)) {
+		if (wiki.is_template(template_name_hash.WPDAB, token)) {
 			// TODO: should test main article
 			is_DAB = true;
 			return parsed.each.exit;
 		}
 
 		const class_via_parameter = normalize_class(token.parameters.class);
-		if (wiki.is_template(VA_template_name, token)) {
+		if (wiki.is_template(template_name_hash.VA, token)) {
 			// get the first one
 			if (VA_template_token) {
-				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${VA_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}, keep only the first template!`);
+				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${template_name_hash.VA}}} in ${CeL.wiki.title_link_of(talk_page_data)}, keep only the first template!`);
 				return parsed.each.remove_token;
 			} else {
 				VA_template_token = token;
@@ -1757,9 +1756,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				return parsed.each.remove_token;
 			}
 
-		} else if (wiki.is_template(WPBS_template_name, token)) {
+		} else if (wiki.is_template(template_name_hash.WPBS, token)) {
 			if (WikiProject_banner_shell_token) {
-				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${WPBS_template_name}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${template_name_hash.WPBS}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 			} else {
 				WikiProject_banner_shell_token = token;
 			}
@@ -1807,7 +1806,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// If there's a conflict in the ratings of the templates, keep {{Vital article}} first.
 		&& (!WikiProject_banner_shell_token?.parameters.class || !VA_template_token?.parameters.class || WikiProject_banner_shell_token.parameters.class === VA_template_token.parameters.class)) {
 		parsed.each('template', token => {
-			if (wiki.is_template(VA_template_name, token)) {
+			if (wiki.is_template(template_name_hash.VA, token)) {
 				return parsed.each.remove_token;
 			}
 		});
@@ -1912,13 +1911,13 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// Fix to the redirect target: bypass any redirects to {{WikiProject banner shell}} at the same time
 			WikiProject_banner_shell_token[0] = wiki.remove_namespace(wiki.redirect_target_of(WikiProject_banner_shell_token));
 		} else {
-			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(WPBS_template_name));
+			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(template_name_hash.WPBS));
 			need_insert_WPBS = true;
 		}
 
 		article_info.reason = article_info.reason ? [article_info.reason] : [];
 		if (majority_class && majority_class === VA_class)
-			article_info.reason.push(`Keep the rating of vital article ${JSON.stringify(majority_class)} in {{WPBS}}.`);
+			article_info.reason.push(`Keep the rating of {{VA}} ${JSON.stringify(majority_class)} in {{WPBS}}.`);
 		// new style from 2023/12:
 		const WPBS_template_object = {
 			// Using WPBS parameter first.
@@ -1946,9 +1945,33 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				}
 				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
-					if (!wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
+					/**
+					 * remove class rating from wikiproject banner
+					 */
+					function remove_needless_class(is_opted_out) {
+						if (('class' in token.parameters
+							// remove |class=|
+							&& !token.parameters.class.toString().trim())) {
+							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
+						} else if (!is_opted_out && !has_different_ratings || normalize_class(token.parameters.class) === WPBS_template_object.class) {
+							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
+							if (!article_info.reason.touched_templates) {
+								const _reason = ['Remove the same ratings as {{WPBS}} and keep only the dissimilar ones from ',
+									article_info.reason.touched_templates = [], '.'];
+								article_info.reason.touched_templates.toString = function () { return this.join(', '); };
+								_reason.toString = function () { return this.join(''); };
+								article_info.reason.push(_reason);
+							}
+							article_info.reason.touched_templates.push(`{{${token.name}}}`);
+						}
+					}
+
+					if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
+						// 有些選擇退出的模板有自己的展示方式，利用到class參數，不能完全用[[Module:WikiProject banner]]解決。e.g., {{WikiProject Military history}}
+						//remove_needless_class(true);
+					} else {
 						const parameters_to_remove = [];
-						if (wiki.is_template(WPBIO_template_name, token)) {
+						if (wiki.is_template(template_name_hash.WPBIO, token)) {
 							//@see [[w:en:Template:WikiProject Biography]]
 							for (const parameter_name of parameters_move_from_WPBIO_to_WPBS) {
 								if ((parameter_name in token.parameters)
@@ -1982,17 +2005,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								}
 							}
 						}
-						// move class rating from project banners
-						if (!has_different_ratings || ('class' in token.parameters
-							// remove |class=|
-							&& !token.parameters.class.toString().trim())) {
-							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
-						} else if (normalize_class(token.parameters.class) === WPBS_template_object.class) {
-							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
-							const _reason = 'Remove the same ratings as {{WPBS}} and keep only the dissimilar ones.';
-							if (!article_info.reason.includes(_reason))
-								article_info.reason.push(_reason);
-						}
+
+						remove_needless_class();
 
 						// TODO: fix [[Category:WikiProject templates with unknown parameters]]
 						// [[Wikipedia:Bots/Requests for approval/BattyBot 79]]
@@ -2119,7 +2133,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			else
 				this.summary.push(article_info.reason);
 		}
-		if (!article_info.no_topic_message && wiki.latest_task_configuration.Topics) {
+		if (!article_info.no_topic_message && !CeL.is_empty_object(wiki.latest_task_configuration.Topics)) {
 			if (article_info.topic) {
 				let message = `Configured as topic=${article_info.topic}`;
 				if (article_info.subpage)
