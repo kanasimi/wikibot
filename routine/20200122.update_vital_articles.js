@@ -395,7 +395,7 @@ async function main_process() {
 			}
 
 			for (const page_data of (await wiki.embeddedin(WikiProject_template_title, {
-				limit: 5000
+				//limit: 5000
 			})).slice(0, do_PIQA >= 1 ? do_PIQA : 1)) {
 				const page_title = do_PIQA >= 1 ? page_data.title : do_PIQA;
 				have_to_edit_its_talk_page[page_title] = {
@@ -465,6 +465,7 @@ async function get_page_info() {
 	}
 
 	// ---------------------------------------------
+	//CeL.info('Get pages of each icons_schema');
 
 	/**{Array}要與 wiki.FC_data_hash[page_title] 同步的 icons。 */
 	const synchronize_icons = 'List|FA|FL|GA'.split('|');
@@ -474,6 +475,7 @@ async function get_page_info() {
 	for (const [icon, icon_schema] of Object.entries(icons_schema)) {
 		const { category_name } = icon_schema;
 		if (!category_name) continue;
+		//CeL.log_temporary(`Get pages of icons_schema ${category_name}...`);
 		const pages = await wiki.categorymembers(category_name);
 		pages.forEach(page_data => {
 			if (!wiki.is_namespace(page_data, 'Talk')) {
@@ -492,10 +494,9 @@ async function get_page_info() {
 			}
 		});
 	}
-	// console.log(icons_of_page);
 
 	// ---------------------------------------------
-	// Check VA class, synchronize FA|FL|GA|List.
+	CeL.info(`Check VA class for ${Object.keys(icons_of_page).length} pages, synchronize FA|FL|GA|List.`);
 
 	const former_icon_of_VA_class = {
 		FA: 'FFA',
@@ -505,23 +506,25 @@ async function get_page_info() {
 
 	for (const page_title in icons_of_page) {
 		let icons = icons_of_page[page_title];
-		if (!icons.VA_class) {
-			// There is no VA class of the title. abnormal!
-			continue;
-		}
-
 		// List → LIST
-		const VA_class = icons.VA_class.toUpperCase();
+		const VA_class = icons.VA_class?.toUpperCase();
 
 		// For the first time do_PIQA
-		if (do_PIQA && Object.keys(have_to_edit_its_talk_page).length < do_PIQA
+		if (false && do_PIQA && Object.keys(have_to_edit_its_talk_page).length < do_PIQA
 			//|| page_title.includes('')
 		) {
+			CeL.log_temporary(`${Object.keys(have_to_edit_its_talk_page).length}/${do_PIQA}/${Object.keys(icons_of_page).length}	${page_title}`);
 			have_to_edit_its_talk_page[page_title] = {
 				class: VA_class || '',
 				reason: `Merge {{VA}} into {{WPBS}}.`,
 				no_topic_message: true,
+				do_PIQA: true,
 			};
+		}
+
+		if (!VA_class) {
+			// There is no VA class of the title. abnormal!
+			continue;
 		}
 
 		// Remove FGAN form ".VA_class = GA".
@@ -602,6 +605,26 @@ async function get_page_info() {
 			continue;
 		}
 	}
+
+	// For the first time do_PIQA
+	if (do_PIQA > 0 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
+		let page_list = await wiki.embeddedin(wiki.to_namespace(template_name_hash.VA, { namespace: 'template' }));
+		//console.trace([template_name_hash.VA, page_list.length, do_PIQA, Object.keys(have_to_edit_its_talk_page).length]);
+		page_list = page_list.slice(0, do_PIQA - Object.keys(have_to_edit_its_talk_page).length);
+		for (const page_data of page_list) {
+			if (!(page_data.title in have_to_edit_its_talk_page)) {
+				have_to_edit_its_talk_page[page_data.title] = {
+					//class: '',
+					key_is_talk_page: true,
+					reason: `Merge {{VA}} into {{WPBS}}.`,
+					no_topic_message: true,
+					do_PIQA: true,
+				};
+			}
+		}
+	}
+	//console.trace(icons_of_page['Apollo'], have_to_edit_its_talk_page['Apollo'], Object.keys(have_to_edit_its_talk_page).length);
+
 
 	if (Array.isArray(wiki.latest_task_configuration.general.opted_out_WikiProject_template_categories)) {
 		/** {Array}list of opted out WikiProject templates */
@@ -1628,11 +1651,11 @@ async function maintain_VA_template() {
 	// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
 	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
 	try {
-		await wiki.for_each_page(Object.keys(have_to_edit_its_talk_page).filter(title => {
+		const page_list = Object.keys(have_to_edit_its_talk_page).filter(title => {
 			// the bot only fix namespace=talk.
 			if (have_to_edit_its_talk_page[title].key_is_talk_page ? wiki.is_namespace(title, 'talk')
 				: wiki.is_namespace(title, 'main')) {
-				return true;
+				return wiki.is_namespace(title, 'main');
 			}
 
 			// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
@@ -1640,15 +1663,20 @@ async function maintain_VA_template() {
 			//console.trace(have_to_edit_its_talk_page[title]);
 			delete have_to_edit_its_talk_page[title];
 			return false;
-		}), function (main_page_data) {
-			const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
-			if (!main_article_exists) {
-				delete have_to_edit_its_talk_page[main_page_data.original_title || main_page_data.title];
-			}
 		});
+		if (page_list.length > 0) {
+			CeL.info(`${maintain_VA_template.name}: 檢查 ${page_list.length} 個談話頁面的主頁面是否有內容、非 redirect。`);
+			await wiki.for_each_page(page_list, function (main_page_data) {
+				const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
+				if (!main_article_exists) {
+					delete have_to_edit_its_talk_page[main_page_data.original_title || main_page_data.title];
+				}
+			});
+		}
 	} catch (e) {
 	}
 
+	CeL.info(`${maintain_VA_template.name}: 處理 ${Object.keys(have_to_edit_its_talk_page).length} 個談話頁面。`);
 	let key_title_of_talk_title = Object.create(null);
 	try {
 		await wiki.for_each_page(Object.keys(have_to_edit_its_talk_page).map(title => {
@@ -1699,7 +1727,7 @@ function normalize_class(_class) {
 // or via {{WikiProject banner shell|class=}}, ({{WikiProject *|class=start}})
 function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// For [[Talk:Philippines]]
-	//console.trace(wiki.FC_data_hash[main_page_title]);
+	//console.trace(main_page_title, wiki.FC_data_hash[main_page_title]);
 	const article_info = have_to_edit_its_talk_page[main_page_title];
 
 	// There are copies @ 20201008.fix_anchor.js
@@ -1752,7 +1780,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			} else {
 				VA_template_token = token;
 			}
-			if (article_info.remove) {
+			if (article_info.do_PIQA || article_info.remove) {
 				return parsed.each.remove_token;
 			}
 
@@ -1909,7 +1937,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				has_different_ratings = true;
 			}
 			// Fix to the redirect target: bypass any redirects to {{WikiProject banner shell}} at the same time
-			WikiProject_banner_shell_token[0] = wiki.remove_namespace(wiki.redirect_target_of(WikiProject_banner_shell_token));
+			CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(WikiProject_banner_shell_token)));
 		} else {
 			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(template_name_hash.WPBS));
 			need_insert_WPBS = true;
@@ -1956,7 +1984,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						} else if (!is_opted_out && !has_different_ratings || normalize_class(token.parameters.class) === WPBS_template_object.class) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
 							if (!article_info.reason.touched_templates) {
-								const _reason = ['Remove the same ratings as {{WPBS}} and keep only the dissimilar ones from ',
+								const _reason = ['Remove the same ratings as {{WPBS}} and keep different ratings in ',
 									article_info.reason.touched_templates = [], '.'];
 								article_info.reason.touched_templates.toString = function () { return this.join(', '); };
 								_reason.toString = function () { return this.join(''); };
@@ -2031,7 +2059,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 					WikiProject_templates.push(token);
 					// Fix to the redirect target
-					token[0] = wiki.remove_namespace(wiki.redirect_target_of(token));
+					CeL.wiki.parse.replace_parameter(token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(token)));
 
 					// fix for [[Wikipedia:Bots/Requests for approval/EnterpriseyBot 10]]
 					for (let _index = index; ++_index < parent.length;) {
@@ -2134,6 +2162,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				this.summary.push(article_info.reason);
 		}
 		if (!article_info.no_topic_message && !CeL.is_empty_object(wiki.latest_task_configuration.Topics)) {
+			console.trace(wiki.latest_task_configuration.Topics);
 			if (article_info.topic) {
 				let message = `Configured as topic=${article_info.topic}`;
 				if (article_info.subpage)
