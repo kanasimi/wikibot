@@ -73,7 +73,10 @@ const template_name_hash = {
 	WPBIO: 'WikiProject Biography',
 	VA_count: 'Vital article count',
 };
+// [[w:en:Template:WikiProject Biography]]
 const parameters_move_from_WPBIO_to_WPBS = new Set(['living', 'blp', 'BLP', 'activepol', 'blpo', 'listas']);
+// [[w:en:User talk:Kanashimi#Move listas]]
+const parameters_move_from_WikiProjects_to_WPBS = new Set(['listas']);
 
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
 const DEFAULT_LEVEL = 3;
@@ -362,6 +365,25 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
+	if (wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup) {
+		const page_list = await wiki.categorymembers(wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup, {
+			// exclude [[User:Fox News Brasil]]
+			namespace: 'talk'
+		});
+		page_list.forEach(page_data => {
+			const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
+			have_to_edit_its_talk_page[page_title] = {
+				reason: `The article is no longer a vital article.`,
+				remove_vital_parameter: true,
+				no_topic_message: true,
+				do_PIQA: true,
+				key_is_talk_page: true,
+			};
+		});
+	}
+
+	// ----------------------------------------------------
+
 	await generate_all_VA_list_page();
 
 	check_page_count();
@@ -454,11 +476,11 @@ async function get_page_info() {
 				namespace: 'talk'
 			});
 			page_list.forEach(page_data => {
-				const title = wiki.talk_page_to_main(page_data.original_title || page_data);
-				if (title in category_level_of_page) {
-					report_lines.push([title, , `${category_level_of_page[title]}→${level}`]);
+				const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
+				if (page_title in category_level_of_page) {
+					report_lines.push([page_title, , `${category_level_of_page[page_title]}→${level}`]);
 				}
-				category_level_of_page[title] = level;
+				category_level_of_page[page_title] = level;
 			});
 		}
 		// console.log(category_level_of_page);
@@ -483,14 +505,14 @@ async function get_page_info() {
 					CeL.warn(`${get_page_info.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_data)} (${category_name})`);
 				return;
 			}
-			const title = wiki.talk_page_to_main(page_data.original_title || page_data);
-			if (!(title in icons_of_page))
-				icons_of_page[title] = [];
+			const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
+			if (!(page_title in icons_of_page))
+				icons_of_page[page_title] = [];
 			if (icon in synchronize_icon_hash /* synchronize_icons.includes(icon) */) {
-				// assert: ('VA_class' in icons_of_page[title]) === false
-				icons_of_page[title].VA_class = icon.toUpperCase();
+				// assert: ('VA_class' in icons_of_page[page_title]) === false
+				icons_of_page[page_title].VA_class = icon.toUpperCase();
 			} else {
-				icons_of_page[title].push(icon);
+				icons_of_page[page_title].push(icon);
 			}
 		});
 	}
@@ -554,7 +576,7 @@ async function get_page_info() {
 
 					// Plenty of unclassified articles out there, perhaps it may prompt someone to take a closer look at an article.
 					class: VA_class === 'FL' ? 'LIST' : VA_class === 'FA' ? '' : '',
-					reason: `The article is no longer a ${VA_class}.`
+					reason: `The article is no longer a ${VA_class}.`,
 				};
 				return true;
 			}
@@ -762,10 +784,10 @@ function icons_and_item_toString() {
 }
 
 function is_ignored_list_page(list_page_data) {
-	const title = list_page_data.title;
-	return title.endsWith('/Removed')
+	const page_title = list_page_data.title;
+	return page_title.endsWith('/Removed')
 		//[[Wikipedia:Vital articles/Level/4/People/Candidates]]
-		|| title.endsWith('/Candidates');
+		|| page_title.endsWith('/Candidates');
 }
 
 async function for_each_list_page(list_page_data) {
@@ -1506,7 +1528,10 @@ async function generate_all_VA_list_page() {
 	for (const prefix in VA_data_list_via_prefix) {
 		// async function generate_VA_list_json(prefix, VA_data_list_via_prefix)
 		const VA_data_list = VA_data_list_via_prefix[prefix];
-		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/data/${prefix}.json`] = [VA_data_list, `Update list of vital articles: ${Object.keys(VA_data_list).length.toLocaleString()} article(s)`];
+		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/data/${prefix}.json`] = [VA_data_list, 'Update list of vital articles:'
+			// gettext_config:{"id":"total-$1-articles"}
+			+ CeL.gettext('Total %1 {{PLURAL:%1|article|articles}}.', Object.keys(VA_data_list).length.toLocaleString())
+		];
 	}
 	await wiki.for_each_page(Object.keys(pages_to_edit), function (page_data) {
 		const data = pages_to_edit[page_data.title];
@@ -1549,7 +1574,9 @@ The list contains ${count} articles. --~~~~`
 		+ report_mark_start + report_wikitext + report_mark_end;
 	await wiki.edit_page(page_name, report_wikitext, {
 		bot: 1,
-		summary: `Update list of vital articles: ${count} articles`,
+		summary: 'Update list of vital articles: '
+			// gettext_config:{"id":"total-$1-articles"}
+			+ CeL.gettext('Total %1 {{PLURAL:%1|article|articles}}.', count),
 		skip_nochange: true,
 		nocreate: 1,
 	});
@@ -1791,7 +1818,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				WikiProject_banner_shell_token = token;
 			}
 
-			if (article_info.remove) {
+			// use article_info.remove_vital_parameter
+			if (false && article_info.remove) {
 				CeL.wiki.parse.replace_parameter(token, 'vital', CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
 			}
 
@@ -1854,7 +1882,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	let majority_class
 		// Because {{VA}} would be eliminated, keep its class in {{WPBS}}.
 		// @see [[Wikipedia:Bots/Requests for approval/Cewbot 12#Discussion]]
-		= VA_class;
+		//= VA_class
+		;
 	if (!majority_class) {
 		// Get the majority rating
 		for (const [_class, count] of class_from_other_templates_Map) {
@@ -1868,10 +1897,19 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (majority_class[1].length === 1) {
 				majority_class = majority_class[1][0];
 			} else if (has_different_ratings) {
-				// assert: Should be ''
-				majority_class = VA_class;
+				// [[w:en:User talk:Kanashimi#Majority rating]]
+				if (majority_class[1].includes(VA_class)) {
+					// 以 {{VA}} 為準。
+					majority_class = VA_class;
+				} else {
+					// 最多的隨便選一個。
+					majority_class = majority_class[1][0];
+				}
 			} else {
-				majority_class = '';
+				// assert: 不應該到這邊
+				//majority_class = '';
+				// 最多的隨便選一個。
+				majority_class = majority_class[1][0];
 			}
 		}
 	}
@@ -1884,6 +1922,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			class: normalize_class(VA_class ?? class_from_other_templates_Map ?? '')
 		};
 	}
+	// free
+	class_from_other_templates_Map = null;
+
 	// console.trace([VA_template_token?.parameters, article_info, +VA_template_token?.parameters.level !== +article_info.level]);
 	// old style before 2023/12:
 	// 2022/6/21:	對於這三者，皆應以列表為主。若有誤應修改列表。
@@ -1943,9 +1984,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			need_insert_WPBS = true;
 		}
 
-		article_info.reason = article_info.reason ? [article_info.reason] : [];
-		if (majority_class && majority_class === VA_class)
+		article_info.reason = new CeL.gettext.Sentence_combination(article_info.reason);
+		if (false && majority_class && majority_class === VA_class)
 			article_info.reason.push(`Keep the rating of {{VA}} ${JSON.stringify(majority_class)} in {{WPBS}}.`);
+		if (majority_class && majority_class !== WikiProject_banner_shell_token.parameters.class)
+			article_info.reason.push(`Keep majority rating ${JSON.stringify(majority_class)} in {{WPBS}}.`);
+
 		// new style from 2023/12:
 		const WPBS_template_object = {
 			// Using WPBS parameter first.
@@ -1954,7 +1998,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// old style before 2023/12:
 			//'1': value => wikitext_to_add + '\n' + (value ? value.toString().trimStart() : ''),
 		};
-		if (article_info.do_PIQA ? VA_template_token : !article_info.remove)
+
+		if (article_info.remove_vital_parameter)
+			WPBS_template_object.vital = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+		else if (article_info.do_PIQA ? VA_template_token : !article_info.remove)
 			WPBS_template_object.vital = 'yes';
 
 		let extra_contents;
@@ -1964,12 +2011,22 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		{
 			const WikiProject_templates = [];
 			parsed.each('template', (token, index, parent) => {
-				if (token === WikiProject_banner_shell_token) {
-					//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
-					WikiProject_banner_shell_token.index = index;
-					WikiProject_banner_shell_token.parent = parent;
-					return;
-					//return parsed.each.skip_inner;
+				if (wiki.is_template(template_name_hash.WPBS, token)) {
+					if (token === WikiProject_banner_shell_token) {
+						//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
+						WikiProject_banner_shell_token.index = index;
+						WikiProject_banner_shell_token.parent = parent;
+						return;
+						//return parsed.each.skip_inner;
+					}
+
+					CeL.wiki.inplace_reparse_token(token, wiki.append_session_to_options());
+					for (const parameter_name in token.parameters) {
+						if (token.parameters[parameter_name].toString().trim())
+							return;
+					}
+					CeL.warn(`移除空的重複 ${token}`);
+					return parsed.each.remove_token;
 				}
 				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
@@ -1977,62 +2034,66 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					 * remove class rating from wikiproject banner
 					 */
 					function remove_needless_class(is_opted_out) {
-						if (('class' in token.parameters
+						if (!('class' in token.parameters))
+							return;
+						if (!token.parameters.class.toString().trim()) {
 							// remove |class=|
-							&& !token.parameters.class.toString().trim())) {
 							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
-						} else if (!is_opted_out && !has_different_ratings || normalize_class(token.parameters.class) === WPBS_template_object.class) {
-							CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
-							if (!article_info.reason.touched_templates) {
-								const _reason = ['Remove the same ratings as {{WPBS}} and keep different ratings in ',
-									article_info.reason.touched_templates = [], '.'];
-								article_info.reason.touched_templates.toString = function () { return this.join(', '); };
-								_reason.toString = function () { return this.join(''); };
-								article_info.reason.push(_reason);
-							}
-							article_info.reason.touched_templates.push(`{{${token.name}}}`);
+							return;
 						}
+
+						if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== WPBS_template_object.class) {
+							if (!article_info.reason.untouched_message) {
+								// gettext_config:{"id":"keep-different-ratings-in-$2"}
+								article_info.reason.untouched_message = ['Keep %1 different {{PLURAL:%1|rating|ratings}} in %2.', 0, []];
+								article_info.reason.push(article_info.reason.untouched_message);
+							}
+							article_info.reason.untouched_message[2].push(token.name);
+							return;
+						}
+
+						if (!article_info.reason.touched_message) {
+							// (%1)
+							// gettext_config:{"id":"remove-the-same-ratings-as-template-wpbs-in-$2"}
+							article_info.reason.touched_message = ['Remove %1 same {{PLURAL:%1|rating|ratings}} as {{WPBS}} in %2.', 0, []];
+							article_info.reason.push(article_info.reason.touched_message);
+						}
+						article_info.reason.touched_message[2].push(token.name);
+						CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter });
 					}
 
 					if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
 						// 有些選擇退出的模板有自己的展示方式，利用到class參數，不能完全用[[Module:WikiProject banner]]解決。e.g., {{WikiProject Military history}}
 						//remove_needless_class(true);
 					} else {
-						const parameters_to_remove = [];
-						if (wiki.is_template(template_name_hash.WPBIO, token)) {
-							//@see [[w:en:Template:WikiProject Biography]]
-							for (const parameter_name of parameters_move_from_WPBIO_to_WPBS) {
-								if ((parameter_name in token.parameters)
-									&& (!WikiProject_banner_shell_token.parameters[parameter_name]
-										|| WikiProject_banner_shell_token.parameters[parameter_name] === token.parameters[parameter_name])) {
-									if (token.parameters[parameter_name]) {
-										WPBS_template_object[parameter_name] = token.parameters[parameter_name];
-									}
-									parameters_to_remove.push(parameter_name);
+						const parameters_to_remove_Set = new Set;
+						function move_parameters(parameter_Set_to_move) {
+							for (const parameter_name of parameter_Set_to_move) {
+								if (!(parameter_name in token.parameters))
+									continue;
+								const value = token.parameters[parameter_name];
+								if (!value.toString().trim()) {
+									// 直接消掉 WikiProject template token 無意義的、空的 parameter。
+									parameters_to_remove_Set.add(parameter_name);
+									continue;
 								}
-							}
-							if (false) {
-								// Move only for 'Yes's.
-								if (CeL.wiki.Yesno(token.parameters.living || token.parameters.blp || token.parameters.BLP)) {
-									// No overwrite
-									if (!WikiProject_banner_shell_token.parameters.blp) {
-										WPBS_template_object.blp = 'yes';
-										parameters_to_remove.push('living', 'blp', 'BLP');
-									}
-									if (CeL.wiki.Yesno(token.parameters.activepol) && !WikiProject_banner_shell_token.parameters.activepol) {
-										WPBS_template_object.activepol = 'yes';
-										parameters_to_remove.push('activepol');
-									}
-								} else if (CeL.wiki.Yesno(token.parameters.blpo) && !WikiProject_banner_shell_token.parameters.blpo) {
-									WPBS_template_object.blpo = 'yes';
-									parameters_to_remove.push('blpo');
+								if ((!WikiProject_banner_shell_token.parameters[parameter_name]
+									|| WikiProject_banner_shell_token.parameters[parameter_name] === value)
+									&& (!WPBS_template_object[parameter_name]
+										|| WPBS_template_object[parameter_name] === value)) {
+									WPBS_template_object[parameter_name] = value;
+									parameters_to_remove_Set.add(parameter_name);
+									continue;
 								}
-								if (token.parameters.listas && !WikiProject_banner_shell_token.parameters.listas) {
-									WPBS_template_object.listas = token.parameters.listas;
-									parameters_to_remove.push('listas');
-								}
+								// 保留 value 不同的 parameters。
 							}
 						}
+
+						if (wiki.is_template(template_name_hash.WPBIO, token)) {
+							move_parameters(parameters_move_from_WPBIO_to_WPBS);
+						}
+
+						move_parameters(parameters_move_from_WikiProjects_to_WPBS);
 
 						remove_needless_class();
 
@@ -2041,17 +2102,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 						// TODO: [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 24]]
 
-						// [[Wikipedia:Bots/Requests for approval/Cewbot 12]] remove any duplicate listas value
-						for (const [parameter_name, value] of Object.entries(token.parameters)) {
-							if (parameter_name === 'listas' &&
-								(value === WPBS_template_object[parameter_name] || value === WikiProject_banner_shell_token.parameters[parameter_name])) {
-								parameters_to_remove.push(parameter_name);
-							}
-						}
-
-						if (parameters_to_remove.length > 0) {
+						if (parameters_to_remove_Set.size > 0) {
 							const parameters_argument = Object.create(null);
-							parameters_to_remove.forEach(parameter => parameters_argument[parameter] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
+							parameters_to_remove_Set.forEach(parameter => parameters_argument[parameter] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
 							// These parameters will move to {{WikiProject banner shell}}
 							CeL.wiki.parse.replace_parameter(token, parameters_argument);
 						}
@@ -2099,7 +2152,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					}).join('\n') + '\n')
 					// 去掉太多的換行。
 					.replace(/\n{2,}/g, '\n');
-				article_info.reason.unshift(WikiProject_templates.length + ' WikiProject template(s). ');
+				// gettext_config:{"id":"$1-wikiproject-templates"}
+				article_info.reason.unshift(['%1 WikiProject {{PLURAL:%1|template|templates}}.', WikiProject_templates.length]);
 			}
 		}
 
@@ -2154,8 +2208,22 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	if (article_info.full_summary) {
 		this.summary = article_info.full_summary;
 	} else {
-		this.summary = [(article_info.talk_page_summary_prefix || talk_page_summary_prefix) + ':'];
+		this.summary = new CeL.gettext.Sentence_combination((article_info.talk_page_summary_prefix || talk_page_summary_prefix) + ':');
 		if (article_info.reason) {
+			if (article_info.reason.touched_message) {
+				article_info.reason.touched_message[1] = article_info.reason.touched_message[2].length;
+				article_info.reason.touched_message[2] =
+					article_info.reason.touched_message[2].map(template_name => `{{${template_name}}}`)
+						// gettext_config:{"id":"Comma-separator"}
+						.join(CeL.gettext('Comma-separator'));
+			}
+			if (article_info.reason.untouched_message) {
+				article_info.reason.untouched_message[1] = article_info.reason.untouched_message[2].length;
+				article_info.reason.untouched_message[2] =
+					article_info.reason.untouched_message[2].map(template_name => `{{${template_name}}}`)
+						// gettext_config:{"id":"Comma-separator"}
+						.join(CeL.gettext('Comma-separator'));
+			}
 			if (Array.isArray(article_info.reason))
 				this.summary.append(article_info.reason);
 			else
@@ -2173,7 +2241,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				this.summary.push(CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title + '#' + 'Topics', 'Config the topic of this page'));
 			}
 		}
-		this.summary = this.summary.join(' ');
+		this.summary = this.summary.toString();
 	}
 
 	return wikitext;
