@@ -26,6 +26,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=Sergio Pérez"
 node 20201008.fix_anchor.js use_language=en "check_page=Wikipedia:Sandbox" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=List of Latin phrases (full)" "only_modify_pages=Quod vide"
 node 20201008.fix_anchor.js use_language=en "check_page=History of India" "only_modify_pages=History of Hinduism"
+node 20201008.fix_anchor.js use_language=en "check_page=Law & Order: Special Victims Unit (season 1)"
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "only_modify_pages=負整數"
 node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
@@ -1392,7 +1393,8 @@ async function check_page(target_page_data, options) {
 					&& !token[2].toString().includes(to_anchor)) {
 					// 同時修改 anchor 和 display_text。
 					// e.g., [[w:de:Special:Diff/238049015]]: [[#ABCDE|{{lang|en|ABCDE}}]]
-					token[2] = token[2].toString().replace(original_anchor, to_anchor);
+					// [[w:en:Special:Diff/1193911830]]: [[Skateboarding trick#manual|manuals]]
+					token[2] = token[2].toString().replace(new RegExp('([\\W]|^)' + CeL.to_RegExp_pattern(original_anchor) + '([\\W]|$)'), `$1${to_anchor}$2`);
 				}
 				token[1] = to_anchor ? '#' + to_anchor : '';
 			}
