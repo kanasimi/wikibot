@@ -314,6 +314,8 @@ async function main_process() {
 		interval: '5s',
 		// for LCS()
 		no_throw_when_stack_size_is_exceeded: true,
+		// for dewiki
+		reviewed_only: true,
 	});
 
 	routine_task_done('1d');
