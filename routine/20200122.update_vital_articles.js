@@ -251,13 +251,14 @@ async function adapt_configuration(latest_task_configuration) {
 	// ----------------------------------------------------
 
 	const { Topics } = latest_task_configuration;
-	if (Topics) {
+	if (Topics && !CeL.is_empty_object(Topics)) {
 		for (let [page_and_section, topic] of Object.entries(Topics)) {
 			get_topic_of_section(page_and_section, topic);
 		}
 	} else {
 		// Initialization
 		latest_task_configuration.Topics = Object.create(null);
+		latest_task_configuration.no_topic_summary = true;
 	}
 
 	console.log(latest_task_configuration);
@@ -371,9 +372,9 @@ async function main_process() {
 			namespace: 'talk'
 		});
 		page_list.forEach(page_data => {
-			const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
+			const page_title = page_data.original_title || page_data.title;
 			have_to_edit_its_talk_page[page_title] = {
-				reason: `The article is no longer a vital article.`,
+				reason: `The article is [[${wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup}|no longer a vital article]].`,
 				remove_vital_parameter: true,
 				no_topic_message: true,
 				do_PIQA: true,
@@ -635,6 +636,7 @@ async function get_page_info() {
 		page_list = page_list.slice(0, do_PIQA - Object.keys(have_to_edit_its_talk_page).length);
 		for (const page_data of page_list) {
 			if (!(page_data.title in have_to_edit_its_talk_page)) {
+				//if (page_data.title !== 'Talk:Lagrangian mechanics') continue;
 				have_to_edit_its_talk_page[page_data.title] = {
 					//class: '',
 					key_is_talk_page: true,
@@ -1422,8 +1424,17 @@ async function generate_all_VA_list_page() {
 
 	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
 		const prefix = page_title.slice(0, 1);
-		// assert: prefix.toUpperCase() === prefix
-		const data_list_prefix = /^[A-Z]$/.test(prefix) ? prefix : 'others';
+		let data_list_prefix = prefix;
+		if (wiki.site_name() === 'zhwiki') {
+			// `local base36 = convertBase({n = codepoint, base = 36})`
+			// @ function p.getDataPage(input_data) @ [[w:zh:Module:Vital articles#L-12]]
+			data_list_prefix = data_list_prefix.codePointAt(0).toString(36).at(-1).toUpperCase();
+			data_list_prefix = /^[A-Z]$/.test(data_list_prefix) ? data_list_prefix : '其他';
+		} else {
+			// enwiki
+			// assert: data_list_prefix.toUpperCase() === data_list_prefix
+			data_list_prefix = /^[A-Z]$/.test(data_list_prefix) ? data_list_prefix : 'others';
+		}
 		if (!VA_data_list_via_prefix[data_list_prefix])
 			VA_data_list_via_prefix[data_list_prefix] = Object.create(null);
 		// assert: Array.isArray(article_info_list)
@@ -1971,17 +1982,21 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// @see [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 26]]
 
 		// new style from 2023/12: If the {{WikiProject banner shell}} does not exist, create one.
-		let need_insert_WPBS = false;
+		const need_insert_WPBS = !WikiProject_banner_shell_token;
 		if (WikiProject_banner_shell_token) {
 			if (WikiProject_banner_shell_token.parameters.class !== majority_class) {
 				// Using WPBS parameter first.
 				has_different_ratings = true;
 			}
-			// Fix to the redirect target: bypass any redirects to {{WikiProject banner shell}} at the same time
-			CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(WikiProject_banner_shell_token)));
+			// 跳過 "{{t<!-- -->}}" 之類。
+			if (WikiProject_banner_shell_token[0].type !== 'plain') {
+				// Fix to the redirect target: bypass any redirects to {{WikiProject banner shell}} at the same time
+				CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(WikiProject_banner_shell_token)));
+			}
 		} else {
 			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(template_name_hash.WPBS));
-			need_insert_WPBS = true;
+			// assert: need_insert_WPBS === true
+			//need_insert_WPBS = true;
 		}
 
 		article_info.reason = new CeL.gettext.Sentence_combination(article_info.reason);
@@ -2111,8 +2126,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					}
 
 					WikiProject_templates.push(token);
-					// Fix to the redirect target
-					CeL.wiki.parse.replace_parameter(token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(token)));
+					// 跳過 "{{t<!-- -->}}" 之類。
+					if (token[0].type !== 'plain') {
+						// Fix to the redirect target
+						CeL.wiki.parse.replace_parameter(token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(token)));
+					}
 
 					// fix for [[Wikipedia:Bots/Requests for approval/EnterpriseyBot 10]]
 					for (let _index = index; ++_index < parent.length;) {
@@ -2193,8 +2211,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	const wikitext = parsed.toString()
 		// e.g., [[Talk:Fiscal policy]]
 		.replace(/{{Suppress categories\s*\|\s*}}\n*/ig, '');
-	// console.trace([talk_page_data.title, article_info, typeof VA_template_object !== 'undefined' && VA_template_object, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5)]);
-	// return Wikiapi.skip_edit;
+	//console.trace([talk_page_data.title, article_info, typeof VA_template_object !== 'undefined' && VA_template_object, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5)]);
+	//return Wikiapi.skip_edit;
 
 	if (false) {
 		// for debug
@@ -2229,7 +2247,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			else
 				this.summary.push(article_info.reason);
 		}
-		if (!article_info.no_topic_message && !CeL.is_empty_object(wiki.latest_task_configuration.Topics)) {
+		if (!article_info.no_topic_message && !wiki.latest_task_configuration.no_topic_summary) {
 			console.trace(wiki.latest_task_configuration.Topics);
 			if (article_info.topic) {
 				let message = `Configured as topic=${article_info.topic}`;
