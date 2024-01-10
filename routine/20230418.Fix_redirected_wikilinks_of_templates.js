@@ -134,7 +134,9 @@ async function main_process() {
 			);
 
 			//CeL.set_debug();
-			await wiki.for_each_page(page_list, for_each_template_page, {
+			await wiki.for_each_page(page_list
+				//&& ['Template:奥斯卡最佳影片奖']
+				, for_each_template_page, {
 				/*
 				page_options: {
 					// 查詢太頻繁，到後期會常出現異常 HTTP 狀態碼 400。
@@ -149,6 +151,7 @@ async function main_process() {
 				log_to,
 				no_fallback_log_to_on_error: true,
 				notification_name: 'fix_redirected_wikilinks',
+				skip_nochange: true,
 			});
 		}
 	});
@@ -237,7 +240,15 @@ async function for_each_template_page(template_page_data, messages) {
 	const link_list = [], link_token_list = [];
 	/**	from display text → to display text */
 	const display_text_convert_map = new Map;
-	parsed.each('link', link_token => {
+	parsed.each(token => {
+		if (token.type === 'convert') {
+			// 不處理 langconvert 中的連結。 e.g., [[Template:奥斯卡最佳影片奖]]
+			return parsed.each.skip_inner;
+		}
+		if (token.type !== 'link')
+			return;
+
+		const link_token = token;
 		const page_title = link_token[0].toString();
 		if (!page_title || CeL.wiki.PATTERN_invalid_page_name_characters.test(page_title)) {
 			// e.g., [[#anchor]], [[2019–20 {{ENGLs|NPL}}|2019–20]] @ [[w:zh:Template:English football updater]]
@@ -282,7 +293,8 @@ async function for_each_template_page(template_page_data, messages) {
 	/**{Set} 所有嵌入此模板，並且此模板有連出的頁面名稱 */
 	const embeddedin_and_linked_title_Set = new Set;
 	const language_variant_convert_Map = new Map;
-	if (true) {
+	// IIFE
+	{
 		const embeddedin_and_linked_title_list = (await wiki.embeddedin(template_page_data, {
 			// TODO: 取與 redirected_targets 的交集。
 			page_filter(page_data) {
