@@ -2,7 +2,7 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=1000
+node 20200122.update_vital_articles.js use_language=en do_PIQA=60000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Agnes Mizere"
 node 20200122.update_vital_articles.js use_language=zh
 TODO:
@@ -126,24 +126,42 @@ function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) 
 
 // ----------------------------------------------
 
-function get_topic_of_section(page_and_section, topic) {
-	const page_and_section_id = page_and_section.replace(/^.+\/Level\/?/, '').replace(/\s*\]\]\s*#\s*/, '#').replace(/^([^#]+)#$/, '$1') || DEFAULT_LEVEL;
-	if (!topic && typeof page_and_section_id === 'string') {
-		topic = page_and_section_id.replace(/^(?:(\d)\/)?([^#]+)?(?:#(.*))$/, (all, level, page, section) => {
-			if (!level && /^\d$/.test(page)) {
+function get_topic_of_section(page_title_and_section, topic) {
+	//console.trace([page_title_and_section, level, topic]);
+	const page_title_and_section_data = parse_page_title_and_section(page_title_and_section);
+	// normalize page_title_and_section
+	let page_title_and_section_id = page_title_and_section
+		//.replace(/^[^\/]+/, level)
+		// This is for `wiki.latest_task_configuration.Topics`. 由 set_latest_section_title() 呼叫的已正規化。
+		.replace(/^.+\/Level\/?/, '')
+		.replace(/\s*\]\]\s*#\s*/, '#').replace(/\s*\]\]\s*/, '').replace(/^([^#]+)#$/, '$1')
+		|| DEFAULT_LEVEL;
+	let level;
+	if (false) {
+		if (page_title_and_section_id) {
+			level = level_of_page_title(page_title_and_section_id, true);
+			page_title_and_section_id = page_title_and_section_id.replace(/^\/+\/?/, '');
+		} else {
+			level = DEFAULT_LEVEL;
+		}
+	}
+
+	if (!topic && typeof page_title_and_section_id === 'string') {
+		topic = page_title_and_section_id.replace(/^(?:(\d)\/)?([^#]+)?(?:#(.*))$/, (all, level, subpage, section) => {
+			if (!level && /^\d$/.test(subpage)) {
 				// 1, 2級
-				level = page;
-				page = '';
+				level = subpage;
+				subpage = '';
 			}
 			if (level <= DEFAULT_LEVEL) {
-				// 1級的 page, section 不包含 topic 資訊。
+				// 1級的 subpage, section 不包含 topic 資訊。
 				// 2, 3級的 section title 分割過細，不如採下一等級的。
 				return '';
 			}
 			// sublist do not include section
-			return page;
+			return subpage;
 		});
-		//console.trace([page_and_section, page_and_section_id, topic]);
+		//console.trace([page_title_and_section, page_title_and_section_id, topic]);
 	}
 	if (topic) {
 		const matched = topic.match(/^(.+?)\/(.+)$/);
@@ -154,23 +172,35 @@ function get_topic_of_section(page_and_section, topic) {
 		} : { topic };
 
 	} else {
-		if (/![12]\//.test(page_and_section_id))
-			CeL.error(`${get_topic_of_section.name}: Cannot determine the topic of ${JSON.stringify(page_and_section_id)}!`);
+		if (!(page_title_and_section_data?.level < 4))
+			console.trace([page_title_and_section, page_title_and_section_data]);
+		if (/![12]\//.test(page_title_and_section_id))
+			CeL.error(`${get_topic_of_section.name}: Cannot determine the topic of ${JSON.stringify(page_title_and_section_id)}!`);
 		return;
+	}
+	if (topic.topic !== page_title_and_section_data?.topic || topic.subpage !== page_title_and_section_data?.subpage) {
+		//console.trace([page_title_and_section, topic, page_title_and_section_data]);
+		if (wiki.site_name() === 'zhwiki') {
+			topic = {
+				//level: page_title_and_section_data.numeric_level,
+				topic: page_title_and_section_data.topic,
+				subpage: page_title_and_section_data.subpage,
+			};
+		}
 	}
 
 	const Topics = wiki.latest_task_configuration.Topics;
-	if (!Topics[page_and_section_id]) {
-		delete Topics[page_and_section];
-		Topics[page_and_section_id] = topic;
-	} else if (page_and_section_id === page_and_section) {
-		// `page_and_section` is page and section id
-		Topics[page_and_section_id] = topic;
+	if (!Topics[page_title_and_section_id]) {
+		delete Topics[page_title_and_section];
+		Topics[page_title_and_section_id] = topic;
+	} else if (page_title_and_section_id === page_title_and_section) {
+		// `page_title_and_section` is page title and section id
+		Topics[page_title_and_section_id] = topic;
 	} else {
-		CeL.warn(`${get_topic_of_section.name}: Duplicated topic configuration! ${page_and_section_id} and ${page_and_section}`);
+		CeL.warn(`${get_topic_of_section.name}: Duplicated topic configuration! ${page_title_and_section_id} ≠ ${page_title_and_section}`);
 	}
-	//console.trace([page_and_section, page_and_section_id, Topics[page_and_section_id]]);
-	return Topics[page_and_section_id];
+	//console.trace([page_title_and_section, page_title_and_section_id, Topics[page_title_and_section_id]]);
+	return Topics[page_title_and_section_id];
 }
 
 /**
@@ -252,8 +282,8 @@ async function adapt_configuration(latest_task_configuration) {
 
 	const { Topics } = latest_task_configuration;
 	if (Topics && !CeL.is_empty_object(Topics)) {
-		for (let [page_and_section, topic] of Object.entries(Topics)) {
-			get_topic_of_section(page_and_section, topic);
+		for (let [page_title_and_section, topic] of Object.entries(Topics)) {
+			get_topic_of_section(page_title_and_section, topic);
 		}
 	} else {
 		// Initialization
@@ -400,6 +430,8 @@ async function main_process() {
 			await maintain_VA_template();
 		}
 	}
+
+	//console.trace(wiki.latest_task_configuration.Topics);
 
 	// ----------------------------------------------------
 
@@ -631,13 +663,17 @@ async function get_page_info() {
 
 	// For the first time do_PIQA
 	if (do_PIQA > 0 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
-		let page_list = await wiki.embeddedin(wiki.to_namespace(template_name_hash.VA, { namespace: 'template' }));
-		//console.trace([template_name_hash.VA, page_list.length, do_PIQA, Object.keys(have_to_edit_its_talk_page).length]);
-		page_list = page_list.slice(0, do_PIQA - Object.keys(have_to_edit_its_talk_page).length);
+		let page_list;
+		//page_list = ['Talk:Lagrangian mechanics', 'Talk:Square root of 2', 'Talk:Boric acid', 'Talk:Municipality', 'Talk:Buffer solution', 'Talk:New Austrian tunneling method', 'Talk:Stavanger', 'Talk:Clipper', 'Talk:Action-adventure game', 'Talk:Maxwell relations',];
+		if (!page_list) {
+			page_list = await wiki.embeddedin(wiki.to_namespace(template_name_hash.VA, { namespace: 'template' }));
+			//console.trace([template_name_hash.VA, page_list.length, do_PIQA, Object.keys(have_to_edit_its_talk_page).length]);
+			page_list = page_list.slice(0, do_PIQA - Object.keys(have_to_edit_its_talk_page).length);
+		}
 		for (const page_data of page_list) {
-			if (!(page_data.title in have_to_edit_its_talk_page)) {
-				//if (page_data.title !== 'Talk:Lagrangian mechanics') continue;
-				have_to_edit_its_talk_page[page_data.title] = {
+			const page_title = page_data.title || page_data;
+			if (!(page_title in have_to_edit_its_talk_page)) {
+				have_to_edit_its_talk_page[page_title] = {
 					//class: '',
 					key_is_talk_page: true,
 					reason: `Merge {{VA}} into {{WPBS}}.`,
@@ -650,24 +686,30 @@ async function get_page_info() {
 	//console.trace(icons_of_page['Apollo'], have_to_edit_its_talk_page['Apollo'], Object.keys(have_to_edit_its_talk_page).length);
 
 
-	if (Array.isArray(wiki.latest_task_configuration.general.opted_out_WikiProject_template_categories)) {
-		/** {Array}list of opted out WikiProject templates */
-		const all_opted_out_WikiProject_template_Set = new Set;
-		for (const category of wiki.latest_task_configuration.general.opted_out_WikiProject_template_categories) {
-			(await wiki.categorymembers(category, { namespace: 'Template' })).forEach(page_data => all_opted_out_WikiProject_template_Set.add(page_data.title));
-		}
-		all_opted_out_WikiProject_template_list.append(Array.from(all_opted_out_WikiProject_template_Set));
-		CeL.info(`${get_page_info.name}: ${all_opted_out_WikiProject_template_list.length} opted out WikiProject templates.`);
-	}
-
+	const all_WikiProject_template_Set = new Set;
 	if (Array.isArray(wiki.latest_task_configuration.general.WikiProject_template_categories)) {
-		const all_WikiProject_template_Set = new Set;
 		for (const category of wiki.latest_task_configuration.general.WikiProject_template_categories) {
 			(await wiki.categorymembers(category, { namespace: 'Template' })).forEach(page_data => /*all_opted_out_WikiProject_template_Set.has(page_data.title) || */all_WikiProject_template_Set.add(page_data.title));
 		}
 		all_WikiProject_template_list.append(Array.from(all_WikiProject_template_Set));
 		CeL.info(`${get_page_info.name}: ${all_WikiProject_template_list.length} WikiProject templates.`);
 	}
+
+	if (Array.isArray(wiki.latest_task_configuration.general.opted_out_WikiProject_template_categories)) {
+		/** {Array}list of opted out WikiProject templates */
+		const all_opted_out_WikiProject_template_Set = new Set;
+		for (const category of wiki.latest_task_configuration.general.opted_out_WikiProject_template_categories) {
+			(await wiki.categorymembers(category, { namespace: 'Template' })).forEach(page_data => {
+				if (!all_WikiProject_template_Set.has(page_data.title)) {
+					CeL.warn(`${get_page_info.name}: opted out WikiProject template ${CeL.wiki.title_link_of(page_data)} is not in all WikiProject template list.`);
+				}
+				all_opted_out_WikiProject_template_Set.add(page_data.title);
+			});
+		}
+		all_opted_out_WikiProject_template_list.append(Array.from(all_opted_out_WikiProject_template_Set));
+		CeL.info(`${get_page_info.name}: ${all_opted_out_WikiProject_template_list.length} opted out WikiProject templates.`);
+	}
+
 }
 
 // ----------------------------------------------------------------------------
@@ -708,6 +750,65 @@ function level_page_link(level, number_only, page_title) {
 }
 
 
+// Base schema: [[base_page/level/topic/subpage#section]]
+// page_title_and_section_id: "level/topic/subpage#section" (subpage vs. sublist)
+// Level 1:	1#section
+// Level 2:	2#section(=topic)
+// Level 3:	3#section(=topic)
+// Level 4:	4/topic#section=topic
+// Level 5:	5/topic/subpage#section=topic
+const PATTERN_page_title_and_section_id = /^(?<level>[^#\/]*)(?:\/(?<topic>[^#\/]*)(?:\/(?<subpage>[^#]*))?)?(?:#(?<section>.*))?$/;
+
+function parse_page_title_and_section(page_title_and_section, options) {
+	let page_title_and_section_id;
+	if (!page_title_and_section) {
+		page_title_and_section_id = String(DEFAULT_LEVEL);
+	} else {
+		const base_page = wiki.latest_task_configuration.general.base_page;
+		if (page_title_and_section.title) {
+			page_title_and_section = page_title_and_section.title;
+			if (!page_title_and_section.startsWith(base_page)) {
+				CeL.warn(`${parse_page_title_and_section.name}: Invalid vital articles list page? ${CeL.wiki.title_link_of(page_title_and_section)}`);
+				return;
+			}
+		}
+		page_title_and_section_id = String(page_title_and_section);
+		const index = page_title_and_section_id.indexOf(base_page);
+		if (index >= 0)
+			page_title_and_section_id = page_title_and_section_id.slice(index + base_page.length);
+		page_title_and_section_id = page_title_and_section_id
+			// This is for `wiki.latest_task_configuration.Topics`. 由 set_latest_section_title() 呼叫的已正規化。
+			.replace(/^.*?\/Level\/?/, '').replace(/^\/+/, '')
+			.replace(/\s*\]\]\s*#\s*/, '#').replace(/\s*\]\]\s*/, '').replace(/^([^#]+)#$/, '$1')
+			|| String(DEFAULT_LEVEL);
+	}
+
+	// assert: typeof page_title_and_section_id === 'string'
+	const matched = page_title_and_section_id.match(PATTERN_page_title_and_section_id);
+	if (!matched) {
+		CeL.warn(`${parse_page_title_and_section.name}: Cannot determine level and topic of ${JSON.stringify(page_title_and_section)}`);
+		return;
+	}
+
+	const page_title_and_section_data = matched.groups;
+	page_title_and_section_data.page_title_and_section_id = page_title_and_section_id;
+
+	// 設定純數字級別。
+	let numeric_level;
+	switch (wiki.site_name()) {
+		case 'zhwiki':
+			numeric_level = zhwiki_level_list.indexOf(page_title_and_section_data.level);
+			break;
+
+		default:
+			numeric_level = +page_title_and_section_data.level;
+	}
+	if (numeric_level > 0)
+		page_title_and_section_data.numeric_level = numeric_level;
+
+	return page_title_and_section_data;
+}
+
 function level_of_page_title(page_title, number_only) {
 	if (page_title.title)
 		page_title = page_title.title;
@@ -718,9 +819,15 @@ function level_of_page_title(page_title, number_only) {
 		return;
 	}
 
+	const page_title_and_section_data = parse_page_title_and_section(page_title);
+
 	page_title = page_title.slice(base_page.length);
-	if (page_title === '')
+	if (page_title === '') {
+		if (page_title_and_section_data?.numeric_level !== DEFAULT_LEVEL) {
+			console.trace([page_title, page_title_and_section_data]);
+		}
 		return DEFAULT_LEVEL;
+	}
 
 	let matched;
 	switch (wiki.site_name()) {
@@ -729,6 +836,7 @@ function level_of_page_title(page_title, number_only) {
 			matched = page_title.match(/^\/Level(?:\/([1-5])(\/.+)?)?$/);
 			if (matched) {
 				const level = number_only || !matched[2] ? +matched[1] || DEFAULT_LEVEL : matched[1] + matched[2];
+				if (level != (number_only ? page_title_and_section_data?.numeric_level : page_title_and_section_data?.page_title_and_section_id)) console.trace([page_title, level, page_title_and_section_data]);
 				return level;
 			}
 			break;
@@ -736,7 +844,8 @@ function level_of_page_title(page_title, number_only) {
 		case 'zhwiki':
 			matched = page_title.match(/^\/(第一級|第二級|第三級|擴展|第五級)(\/.+)?$/);
 			if (matched) {
-				const level = number_only || !matched[2] ? zhwiki_level_list.indexOf(matched[1]) || DEFAULT_LEVEL : matched[1] + matched[3];
+				const level = number_only || !matched[2] ? zhwiki_level_list.indexOf(matched[1]) || DEFAULT_LEVEL : matched[1] + matched[2];
+				if (level != (number_only ? page_title_and_section_data?.numeric_level : page_title_and_section_data?.page_title_and_section_id)) console.trace([page_title, level, page_title_and_section_data]);
 				return level;
 			}
 			break;
@@ -842,15 +951,22 @@ async function for_each_list_page(list_page_data) {
 		latest_topic_section = latest_section_title;
 
 		const page_id = level_of_page_title(list_page_data);
+		if (!page_id) {
+			// e.g., [[w:en:Wikipedia:Vital articles/Frequently Asked Questions]]
+			return;
+		}
 		let section_title_now = latest_section_title;
 		topic_of_current_section = null;
 		while (section_title_now) {
 			const section_title = section_title_now.title.toString().replace(PATTERN_count_mark, '').trim();
+			if (!section_title) {
+				//continue;
+			}
 			//console.trace(section_title);
-			const page_and_section_id = `${page_id}#${section_title}`;
-			topic_of_current_section = Topics[page_and_section_id] || get_topic_of_section(page_and_section_id);
+			const page_title_and_section_id = `${page_id}#${section_title}`;
+			topic_of_current_section = Topics[page_title_and_section_id] || get_topic_of_section(page_title_and_section_id);
 			if (topic_of_current_section) {
-				// console.trace([page_and_section_id, topic_of_current_section]);
+				// console.trace([page_title_and_section_id, topic_of_current_section]);
 				break;
 			}
 			section_title_now = section_title_now.parent_section_title;
@@ -1164,7 +1280,7 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (!item_replace_to) {
-			CeL.error('No link! ' + list_page_data.title);
+			CeL.error('No link in this item! ' + CeL.wiki.title_link_of(list_page_data));
 			console.trace(item);
 		}
 	}
@@ -1423,7 +1539,8 @@ async function generate_all_VA_list_page() {
 	const VA_data_list_via_prefix = Object.create(null);
 
 	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
-		const prefix = page_title.slice(0, 1);
+		// page_title.slice(0, 1)
+		const prefix = String.fromCodePoint(page_title.codePointAt(0));
 		let data_list_prefix = prefix;
 		if (wiki.site_name() === 'zhwiki') {
 			// `local base36 = convertBase({n = codepoint, base = 36})`
@@ -1532,14 +1649,15 @@ async function generate_all_VA_list_page() {
 	try { await generate_list_page('List of all articles', all_articles); } catch { }
 	try { await generate_list_page('List of all level 1–4 vital articles', all_level_1_to_4_articles); } catch { }
 
+	const data_directory_name = wiki.site_name() === 'zhwiki' ? '資料' : 'data';
 	const pages_to_edit = {
 		// 生成階層 async function generate_hierarchy_json(topic_hierarchy)
-		[`${wiki.latest_task_configuration.general.base_page}/data/Topic hierarchy.json`]: [topic_hierarchy, `Update topic hierarchy of vital articles: ${Object.keys(topic_hierarchy).length} topics`],
+		[`${wiki.latest_task_configuration.general.base_page}/${data_directory_name}/Topic hierarchy.json`]: [topic_hierarchy, `Update topic hierarchy of vital articles: ${Object.keys(topic_hierarchy).length} topics`],
 	};
 	for (const prefix in VA_data_list_via_prefix) {
 		// async function generate_VA_list_json(prefix, VA_data_list_via_prefix)
 		const VA_data_list = VA_data_list_via_prefix[prefix];
-		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/data/${prefix}.json`] = [VA_data_list, 'Update list of vital articles:'
+		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/${data_directory_name}/${prefix}.json`] = [VA_data_list, 'Update list of vital articles:'
 			// gettext_config:{"id":"total-$1-articles"}
 			+ CeL.gettext('Total %1 {{PLURAL:%1|article|articles}}.', Object.keys(VA_data_list).length.toLocaleString())
 		];
@@ -1557,6 +1675,7 @@ async function generate_all_VA_list_page() {
 	}, {
 		bot: 1,
 		summary: 'Update list of vital articles',
+		//nocreate: false,
 		skip_nochange: true,
 	});
 }
@@ -1981,6 +2100,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// uses the {{WikiProject banner shell}}
 		// @see [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 26]]
 
+		article_info.reason = new CeL.gettext.Sentence_combination(article_info.reason);
+
 		// new style from 2023/12: If the {{WikiProject banner shell}} does not exist, create one.
 		const need_insert_WPBS = !WikiProject_banner_shell_token;
 		if (WikiProject_banner_shell_token) {
@@ -1997,9 +2118,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(template_name_hash.WPBS));
 			// assert: need_insert_WPBS === true
 			//need_insert_WPBS = true;
+			article_info.reason.push('Create {{WPBS}}.');
 		}
 
-		article_info.reason = new CeL.gettext.Sentence_combination(article_info.reason);
 		if (false && majority_class && majority_class === VA_class)
 			article_info.reason.push(`Keep the rating of {{VA}} ${JSON.stringify(majority_class)} in {{WPBS}}.`);
 		if (majority_class && majority_class !== WikiProject_banner_shell_token.parameters.class)
@@ -2248,7 +2369,6 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				this.summary.push(article_info.reason);
 		}
 		if (!article_info.no_topic_message && !wiki.latest_task_configuration.no_topic_summary) {
-			console.trace(wiki.latest_task_configuration.Topics);
 			if (article_info.topic) {
 				let message = `Configured as topic=${article_info.topic}`;
 				if (article_info.subpage)
