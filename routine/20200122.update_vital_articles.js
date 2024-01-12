@@ -80,6 +80,7 @@ const parameters_move_from_WikiProjects_to_WPBS = new Set(['listas']);
 
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
 const DEFAULT_LEVEL = 3;
+// assert: DEFAULT_LEVEL | 0 === DEFAULT_LEVEL
 
 // @see function set_section_title_count(parent_section)
 // [ all, quota+articles postfix, quota / target number ]
@@ -129,66 +130,21 @@ function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) 
 function get_topic_of_section(page_title_and_section, topic) {
 	//console.trace([page_title_and_section, level, topic]);
 	const page_title_and_section_data = parse_page_title_and_section(page_title_and_section);
-	// normalize page_title_and_section
-	let page_title_and_section_id = page_title_and_section
-		//.replace(/^[^\/]+/, level)
-		// This is for `wiki.latest_task_configuration.Topics`. 由 set_latest_section_title() 呼叫的已正規化。
-		.replace(/^.+\/Level\/?/, '')
-		.replace(/\s*\]\]\s*#\s*/, '#').replace(/\s*\]\]\s*/, '').replace(/^([^#]+)#$/, '$1')
-		|| DEFAULT_LEVEL;
-	let level;
-	if (false) {
-		if (page_title_and_section_id) {
-			level = level_of_page_title(page_title_and_section_id, true);
-			page_title_and_section_id = page_title_and_section_id.replace(/^\/+\/?/, '');
-		} else {
-			level = DEFAULT_LEVEL;
-		}
+
+	if (topic && topic !== page_title_and_section_data.topic) {
+		CeL.warn(`${get_topic_of_section.name}: Different topic of ${JSON.stringify(page_title_and_section)}: ${JSON.stringify(topic)} vs. ${JSON.stringify(page_title_and_section_data.topic)}`);
 	}
 
-	if (!topic && typeof page_title_and_section_id === 'string') {
-		topic = page_title_and_section_id.replace(/^(?:(\d)\/)?([^#]+)?(?:#(.*))$/, (all, level, subpage, section) => {
-			if (!level && /^\d$/.test(subpage)) {
-				// 1, 2級
-				level = subpage;
-				subpage = '';
-			}
-			if (level <= DEFAULT_LEVEL) {
-				// 1級的 subpage, section 不包含 topic 資訊。
-				// 2, 3級的 section title 分割過細，不如採下一等級的。
-				return '';
-			}
-			// sublist do not include section
-			return subpage;
-		});
-		//console.trace([page_title_and_section, page_title_and_section_id, topic]);
-	}
-	if (topic) {
-		const matched = topic.match(/^(.+?)\/(.+)$/);
-		topic = matched ? {
-			topic: matched[1],
-			// sublist
-			subpage: matched[2]
-		} : { topic };
+	topic = {
+		//level: page_title_and_section_data.numeric_level,
+		topic: page_title_and_section_data.topic,
+	};
 
-	} else {
-		if (!(page_title_and_section_data?.level < 4))
-			console.trace([page_title_and_section, page_title_and_section_data]);
-		if (/![12]\//.test(page_title_and_section_id))
-			CeL.error(`${get_topic_of_section.name}: Cannot determine the topic of ${JSON.stringify(page_title_and_section_id)}!`);
-		return;
-	}
-	if (topic.topic !== page_title_and_section_data?.topic || topic.subpage !== page_title_and_section_data?.subpage) {
-		//console.trace([page_title_and_section, topic, page_title_and_section_data]);
-		if (wiki.site_name() === 'zhwiki') {
-			topic = {
-				//level: page_title_and_section_data.numeric_level,
-				topic: page_title_and_section_data.topic,
-				subpage: page_title_and_section_data.subpage,
-			};
-		}
-	}
+	// cf. sublist
+	if (page_title_and_section_data.subpage)
+		topic.subpage = page_title_and_section_data.subpage;
 
+	const { page_title_and_section_id } = page_title_and_section_data;
 	const Topics = wiki.latest_task_configuration.Topics;
 	if (!Topics[page_title_and_section_id]) {
 		delete Topics[page_title_and_section];
@@ -442,7 +398,6 @@ async function main_process() {
 		}
 
 		for (const WikiProject_template_title of all_WikiProject_template_list.clone().append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
-			continue;
 			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
 				//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
 			) {
@@ -450,7 +405,7 @@ async function main_process() {
 			}
 
 			for (const page_data of (await wiki.embeddedin(WikiProject_template_title, {
-				//limit: 5000
+				limit: 5000
 			})).slice(0, do_PIQA >= 1 ? do_PIQA : 1)) {
 				const page_title = do_PIQA >= 1 ? page_data.title : do_PIQA;
 				have_to_edit_its_talk_page[page_title] = {
@@ -783,8 +738,14 @@ function parse_page_title_and_section(page_title_and_section, options) {
 			|| String(DEFAULT_LEVEL);
 	}
 
+	let page_title_and_section_id_used = page_title_and_section_id;
+	if (wiki.site_name() === 'zhwiki') {
+		// @see [[Wikipedia:基礎條目/擴展#元維基版本]]
+		page_title_and_section_id_used = page_title_and_section_id.replace(/((?:^|\/)擴展\/)meta\//, '$1');
+	}
+
 	// assert: typeof page_title_and_section_id === 'string'
-	const matched = page_title_and_section_id.match(PATTERN_page_title_and_section_id);
+	const matched = page_title_and_section_id_used.match(PATTERN_page_title_and_section_id);
 	if (!matched) {
 		CeL.warn(`${parse_page_title_and_section.name}: Cannot determine level and topic of ${JSON.stringify(page_title_and_section)}`);
 		return;
@@ -797,61 +758,30 @@ function parse_page_title_and_section(page_title_and_section, options) {
 	let numeric_level;
 	switch (wiki.site_name()) {
 		case 'zhwiki':
-			numeric_level = zhwiki_level_list.indexOf(page_title_and_section_data.level);
+			numeric_level = page_title_and_section_id == DEFAULT_LEVEL
+				// e.g., `parse_page_title_and_section('Wikipedia:基礎條目')`
+				? DEFAULT_LEVEL : zhwiki_level_list.indexOf(page_title_and_section_data.level);
 			break;
 
 		default:
-			numeric_level = +page_title_and_section_data.level;
+			if (CeL.is_digits(page_title_and_section_data.level))
+				numeric_level = +page_title_and_section_data.level;
 	}
-	if (numeric_level > 0)
+	if (numeric_level > 0) {
 		page_title_and_section_data.numeric_level = numeric_level;
+		if (!page_title_and_section_data.topic && page_title_and_section_data.section) {
+			// 1級的 subpage, section 不包含 topic 資訊。
+			// 2, 3級的 section title 分割過細，不如採下一等級的 topic。
+			//page_title_and_section_data.pseudo_topic = page_title_and_section_data.section;
+		}
+	}
 
 	return page_title_and_section_data;
 }
 
 function level_of_page_title(page_title, number_only) {
-	if (page_title.title)
-		page_title = page_title.title;
-
-	const base_page = wiki.latest_task_configuration.general.base_page;
-	if (!page_title.startsWith(base_page)) {
-		CeL.warn(`${level_of_page_title.name}: Invalid vital articles list page? ${CeL.wiki.title_link_of(page_title)}`);
-		return;
-	}
-
 	const page_title_and_section_data = parse_page_title_and_section(page_title);
-
-	page_title = page_title.slice(base_page.length);
-	if (page_title === '') {
-		if (page_title_and_section_data?.numeric_level !== DEFAULT_LEVEL) {
-			console.trace([page_title, page_title_and_section_data]);
-		}
-		return DEFAULT_LEVEL;
-	}
-
-	let matched;
-	switch (wiki.site_name()) {
-		case 'enwiki':
-			// [, 1–5, section ]
-			matched = page_title.match(/^\/Level(?:\/([1-5])(\/.+)?)?$/);
-			if (matched) {
-				const level = number_only || !matched[2] ? +matched[1] || DEFAULT_LEVEL : matched[1] + matched[2];
-				if (level != (number_only ? page_title_and_section_data?.numeric_level : page_title_and_section_data?.page_title_and_section_id)) console.trace([page_title, level, page_title_and_section_data]);
-				return level;
-			}
-			break;
-
-		case 'zhwiki':
-			matched = page_title.match(/^\/(第一級|第二級|第三級|擴展|第五級)(\/.+)?$/);
-			if (matched) {
-				const level = number_only || !matched[2] ? zhwiki_level_list.indexOf(matched[1]) || DEFAULT_LEVEL : matched[1] + matched[2];
-				if (level != (number_only ? page_title_and_section_data?.numeric_level : page_title_and_section_data?.page_title_and_section_id)) console.trace([page_title, level, page_title_and_section_data]);
-				return level;
-			}
-			break;
-	}
-
-	CeL.debug(`${level_of_page_title.name}: Cannot determine level of ${CeL.wiki.title_link_of(page_title)}`);
+	return number_only ? page_title_and_section_data.numeric_level : page_title_and_section_data.page_title_and_section_id;
 }
 
 function replace_level_note(item, index, highest_level, new_wikitext) {
@@ -894,26 +824,21 @@ function icons_and_item_toString() {
 	return this.join(' ');
 }
 
+// Skip non-list pages.
 function is_ignored_list_page(list_page_data) {
 	const page_title = list_page_data.title;
-	return page_title.endsWith('/Removed')
+	return CeL.wiki.parse.redirect(list_page_data)
+		|| page_title.endsWith('/Labels')
+		|| page_title.endsWith('/Removed')
 		//[[Wikipedia:Vital articles/Level/4/People/Candidates]]
-		|| page_title.endsWith('/Candidates');
+		|| page_title.endsWith('/Candidates')
+		// e.g., 'json'
+		|| CeL.wiki.content_of.revision(list_page_data)?.contentmodel !== 'wikitext';
 }
 
 async function for_each_list_page(list_page_data) {
-	if (CeL.wiki.parse.redirect(list_page_data))
-		return Wikiapi.skip_edit;
-	if (list_page_data.title.endsWith('/Labels')) {
-		// Skip non-list pages.
-		return Wikiapi.skip_edit;
-	}
 	if (is_ignored_list_page(list_page_data)) {
 		// 想要更新這些被忽略的頁面，必須做更多測試，避免他們也列入索引。
-		return Wikiapi.skip_edit;
-	}
-	if (CeL.wiki.content_of.revision(list_page_data)?.contentmodel !== 'wikitext') {
-		// e.g., 'json'
 		return Wikiapi.skip_edit;
 	}
 
@@ -993,6 +918,10 @@ async function for_each_list_page(list_page_data) {
 	}
 
 	function simplify_link(link_token, normalized_page_title) {
+		if (link_token.type !== 'link') {
+			return;
+		}
+
 		// console.log(link_token);
 		if (link_token[2]
 			// Need avoid [[PH|pH]], do not use
@@ -1019,6 +948,13 @@ async function for_each_list_page(list_page_data) {
 
 		let item_replace_to, icons = [];
 		function for_item_token(token, index, _item) {
+			/** 為中文維基百科的特設模板。 */
+			const is_zhwiki_VA_template = wiki.site_name() === 'zhwiki' ? function is_zh_VA_template(token) {
+				return token.type === 'transclusion' && (wiki.is_template(['Va2', 'Vae2'], token)
+					// e.g., {{/vae2}} @ [[Wikipedia:基礎條目/擴展/地理/自然地理]]
+					|| token.name === '/vae2');
+			} : () => false;
+
 			if (!item_replace_to && token.type !== 'link') {
 				// e.g., token.type === 'list_item'
 
@@ -1033,7 +969,8 @@ async function for_each_list_page(list_page_data) {
 						return parsed.each.exit;
 					}
 
-					if (_token.type === 'link') {
+					if (_token.type === 'link'
+						|| is_zhwiki_VA_template(_token)) {
 						// assert: token.type === 'link'
 						token = _token;
 						return parsed.each.exit;
@@ -1042,12 +979,14 @@ async function for_each_list_page(list_page_data) {
 				//console.trace(token);
 			}
 
-			if (!item_replace_to && token.type === 'link') {
-				// e.g., [[pH]], [[iOS]]
-				const normalized_page_title = wiki.normalize_title(token[0].toString());
+			/** 處理文章。 */
+			function register_article(normalized_page_title) {
 				simplify_link(token, normalized_page_title);
-				if (wiki.is_namespace(normalized_page_title, 'Wikipedia')) {
-					// Skip invalid namespaces.
+				if (wiki.is_namespace(normalized_page_title, 'Wikipedia')
+					// e.g., [[d:Q1]], [[en:T]]
+					|| normalized_page_title.includes(':') && wiki.append_session_to_options().session.configurations.interwiki_pattern.test(normalized_page_title)
+				) {
+					// Skip invalid namespaces or interwiki link.
 					return parsed.each.exit;
 				}
 				if (!wiki.is_namespace(normalized_page_title, 'main')) {
@@ -1211,13 +1150,43 @@ async function for_each_list_page(list_page_data) {
 				_item[index] = item_replace_to;
 				if (_item === item)
 					_item.splice(0, index);
+				// 已經處理文章連結，跳過後面所有東西。
 				return true;
+			}
+
+			if (!item_replace_to && token.type === 'link') {
+				// e.g., [[pH]], [[iOS]]
+				const normalized_page_title = wiki.normalize_title(token[0].toString());
+				return register_article(normalized_page_title);
+			}
+
+			if (!item_replace_to && is_zhwiki_VA_template(token)) {
+				if (token.parameters[1]) {
+					token.article_index = token.index_of[1];
+					let normalized_page_title = token.parameters[1];
+					// e.g., {{vae2|口音 (社會語言學){{!}}口音}} @ [[Wikipedia:基礎條目/擴展/社會和社會科學#基础知识 49]]
+					if (normalized_page_title.type === 'plain' && normalized_page_title[1].type === 'magic_word_function' && normalized_page_title[1].name === '!')
+						normalized_page_title = normalized_page_title[0];
+					normalized_page_title = normalized_page_title.toString();
+					if (normalized_page_title.includes('[[')) {
+						CeL.error(`${for_item_token.name}: 指定了無效的文章名稱: ` + token);
+						return;
+					}
+					normalized_page_title = wiki.normalize_title(normalized_page_title);
+					return register_article(normalized_page_title);
+				}
+
+				CeL.error(`${for_item_token.name}: 未指定文章名稱: ` + token);
+				return;
 			}
 
 			if (token.type === 'transclusion' && wiki.is_template('Space', token)
 				|| !token.toString().trim()) {
 				// Skip
-			} else if (token.type === 'transclusion' && wiki.is_template('Icon', token)) {
+				return;
+			}
+
+			if (token.type === 'transclusion' && wiki.is_template('Icon', token)) {
 				// reset icon
 				// _item[index] = '';
 
@@ -1225,46 +1194,51 @@ async function for_each_list_page(list_page_data) {
 				if (icon === 'FFAC') {
 					icons.push(icon);
 				}
-			} else if (item_replace_to) {
+				return;
+			}
+
+			if (item_replace_to) {
 				// CeL.error('for_item: Invalid item: ' + _item);
 				console.log(item_replace_to);
 				console.log(token);
-				CeL.error(`${for_item.name}: Invalid item: ` + _item)
-				throw new Error(`${for_item.name}: Invalid item: ` + _item);
-			} else {
-				if (_item.length !== 1 || typeof token !== 'string') {
-					console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
-					// console.log(_item.join('\n'));
-					// delete _item.parent;
-					// console.log(_item);
-
-					if (false) report_lines.push([normalized_page_title, list_page_data, `Invalid item: ${_item}`]);
-
-					// Fix invalid pattern.
-					const wikitext = (_item.type === 'list_item' || _item.type === 'plain') && _item.toString();
-					let PATTERN;
-					if (!wikitext) {
-					} else if ((PATTERN = /('{2,5})((?:{{Icon\|\w+}}\s*)+)/i).test(wikitext)) {
-						// "{{Icon|B}} '''{{Icon|A}} {{Icon|C}} [[title]]'''" →
-						// "{{Icon|B}} {{Icon|A}} {{Icon|C}} '''[[title]]'''"
-						_item.truncate();
-						_item[0] = wikitext.replace(PATTERN, '$2$1');
-					} else if ((PATTERN = /^([^']*)('{2,5}) *(\[\[[^\[\]]+\]\][^']*)$/).test(wikitext)) {
-						// "{{Icon|C}} ''' [[title]]" →
-						// "{{Icon|C}} '''[[title]]'''"
-						_item.truncate();
-						_item[0] = wikitext.replace(PATTERN, '$1$2$3$2');
-					} else if ((PATTERN = /^([^"]*)" *(\[\[[^\[\]]+\]\]) *"/).test(wikitext)) {
-						// `{{Icon|D}} " [[title]]"` →
-						// `{{Icon|D}} [[title]]`
-						_item.truncate();
-						_item[0] = wikitext.replace(PATTERN, '$1$2');
-					}
-				}
-
-				// Skip to next item.
-				return true;
+				const message = `${for_item_token.name}: Invalid item: ` + _item;
+				CeL.error(message)
+				throw new Error(message);
 			}
+
+			// 含有其他不該出現的東西。
+			if (_item.length !== 1 || typeof token !== 'string') {
+				console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
+				// console.log(_item.join('\n'));
+				// delete _item.parent;
+				// console.log(_item);
+
+				if (false) report_lines.push([normalized_page_title, list_page_data, `Invalid item: ${_item}`]);
+
+				// Fix invalid pattern.
+				const wikitext = (_item.type === 'list_item' || _item.type === 'plain') && _item.toString();
+				let PATTERN;
+				if (!wikitext) {
+				} else if ((PATTERN = /('{2,5})((?:{{Icon\|\w+}}\s*)+)/i).test(wikitext)) {
+					// "{{Icon|B}} '''{{Icon|A}} {{Icon|C}} [[title]]'''" →
+					// "{{Icon|B}} {{Icon|A}} {{Icon|C}} '''[[title]]'''"
+					_item.truncate();
+					_item[0] = wikitext.replace(PATTERN, '$2$1');
+				} else if ((PATTERN = /^([^']*)('{2,5}) *(\[\[[^\[\]]+\]\][^']*)$/).test(wikitext)) {
+					// "{{Icon|C}} ''' [[title]]" →
+					// "{{Icon|C}} '''[[title]]'''"
+					_item.truncate();
+					_item[0] = wikitext.replace(PATTERN, '$1$2$3$2');
+				} else if ((PATTERN = /^([^"]*)" *(\[\[[^\[\]]+\]\]) *"/).test(wikitext)) {
+					// `{{Icon|D}} " [[title]]"` →
+					// `{{Icon|D}} [[title]]`
+					_item.truncate();
+					_item[0] = wikitext.replace(PATTERN, '$1$2');
+				}
+			}
+
+			// Skip to next item.
+			return true;
 		}
 
 		if (section_text_to_title(item, index, list) || typeof item === 'string') {
@@ -1441,7 +1415,9 @@ async function for_each_list_page(list_page_data) {
 			// console.trace(need_check_redirected_list);
 		}
 		await wiki.for_each_page(need_check_redirected_list, page_data => {
-			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data));
+			const normalized_redirect_to = wiki.normalize_title(CeL.wiki.parse.redirect(page_data))
+				// e.g., 經過繁簡轉換。
+				|| page_data.original_title && page_data.title;
 			if (!normalized_redirect_to
 				// Need check if redirects to [[title#section]].
 				// Skip [[Plaster of Paris]]:
@@ -1451,18 +1427,19 @@ async function for_each_list_page(list_page_data) {
 			}
 
 			// Fix redirect in the list page.
-			const link_token = need_check_redirected[page_data.original_title || page_data.title];
-			if (!link_token) {
+			const link_or_template_token = need_check_redirected[page_data.original_title || page_data.title];
+			if (!link_or_template_token) {
 				CeL.error(`${for_each_list_page.name}: No need_check_redirected [${page_data.title}]!`);
 				console.log(page_data.wikitext);
 				console.log(page_data);
 			}
-			fixed_list.push(link_token[0] + '→' + normalized_redirect_to);
+
+			fixed_list.push(link_or_template_token[link_or_template_token.article_index || 0] + '→' + normalized_redirect_to);
 			// 預防頁面被移動後被當作已失去資格，確保執行 check_page_count() 還是可以找到頁面資料。
 			// TODO: 必須捨棄 catch。
-			set_redirect_to(link_token[0], normalized_redirect_to);
-			link_token[0] = normalized_redirect_to;
-			simplify_link(link_token, normalized_redirect_to);
+			set_redirect_to(link_or_template_token[link_or_template_token.article_index || 0], normalized_redirect_to);
+			link_or_template_token[link_or_template_token.article_index || 0] = normalized_redirect_to;
+			simplify_link(link_or_template_token, normalized_redirect_to);
 		}, { no_edit: true, no_warning: true, redirects: false });
 		CeL.debug(`${CeL.wiki.title_link_of(list_page_data)}: ${fixed_list.length} link(s) fixed.`, 0, for_each_list_page.name);
 		if (fixed_list.length > 0 && fixed_list.length < 9) {
@@ -1546,7 +1523,7 @@ async function generate_all_VA_list_page() {
 			// `local base36 = convertBase({n = codepoint, base = 36})`
 			// @ function p.getDataPage(input_data) @ [[w:zh:Module:Vital articles#L-12]]
 			data_list_prefix = data_list_prefix.codePointAt(0).toString(36).at(-1).toUpperCase();
-			data_list_prefix = /^[A-Z]$/.test(data_list_prefix) ? data_list_prefix : '其他';
+			data_list_prefix = /^[A-Z\d]$/.test(data_list_prefix) ? data_list_prefix : '其他';
 		} else {
 			// enwiki
 			// assert: data_list_prefix.toUpperCase() === data_list_prefix
@@ -1585,11 +1562,18 @@ async function generate_all_VA_list_page() {
 
 			// At levels 1 and 2, the topic is not needed to make the link, but it is needed to populate categories such as Category:Wikipedia vital articles in Philosophy.
 			if (index === 0 && !article_info.topic) {
+				let section;
 				for (let i = 1; i < article_info_list.length; i++) {
 					if (article_info_list[i].topic) {
 						article_info.topic = article_info_list[i].topic;
 						break;
 					}
+					// level 1 的標題完全不能代表文章性質。
+					if (!section && article_info.level > 1)
+						section = article_info.section;
+				}
+				if (!article_info.topic && section) {
+					//article_info.topic = section;
 				}
 			}
 
