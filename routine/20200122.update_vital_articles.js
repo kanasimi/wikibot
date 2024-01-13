@@ -2,8 +2,8 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=60000
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Agnes Mizere"
+node 20200122.update_vital_articles.js use_language=en do_PIQA=5000000
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:95-10 Initiative"
 node 20200122.update_vital_articles.js use_language=zh
 TODO:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
@@ -41,6 +41,11 @@ if (using_cache)
 	prepare_directory(base_directory);
 
 const do_PIQA = CeL.env.arg_hash?.do_PIQA;
+
+if (do_PIQA && wiki.site_name() === 'enwiki') {
+	// Only respect maxlag. 因為數量太多，只好增快速度。
+	CeL.wiki.query.default_edit_time_interval = 0;
+}
 
 // ----------------------------------------------
 
@@ -96,6 +101,7 @@ report_lines.warned_topics = new Set;
 let icons_schema;
 let icon_order_Set, icon_order_Map;
 
+// start from 1
 let max_VA_level = 1;
 
 // ----------------------------------------------
@@ -357,9 +363,13 @@ async function main_process() {
 			// exclude [[User:Fox News Brasil]]
 			namespace: 'talk'
 		});
-		page_list.forEach(page_data => {
-			const page_title = page_data.original_title || page_data.title;
-			have_to_edit_its_talk_page[page_title] = {
+		page_list.forEach(talk_page_data => {
+			const talk_page_title = talk_page_data.original_title || talk_page_data.title;
+			if (wiki.remove_namespace(talk_page_title) in listed_article_info) {
+				// 登記在案的不該消除。
+				return;
+			}
+			have_to_edit_its_talk_page[talk_page_title] = {
 				reason: `The article is [[${wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup}|no longer a vital article]].`,
 				remove_vital_parameter: true,
 				no_topic_message: true,
@@ -397,18 +407,29 @@ async function main_process() {
 			Object.keys(have_to_edit_its_talk_page).forEach(page_title => delete have_to_edit_its_talk_page[page_title]);
 		}
 
+		/**從這個模板名稱開始執行。 Starts from this template name.*/
+		const starts_from_template_name = 'WikiProject Alaska';
+		let passed_starts_from = false;
 		for (const WikiProject_template_title of all_WikiProject_template_list.clone().append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
+			if (!passed_starts_from) {
+				if (wiki.is_template(starts_from_template_name, WikiProject_template_title)) {
+					passed_starts_from = true;
+				} else {
+					continue;
+				}
+			}
+
 			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
 				//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
 			) {
 				continue;
 			}
 
-			for (const page_data of (await wiki.embeddedin(WikiProject_template_title, {
+			for (const talk_page_data of (await wiki.embeddedin(WikiProject_template_title, {
 				limit: 5000
 			})).slice(0, do_PIQA >= 1 ? do_PIQA : 1)) {
-				const page_title = do_PIQA >= 1 ? page_data.title : do_PIQA;
-				have_to_edit_its_talk_page[page_title] = {
+				const talk_page_title = do_PIQA >= 1 ? talk_page_data.title : do_PIQA;
+				have_to_edit_its_talk_page[talk_page_title] = {
 					// 所有作業皆經由人工監督。
 					//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
 					no_topic_message: true,
@@ -417,7 +438,8 @@ async function main_process() {
 				};
 			}
 
-			await maintain_VA_template();
+			await maintain_VA_template({ summary: `${talk_page_summary_prefix} (${CeL.wiki.title_link_of(WikiProject_template_title)})` });
+			if (!(do_PIQA >= 1)) break;
 		}
 
 		CeL.info(`${main_process.name}: Do PIQA, skip VA report.`);
@@ -618,17 +640,17 @@ async function get_page_info() {
 
 	// For the first time do_PIQA
 	if (do_PIQA > 0 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
-		let page_list;
-		//page_list = ['Talk:Lagrangian mechanics', 'Talk:Square root of 2', 'Talk:Boric acid', 'Talk:Municipality', 'Talk:Buffer solution', 'Talk:New Austrian tunneling method', 'Talk:Stavanger', 'Talk:Clipper', 'Talk:Action-adventure game', 'Talk:Maxwell relations',];
-		if (!page_list) {
-			page_list = await wiki.embeddedin(wiki.to_namespace(template_name_hash.VA, { namespace: 'template' }));
-			//console.trace([template_name_hash.VA, page_list.length, do_PIQA, Object.keys(have_to_edit_its_talk_page).length]);
-			page_list = page_list.slice(0, do_PIQA - Object.keys(have_to_edit_its_talk_page).length);
+		let talk_page_list;
+		//talk_page_list = ['Talk:Lagrangian mechanics', 'Talk:Square root of 2', 'Talk:Boric acid', 'Talk:Municipality', 'Talk:Buffer solution', 'Talk:New Austrian tunneling method', 'Talk:Stavanger', 'Talk:Clipper', 'Talk:Action-adventure game', 'Talk:Maxwell relations',];
+		if (!talk_page_list) {
+			talk_page_list = await wiki.embeddedin(wiki.to_namespace(template_name_hash.VA, { namespace: 'template' }));
+			//console.trace([template_name_hash.VA, talk_page_list.length, do_PIQA, Object.keys(have_to_edit_its_talk_page).length]);
+			talk_page_list = talk_page_list.slice(0, do_PIQA - Object.keys(have_to_edit_its_talk_page).length);
 		}
-		for (const page_data of page_list) {
-			const page_title = page_data.title || page_data;
-			if (!(page_title in have_to_edit_its_talk_page)) {
-				have_to_edit_its_talk_page[page_title] = {
+		for (const talk_page_data of talk_page_list) {
+			const talk_page_title = talk_page_data.title || talk_page_data;
+			if (!(talk_page_title in have_to_edit_its_talk_page)) {
+				have_to_edit_its_talk_page[talk_page_title] = {
 					//class: '',
 					key_is_talk_page: true,
 					reason: `Merge {{VA}} into {{WPBS}}.`,
@@ -1048,11 +1070,14 @@ async function for_each_list_page(list_page_data) {
 					}
 					// Use {{r}} to reduce size.
 					const message = `${CeL.wiki.title_link_of(wiki.to_talk_page(normalized_page_title))}: ${list_page_or_category_level ? `Category level ${list_page_or_category_level}.{{r|c}}` : 'Not set as VA?{{r|e}}'}`;
-					if (!list_page_or_category_level) {
+					if (!list_page_or_category_level
+						&& (!have_to_edit_its_talk_page[normalized_page_title]
+							// 應該以最重要等級為主。這會影響到 reason / summary。
+							|| !(have_to_edit_its_talk_page[normalized_page_title].level < level))) {
 						have_to_edit_its_talk_page[normalized_page_title] = {
 							...article_info,
 							level,
-							reason: `The article is listed in the level ${level} page`
+							reason: `The article is listed in the level ${level} page`,
 						};
 					}
 					if (level && !(list_page_or_category_level < level)) {
@@ -1208,7 +1233,7 @@ async function for_each_list_page(list_page_data) {
 
 			// 含有其他不該出現的東西。
 			if (_item.length !== 1 || typeof token !== 'string') {
-				console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} of item: ${_item}`);
+				console.log(`Skip from ${index}/${_item.length}, ${token.type || typeof token} ${JSON.stringify(token.toString())} of item: ${_item}`);
 				// console.log(_item.join('\n'));
 				// delete _item.parent;
 				// console.log(_item);
@@ -1785,7 +1810,7 @@ const talk_page_summary_prefix_text = `Maintain {{${template_name_hash.WPBS && '
 let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
 //console.log(talk_page_summary_prefix);
 
-async function maintain_VA_template() {
+async function maintain_VA_template(options) {
 	// CeL.info('have_to_edit_its_talk_page: ');
 	// console.log(have_to_edit_its_talk_page);
 
@@ -1836,7 +1861,7 @@ async function maintain_VA_template() {
 
 			bot: 1,
 			log_to: null,
-			summary: talk_page_summary_prefix,
+			summary: options?.summary || talk_page_summary_prefix,
 		});
 	} catch (e) {
 		// e.g., [[Talk:Chenla]]: [spamblacklist]
@@ -1895,13 +1920,27 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	let class_from_other_templates_Map = new Map();
 
 	function add_class(class_via_parameter) {
-		if (class_via_parameter) {
-			class_via_parameter = normalize_class(class_via_parameter);
-			if (class_from_other_templates_Map.has(class_via_parameter))
-				class_from_other_templates_Map.set(class_via_parameter, class_from_other_templates_Map.get(class_via_parameter) + 1);
-			else
-				class_from_other_templates_Map.set(class_via_parameter, 1);
+		if (Array.isArray(class_via_parameter)) {
+			// 處理 {{|class=<!-- Formerly assessed as Start-class -->}}
+			// e.g., [[w:en:Talk:95-10 Initiative]]
+			const _class = (!class_via_parameter.type || class_via_parameter.type === 'plain' ? class_via_parameter : [class_via_parameter])
+				.filter(token => token.type !== 'comment');
+			if (_class.some(token => typeof token !== 'string')) {
+				CeL.warn(`Skip invalid class ${class_via_parameter} @ ${CeL.wiki.title_link_of(talk_page_data)}`);
+				return;
+			}
+			//console.trace(class_via_parameter, _class);
+			class_via_parameter = _class.join('');
 		}
+
+		if (!class_via_parameter)
+			return;
+
+		class_via_parameter = normalize_class(class_via_parameter);
+		if (class_from_other_templates_Map.has(class_via_parameter))
+			class_from_other_templates_Map.set(class_via_parameter, class_from_other_templates_Map.get(class_via_parameter) + 1);
+		else
+			class_from_other_templates_Map.set(class_via_parameter, 1);
 	}
 
 	let WikiProject_template_Map = new Map();
@@ -1912,7 +1951,6 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return parsed.each.exit;
 		}
 
-		const class_via_parameter = normalize_class(token.parameters.class);
 		if (wiki.is_template(template_name_hash.VA, token)) {
 			// get the first one
 			if (VA_template_token) {
@@ -1941,7 +1979,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			//&& /project|rating/i.test(token.name)
 		) {
-			add_class(class_via_parameter);
+			add_class(token.parameters.class);
 			const normalized_template_name = wiki.redirect_target_of(token);
 			//console.trace(WikiProject_template_Map.get(normalized_template_name), token);
 			if (WikiProject_template_Map.has(normalized_template_name)) {
@@ -1963,7 +2001,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	});
 	// Release memory. 釋放被占用的記憶體。
 	WikiProject_template_Map = null;
-	// console.log([class_from_other_templates, VA_template_token]);
+	//console.log([class_from_other_templates, VA_template_token]);
 
 	if (is_DAB) {
 		CeL.warn(`${maintain_VA_template_each_talk_page.name}: Skip DAB article: ${CeL.wiki.title_link_of(talk_page_data)}`);
@@ -2162,13 +2200,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							return;
 						}
 
-						if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== WPBS_template_object.class) {
+						if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== WPBS_template_object.class
+							// 有特殊 token 如 comment 不動。 e.g., [[w:en:Talk:95-10 Initiative]]
+							|| Array.isArray(token.parameters.class)) {
 							if (!article_info.reason.untouched_message) {
 								// gettext_config:{"id":"keep-different-ratings-in-$2"}
 								article_info.reason.untouched_message = ['Keep %1 different {{PLURAL:%1|rating|ratings}} in %2.', 0, []];
 								article_info.reason.push(article_info.reason.untouched_message);
 							}
 							article_info.reason.untouched_message[2].push(token.name);
+							//console.trace([token.parameters.class, normalize_class(token.parameters.class), WPBS_template_object.class]);
 							return;
 						}
 
@@ -2315,7 +2356,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	const wikitext = parsed.toString()
 		// e.g., [[Talk:Fiscal policy]]
-		.replace(/{{Suppress categories\s*\|\s*}}\n*/ig, '');
+		//.replace(/{{Suppress categories\s*\|\s*}}\n*/ig, '')
+		;
 	//console.trace([talk_page_data.title, article_info, typeof VA_template_object !== 'undefined' && VA_template_object, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5)]);
 	//return Wikiapi.skip_edit;
 
