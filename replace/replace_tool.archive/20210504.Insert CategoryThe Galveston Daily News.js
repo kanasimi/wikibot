@@ -29,7 +29,7 @@ replace_tool.replace({
 			});
 			if (has_token)
 				return Wikiapi.skip_edit;
-			parsed.insert_layout_token(`[[Category:${category_name}]]`);
+			parsed.insert_layout_element(`[[Category:${category_name}]]`);
 			return parsed.toString();
 		}
 	}

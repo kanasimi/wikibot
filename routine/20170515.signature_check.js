@@ -174,6 +174,8 @@ KEY_COUNT = '#count',
 /**
  * 非內容的元素。無正式具意義的
  * token.type。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
+ *
+ * @see CeL.wiki.is_meaningful_element()
  */
 noncontent_type = {
 	comment : true,
@@ -930,7 +932,7 @@ function for_each_row(row) {
 		for (var index = to_diff_end_index + 1; index < next_section_index; index++) {
 			var token = row.diff.to[index];
 			section_wikitext.push(token);
-			// TODO: 應該使用 function for_each_subtoken()
+			// TODO: 應該使用 function for_each_subelement()
 			if (CeL.wiki.parse.user(token)) {
 				break;
 			}
@@ -956,7 +958,7 @@ function for_each_row(row) {
 			return;
 		}
 
-		// TODO: 應該使用 function for_each_subtoken()
+		// TODO: 應該使用 function for_each_subelement()
 		var user_hash = CeL.wiki.parse.user.all(section_wikitext), user_list = Object
 				.keys(user_hash);
 		CeL.debug('row.user: [' + row.user + ']. 提取出所有簽名: '

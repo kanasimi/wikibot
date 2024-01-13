@@ -974,7 +974,7 @@ async function get_all_links(page_data, options) {
 			return;
 
 		// 假如完全刪除 #anchor，但存在 [[anchor]] 則直接改連至 [[anchor]]
-		var page_title = wiki.normalize_title(link_token[0].toString());
+		const page_title = wiki.normalize_title(link_token[0].toString());
 		if (/^[\w\-]+:\S/.test(page_title)) {
 			//e.g., 'wikt:ducky', 'jp:...'
 			return;
@@ -982,7 +982,7 @@ async function get_all_links(page_data, options) {
 		reduced_anchor_to_page[reduce_section_title(page_title)] = [page_title];
 
 		// 假如完全刪除 #anchor，但存在 [[[page|anchor]] 則直接改連至 [[page]]
-		var display_text = link_token[2]?.toString();
+		const display_text = link_token[2]?.toString();
 		if (display_text)
 			reduced_anchor_to_page[reduce_section_title(display_text)] = [page_title];
 	});
@@ -1242,7 +1242,7 @@ async function check_page(target_page_data, options) {
 			}
 
 			wikitext_to_add = `{{${wiki.latest_task_configuration.general.broken_anchor_template}|${LINKS_PARAMETER}=${wikitext_to_add}\n}}`;
-			parsed.insert_layout_token(wikitext_to_add, /* talk_page_lead */'lead_templates_end');
+			parsed.insert_layout_element(wikitext_to_add, /* talk_page_lead */'lead_templates_end');
 			if (false) {
 				// @deprecated
 				// Modify from 20200122.update_vital_articles.js

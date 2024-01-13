@@ -134,7 +134,7 @@ async function adapt_configuration(latest_task_configuration) {
 		return `# ${wiki.remove_namespace(template_name)}${template_alias.length > 0 ? ` (${template_alias.map(t => wiki.remove_namespace(t)).join(', ')})` : ''}`;
 	}).join('\n'));
 
-	// free
+	// Release memory. 釋放被占用的記憶體。
 	// gettext_config:{"id":"maintenance-template-list"}
 	delete configuration[gettext('maintenance template list')];
 	// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
@@ -273,7 +273,7 @@ async function check_pages_including_maintenance_template(page_data) {
 	// console.log(this);
 	this.maintenance_template_outer = [];
 	this.maintenance_template_inside = [];
-	this.for_each_subtoken = parsed.each;
+	this.for_each_subelement = parsed.each;
 	parsed.each(check_maintenance_templates.bind(this), {
 		// 只探索第一層，探索到第一個標題為止。
 		// Only search the root elements, till the first section title.
@@ -432,7 +432,7 @@ function check_maintenance_templates(token, index, parent) {
 	if (token.type === 'section_title') {
 		// 只探索第一層，探索到第一個標題為止。
 		// Only search the root elements, till the first section title.
-		return this.for_each_subtoken.exit;
+		return this.for_each_subelement.exit;
 	}
 
 	if (token.type !== 'transclusion') {
@@ -445,7 +445,7 @@ function check_maintenance_templates(token, index, parent) {
 		this.Multiple_issues_template_token = token;
 		// console.log(token);
 		// console.log(token.parameters[1]);
-		this.for_each_subtoken.call(token.parameters[1], 'template', token => {
+		this.for_each_subelement.call(token.parameters[1], 'template', token => {
 			//console.trace(token);
 			if (is_maintenance_template(token.name)) {
 				this.maintenance_template_inside.push(token);

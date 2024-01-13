@@ -874,7 +874,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				// 尋找下一個可用的 parameter serial。
 				NoteTA_token.push(`${index}=${rule.replace(/[; ]*$/, '')}\n`);
 				// Update {{NoteTA}} token.
-				NoteTA_token = CeL.wiki.replace_token(NoteTA_token, NoteTA_token.toString(), wiki.append_session_to_options());
+				NoteTA_token = CeL.wiki.replace_element(NoteTA_token, NoteTA_token.toString(), wiki.append_session_to_options());
 				register_NoteTA_token(NoteTA_token);
 				//console.trace(NoteTA_token);
 			}

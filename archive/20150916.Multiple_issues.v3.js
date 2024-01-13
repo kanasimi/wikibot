@@ -306,7 +306,7 @@ function check_maintenance_template_name(page_data) {
 	}
 
 	let changed;
-	// using for_each_subtoken()
+	// using for_each_subelement()
 	parsed.each('template', token => {
 		if (!(token.name in configuration.Multiple_issues_template_alias_hash))
 			return;
@@ -349,7 +349,7 @@ async function check_pages_including_maintenance_template(page_data) {
 	// console.log(this);
 	this.maintenance_template_outer = [];
 	this.maintenance_template_inside = [];
-	this.for_each_subtoken = parsed.each;
+	this.for_each_subelement = parsed.each;
 	parsed.each(check_maintenance_templates.bind(this), {
 		// 只探索第一層，探索到第一個標題為止。
 		// Only search the root elements, till the first section title.
@@ -498,7 +498,7 @@ function check_maintenance_templates(token, index, parent) {
 	if (token.type === 'section_title') {
 		// 只探索第一層，探索到第一個標題為止。
 		// Only search the root elements, till the first section title.
-		return this.for_each_subtoken.exit;
+		return this.for_each_subelement.exit;
 	}
 
 	if (token.type !== 'transclusion') {
@@ -515,7 +515,7 @@ function check_maintenance_templates(token, index, parent) {
 		token.parent = parent;
 		this.Multiple_issues_template_token = token;
 		// console.log(token.parameters[1]);
-		this.for_each_subtoken.call(token.parameters[1], 'template', token => {
+		this.for_each_subelement.call(token.parameters[1], 'template', token => {
 			if (is_maintenance_template(token.name)) {
 				this.maintenance_template_inside.push(token);
 			}

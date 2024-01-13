@@ -11,7 +11,7 @@ replace_tool.replace({
 		text_processor(wikitext, page_data) {
 			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = page_data.parse();
-			parsed.insert_layout_token(`[[Category:山岳名目録]]`);
+			parsed.insert_layout_element(`[[Category:山岳名目録]]`);
 			return parsed.toString();
 		}
 	},
@@ -19,7 +19,7 @@ replace_tool.replace({
 		text_processor(wikitext, page_data) {
 			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = page_data.parse();
-			parsed.insert_layout_token(`[[Category:山岳名目録]]`);
+			parsed.insert_layout_element(`[[Category:山岳名目録]]`);
 			return parsed.toString();
 		}
 	},

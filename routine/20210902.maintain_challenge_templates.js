@@ -181,7 +181,7 @@ async function for_each_item(talk_page_data) {
 		}, 'value_only');
 	} else {
 		this.summary += 'as a hatnote';
-		parsed.insert_layout_token(wikitext_to_add, /* talk_page_lead */'lead_templates_end');
+		parsed.insert_layout_element(wikitext_to_add, /* talk_page_lead */'lead_templates_end');
 	}
 
 	return parsed.toString();

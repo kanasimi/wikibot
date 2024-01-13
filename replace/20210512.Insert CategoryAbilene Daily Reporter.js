@@ -76,7 +76,7 @@ async function replace_category(vol) {
 					return Wikiapi.skip_edit;
 
 				matched = page_data.title.match(/\Wno\.?\s*(\d+)/i);
-				parsed.insert_layout_token(`[[Category:${sub_category_name}${matched ? '|' + matched[1] : ''}]]`);
+				parsed.insert_layout_element(`[[Category:${sub_category_name}${matched ? '|' + matched[1] : ''}]]`);
 				file_count++;
 				return parsed.toString();
 			}

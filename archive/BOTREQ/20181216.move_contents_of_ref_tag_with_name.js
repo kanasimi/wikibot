@@ -43,7 +43,7 @@ function move_ref_contents(value, template, page_data) {
 
 		var reference_list = page_data.parsed.parse_references(function(token,
 				index, parent) {
-			// @see options.add_index @ function for_each_subtoken()
+			// @see options.add_index @ function for_each_subelement()
 			token.index = index;
 			token.parent = parent;
 		})[token.attributes.name];
@@ -127,7 +127,7 @@ function move_contents_of_ref_tag_with_name(page_data) {
 			CeL.debug('switch reference: ' + reference_list.switch_from + ', '
 					+ switch_to);
 			if (reference_list[switch_to]) {
-				CeL.wiki.switch_token(
+				CeL.wiki.switch_elements(
 						reference_list[reference_list.switch_from],
 						reference_list[switch_to]);
 			}

@@ -2178,7 +2178,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						//return parsed.each.skip_inner;
 					}
 
-					CeL.wiki.inplace_reparse_token(token, wiki.append_session_to_options());
+					CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
 					for (const parameter_name in token.parameters) {
 						if (token.parameters[parameter_name].toString().trim())
 							return;
@@ -2300,7 +2300,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
 			//console.trace(WikiProject_templates);
 			if (WikiProject_templates.length > 0) {
-				CeL.wiki.inplace_reparse_token(WikiProject_banner_shell_token, wiki.append_session_to_options());
+				CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());
 				// adding to the bottom of the banner shell
 				if (WikiProject_banner_shell_token.parameters[1]) {
 					// 避免消除原有內容。
@@ -2339,7 +2339,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			//CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${WikiProject_banner_shell_token.toString().trim()}`);
 
 			// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
-			parsed.insert_layout_token(WikiProject_banner_shell_token, {
+			parsed.insert_layout_element(WikiProject_banner_shell_token, {
 				post_processor(token) {
 					if (!extra_contents)
 						return token;
