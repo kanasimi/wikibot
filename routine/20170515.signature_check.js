@@ -89,6 +89,11 @@ using_subst = !wiki.API_URL.includes('moegirl');
 var
 // for debug specified pages. 只處理此一頁面。 e.g., "User talk:Kanashimi"
 test_the_page_only = "",
+// Skip the latest `skip_revisions` revisions.
+// 跳過最新的 `skip_revisions` 個版本。
+// default: 0
+skip_revisions = 0,
+
 // true: 測試模式，將不會寫入簽名或者提醒。
 test_mode = !!test_the_page_only,
 // 回溯這麼多時間。最多約可回溯30天。用個一兩天可以避免 jstart 必須常常檢查。
@@ -186,6 +191,7 @@ with_diff = {
 };
 
 if (test_mode) {
+	// CeL.set_debug(2);
 	page_allowlist.push('Wikipedia:沙盒');
 }
 
@@ -198,8 +204,6 @@ function adapt_configuration(latest_task_configuration) {
 
 	console.trace(wiki.latest_task_configuration.general);
 }
-
-// CeL.set_debug(2);
 
 function show_page(row) {
 	CeL.log('* [[User:' + row.user + ']] 編輯了 [[Special:Diff/' + row.revid + '|'
@@ -303,45 +307,8 @@ wiki.run(main_process);
 function main_process() {
 	check_user_denylist();
 
-	if (test_the_page_only) {
-		CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
-				+ ': 先取得頁面資料。');
-		wiki.page(test_the_page_only, function(page_data) {
-			var revision = CeL.wiki.content_of.revision(page_data);
-			// 解析頁面結構。
-			CeL.wiki.parser(page_data).parse();
-			// 模擬 wiki.listen() 這個函數的工作。
-			// @see add_listener() @ CeL.application.net.wiki
-			Object.assign(page_data, {
-				user : revision.user,
-				timestamp : revision.timestamp,
-				revid : revision.revid,
-				// The edit comment / summary.
-				comment : revision.comment,
-				from_parsed : CeL.wiki.parser(
-						page_data.revisions.length > 1 ? CeL.wiki.content_of(
-								page_data, -1) : '').parse()
-			});
-
-			page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
-				return token.toString();
-			}), page_data.parsed.map(function(token) {
-				return token.toString();
-			}), Object.assign({
-				diff : true
-			}, with_diff));
-
-			// 處理單一頁面的時候開啟偵錯模式。
-			// CeL.set_debug(2);
-			if (CeL.is_debug(2))
-				console.log(page_data);
-			for_each_row(page_data);
-		}, {
-			rvprop : 'ids|timestamp|content|user|comment',
-			rvlimit : 2
-		});
-
-	} else {
+	if (!test_the_page_only) {
+		// normal running
 		CeL.info('檢查簽名的延遲時間: ' + delay_time);
 		// CeL.set_debug(1);
 		wiki.listen(for_each_row, {
@@ -359,7 +326,67 @@ function main_process() {
 			},
 			interval : test_mode || time_back_to ? 500 : 60 * 1000
 		});
+		return;
 	}
+
+	// ------------------------------------------
+	// for debug / test
+
+	CeL.info('處理單一頁面 ' + CeL.wiki.title_link_of(test_the_page_only)
+			+ ': 先取得頁面資料。');
+	wiki.page(test_the_page_only, function(page_data) {
+		var revision = CeL.wiki.content_of.revision(page_data, skip_revisions);
+		var previous_revision = CeL.wiki.content_of.revision(page_data,
+				skip_revisions + 1);
+		CeL.info('Check page ' + CeL.wiki.title_link_of(page_data)
+		//
+		+ ' previous revision [' + (skip_revisions + 1) + '] '
+		//
+		+ (previous_revision && previous_revision.user)
+		//
+		+ ' (' + (previous_revision && previous_revision.timestamp)
+		//
+		+ ') vs. recent revision [' + skip_revisions + '] '
+		//
+		+ revision.user + ' (' + revision.timestamp + ')');
+		console.trace([
+		//
+		CeL.wiki.revision_content(previous_revision).slice(-200),
+		//
+		CeL.wiki.revision_content(revision).slice(-200) ]);
+		// 解析頁面結構。
+		CeL.wiki.parser(page_data).parse({
+			revision_index : skip_revisions
+		});
+		// 模擬 wiki.listen() 這個函數的工作。
+		// @see add_listener() @ CeL.application.net.wiki
+		Object.assign(page_data, {
+			user : revision.user,
+			timestamp : revision.timestamp,
+			revid : revision.revid,
+			// The edit comment / summary.
+			comment : revision.comment,
+			from_parsed : CeL.wiki.parser(
+					CeL.wiki.revision_content(previous_revision) || '').parse()
+		});
+
+		page_data.diff = CeL.LCS(page_data.from_parsed.map(function(token) {
+			return token.toString();
+		}), page_data.parsed.map(function(token) {
+			return token.toString();
+		}), Object.assign({
+			diff : true
+		}, with_diff));
+
+		if (CeL.is_debug(2))
+			console.trace(page_data);
+		// 處理單一頁面的時候開啟偵錯模式。
+		CeL.set_debug(2);
+		for_each_row(page_data);
+	}, {
+		rvprop : 'ids|timestamp|content|user|comment',
+		rvlimit : 2 + skip_revisions
+	});
 }
 
 // ---------------------------------------------------------
@@ -506,7 +533,7 @@ function for_each_row(row) {
 	if (CeL.is_debug(2)) {
 		CeL.info('='.repeat(75));
 		show_page(row);
-		console.log(row);
+		// console.trace(row);
 	}
 
 	// 比較頁面修訂差異。
@@ -599,7 +626,8 @@ function for_each_row(row) {
 
 	function check_diff_pair(diff_pair, diff_index) {
 		if (CeL.is_debug(2)) {
-			CeL.info('-'.repeat(75) + '\ncheck_diff_pair:');
+			CeL.info('-'.repeat(75) + '\ncheck_diff_pair of .diff['
+					+ diff_index + ']:');
 			console.log(diff_pair);
 		}
 
@@ -810,7 +838,7 @@ function for_each_row(row) {
 	function check_sections(to_diff_start_index, to_diff_end_index,
 			next_section_index, diff_pair, diff_index) {
 		if (CeL.is_debug(2)) {
-			CeL.info('-'.repeat(60) + '\ncheck_sections: to of '
+			CeL.info('-'.repeat(60) + '\ncheck_sections: diff.to of '
 					+ CeL.wiki.title_link_of(row) + ':');
 			console.log(row.diff.to.slice(to_diff_start_index,
 					to_diff_end_index + 1));
@@ -822,32 +850,36 @@ function for_each_row(row) {
 		// --------------------------------------
 		// 確保 to_diff_start_index, to_diff_end_index 這兩個分割點都在段落之間而非段落中間。
 
+		while (to_diff_start_index - 1 > 0
 		// 若是差異開始的地方是在段落中間，那就把開始的index向前移到段落起始之處。
 		// e.g., [[w:zh:Special:Diff/45631425]]
-		while (!/\n\s*$/.test(row.diff.to[to_diff_start_index])
+		&& !/\n\s*$/.test(row.diff.to[to_diff_start_index])
 		// 分割點的前或者後應該要有換行。
-		&& !/^\s*\n/.test(row.diff.to[to_diff_start_index - 1])
-		//
-		&& to_diff_start_index - 1 > 0) {
-			CeL.debug('差異開始的地方是在段落中間，把留言開始的index向前移到段落起始之處: '
-					+ to_diff_start_index + '→' + (to_diff_start_index - 1)
-					+ '。', 2);
+		&& !/^\s*\n/.test(row.diff.to[to_diff_start_index - 1])) {
+			CeL.debug(
+					'差異開始的地方是在段落中間，把留言開始的index向前移到段落起始之處: to_diff_start_index '
+							+ to_diff_start_index + '→'
+							+ (to_diff_start_index - 1) + '。', 2);
 			to_diff_start_index--;
 			// continue; 向後尋找剛好交界在換行的 token。
 		}
 
+		while (to_diff_end_index + 1 < next_section_index
 		// 若是差異結束的地方是在段落中間，那就把結束的index向後移到段落結束之處。
 		// e.g., [[w:zh:Special:Diff/45510337]]
-		while (!/\n\s*$/.test(row.diff.to[to_diff_end_index])
+		&& !/\n\s*$/.test(row.diff.to[to_diff_end_index])
 		// 分割點的前或者後應該要有換行。
-		&& !/^\s*\n/.test(row.diff.to[to_diff_end_index + 1])
-		//
-		&& to_diff_end_index + 1 < next_section_index) {
-			CeL.debug('差異結束的地方是在段落中間，把留言結束的index向後移到段落結束之處: '
+		&& !/^\s*\n/.test(row.diff.to[to_diff_end_index + 1])) {
+			CeL.debug('差異結束的地方是在段落中間，把留言結束的index向後移到段落結束之處: to_diff_end_index '
 					+ to_diff_end_index + '→' + (to_diff_end_index + 1) + '。',
 					2);
 			to_diff_end_index++;
 			// continue; 向後尋找剛好交界在換行的 token。
+		}
+		if (CeL.is_debug(2)) {
+			console.trace([ to_diff_start_index,
+					row.diff.to[to_diff_start_index], to_diff_end_index,
+					row.diff.to[to_diff_end_index] ]);
 		}
 
 		/** {Number}不去除掉模板的留言結束index */
@@ -970,14 +1002,44 @@ function for_each_row(row) {
 			if (to_diff_index[1] >= next_section_index) {
 				if (to_diff_index[0] < next_section_index) {
 					// 下一段變更開始於段落標題之前。把簽名加在段落標題最前之前。
+					if (false) {
+						console.trace(last_diff_index_before_next_section,
+								next_section_index);
+					}
 					last_diff_index_before_next_section = next_section_index - 1;
 				}
 				break;
 			}
 			if (to_diff_index[1] < next_section_index) {
+				if (false) {
+					console.trace(last_diff_index_before_next_section,
+							to_diff_index, index, row.diff.length);
+				}
 				last_diff_index_before_next_section = to_diff_index[1];
 				// 繼續檢查下一段變更。
 			}
+		}
+
+		// 確保 last_diff_index_before_next_section 在段落之間而非段落中間。
+
+		while (last_diff_index_before_next_section + 1 < row.diff.to.length
+		// e.g., [[Special:Diff/7272050|Talk:缘之空]]
+		// https://zh.moegirl.org.cn/index.php?title=Talk%3A%E7%BC%98%E4%B9%8B%E7%A9%BA&type=revision&diff=7272050&oldid=7272047
+		&& !/\n\s*$/.test(row.diff.to[last_diff_index_before_next_section])
+		// 分割點的前或者後應該要有換行。
+		&& !/^\s*\n/.test(row.diff.to[last_diff_index_before_next_section + 1])) {
+			CeL.debug(
+					'差異結束的地方是在段落中間，把留言結束的index向後移到段落結束之處: last_diff_index_before_next_section '
+							+ last_diff_index_before_next_section + '→'
+							+ (last_diff_index_before_next_section + 1) + '。',
+					2);
+			last_diff_index_before_next_section++;
+			// continue; 向後尋找剛好交界在換行的 token。
+		}
+
+		if (false) {
+			console.trace([ last_diff_index_before_next_section,
+					row.diff.to[last_diff_index_before_next_section] ]);
 		}
 
 		// --------------------------------------
@@ -1130,6 +1192,7 @@ function for_each_row(row) {
 			// 不需要顯示太多換行。
 			log[1] = log[1].trim();
 			var more = '';
+			// TODO: use CeL.string_digest()
 			if (log[1].length > 80 * 2 + more_separator.length + 20) {
 				more = more_separator + log[1].slice(-80);
 				log[1] = log[1].slice(0, 80);
