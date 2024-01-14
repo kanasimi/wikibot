@@ -127,7 +127,7 @@ function move_contents_of_ref_tag_with_name(page_data) {
 			CeL.debug('switch reference: ' + reference_list.switch_from + ', '
 					+ switch_to);
 			if (reference_list[switch_to]) {
-				CeL.wiki.switch_elements(
+				CeL.wiki.swap_elements(
 						reference_list[reference_list.switch_from],
 						reference_list[switch_to]);
 			}
