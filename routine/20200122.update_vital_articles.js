@@ -4,6 +4,7 @@ node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
 node 20200122.update_vital_articles.js use_language=en do_PIQA=5000000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=zh
 TODO:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
@@ -40,9 +41,9 @@ const using_cache = CeL.env.arg_hash?.using_cache;
 if (using_cache)
 	prepare_directory(base_directory);
 
-const do_PIQA = CeL.env.arg_hash?.do_PIQA;
+const do_PIQA = CeL.env.arg_hash?.do_PIQA && (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
 
-if (do_PIQA && wiki.site_name() === 'enwiki') {
+if (false && do_PIQA && wiki.site_name() === 'enwiki') {
 	// Only respect maxlag. 因為數量太多，只好增快速度。
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
@@ -351,6 +352,7 @@ async function main_process() {
 			});
 	}
 
+	CeL.log_temporary('Get all redirects...');
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
 	await wiki.register_redirects(all_WikiProject_template_list.clone().append(all_opted_out_WikiProject_template_list)
 		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
@@ -474,62 +476,68 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
-	if (do_PIQA) {
-		if (!CeL.is_empty_object(have_to_edit_its_talk_page)) {
-			// clean
-			Object.keys(have_to_edit_its_talk_page).forEach(page_title => delete have_to_edit_its_talk_page[page_title]);
-		}
-
-		/**從這個模板名稱開始執行。 Starts from this template name.*/
-		const starts_from_template_name = 'WikiProject Alternative music';
-		let passed_starts_from = false;
-		for (const WikiProject_template_title of [
-			await wiki.categorymembers('Category:WikiProject templates with unknown parameters', { namespace: 'Template' }),
-		].append(all_WikiProject_template_list).append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
-			if (!passed_starts_from) {
-				if (wiki.is_template(starts_from_template_name, WikiProject_template_title)) {
-					passed_starts_from = true;
-				} else {
-					continue;
-				}
-			}
-
-			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
-				//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
-			) {
-				continue;
-			}
-
-			for (const talk_page_data of (await wiki.embeddedin(WikiProject_template_title, {
-				limit: 5000
-			})).slice(0, do_PIQA >= 1 ? do_PIQA : 1)) {
-				const talk_page_title = do_PIQA >= 1 ? talk_page_data.title : do_PIQA;
-				have_to_edit_its_talk_page[talk_page_title] = {
-					// 所有作業皆經由人工監督。
-					//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
-					no_topic_message: true,
-					do_PIQA: true,
-					key_is_talk_page: true,
-				};
-			}
-
-			await maintain_VA_template({
-				summary: `${talk_page_summary_prefix}`
-					+ (do_PIQA >= 1 ? ` (${CeL.wiki.title_link_of(WikiProject_template_title)})` : '')
-			});
-			if (!(do_PIQA >= 1)) break;
-		}
-
-		CeL.info(`${main_process.name}: Do PIQA, skip VA report.`);
-
-		routine_task_done('1 week');
-
-	} else {
+	if (!do_PIQA) {
 		//if (wiki.latest_task_configuration.general.modify_talk_pages)
 		await generate_report({ no_editing_of_talk_pages });
 
 		routine_task_done('1d');
+		return;
 	}
+
+	// ----------------------------------------------------
+
+	if (!CeL.is_empty_object(have_to_edit_its_talk_page)) {
+		// clean
+		Object.keys(have_to_edit_its_talk_page).forEach(page_title => delete have_to_edit_its_talk_page[page_title]);
+	}
+
+	/**從這個模板名稱開始執行。 Starts from this template name.*/
+	const starts_from_template_name = 'WikiProject Anglicanism';
+	let passed_starts_from = false;
+	for (const WikiProject_template_title of [].append(all_WikiProject_template_list).append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
+		if (!passed_starts_from) {
+			if (wiki.is_template(starts_from_template_name, WikiProject_template_title)) {
+				passed_starts_from = true;
+			} else {
+				continue;
+			}
+		}
+
+		if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
+			//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
+		) {
+			continue;
+		}
+
+		const page_list =
+			//await wiki.categorymembers('Category:WikiProject templates with unknown parameters', { namespace: 'Template' }) ||
+			//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: 'Talk' }) ||
+			(Array.isArray(do_PIQA) ? do_PIQA
+				: (await wiki.embeddedin(WikiProject_template_title, {
+					limit: 5000
+				})).slice(0, do_PIQA >= 1 ? do_PIQA : 1));
+		for (const talk_page_data of page_list) {
+			const talk_page_title = do_PIQA >= 1 ? talk_page_data.title || talk_page_data : do_PIQA;
+			have_to_edit_its_talk_page[talk_page_title] = {
+				// 所有作業皆經由人工監督。
+				//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
+				no_topic_message: true,
+				do_PIQA: true,
+				key_is_talk_page: true,
+			};
+		}
+
+		await maintain_VA_template({
+			summary: `${talk_page_summary_prefix}`
+				+ (do_PIQA >= 1 ? ` (${CeL.wiki.title_link_of(WikiProject_template_title)})` : '')
+		});
+		if (!(do_PIQA >= 1)) break;
+	}
+
+	CeL.info(`${main_process.name}: Do PIQA, skip VA report.`);
+
+	routine_task_done('1 week');
+
 }
 
 // ----------------------------------------------------------------------------
@@ -717,7 +725,7 @@ async function get_page_info() {
 	}
 
 	// For the first time do_PIQA
-	if (do_PIQA > 0 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
+	if (do_PIQA >= 1 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
 		let talk_page_list;
 		//talk_page_list = ['Talk:Lagrangian mechanics', 'Talk:Square root of 2', 'Talk:Boric acid', 'Talk:Municipality', 'Talk:Buffer solution', 'Talk:New Austrian tunneling method', 'Talk:Stavanger', 'Talk:Clipper', 'Talk:Action-adventure game', 'Talk:Maxwell relations',];
 		if (!talk_page_list) {
@@ -2023,6 +2031,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	}
 
 	let WikiProject_template_Map = new Map();
+	let all_parameters_fix_count = 0;
 	parsed.each('template', token => {
 		if (wiki.is_template(template_name_hash.WPDAB, token)) {
 			// TODO: should test main article
@@ -2058,6 +2067,35 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			//&& /project|rating/i.test(token.name)
 		) {
+			// 應該在其他處理之前修正參數名稱。
+			if (Array.isArray(wiki.latest_task_configuration.general.replace_misspelled_parameter_name)) {
+				let parameters_fix_count = 0;
+				//console.trace([wiki.latest_task_configuration.general.replace_misspelled_parameter_name, token.index_of]);
+				for (const pattern of wiki.latest_task_configuration.general.replace_misspelled_parameter_name) {
+					for (const [parameter_name, index] of Object.entries(token.index_of)) {
+						//console.log('Test pattern:', [pattern, parameter_name]);
+						if (pattern.test(parameter_name)) {
+							const replace_to = pattern.replace(parameter_name);
+							if (!token[index][0]) {
+								CeL.warn(`Numeric parameter name? ${JSON.stringify(parameter_name)}→${JSON.stringify(replace_to)}`);
+								continue;
+							}
+							if (parameter_name !== replace_to) {
+								CeL.warn(`Need fix parameter name: ${JSON.stringify(parameter_name)}→${JSON.stringify(replace_to)}`);
+								//console.trace(token[index]);
+								parameters_fix_count++;
+								token[index][0] = replace_to;
+							}
+						}
+					}
+				}
+				if (parameters_fix_count > 0) {
+					all_parameters_fix_count += parameters_fix_count;
+					CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
+					//console.trace(token, token.toString());
+				}
+			}
+
 			add_class(token.parameters.class);
 			const normalized_template_name = wiki.redirect_target_of(token);
 			//console.trace(WikiProject_template_Map.get(normalized_template_name), token);
@@ -2265,33 +2303,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					CeL.warn(`移除空的重複 ${token}`);
 					return parsed.each.remove_token;
 				}
+
 				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
-					// 應該在其他處理之前修正參數名稱。
-					if (Array.isArray(wiki.latest_task_configuration.general.replace_misspelled_parameter_name)) {
-						let fix_count = 0;
-						for (const pattern of wiki.latest_task_configuration.general.replace_misspelled_parameter_name) {
-							for (const [parameter_name, index] of Object.entries(token.index_of)) {
-								if (pattern.test(parameter_name)) {
-									const replace_to = pattern.replace(parameter_name);
-									if (!token[index][0]) {
-										CeL.warn(`Numeric parameter name? ${JSON.stringify(parameter_name)}→${JSON.stringify(replace_to)}`);
-										continue;
-									}
-									if (parameter_name !== replace_to) {
-										CeL.warn(`Need fix parameter name: ${JSON.stringify(parameter_name)}→${JSON.stringify(replace_to)}`);
-										fix_count++;
-										token[index][0] = replace_to;
-									}
-								}
-							}
-						}
-						if (fix_count > 0) {
-							article_info.reason.push(['Fix %1 misspelled {{PLURAL:%1|parameter|parameters}}.', fix_count]);
-							CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
-						}
-					}
-
 					const parameters_to_remove_Set = new Set;
 					/**
 					 * remove class rating from wikiproject banner
@@ -2492,6 +2506,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		if (++maintain_VA_template_count > 50)
 			return Wikiapi.skip_edit;
 		// console.log(wikitext);
+	}
+
+	if (all_parameters_fix_count > 0) {
+		article_info.reason.push(['Fix %1 misspelled {{PLURAL:%1|parameter|parameters}}.', all_parameters_fix_count]);
 	}
 
 	if (article_info.full_summary) {
