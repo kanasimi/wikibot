@@ -38,8 +38,6 @@ CeL.run(['application.net.wiki.featured_content',
 const wiki = new Wikiapi;
 
 const using_cache = CeL.env.arg_hash?.using_cache;
-if (using_cache)
-	prepare_directory(base_directory);
 
 const do_PIQA = CeL.env.arg_hash?.do_PIQA && (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
 
@@ -48,11 +46,18 @@ if (false && do_PIQA && wiki.site_name() === 'enwiki') {
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
 
+if (using_cache || do_PIQA)
+	prepare_directory(base_directory);
+
 // ----------------------------------------------
+
+const start_time = Date.now();
 
 // badge
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = using_cache && CeL.get_JSON(page_info_cache_file);
+
+const do_PIQA_status_file = `${base_directory}/PIQA_status_file.json`;
 
 /** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache?.icons_of_page || Object.create(null);
@@ -352,7 +357,7 @@ async function main_process() {
 			});
 	}
 
-	CeL.log_temporary('Get all redirects...');
+	CeL.log_temporary(`Get all redirects. Elapsed time: ${CeL.date.age_of(start_time)}`);
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
 	await wiki.register_redirects(all_WikiProject_template_list.clone().append(all_opted_out_WikiProject_template_list)
 		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
@@ -405,6 +410,8 @@ async function main_process() {
 
 	//console.log(vital_articles_list.length);
 	//console.log(vital_articles_list.map(page_data => page_data.title));
+
+	CeL.log_temporary(`Process all vital articles list. Elapsed time: ${CeL.date.age_of(start_time)}`);
 
 	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
@@ -486,58 +493,113 @@ async function main_process() {
 
 	// ----------------------------------------------------
 
+	await do_PIQA_operation();
+
+	CeL.info(`${main_process.name}: Do PIQA, skip VA report. Elapsed time: ${CeL.date.age_of(start_time)}`);
+
+	routine_task_done('1 month');
+
+}
+
+// ----------------------------------------------------------------------------
+
+function clean__have_to_edit_its_talk_page() {
 	if (!CeL.is_empty_object(have_to_edit_its_talk_page)) {
 		// clean
 		Object.keys(have_to_edit_its_talk_page).forEach(page_title => delete have_to_edit_its_talk_page[page_title]);
 	}
+}
 
-	/**從這個模板名稱開始執行。 Starts from this template name.*/
-	const starts_from_template_name = 'WikiProject Anglicanism';
-	let passed_starts_from = false;
-	for (const WikiProject_template_title of [].append(all_WikiProject_template_list).append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
-		if (!passed_starts_from) {
-			if (wiki.is_template(starts_from_template_name, WikiProject_template_title)) {
-				passed_starts_from = true;
-			} else {
+async function do_PIQA_operation() {
+	CeL.log_temporary(`Do PIQA operation. Elapsed time: ${CeL.date.age_of(start_time)}`);
+
+	clean__have_to_edit_its_talk_page();
+
+	// @see [[w:en:Wikipedia:Bots/Noticeboard#Flooding watchlists]]
+	if (false) {
+		/**從這個模板名稱開始執行。 Starts from this template name.*/
+		const starts_from_template_name = 'WikiProject Anglicanism';
+		let passed_starts_from = false;
+		for (const WikiProject_template_title of [].append(all_WikiProject_template_list).append([wiki.to_namespace(template_name_hash.WPBS, 'template')])) {
+			if (!passed_starts_from) {
+				if (wiki.is_template(starts_from_template_name, WikiProject_template_title)) {
+					passed_starts_from = true;
+				} else {
+					continue;
+				}
+			}
+
+			if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
+				//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
+			) {
 				continue;
 			}
-		}
 
-		if (wiki.is_template(all_opted_out_WikiProject_template_list, WikiProject_template_title)
-			//|| !wiki.is_template(template_name_hash.WPBIO, WikiProject_template_title)
-		) {
-			continue;
-		}
+			const page_list =
+				//await wiki.categorymembers('Category:WikiProject templates with unknown parameters', { namespace: 'Template' }) ||
+				//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: 'Talk' }) ||
+				(Array.isArray(do_PIQA) ? do_PIQA
+					: (await wiki.embeddedin(WikiProject_template_title, {
+						limit: 5000
+					})).slice(0, do_PIQA >= 1 ? do_PIQA : 1));
+			for (const talk_page_data of page_list) {
+				const talk_page_title = do_PIQA >= 1 ? talk_page_data.title || talk_page_data : do_PIQA;
+				have_to_edit_its_talk_page[talk_page_title] = {
+					// 所有作業皆經由人工監督。
+					//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
+					no_topic_message: true,
+					do_PIQA: true,
+					key_is_talk_page: true,
+				};
+			}
 
-		const page_list =
-			//await wiki.categorymembers('Category:WikiProject templates with unknown parameters', { namespace: 'Template' }) ||
-			//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: 'Talk' }) ||
-			(Array.isArray(do_PIQA) ? do_PIQA
-				: (await wiki.embeddedin(WikiProject_template_title, {
-					limit: 5000
-				})).slice(0, do_PIQA >= 1 ? do_PIQA : 1));
-		for (const talk_page_data of page_list) {
-			const talk_page_title = do_PIQA >= 1 ? talk_page_data.title || talk_page_data : do_PIQA;
-			have_to_edit_its_talk_page[talk_page_title] = {
-				// 所有作業皆經由人工監督。
-				//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
-				no_topic_message: true,
-				do_PIQA: true,
-				key_is_talk_page: true,
-			};
+			await maintain_VA_template({
+				summary: `${talk_page_summary_prefix}`
+					+ (do_PIQA >= 1 ? ` (${CeL.wiki.title_link_of(WikiProject_template_title)})` : '')
+			});
+			if (!(do_PIQA >= 1)) break;
 		}
-
-		await maintain_VA_template({
-			summary: `${talk_page_summary_prefix}`
-				+ (do_PIQA >= 1 ? ` (${CeL.wiki.title_link_of(WikiProject_template_title)})` : '')
-		});
-		if (!(do_PIQA >= 1)) break;
 	}
 
-	CeL.info(`${main_process.name}: Do PIQA, skip VA report.`);
 
-	routine_task_done('1 week');
+	// @see [[w:en:Wikipedia:Bots/Noticeboard#A decentralized approach to solve the watchlist problem]]
+	const starts_from_page_title = (() => {
+		const do_PIQA_status = CeL.get_JSON(do_PIQA_status_file);
+		return do_PIQA_status.process_to_page;
+	})() || '';
+	CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
+	let talk_page_count = 0, total_talk_page_count = 0;
+	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA : wiki.allpages({ namespace: 'Talk', apfrom: wiki.remove_namespace(starts_from_page_title) }))) {
+		//console.trace('talk_page_data:', talk_page_data);
+		const talk_page_title = talk_page_data.title || talk_page_data;
 
+		have_to_edit_its_talk_page[talk_page_title] = {
+			// 所有作業皆經由人工監督。
+			//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
+			no_topic_message: true,
+			do_PIQA: true,
+			key_is_talk_page: true,
+		};
+
+		++total_talk_page_count;
+		if (++talk_page_count >= 500) {
+			CeL.write_file(do_PIQA_status_file, {
+				process_to_page: wiki.remove_namespace(talk_page_title),
+				count: total_talk_page_count, limit: do_PIQA,
+			});
+
+			await maintain_VA_template();
+
+			clean__have_to_edit_its_talk_page();
+			talk_page_count = 0;
+		}
+
+		if (do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
+			break;
+	}
+
+	// 處理殘餘的 `have_to_edit_its_talk_page`
+	await maintain_VA_template();
 }
 
 // ----------------------------------------------------------------------------
@@ -725,7 +787,7 @@ async function get_page_info() {
 	}
 
 	// For the first time do_PIQA
-	if (do_PIQA >= 1 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
+	if (false && do_PIQA >= 1 && Object.keys(have_to_edit_its_talk_page).length < do_PIQA) {
 		let talk_page_list;
 		//talk_page_list = ['Talk:Lagrangian mechanics', 'Talk:Square root of 2', 'Talk:Boric acid', 'Talk:Municipality', 'Talk:Buffer solution', 'Talk:New Austrian tunneling method', 'Talk:Stavanger', 'Talk:Clipper', 'Talk:Action-adventure game', 'Talk:Maxwell relations',];
 		if (!talk_page_list) {
