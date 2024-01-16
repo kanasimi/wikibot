@@ -2047,7 +2047,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// There are copies @ 20201008.fix_anchor.js
 	// TODO: fix disambiguation
 
-	if (CeL.wiki.parse.redirect(talk_page_data)) {
+	// 重定向頁面不該是 vital article。
+	if (!article_info.do_PIQA && CeL.wiki.parse.redirect(talk_page_data)) {
 		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
 		// this kind of redirects will be skipped and listed in `wiki.latest_task_configuration.general.report_page` for manually fixing.
 		// Warning: Should not go to here!
@@ -2178,8 +2179,6 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			}
 		}
 	});
-	// Release memory. 釋放被占用的記憶體。
-	WikiProject_template_Map = null;
 	//console.log([class_from_other_templates, VA_template_token]);
 
 	if (is_DAB && !do_PIQA) {
@@ -2304,7 +2303,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		article_info.reason = new CeL.gettext.Sentence_combination(article_info.reason);
 
 		// new style from 2023/12: If the {{WikiProject banner shell}} does not exist, create one.
-		const need_insert_WPBS = !WikiProject_banner_shell_token;
+		let need_insert_WPBS = !WikiProject_banner_shell_token;
 		if (WikiProject_banner_shell_token) {
 			if (WikiProject_banner_shell_token.parameters.class !== majority_class) {
 				// Using WPBS parameter first.
@@ -2500,6 +2499,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
 			//console.trace(WikiProject_templates);
 			if (WikiProject_templates.length > 0) {
+				// assert: WikiProject_template_Map.size > 0
 				CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());
 				// adding to the bottom of the banner shell
 				if (WikiProject_banner_shell_token.parameters[1]) {
@@ -2531,6 +2531,28 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				// {{WikiProject banner shell|class=|vital=yes|1=\n...\n}}
 				before_parameter: 1, no_value_space: true,
 			});
+		} else if (WikiProject_template_Map.size === 0) {
+			let remove_WPBS;
+			parsed.each('Template:' + template_name_hash.WPBS, token => {
+				for (const parameter_name in token.parameters) {
+					if (token.parameters[parameter_name].toString().trim()) {
+						return;
+					}
+				}
+				remove_WPBS = true;
+				return parsed.each.remove_token;
+			});
+			if (need_insert_WPBS) {
+				need_insert_WPBS = false;
+			}
+			if (remove_WPBS) {
+				article_info.reason.push(`Remove empty {{WPBS}}`);
+			}
+			// assert: !!extra_contents === false
+		}
+
+		if (WikiProject_template_Map.size > 0 && CeL.wiki.parse.redirect(talk_page_data)) {
+			CeL.error(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 		}
 
 		// TODO: resort WikiProject_banner_shell_token
