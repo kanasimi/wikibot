@@ -1244,7 +1244,7 @@ function write_date_page(date_page_title, transcluding_title_now) {
 			if (transcluding_title === transcluding_title_now) {
 				wiki.page(date_page_title);
 				wiki.edit('', {
-					allow_empty : true,
+					allow_blanking : true,
 					nocreate : 1,
 					summary : 'production environment 下，'
 							+ '如果沒有人處理的話應該有補救措施（即便最後留空）。'

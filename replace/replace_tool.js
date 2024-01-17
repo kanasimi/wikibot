@@ -43,6 +43,7 @@ auto add section title @ summary
 除重定向頁為 (曖昧さ回避)外，將所有 move_from 的重定向也一起修正
 檢查是否為討論頁。 e.g., [[w:ja:Special:Diff/80384825]]
 移動頁面相關的機器人或機器使用者需要提出對所有不同頁面內容模型的處理計畫，JSON頁沒有重新導向功能。一般頁面與模板都能重導向。分類頁面則必須移動所有包含的頁面。module 可用<code>return require( 'Module:name' );</code>重導向。
+<ref></ref> 中間的連結不會被取代。
 
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 並非所有常規修補程序都適用於所有語言。
@@ -119,7 +120,7 @@ async function get_all_sections(meta_configuration) {
 	async function for_each_section(section) {
 		//console.log(section);
 		const section_title = section.section_title.title;
-		//console.log(section_title);
+		//console.trace(section_title);
 		if (meta_configuration.for_section) {
 			await meta_configuration.for_section.apply(/* parsed */this, arguments);
 		}
@@ -276,7 +277,7 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 
 // ---------------------------------------------------------------------//
 
-const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_nochange', 'allow_empty'];
+const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_nochange', 'allow_blanking'];
 const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'replace_text_pattern', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace',
 	'no_task_configuration_from_section', 'get_task_configuration_from', 'min_list_length',
 	'caption', 'allow_eval'].append(work_option_switches);
@@ -969,7 +970,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	for (let move_configuration_index = 0; move_configuration_index < move_configuration.length; move_configuration_index++) {
 		const pair = move_configuration[move_configuration_index];
-		if (true) {
+		// IIFE
+		{
 			let move_from_link = pair[1].move_from_link
 				// `CeL.wiki.normalize_title(pair[0])` 可能造成URL、"insource:"出現問題。
 				|| pair[0];
@@ -1808,7 +1810,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 	const wiki = task_configuration[KEY_wiki_session];
 	const work_config = {
 		// Allow content to be emptied. 允許內容被清空。白紙化。
-		allow_empty: /talk/.test(task_configuration.namespace),
+		allow_blanking: /talk/.test(task_configuration.namespace),
 		task_configuration,
 		// for 「株式会社リクルートホールディングス」の修正
 		// for リクルートをパイプリンクにする

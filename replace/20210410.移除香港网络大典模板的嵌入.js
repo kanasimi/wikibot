@@ -7,6 +7,6 @@ replace_tool.replace(null, {
 	'Template:Evchk': {
 		move_to_link: DELETE_PAGE,
 		namespace: 0,
-		//allow_empty: true
+		//allow_blanking: true
 	}
 });

@@ -86,7 +86,7 @@ replace_tool.replace({
 		"fix_anchor": true,
 
 		// 允許內容被清空。白紙化。
-		allow_empty: false,
+		allow_blanking: false,
 		// Templateからのリンクのキャッシュが残ってしまっている場合、cacheを処理します。
 		skip_nochange: false,
 

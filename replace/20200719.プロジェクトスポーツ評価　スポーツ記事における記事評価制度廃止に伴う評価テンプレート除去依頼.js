@@ -7,6 +7,6 @@ replace_tool.replace(null, {
 	'Template:ウィキプロジェクト スポーツ': {
 		move_to_link: DELETE_PAGE,
 		namespace: 'ノート',
-		allow_empty: true
+		allow_blanking: true
 	}
 });

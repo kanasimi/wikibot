@@ -1055,7 +1055,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				return parsed.toString();
 			}, {
 				bot: 1,
-				allow_empty: 1,
+				allow_blanking: 1,
 				tags: wiki.latest_task_configuration.general.tags,
 				skip_nochange: true,
 				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message(),

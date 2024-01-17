@@ -35,7 +35,7 @@ Usage:
 node ${script_name} "request section title"
 node ${script_name} "request section title" diff=0000
 node ${script_name} "section_title=request section title" diff=0000 use_language=ja also_replace_text_insource
-node ${script_name} "request section title" keep_display_text allow_empty skip_nochange=false
+node ${script_name} "request section title" keep_display_text allow_blanking skip_nochange=false
 node ${script_name} "request section title" "also_replace_text_insource=title1|title2"
 node ${script_name} "request section title" "task_configuration={""from|from"":""to|to""}" no_task_configuration_from_section
 node ${script_name} "request section title" "task_configuration={""link_title"":""link_title""}" no_task_configuration_from_section "replace_text_pattern=/從頁面內文文字/改成文字/g"
@@ -67,7 +67,7 @@ if (section_title === KEY_show_sections || section_title === KEY_replace_all) {
 			const section_data = all_section_data[section_title];
 			if (section_data.task_configuration) {
 				CeL.info(`node ${script_name} ${section_title.includes(' ') ? JSON.stringify(section_title) : section_title} use_language=${use_language}`);
-				if (need_replace_all) {
+				if (need_replace_all && !(section_data.completed && section_data.done)) {
 					await replace_tool.replace({
 						section_title,
 					});

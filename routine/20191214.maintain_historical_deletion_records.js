@@ -775,8 +775,9 @@ async function modify_pages() {
 			// console.log(e);
 			if (e.from_string) {
 				// assert: error.constructor === Error
-				if (e.message !== 'empty')
+				if (e.message !== 'Blanking page') {
 					CeL.error(e);
+				}
 			} else if (e.code in {
 				protectedpage: true,
 				invalidtitle: true,

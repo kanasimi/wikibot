@@ -22,6 +22,8 @@ report level/class change
 
 'use strict';
 
+const { skip_edit } = require('../../../lib/wikiapi/Wikiapi.js');
+
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
@@ -41,7 +43,7 @@ const using_cache = CeL.env.arg_hash?.using_cache;
 
 const do_PIQA = CeL.env.arg_hash?.do_PIQA && (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
 
-if (false && do_PIQA && wiki.site_name() === 'enwiki') {
+if (do_PIQA && wiki.site_name() === 'enwiki') {
 	// Only respect maxlag. 因為數量太多，只好增快速度。
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
@@ -561,6 +563,7 @@ async function do_PIQA_operation() {
 		}
 	}
 
+	// TODO: [[Template talk:WikiProject banner shell#Tracking categories for articles that require performing WP:PIQA]]
 
 	// @see [[w:en:Wikipedia:Bots/Noticeboard#A decentralized approach to solve the watchlist problem]]
 	const starts_from_page_title = (() => {
@@ -583,15 +586,16 @@ async function do_PIQA_operation() {
 
 		++total_talk_page_count;
 		if (++talk_page_count >= 500) {
-			CeL.write_file(do_PIQA_status_file, {
-				process_to_page: wiki.remove_namespace(talk_page_title),
-				count: total_talk_page_count, limit: do_PIQA,
-			});
-
+			//console.trace(talk_page_title);
 			await maintain_VA_template();
 
 			clean__have_to_edit_its_talk_page();
 			talk_page_count = 0;
+
+			CeL.write_file(do_PIQA_status_file, {
+				process_to_page: wiki.remove_namespace(talk_page_title),
+				count: total_talk_page_count, limit: do_PIQA,
+			});
 		}
 
 		if (do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
@@ -2001,8 +2005,11 @@ async function maintain_VA_template(options) {
 		}), function (talk_page_data) {
 			return maintain_VA_template_each_talk_page.call(this, talk_page_data, key_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
 		}, {
-			// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
-			//redirects: 1,
+			// 採用重定向可能編輯到錯誤的頁面！
+			//redirects: 0,
+
+			// Allow content to be emptied. 允許內容被清空。白紙化。
+			allow_blanking: true,
 
 			// assert: The main article exists.
 			nocreate: false,
@@ -2576,7 +2583,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		//console.trace(need_insert_WPBS, WPBS_template_object, WikiProject_banner_shell_token, [extra_contents, WikiProject_banner_shell_token.toString()]);
 	}
 
-	const wikitext = parsed.toString()
+	const wikitext = parsed.toString().trim()
 		// e.g., [[Talk:Fiscal policy]]
 		//.replace(/{{Suppress categories\s*\|\s*}}\n*/ig, '')
 		;
@@ -2640,6 +2647,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 		this.summary = this.summary.toString();
 	}
+
+	if (!wikitext && !talk_page_data.wikitext?.trim())
+		return Wikiapi.skip_edit;
+	// wikitext === '' && Remove empty {{WPBS}}
 
 	return wikitext;
 }

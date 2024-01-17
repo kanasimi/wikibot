@@ -1208,7 +1208,7 @@ async function check_page(target_page_data, options) {
 				this.summary += (anchor_token ? ', ' : '') + message;
 				//this.summary += '（全部です）';
 				if (!anchor_token) {
-					//this.allow_empty = 1;
+					//this.allow_blanking = 1;
 					CeL.error(`${add_note_for_broken_anchors.name}: ${CeL.wiki.title_link_of(talk_page_data)}: ${message}`);
 				}
 			} else if (!wikitext_to_add) {
@@ -1314,7 +1314,7 @@ async function check_page(target_page_data, options) {
 			//minor: 1,
 			//nocreate: false,
 			tags: wiki.latest_task_configuration.general.tags,
-			allow_empty: 1,
+			allow_blanking: 1,
 		});
 		//CeL.set_debug(0);
 

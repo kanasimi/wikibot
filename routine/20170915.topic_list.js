@@ -571,7 +571,7 @@ function start_main_work() {
 			// 検出後30秒ほどのタイムラグを設けて
 			delay : CeL.wiki.site_name(wiki) === 'jawiki' ? '30s' : 0,
 			// [[w:zh:WikiProject talk:电子游戏]]
-			namespace : 'project|project talk|talk|WikiProject talk',
+			namespace : 'project|project talk|talk|WikiProject talk|user talk',
 			filter : main_talk_pages,
 			with_content : true,
 			// language : use_language,
