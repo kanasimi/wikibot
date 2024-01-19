@@ -2,7 +2,7 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=5000000
+node 20200122.update_vital_articles.js use_language=en do_PIQA=100000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=zh
@@ -572,7 +572,11 @@ async function do_PIQA_operation() {
 	})() || '';
 	CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
 	let talk_page_count = 0, total_talk_page_count = 0;
-	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA : wiki.allpages({ namespace: 'Talk', apfrom: wiki.remove_namespace(starts_from_page_title) }))) {
+	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA :
+		//wiki.allpages({ namespace: 'Talk', apfrom: wiki.remove_namespace(starts_from_page_title) })
+		// e.g., [[File talk:0 Story pic.jpg]], [[Template talk:.NET Framework]], [[Category talk:A-Class Hospital articles]]
+		wiki.categorymembers('Category:WikiProject banners without banner shells', { namespace: 'Talk|File talk|Template talk|Category talk' })
+	)) {
 		//console.trace('talk_page_data:', talk_page_data);
 		const talk_page_title = talk_page_data.title || talk_page_data;
 
@@ -1970,15 +1974,18 @@ async function maintain_VA_template(options) {
 	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
 	try {
 		const page_list = Object.keys(have_to_edit_its_talk_page).filter(title => {
+			const article_info = have_to_edit_its_talk_page[title];
 			// the bot only fix namespace=talk.
-			if (have_to_edit_its_talk_page[title].key_is_talk_page ? wiki.is_namespace(title, 'talk')
+			if (article_info.key_is_talk_page
+				? article_info.do_PIQA ? wiki.is_talk_namespace(title) : wiki.is_namespace(title, 'talk')
 				: wiki.is_namespace(title, 'main')) {
 				return wiki.is_namespace(title, 'main');
 			}
 
+			//console.trace([article_info, wiki.is_talk_namespace(title), title]);
 			// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
-			CeL.warn(`${maintain_VA_template.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(title)} ${have_to_edit_its_talk_page[title].reason}`);
-			//console.trace(have_to_edit_its_talk_page[title]);
+			CeL.warn(`${maintain_VA_template.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(title)} ${article_info.reason}`);
+			//console.trace(article_info);
 			delete have_to_edit_its_talk_page[title];
 			return false;
 		});
@@ -1999,7 +2006,7 @@ async function maintain_VA_template(options) {
 	try {
 		await wiki.for_each_page(Object.keys(have_to_edit_its_talk_page).map(title => {
 			const talk_page = wiki.to_talk_page(title);
-			// console.log(`${title}→${talk_page}`);
+			//if (title !== talk_page) console.log(`To talk page: ${title}→${talk_page}`);
 			key_title_of_talk_title[talk_page] = title;
 			return talk_page;
 		}), function (talk_page_data) {
@@ -2016,10 +2023,12 @@ async function maintain_VA_template(options) {
 
 			bot: 1,
 			log_to: null,
+			tags: do_PIQA && wiki.latest_task_configuration.general.PIQA_tags,
 			summary: options?.summary || talk_page_summary_prefix,
 		});
 	} catch (e) {
 		// e.g., [[Talk:Chenla]]: [spamblacklist]
+		console.error(e);
 	}
 }
 
@@ -2151,7 +2160,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								continue;
 							}
 							if (parameter_name !== replace_to) {
-								CeL.warn(`Need fix parameter name: ${JSON.stringify(parameter_name)}→${JSON.stringify(replace_to)}`);
+								//CeL.warn(`Fix parameter name: ${JSON.stringify(parameter_name)}→${JSON.stringify(replace_to)}`);
 								//console.trace(token[index]);
 								parameters_fix_count++;
 								token[index][0] = replace_to;
@@ -2560,6 +2569,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 		if (WikiProject_template_Map.size > 0 && CeL.wiki.parse.redirect(talk_page_data)) {
 			CeL.error(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
+			//return Wikiapi.skip_edit;
 		}
 
 		// TODO: resort WikiProject_banner_shell_token
@@ -2650,7 +2660,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	if (!wikitext && !talk_page_data.wikitext?.trim())
 		return Wikiapi.skip_edit;
-	// wikitext === '' && Remove empty {{WPBS}}
+	// assert: wikitext === '' && Remove empty {{WPBS}}
 
 	return wikitext;
 }
