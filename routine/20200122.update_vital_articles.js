@@ -6,7 +6,8 @@ node 20200122.update_vital_articles.js use_language=en do_PIQA=100000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=zh
-TODO:
+node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
+Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 
 2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
@@ -189,7 +190,16 @@ async function adapt_configuration(latest_task_configuration) {
 
 	const general = latest_task_configuration.general || (latest_task_configuration.general = Object.create(null));
 
-	//wiki.latest_task_configuration.general.base_page = wiki.normalize_title(wiki.latest_task_configuration.general.base_page.replace(/\/+$/, ''));
+	if (CeL.env.arg_hash?.base_page) {
+		// 自訂基準頁面。
+		general.base_page = CeL.env.arg_hash.base_page;
+		general.customized_base_page = true;
+	} else if (general.additional_base_pages) {
+		general.additional_base_pages_Set = new Set(Array.isArray(general.additional_base_pages) ? general.additional_base_pages : [general.additional_base_pages]);
+		// general.additional_base_page_Map[list page] = 'base page'
+		general.additional_base_page_Map = new Map();
+	}
+	general.base_page = wiki.normalize_title(general.base_page.replace(/\/+$/, ''));
 
 	if (false && general.report_page) {
 		// 現在多方位，不純粹以 vital article 為主。
@@ -377,7 +387,26 @@ async function main_process() {
 		return page_title;
 	}
 
-	const vital_articles_list = ((await wiki.prefixsearch(wiki.latest_task_configuration.general.base_page)) || [
+	const vital_articles_list = (await (async () => {
+		const list = await wiki.prefixsearch(wiki.latest_task_configuration.general.base_page);
+		const additional_base_pages_Set = wiki.latest_task_configuration.general.additional_base_pages_Set;
+		if (additional_base_pages_Set) {
+			for (const additional_base_page of additional_base_pages_Set) {
+				const additional_list = (await wiki.prefixsearch(additional_base_page))
+					.filter(list_page_data => {
+						if (list_page_data.title.startsWith(additional_base_page)) {
+							// Useless.
+							//list_page_data.base_page = additional_base_page;
+							wiki.latest_task_configuration.general.additional_base_page_Map.set(list_page_data.title, additional_base_page);
+							return true;
+						}
+						CeL.warn(`list page NOT starts with additional_base_page ${CeL.wiki.title_link_of(additional_base_page)}: ${CeL.wiki.title_link_of(list_page_data)}`);
+					});
+				list.append(additional_list);
+			}
+		}
+		return list;
+	})() || [
 		// 1,
 		// 2,
 		// 3 && '',
@@ -393,14 +422,14 @@ async function main_process() {
 		// '5/Mathematics',
 		// '5/Geography/Cities',
 	].map(level => level_to_page_title(level)))
-		.filter(page_data => {
-			const page_title = to_title(page_data);
+		.filter(list_page => {
+			const page_title = to_title(list_page);
 			if (/\.json$/i.test(page_title))
 				return false;
 
 			const level = level_of_page_title(page_title, true);
 			if (level > 0) {
-				page_data.VA_level = level;
+				list_page.VA_level = level;
 				if (max_VA_level < level)
 					max_VA_level = level;
 			}
@@ -408,7 +437,7 @@ async function main_process() {
 		});
 
 	// assert: vital_articles_list 標題應該已按照高重要度 → 低重要度的級別排序。
-	//console.trace(vital_articles_list);
+	//console.trace(vital_articles_list.map(list_page => to_title).join('\n'));
 
 	//console.log(vital_articles_list.length);
 	//console.log(vital_articles_list.map(page_data => page_data.title));
@@ -439,6 +468,11 @@ async function main_process() {
 		},
 		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title, 'Update the section counts and article assessment icons')
 	});
+
+	if (wiki.latest_task_configuration.general.customized_base_page) {
+		CeL.info(`Customized base page ${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.base_page)}: list pages generated.`);
+		return;
+	}
 
 	// ----------------------------------------------------
 
@@ -897,11 +931,13 @@ function parse_page_title_and_section(page_title_and_section, options) {
 	if (!page_title_and_section) {
 		page_title_and_section_id = String(DEFAULT_LEVEL);
 	} else {
-		const base_page = wiki.latest_task_configuration.general.base_page;
+		const base_page = wiki.latest_task_configuration.general.additional_base_page_Map?.get(page_title_and_section.title)
+			|| wiki.latest_task_configuration.general.base_page;
 		if (page_title_and_section.title) {
 			page_title_and_section = page_title_and_section.title;
 			if (!page_title_and_section.startsWith(base_page)) {
-				CeL.warn(`${parse_page_title_and_section.name}: Invalid vital articles list page? ${CeL.wiki.title_link_of(page_title_and_section)}`);
+				CeL.warn(`${parse_page_title_and_section.name}: Invalid vital articles list page? ${CeL.wiki.title_link_of(page_title_and_section)} (base page: ${CeL.wiki.title_link_of(base_page)})`);
+				console.trace(page_title_and_section);
 				return;
 			}
 		}
@@ -1128,7 +1164,8 @@ async function for_each_list_page(list_page_data) {
 		function for_item_token(token, index, _item) {
 			/** 為中文維基百科的特設模板。 */
 			const is_zhwiki_VA_template = wiki.site_name() === 'zhwiki' ? function is_zh_VA_template(token) {
-				return token.type === 'transclusion' && (wiki.is_template(['Va2', 'Vae2'], token)
+				// 不包括 {{tsl}}。若本地連結存在，應已被 20160517.解消済み仮リンクをリンクに置き換える.js 轉成正規 wikilink。
+				return token.type === 'transclusion' && (wiki.is_template(['Va', 'Va2', 'Vae2'], token)
 					// e.g., {{/vae2}} @ [[Wikipedia:基礎條目/擴展/地理/自然地理]]
 					|| token.name === '/vae2');
 			} : () => false;
@@ -1182,6 +1219,10 @@ async function for_each_list_page(list_page_data) {
 						// ugly hack
 						|| [list_page_data.title, ''],
 				};
+				if (wiki.latest_task_configuration.general.additional_base_page_Map?.has(list_page_data.title)) {
+					article_info.base_page = wiki.latest_task_configuration.general.additional_base_page_Map.get(list_page_data.title);
+					//if (article_info.level === DEFAULT_LEVEL) delete article_info.level;
+				}
 				listed_article_info[normalized_page_title].push(article_info);
 
 				if (topic_of_current_section) {
@@ -1738,7 +1779,8 @@ async function generate_all_VA_list_page() {
 			}
 			//if (!article_info.link) console.trace(article_info);
 			// 裁切過的連結 cf. detailed_level
-			article_info.trimmed_link = article_info.link[0].replace(/^[^\/]+/, '') + (article_info.link[1] ? '#' + article_info.link[1] : '');
+			if (wiki.latest_task_configuration.general.generate_trimmed_link)
+				article_info.trimmed_link = article_info.link[0].replace(/^[^\/]+/, '') + (article_info.link[1] ? '#' + article_info.link[1] : '');
 			delete article_info.link;
 
 			// At levels 1 and 2, the topic is not needed to make the link, but it is needed to populate categories such as Category:Wikipedia vital articles in Philosophy.
@@ -1888,6 +1930,7 @@ function check_page_count() {
 			have_to_edit_its_talk_page[page_title] = {
 				// When an article is not listed {{Vital article}} should be removed, not just blanking the |level=.
 				remove: true,
+				remove_vital_parameter: true,
 				level: '',
 				reason: 'The article is NOT listed in any vital article list page.'
 			};
@@ -2248,13 +2291,13 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// 以 {{VA}} 為準。
 					majority_class = VA_class;
 				} else {
-					// 最多的隨便選一個。
+					// 最多的任意選一個。
 					majority_class = majority_class[1][0];
 				}
 			} else {
 				// assert: 不應該到這邊
 				//majority_class = '';
-				// 最多的隨便選一個。
+				// 最多的任意選一個。
 				majority_class = majority_class[1][0];
 			}
 		}
@@ -2377,7 +2420,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						if (token.parameters[parameter_name].toString().trim())
 							return;
 					}
-					CeL.warn(`移除空的重複 ${token}`);
+					CeL.warn(`移除空的重複 WPBS ${token}`);
 					return parsed.each.remove_token;
 				}
 
@@ -2547,6 +2590,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				// {{WikiProject banner shell|class=|vital=yes|1=\n...\n}}
 				before_parameter: 1, no_value_space: true,
 			});
+			//console.trace(WikiProject_banner_shell_token, WikiProject_banner_shell_token.toString());
 		} else if (WikiProject_template_Map.size === 0) {
 			let remove_WPBS;
 			parsed.each('Template:' + template_name_hash.WPBS, token => {
