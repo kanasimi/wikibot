@@ -279,6 +279,7 @@ async function replace_tool__replace(meta_configuration, move_configuration) {
 
 const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_nochange', 'allow_blanking'];
 const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'replace_text_pattern', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace',
+	'requests_page_rvlimit',
 	'no_task_configuration_from_section', 'get_task_configuration_from', 'min_list_length',
 	'caption', 'allow_eval'].append(work_option_switches);
 
@@ -464,8 +465,12 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 					let found;
 					parsed.each('section_title', section_title_token => {
 						//console.log([section_title, section_title_token.title]);
-						found = section_title === section_title_token.title;
+						found = section_title === section_title_token.title.replace(/[“”]/g, '');
 						if (found) {
+							if (section_title !== section_title_token.title) {
+								CeL.info(`${guess_and_fulfill_meta_configuration_from_page.name}: section title: ${JSON.stringify(section_title)} → ${JSON.stringify(section_title_token.title)}`);
+								section_title = meta_configuration.section_title = section_title_token.title;
+							}
 							return parsed.each.exit;
 						}
 					});
@@ -603,11 +608,86 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 
 	const task_configuration_from_section = Object.create(null);
 
-	//console.trace(meta_configuration.get_task_configuration_from);
+	// e.g., [[w:zh:Special:Diff/80594886/80595699#請求協助掛長城、不可移動文物的批量提刪模板]]
+	// full: <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","optioation_type":"insert_layout","list_parser":"table_to_array","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
+	// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
+	// {| table |}
+	section.each('tag', token => {
+		if (token.tag !== 'syntaxhighlight' || token.attributes.lang !== 'json')
+			return;
+
+		let task_configuration;
+		try {
+			task_configuration = JSON.parse(token[1].toString());
+		} catch (e) {
+			CeL.error(e);
+		}
+		//console.trace(task_configuration);
+		task_configuration = task_configuration.replace_tool_configuration;
+		if (!task_configuration)
+			return;
+
+		meta_configuration.task_configuration_from_page_JSON = task_configuration;
+		if (task_configuration.insert_layout) {
+			if (!task_configuration.optioation_type)
+				task_configuration.optioation_type = 'insert_layout';
+			if (!task_configuration.list_parser && task_configuration.get_task_configuration_from === 'table')
+				task_configuration.list_parser = 'table_to_array';
+		}
+		for (const option of ["get_task_configuration_from",]) {
+			if (option in task_configuration) {
+				// Copy property.
+				meta_configuration[option] = task_configuration[option];
+			}
+		}
+	});
+
+	//console.trace(meta_configuration);
 	if (meta_configuration.get_task_configuration_from === 'table') {
 		await section.each('table', async table => {
 			if (!meta_configuration.caption || table.caption === meta_configuration.caption) {
-				await parse_move_pairs_from_link(table, task_configuration_from_section, meta_configuration);
+				if (meta_configuration.task_configuration_from_page_JSON?.list_parser === "table_to_array") {
+					// "optioation_type":"insert_layout"
+					const rows = CeL.wiki.table_to_array(table), page_list = [], insert_layout_Map = new Map();
+					//console.trace(rows);
+					// Insert layout template on each page.
+					for (const row of rows) {
+						row.unshift(meta_configuration.task_configuration_from_page_JSON.page_title);
+						let page_title = CeL.gettext.apply(null, row);
+						const parsed = CeL.wiki.parser(page_title).parse();
+						// 有連結就採用連結。
+						parsed.each('link', token => { page_title = token[0].toString(); });
+						page_list.push(page_title);
+
+						row[0] = meta_configuration.task_configuration_from_page_JSON.insert_layout;
+						const insert_layout = CeL.gettext.apply(null, row);
+						insert_layout_Map.set(page_title, insert_layout);
+					}
+
+					task_configuration_from_section[meta_configuration.task_configuration_from_page_JSON.optioation_type] = {
+						page_list,
+						insert_layout_Map,
+						text_processor(wikitext, page_data/*, work_config*/) {
+							const task_configuration = this;
+							const layout = task_configuration.insert_layout_Map.get(page_data.original_title || page_data.title);
+							if (wikitext.includes(layout)) {
+								return Wikiapi.skip_edit;
+							}
+							const parsed = page_data.parse();
+							parsed.insert_layout_element(layout, {
+								fine_tuning_layout(token) {
+									return task_configuration[KEY_wiki_session].is_namespace(page_data, 'template') ? '<noinclude>' + token + '</noinclude>' : token;
+								}
+							});
+							//console.trace(layout, parsed);
+							return parsed.toString();
+						}
+					};
+					//console.trace(task_configuration_from_section);
+
+				} else {
+					await parse_move_pairs_from_link(table, task_configuration_from_section, meta_configuration);
+				}
 			}
 		});
 	} else if (meta_configuration.get_task_configuration_from === 'list') {
@@ -970,6 +1050,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 	for (let move_configuration_index = 0; move_configuration_index < move_configuration.length; move_configuration_index++) {
 		const pair = move_configuration[move_configuration_index];
+		//console.trace(pair);
 		// IIFE
 		{
 			let move_from_link = pair[1].move_from_link
@@ -1310,6 +1391,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			}
 		}
 		//console.trace(task_configuration.replace_text_pattern);
+		//console.trace(task_configuration, meta_configuration);
 
 		task_configuration[KEY_wiki_session] = wiki;
 		await main_move_process(task_configuration, meta_configuration);
@@ -1328,8 +1410,10 @@ async function finish_work(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration[KEY_wiki_session];
 
-	if (!meta_configuration.no_notice && meta_configuration.section_title)
+	//console.trace(meta_configuration, move_configuration);
+	if (!meta_configuration.no_notice && meta_configuration.section_title && move_configuration.length > 0) {
 		await notice_finished(wiki, meta_configuration, move_configuration);
+	}
 }
 
 // separate namespace and page name
@@ -1786,8 +1870,7 @@ async function main_move_process(task_configuration, meta_configuration) {
 	}
 
 	let page_list = await get_list(task_configuration);
-	//console.log(page_list.length);
-	//console.log(page_list.slice(0, 10));
+	//console.trace(page_list.length, page_list.slice(0, 10));
 
 	let list_intersection = task_configuration.list_intersection;
 	if (list_intersection && (typeof list_intersection === 'string' || CeL.is_Object(list_intersection))) {
