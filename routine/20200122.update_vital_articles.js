@@ -2,7 +2,7 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=100000
+node 20200122.update_vital_articles.js use_language=en do_PIQA=1000000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=zh
@@ -42,7 +42,8 @@ const wiki = new Wikiapi;
 
 const using_cache = CeL.env.arg_hash?.using_cache;
 
-const do_PIQA = CeL.env.arg_hash?.do_PIQA && (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
+const do_PIQA = CeL.env.arg_hash?.do_PIQA
+	&& (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
 
 if (do_PIQA && wiki.site_name() === 'enwiki') {
 	// Only respect maxlag. 因為數量太多，只好增快速度。
@@ -195,9 +196,14 @@ async function adapt_configuration(latest_task_configuration) {
 		general.base_page = CeL.env.arg_hash.base_page;
 		general.customized_base_page = true;
 	} else if (general.additional_base_pages) {
-		general.additional_base_pages_Set = new Set(Array.isArray(general.additional_base_pages) ? general.additional_base_pages : [general.additional_base_pages]);
-		// general.additional_base_page_Map[list page] = 'base page'
-		general.additional_base_page_Map = new Map();
+		general.additional_base_pages_Set = new Set(Array.isArray(general.additional_base_pages) ? general.additional_base_pages.filter(base_page => !!base_page) : [general.additional_base_pages]);
+		if (general.additional_base_pages_Set.size === 0) {
+			delete general.additional_base_pages;
+			delete general.additional_base_pages_Set;
+		} else {
+			// general.additional_base_page_Map[list page] = 'base page'
+			general.additional_base_page_Map = new Map();
+		}
 	}
 	general.base_page = wiki.normalize_title(general.base_page.replace(/\/+$/, ''));
 
@@ -573,7 +579,7 @@ async function do_PIQA_operation() {
 
 			const page_list =
 				//await wiki.categorymembers('Category:WikiProject templates with unknown parameters', { namespace: 'Template' }) ||
-				//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: 'Talk' }) ||
+				//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: wiki.latest_task_configuration.general.PIQA_namespace }) ||
 				(Array.isArray(do_PIQA) ? do_PIQA
 					: (await wiki.embeddedin(WikiProject_template_title, {
 						limit: 5000
@@ -607,9 +613,9 @@ async function do_PIQA_operation() {
 	CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
 	let talk_page_count = 0, total_talk_page_count = 0;
 	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA :
-		//wiki.allpages({ namespace: 'Talk', apfrom: wiki.remove_namespace(starts_from_page_title) })
+		//wiki.allpages({ namespace: wiki.latest_task_configuration.general.PIQA_namespace, apfrom: wiki.remove_namespace(starts_from_page_title) })
 		// e.g., [[File talk:0 Story pic.jpg]], [[Template talk:.NET Framework]], [[Category talk:A-Class Hospital articles]]
-		wiki.categorymembers('Category:WikiProject banners without banner shells', { namespace: 'Talk|File talk|Template talk|Category talk' })
+		wiki.categorymembers('Category:WikiProject banners without banner shells', { namespace: wiki.latest_task_configuration.general.PIQA_namespace, })
 	)) {
 		//console.trace('talk_page_data:', talk_page_data);
 		const talk_page_title = talk_page_data.title || talk_page_data;
@@ -2016,20 +2022,20 @@ async function maintain_VA_template(options) {
 	// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
 	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
 	try {
-		const page_list = Object.keys(have_to_edit_its_talk_page).filter(title => {
-			const article_info = have_to_edit_its_talk_page[title];
+		const page_list = Object.keys(have_to_edit_its_talk_page).filter(page_title => {
+			const article_info = have_to_edit_its_talk_page[page_title];
 			// the bot only fix namespace=talk.
 			if (article_info.key_is_talk_page
-				? article_info.do_PIQA ? wiki.is_talk_namespace(title) : wiki.is_namespace(title, 'talk')
-				: wiki.is_namespace(title, 'main')) {
-				return wiki.is_namespace(title, 'main');
+				? article_info.do_PIQA ? wiki.is_talk_namespace(page_title) : wiki.is_namespace(page_title, 'talk')
+				: wiki.is_namespace(page_title, 'main')) {
+				return wiki.is_namespace(page_title, 'main');
 			}
 
-			//console.trace([article_info, wiki.is_talk_namespace(title), title]);
+			//console.trace([article_info, wiki.is_talk_namespace(page_title), page_title]);
 			// e.g., [[Wikipedia:Vital articles/Vital portals level 4/Geography]]
-			CeL.warn(`${maintain_VA_template.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(title)} ${article_info.reason}`);
+			CeL.warn(`${maintain_VA_template.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_title)} ${article_info.reason}`);
 			//console.trace(article_info);
-			delete have_to_edit_its_talk_page[title];
+			delete have_to_edit_its_talk_page[page_title];
 			return false;
 		});
 		if (page_list.length > 0) {
@@ -2037,6 +2043,7 @@ async function maintain_VA_template(options) {
 			await wiki.for_each_page(page_list, function (main_page_data) {
 				const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
 				if (!main_article_exists) {
+					//console.trace([main_page_data.original_title, main_page_data.title, CeL.wiki.parse.redirect(main_page_data), main_page_data.wikitext, main_article_exists]);
 					delete have_to_edit_its_talk_page[main_page_data.original_title || main_page_data.title];
 				}
 			});
@@ -2623,11 +2630,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 			// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
 			parsed.insert_layout_element(WikiProject_banner_shell_token, {
-				post_processor(token) {
+				fine_tuning_layout(token) {
 					if (!extra_contents)
 						return token;
 					// Any non-project banners (i.e. not produced with Module:WikiProject banner) should be moved outside the banner shell ideally
-					return token + extra_contents + '\n';
+					return token + '\n' + extra_contents;
 				}
 			});
 		} else if (extra_contents) {
