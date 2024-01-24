@@ -219,6 +219,8 @@ function login_options_of_API_URL(API_URL) {
 	}
 
 	if (login_options.user_agent) {
+		CeL.debug('login_options_of_API_URL: Using customization user agent: '
+				+ login_options.user_agent, 1);
 		CeL.get_URL.default_user_agent = login_options.user_agent;
 	}
 
@@ -332,7 +334,7 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 		};
 	}
 
-	if (!session.get_URL_options.headers) {
+	if (false && !session.get_URL_options.headers) {
 		session.get_URL_options.headers = Object.create(null);
 	}
 	if (CeL.get_script_name()) {
