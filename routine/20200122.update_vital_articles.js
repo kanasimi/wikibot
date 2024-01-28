@@ -5,6 +5,7 @@ node 20200122.update_vital_articles.js use_language=en using_cache
 node 20200122.update_vital_articles.js use_language=en do_PIQA=1000000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Hongcheon County|Talk:Vogon|Talk:Thiazolidinedione"
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
 Deprecated:
@@ -50,12 +51,12 @@ if (do_PIQA && wiki.site_name() === 'enwiki') {
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
 
-if (using_cache || do_PIQA)
-	prepare_directory(base_directory);
-
 // ----------------------------------------------
 
 const start_time = Date.now();
+
+if (using_cache || do_PIQA)
+	prepare_directory(base_directory);
 
 // badge
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
@@ -378,7 +379,7 @@ async function main_process() {
 	CeL.log_temporary(`Get all redirects. Elapsed time: ${CeL.date.age_of(start_time)}`);
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
 	await wiki.register_redirects(all_WikiProject_template_list.clone().append(all_opted_out_WikiProject_template_list)
-		.append(CeL.wiki.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
+		.append(wiki.append_session_to_options().session.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
 
 	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
 	console.log('Redirect targets:', template_name_hash);
@@ -1349,13 +1350,16 @@ async function for_each_list_page(list_page_data) {
 				// Only clear '''bold font''' and '''''bold italics'''''
 				// This will keep ''work title''
 				// For work titles or scientific names needing to be italicized, please using <nowiki><i></nowiki> instead.
-				if (token.parent.type === 'bold' && token.parent.length === 1) {
+				// assert: token.type === 'link'
+				if (token.parent.type === 'bold') {
+					// assert: token.parent[1] === token
 					move_up();
-					if (token.parent.type === 'italic' && token.parent.length === 1) {
-						move_up();
-					}
-					//should be: _item[index] === token
 				}
+				if (token.parent.type === 'italic') {
+					// assert: token.parent[1] === token
+					move_up();
+				}
+				//should be: _item[index] === token
 
 				if (false && token.toString().includes('Russian Empire')) {
 					console.trace(_item);
@@ -2142,7 +2146,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			const _class = (!class_via_parameter.type || class_via_parameter.type === 'plain' ? class_via_parameter : [class_via_parameter])
 				.filter(token => token.type !== 'comment');
 			if (_class.some(token => typeof token !== 'string')) {
-				CeL.warn(`Skip invalid class ${class_via_parameter} @ ${CeL.wiki.title_link_of(talk_page_data)}`);
+				CeL.warn(`Skip invalid class ${JSON.stringify(class_via_parameter)} @ ${CeL.wiki.title_link_of(talk_page_data)}`);
 				return;
 			}
 			//console.trace(class_via_parameter, _class);
@@ -2229,7 +2233,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			const normalized_template_name = wiki.redirect_target_of(token);
 			//console.trace(WikiProject_template_Map.get(normalized_template_name), token);
 			if (WikiProject_template_Map.has(normalized_template_name)) {
-				// Duplicate banners. Merge the parameters to the first one.
+				// Duplicate WikiProject banners. Merge the parameters to the first one.
 				// Clean [[Category:Pages using WikiProject banner shell with duplicate banner templates]]
 				if (!CeL.wiki.parse.merge_template_parameters(WikiProject_template_Map.get(normalized_template_name), token, {
 					normalize_parameter(value, parameter_name) {

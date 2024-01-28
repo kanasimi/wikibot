@@ -365,7 +365,7 @@ async function check_deletion_discussion_page(page_data) {
 
 		if (title_to_delete && title_to_delete.type === 'bold') {
 			// '''[[李日昇]]'''
-			title_to_delete = title_to_delete[0];
+			title_to_delete = title_to_delete[1];
 		}
 
 		if (title_to_delete && title_to_delete.is_link) {

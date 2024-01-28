@@ -172,7 +172,7 @@ async function get_all_sections(meta_configuration) {
 			return;
 		}
 
-		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section, true);
+		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section, { no_export: true });
 		if (task_configuration_from_section) {
 			section_data.task_configuration = task_configuration_from_section;
 		}
@@ -564,7 +564,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 }
 
 // Check if there are default move configurations.
-async function get_move_configuration_from_section(meta_configuration, section, no_export) {
+async function get_move_configuration_from_section(meta_configuration, section, options) {
 	function get_discussion_link(meta_token) {
 		let discussion_link;
 		section.each.call(meta_token, 'link', token => {
@@ -608,10 +608,6 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 
 	const task_configuration_from_section = Object.create(null);
 
-	// e.g., [[w:zh:Special:Diff/80594886/80595699#請求協助掛長城、不可移動文物的批量提刪模板]]
-	// full: <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","optioation_type":"insert_layout","list_parser":"table_to_array","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
-	// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
-	// {| table |}
 	section.each('tag', token => {
 		if (token.tag !== 'syntaxhighlight' || token.attributes.lang !== 'json')
 			return;
@@ -642,12 +638,37 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		}
 	});
 
+	function text_processor_for_configuration_from_page(wikitext, page_data/*, work_config*/) {
+		const task_configuration = this;
+		const layout = task_configuration.insert_layout_Map
+			? task_configuration.insert_layout_Map.get(page_data.original_title || page_data.title)
+			: task_configuration.insert_layout;
+		const parsed = page_data.parse();
+		//console.trace(layout);
+
+		parsed.insert_layout_element(layout, {
+			remove_duplicated: true,
+			main_template_processor(template_token) {
+				// fix for {{規范控製}}
+				if (layout.name && template_token.name.includes('控製'))
+					CeL.wiki.parse.replace_parameter(template_token, CeL.wiki.parse.replace_parameter.KEY_template_name, layout.name);
+			}
+		});
+
+		//console.trace(layout, parsed);
+		return parsed.toString();
+	}
+
 	//console.trace(meta_configuration);
 	if (meta_configuration.get_task_configuration_from === 'table') {
 		await section.each('table', async table => {
 			if (!meta_configuration.caption || table.caption === meta_configuration.caption) {
 				if (meta_configuration.task_configuration_from_page_JSON?.list_parser === "table_to_array") {
-					// "optioation_type":"insert_layout"
+					// e.g., [[w:zh:Special:Diff/80594886/80595699#請求協助掛長城、不可移動文物的批量提刪模板]]
+					// full: <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","optioation_type":"insert_layout","list_parser":"table_to_array","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
+					// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
+					// {| table |}
+
 					const rows = CeL.wiki.table_to_array(table), page_list = [], insert_layout_Map = new Map();
 					//console.trace(rows);
 					// Insert layout template on each page.
@@ -660,28 +681,14 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 						page_list.push(page_title);
 
 						row[0] = meta_configuration.task_configuration_from_page_JSON.insert_layout;
-						const insert_layout = CeL.gettext.apply(null, row);
+						const insert_layout = CeL.wiki.parse(CeL.gettext.apply(null, row));
 						insert_layout_Map.set(page_title, insert_layout);
 					}
 
-					task_configuration_from_section[meta_configuration.task_configuration_from_page_JSON.optioation_type] = {
+					task_configuration_from_section[meta_configuration.task_configuration_from_page_JSON.insert_layout] = {
 						page_list,
 						insert_layout_Map,
-						text_processor(wikitext, page_data/*, work_config*/) {
-							const task_configuration = this;
-							const layout = task_configuration.insert_layout_Map.get(page_data.original_title || page_data.title);
-							if (wikitext.includes(layout)) {
-								return Wikiapi.skip_edit;
-							}
-							const parsed = page_data.parse();
-							parsed.insert_layout_element(layout, {
-								fine_tuning_layout(token) {
-									return task_configuration[KEY_wiki_session].is_namespace(page_data, 'template') ? '<noinclude>' + token + '</noinclude>' : token;
-								}
-							});
-							//console.trace(layout, parsed);
-							return parsed.toString();
-						}
+						text_processor: text_processor_for_configuration_from_page,
 					};
 					//console.trace(task_configuration_from_section);
 
@@ -698,6 +705,49 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				await parse_move_pairs_from_link(list_token, task_configuration_from_section, meta_configuration);
 			}
 		});
+	} else if (meta_configuration[KEY_wiki_session].is_namespace(meta_configuration.get_task_configuration_from, 'Category')) {
+		// e.g., [[Special:Diff/79100214/79123647#Category:中國科舉人物中人物添加规范控制]]
+		// {"replace_tool_configuration":{"get_task_configuration_from":"Category:中國科舉人物","depth":10,"insert_layout":"{{Authority control}}","namespace":0,"excluding_title_includes":["列表"]}}
+		const main_task_configuration = task_configuration_from_section[meta_configuration.get_task_configuration_from] = {
+			insert_layout: CeL.wiki.parse(meta_configuration.task_configuration_from_page_JSON.insert_layout),
+			text_processor: text_processor_for_configuration_from_page,
+		};
+		if (!options?.ignore_list && meta_configuration.task_configuration_from_page_JSON.depth >= 2) {
+			const page_list_to_test = ['葉紹袁']
+				&& null
+				;
+			if (page_list_to_test) {
+				CeL.error('Test page_list_to_test = ' + page_list_to_test);
+				//console.trace(page_list_to_test);
+			}
+			const wiki_session = meta_configuration[KEY_wiki_session];
+			await wiki_session.setup_layout_element_to_insert(main_task_configuration.insert_layout);
+
+			let category_tree = !page_list_to_test && (await wiki_session.category_tree(meta_configuration.get_task_configuration_from, { depth: meta_configuration.task_configuration_from_page_JSON.depth, cmtype: 'subcat|page|file', get_flat_subcategories: true })).flat_subcategories;
+			//console.trace(category_tree);
+			const page_list = page_list_to_test || [];
+			const namespace = meta_configuration.task_configuration_from_page_JSON.namespace;
+			// page_filter
+			let excluding_title_includes = meta_configuration.task_configuration_from_page_JSON.excluding_title_includes;
+			if (excluding_title_includes) {
+				if (!Array.isArray(excluding_title_includes))
+					excluding_title_includes = [excluding_title_includes];
+			}
+			if (!page_list_to_test) {
+				for (let category_page_list of Object.values(category_tree)) {
+					//console.trace(category_page_list);
+					if (namespace || namespace === 0) {
+						category_page_list = category_page_list.filter(page_data => wiki_session.is_namespace(page_data, namespace));
+					}
+					if (excluding_title_includes) {
+						category_page_list = category_page_list.filter(page_data => !excluding_title_includes.some(string => page_data.title.includes(string)));
+					}
+					page_list.append(category_page_list);
+				}
+			}
+			//console.trace(page_list);
+			main_task_configuration.page_list = page_list;
+		}
 	}
 	//console.trace(meta_configuration);
 	//console.trace(task_configuration_from_section);
@@ -729,7 +779,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 					});
 					eval('task_options = ' + task_options);
 					//console.trace(task_options);
-				} else if (!no_export) {
+				} else if (!options?.no_export) {
 					CeL.error({
 						// gettext_config:{"id":"not-json-you-may-want-to-set-allow_eval=true-$1"}
 						T: ['Not JSON, you may want to set "allow_eval=true": %1', task_options]
@@ -751,7 +801,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 
 		function normalize_page_token(index, keep_link) {
 			//console.log(token.parameters[index]);
-			let link = typeof index === 'number' ? token.parameters[index].toString().replace(/<!--[\s\S]*-->/g, '')
+			let link = typeof index === 'number' ? token.parameters[index].toString().replace(/<!--[\s\S]*?-->/g, '')
 				// e.g., <nowiki>[[title|display text]]</nowiki>
 				.replace(/<nowiki\s*>(.*?)<\/nowiki\s*>/g, '$1')
 				.trim().replace(/{{!}}/g, '|') : index;
@@ -803,7 +853,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		T: ['Get %1 {{PLURAL:%1|task|tasks}} from %2.', Object.keys(task_configuration_from_section).length, section.section_title.link.toString()]
 	}]);
 	//console.trace(task_configuration_from_section);
-	if (!no_export)
+	if (!options?.no_export)
 		meta_configuration.task_configuration_from_section = task_configuration_from_section;
 	return task_configuration_from_section;
 }
@@ -949,7 +999,7 @@ async function notice_finished(wiki, meta_configuration, move_configuration) {
 	const _log_to = 'log_to' in meta_configuration ? meta_configuration.log_to : log_to;
 
 	await for_bot_requests_section(wiki, meta_configuration, async function (section) {
-		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section);
+		const task_configuration_from_section = await get_move_configuration_from_section(meta_configuration, section, { ignore_list: true });
 		if (CeL.is_empty_object(task_configuration_from_section)
 			&& (!move_configuration || CeL.is_empty_object(move_configuration))
 		) {

@@ -33,6 +33,7 @@ node 20160517.解消済み仮リンクをリンクに置き換える.js use_lang
  {{main|{{跨語言連結}}}} → {{main|連結}}, NOT {{main|[[連結]]}} 要把連結也拿掉
  模板解析功能放進 CeL.application.net.wiki.template_functions。 Other configurations moving to wiki.latest_task_configuration.general
  Q6099744 [[Template:Interwiki conflict]]
+修正錯用漢字，如日文條目名稱未採用日文漢字。 [[User_talk:Kanashimi#Cewbot_清理偽藍連問題請教：日文條目名稱未採用日文漢字]]
 
  */
 
@@ -701,9 +702,8 @@ function for_each_page(page_data, messages) {
 						+ ': ' + token.toString() + ' → ' + link);
 			}
 
-			if (parameters.italic
+			if (CeL.wiki.Yesno(parameters.italic)) {
 			// retain italic formatting `|italic=y`
-			&& parameters.italic.toString().trim().toLowerCase() === 'y') {
 				link = "''" + link + "''";
 			}
 
@@ -1219,6 +1219,7 @@ function main_work() {
 		var list = this.list;
 		// list = [ '' ];
 		// list = [ 'Wikipedia:Sandbox' ];
+		// list = [ '最强Jump' ];
 		CeL.log('Get ' + list.length + ' pages.');
 		if (false) {
 			ignore_ns = true;

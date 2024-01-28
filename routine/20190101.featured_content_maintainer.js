@@ -570,7 +570,7 @@ function parse_each_FC_date_page(page_data) {
 
 	// assert: !!FC_title === false;
 	parsed.each('link', function(token, index, parent) {
-		if (parent.type === 'bold' && parent.length === 1) {
+		if (parent.type === 'bold' && parent[1].length === 1) {
 			// 找到第一個粗體連結。 e.g., [[Wikipedia:优良条目/2009年1月20日]]
 			FC_title = CeL.wiki.normalize_title(token[0].toString());
 			return parsed.each.exit;
