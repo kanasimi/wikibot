@@ -47,22 +47,24 @@ const do_PIQA = CeL.env.arg_hash?.do_PIQA
 if (do_PIQA && wiki.site_name() === 'enwiki') {
 	// Only respect maxlag. 因為數量太多，只好增快速度。
 	CeL.wiki.query.default_edit_time_interval = 0;
-	// only for test
-	//delete CeL.wiki.query.default_maxlag;
 }
 
 // ----------------------------------------------
 
 const start_time = Date.now();
 
-if (using_cache || do_PIQA)
+if (using_cache
+	// 不再採用這方法。
+	// || do_PIQA
+)
 	prepare_directory(base_directory);
 
 // badge
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
 const page_info_cache = using_cache && CeL.get_JSON(page_info_cache_file);
 
-const do_PIQA_status_file = `${base_directory}/PIQA_status_file.json`;
+// 不再採用這方法。
+//const do_PIQA_status_file = `${base_directory}/PIQA_status_file.json`;
 
 /** {Object}icons_of_page[title]=[icons] */
 const icons_of_page = page_info_cache?.icons_of_page || Object.create(null);
@@ -606,12 +608,15 @@ async function do_PIQA_operation() {
 
 	// TODO: [[Template talk:WikiProject banner shell#Tracking categories for articles that require performing WP:PIQA]]
 
-	// @see [[w:en:Wikipedia:Bots/Noticeboard#A decentralized approach to solve the watchlist problem]]
-	const starts_from_page_title = (() => {
-		const do_PIQA_status = CeL.get_JSON(do_PIQA_status_file);
-		return do_PIQA_status.process_to_page;
-	})() || '';
-	CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
+	if (false) {
+		// @see [[w:en:Wikipedia:Bots/Noticeboard#A decentralized approach to solve the watchlist problem]]
+		// 不再採用這方法。
+		const starts_from_page_title = (() => {
+			const do_PIQA_status = CeL.get_JSON(do_PIQA_status_file);
+			return do_PIQA_status?.process_to_page;
+		})() || '';
+		CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
+	}
 	let talk_page_count = 0, total_talk_page_count = 0;
 	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA :
 		//wiki.allpages({ namespace: wiki.latest_task_configuration.general.PIQA_namespace, apfrom: wiki.remove_namespace(starts_from_page_title) })
@@ -637,10 +642,13 @@ async function do_PIQA_operation() {
 			clean__have_to_edit_its_talk_page();
 			talk_page_count = 0;
 
-			CeL.write_file(do_PIQA_status_file, {
-				process_to_page: wiki.remove_namespace(talk_page_title),
-				count: total_talk_page_count, limit: do_PIQA,
-			});
+			if (false) {
+				// 不再採用這方法。
+				CeL.write_file(do_PIQA_status_file, {
+					process_to_page: wiki.remove_namespace(talk_page_title),
+					count: total_talk_page_count, limit: do_PIQA,
+				});
+			}
 		}
 
 		if (do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
