@@ -11,6 +11,10 @@ node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中�
 Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 
+
+toolforge-jobs run k8s-20200122.update-vital-articles.en.piqa --image node18 --mem 4Gi --continuous --command "node ./wikibot/routine/20200122.update_vital_articles.js use_language=en do_PIQA=1000000"
+
+
 2020/1/23 14:24:58	初版試營運	Update the section counts and article assessment icons for all levels of [[Wikipedia:Vital articles]].
 2020/2/7 7:12:28	於 Wikimedia Toolforge 執行需要耗費30分鐘，大部分都耗在 for_each_list_page()。
 
@@ -2073,6 +2077,7 @@ async function maintain_VA_template(options) {
 			key_title_of_talk_title[talk_page] = title;
 			return talk_page;
 		}), function (talk_page_data) {
+			if ('missing' in talk_page_data) return Wikiapi.skip_edit;
 			return maintain_VA_template_each_talk_page.call(this, talk_page_data, key_title_of_talk_title[talk_page_data.original_title || talk_page_data.title]);
 		}, {
 			// 採用重定向可能編輯到錯誤的頁面！
