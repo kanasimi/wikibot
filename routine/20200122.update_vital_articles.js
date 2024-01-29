@@ -24,8 +24,6 @@ report level/class change
 
 'use strict';
 
-const { skip_edit } = require('../../../lib/wikiapi/Wikiapi.js');
-
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
@@ -49,6 +47,8 @@ const do_PIQA = CeL.env.arg_hash?.do_PIQA
 if (do_PIQA && wiki.site_name() === 'enwiki') {
 	// Only respect maxlag. 因為數量太多，只好增快速度。
 	CeL.wiki.query.default_edit_time_interval = 0;
+	// only for test
+	//delete CeL.wiki.query.default_maxlag;
 }
 
 // ----------------------------------------------
@@ -1354,12 +1354,13 @@ async function for_each_list_page(list_page_data) {
 				if (token.parent.type === 'bold') {
 					// assert: token.parent[1] === token
 					move_up();
+					// 注意: 僅去除 ''', '''''，不可去除僅 italic。
+					if (token.parent.type === 'italic') {
+						// assert: token.parent[1] === token
+						move_up();
+					}
+					//should be: _item[index] === token
 				}
-				if (token.parent.type === 'italic') {
-					// assert: token.parent[1] === token
-					move_up();
-				}
-				//should be: _item[index] === token
 
 				if (false && token.toString().includes('Russian Empire')) {
 					console.trace(_item);
