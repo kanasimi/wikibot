@@ -12,6 +12,7 @@ Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 
 
+toolforge jobs delete k8s-20200122.update-vital-articles.en.piqa
 toolforge-jobs run k8s-20200122.update-vital-articles.en.piqa --image node18 --mem 4Gi --continuous --command "node ./wikibot/routine/20200122.update_vital_articles.js use_language=en do_PIQA=1000000"
 
 
@@ -680,9 +681,9 @@ async function get_page_info() {
 		}
 	});
 
-	if (wiki.site_name() === 'enwiki' && !wiki.FC_data_hash['Ambulance']?.types.includes('GA')) {
-		console.trace(wiki.FC_data_hash['Ambulance']);
-		throw new Error('[[Ambulance]] should be a GA!');
+	if (wiki.site_name() === 'enwiki' && !wiki.FC_data_hash['Archaea']?.types.includes('FA')) {
+		console.trace(wiki.FC_data_hash['Archaea']);
+		throw new Error('[[Archaea]] should be a FA! wiki.get_featured_content() comes wrong?');
 	}
 
 	// ---------------------------------------------
@@ -2105,6 +2106,8 @@ let maintain_VA_template_count = 0;
 // https://en.wikipedia.org/wiki/Template:WikiProject_Rugby_league/class
 const class_alias_to_normalized = {
 	Dab: 'Disambig', Disamb: 'Disambig', Disambiguation: 'Disambig',
+	// [[w:en:WP:NONSTANDARDCLASS]]
+	Sia:'SIA',
 };
 
 function normalize_class(_class) {
