@@ -100,6 +100,8 @@ const template_name_hash = {
 const parameters_move_from_WPBIO_to_WPBS = new Set(['living', 'blp', 'BLP', 'activepol', 'blpo', 'listas']);
 // [[w:en:User talk:Kanashimi#Move listas]]
 const parameters_move_from_WikiProjects_to_WPBS = new Set(['listas']);
+/**可安全移除的任無用的參數值字元。 @see [[w:en:User talk:Qwerfjkl#Disruptions caused by the Qwerfjkl bot]] */
+const PATTERN_invalid_parameter_value_to_remove = /[{}]/;
 
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
 const DEFAULT_LEVEL = 3;
@@ -115,7 +117,7 @@ report_lines.skipped_records = 0;
 /**{Set}已經警告過的topics */
 report_lines.warned_topics = new Set;
 
-/** {Object}代表圖示的分類。將從這些分類取得文章的圖示資訊。*/
+/** {Object}代表圖示的分類。將從這些分類取得文章的圖示資訊。 icons_schema[icon] = { data } */
 let icons_schema;
 let icon_order_Set, icon_order_Map;
 
@@ -2107,7 +2109,7 @@ let maintain_VA_template_count = 0;
 const class_alias_to_normalized = {
 	Dab: 'Disambig', Disamb: 'Disambig', Disambiguation: 'Disambig',
 	// [[w:en:WP:NONSTANDARDCLASS]]
-	Sia:'SIA',
+	Sia: 'SIA',
 };
 
 function normalize_class(_class) {
@@ -2156,7 +2158,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	/**class_from_other_templates_Map.get(class)===count */
 	let class_from_other_templates_Map = new Map();
 
-	function add_class(class_via_parameter) {
+	function add_class(class_via_parameter, standard_class_only) {
 		if (Array.isArray(class_via_parameter)) {
 			// 處理 {{|class=<!-- Formerly assessed as Start-class -->}}
 			// e.g., [[w:en:Talk:95-10 Initiative]]
@@ -2174,6 +2176,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return;
 
 		class_via_parameter = normalize_class(class_via_parameter);
+		if (standard_class_only && !(class_via_parameter in icons_schema))
+			return;
+
 		if (class_from_other_templates_Map.has(class_via_parameter))
 			class_from_other_templates_Map.set(class_via_parameter, class_from_other_templates_Map.get(class_via_parameter) + 1);
 		else
@@ -2213,10 +2218,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				CeL.wiki.parse.replace_parameter(token, 'vital', CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
 			}
 
-		} else if (wiki.is_template(all_WikiProject_template_list, token) && !wiki.is_template(all_opted_out_WikiProject_template_list, token)
+		} else if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
+			// assert: wiki.is_template(all_WikiProject_template_list, token)
+			add_class(token.parameters.class, true);
+
+		} else if (wiki.is_template(all_WikiProject_template_list, token)
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			//&& /project|rating/i.test(token.name)
 		) {
+			//assert: wiki.is_template(all_opted_out_WikiProject_template_list, token) === false
+
 			// 應該在其他處理之前修正參數名稱。
 			if (Array.isArray(wiki.latest_task_configuration.general.replace_misspelled_parameter_name)) {
 				let parameters_fix_count = 0;
@@ -2499,16 +2510,24 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								if (!(parameter_name in token.parameters))
 									continue;
 								const value = token.parameters[parameter_name];
+
+								// normalize parameter value
+								if (typeof value === 'string') {
+									value = value.replace(PATTERN_invalid_parameter_value_to_remove, '');
+								}
+
 								if (!value.toString().trim()) {
 									// 直接消掉 WikiProject template token 無意義的、空的 parameter。
 									parameters_to_remove_Set.add(parameter_name);
 									continue;
 								}
+
 								if ((!WikiProject_banner_shell_token.parameters[parameter_name]
 									|| WikiProject_banner_shell_token.parameters[parameter_name] === value)
 									&& (!WPBS_template_object[parameter_name]
 										|| WPBS_template_object[parameter_name] === value)) {
 									// These parameters will move to {{WikiProject banner shell}}
+									// TODO: If contains comment...
 									WPBS_template_object[parameter_name] = value;
 									parameters_to_remove_Set.add(parameter_name);
 									continue;
