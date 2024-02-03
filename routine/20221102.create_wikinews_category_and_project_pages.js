@@ -2,6 +2,7 @@
 
 node 20221102.create_wikinews_category_and_project_pages.js date=2022/10
 node 20221102.create_wikinews_category_and_project_pages.js month_duration=3
+node 20221102.create_wikinews_category_and_project_pages.js month_duration=6 date=2024/1
 
 
 創建每日新聞摘要頁面

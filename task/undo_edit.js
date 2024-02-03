@@ -8,9 +8,11 @@ node undo_edit.js use_language=ja
  2019/4/11 13:44	初版試營運
 
  @see [[m:User:Hoo man/Scripts/Smart rollback]]
+ @see https://sigma.toolforge.org/summary.py
 
 TODO:
 + 預估剩餘時間
++ undo function
 
  */
 
@@ -22,8 +24,8 @@ globalThis.no_task_date_warning = true;
 require('../wiki loader.js');
 
 /** {Object}wiki operator 操作子. */
+var wiki = Wiki(true, use_language);
 // var wiki = Wiki(true, 'ja');
-var wiki = Wiki(true, 'zh');
 
 // ---------------------------------------------------------------------//
 
@@ -38,15 +40,18 @@ var trace_forward_length = 'max';
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	return summary.includes('本次bot作業已進行')
+	return summary.includes('#平成の大合併による都道府県別市町村数推移')
 	// && wiki.is_namespace(page_data, 'Category')
 	;
 
-	var revert_this_edit = summary.includes('まんたんブロードのリンク修正依頼2')
-	//
-	&& summary.includes('Bot作業依頼')
+	var revert_this_edit = summary.includes('')
+
+	// && summary.includes('Bot作業依頼')
+
 	// Do not revert [[User:cewbot/log/20190913]]
-	&& (!page_data || !page_data.title.includes(20190913));
+	// && (!page_data || !page_data.title.includes(20190913))
+
+	;
 	// revert_this_edit = summary === 'Robot';
 	if (false && revert_this_edit) {
 		CeL.info(filter_summary.name + ': ' + CeL.wiki.title_link_of(page_data)
@@ -225,7 +230,9 @@ function for_each_page(run_next, title, index, list) {
 			summary : edit_summary
 		}).run(run_next);
 	}, {
-		rvlimit : check_diff ? 2 : 1,
+		rvlimit : check_diff ? CeL.wiki.is_page_data(title)
+		// 不是最新的就多取得一點。
+		&& !('top' in page_data) ? 10 : 2 : 1,
 		rvprop : 'ids|content|timestamp|user|comment'
 	});
 

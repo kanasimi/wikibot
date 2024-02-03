@@ -36,7 +36,7 @@ async function text_processor(wikitext, page_data, work_config) {
 	const template_token = `{{LicenseReview|site=${matched ? matched[0] : 'tistory.com'}}}` && `{{LicenseReview}}`;
 	//console.log(template_token);
 
-	parsed.insert_layout_element(template_token, 'footer');
+	parsed.insert_layout_element(template_token, 'end_matter');
 	//console.log(parsed.toString())
 	return parsed.toString();
 }

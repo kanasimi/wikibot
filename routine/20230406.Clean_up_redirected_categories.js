@@ -105,7 +105,8 @@ async function for_category(category_page_data) {
 	// for NO redirects
 	//console.trace(category_page_data.title, CeL.wiki.parse.redirect(category_page_data));
 
-	if (true) {
+	// IIFE
+	{
 		// 分類重定向24小時後再操作，以免破壞者惡意重定向分類導致機器人大量錯誤編輯。
 		const page_modify_time = Date.parse(category_page_data.revisions[0].timestamp);
 		const page_age = Date.now() - page_modify_time;
@@ -158,7 +159,8 @@ async function for_category(category_page_data) {
 	}
 
 	// 確保 move_to_link 存在。
-	if (true) {
+	// IIFE
+	{
 		const target_page_data = await wiki.page(move_to_link);
 		if (('missing' in target_page_data) || ('invalid' in target_page_data)) {
 			CeL.error(`重定向標的不存在: ${move_to_link}`);

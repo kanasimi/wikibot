@@ -505,6 +505,9 @@ function ascending(a, b) {
 async function write_conversion_list() {
 	CeL.info(`Writing report to ${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.conversion_list_page)}...`);
 	const report_lines = [];
+	const MAX_conversion_list_to_report = wiki.latest_task_configuration.general.MAX_conversion_list_to_report > 0 ? wiki.latest_task_configuration.general.MAX_conversion_list_to_report : 500;
+	/**未詳細列出的公共轉換組數量 */
+	let not_listed_CGroups = 0;
 	for (let [page_title, vocabulary] of Object.entries(conversion_of_page)) {
 		const conversion_list = Object.keys(vocabulary).sort()
 			// needless: .unique()
@@ -516,8 +519,9 @@ async function write_conversion_list() {
 			: vocabulary[KEY_redirect_to] ? `Redirect to → ${CeL.wiki.title_link_of(vocabulary[KEY_redirect_to])}${conversion_list.length > 0 ? '\n\n' : ''}`
 				: vocabulary[KEY_transclusions] ? `嵌入轉換組 ${vocabulary[KEY_transclusions].join(', ')}`
 					: '')
-		+ conversion_list.join('; ')
+		+ (conversion_list.length > MAX_conversion_list_to_report ? `<span style="color:#F61">'''字詞過多，割愛'''</span>` : conversion_list.join('; '))
 		]);
+		if (conversion_list.length > MAX_conversion_list_to_report) not_listed_CGroups++;
 	}
 	const report_count = report_lines.length;
 	report_lines.sort(ascending);
@@ -526,7 +530,7 @@ async function write_conversion_list() {
 		'class': "wikitable sortable"
 	});
 
-	await update_report(wiki.latest_task_configuration.general.conversion_list_page, report_wikitext, `總共${report_count}個公共轉換組頁面。`, report_count + '個公共轉換組頁面');
+	await update_report(wiki.latest_task_configuration.general.conversion_list_page, report_wikitext, `總共${report_count}個公共轉換組頁面。` + (not_listed_CGroups > 0 ? `其中${not_listed_CGroups}個公共轉換組字詞過多，割愛。` : ''), report_count + '個公共轉換組頁面');
 	return report_count;
 }
 

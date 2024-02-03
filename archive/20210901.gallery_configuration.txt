@@ -1,0 +1,3493 @@
+|-
+| [[User:Magog the Ogre/Political maps]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Political maps of the United States",
+		"Election maps"
+	],
+	"exclude_categories": [
+		"Maps of countries visited by US presidents‎",
+		"International relations maps of the United States",
+		"Political maps of Ohio as of the 2000 United States Census",
+		"Fictitious U.S. presidential election maps"
+	],
+	"gallery_per_month": 3
+}
+</syntaxhighlight>
+|-
+| [[User:Mattbuck/Railways]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Rail transport in the United Kingdom",
+			10
+		]
+	],
+	"exclude_categories": [
+		"London Transport Museum",
+		"English Electric locomotives",
+		"Archer M. Huntington",
+		"Jawaharlal Nehru",
+		"Photographs by Geof Sheppard",
+		"Shropshire Union Canal",
+		"Amsterdam Central station",
+		"Rotterdam Central station",
+		"Thomas the Tank Engine and Friends",
+		"People associated with rail transport in the United Kingdom"
+	],
+	"gallery_attributes": "widths=\"250px\" heights=\"250px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Philosopher/Maps of Iowa]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Maps of Iowa",
+	"gallery_attributes": "widths=\"300px\" heights=\"300px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Philosopher/Politicians of Iowa]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Politicians of Iowa",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Emha/Mittelhessen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Mittelhessen",
+	"exclude_categories": [
+		"Photos taken with Leica",
+		"Photographs taken with Leica lenses",
+		"Mikhail Lomonosov",
+		"Grimm's Fairy Tales",
+		"Leica cameras",
+		"S6 (S-Bahn Rhein-Main)",
+		"Photographs taken with Leitz lenses",
+		"Alumni of Philipps-Universität Marburg",
+		"Georg Büchner",
+		"Things named after Elisabeth of Hungary",
+		"Cameras with built-in Leica lenses",
+		"Geheimes Staatsarchiv Preußischer Kulturbesitz"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Sir James/Mittelhessen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Mittelhessen",
+	"exclude_categories": [
+		"Brothers Grimm",
+		"Alumni of Philipps-Universität Marburg",
+		"Photos taken with Leica",
+		"Photographs taken with Leica lenses",
+		"Mikhail Lomonosov",
+		"Grimm's Fairy Tales",
+		"Leica cameras",
+		"S6 (S-Bahn Rhein-Main)",
+		"Photographs taken with Leitz lenses",
+		"Georg Büchner",
+		"Things named after Elisabeth of Hungary",
+		"Cameras with built-in Leica lenses",
+		"Geheimes Staatsarchiv Preußischer Kulturbesitz"
+	],
+	"gallery_per_month": 31,
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Nightingale/Museums in Japan‎]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Museums in Japan‎",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Vuxi/Neue Bilder in Freising]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Freising",
+	"exclude_categories": [
+		"Roman Catholic Archdiocese of Munich and Freising"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atamari/BotGallery/Gambia]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Gambia",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:PigeonIP/Tauben]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Pigeons",
+	"exclude_categories": [
+		"Deutsche Pute",
+		"Duck breeds with EE-Standard",
+		"Pigeons in heraldry",
+		"Holy Spirit in heraldry"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:PigeonIP/Geflügel]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Poultry",
+	"exclude_categories": [
+		"Pigeon breeds by EE Breed Groups‎",
+		"Chicken restaurants"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:AleXXw/St. Pölten]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "St. Pölten",
+	"exclude_categories": [
+		"Churches in the Roman Catholic Diocese of Sankt Pölten"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Mai-Sachme/South Tyrol]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "South Tyrol",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Nordlicht8/Equestriansports]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Equestrian sports",
+	"exclude_categories": [
+		"Male equestrians",
+		"Horsewomen",
+		"Postillions",
+		"Horse riders in art",
+		"Racing silks",
+		"Temples of Athena",
+		"Knights in art",
+		"Horse riding in Christian art"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:J. Patrick Fischer]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "East Timor",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Mogadir/BotGallery]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Landkreis Unterallgäu",
+		"Landkreis Oberallgäu",
+		"Memmingen"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Rosenzweig/NewFiles]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Heilbronn",
+		"Landkreis Heilbronn",
+		"Hohenlohekreis",
+		"Main-Tauber-Kreis",
+		"Landkreis Schwäbisch Hall",
+		"Photographs by Wilhelm Kratt",
+		"Photographs by Willy Pragher"
+	],
+	"exclude_categories": [
+		"Geschwister-Scholl-Weg Ruhland",
+		"Heuss squares"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Flominator/LKBH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Breisgau-Hochschwarzwald",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Flominator/EM]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Emmendingen",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[user:sanandros/ogre/firearms]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Firearms",
+	"exclude_categories": [
+		"Anti-tank rifles",
+		"Firearms in art",
+		"Collections of firearms by museum",
+		"Aircraft guns",
+		"Caplock firearms",
+		"Designers of firearms",
+		"Defense Distributed",
+		"Early firearms",
+		"Externally powered firearms",
+		"Cannon barrels",
+		"Thermal sleeve (artillery)",
+		"Bore evacuators",
+		"Flintlock mechanisms",
+		"Gun cameras",
+		"Miquelet lock",
+		"Gunblades",
+		"Wheellock",
+		"Gunsmithing",
+		"Multiple barrel firearms",
+		"Externally powered machine guns",
+		"Rotating barrel machine guns",
+		"Anti-aircraft machine guns",
+		"Browning M2",
+		"World War I machine guns",
+		"World War II machine guns",
+		"Browning wz. 1928",
+		"Furrer M25",
+		"Maxim machine gun",
+		"Muzzle-loaders",
+		"10.5 cm Leichtgeschütz 42",
+		"Volley guns",
+		"Colt revolvers",
+		"Chain operated cannon",
+		"Pindad Komodo",
+		"Revolvers",
+		"Clay pigeon shooting",
+		"Lever-action rifles",
+		"MG08",
+		"Schwarzlose MG",
+		"Breda (Milan)",
+		"Vickers .50 machine gun",
+		"MG 34",
+		"Bren light machine guns",
+		"MG08",
+		"category:Tanegashima (Teppo)",
+		"Samurai firearms",
+		"Socimi vehicles",
+		"Replicas of firearms",
+		"Deaths by gunshot"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[user:sanandros/ogre/special forces]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Special forces",
+	"exclude_categories": [
+		"Christopher Cassidy",
+		"Colin Powell"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[user:sanandros/ogre/Police tactical units]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Police tactical units",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[user:sanandros/ogre/secret intelligence]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Secret intelligence",
+	"exclude_categories": [
+		"George H. W. Bush",
+		"Vladimir Putin",
+		"PD CIA",
+		"Joseph Stalin",
+		"Perpetrators of the Great Purge",
+		"Victims of the Great Purge",
+		"CIA World Factbook maps",
+		"Actresses who played the role of Mata Hari",
+		"Mata Hari biographers",
+		"Homes of Mata Hari",
+		"Mata Hari (1931 film)",
+		"Mata Hari look-alikes",
+		"Fictional spies",
+		"Richard-Sorge-Straße (Berlin)",
+		"People of 1953 Iranian coup",
+		"Russian Federal Security Service designated terrorist organizations",
+		"Leon Panetta",
+		"Anwar Sadat"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:AndreasPraefcke/Landkreis_Ravensburg_new_files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Ravensburg",
+	"exclude_categories": [
+		"Mauser"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:AndreasPraefcke/Bodenseekreis_new_files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Bodenseekreis",
+	"exclude_categories": [
+		"Populated places on Lake Constance"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atamari/BotGallery/Wuppertal]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wuppertal",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atamari/BotGallery/Solingen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Solingen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atamari/BotGallery/Kreis Mettmann]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Kreis Mettmann",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Northern Ostrobothnia]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Northern Ostrobothnia",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Aviation in Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Aviation in Finland",
+	"exclude_categories": [
+		"Aircraft registered in Finland"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Aircraft registered in Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Aircraft registered in Finland",
+	"exclude_categories": [
+		""
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Roads in Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Roads in Finland",
+			5
+		]
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Churches in Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Churches in Finland",
+	"exclude_categories": [
+		"Lutherans from Finland"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Kainuu]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Kainuu",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Lapland, Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Lapland, Finland",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:SBT/Wiesbaden]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wiesbaden",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Nordlicht8/Rail Germany]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Railway coaches of Germany",
+		"Multiple units, motor coaches and railcars of Germany",
+		"Locomotives of Germany",
+		"Trains at train stations in Germany",
+		"Rail transport companies of Germany"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/São Paulo]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"São Paulo",
+		"São Paulo (city)"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/Portugal Public Transport]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Public transport in Portugal",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/EP]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Files from the European Parliament Flickr stream",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/GUENGL]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Files from GUE/NGL Flickr stream",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/Berlin U-Bahn]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Berlin U-Bahn",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/Rail transport in Brazil]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Rail transport in Brazil",
+			7
+		]
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Christian1985/Mittelrhein]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Mittelrhein",
+	"exclude_categories": [
+		"Friedrich von Gärtner"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Achim_Raschka/Festivalsommer/OgreBot/gallery]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Symposiarch/Mainz]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Mainz",
+		"Rhenish Hesse"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:MKFI/Military of Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Military of Finland",
+	"exclude_categories": [
+		"Siege of Leningrad",
+		"Things named after Carl Gustaf Emil Mannerheim"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:WikiAnika/Umgebinde]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Umgebinde",
+	"exclude_categories": [
+		"Tornow-Klenica group",
+		"Nazism",
+		"Slavic nationalism",
+		"Wendish Crusade"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Tokfo/novaj interesaj fotoj]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Transport in Vienna",
+	"exclude_categories": [
+		"Burials at Imperial Crypt",
+		"Wikimedia Austria",
+		"International Atomic Energy Agency"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Tokfo/Tram transport]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Tram transport",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Tokfo/Transport in Austria]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Transport in Austria",
+	"exclude_categories": [
+		"Wikimedia Austria",
+		"Szent Jakab-út, Magyarország"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Tokfo/Vienna]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Vienna",
+	"exclude_categories": [
+		"Monuments and memorials to Tomáš Garrigue Masaryk",
+		"Psychoanalysis",
+		"Things named after Maria Theresa of Austria",
+		"Maria Theresa of Austria",
+		"Wikimedia Austria",
+		"Films scored by Max Steiner",
+		"Eyes Wide Shut",
+		"István Széchenyi",
+		"Companies listed on the Vienna Stock Exchange",
+		"Alcide De Gasperi",
+		"Honorary doctorates of the University of Vienna",
+		"Gyula Rimanóczy",
+		"Honorary citizens of Vienna",
+		"Ferenc Nopcsa",
+		"Faculty of the University of Vienna",
+		"Österreichische Bundesbahnen",
+		"Józef Antoni Poniatowski",
+		"Things named after Theodor Herzl",
+		"Recipients of the Order of Franz Joseph",
+		"National and Kapodistrian University of Athens"
+	],
+	"gallery_per_month": 10,
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:4ing/Antarctica]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Antarctica",
+	"exclude_categories": [
+		"Tierra del Fuego",
+		"Weather and climate of the Arctic",
+		"Cap Horniers",
+		"Falkland Islands",
+		"James Cook",
+		"Polar research",
+		"Maps of the world without Antarctica"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Metal Dayz]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Metal Dayz",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Ackerfestival]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ackerfestival",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wake Up Pi]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wake Up Pi",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Tower-Festival Heist]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Tower-Festival Heist",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock 'N' Rose Festival]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock 'N' Rose Festival",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Deichpiraten Festival]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Deichpiraten Festival",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Medieval festivals in Uetersen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Medieval festivals in Uetersen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Uetersen/Historical images of Uetersen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Historical images of Uetersen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Uetersen/Postcards of Uetersen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Postcards of Uetersen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Uetersen/Monuments and memorials in Uetersen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Monuments and memorials in Uetersen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Uetersen/Parks in Uetersen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Parks in Uetersen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Uetersen/Buildings in Uetersen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Buildings in Uetersen",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2014",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Heathen Rock Festival 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival 2014",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/2014 at Hamburg Airport]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "2014 at Hamburg Airport",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wilwarin Festival 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wilwarin Festival 2014",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2017",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2018",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2019]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2019",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Festivalsommer 2020]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Festivalsommer 2020",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:4ing/Falkland Islands]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Falkland Islands",
+	"exclude_categories": [
+		"Animals of the Falkland Islands"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Plani/Vorarlberg new files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Vorarlberg",
+	"exclude_categories": [
+		"Lake Constance",
+		"Allgäuer Alpen"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:HeinrichStuerzl/Konrad Stürtzel von Buchheim]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Konrad Stürtzel von Buchheim",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Didym/Mobile upload]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Mobile upload",
+	"gallery_per_month": 5,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Bundeswehr]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Bundeswehr",
+	"exclude_categories": [
+		"Enigma machine"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Jena]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jena",
+	"exclude_categories": [
+		"Carl Zeiss lenses",
+		"Carl Zeiss microscopes",
+		"Karl Marx",
+		"Lafayette Street (Manhattan)",
+		"Things named after Jena"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Schöneiche]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Schöneiche bei Berlin",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Cottbus]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Cottbus",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Hennigsdorf]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hennigsdorf",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Bahnhöfe Thüringen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Train stations in Thuringia",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Indeedous/Recent Uploads/Rettungsdienst]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ambulances in Germany",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Pingelig/Recent uploads/Canton of Thurgau]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Canton of Thurgau",
+	"exclude_categories": [
+		"Stadler Rail",
+		"Carl Gustav Jung",
+		"Stadler Rail",
+		"Carl Gustav Jung"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:TRXX-TRXX/NewFiles]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Heilbronn",
+		"Landkreis Heilbronn",
+		"Hohenlohekreis",
+		"Rhein-Neckar-Kreis",
+		"Neckar-Odenwald-Kreis",
+		"Lucas Cranach d. Ä.",
+		"Lucas Cranach the Younger"
+	],
+	"exclude_categories": [
+		"Flora of Rhein-Neckar-Kreis",
+		"Flora of Rhein-Neckar-Kreis by month"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/EN]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ennepe-Ruhr-Kreis",
+	"subpage": ""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/Korail]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rail transport in South Korea",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Kober/Georgia]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"History of Georgia",
+		"Culture of Georgia"
+	],
+	"exclude_categories": [
+		"Stalinism",
+		"Saint George churches",
+		"Things named after Joseph Stalin",
+		"Armenian language",
+		"Colchis",
+		"Saint George",
+		"Recipients of St. George's Order of Victory",
+		"Soviet Union",
+		"Joseph Stalin",
+		"Black Sea",
+		"Recipients of the Presidential Order of Excellence"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:콩가루/일본철도]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rail transport infrastructure in Japan",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Sevku/Sugar factories]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Sugar factories",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Karl432/Schongau]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Schongau",
+	"subpage": "",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Appen musiziert]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Appen musiziert",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Appen musiziert 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Appen musiziert 2014",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Aconcagua/Alaska_new]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Alaska",
+	"exclude_categories": [
+		"Inuit",
+		"Franklin Expedition",
+		"Northwest Passage",
+		"Pacific Ranges",
+		"Athabaskan",
+		"People associated with William Duncan (missionary)"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:*Youngjin/GTA transit]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Public transport in Ontario",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Plani/Austrian Police new files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Police of Austria",
+	"exclude_categories": [
+		"Mirnesa Becirovic‎",
+		"Mirneta Becirovic‎",
+		"Christoph Sumann‎"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/Mozambique]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Mozambique",
+		"Maputo"
+	],
+	"exclude_categories": [
+		"Portuguese language"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/Guinea-Bissau]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Guinea-Bissau",
+	"exclude_categories": [
+		"Portuguese language"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jcornelius/Angola]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Angola",
+	"exclude_categories": [
+		"Portuguese language"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hörnerfest 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hörnerfest 2014",
+	"gallery_attributes": "widths=\"220px\" heights=\"220px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Wikiwal/Category:Pipe organs in Germany]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Pipe organs in Germany"
+}
+</syntaxhighlight>
+|-
+| [[User:Magog the Ogre/Maps of conflicts]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Maps of wars",
+		"Maps of the world showing ongoing conflicts"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Black Way Open Air 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Black Way Open Air 2014",
+	"gallery_attributes": "widths=\"220px\" heights=\"220px\""
+}
+</syntaxhighlight>
+|-
+| [[User:RalfHuels/LARP]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Live action role-playing games",
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Kopiersperre/Agrochem]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Agricultural chemistry",
+	"exclude_categories": [
+		"Dry toilets",
+		"Milk processing",
+		"Agricultural chemists",
+		"Compost"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Langeln Open Air 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Langeln Open Air 2014",
+	"gallery_attributes": "widths=\"220px\" heights=\"220px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Zwiadowca21/NewFiles]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Powiat kamieński",
+		"Gmina Dygowo",
+		"Kołobrzeg",
+		"Rhein-Neckar-Kreis",
+		"Heidelberg"
+	],
+	"exclude_categories": [
+		"Honorary citizens of Heidelberg",
+		"Spectroscopy"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Headbangers Open Air 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Headbangers Open Air 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Apalsola/recent uploads/Rail transport in Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rail transport in Finland",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Open Air 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "2014 Wacken Open Air",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Gomera-b/BotGallery/Straubing-Bogen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Straubing-Bogen",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Ackerfestival 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ackerfestival 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wake Up Pi 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wake Up Pi 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Tower-Festival Heist 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Tower-Festival Heist 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock 'N' Rose Festival 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock 'N' Rose Festival 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:geagea/Media from the Israeli Police/New files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Media from the Israeli Police",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Chumwa/OgreBot/Transport Maps]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Transport maps",
+	"exclude_categories": [
+		"SVG BSicons",
+		"BSicon"
+	],
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Chumwa/OgreBot/Public transport information]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Public transport information",
+		"Public transport signs",
+		"Public transport lines"
+	],
+	"exclude_categories": [
+		"SVG BSicons",
+		"BSicon"
+	],
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elbriot 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elbriot 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:ireas/OgreBot/Karlsruhe]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Karlsruhe",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Tokfo/Clocks]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Clocks",
+	"exclude_categories": [
+		"Rolex Sports Car Series",
+		"GPS receivers",
+		"Jubilee Medal \"50 Years of Victory in the Great Patriotic War 1941–1945\"",
+		"Apple Inc.",
+		"Healy Hall"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Metal Dayz 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Metal Dayz 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Berthold_Werner/OgreBot]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Trier",
+			10
+		]
+	],
+	"exclude_categories": [
+		"Karl Marx"
+	],
+	"subpage": "",
+	"WARNING": true
+}
+</syntaxhighlight>
+|-
+| [[User:Matthias_Süßen/East Frisia]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "East Frisia",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\" mode=\"packed\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/PD-대한민국]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"PD KoreaGov",
+		"PD-South Korea"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Uetersener Hafennacht 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Uetersener Hafennacht 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Paris 16/Recent uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Streets in Paris",
+	"exclude_categories": [
+		"Musée du Louvre",
+		"Institut de France",
+		"Ministère de la Culture (France)",
+		"Events at Hôtel du ministre des Affaires étrangères",
+		"Burials at Père Lachaise Cemetery",
+		"European Space Agency",
+		"Senate of France",
+		"People buried at the Panthéon",
+		"Alumni of the Académie Carmen",
+		"People associated with Eiffel Tower",
+		"French Open tennis champions",
+		"Louis Figuier",
+		"Zoo de Vincennes",
+		"Collections of Musée national de la Marine",
+		"Burials at the Père-Lachaise Cemetery",
+		"Copies of Nike of Samothrace",
+		"Architects of the Palais du Louvre",
+		"Storming of the Bastille, 14 July 1789",
+		"Moulin Rouge",
+		"Gilbert du Motier, Marquis de La Fayette"
+	],
+	"gallery_per_month": 10,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/국립중앙박물관]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "National Museum of Korea",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Roadshow 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wacken Roadshow 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elmshorner Eisvergnügen 2014]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elmshorner Eisvergnügen 2014",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[:Commons:Wikimedia Sverige/recent uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wikimedia Sverige",
+	"exclude_categories": [
+		"Content made available through Wikimedia Sverige partnerships‎",
+		"Content made available through Wikimaps Nordic",
+		"Wikipedians in Sweden‎",
+		"Members of Wikimedia Sverige"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\" mode=\"packed\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Unser Song für Österreich]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Unser Song für Österreich",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Heathen Rock Festival 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Heathen Rock Festival Warm-Up Party 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival Warm-Up Party 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Bürgerschaftswahl in Hamburg 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Bürgerschaftswahl in Hamburg 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:AlessioMela/Ravenna]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ravenna",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Hamburger Motorrad Tage 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburger Motorrad Tage 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/ESC Clubkonzert 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "ESC Clubkonzert 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Incola/Asti]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Asti",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Hilarmont/BotGallery]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Landkreis Oberallgäu",
+		"Kempten (Allgäu)",
+		"Škoda",
+		"Tatra (company)",
+		"Vehicles of the Czech Republic by brand"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Hafenklang]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafenklang",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivalsommer/Dreamshade/Tenside Tour 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Dreamshade/Tenside Tour 2015",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Holsten Brauereifest 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Holsten Brauereifest 2015",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Sir James/Bonn]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Bonn",
+	"exclude_categories": [
+		"Karl Marx"
+	],
+	"gallery_per_month": 31,
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Pirate Satellite Festival 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Pirate Satellite Festival 2015",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburger Hafengeburtstag 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafengeburtstag 2015",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Aschroet/Uploads/Ilm-Kreis]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ilm-Kreis",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafen Rock 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafen Rock 2015",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Vincent Eisfeld/Uploads/Nordhausen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Nordhausen",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/NDR Hafengeburtstag 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "NDR Hafengeburtstag 2015",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Discomove Hamburg 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Discomove Hamburg 2015",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wilwarin Festival 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wilwarin Festival 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock im Kranhaus 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock im Kranhaus 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Jazz 'n Roses 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jazz 'n Roses 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Harley Days 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Harley Days 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Schlagermove 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Schlagermove 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hörnerfest 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hörnerfest 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Gomera-b/BotGallery/Straubing]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Straubing",
+	"gallery_attributes": "widths=\"230px\" heights=\"230px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/Packaging/Food]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Food packaging‎",
+	"exclude_categories": [
+		"Cling film‎",
+		"Foil cupcake liners",
+		"Paper cupcake liners",
+		"Health mark‎",
+		"Verkade model of Tsar Peter's House Zaandam‎",
+		"Packaged sushi"
+	],
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Open Air 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "2015 Wacken Open Air",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Black and white photographs of Wacken Open Air 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Black and white photographs of Wacken Open Air 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Reload Festival 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Reload Festival 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/Candy/Candy bars]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Candy bars",
+	"exclude_categories": [
+		"Halvah bars",
+		"Museum Ritter (Waldenbuch)"
+	],
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/Candy/Sweden]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Candy of Sweden",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/Candy/Gummi]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Gummi candy",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/Packaging/Candy]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wrapped candy",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elbriot 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elbriot 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Langeln Open Air 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Langeln Open Air 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Villa Summer Bash 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Villa Summer Bash 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Headbangers Open Air 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Headbangers Open Air 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Appen musiziert 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Appen musiziert 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:derbrauni/NeuesDresden]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Dresden",
+	"exclude_categories": [
+		"August II the Strong",
+		"Coding da Vinci: Ost 2022"
+	],
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/SoFiE Festival 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "SoFiE Festival 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/FOP/France]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Louvre Pyramid",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock im Kranhaus IV]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock im Kranhaus IV",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Metal Dayz 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Metal Dayz 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Howcheng/Recent uploads/Hawaii]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hawaii",
+	"exclude_categories": [
+		"RIMPAC",
+		"Barack Obama",
+		"United States Forces Japan",
+		"Russian-American Company",
+		"Sun Yat-sen",
+		"Starr Environmental",
+		"Alumni of the University of Hawaii",
+		"Recipients of the Royal Order of Kamehameha I",
+		"Ukulele players",
+		"Slide guitarists",
+		"Pedal steel guitars",
+		"Pearl Harbor attack - Japanese forces",
+		"Attack on Pearl Harbor - Allied Forces",
+		"Nicole Kidman",
+		"Jason Scott Lee",
+		"Native Hawaiians"
+	],
+	"gallery_per_month": 31,
+	"NOINDEX": true
+}
+</syntaxhighlight>
+|-
+| [[User:Howcheng/Recent uploads/Conejo Valley]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Conejo Valley",
+	"subpage": "",
+	"NOINDEX": true
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Country Special 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Country Special 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:J budissin/Uploads/BZ]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Bautzen",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Zinneke/Nei Biller iwwer Lëtzebuerg]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Luxembourg",
+	"exclude_categories": [
+		"French language",
+		"German language",
+		"Philip II of Spain",
+		"House of Nassau",
+		"Things named after Luxembourg",
+		"Philip V of Spain",
+		"Ardennes",
+		"Coats of arms of the Holy Roman Empire",
+		"Cultural heritage monuments in Belgium",
+		"Internal Schengen borders",
+		"Things named after Charles IV, Holy Roman Emperor",
+		"Saarland",
+		"Euro",
+		"Spanish Netherlands",
+		"Benelux",
+		"House of Luxembourg",
+		"External Schengen borders",
+		"Recipients of the Order of the Oak Crown",
+		"Dukes of Luxembourg",
+		"Orders, decorations and medals of Luxembourg",
+		"United Kingdom of the Netherlands",
+		"Counts of Luxembourg",
+		"Nomenclature of Territorial Units for Statistics",
+		"Things named after Joseph II, Holy Roman Emperor",
+		"Names in Luxembourgish",
+		"Maria Theresa of Austria"
+	],
+	"gallery_attributes": "widths=\"130px\" heights=\"130px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elmshorner Eisvergnügen 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elmshorner Eisvergnügen 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Waterkant X-Mas Bash 2015]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Waterkant X-Mas Bash 2015",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/MNRJ]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Museu Nacional, Rio de Janeiro"
+}
+</syntaxhighlight>
+|-
+| [[User:Ww2censor/Recent philatelic uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Philately",
+		"Postal workers",
+		"Mail",
+		"Post in art",
+		"Post boxes",
+		"Customs Declaration",
+		"Envelopes",
+		"Postal flags",
+		"Hauspost",
+		"Instructional labels",
+		"Letter bombs",
+		"Letters (written messages)",
+		"Local posts",
+		"Philatelic and postal maps",
+		"Metered postage",
+		"Parcel post",
+		"Post offices",
+		"Postal equipment",
+		"Postal history",
+		"Postal markings",
+		"Postal orders",
+		"Postal organizations",
+		"Postal stationery",
+		"Receipts of posting",
+		"Postal signs",
+		"Stamps",
+		"Transport of post",
+		"Postal cards by subject",
+		"Postal vehicles by country"
+	],
+	"exclude_categories": [
+		"Postcards",
+		"Philatelists from Russia and Soviet Union",
+		"People of Italy on stamps",
+		"Franklin Delano Roosevelt",
+		"London town postal districts",
+		"Postcards by country",
+		"London region postal towns",
+		"E-mail",
+		"Sealing stamps",
+		"Letterheads",
+		"Stadsarchief Amsterdam",
+		"Feldpostbriefe von Hans",
+		"Pauline epistles",
+		"Telephone cards",
+		"Photos by HiRISE",
+		"Things named after George V of the United Kingdom‎",
+		"Delivery vehicles by country"
+	],
+	"gallery_per_month": 5,
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Chumwa/OgreBot/Travel and communication maps]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Travel maps",
+		"Route maps ",
+		"Communication maps"
+	],
+	"exclude_categories": [
+		"Transport maps‎",
+		"Road maps‎",
+		"SVG BSicons",
+		"BSicon"
+	],
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/kowiki]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Uploaded from Korean Wikipedia using UploadWizard",
+	"gallery_per_month": 4,
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:DCB/Landkreis Görlitz]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Görlitz",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:DCB/S-Bahn Dresden]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "S-Bahn Dresden",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Corky Laing's Mountain]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Mountain (band)",
+		"Corky Laing",
+		"Phil Parker",
+		"Joe Venti"
+	],
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock im Kranhaus Vol. 1/2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock im Kranhaus Vol. 1/2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Primal Fear supp.: Brainstorm & Striker]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Primal Fear supp.: Brainstorm & Striker",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Van Wolfen "Cigarbox-Experiment" Vol. 1]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Van Wolfen \"Cigarbox-Experiment\" Vol. 1",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atlasowa/New video2commons]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Uploaded with video2commons",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atlasowa/New videoconvert]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Uploaded with videoconvert",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Josve05a/Logos]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Logos",
+			0
+		],
+		[
+			"Unidentified logos‎",
+			0
+		]
+	],
+	"gallery_per_month": 3
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Heathen Rock Festival 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/CeBIT 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "CeBIT supported by Wikimedia Deutschland 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Atamari/BotGallery/Festivalsommer gallery of FI, QI and VI]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Featured pictures of project Festivalsommer",
+		"Quality images of project Festivalsommer",
+		"Valued images of project Festivalsommer"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[:Commons:WikiProject Pronunciation/recent uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Pronunciation",
+			3
+		]
+	],
+	"gallery_per_month": 15,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/ Kakival 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Kakival 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Nacht der Gix 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Nacht der Gix 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafen Rock 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafen Rock 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/NDR Hafengeburtstag 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "NDR Hafengeburtstag 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafengeburtstag 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafengeburtstag 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/MPS Hohenwestedt 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "MPS Hohenwestedt 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:ביקורת/Rabbis]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Rabbis",
+		"Synagogues",
+		"Yeshivas"
+	],
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Holsten Brauereifest 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Holsten Brauereifest 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Makele-90/recent uploads/Naantali]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Naantali",
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Makele-90/recent uploads/Birds of Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Birds of Finland",
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Makele-90/recent uploads/Finland Proper]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Finland Proper",
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Makele-90/recent uploads/Protected areas of Finland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Protected areas of Finland",
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Makele-90/recent uploads/Archipelago Sea]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Archipelago Sea",
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Makele-90/recent uploads/Jurmo]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jurmo",
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Yohannvt/daily uploads/Wiki Loves Earth 2016 in India]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2016 in India",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Z thomas/OSL]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Oberspreewald-Lausitz",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rawk Attack 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rawk Attack 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Harley Days 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Harley Days 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/NL]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Books from National Library of Korea",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/RiK Open Air 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "RiK Open Air 2016",
+	"gallery_attributes": "widths=\"235px\" heights=\"235px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hörnerfest 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hörnerfest 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Langeln Open Air 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Langeln Open Air 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Headbangers Open Air 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Headbangers Open Air 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Bikers Blood for Help 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Bikers Blood for Help 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Open Air 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "2016 Wacken Open Air",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elbriot 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elbriot 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock Spektakel 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock Spektakel 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Reload Festival 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Reload Festival 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[:Commons:Cultural monuments in the Czech Republic/new uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Cultural monuments in the Czech Republic with known IDs",
+			0
+		]
+	],
+	"gallery_per_month": 4
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Alstervergnügen 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Alstervergnügen 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Tag der Legenden 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Tag der Legenden 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Blues im Kranhaus 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Blues im Kranhaus 2016",
+	"gallery_attributes": "widths=\"236px\" heights=\"236px\""
+}
+</syntaxhighlight>
+|-
+| [[User:DCB/Taken with Sony DSC-HX50]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Taken with Sony DSC-HX50",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Metal Dayz 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Metal Dayz 2016",
+	"gallery_attributes": "widths=\"237px\" heights=\"237px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Deutscher Radiopreis 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Deutscher Radiopreis 2016",
+	"gallery_attributes": "widths=\"237px\" heights=\"237px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Zöller & Konsorten - Flucht nach vorn Tour 2016]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Zöller & Konsorten - Flucht nach vorn Tour 2016",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Jam-Session - Stadtteilcafé Elmshorn (Part 1)]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jam-Session - Stadtteilcafé Elmshorn (Part 1)",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Winter Nights 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wacken Winter Nights 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Heathen Rock Festival 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/CeBIT 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "CeBIT 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/Hannover Messe 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hannover Messe 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Jam-Session - Stadtteilcafé Elmshorn (Part 2)]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jam-Session - Stadtteilcafé Elmshorn (Part 2)",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Jam-Session - Stadtteilcafé Elmshorn (Part 1)]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jam-Session - Stadtteilcafé Elmshorn (Part 1)",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Winter Nights 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wacken Winter Nights 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Heathen Rock Festival 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/CeBIT 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "CeBIT 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/Hannover Messe 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hannover Messe 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Jam-Session - Stadtteilcafé Elmshorn (Part 2)]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Jam-Session - Stadtteilcafé Elmshorn (Part 2)",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/Passion Sports Convention 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Passion Sports Convention 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Grueslayer/News]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Trinidad and Tobago",
+	"exclude_categories": [
+		"Viceroyalty of New Granada"
+	],
+	"subpage": "",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/UA]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017 in Ukraine",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/BB]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-BB",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/BE]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-BE",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/BW]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-BW",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/BY]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-BY",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/HB]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-HB",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/HE]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-HE",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/HH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-HH",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/MV]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-MV",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/NI]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-NI",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/NW]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-NW",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/RP]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-RP",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/SH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-SH",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/SL]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-SL",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/SN]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-SN",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/ST]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-ST",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Holger1959/WLE17/DE/TH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017, DE-TH",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafen Rock 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafen Rock 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/NDR Hafengeburtstag 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "NDR Hafengeburtstag 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Events/Hafengeburtstag 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafengeburtstag 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Holsten Brauereifest 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Holsten Brauereifest 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Stefan Kühn/Robotron]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Robotron",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jim Carter/daily uploads/Wiki Loves Earth 2017 in India]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2017 in India",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"350px\" heights=\"350px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Harley Days 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Harley Days 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hörnerfest 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hörnerfest 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/NDR Sommertour 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "NDR Sommertour 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Headbangers Open Air 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Headbangers Open Air 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Frze/Category:Dresden uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Dresden",
+	"exclude_categories": [
+		"August II the Strong",
+		"Coding da Vinci: Ost 2022"
+	],
+	"gallery_attributes": "widths=\"175px\" heights=\"175px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Open Air 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wacken Open Air 2017 photos by Huhu Uet",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Drabdullayev17/New York City Subway/recent uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "New York City Subway",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elbriot 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elbriot 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Reload Festival 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Reload Festival 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rockspektakel 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rockspektakel 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Ackerfestival 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Ackerfestival 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Metel Dayz 2017]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Metal Dayz 2017",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[:Commons:WikiProject Brno/Uploads]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Brno",
+	"exclude_categories": [
+		"Churches in the Roman Catholic Diocese of Brno",
+		"Mendelian inheritance",
+		"Films scored by Erich Wolfgang Korngold",
+		"Tomáš Garrigue Masaryk",
+		"Edvard Beneš",
+		"Ludvík Svoboda",
+		"Gregor Mendel"
+	],
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:EugeneZelenko/STL files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "STL files",
+	"NOINDEX": true
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Lottes Musiknacht]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Lottes Musiknacht",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Heathen Rock Festival 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Heathen Rock Festival 2018",
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:SchlurcherBot/WhatsApp]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Files with IMG-date-WA in filename",
+	"gallery_per_month": 4,
+	"gallery_attributes": "widths=\"238px\" heights=\"238px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Hilarmont/Allgäu]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Allgäu",
+			15
+		]
+	],
+	"gallery_per_month": 10,
+	"gallery_attributes": "widths=\"100px\" heights=\"100px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Ytoyoda/botgalleries/Sports]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Sports",
+			3
+		]
+	],
+	"gallery_per_month": 10,
+	"gallery_attributes": "widths=\"100px\" heights=\"100px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Ytoyoda/botgalleries/Ballsports]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Ball games",
+			3
+		]
+	],
+	"gallery_per_month": 4,
+	"gallery_attributes": "widths=\"100px\" heights=\"100px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Ytoyoda/botgalleries/Associationfootball]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Association football",
+			2
+		]
+	],
+	"gallery_attributes": "widths=\"100px\" heights=\"100px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Cybularny/Warsaw]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Warsaw",
+			10
+		]
+	],
+	"exclude_categories": [
+		"Honorary citizens of Warsaw",
+		"Births in Warsaw"
+	],
+	"gallery_per_month": 2
+}
+</syntaxhighlight>
+|-
+| [[User:Luftschiffhafen/Upper Austria]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Upper Austria",
+	"exclude_categories": [
+		"People of Upper Austria",
+		"Adolf Hitler",
+		"People of Upper Austria in art"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Altsprachenfreund/Neue Wangener Bilder]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Wangen im Allgäu",
+			12
+		]
+	],
+	"subpage": ""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafengeburtstag 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafengeburtstag 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafen Rock 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafen Rock 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Blues und Boogie-Woogie Open Air Uetersen 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Blues und Boogie-Woogie Open Air Uetersen 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Axel Rudi Pell - Große Freiheit 36]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Axel Rudi Pell - Große Freiheit 36 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Axel Crystal Ball - Große Freiheit 36]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Crystal Ball - Große Freiheit 36",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/BG]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Photographs by Revi",
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/WLX]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Wiki Loves Earth in South Korea",
+		"Wiki Loves Monuments in South Korea"
+	],
+	"NOINDEX": true,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Holsten Brauereifest 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Holsten Brauereifest 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburg Harley Days 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburg Harley Days 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hörnerfest 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hörnerfest 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Wacken Open Air 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wacken Open Air 2018 photos by Huhu Uet",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Migebert/Gallery/Wernigerode]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wernigerode",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Migebert/Gallery/Osterode]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Osterode am Harz",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Migebert/Gallery/LKHarz]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Harz",
+	"exclude_categories": [
+		"Wernigerode",
+		"Counts of Ballenstedt"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Migebert/Gallery/LKGöttingen]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Göttingen",
+	"exclude_categories": [
+		"Osterode am Harz",
+		"Alumni of Georg-August University of Göttingen",
+		"Faculty of Georg-August University of Göttingen",
+		"Brothers Grimm"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Migebert/Gallery/LKSalzland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Salzlandkreis",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/Wikimania/2019]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wikimania 2019",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/Wikimania/2020]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wikimania 2020",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:-revi/Wikimania/2021]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Wikimania 2021",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hammaburg Fest 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hammaburg Fest 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Elbriot 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Elbriot 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Reload Festival 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Reload Festival 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Werner - Das Rennen 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Werner - Das Rennen 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rockspektakel 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rockspektakel 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hamburger Gitarrenfestival 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hamburger Gitarrenfestival 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:OgreBot/fawiki]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Uploaded via Campaign:fa"
+}
+</syntaxhighlight>
+|-
+| [[User:Donald Trung/OgreBot/Coins]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Coins",
+	"exclude_categories": [
+		"Medals by century",
+		"Wollaston Medal",
+		"Coin-operated devices",
+		"World War I Victory Medal recipients"
+	],
+	"gallery_per_month": 31,
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Donald Trung/OgreBot/Banknotes]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Banknotes",
+	"exclude_categories": [
+		"Places illustrated on banknotes of Turkey"
+	],
+	"gallery_per_month": 31,
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Donald Trung/OgreBot/Token coins and chips]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Token coins",
+	"gallery_per_month": 10,
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Donald Trung/OgreBot/PDF files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "PDF files",
+	"gallery_per_month": 5,
+	"WARNING": true,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Rsteen/Artists from Denmark]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Artists from Denmark",
+	"exclude_categories": [
+		"Films starring Giancarlo Esposito"
+	],
+	"gallery_per_month": 3,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Rock im Kranhaus 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Rock im Kranhaus 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Sankt Hell 2018]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Sankt Hell 2018",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/The Rock n Roll Wrestling Bash 2019]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "The Rock n Roll Wrestling Bash 2019",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Clic/Nahverkehr in Deutschland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Rapid transit in Germany",
+		"Trams in Germany"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Rosenzweig/134]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"PD-Germany-§134",
+		"PD-Germany-§134-KUG"
+	],
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:OgreBot/arwiki]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Uploaded from Arabic Wikipedia using UploadWizard",
+		"Uploaded via Campaign:ar"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/Canton]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Guangzhou",
+	"exclude_categories": [
+		"People of Guangzhou",
+		"Companies based in Guangzhou"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/Jurong]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		"Jurong",
+		"Jurong East",
+		"Jurong West"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/Potong Pasir]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Potong Pasir",
+	"subpage": ""
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/Mannheim]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Mannheim",
+	"exclude_categories": [
+		"People of Mannheim",
+		"Companies based in Mannheim"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/Leipzig]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Leipzig",
+	"exclude_categories": [
+		"People of Leipzig",
+		"Companies based in Leipzig"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Tiven2240/Wll]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images_from_Wiki_Loves_Love_2019",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:FredD/Echinoderm news]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Echinodermata",
+	"exclude_categories": [
+		"Patrick Star"
+	],
+	"gallery_per_month": 2,
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Jmh2o/recent uploads/Charleroi]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Charleroi",
+	"gallery_per_month": 3
+}
+</syntaxhighlight>
+|-
+| [[User:Jmh2o/recent uploads/Wallonia]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Cultural heritage monuments in Wallonia",
+	"exclude_categories": [
+		"Battle of Waterloo"
+	],
+	"gallery_per_month": 3
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/BB]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-BB",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/BE]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-BE",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/BW]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-BW",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/BY]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-BY",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/HB]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-HB",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/HE]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-HE",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/HH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-HH",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/MV]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-MV",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/NI]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-NI",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/NW]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-NW",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/RP]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-RP",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/SH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-SH",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/SL]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-SL",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/SN]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-SN",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/ST]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-ST",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Tsungam/WLE19/DE/TH]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images from Wiki Loves Earth 2019, DE-TH",
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Hafen Rock 2019]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Hafen Rock 2019",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Huhu Uet/Festivals/Openair Frauenfeld 2019]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Openair Frauenfeld 2019",
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/香港示威]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Demonstrations and protests in Hong Kong"
+}
+</syntaxhighlight>
+|-
+| [[User:Roy17/廣東示威]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Demonstrations and protests in Guangdong"
+}
+</syntaxhighlight>
+|-
+| [[User:Minorax/Hong Kong]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"2019 in Hong Kong",
+			15
+		]
+	],
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Minorax/PD textlogo]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Text logos",
+	"exclude_categories": [
+		"SVG text logos",
+		"Recipients of the Golden Party Badge"
+	],
+	"gallery_per_month": 31
+}
+</syntaxhighlight>
+|-
+| [[User:Minorax/PD textlogo (SVG)]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "SVG text logos",
+	"gallery_per_month": 10
+}
+</syntaxhighlight>
+|-
+| [[User:Minorax/SVG available]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Vector version available",
+	"gallery_per_month": 4
+}
+</syntaxhighlight>
+|-
+| [[User:Magog the Ogre/Multilingual legend]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Images by the language of legend",
+	"exclude_categories": [
+		"ISO 3166",
+		"Blank maps",
+		"Maps from Ordnance Survey",
+		"SVG language-neutral maps",
+		"Symbols and flags from the Catalan Atlas"
+	],
+	"gallery_per_month": 3
+}
+</syntaxhighlight>
+|-
+| [[User:Ies/Emsland]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Emsland",
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[:Commons:WikiProject Postcards/new files]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Postcards",
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Salix/Begoniaceae news]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Begoniaceae",
+	"gallery_per_month": 2,
+	"gallery_attributes": "widths=\"240px\" heights=\"240px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Czar/Anarchism]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Anarchism",
+			5
+		]
+	],
+	"exclude_categories": [
+		"Hackerspaces",
+		"Socialist Party of America",
+		"May Day",
+		"People of the Paris Commune",
+		"Anarcho-capitalism",
+		"Members of the Industrial Workers of the World",
+		"Opposition to the Industrial Workers of the World",
+		"Novels by Leo Tolstoy‎",
+		"People associated with Fabrizio De André",
+		"Sacco and Vanzetti streets"
+	],
+	"NOINDEX": true,
+	"WARNING": true,
+	"gallery_attributes": "mode=\"packed-hover\""
+}
+</syntaxhighlight>
+|-
+| [[User:Kleeblatt187/Chemnitz]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Chemnitz"
+}
+</syntaxhighlight>
+|-
+| [[User:King of Hearts/Recent uploads/Stanford University]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": [
+		[
+			"Stanford University",
+			0
+		]
+	],
+	"subpage": ""
+}
+</syntaxhighlight>
+|-
+| [[User:PiotrekD/Lublin]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Lublin",
+	"exclude_categories": [
+		"People of Lublin",
+		"History of Lublin",
+		"Clergy of the Roman Catholic Archdiocese of Lublin",
+		"Jerzy Kmieciński",
+		"Andrzej Kokowski"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Geagea/IDF]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Israel Defense Forces",
+	"exclude_categories": [
+		"City walls in Israel"
+	],
+	"gallery_per_month": 31,
+	"gallery_attributes": "widths=\"200px\" heights=\"200px\""
+}
+</syntaxhighlight>
+|-
+| [[User:PiotrekD/Typewriters]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Typewriters",
+	"exclude_categories": [
+		"Typewriter manufacturers",
+		"Typing"
+	]
+}
+</syntaxhighlight>
+|-
+| [[User:Clic/Landkreis Nienburg/Weser]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Landkreis Nienburg/Weser",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>
+|-
+| [[User:Triplec85/Main-Tauber-Kreis]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Main-Tauber-Kreis"
+}
+</syntaxhighlight>
+|-
+| [[User:GeorgDerReisende/Stolpersteine]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Stolpersteine",
+	"NOINDEX": true
+}
+</syntaxhighlight>
+|-
+| [[User:Luftschiffhafen/Tyrol]] || <syntaxhighlight lang="JSON">
+{
+	"base_category": "Tyrol (state)",
+	"gallery_attributes": "widths=\"150px\" heights=\"150px\""
+}
+</syntaxhighlight>

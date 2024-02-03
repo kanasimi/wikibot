@@ -12,6 +12,8 @@ TODO:
 本地化轉換。
 有跨維基匯入權限，並且版權相容的情況下，採用匯入頁面的方式（匯入revision的方式）。
 
+@see [[meta:Global templates]]
+
  */
 
 'use strict';

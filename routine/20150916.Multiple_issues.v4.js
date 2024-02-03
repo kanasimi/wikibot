@@ -75,15 +75,19 @@ async function adapt_configuration(latest_task_configuration) {
 	 *      {{Ambox}}, [[WP:HAT#頂註模板]], [[Category:Wikipedia maintenance
 	 *      templates]], [[Wikipedia:AutoWikiBrowser/Template redirects#Maintenance templates]], [[en:Wikipedia:AutoWikiBrowser/Dated_templates]]
 	 */
-	let maintenance_template_list = (configuration[
+	let maintenance_template_list = configuration[
 		// gettext_config:{"id":"maintenance-template-list"}
-		gettext('maintenance template list')] || []).filter(template_name => {
-			if (wiki.is_namespace(template_name, 'Category')) {
-				maintenance_template__category_list.push(template_name);
-			} else {
-				return true;
-			}
-		}).map(template_name => wiki.to_namespace(template_name, 'template'));
+		gettext('Maintenance template list')];
+	if (!maintenance_template_list) {
+		throw new Error(`${adapt_configuration.name}: 設定檔的標題被改變了？`);
+	}
+	maintenance_template_list = (maintenance_template_list || []).filter(template_name => {
+		if (wiki.is_namespace(template_name, 'Category')) {
+			maintenance_template__category_list.push(template_name);
+		} else {
+			return true;
+		}
+	}).map(template_name => wiki.to_namespace(template_name, 'template'));
 	maintenance_template_list = wiki.to_namespace(maintenance_template_list, 'template');
 
 	await wiki.register_redirects([configuration.Multiple_issues_template_name].append(maintenance_template__category_list));
@@ -105,27 +109,23 @@ async function adapt_configuration(latest_task_configuration) {
 	 * 
 	 * @see [[Category:刪除模板]]
 	 */
-	configuration[
+	let maintenance_template_list_to_be_excluded = configuration[
 		// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-		gettext('maintenance template list to be excluded')] = configuration[
-			// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-			gettext('maintenance template list to be excluded')]?.map(template_name => wiki.to_namespace(template_name, 'template')) || [];
+		gettext('Maintenance template list to be excluded')];
+	if (!maintenance_template_list_to_be_excluded) {
+		throw new Error(`${adapt_configuration.name}: 設定檔的標題被改變了？`);
+	}
+	maintenance_template_list_to_be_excluded = maintenance_template_list_to_be_excluded?.map(template_name => wiki.to_namespace(template_name, 'template')) || [];
 
 	// get_maintenance_template_list()
 	// 解析出所有維護模板別名
 	// The bot will get all the redirects of maintenance template.
-	await wiki.register_redirects(maintenance_template_list.append(configuration[
-		// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-		gettext('maintenance template list to be excluded')]), { namespace: 'Template', no_message: true });
-	// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-	configuration[gettext('maintenance template list to be excluded')] = wiki.redirect_target_of(configuration[
-		// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-		gettext('maintenance template list to be excluded')]);
+	await wiki.register_redirects(maintenance_template_list.append(maintenance_template_list_to_be_excluded), { namespace: 'Template', no_message: true });
 	//console.trace(wiki.redirect_target_of(maintenance_template_list));
+	maintenance_template_list_to_be_excluded = wiki.redirect_target_of(maintenance_template_list_to_be_excluded);
+	//console.trace(wiki.redirect_target_of(maintenance_template_list_to_be_excluded));
 	/** 維護模板本名 without "Template:" prefix */
-	configuration.maintenance_template_list = wiki.redirect_target_of(maintenance_template_list).filter(template_name => !configuration[
-		// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-		gettext('maintenance template list to be excluded')].includes(template_name)).sort().unique();
+	configuration.maintenance_template_list = wiki.redirect_target_of(maintenance_template_list).filter(template_name => !maintenance_template_list_to_be_excluded.includes(template_name)).sort().unique();
 	const maintenance_template_alias_list = wiki.aliases_of_page(configuration.maintenance_template_list, { alias_only: true });
 	CeL.log(`總共有 ${configuration.maintenance_template_list.length} 個維護模板名，${maintenance_template_alias_list.length} 個 alias。`);
 	console.log(configuration.maintenance_template_list.map(template_name => {
@@ -136,9 +136,9 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// Release memory. 釋放被占用的記憶體。
 	// gettext_config:{"id":"maintenance-template-list"}
-	delete configuration[gettext('maintenance template list')];
+	delete configuration[gettext('Maintenance template list')];
 	// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
-	delete configuration[gettext('maintenance template list to be excluded')];
+	delete configuration[gettext('Maintenance template list to be excluded')];
 
 	// ----------------------------------------------------
 
@@ -222,6 +222,8 @@ function is_Multiple_issues_template(template_name) {
 }
 
 function is_maintenance_template(template_name) {
+	return wiki.is_template(template_name, wiki.latest_task_configuration.maintenance_template_list);
+
 	template_name = wiki.redirect_target_of(template_name, { namespace: 'template' });
 	return wiki.latest_task_configuration.maintenance_template_list.includes(template_name);
 }
@@ -435,6 +437,7 @@ function check_maintenance_templates(token, index, parent) {
 		return this.for_each_subelement.exit;
 	}
 
+	// {{多個問題}}必為'transclusion'。
 	if (token.type !== 'transclusion') {
 		return;
 	}

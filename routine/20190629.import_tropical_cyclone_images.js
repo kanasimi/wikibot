@@ -62,6 +62,8 @@ function adapt_configuration(latest_task_configuration) {
 			//
 			.split(',').map(function(satellite) {
 				return satellite.trim();
+			}).filter(function(satellite) {
+				return !!satellite;
 			});
 		}
 		if (false) {

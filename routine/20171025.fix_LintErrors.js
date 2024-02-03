@@ -285,7 +285,7 @@ file_option_alias = {
 		无 : 'none'
 	},
 
-	// for all language
+	// for all language, '*'
 	'' : {
 		central : 'center',
 		medium : 'middle',

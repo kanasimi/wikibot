@@ -1,5 +1,7 @@
 # toolforge-jobs load ~/wikibot/wikitech/toolforge-jobs-${USER/tools./}.yml
 
+# https://k8s-status.toolforge.org/namespaces/tool-cewbot/
+
 # --------------------------------------------------------------------------------------------------
 # Cron jobs
 

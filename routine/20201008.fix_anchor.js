@@ -9,6 +9,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=魔術士オーフェン
 node 20201008.fix_anchor.js use_language=ja "check_page=ギャル"
 node 20201008.fix_anchor.js use_language=ja "check_page=住宅"
 node 20201008.fix_anchor.js use_language=ja "check_page=東京大空襲"
+node 20201008.fix_anchor.js use_language=ja "check_page=バスケットボール"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态候选"
 node 20201008.fix_anchor.js use_language=zh "check_page=原神"
@@ -404,7 +405,9 @@ async function get_sections_moved_to(page_data, options) {
 	 * CeL.wiki.revision_content(revision)
 	 */
 	const content = CeL.wiki.content_of(page_data, 0);
-	CeL.assert([content, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
+	CeL.assert([content, parsed.toString()],
+		// gettext_config:{"id":"wikitext-parser-checking-$1"}
+		CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
 
 	let { has_subpage_archives } = options;
 	if (!has_subpage_archives) {
@@ -967,6 +970,9 @@ async function tracking_section_title_history(page_data, options) {
 async function get_all_links(page_data, options) {
 	page_data = await wiki.page(page_data);
 	const parsed = CeL.wiki.parser(page_data).parse();
+	CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()],
+		// gettext_config:{"id":"wikitext-parser-checking-$1"}
+		CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
 	const reduced_anchor_to_page = Object.create(null);
 
 	parsed.each('link', link_token => {
@@ -1124,7 +1130,9 @@ async function check_page(target_page_data, options) {
 			//console.trace(talk_page_data);
 			/** {Array} parsed page content 頁面解析後的結構。 */
 			const parsed = CeL.wiki.parser(talk_page_data).parse();
-			CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
+			CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()],
+				// gettext_config:{"id":"wikitext-parser-checking-$1"}
+				CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(talk_page_data)));
 
 			let has_broken_anchors_template;
 			let removed_anchors = 0;
@@ -1574,7 +1582,9 @@ async function check_page(target_page_data, options) {
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = linking_page_data.parse();
 		// console.log(parsed);
-		CeL.assert([linking_page_data.wikitext, parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(linking_page_data));
+		CeL.assert([linking_page_data.wikitext, parsed.toString()],
+			// gettext_config:{"id":"wikitext-parser-checking-$1"}
+			CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(linking_page_data)));
 		if (!wiki.is_namespace(linking_page_data, 0) && linking_page_data.wikitext.length > /* 10_000_000 / 500 */ 500_000) {
 			CeL.log(`${check_page.name}: Big page ${CeL.wiki.title_link_of(linking_page_data)}: ${CeL.to_1000_prefix(linking_page_data.wikitext.length)} chars`);
 		}

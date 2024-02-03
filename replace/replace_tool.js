@@ -462,6 +462,9 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 					if (!added_text || typeof added_text !== 'string')
 						return;
 					const parsed = CeL.wiki.parser(added_text, meta_configuration[KEY_wiki_session].append_session_to_options()).parse();
+					CeL.assert([added_text, parsed.toString()],
+						// gettext_config:{"id":"wikitext-parser-checking-$1"}
+						CeL.gettext('wikitext parser checking: %1', JSON.stringify(added_text)));
 					let found;
 					parsed.each('section_title', section_title_token => {
 						//console.log([section_title, section_title_token.title]);
@@ -644,6 +647,9 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			? task_configuration.insert_layout_Map.get(page_data.original_title || page_data.title)
 			: task_configuration.insert_layout;
 		const parsed = page_data.parse();
+		CeL.assert([page_data.wikitext, parsed.toString()],
+			// gettext_config:{"id":"wikitext-parser-checking-$1"}
+			CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
 		//console.trace(layout);
 
 		parsed.insert_layout_element(layout, {
@@ -676,6 +682,9 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 						row.unshift(meta_configuration.task_configuration_from_page_JSON.page_title);
 						let page_title = CeL.gettext.apply(null, row);
 						const parsed = CeL.wiki.parser(page_title).parse();
+						CeL.assert([page_title, parsed.toString()],
+							// gettext_config:{"id":"wikitext-parser-checking-$1"}
+							CeL.gettext('wikitext parser checking: %1', JSON.stringify(page_title)));
 						// 有連結就採用連結。
 						parsed.each('link', token => { page_title = token[0].toString(); });
 						page_list.push(page_title);
@@ -809,6 +818,9 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			if (_link) {
 				CeL.error(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${_link}`);
 				const parsed = CeL.wiki.parse(_link);
+				CeL.assert([_link, parsed.toString()],
+					// gettext_config:{"id":"wikitext-parser-checking-$1"}
+					CeL.gettext('wikitext parser checking: %1', JSON.stringify(_link)));
 				// @see function prepare_operation(meta_configuration, move_configuration)
 				if (!parsed[1]) parsed[1] = '#';
 				if (!parsed[2]) parsed[2] = typeof index === 'number' && index % 2 === 1 ? '' : parsed[0];
@@ -962,6 +974,9 @@ async function notice_to_edit(wiki, meta_configuration, move_configuration) {
 		}
 
 		const parsed = this;
+		CeL.assert([CeL.wiki.content_of(this), parsed.toString()],
+			// gettext_config:{"id":"wikitext-parser-checking-$1"}
+			CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(this)));
 		const index = section.range[1] - 1;
 		// assert: parsed[index] === section.at(-1)
 		parsed[index] = parsed[index].toString().trimEnd();
@@ -1021,6 +1036,9 @@ async function notice_finished(wiki, meta_configuration, move_configuration) {
 			return;
 		}
 		const parsed = this;
+		CeL.assert([CeL.wiki.content_of(this), parsed.toString()],
+			// gettext_config:{"id":"wikitext-parser-checking-$1"}
+			CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(this)));
 		const index = section.range[1] - 1;
 		// assert: parsed[index] === section.at(-1)
 		parsed[index] = parsed[index].toString().trimEnd()

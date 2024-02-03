@@ -2610,7 +2610,8 @@ function parse_headline_page(page_data) {
 			//
 			token.parameters.url ? {
 				url : token.parameters.url,
-				'KEY headline title' : token.parameters[2].toString()
+				'KEY headline title' : token.parameters[2]
+						&& token.parameters[2].toString() || ''
 			} : token.parameters[2], token.parameters.source);
 			break;
 
