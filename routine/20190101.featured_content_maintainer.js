@@ -252,6 +252,7 @@ function adapt_configuration(latest_task_configuration) {
 	var force_flush_cache = is_production_environment;
 	var flush_cache_before = general.remove_cache
 			&& CeL.wiki.parse.date(general.remove_cache);
+	// console.trace([ force_flush_cache, flush_cache_before ]);
 	if (force_flush_cache || flush_cache_before) {
 		// 加上刪除快取選項。
 		var latest_flush_file = base_directory + 'latest_flush.json';
@@ -268,11 +269,11 @@ function adapt_configuration(latest_task_configuration) {
 							+ new Date(latest_flush_time).format() + '，' : '')
 					+ '因此清空 cache 目錄。移除 cache 重新取得資料。');
 			prepare_directory(base_directory, true);
+			// reset cache
+			redirects_to_hash = Object.create(null);
+			latest_flush.date = new Date;
+			CeL.write_file(latest_flush_file, latest_flush);
 		}
-		latest_flush.date = new Date;
-		CeL.write_file(latest_flush_file, latest_flush);
-		// reset cache
-		redirects_to_hash = Object.create(null);
 	}
 
 	CeL.log('Configuration:');
@@ -1006,26 +1007,8 @@ function check_date_page() {
 	CeL.log('避免採用類別: ' + avoid_catalogs);
 
 	var index = 0, need_list_field = !using_GA, never_shown_pages = [],
-	// @see
-	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
-	report = '本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
 	//
-	+ CeL.wiki.title_link_of(
-	//
-	wiki.latest_task_configuration.configuration_page_title
-	//
-	+ '#一般設定', '更改設定參數')
-	// <del>不簽名，避免一日之中頻繁變更。 " --~~~~"</del>
-	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
-	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n'
-	//
-	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
-	//
-	? '!! <small title="為' + TYPE_NAME + '列表">列表</small> ' : '')
-	// 範疇
-	+ '!! 類別 !! 上次展示時間 !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
-	//
-	+ FC_title_sorted.map(function(FC_title) {
+	report = FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN],
@@ -1069,7 +1052,29 @@ function check_date_page() {
 		CeL.wiki.title_link_of(transcluding_page, transcluding_display));
 
 		return '|-\n| ' + fields.join(' || ');
-	}).join('\n') + '\n|}';
+	});
+
+	// @see
+	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
+	report
+	'本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
+	//
+	+ CeL.wiki.title_link_of(
+	//
+	wiki.latest_task_configuration.configuration_page_title
+	//
+	+ '#一般設定', '更改設定參數')
+	// <del>不簽名，避免一日之中頻繁變更。 " --~~~~"</del>
+	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
+	+ '。' + '\n* 產生時間：<onlyinclude>~~~~~</onlyinclude>' + '\n'
+	//
+	+ '{| class="wikitable sortable"\n|-\n' + '! # !! 標題 ' + (need_list_field
+	//
+	? '!! <small title="為' + TYPE_NAME + '列表">列表</small> ' : '')
+	// 範疇
+	+ '!! 類別 !! 上次展示時間 !! <small title="上過首頁次數">次數</small> !! 簡介頁面\n'
+	//
+	+ report.join('\n') + '\n|}';
 
 	if (error_logs.length > 0) {
 		report += '\n== 問題頁面 ==\n本次檢查發現無法解析或有問題的頁面：（"Wikipedia:' + NS_PREFIX
@@ -1555,13 +1560,7 @@ function update_portal() {
 	var edit_options = {
 		bot : 1,
 		nocreate : 1,
-		summary : CeL.wiki.title_link_of(
-		//
-		wiki.latest_task_configuration.configuration_page_title,
-		//
-		'更新[[Portal:特色內容]]。作業機制請參考')
-		//
-		+ CeL.wiki.title_link_of(
+		summary : '更新[[Portal:特色內容]]。作業機制請參考' + CeL.wiki.title_link_of(
 		//
 		wiki.latest_task_configuration.configuration_page_title)
 	};

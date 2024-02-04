@@ -32,7 +32,7 @@ var wiki = Wiki(true, use_language);
 var edit_summary = CeL.gettext(
 // gettext_config:{"id":"very-sorry.-undo-the-robot-s-wrong-edits.-($1)"}
 "Very Sorry. Undo the robot's wrong edits. (%1)",
-// 加上時間戳記以方便要回復這次 undo 時使用。
+// 加上時間戳記以方便回復這次 undo 時使用。
 (new Date).toISOString());
 // 向前追溯筆數。
 var trace_forward_length = 'max';

@@ -69,8 +69,8 @@
 - name: k8s-20150916.multiple-issues.en
   command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=en"
   image: node18
-  # 2024/2/3: 8Gi is not enough
-  mem: 12Gi
+  # 2024/2/3: 8Gi is not enough. 12Gi is over maximum allowed per container (8Gi)
+  mem: 8Gi
   schedule: "7 6 * * 5"
 - name: k8s-20150916.multiple-issues.simple
   command: "node ./wikibot/routine/20150916.Multiple_issues.v4.js use_language=simple"
