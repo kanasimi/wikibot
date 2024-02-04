@@ -232,28 +232,29 @@ function is_maintenance_template(template_name) {
 
 async function check_articles_embeddedin_template(template_name) {
 	const configuration = wiki.latest_task_configuration;
-	const pages_including_maintenance_template = Array.isArray(template_name) ? template_name : (await wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
+	for await (const pages_including_maintenance_template of (Array.isArray(template_name) ? [template_name] : wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
 		// for debug
 		// limit: 20,
 		// 本作業僅處理條目命名空間
 		namespace: 0,
+		batch_size: 500,
 		page_filter: configuration.pageid_processed ? page_data => !(page_data.pageid in configuration.pageid_processed)
 			: page_data => !configuration.count_list.some(list_Set => list_Set.has(page_data.title)),
-	}));
-
-	// await wiki.setup_layout_elements();
-	await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
-		log_to,
-		// 規範多個問題模板
-		/** {String}編輯摘要。總結報告。 */
-		// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]:
-		summary: `[[${configuration.configuration_page_title}|${gettext(
-			// gettext_config:{"id":"normalize-template-$1"}
-			'Normalize {{%1}}', configuration.Multiple_issues_template_name_without_namespace)}]]`,
-		skip_nochange: true,
-		// for debug
-		// tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
-	});
+	}))) {
+		// await wiki.setup_layout_elements();
+		await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
+			log_to,
+			// 規範多個問題模板
+			/** {String}編輯摘要。總結報告。 */
+			// [[Wikipedia:Bots/Requests for approval/Cewbot 5|bot test edit]]:
+			summary: `[[${configuration.configuration_page_title}|${gettext(
+				// gettext_config:{"id":"normalize-template-$1"}
+				'Normalize {{%1}}', configuration.Multiple_issues_template_name_without_namespace)}]]`,
+			skip_nochange: true,
+			// for debug
+			// tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
+		});
+	}
 }
 
 // ---------------------------------------------------------------------//
