@@ -1056,8 +1056,7 @@ function check_date_page() {
 
 	// @see
 	// https://en.wikipedia.org/wiki/Wikipedia:Good_article_nominations/Report
-	report
-	'本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
+	report = '本報告將由機器人每日自動更新，毋須手動修正。' + '您可'
 	//
 	+ CeL.wiki.title_link_of(
 	//
