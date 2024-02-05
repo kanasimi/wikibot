@@ -6,6 +6,7 @@ node 20200122.update_vital_articles.js use_language=en do_PIQA=1000000
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Hongcheon County|Talk:Vogon|Talk:Thiazolidinedione"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Louisiana Highway 92"
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
 Deprecated:
@@ -101,7 +102,8 @@ const parameters_move_from_WPBIO_to_WPBS = new Set(['living', 'blp', 'BLP', 'act
 // [[w:en:User talk:Kanashimi#Move listas]]
 const parameters_move_from_WikiProjects_to_WPBS = new Set(['listas']);
 /**可安全移除的任無用的參數值字元。 @see [[w:en:User talk:Qwerfjkl#Disruptions caused by the Qwerfjkl bot]] */
-const PATTERN_invalid_parameter_value_to_remove = /[{}]/;
+const PATTERN_invalid_parameter_value_to_remove = /(?<=[^{}]|^)[{}](?=[^{}]|$)/g;
+CeL.assert(['no', 'no}'.replace(PATTERN_invalid_parameter_value_to_remove, '')]);
 
 // [[Wikipedia:Vital articles/Level/3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
 const DEFAULT_LEVEL = 3;
@@ -2509,7 +2511,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							for (const parameter_name of parameter_Set_to_move) {
 								if (!(parameter_name in token.parameters))
 									continue;
-								const value = token.parameters[parameter_name];
+								let value = token.parameters[parameter_name];
 
 								// normalize parameter value
 								if (typeof value === 'string') {
