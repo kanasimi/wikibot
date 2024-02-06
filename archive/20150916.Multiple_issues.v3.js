@@ -279,7 +279,6 @@ async function check_articles_embeddedin_template(template_name) {
 		return;
 	}
 
-	// await wiki.setup_layout_elements();
 	await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
 		log_to: log_to,
 		// 規範多個問題模板

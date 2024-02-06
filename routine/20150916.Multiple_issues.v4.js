@@ -241,7 +241,6 @@ async function check_articles_embeddedin_template(template_name) {
 		page_filter: configuration.pageid_processed ? page_data => !(page_data.pageid in configuration.pageid_processed)
 			: page_data => !configuration.count_list.some(list_Set => list_Set.has(page_data.title)),
 	}))) {
-		// await wiki.setup_layout_elements();
 		await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
 			log_to,
 			// 規範多個問題模板

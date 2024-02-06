@@ -630,7 +630,9 @@ async function do_PIQA_operation() {
 	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA :
 		//wiki.allpages({ namespace: wiki.latest_task_configuration.general.PIQA_namespace, apfrom: wiki.remove_namespace(starts_from_page_title) })
 		// e.g., [[File talk:0 Story pic.jpg]], [[Template talk:.NET Framework]], [[Category talk:A-Class Hospital articles]]
-		wiki.categorymembers('Category:WikiProject banners without banner shells', { namespace: wiki.latest_task_configuration.general.PIQA_namespace, })
+		wiki.categorymembers('Category:WikiProject banners without banner shells'
+			//&& 'Category:Pages using WikiProject banner shell without a project-independent quality rating'
+			, { namespace: wiki.latest_task_configuration.general.PIQA_namespace, })
 	)) {
 		//console.trace('talk_page_data:', talk_page_data);
 		const talk_page_title = talk_page_data.title || talk_page_data;
@@ -685,9 +687,9 @@ async function get_page_info() {
 		}
 	});
 
-	if (wiki.site_name() === 'enwiki' && !wiki.FC_data_hash['Archaea']?.types.includes('FA')) {
-		console.trace(wiki.FC_data_hash['Archaea']);
-		throw new Error('[[Archaea]] should be a FA! wiki.get_featured_content() comes wrong?');
+	if (wiki.site_name() === 'enwiki' && !wiki.FC_data_hash['Sun']?.types.includes('FA')) {
+		console.trace(wiki.FC_data_hash['Sun']);
+		throw new Error('[[Sun]] should be a FA! wiki.get_featured_content() comes wrong?');
 	}
 
 	// ---------------------------------------------
@@ -2480,7 +2482,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							return;
 						}
 
-						if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== WPBS_template_object.class
+						if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class)
 							// 有特殊 token 如 comment 不動。 e.g., [[w:en:Talk:95-10 Initiative]]
 							|| Array.isArray(token.parameters.class)) {
 							if (!article_info.reason.untouched_message) {
@@ -2489,7 +2491,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								article_info.reason.push(article_info.reason.untouched_message);
 							}
 							article_info.reason.untouched_message[2].push(token.name);
-							//console.trace([token.parameters.class, normalize_class(token.parameters.class), WPBS_template_object.class]);
+							//console.trace([is_opted_out, has_different_ratings, token.parameters.class, normalize_class(token.parameters.class), WPBS_template_object.class]);
 							return;
 						}
 
@@ -2513,7 +2515,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 									continue;
 								let value = token.parameters[parameter_name];
 
-								// normalize parameter value
+								// fix parameter value
 								if (typeof value === 'string') {
 									value = value.replace(PATTERN_invalid_parameter_value_to_remove, '');
 								}
@@ -2525,7 +2527,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								}
 
 								if ((!WikiProject_banner_shell_token.parameters[parameter_name]
-									|| WikiProject_banner_shell_token.parameters[parameter_name] === value)
+									// normalize parameter value
+									|| WikiProject_banner_shell_token.parameters[parameter_name].toString().toLowerCase() === value.toString().toLowerCase())
 									&& (!WPBS_template_object[parameter_name]
 										|| WPBS_template_object[parameter_name] === value)) {
 									// These parameters will move to {{WikiProject banner shell}}
