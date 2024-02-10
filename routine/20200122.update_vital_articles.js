@@ -7,7 +7,13 @@ node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic grou
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Hongcheon County|Talk:Vogon|Talk:Thiazolidinedione"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Louisiana Highway 92"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Niagara IceDogs"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:00 Agent"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Timbits"
+
 node 20200122.update_vital_articles.js use_language=zh
+node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000
+node 20200122.update_vital_articles.js use_language=zh "do_PIQA=討論:截角四面體"
 node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
 Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
@@ -25,6 +31,9 @@ toolforge-jobs run k8s-20200122.update-vital-articles.en.piqa --image node18 --m
 TODO:
 將判斷條目的屬性與品質寫成泛用功能
 report level/class change
+realigning {{WPBS}}
+use [[w:en:Module:Class/definition.json]]
+
 
  */
 
@@ -50,10 +59,13 @@ const using_cache = CeL.env.arg_hash?.using_cache;
 const do_PIQA = CeL.env.arg_hash?.do_PIQA
 	&& (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
 
-if (do_PIQA && wiki.site_name() === 'enwiki') {
+if (do_PIQA
+	//&& wiki.site_name() === 'enwiki'
+) {
 	// Only respect maxlag. 因為數量太多，只好增快速度。
 	CeL.wiki.query.default_edit_time_interval = 0;
 }
+//console.trace(do_PIQA);
 
 // ----------------------------------------------
 
@@ -62,8 +74,9 @@ const start_time = Date.now();
 if (using_cache
 	// 不再採用這方法。
 	// || do_PIQA
-)
+) {
 	prepare_directory(base_directory);
+}
 
 // badge
 const page_info_cache_file = `${base_directory}/articles attributes.json`;
@@ -91,10 +104,10 @@ const listed_article_info = Object.create(null);
 const have_to_edit_its_talk_page = Object.create(null);
 
 const template_name_hash = {
-	VA: 'Vital article',
 	WPBS: 'WikiProject banner shell',
 	WPDAB: 'WikiProject Disambiguation',
 	WPBIO: 'WikiProject Biography',
+	VA: 'Vital article',
 	VA_count: 'Vital article count',
 };
 // [[w:en:Template:WikiProject Biography]]
@@ -394,6 +407,34 @@ async function main_process() {
 
 	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
 	console.log('Redirect targets:', template_name_hash);
+	{
+		const values = Object.values(template_name_hash);
+		if (values.length !== values.unique().length) {
+			const message = '有些關鍵模板重定向到了相同的標的，無法繼續執行！';
+			CeL.error(message);
+			throw new Error(message);
+		}
+	}
+
+	// ----------------------------------------------------
+
+	if (wiki.site_name() === 'zhwiki') {
+		const page_data = await wiki.page('Module:Class/data');
+		const object = CeL.wiki.parse.lua_object(page_data.wikitext);
+
+		for (const class_data of Object.values(object)) {
+			if (!class_data.code) {
+				CeL.error(`Invalid class_data: ${JSON.stringify(class_data)}`);
+				continue;
+			}
+			const normalized_class = normalize_class(class_data.code);
+			add_class_alias(class_data.name, normalized_class);
+			add_class_alias(class_data.name2, normalized_class);
+			if (Array.isArray(class_data.alias)) class_data.alias.forEach(class_name => {
+				add_class_alias(class_name, normalized_class);
+			});
+		}
+	}
 
 	// ----------------------------------------------------
 
@@ -626,32 +667,32 @@ async function do_PIQA_operation() {
 		})() || '';
 		CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
 	}
-	let talk_page_count = 0, total_talk_page_count = 0;
-	for await (const talk_page_data of (Array.isArray(do_PIQA) ? do_PIQA :
-		//wiki.allpages({ namespace: wiki.latest_task_configuration.general.PIQA_namespace, apfrom: wiki.remove_namespace(starts_from_page_title) })
-		// e.g., [[File talk:0 Story pic.jpg]], [[Template talk:.NET Framework]], [[Category talk:A-Class Hospital articles]]
-		wiki.categorymembers('Category:WikiProject banners without banner shells'
-			//&& 'Category:Pages using WikiProject banner shell without a project-independent quality rating'
-			, { namespace: wiki.latest_task_configuration.general.PIQA_namespace, })
+	let total_talk_page_count = 0;
+	for (const category_to_clean of (wiki.latest_task_configuration.general.PIQA_categories_to_clean
+		//&& ['Category:Pages using WikiProject banner shell without a project-independent quality rating']
 	)) {
-		//console.trace('talk_page_data:', talk_page_data);
-		const talk_page_title = talk_page_data.title || talk_page_data;
+		//console.trace(category_to_clean);
+		for await (const talk_page_list of (Array.isArray(do_PIQA) ? [do_PIQA] :
+			// assert: do_PIQA >= 1
+			wiki.categorymembers(category_to_clean, { namespace: wiki.latest_task_configuration.general.PIQA_namespace, batch_size: 500 })
+		)) {
+			total_talk_page_count += talk_page_list.length;
+			//console.trace(do_PIQA, total_talk_page_count, talk_page_list);
+			for (const talk_page_data of talk_page_list) {
+				const talk_page_title = talk_page_data.title || talk_page_data;
 
-		have_to_edit_its_talk_page[talk_page_title] = {
-			// 所有作業皆經由人工監督。
-			//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
-			no_topic_message: true,
-			do_PIQA: true,
-			key_is_talk_page: true,
-		};
+				have_to_edit_its_talk_page[talk_page_title] = {
+					// 所有作業皆經由人工監督。
+					//talk_page_summary_prefix: `[[Wikipedia:Bots/Requests for approval/Cewbot 12|Bot test]] for [[WP:PIQA]]. All operations are manually supervised`,
+					no_topic_message: true,
+					do_PIQA: true,
+					key_is_talk_page: true,
+				};
+			}
 
-		++total_talk_page_count;
-		if (++talk_page_count >= 500) {
-			//console.trace(talk_page_title);
 			await maintain_VA_template();
 
 			clean__have_to_edit_its_talk_page();
-			talk_page_count = 0;
 
 			if (false) {
 				// 不再採用這方法。
@@ -660,9 +701,12 @@ async function do_PIQA_operation() {
 					count: total_talk_page_count, limit: do_PIQA,
 				});
 			}
+
+			if (do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
+				break;
 		}
 
-		if (do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
+		if (Array.isArray(do_PIQA) || do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
 			break;
 	}
 
@@ -1506,7 +1550,7 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (!item_replace_to) {
-			CeL.error('No link in this item! ' + CeL.wiki.title_link_of(list_page_data));
+			CeL.error('No links in this item! ' + CeL.wiki.title_link_of(list_page_data));
 			console.trace(item);
 		}
 	}
@@ -2035,7 +2079,7 @@ function check_page_count() {
 
 // ----------------------------------------------------------------------------
 
-const talk_page_summary_prefix_text = `Maintain {{${template_name_hash.WPBS && 'WPBS'}}} and vital articles`;
+const talk_page_summary_prefix_text = `Maintain {{${template_name_hash.WPBS && 'WPBS'}}}${do_PIQA ? '' : ' and vital articles'}`;
 let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configuration_page, talk_page_summary_prefix_text);
 //console.log(talk_page_summary_prefix);
 
@@ -2116,6 +2160,15 @@ const class_alias_to_normalized = {
 	Sia: 'SIA',
 };
 
+function add_class_alias(class_alias, normalized_class) {
+	if (class_alias
+		&& (class_alias = normalize_class(class_alias))
+		&& (normalized_class = normalize_class(normalized_class))) {
+		class_alias_to_normalized[class_alias] = normalize_class(normalized_class);
+	}
+}
+
+// @see https://zh.wikipedia.org/wiki/Module:Class/data
 function normalize_class(_class) {
 	if (!_class)
 		return _class;
@@ -2209,10 +2262,13 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (article_info.do_PIQA || article_info.remove) {
 				return parsed.each.remove_token;
 			}
+			return;
+		}
 
-		} else if (wiki.is_template(template_name_hash.WPBS, token)) {
+		if (wiki.is_template(template_name_hash.WPBS, token)) {
 			if (WikiProject_banner_shell_token) {
 				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${template_name_hash.WPBS}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
+				console.trace([WikiProject_banner_shell_token.toString(), token.toString()]);
 			} else {
 				WikiProject_banner_shell_token = token;
 			}
@@ -2221,16 +2277,14 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (false && article_info.remove) {
 				CeL.wiki.parse.replace_parameter(token, 'vital', CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
 			}
+			return;
+		}
 
-		} else if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
-			// assert: wiki.is_template(all_WikiProject_template_list, token)
-			add_class(token.parameters.class, true);
-
-		} else if (wiki.is_template(all_WikiProject_template_list, token)
+		if (wiki.is_template(all_WikiProject_template_list, token)
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			//&& /project|rating/i.test(token.name)
 		) {
-			//assert: wiki.is_template(all_opted_out_WikiProject_template_list, token) === false
+			const is_opted_out = token.is_opted_out = wiki.is_template(all_opted_out_WikiProject_template_list, token);
 
 			// 應該在其他處理之前修正參數名稱。
 			if (Array.isArray(wiki.latest_task_configuration.general.replace_misspelled_parameter_name)) {
@@ -2261,7 +2315,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				}
 			}
 
-			add_class(token.parameters.class);
+			add_class(token.parameters.class, is_opted_out);
+
 			const normalized_template_name = wiki.redirect_target_of(token);
 			//console.trace(WikiProject_template_Map.get(normalized_template_name), token);
 			if (WikiProject_template_Map.has(normalized_template_name)) {
@@ -2279,6 +2334,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			} else {
 				WikiProject_template_Map.set(normalized_template_name, token);
 			}
+
+			return;
 		}
 	});
 	//console.log([class_from_other_templates, VA_template_token]);
@@ -2460,7 +2517,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 					CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
 					for (const parameter_name in token.parameters) {
-						if (token.parameters[parameter_name].toString().trim())
+						if (!/^[\s{}]*$/.test(token.parameters[parameter_name]))
 							return;
 					}
 					CeL.warn(`移除空的重複 WPBS ${token}`);
@@ -2469,6 +2526,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
+					// assert: 'is_opted_out' in token
+
 					const parameters_to_remove_Set = new Set;
 					/**
 					 * remove class rating from wikiproject banner
@@ -2491,7 +2550,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								article_info.reason.push(article_info.reason.untouched_message);
 							}
 							article_info.reason.untouched_message[2].push(token.name);
-							//console.trace([is_opted_out, has_different_ratings, token.parameters.class, normalize_class(token.parameters.class), WPBS_template_object.class]);
+							//console.trace([is_opted_out, has_different_ratings, token.parameters.class, normalize_class(token.parameters.class), normalize_class(WPBS_template_object.class), WPBS_template_object]);
 							return;
 						}
 
@@ -2506,9 +2565,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					}
 
 					if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
+						// assert: token.is_opted_out === true
 						// 有些選擇退出的模板有自己的展示方式，利用到class參數，不能完全用[[Module:WikiProject banner]]解決。e.g., {{WikiProject Military history}}
 						//set_remove_needless_class(true);
 					} else {
+						// assert: token.is_opted_out === false
 						function move_parameters(parameter_Set_to_move) {
 							for (const parameter_name of parameter_Set_to_move) {
 								if (!(parameter_name in token.parameters))
@@ -2607,8 +2668,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					return parsed.each.remove_token;
 				}
 			});
-			//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
-			//console.trace(WikiProject_templates);
+			//console.trace('WikiProject_banner_shell_token:', WikiProject_banner_shell_token.toString());
+			//console.trace('WikiProject_banner_shell_token.parameters[1]:', WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
+			//console.trace('WikiProject_templates: ', WikiProject_templates);
 			if (WikiProject_templates.length > 0) {
 				// assert: WikiProject_template_Map.size > 0
 				CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());
@@ -2693,8 +2755,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// e.g., [[Talk:Fiscal policy]]
 		//.replace(/{{Suppress categories\s*\|\s*}}\n*/ig, '')
 		;
-	// console.trace([talk_page_data.title, article_info, typeof VA_template_object !== 'undefined' && VA_template_object, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5)]);
-	// return Wikiapi.skip_edit;
+	//console.trace([talk_page_data.title, article_info, typeof VA_template_object !== 'undefined' && VA_template_object, wikitext.replace(/\n==[\s\S]+$/, ''), parsed.slice(0, 5)]);
+	//return Wikiapi.skip_edit;
 
 	if (false) {
 		// for debug
