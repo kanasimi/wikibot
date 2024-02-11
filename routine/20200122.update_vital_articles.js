@@ -2221,7 +2221,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	/**class_from_other_templates_Map.get(class)===count */
 	let class_from_other_templates_Map = new Map();
 
-	function add_class(class_via_parameter, standard_class_only) {
+	function add_class(class_via_parameter, is_opted_out) {
 		if (Array.isArray(class_via_parameter)) {
 			// 處理 {{|class=<!-- Formerly assessed as Start-class -->}}
 			// e.g., [[w:en:Talk:95-10 Initiative]]
@@ -2239,8 +2239,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return;
 
 		class_via_parameter = normalize_class(class_via_parameter);
-		if (standard_class_only && !(class_via_parameter in icons_schema))
+		if (!(class_via_parameter in icons_schema)) {
+			// Standard class only. e.g., [[w:en:Talk:16 Avenue North station]]
 			return;
+		}
 
 		if (class_from_other_templates_Map.has(class_via_parameter))
 			class_from_other_templates_Map.set(class_via_parameter, class_from_other_templates_Map.get(class_via_parameter) + 1);
