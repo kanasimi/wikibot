@@ -706,6 +706,7 @@ async function do_PIQA_operation() {
 				break;
 		}
 
+		//console.trace([category_to_clean, do_PIQA, total_talk_page_count]);
 		if (Array.isArray(do_PIQA) || do_PIQA >= 1 && total_talk_page_count >= do_PIQA)
 			break;
 	}
@@ -2189,6 +2190,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// For [[Talk:Philippines]]
 	//console.trace(main_page_title, wiki.FC_data_hash[main_page_title]);
 	const article_info = have_to_edit_its_talk_page[main_page_title];
+	if (!article_info) {
+		CeL.warn(`${maintain_VA_template_each_talk_page.name}: No article_info (Invalid page title?): ${CeL.wiki.title_link_of(talk_page_data)}`);
+		//console.trace(talk_page_data);
+		return Wikiapi.skip_edit;
+	}
 
 	// There are copies @ 20201008.fix_anchor.js
 	// TODO: fix disambiguation
