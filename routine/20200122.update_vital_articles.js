@@ -667,8 +667,18 @@ async function do_PIQA_operation() {
 		})() || '';
 		CeL.info(`${do_PIQA_operation.name}: Continue from page ${JSON.stringify(starts_from_page_title)}`);
 	}
+
 	let total_talk_page_count = 0;
-	for (const category_to_clean of (wiki.latest_task_configuration.general.PIQA_categories_to_clean
+	const all_categories_to_clean = wiki.latest_task_configuration.general.PIQA_categories_to_clean.slice();
+	all_categories_to_clean.push('Category:WikiProject templates with unknown parameters');
+
+	if (deprecated_parameter_list && wiki.site_name() === 'enwiki') {
+		for (const template_name of deprecated_parameter_list) {
+			all_categories_to_clean.push(`Category:Pages using ${template_name} with unknown parameters`);
+		}
+	}
+
+	for (const category_to_clean of (all_categories_to_clean
 		//&& ['Category:Pages using WikiProject banner shell without a project-independent quality rating']
 	)) {
 		//console.trace(category_to_clean);
