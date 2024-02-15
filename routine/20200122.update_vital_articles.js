@@ -2759,14 +2759,15 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 		// https://en.wikipedia.org/wiki/User_talk:Kanashimi#Another_bot_issue_about_|living=yes_and_|blp=yes
 		// Only keep |blp=
-		if (WPBS_template_object.living && CeL.wiki.Yesno(WPBS_template_object.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp || WPBS_template_object.blp)) {
+		if (typeof WPBS_template_object.living === 'string' && CeL.wiki.Yesno(WPBS_template_object.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp || WPBS_template_object.blp)) {
 			delete WPBS_template_object.living;
 		}
-		if (WPBS_template_object.blp && CeL.wiki.Yesno(WPBS_template_object.blp) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living)) {
+		if (typeof WPBS_template_object.blp === 'string' && CeL.wiki.Yesno(WPBS_template_object.blp) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living)) {
 			// 很少到這邊。
 			delete WPBS_template_object.blp;
 		}
-		if (WikiProject_banner_shell_token.parameters.living && CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp)) {
+		if (typeof WikiProject_banner_shell_token.parameters.living === 'string' && typeof WikiProject_banner_shell_token.parameters.blp === 'string'
+			&& CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp)) {
 			WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
 		}
 
