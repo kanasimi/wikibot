@@ -2195,6 +2195,12 @@ function normalize_class(_class) {
 	return _class;
 }
 
+function is_standard_class(_class) {
+	_class = normalize_class(_class);
+	// TODO: 僅允許 [[Wikipedia:Content assessment#Grades]]
+	return _class in icons_schema;
+}
+
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
 // or via {{WikiProject banner shell|class=}}, ({{WikiProject *|class=start}})
@@ -2251,8 +2257,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			return;
 
 		class_via_parameter = normalize_class(class_via_parameter);
-		if (!(class_via_parameter in icons_schema)) {
+		if (!is_standard_class(class_via_parameter)) {
 			// Standard class only. e.g., [[w:en:Talk:16 Avenue North station]]
+			// 排除 [[Wikipedia:Content assessment#Non-standard grades]]
 			return;
 		}
 
@@ -2591,6 +2598,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							}
 							article_info.reason.untouched_message[2].push(token.name);
 							//console.trace([is_opted_out, has_different_ratings, token.parameters.class, normalize_class(token.parameters.class), normalize_class(WPBS_template_object.class), WPBS_template_object]);
+							return;
+						}
+
+						if (!is_standard_class(token.parameters.class)) {
+							// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
+							// e.g., [[Talk:HMAS Broome]]
 							return;
 						}
 
