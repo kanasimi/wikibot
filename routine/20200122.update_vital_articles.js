@@ -10,11 +10,14 @@ node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Louisiana H
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Niagara IceDogs"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:00 Agent"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Timbits"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:List of municipalities in Amasya Province|Talk:List of NBL1 West awards|Talk:List of neighbourhoods in Bhubaneswar|Talk:Liberty bond"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000
 node 20200122.update_vital_articles.js use_language=zh "do_PIQA=討論:截角四面體"
+node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:小行星列表/242001-243000"
 node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
+node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:1,1':2',1'':3'',1'''-四联苯|Talk:1,1':3',1'':3'',1'''-四联苯|Talk:小行星列表/101601-101700|Talk:张琳芃"
 Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 
@@ -59,11 +62,14 @@ const using_cache = CeL.env.arg_hash?.using_cache;
 const do_PIQA = CeL.env.arg_hash?.do_PIQA
 	&& (CeL.env.arg_hash.do_PIQA >= 1 ? CeL.env.arg_hash.do_PIQA : CeL.env.arg_hash.do_PIQA.split('|'));
 
-if (do_PIQA
-	//&& wiki.site_name() === 'enwiki'
-) {
-	// Only respect maxlag. 因為數量太多，只好增快速度。
-	CeL.wiki.query.default_edit_time_interval = 0;
+if (do_PIQA) {
+	if (wiki.site_name() === 'zhwiki') {
+		// Only respect maxlag. 因為數量太多，只好增快速度。
+		CeL.wiki.query.default_edit_time_interval = 0;
+	} else if (wiki.site_name() === 'enwiki') {
+		// [[w:en:WP:BOTPERF]]
+		CeL.wiki.query.default_edit_time_interval = 3 * 1000;
+	}
 }
 //console.trace(do_PIQA);
 
@@ -291,6 +297,14 @@ async function adapt_configuration(latest_task_configuration) {
 		icon_order_Set = icon_order_Map = null;
 	}
 	//console.trace({ icons_schema, icon_order, icon_order_Set, icon_order_Map });
+
+	// ----------------------------------------------------
+
+	// 僅允許 [[Wikipedia:Content assessment#Grades]]
+	const standard_grades = general.standard_grades?.split('|') || Object.keys(icons_schema);
+	for (const icon of standard_grades) {
+		standard_class_Set.add(normalize_class(icon));
+	}
 
 	// ----------------------------------------------------
 
@@ -1765,6 +1779,11 @@ async function for_each_list_page(list_page_data) {
 	const summary_table = [['Class', '#Articles']];
 	sorted_keys_of_Object_by_order(article_count_of_icon, icon_order_Set).forEach(icon => {
 		const icon_schema = icons_schema[icon];
+		if (!icon_schema) {
+			CeL.error(`${for_each_list_page.name}: Icon ${JSON.stringify(icon)} is not listed in the icon_schema!`);
+			return;
+		}
+
 		let { category_name } = icon_schema;
 		if (category_name) {
 			category_name = `[[:Category:${category_name}|${icon}]]`;
@@ -2195,10 +2214,10 @@ function normalize_class(_class) {
 	return _class;
 }
 
+const standard_class_Set = new Set;
 function is_standard_class(_class) {
 	_class = normalize_class(_class);
-	// TODO: 僅允許 [[Wikipedia:Content assessment#Grades]]
-	return _class in icons_schema;
+	return standard_class_Set.has(_class);
 }
 
 // maintain vital articles templates: FA|FL|GA|List,
@@ -2547,7 +2566,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// merge other {{WikiProject *}} into WikiProject_banner_shell_token
 		// IIFE
 		{
-			const WikiProject_templates = [];
+			const WikiProject_templates = [], WPBS_to_check = new Set;
 			parsed.each('template', (token, index, parent) => {
 				if (wiki.is_template(template_name_hash.WPBS, token)) {
 					if (token === WikiProject_banner_shell_token) {
@@ -2558,14 +2577,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						//return parsed.each.skip_inner;
 					}
 
-					CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
-					for (const parameter_name in token.parameters) {
-						if (!/^[\s{}]*$/.test(token.parameters[parameter_name]))
-							return;
-					}
-					changed = true;
-					CeL.warn(`移除空的重複 WPBS ${token}`);
-					return parsed.each.remove_token;
+					// 這時候 token 裡面的 WikiProject templates 可能還沒清空!
+					WPBS_to_check.add(token);
+					return;
 				}
 
 				// /^WikiProject /.test(token.name)
@@ -2601,7 +2615,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							return;
 						}
 
-						if (!is_standard_class(token.parameters.class)) {
+						if (!is_standard_class(token.parameters.class)
+							&& normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
 							// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
 							// e.g., [[Talk:HMAS Broome]]
 							return;
@@ -2728,6 +2743,25 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					return parsed.each.remove_token;
 				}
 			});
+
+			// 到這邊所有 WikiProject templates 應改接已自 parsed 移到 WikiProject_templates，可以開始檢查 WPBS_to_check 是否為空。
+			if (WPBS_to_check.size > 0) {
+				parsed.each('Template:' + template_name_hash.WPBS, (token, index, parent) => {
+					if (!WPBS_to_check.has(token))
+						return;
+
+					CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
+					for (const parameter_name in token.parameters) {
+						if (!/^[\s{}]*$/.test(token.parameters[parameter_name])) {
+							return;
+						}
+					}
+					changed = true;
+					CeL.warn(`移除空的重複 WPBS ${token}`);
+					return parsed.each.remove_token;
+				});
+			}
+
 			//console.trace('WikiProject_banner_shell_token:', WikiProject_banner_shell_token.toString());
 			//console.trace('WikiProject_banner_shell_token.parameters[1]:', WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
 			//console.trace('WikiProject_templates: ', WikiProject_templates);
@@ -2759,15 +2793,14 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 		// https://en.wikipedia.org/wiki/User_talk:Kanashimi#Another_bot_issue_about_|living=yes_and_|blp=yes
 		// Only keep |blp=
-		if (typeof WPBS_template_object.living === 'string' && CeL.wiki.Yesno(WPBS_template_object.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp || WPBS_template_object.blp)) {
+		if (WPBS_template_object.living && CeL.wiki.Yesno(WPBS_template_object.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp || WPBS_template_object.blp)) {
 			delete WPBS_template_object.living;
 		}
-		if (typeof WPBS_template_object.blp === 'string' && CeL.wiki.Yesno(WPBS_template_object.blp) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living)) {
+		if (WPBS_template_object.blp && CeL.wiki.Yesno(WPBS_template_object.blp) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living)) {
 			// 很少到這邊。
 			delete WPBS_template_object.blp;
 		}
-		if (typeof WikiProject_banner_shell_token.parameters.living === 'string' && typeof WikiProject_banner_shell_token.parameters.blp === 'string'
-			&& CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp)) {
+		if (WikiProject_banner_shell_token.parameters.living && CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp)) {
 			WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
 		}
 
