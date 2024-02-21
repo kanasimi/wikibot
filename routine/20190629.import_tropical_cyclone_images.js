@@ -324,7 +324,11 @@ function fill_type_name(media_data) {
 	&& (area.includes('eastern') || area.includes('central')) ? 'hurricane'
 	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
 	// 'indian ocean': e.g., @NRL
-	: area === 'indian' || area === 'indian ocean' ? 'cyclone'
+	: area === 'indian' || area === 'indian ocean' ? 'tropical cyclone'
+
+	// [[User talk:Kanashimi/Archive 1#Categories of tropical cyclone seasons]]
+	: area === 'southern hemisphere' ? 'tropical cyclone'
+
 	// [[Category:2019 North Indian Ocean cyclone season]]
 	// But JTWC using "Northwest Pacific/North Indian Ocean*"
 	// : area.includes('north indian') ? 'cyclone'
@@ -347,10 +351,15 @@ function upload_media(media_data) {
 	area.includes('pacific') ? 'Pacific'
 	//
 	: area.includes('atlantic') ? 'Atlantic'
+
 	// [[File:2021 CIMSS 02L Two visible infrared satellite loop.gif]]
 	// TODO: 'South-West Indian Ocean'
 	// 'indian ocean': e.g., @NRL
-	: area === 'indian' || area === 'indian ocean' ? 'North Indian Ocean'
+	: area === 'indian' || area === 'indian ocean'
+	// ? 'North Indian Ocean'
+	// [[User talk:Kanashimi/Archive 1#Categories of tropical cyclone seasons]]
+	? 'Southern Hemisphere'
+
 	// [[File:2019 JTWC 03S forecast map.sh0320.gif]]
 	: area === 'southern hemisphere' ? 'Southern Hemisphere'
 	// West Australian, Southern Indian Ocean?
@@ -383,6 +392,7 @@ function upload_media(media_data) {
 	// NG: 自動創建 explicit_track_maps_category
 	? explicit_track_maps_category : track_maps_category);
 
+	// console.trace([ explicit_track_maps_category, track_maps_category ]);
 	if (media_data.link)
 		categories.push('Category:' + media_data.link);
 	categories.forEach(check_category_exists);
