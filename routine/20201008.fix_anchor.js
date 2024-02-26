@@ -28,6 +28,8 @@ node 20201008.fix_anchor.js use_language=en "check_page=Wikipedia:Sandbox" only_
 node 20201008.fix_anchor.js use_language=en "check_page=List of Latin phrases (full)" "only_modify_pages=Quod vide"
 node 20201008.fix_anchor.js use_language=en "check_page=History of India" "only_modify_pages=History of Hinduism"
 node 20201008.fix_anchor.js use_language=en "check_page=Law & Order: Special Victims Unit (season 1)"
+node 20201008.fix_anchor.js use_language=en archives "check_page=Talk:BTS (band)" "only_modify_pages=Wikipedia talk:Disambiguation/Archive 50"
+
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "only_modify_pages=負整數"
 node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
@@ -237,40 +239,30 @@ async function main_process() {
 		await check_page('桜木町駅', { force_check: true });
 	}
 
-	// CeL.env.arg_hash.check_page: Only check anchors on this page.
-	if (CeL.env.arg_hash.check_page) {
-		await check_page(CeL.env.arg_hash.check_page, {
-			force_check: true,
-			namespace: CeL.env.arg_hash.namespace,
-			// .recheck_talk_page 不論有無修正 anchors，皆強制檢查 talk page。
-			force_check_talk_page: 'check_talk_page' in CeL.env.arg_hash ? CeL.env.arg_hash.check_talk_page : true,
-			// 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。這會檢查並刪除已不存在的 check_page 連結報告。
-			backlink_of: CeL.env.arg_hash.backlink_of,
-			only_modify_pages: CeL.env.arg_hash.only_modify_pages,
-			print_anchors: true,
-		});
-		CeL.info(`${CeL.wiki.title_link_of(CeL.env.arg_hash.check_page)} done.`);
-		return;
-	}
-
 	// fix archived: +"archives" argument
 	if (CeL.env.arg_hash.archives) {
 		// 更新指向存檔的連結時加上另一個 notification name。
 		notification_name += '|links-to-archived-section';
 		const page_list_with_archives = [];
-		for (let template_name of wiki.latest_task_configuration.general.archive_template_list) {
-			page_list_with_archives
-				.append((await wiki.embeddedin('Template:' + template_name))
-					.filter(page_data => !/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
-						&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)));
-		}
-		//page_list_with_archives.truncate();
-		//page_list_with_archives.push('Wikipedia:互助客栈/方针');
-		//while (page_list_with_archives[0]?.title !== 'Wikipedia:互助客栈/技术') page_list_with_archives.shift();
-		//page_list_with_archives.splice(0, 100);
-		if (page_list_with_archives[1]?.title === 'Wikipedia:互助客栈/方针') {
-			// 花費太長時間。
-			//page_list_with_archives.splice(1, 1);
+		if (CeL.env.arg_hash.check_page) {
+			const page_list = await wiki.page(CeL.env.arg_hash.check_page.split('|'), { multi: true });
+			//console.trace(page_list);
+			page_list_with_archives.append(page_list);
+		} else {
+			for (let template_name of wiki.latest_task_configuration.general.archive_template_list) {
+				page_list_with_archives
+					.append((await wiki.embeddedin('Template:' + template_name))
+						.filter(page_data => !/\/(Sandbox|沙盒|Archives?|存檔|存档)( ?\d+)?$/.test(page_data.title)
+							&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)));
+			}
+			//page_list_with_archives.truncate();
+			//page_list_with_archives.push('Wikipedia:互助客栈/方针');
+			//while (page_list_with_archives[0]?.title !== 'Wikipedia:互助客栈/技术') page_list_with_archives.shift();
+			//page_list_with_archives.splice(0, 100);
+			if (page_list_with_archives[1]?.title === 'Wikipedia:互助客栈/方针') {
+				// 花費太長時間。
+				//page_list_with_archives.splice(1, 1);
+			}
 		}
 
 		//console.trace(page_list_with_archives);
@@ -291,6 +283,22 @@ async function main_process() {
 				console.error(e);
 			}
 		}
+		return;
+	}
+
+	// CeL.env.arg_hash.check_page: Only check anchors on this page.
+	if (CeL.env.arg_hash.check_page) {
+		await check_page(CeL.env.arg_hash.check_page, {
+			force_check: true,
+			namespace: CeL.env.arg_hash.namespace,
+			// .recheck_talk_page 不論有無修正 anchors，皆強制檢查 talk page。
+			force_check_talk_page: 'check_talk_page' in CeL.env.arg_hash ? CeL.env.arg_hash.check_talk_page : true,
+			// 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。這會檢查並刪除已不存在的 check_page 連結報告。
+			backlink_of: CeL.env.arg_hash.backlink_of,
+			only_modify_pages: CeL.env.arg_hash.only_modify_pages,
+			print_anchors: true,
+		});
+		CeL.info(`${CeL.wiki.title_link_of(CeL.env.arg_hash.check_page)} done.`);
 		return;
 	}
 
@@ -425,7 +433,7 @@ async function get_sections_moved_to(page_data, options) {
 	if (options?.check_has_subpage_archives_only)
 		return true;
 
-	CeL.info(`${get_sections_moved_to.name}: Pages with archives: ${CeL.wiki.title_link_of(page_data)}`);
+	CeL.info(`${get_sections_moved_to.name}: Page with archives: ${CeL.wiki.title_link_of(page_data)}`);
 
 	const subpage_list = await wiki.prefixsearch(page_data.title + '/');
 	//console.trace(subpage_list);
@@ -1395,7 +1403,8 @@ async function check_page(target_page_data, options) {
 			if (token.anchor_index) {
 				token[token.anchor_index] = to_anchor || '';
 			} else {
-				const original_anchor = token[1]?.toString().replace(/^#/, '');
+				// token.anchor
+				const original_anchor = token.toString().replace(/^(?:#|%23|&#x23;|&#35;)/, '');
 				if (original_anchor?.length > 4 && to_anchor?.length > 4 && token[2]
 					// 避免 display_text 本來就是正確的 text。
 					// e.g., 避免 https://de.wikipedia.org/w/index.php?title=Scream_2&diff=prev&oldid=239191220
@@ -1431,7 +1440,7 @@ async function check_page(target_page_data, options) {
 			if (working_queue) {
 				working_queue.list.push(linking_page_data);
 			} else {
-				CeL.info(`${check_page.name}: Finding anchor ${token} that is not present in the latest revision in ${CeL.wiki.title_link_of(linking_page_data)}.`);
+				CeL.info(`${check_page.name}: Finding anchor ${token} in ${CeL.wiki.title_link_of(linking_page_data)} that is not present in the latest revision.`);
 				//console.trace(token);
 				// 依照 CeL.wiki.prototype.work, CeL.wiki.prototype.next 的作業機制，在此設定 section_title_history 會在下一批 link_from 之前先執行；不會等所有 link_from 都執行過一次後才設定 section_title_history。
 				working_queue = tracking_section_title_history(target_page_data, { section_title_history })
