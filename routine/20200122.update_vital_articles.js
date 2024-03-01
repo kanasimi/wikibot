@@ -11,6 +11,7 @@ node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Niagara Ice
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:00 Agent"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Timbits"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:List of municipalities in Amasya Province|Talk:List of NBL1 West awards|Talk:List of neighbourhoods in Bhubaneswar|Talk:Liberty bond"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:2019 Villa Nueva mayoral election"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000
@@ -305,6 +306,7 @@ async function adapt_configuration(latest_task_configuration) {
 	for (const icon of standard_grades) {
 		standard_class_Set.add(normalize_class(icon));
 	}
+	//console.trace(standard_class_Set);
 
 	// ----------------------------------------------------
 
@@ -624,7 +626,7 @@ async function do_PIQA_operation() {
 
 	clean__have_to_edit_its_talk_page();
 
-	// @see [[w:en:Wikipedia:Bots/Noticeboard#Flooding watchlists]]
+	// @see [[w:en:Wikipedia:Bots/Noticeboard/Archive 19#Flooding watchlists]]
 	if (false) {
 		/**從這個模板名稱開始執行。 Starts from this template name.*/
 		const starts_from_template_name = 'WikiProject Anglicanism';
@@ -646,7 +648,7 @@ async function do_PIQA_operation() {
 
 			const page_list =
 				//await wiki.categorymembers('Category:WikiProject templates with unknown parameters', { namespace: 'Template' }) ||
-				//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: wiki.latest_task_configuration.general.PIQA_namespace }) ||
+				//await wiki.categorymembers('Category:Pages using WikiProject Mathematics with unknown parameters', { namespace: wiki.latest_task_configuration.general.PIQA_namespace || 'Talk' }) ||
 				(Array.isArray(do_PIQA) ? do_PIQA
 					: (await wiki.embeddedin(WikiProject_template_title, {
 						limit: 5000
@@ -684,7 +686,7 @@ async function do_PIQA_operation() {
 
 	let total_talk_page_count = 0;
 	const all_categories_to_clean = wiki.latest_task_configuration.general.PIQA_categories_to_clean.slice();
-	all_categories_to_clean.push('Category:WikiProject templates with unknown parameters');
+	//all_categories_to_clean.push('Category:WikiProject templates with unknown parameters');
 
 	if (deprecated_parameter_list && wiki.site_name() === 'enwiki') {
 		for (const template_name of deprecated_parameter_list) {
@@ -698,7 +700,7 @@ async function do_PIQA_operation() {
 		//console.trace(category_to_clean);
 		for await (const talk_page_list of (Array.isArray(do_PIQA) ? [do_PIQA] :
 			// assert: do_PIQA >= 1
-			wiki.categorymembers(category_to_clean, { namespace: wiki.latest_task_configuration.general.PIQA_namespace, batch_size: 500 })
+			wiki.categorymembers(category_to_clean, { namespace: wiki.latest_task_configuration.general.PIQA_namespace || 'Talk', batch_size: 500 })
 		)) {
 			total_talk_page_count += talk_page_list.length;
 			//if (total_talk_page_count < 50000) { console.trace('Skip many!'); continue; }
@@ -2200,7 +2202,18 @@ function add_class_alias(class_alias, normalized_class) {
 	}
 }
 
+// @see [[Module:Pagetype]]
+const class_to_namespace_map = {
+	// 所有 namespace='Category talk' 頁面上 {{WikiProject template|class=Category}} 的 class 都會被消除。
+	Category: false,
+	Template: false,
+	File: false,
+	// 所有 namespace='WikiProject talk' 頁面上 {{WikiProject template|class=Project}} 的 class 都會被消除。
+	Project: 'WikiProject talk'
+};
+
 // @see https://zh.wikipedia.org/wiki/Module:Class/data
+// @see https://en.wikipedia.org/wiki/Module:Icon/data
 function normalize_class(_class) {
 	if (!_class)
 		return _class;
@@ -2364,7 +2377,19 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				}
 			}
 
-			add_class(token.parameters.class, is_opted_out);
+			if (token.parameters.class) {
+				const normalized_class = normalize_class(token.parameters.class);
+				if ((normalized_class in class_to_namespace_map)
+					&& wiki.is_namespace(talk_page_data, class_to_namespace_map[normalized_class] || normalized_class + ' talk')
+				) {
+					if (CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter })) {
+						changed = true;
+						CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
+					}
+				}
+
+				add_class(token.parameters.class, is_opted_out);
+			}
 
 			const normalized_template_name = wiki.redirect_target_of(token);
 			//console.trace(WikiProject_template_Map.get(normalized_template_name), token);
