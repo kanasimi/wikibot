@@ -34,7 +34,10 @@ const debug_page = undefined
 	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰' '操作系统' '上海市' '余思明'
 	;
 
-const conversion_table_file = `conversion_table.${use_language}.json`;
+const conversion_table_file = `${base_directory}/conversion_table.${use_language}.json`;
+const latest_run_info_file = `${base_directory}/latest_run_info.${use_language}.json`;
+
+prepare_directory(base_directory);
 
 // ----------------------------------------------------------------------------
 
@@ -170,19 +173,30 @@ async function main_process() {
 	);
 	//console.trace(talk_pages_transclusion_notification);
 
-	await wiki.for_each_page(
-		debug_page ? Array.isArray(debug_page) ? debug_page : [debug_page]
-			: await wiki.embeddedin('Template:NoteTA', {
-				namespace: 0,
-				limit: debug_page >= 1 ? debug_page : 'max',
-			}),
-		for_NoteTA_article, {
-		no_message: true,
-		pages_finished: 0,
-		tags: wiki.latest_task_configuration.general.tags,
-		// 去除與公共轉換組/全文轉換重複的轉換規則
-		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '去除重複的轉換規則') + ':',
-	});
+
+	const latest_run_info = CeL.get_JSON(latest_run_info_file);
+
+	let total_page_count = 0, initial_target_length = latest_run_info?.total_page_count > 500 ? latest_run_info?.total_page_count : undefined;
+	for await (const page_list of (debug_page ? Array.isArray(debug_page) ? [debug_page] : [[debug_page]]
+		: wiki.embeddedin('Template:NoteTA', {
+			namespace: 0,
+			limit: debug_page >= 1 ? debug_page : 'max',
+			batch_size: 500,
+		}))) {
+		await wiki.for_each_page(page_list, for_NoteTA_article, {
+			no_message: true,
+			pages_finished: total_page_count,
+			initial_target_length,
+			tags: wiki.latest_task_configuration.general.tags,
+			// 去除與公共轉換組/全文轉換重複的轉換規則
+			summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '去除重複的轉換規則') + ':',
+		});
+		total_page_count += page_list.length;
+		if (total_page_count > initial_target_length)
+			initial_target_length = undefined;
+	}
+
+	CeL.write_file(latest_run_info_file, { total_page_count });
 
 	routine_task_done('1 week');
 }
@@ -240,7 +254,7 @@ function get_group_name_of_page(page_data) {
 	//console.trace([page_title, page_data]);
 	const group_name = page_title.match(/^(?:[^:]+):(?:[^\/]+\/)?(.+)$/);
 	if (group_name) {
-		if (page_data.ns === NS_MediaWiki)
+		if (page_data.ns === NS_MediaWiki || /^MediaWiki:/.test(page_title))
 			return project_conversion_prefix + group_name[1];
 		return group_name[1];
 	}
@@ -473,7 +487,7 @@ async function for_each_conversion_group_page(page_data) {
 	if (conversion_list.error) {
 		conversion_of_page[page_data.title][KEY_error] = conversion_list.error;
 	} else if (conversion_list.redirect_to) {
-		conversion_of_page[page_data.title][KEY_redirect_to] = conversion_list.redirect_to;
+		conversion_of_page[page_data.title][KEY_redirect_to] = CeL.wiki.normalize_title(conversion_list.redirect_to);
 	} else if (conversion_list.transclusions) {
 		if (conversion_list.categories.some(
 			category_token => wiki.latest_task_configuration.general.main_category_list.includes(category_token.name)
@@ -1007,6 +1021,11 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	// ------------------------------------------------------------------------
 
 	function progress_message() {
+		if (!(work_config.initial_target_length >= 1)) {
+			// work_config.initial_target_length is net yet set.
+			return '';
+		}
+
 		return ' ('
 			// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
 			+ CeL.gettext('The bot operation is completed %1% in total', (100 * work_config.pages_finished /
@@ -1022,6 +1041,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			// 編輯條目討論頁上的提示模板。
 			await wiki.edit_page(wiki.to_talk_page(page_data), talk_page_data => {
 				const parsed = talk_page_data.parse();
+				CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
 				let unregistered_groups_template = parsed.find_template(unregistered_groups_template_name);
 				if (unregistered_groups_Array.length === 0) {
 					if (!unregistered_groups_template)
