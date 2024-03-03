@@ -1251,12 +1251,19 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// --------------------------------------------------------------
 	// 設定 data_to_modify.publication_in_claim_qualifiers
 
-	data_to_modify.publication_in_claim_qualifiers = {
-		P478: NCBI_article_data.volume,
-		P433: NCBI_article_data.issue,
-	};
+	data_to_modify.publication_in_claim_qualifiers = {};
+	if (NCBI_article_data.volume) {
+		// 可能為 ""
+		// volume (P478) 卷
+		data_to_modify.publication_in_claim_qualifiers.P478 = NCBI_article_data.volume;
+	}
+	if (NCBI_article_data.issue) {
+		// issue (P433) 期號
+		data_to_modify.publication_in_claim_qualifiers.P433 = NCBI_article_data.issue;
+	}
 	if (NCBI_article_data.pages) {
 		// 可能為 ""
+		// page(s) (P304) 頁碼
 		data_to_modify.publication_in_claim_qualifiers.P304 = NCBI_article_data.pages.replace(/^(\d+)-(\d+)$/, '$1–$2');
 	}
 	if (data_to_modify.publication_date) {
@@ -1477,11 +1484,11 @@ async function for_each_PubMed_ID(PubMed_ID) {
 					cites_work_title = journal_title;
 					// 下面這幾個都跟隨 ['journal-title'] or ['series-title']
 					if (reference_data.volume) {
-						// volume (P478)
+						// volume (P478) 卷
 						qualifiers.P478 = reference_data.volume;
 					}
 					if (reference_data['first-page']) {
-						// page(s) (P304)
+						// page(s) (P304) 頁碼
 						qualifiers.P304 = reference_data['first-page'];
 						// cf. number of pages (P1104)
 					}
