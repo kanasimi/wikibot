@@ -1846,6 +1846,11 @@ async function generate_all_VA_list_page() {
 	const VA_data_list_via_prefix = Object.create(null);
 
 	for (const [page_title, article_info_list] of Object.entries(listed_article_info)) {
+		if (false && page_title.includes('孫中山')) {
+			console.trace(page_title, article_info_list);
+			//throw page_title;
+		}
+
 		// page_title.slice(0, 1)
 		const prefix = String.fromCodePoint(page_title.codePointAt(0));
 		let data_list_prefix = prefix;
@@ -1862,6 +1867,9 @@ async function generate_all_VA_list_page() {
 		if (!VA_data_list_via_prefix[data_list_prefix])
 			VA_data_list_via_prefix[data_list_prefix] = Object.create(null);
 		// assert: Array.isArray(article_info_list)
+
+		const article_info_of_base_page = Object.create(null);
+
 		VA_data_list_via_prefix[data_list_prefix][page_title] = article_info_list.map((article_info, index) => {
 			article_info = Object.clone(article_info);
 
@@ -1941,10 +1949,33 @@ async function generate_all_VA_list_page() {
 			// We already have article_info.sublist
 			delete article_info.detailed_level;
 
+			if (article_info.base_page
+				// 僅記錄非 [0] 的，因為 [0] 將成為主要的 data。
+				&& index > 0) {
+				if (!article_info_of_base_page[article_info.base_page]) {
+					// NG: 只取最高重要度的一篇文章。
+					//article_info_of_base_page[article_info.base_page] = [article_info];
+					article_info_of_base_page[article_info.base_page] = article_info;
+				} else {
+					// NG: 只取最高重要度的一篇文章。
+					//article_info_of_base_page[article_info.base_page].push(article_info);
+				}
+			}
+
 			return article_info;
 		})
 		// 只取最高重要度的一篇文章。 https://en.wikipedia.org/w/index.php?title=Wikipedia_talk%3AVital_articles#List_of_vital_articles
 		[0];
+
+		if (Object.keys(article_info_of_base_page).length > 0) {
+			//console.trace(page_title, article_info_of_base_page);
+			VA_data_list_via_prefix[data_list_prefix][page_title].article_info_of_base_page = article_info_of_base_page;
+		}
+
+		if (false && page_title.includes('孫中山')) {
+			console.trace(page_title, VA_data_list_via_prefix[data_list_prefix][page_title], article_info_of_base_page);
+			//throw page_title;
+		}
 
 		if (!all_articles[prefix])
 			all_articles[prefix] = [];
