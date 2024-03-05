@@ -6,6 +6,8 @@
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=simple
 
+node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=明智光秀"
+
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
  [[:ja:Wikipedia:井戸端/subj/仮リンクの解消の作業手順について]]
@@ -703,7 +705,7 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (CeL.wiki.Yesno(parameters.italic)) {
-			// retain italic formatting `|italic=y`
+				// retain italic formatting `|italic=y`
 				link = "''" + link + "''";
 			}
 
@@ -781,8 +783,14 @@ function for_each_page(page_data, messages) {
 			});
 		}
 
+		function remove_disambiguation_postfix(page_title) {
+			// [[忍者 (電影)]] 不等同於 [[忍者 (電視劇)]]
+			return page_title.replace(/ \((?:disambiguation|消歧義|消歧义)\)$/i, '');
+		}
+
 		function for_local_page(converted_local_title) {
 			// converted_local_title: foreign_title 所對應的本地條目。
+
 			if (!converted_local_title || converted_local_title !== local_title
 			// Keep interlanguage link template if the target page is redirect.
 			// リダイレクトの記事化が望まれる場合。
@@ -790,6 +798,23 @@ function for_each_page(page_data, messages) {
 			|| parameters.redirect) {
 				// TODO: {{仮リンク|譲渡性個別割当制度|en|Individual fishing quota}}
 				// → [[漁獲可能量|譲渡性個別割当制度]]
+
+				if (converted_local_title
+				// && converted_local_title !== local_title
+				&& remove_disambiguation_postfix(converted_local_title)
+				//
+				=== remove_disambiguation_postfix(local_title)) {
+					CeL.log(
+					//
+					'converted_local_title 與 local_title 僅相差消歧義後綴: '
+					//
+					+ CeL.wiki.title_link_of(converted_local_title)
+					//
+					+ ' ' + CeL.wiki.title_link_of(local_title));
+					// https://zh.wikipedia.org/w/index.php?title=User_talk:Kanashimi&oldid=prev&diff=81310730#%E5%81%BD%E8%97%8D%E9%80%A3%E6%B8%85%E7%90%86%E5%BB%BA%E8%AD%B0
+					// check_local_creation_date(converted_local_title);
+					// return;
+				}
 
 				// TODO: 處理繁簡轉換的情況:有可能目標頁面存在，只是繁簡不一樣。
 				// TODO: 地區詞處理。
@@ -1055,6 +1080,13 @@ function for_each_page(page_data, messages) {
 			return;
 		}
 
+		// [[w:en:User talk:Kanashimi/Archive 1#Links to draft]]
+		if (wiki.is_namespace(local_title, 'main|Template')) {
+			CeL.error('Link to non-main namespace @'
+					+ CeL.wiki.title_link_of(title) + ': ' + token);
+			return;
+		}
+
 		if (foreign_language && foreign_language.includes('{')
 		//
 		&& !foreign_language.includes('}')) {
@@ -1201,6 +1233,9 @@ function main_work() {
 			// console.log(this.list);
 
 			// only for debug {{ill}}s on specified page
+			if (CeL.env.arg_hash && CeL.env.arg_hash.debug_pages) {
+				this.list = CeL.env.arg_hash.debug_pages.split('|');
+			}
 			// this.list = [ 'Wikipedia:沙盒' ];
 			// this.list = [ 'Wikipedia:サンドボックス' ];
 			// this.list = [ '泉站' ];
