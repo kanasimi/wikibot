@@ -241,12 +241,6 @@ async function check_deletion_discussion_page(page_data) {
 	function add_page(title, section, flags) {
 		if (!title)
 			return;
-		title = title.toString();
-		if (/%[a-f\d]{2}/i.test(title)) {
-			try {
-				title = decodeURIComponent(title);
-			} catch { }
-		}
 		// 注意: 即使刪除的是 talk page，這邊也會被歸類到主頁面。
 		title = wiki.talk_page_to_main(title);
 		if (!title || (title in ignore_pages)) {
