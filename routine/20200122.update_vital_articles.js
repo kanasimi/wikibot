@@ -19,6 +19,7 @@ node 20200122.update_vital_articles.js use_language=zh "do_PIQA=討論:截角四
 node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:小行星列表/242001-243000"
 node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
 node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:1,1':2',1'':3'',1'''-四联苯|Talk:1,1':3',1'':3'',1'''-四联苯|Talk:小行星列表/101601-101700|Talk:张琳芃"
+node 20200122.update_vital_articles.js use_language=zh "do_PIQA=分類討論:雙門齒目"
 Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 
@@ -144,7 +145,7 @@ let icons_schema;
 let icon_order_Set, icon_order_Map;
 
 /** {Object}deprecated_parameter_hash[template_to_fix] = {parameter_to_remove:value} */
-let deprecated_parameter_hash, deprecated_parameter_list;
+let deprecated_parameter_hash, template_list_of_deprecated_parameters;
 
 // start from 1
 let max_VA_level = 1;
@@ -342,16 +343,15 @@ async function adapt_configuration(latest_task_configuration) {
 			if (deprecated_parameter_hash[normalized_template_name]) {
 				CeL.error(`deprecated_parameters 重複設定模板名稱: ${template_to_fix}===${normalized_template_name}`);
 				Object.assign(deprecated_parameter_hash[normalized_template_name], deprecated_parameter_hash[template_to_fix]);
-			}
-			else {
+			} else {
 				deprecated_parameter_hash[normalized_template_name] = deprecated_parameter_hash[template_to_fix];
 			}
 			delete deprecated_parameter_hash[template_to_fix];
 		}
 
-		deprecated_parameter_list = Object.keys(deprecated_parameter_hash);
-		if (deprecated_parameter_list.length === 0) {
-			deprecated_parameter_list = deprecated_parameter_hash = null;
+		template_list_of_deprecated_parameters = Object.keys(deprecated_parameter_hash);
+		if (template_list_of_deprecated_parameters.length === 0) {
+			template_list_of_deprecated_parameters = deprecated_parameter_hash = null;
 		}
 
 		//console.trace('deprecated_parameter_hash:', deprecated_parameter_hash);
@@ -375,6 +375,15 @@ async function adapt_configuration(latest_task_configuration) {
 			//console.trace('replace_misspelled_parameter_name:', general.replace_misspelled_parameter_name);
 		} else {
 			delete general.replace_misspelled_parameter_name;
+		}
+	}
+
+	// ----------------------------------------------------
+
+	if (general.preserve_template_name_in_WPBS) {
+		general.preserve_template_name_in_WPBS = general.preserve_template_name_in_WPBS.to_RegExp();
+		if (!CeL.is_RegExp(general.preserve_template_name_in_WPBS)) {
+			CeL.error(`${adapt_configuration.name}: Invalid RegExp (preserve_template_name_in_WPBS): ${general.preserve_template_name_in_WPBS}`);
 		}
 	}
 
@@ -688,8 +697,8 @@ async function do_PIQA_operation() {
 	const all_categories_to_clean = wiki.latest_task_configuration.general.PIQA_categories_to_clean.slice();
 	//all_categories_to_clean.push('Category:WikiProject templates with unknown parameters');
 
-	if (deprecated_parameter_list && wiki.site_name() === 'enwiki') {
-		for (const template_name of deprecated_parameter_list) {
+	if (template_list_of_deprecated_parameters && wiki.site_name() === 'enwiki') {
+		for (const template_name of template_list_of_deprecated_parameters) {
 			all_categories_to_clean.push(`Category:Pages using ${template_name} with unknown parameters`);
 		}
 	}
@@ -2622,15 +2631,198 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// merge other {{WikiProject *}} into WikiProject_banner_shell_token
 		// IIFE
 		{
-			const WikiProject_templates = [], WPBS_to_check = new Set;
+			const WikiProject_templates_and_allowed_elements = [], WPBS_to_check = new Set;
+			WikiProject_templates_and_allowed_elements.WikiProject_template_count = 0;
+
+			function move_to_WikiProject_templates(token, index, parent) {
+				// assert: wiki.is_template(all_WikiProject_template_list, token)
+				// assert: 'is_opted_out' in token
+
+				if (parent === parsed) {
+					// Move into {{WPBS}}.
+					changed = true;
+				}
+
+				const parameters_to_remove_Set = new Set;
+				/**
+				 * remove class rating from wikiproject banner
+				 */
+				function set_remove_needless_class(is_opted_out) {
+					if (!('class' in token.parameters))
+						return;
+					if (!token.parameters.class.toString().trim()) {
+						// remove |class=|
+						parameters_to_remove_Set.add('class');
+						return;
+					}
+
+					if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class)
+						// 有特殊 token 如 comment 不動。 e.g., [[w:en:Talk:95-10 Initiative]]
+						|| Array.isArray(token.parameters.class)) {
+						if (!article_info.reason.untouched_message) {
+							// gettext_config:{"id":"keep-different-ratings-in-$2"}
+							article_info.reason.untouched_message = ['Keep %1 different {{PLURAL:%1|rating|ratings}} in %2.', 0, []];
+							article_info.reason.push(article_info.reason.untouched_message);
+						}
+						article_info.reason.untouched_message[2].push(token.name);
+						//console.trace([is_opted_out, has_different_ratings, token.parameters.class, normalize_class(token.parameters.class), normalize_class(WPBS_template_object.class), WPBS_template_object]);
+						return;
+					}
+
+					if (!is_standard_class(token.parameters.class)
+						&& normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
+						// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
+						// e.g., [[Talk:HMAS Broome]]
+						return;
+					}
+
+					if (!article_info.reason.touched_message) {
+						// (%1)
+						// gettext_config:{"id":"remove-the-same-ratings-as-template-wpbs-in-$2"}
+						article_info.reason.touched_message = ['Remove %1 same {{PLURAL:%1|rating|ratings}} as {{WPBS}} in %2.', 0, []];
+						article_info.reason.push(article_info.reason.touched_message);
+					}
+					article_info.reason.touched_message[2].push(token.name);
+					parameters_to_remove_Set.add('class');
+				}
+
+				if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
+					// assert: token.is_opted_out === true
+					// 有些選擇退出的模板有自己的展示方式，利用到class參數，不能完全用[[Module:WikiProject banner]]解決。e.g., {{WikiProject Military history}}
+					//set_remove_needless_class(true);
+				} else {
+					// assert: token.is_opted_out === false
+					function move_parameters(parameter_Set_to_move) {
+						for (const parameter_name of parameter_Set_to_move) {
+							if (!(parameter_name in token.parameters))
+								continue;
+							let value = token.parameters[parameter_name];
+
+							// fix parameter value
+							if (typeof value === 'string') {
+								value = value.replace(PATTERN_invalid_parameter_value_to_remove, '');
+							}
+
+							if (!value.toString().trim()) {
+								// 直接消掉 WikiProject template token 無意義的、空的 parameter。
+								parameters_to_remove_Set.add(parameter_name);
+								continue;
+							}
+
+							if ((!WikiProject_banner_shell_token.parameters[parameter_name]
+								// normalize parameter value
+								|| WikiProject_banner_shell_token.parameters[parameter_name].toString().toLowerCase() === value.toString().toLowerCase())
+								&& (!WPBS_template_object[parameter_name]
+									|| WPBS_template_object[parameter_name] === value)) {
+								// These parameters will move to {{WikiProject banner shell}}
+								// TODO: If contains comment...
+								WPBS_template_object[parameter_name] = value;
+								parameters_to_remove_Set.add(parameter_name);
+								continue;
+							}
+							// 保留 value 不同的 parameters。
+						}
+					}
+
+					if (wiki.is_template(template_name_hash.WPBIO, token)) {
+						move_parameters(parameters_move_from_WPBIO_to_WPBS);
+					}
+
+					move_parameters(parameters_move_from_WikiProjects_to_WPBS);
+
+					set_remove_needless_class();
+				}
+
+				WikiProject_templates_and_allowed_elements.push(token);
+				WikiProject_templates_and_allowed_elements.WikiProject_template_count++;
+				// 跳過 "{{t<!-- -->}}" 之類。
+				if (token[0].type !== 'plain') {
+					// Fix to the redirect target
+					if (CeL.wiki.parse.replace_parameter(token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(token)))) {
+						//changed = true;
+					}
+				}
+
+				// fix [[Category:WikiProject templates with unknown parameters]]
+				// @see [[Wikipedia:Bots/Requests for approval/BattyBot 79]]
+				if (template_list_of_deprecated_parameters && wiki.is_template(template_list_of_deprecated_parameters, token)) {
+					const parameters_hash = deprecated_parameter_hash[wiki.remove_namespace(wiki.redirect_target_of(token))];
+					//console.trace([parameters_hash, wiki.redirect_target_of(token), token.toString()]);
+					if (CeL.is_Object(parameters_hash)) {
+						for (const parameter_to_remove in parameters_hash) {
+							if ((parameter_to_remove in token.parameters)
+								&& (parameters_hash[parameter_to_remove] === CeL.wiki.parse.replace_parameter.KEY_remove_parameter
+									|| parameters_hash[parameter_to_remove].toString() === token.parameters[parameter_to_remove].toString())) {
+								if (!article_info.reason.remove_parameters) {
+									article_info.reason.remove_parameters = ['Remove %1 deprecated {{PLURAL:%1|parameter|parameters}}: %2.', 0, []];
+									article_info.reason.push(article_info.reason.remove_parameters);
+								}
+								article_info.reason.remove_parameters[2].push(parameter_to_remove);
+								parameters_to_remove_Set.add(parameter_to_remove);
+							}
+						}
+					} else {
+						// Should not go to here.
+						CeL.error(`Cannot find configuration of ${wiki.redirect_target_of(token)} (${token})`);
+					}
+				}
+
+				if (parameters_to_remove_Set.size > 0) {
+					//console.trace('Remove parameters:', parameters_to_remove_Set);
+					const parameters_argument = Object.create(null);
+					parameters_to_remove_Set.forEach(parameter => parameters_argument[parameter] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
+					if (CeL.wiki.parse.replace_parameter(token, parameters_argument)) {
+						changed = true;
+					}
+				}
+
+				// fix for [[Wikipedia:Bots/Requests for approval/EnterpriseyBot 10]]
+				for (let _index = index; ++_index < parent.length;) {
+					/** 接著的 token */
+					const follow_token = parent[_index];
+					if (follow_token.toString().trim()) {
+						// e.g., "<!-- Formerly assessed as Start-class -->"
+						if (follow_token.type === 'comment' && follow_token.length === 1 && /assessed as (?:\w+-class|class-\w+)/.test(follow_token[0])) {
+							if (!token.parameters.class) {
+								if (CeL.wiki.parse.replace_parameter(token, { class: follow_token }, { value_only: true, force_add: true, no_value_space: true, })) {
+									changed = true;
+								}
+							}
+							for (let i = index; ++i <= _index;)
+								parent[i] = '';
+						}
+						break;
+					}
+				}
+
+				return parsed.each.remove_token;
+			}
+
 			parsed.each('template', (token, index, parent) => {
 				if (wiki.is_template(template_name_hash.WPBS, token)) {
 					if (token === WikiProject_banner_shell_token) {
 						//console.trace(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
 						WikiProject_banner_shell_token.index = index;
 						WikiProject_banner_shell_token.parent = parent;
-						return;
-						//return parsed.each.skip_inner;
+						if (!WikiProject_banner_shell_token.parameters[1]) {
+							return;
+						}
+						CeL.wiki.parser.parser_prototype.each.call(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]], (token, index, parent) => {
+							if (token.type === 'commit') {
+								WikiProject_templates_and_allowed_elements.push(token);
+								return parsed.each.remove_token;
+							}
+							if (wiki.is_template(all_WikiProject_template_list, token)) {
+								return move_to_WikiProject_templates(token, index, parent);
+							}
+							// /^WikiProject /.test(token.name)
+							if (wiki.latest_task_configuration.general.preserve_template_name_in_WPBS && wiki.latest_task_configuration.general.preserve_template_name_in_WPBS.test(token.name)) {
+								WikiProject_templates_and_allowed_elements.push(token);
+								return parsed.each.remove_token;
+							}
+						});
+						// 已處理過 |1= 的內部元素，可直接跳過。剩下的元素將會被列在 extra_contents。
+						return parsed.each.skip_inner;
 					}
 
 					// 這時候 token 裡面的 WikiProject templates 可能還沒清空!
@@ -2638,169 +2830,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					return;
 				}
 
-				// /^WikiProject /.test(token.name)
 				if (wiki.is_template(all_WikiProject_template_list, token)) {
-					// assert: 'is_opted_out' in token
-
-					if (parent === parsed)
-						changed = true;
-
-					const parameters_to_remove_Set = new Set;
-					/**
-					 * remove class rating from wikiproject banner
-					 */
-					function set_remove_needless_class(is_opted_out) {
-						if (!('class' in token.parameters))
-							return;
-						if (!token.parameters.class.toString().trim()) {
-							// remove |class=|
-							parameters_to_remove_Set.add('class');
-							return;
-						}
-
-						if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class)
-							// 有特殊 token 如 comment 不動。 e.g., [[w:en:Talk:95-10 Initiative]]
-							|| Array.isArray(token.parameters.class)) {
-							if (!article_info.reason.untouched_message) {
-								// gettext_config:{"id":"keep-different-ratings-in-$2"}
-								article_info.reason.untouched_message = ['Keep %1 different {{PLURAL:%1|rating|ratings}} in %2.', 0, []];
-								article_info.reason.push(article_info.reason.untouched_message);
-							}
-							article_info.reason.untouched_message[2].push(token.name);
-							//console.trace([is_opted_out, has_different_ratings, token.parameters.class, normalize_class(token.parameters.class), normalize_class(WPBS_template_object.class), WPBS_template_object]);
-							return;
-						}
-
-						if (!is_standard_class(token.parameters.class)
-							&& normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
-							// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
-							// e.g., [[Talk:HMAS Broome]]
-							return;
-						}
-
-						if (!article_info.reason.touched_message) {
-							// (%1)
-							// gettext_config:{"id":"remove-the-same-ratings-as-template-wpbs-in-$2"}
-							article_info.reason.touched_message = ['Remove %1 same {{PLURAL:%1|rating|ratings}} as {{WPBS}} in %2.', 0, []];
-							article_info.reason.push(article_info.reason.touched_message);
-						}
-						article_info.reason.touched_message[2].push(token.name);
-						parameters_to_remove_Set.add('class');
-					}
-
-					if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
-						// assert: token.is_opted_out === true
-						// 有些選擇退出的模板有自己的展示方式，利用到class參數，不能完全用[[Module:WikiProject banner]]解決。e.g., {{WikiProject Military history}}
-						//set_remove_needless_class(true);
-					} else {
-						// assert: token.is_opted_out === false
-						function move_parameters(parameter_Set_to_move) {
-							for (const parameter_name of parameter_Set_to_move) {
-								if (!(parameter_name in token.parameters))
-									continue;
-								let value = token.parameters[parameter_name];
-
-								// fix parameter value
-								if (typeof value === 'string') {
-									value = value.replace(PATTERN_invalid_parameter_value_to_remove, '');
-								}
-
-								if (!value.toString().trim()) {
-									// 直接消掉 WikiProject template token 無意義的、空的 parameter。
-									parameters_to_remove_Set.add(parameter_name);
-									continue;
-								}
-
-								if ((!WikiProject_banner_shell_token.parameters[parameter_name]
-									// normalize parameter value
-									|| WikiProject_banner_shell_token.parameters[parameter_name].toString().toLowerCase() === value.toString().toLowerCase())
-									&& (!WPBS_template_object[parameter_name]
-										|| WPBS_template_object[parameter_name] === value)) {
-									// These parameters will move to {{WikiProject banner shell}}
-									// TODO: If contains comment...
-									WPBS_template_object[parameter_name] = value;
-									parameters_to_remove_Set.add(parameter_name);
-									continue;
-								}
-								// 保留 value 不同的 parameters。
-							}
-						}
-
-						if (wiki.is_template(template_name_hash.WPBIO, token)) {
-							move_parameters(parameters_move_from_WPBIO_to_WPBS);
-						}
-
-						move_parameters(parameters_move_from_WikiProjects_to_WPBS);
-
-						set_remove_needless_class();
-					}
-
-					WikiProject_templates.push(token);
-					// 跳過 "{{t<!-- -->}}" 之類。
-					if (token[0].type !== 'plain') {
-						// Fix to the redirect target
-						if (CeL.wiki.parse.replace_parameter(token, CeL.wiki.parse.replace_parameter.KEY_template_name, wiki.remove_namespace(wiki.redirect_target_of(token)))) {
-							//changed = true;
-						}
-					}
-
-					// fix [[Category:WikiProject templates with unknown parameters]]
-					// @see [[Wikipedia:Bots/Requests for approval/BattyBot 79]]
-					if (deprecated_parameter_list && wiki.is_template(deprecated_parameter_list, token)) {
-						const parameters_hash = deprecated_parameter_hash[wiki.remove_namespace(wiki.redirect_target_of(token))];
-						//console.trace([parameters_hash, wiki.redirect_target_of(token), token.toString()]);
-						if (CeL.is_Object(parameters_hash)) {
-							for (const parameter_to_remove in parameters_hash) {
-								if ((parameter_to_remove in token.parameters)
-									&& (parameters_hash[parameter_to_remove] === CeL.wiki.parse.replace_parameter.KEY_remove_parameter
-										|| parameters_hash[parameter_to_remove].toString() === token.parameters[parameter_to_remove].toString())) {
-									if (!article_info.reason.remove_parameters) {
-										article_info.reason.remove_parameters = ['Remove %1 deprecated {{PLURAL:%1|parameter|parameters}}: %2.', 0, []];
-										article_info.reason.push(article_info.reason.remove_parameters);
-									}
-									article_info.reason.remove_parameters[2].push(parameter_to_remove);
-									parameters_to_remove_Set.add(parameter_to_remove);
-								}
-							}
-						} else {
-							// Should not go to here.
-							CeL.error(`Cannot find configuration of ${wiki.redirect_target_of(token)} (${token})`);
-						}
-					}
-
-					if (parameters_to_remove_Set.size > 0) {
-						//console.trace('Remove parameters:', parameters_to_remove_Set);
-						const parameters_argument = Object.create(null);
-						parameters_to_remove_Set.forEach(parameter => parameters_argument[parameter] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
-						if (CeL.wiki.parse.replace_parameter(token, parameters_argument)) {
-							changed = true;
-						}
-					}
-
-					// fix for [[Wikipedia:Bots/Requests for approval/EnterpriseyBot 10]]
-					for (let _index = index; ++_index < parent.length;) {
-						/** 接著的 token */
-						const follow_token = parent[_index];
-						if (follow_token.toString().trim()) {
-							// e.g., "<!-- Formerly assessed as Start-class -->"
-							if (follow_token.type === 'comment' && follow_token.length === 1 && /assessed as (?:\w+-class|class-\w+)/.test(follow_token[0])) {
-								if (!token.parameters.class) {
-									if (CeL.wiki.parse.replace_parameter(token, { class: follow_token }, { value_only: true, force_add: true, no_value_space: true, })) {
-										changed = true;
-									}
-								}
-								for (let i = index; ++i <= _index;)
-									parent[i] = '';
-							}
-							break;
-						}
-					}
-
-					return parsed.each.remove_token;
+					return move_to_WikiProject_templates(token, index, parent);
 				}
 			});
 
-			// 到這邊所有 WikiProject templates 應改接已自 parsed 移到 WikiProject_templates，可以開始檢查 WPBS_to_check 是否為空。
+			// 到這邊所有 WikiProject templates 應皆已自 parsed 移到 WikiProject_templates_and_allowed_elements，可以開始檢查 WPBS_to_check 是否為空。
 			if (WPBS_to_check.size > 0) {
 				parsed.each('Template:' + template_name_hash.WPBS, (token, index, parent) => {
 					if (!WPBS_to_check.has(token))
@@ -2820,8 +2855,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 			//console.trace('WikiProject_banner_shell_token:', WikiProject_banner_shell_token.toString());
 			//console.trace('WikiProject_banner_shell_token.parameters[1]:', WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]);
-			//console.trace('WikiProject_templates: ', WikiProject_templates);
-			if (WikiProject_templates.length > 0) {
+			//console.trace('WikiProject_templates_and_allowed_elements: ', WikiProject_templates_and_allowed_elements);
+			if (WikiProject_templates_and_allowed_elements.length > 0) {
 				// assert: WikiProject_template_Map.size > 0
 				CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());
 				// adding to the bottom of the banner shell
@@ -2830,7 +2865,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// TODO: https://en.wikipedia.org/w/index.php?title=Talk:Amphetamine&diff=prev&oldid=1192899833
 					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
 				}
-				WPBS_template_object[1] = ('\n' + WikiProject_templates
+				WPBS_template_object[1] = ('\n' + WikiProject_templates_and_allowed_elements
 					// [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 26]]
 					// "consolidate the banners into one line"
 					.map(WikiProject_template => {
@@ -2840,7 +2875,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// 去掉太多的換行。
 					.replace(/\n{2,}/g, '\n');
 				// gettext_config:{"id":"$1-wikiproject-templates"}
-				article_info.reason.unshift(['%1 WikiProject {{PLURAL:%1|template|templates}}.', WikiProject_templates.length]);
+				article_info.reason.unshift(['%1 WikiProject {{PLURAL:%1|template|templates}}.', WikiProject_templates_and_allowed_elements.WikiProject_template_count]);
 			}
 		}
 
