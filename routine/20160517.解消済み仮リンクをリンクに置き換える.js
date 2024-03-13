@@ -7,6 +7,7 @@ node 20160517.解消済み仮リンクをリンクに置き換える.js use_lang
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=simple
 
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=明智光秀"
+node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=斯堪的纳维亚历史"
 
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
@@ -63,6 +64,10 @@ ignore_ns = false,
 
 /** {Natural}剩下尚未處理完畢的頁面數。 */
 page_remains,
+
+// https://en.wikipedia.org/wiki/Category:Hatnote_templates
+// 並且具備 |l1=
+hatnote_list = [ 'Main', 'See also', 'Further' ],
 
 // default parameters 預設index/次序集
 // c: foreign_language: foreign language code 外文語言代號
@@ -709,6 +714,21 @@ function for_each_page(page_data, messages) {
 				link = "''" + link + "''";
 			}
 
+			if (token.inside_hatnote) {
+				link = CeL.wiki.parse(link);
+				// https://zh.wikipedia.org/w/index.php?title=%E6%96%AF%E5%A0%AA%E7%9A%84%E7%BA%B3%E7%BB%B4%E4%BA%9A%E5%8E%86%E5%8F%B2&diff=prev&oldid=81848024
+				var _link = link[0] + (link[1] || '');
+				if (link[2]) {
+					if (token.inside_hatnote.length === 2) {
+						_link += '|l1=' + link[2];
+					} else {
+						CeL.error('捨棄 display_text of ' + link);
+					}
+				}
+				// console.trace([ link, _link ]);
+				link = _link;
+			}
+
 			// 實際改變頁面結構。將當前處理的 template token 改成這段 link 文字。
 			token_parent[token_index] = link;
 
@@ -1053,6 +1073,16 @@ function for_each_page(page_data, messages) {
 
 		if (!normalized_param) {
 			// 非跨語言連結模板。
+
+			if (wiki.is_template(token, hatnote_list)) {
+				CeL.wiki.parser.parser_prototype.each.call(token, function(
+						subtoken) {
+					if (CeL.wiki.is_parsed_element(subtoken))
+						subtoken.inside_hatnote = token;
+				}, {
+					add_index : true
+				});
+			}
 			return;
 		}
 
@@ -1224,6 +1254,10 @@ prepare_directory(base_directory, true);
 // CeL.set_debug(2);
 
 function main_work() {
+	wiki.register_redirects(hatnote_list, {
+		namespace : 'Template'
+	});
+
 	CeL.wiki.cache([ {
 		type : 'categorymembers',
 		list : message_set.Category_has_local_page,
@@ -1255,7 +1289,7 @@ function main_work() {
 		// list = [ '' ];
 		// list = [ 'Wikipedia:Sandbox' ];
 		// list = [ '最强Jump' ];
-		CeL.log('Get ' + list.length + ' pages.');
+		CeL.log('Get ' + list.length + ' page(s).');
 		if (false) {
 			ignore_ns = true;
 			CeL.log(list.slice(0, 8).map(function(page_data, index) {
