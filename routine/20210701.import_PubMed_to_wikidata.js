@@ -1012,6 +1012,12 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		if (!title)
 			title = main_title;
 
+		if (title.includes('\ufffd')) {
+			// 不匯入含有 U+FFFD � REPLACEMENT CHARACTER 的 title。
+			// e.g., Q67435361
+			return;
+		}
+
 		const claim = {
 			// title 標題 (P1476)
 			P1476: title,
