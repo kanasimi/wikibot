@@ -28,6 +28,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=Wikipedia:Sandbox" only_
 node 20201008.fix_anchor.js use_language=en "check_page=List of Latin phrases (full)" "only_modify_pages=Quod vide"
 node 20201008.fix_anchor.js use_language=en "check_page=History of India" "only_modify_pages=History of Hinduism"
 node 20201008.fix_anchor.js use_language=en "check_page=Law & Order: Special Victims Unit (season 1)"
+node 20201008.fix_anchor.js use_language=en "check_page=Havana syndrome"
 node 20201008.fix_anchor.js use_language=en archives "check_page=Talk:BTS (band)" "only_modify_pages=Wikipedia talk:Disambiguation/Archive 50"
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
@@ -122,6 +123,8 @@ read {{cbignore}}?
 
 當某個錨點1與錨點2同時存在，就不該設定錨點1→錨點2。
 
+[[Template:Broken anchors]] 改成 [[Template:Broken anchor]]，採用 [[Template:Dead link]] 的機制。
+
  */
 
 'use strict';
@@ -191,6 +194,10 @@ async function adapt_configuration(latest_task_configuration) {
 
 	if (!general.broken_anchor_template)
 		general.broken_anchor_template = 'Broken anchors';
+
+	if (wiki.is_namespace(general.insert_notification_template, 'template')) {
+		general.insert_notification_template = wiki.remove_namespace(general.insert_notification_template);
+	}
 
 	await wiki.register_redirects(['Section link', general.broken_anchor_template, general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
@@ -767,7 +774,7 @@ async function tracking_section_title_history(page_data, options) {
 		removed_text = CeL.wiki.parser(removed_text || '', _options).parse();
 		added_text = CeL.wiki.parser(added_text || '', _options).parse();
 
-		// 當標題前後沒有空白之外的文字時，就當作是置換標題。
+		/** 在本版本中，有較大把握被置換的標題。當標題前後沒有空白之外的文字時，就當作是置換標題。 */
 		const replaced_anchors = revision.replaced_anchors || (revision.replaced_anchors = Object.create(null));
 
 		let previous_text_is_different = revision.previous_text_is_different;
@@ -895,7 +902,8 @@ async function tracking_section_title_history(page_data, options) {
 					if (CeL.is_empty_object(revision.replaced_anchors))
 						delete revision.replaced_anchors;
 				} else if (revision.replaced_anchors[from_page_title]) {
-					CeL.warn(`一對一網頁錨點有疑義: ${from_page_title}→${to_page_title}, replaced_anchors to ${revision.replaced_anchors[from_page_title]}`);
+					// TODO: to_page_title === revision.replaced_anchors[from_page_title]
+					CeL.warn(`轉換單一網頁錨點有疑義: ${JSON.stringify(from_page_title)}→${JSON.stringify(to_page_title)}, replaced_anchors to ${JSON.stringify(revision.replaced_anchors[from_page_title])}`);
 					delete revision.replaced_anchors;
 				}
 
@@ -930,7 +938,7 @@ async function tracking_section_title_history(page_data, options) {
 				edit_distance_lsit.sort((_1, _2) => _1[0] - _2[0]);
 				//if (edit_distance_lsit.length > 0) console.trace(edit_distance_lsit);
 
-				// modify_hash[from] = to
+				/** modify_hash[ modify from ] = modify to */
 				const modify_hash = Object.create(null);
 				edit_distance_lsit.forEach(item => {
 					const [/*edit_distance_score*/, from, to] = item;
@@ -943,7 +951,7 @@ async function tracking_section_title_history(page_data, options) {
 						check_rename_to(from, to);
 					} else {
 						// assert: !!revision.replaced_anchors[from] === true
-						CeL.warn(`多對多有疑義: ${from}→${to}, replaced_anchors to ${revision.replaced_anchors[from]}`);
+						CeL.warn(`轉換多個網頁錨點有疑義: ${JSON.stringify(from)}→${JSON.stringify(to)}, replaced_anchors to ${JSON.stringify(revision.replaced_anchors[from])}`);
 						delete revision.replaced_anchors[from];
 					}
 				});
@@ -1229,6 +1237,7 @@ async function check_page(target_page_data, options) {
 				}
 			} else if (!wikitext_to_add) {
 				// assert: removed_anchors === 0
+				//console.trace(anchor_token);
 				return Wikiapi.skip_edit;
 			}
 
@@ -1354,7 +1363,7 @@ async function check_page(target_page_data, options) {
 	 * @param {Array} linking_page_data 網頁錨點所在頁面。
 	 * @returns {Boolean} token 被修改過。
 	 */
-	function check_token(token, linking_page_data) {
+	async function check_token(token, linking_page_data) {
 		const page_title = (
 			// assert: {{Section link}}
 			token.page_title
@@ -1574,8 +1583,35 @@ async function check_page(target_page_data, options) {
 		CeL.warn(`${check_page.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${original_anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
+
+		if (wiki.latest_task_configuration.general.insert_notification_template) {
+			const move_to_page_title_via_link = reduced_anchor_to_page[reduce_section_title(token.anchor)];
+			const target_link = move_to_page_title_via_link && (move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : ''));
+			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
+			token.parent.splice(token.index + 1, 0, `{{${wiki.latest_task_configuration.general.insert_notification_template}|date=${(new Date).format('%Y-%2m-%2d')}|bot=${wiki.latest_task_configuration.configuration_page_title}|reason=${move_to_page_title_via_link
+				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
+				? CeL.gettext('Anchor %1 links to a specific web page: %2.', CeL.wiki.title_link_of(token[token.article_index || 0] + '#' + token.anchor), CeL.wiki.title_link_of(target_link))
+				: ''
+				} ${record
+					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
+					? `${record.disappear ?
+						// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
+						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
+						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, token.anchor) : ''
+					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
+					}` : ''}}}`);
+			add_summary(this,
+				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
+				CeL.gettext('Reminder of an inactive anchor'));
+			CeL.error(`${check_token.name}: ${CeL.wiki.title_link_of(linking_page_data)}: ${
+				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
+				CeL.gettext('Reminder of an inactive anchor')}: ${token || ''}`);
+			// 警告: 有 general.insert_notification_template 基本上就不會採用 general.add_note_to_talk_page_for_broken_anchors
+			return true;
+		}
+
 		if (!options.is_archive) {
-			talk_pages_modified += add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
+			talk_pages_modified += await add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 	}
 
@@ -1587,7 +1623,7 @@ async function check_page(target_page_data, options) {
 	 * @param {Array} linking_page_data 網頁錨點所在頁面。
 	 * @returns 處理後的頁面資料。
 	 */
-	function resolve_linking_page(linking_page_data) {
+	async function resolve_linking_page(linking_page_data) {
 		/** {Array} parsed page content 頁面解析後的結構。 */
 		const parsed = linking_page_data.parse();
 		// console.log(parsed);
@@ -1601,20 +1637,23 @@ async function check_page(target_page_data, options) {
 		//CeL.log_temporary(`${progress_to_percent(options.overall_progress)} ${CeL.wiki.title_link_of(linking_page_data)}`);
 		const { skip_comments } = wiki.latest_task_configuration.general;
 		let changed, _this = this;
-		parsed.each_section(function (section, section_index) {
+		await parsed.each_section(async (section, section_index) => {
 			if (skip_comments && section.users?.length > 0) {
 				// 他者発言の改ざんをしないように
 				return;
 			}
 
 			// handle [[link#anchor|display text]]
-			section.each('link', token => {
+			await section.each('link', async (token, index, parent) => {
 				//console.trace(token);
-				if (check_token.call(_this, token, linking_page_data))
+				token.index = index;
+				token.parent = parent;
+				if (await check_token.call(_this, token, linking_page_data)) {
 					changed = true;
+				}
 			}, { use_global_index: true });
 
-			section.each('template', (token, index, parent) => {
+			await section.each('template', async (token, index, parent) => {
 				// handle {{Section link}}
 				if (wiki.is_template('Section link', token)) {
 					/** {Number} index to the target page title of the link. */
@@ -1635,8 +1674,11 @@ async function check_page(target_page_data, options) {
 						if (!token.anchor_index)
 							continue;
 						token.anchor = CeL.wiki.parse.anchor.normalize_anchor(token.parameters[index]);
-						if (check_token.call(_this, token, linking_page_data))
+						token.index = index;
+						token.parent = parent;
+						if (await check_token.call(_this, token, linking_page_data)) {
 							changed = true;
+						}
 					}
 
 					return;
@@ -1653,7 +1695,7 @@ async function check_page(target_page_data, options) {
 
 		if (!changed && CeL.fit_filter(options.force_check_talk_page, linking_page_data.title)) {
 			//console.trace('check talk page, 刪掉已有沒問題之 anchors。');
-			talk_pages_modified += add_note_to_talk_page_for_broken_anchors(linking_page_data);
+			talk_pages_modified += await add_note_to_talk_page_for_broken_anchors(linking_page_data);
 		}
 
 		if (!changed)
