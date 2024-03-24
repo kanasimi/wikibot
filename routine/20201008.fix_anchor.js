@@ -1593,8 +1593,9 @@ async function check_page(target_page_data, options) {
 			token.parent.splice(token.index + 1, 0, CeL.wiki.parse(`{{${wiki.latest_task_configuration.general.insert_notification_template}|date=${(new Date).format('%Y-%2m-%2d')}|bot=${wiki.latest_task_configuration.configuration_page_title}|reason=${move_to_page_title_via_link
 				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
 				? CeL.gettext('Anchor %1 links to a specific web page: %2.',
-					// 採用 <nowiki> 以避免造成循環。
-					'<nowiki>' + CeL.wiki.title_link_of(token[token.article_index || 0] + '#' + token.anchor) + '</nowiki>', '<nowiki>' + CeL.wiki.title_link_of(target_link) + '</nowiki>')
+					// 採用 JSON.stringify() 而非 CeL.wiki.title_link_of() 以避免造成循環。
+					// 沒必要 <nowiki> + CeL.wiki.title_link_of()，因為這邊的並非原 link。或可用 <nowiki> + CeL.wiki.title_link_of(token.toString())。
+					JSON.stringify(token[token.article_index || 0] + '#' + token.anchor), JSON.stringify(target_link))
 				: ''
 				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
