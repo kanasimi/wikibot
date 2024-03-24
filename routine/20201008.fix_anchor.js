@@ -1585,14 +1585,16 @@ async function check_page(target_page_data, options) {
 			}
 
 			//CeL.console.beep();
-			console.trace([token.index, token.parent.slice(token.index, token.index + 2)]);
+			//console.trace([token.index, token.parent.slice(token.index, token.index + 2)]);
 
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			const move_to_page_title_via_link = reduced_anchor_to_page[reduce_section_title(token.anchor)];
 			const target_link = move_to_page_title_via_link && (move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : ''));
 			token.parent.splice(token.index + 1, 0, CeL.wiki.parse(`{{${wiki.latest_task_configuration.general.insert_notification_template}|date=${(new Date).format('%Y-%2m-%2d')}|bot=${wiki.latest_task_configuration.configuration_page_title}|reason=${move_to_page_title_via_link
 				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
-				? CeL.gettext('Anchor %1 links to a specific web page: %2.', CeL.wiki.title_link_of(token[token.article_index || 0] + '#' + token.anchor), CeL.wiki.title_link_of(target_link))
+				? CeL.gettext('Anchor %1 links to a specific web page: %2.',
+					// 採用 <nowiki> 以避免造成循環。
+					'<nowiki>' + CeL.wiki.title_link_of(token[token.article_index || 0] + '#' + token.anchor) + '</nowiki>', '<nowiki>' + CeL.wiki.title_link_of(target_link) + '</nowiki>')
 				: ''
 				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
