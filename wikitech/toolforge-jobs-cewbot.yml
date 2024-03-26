@@ -586,10 +586,10 @@
   mem: 2Gi
   schedule: "2 8 * * *"
 
-- name: k8s-20200122.update-vital-articles.en.PIQA
+- name: k8s-20200122.update-vital-articles.en.piqa
   command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=en do_PIQA=10000"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   schedule: "12 8 * * 2"
 
 # Assist administrators to close AfDs. Especially discussions without participants. 協助管理員關閉刪除討論。尤其是無參與者的討論。
