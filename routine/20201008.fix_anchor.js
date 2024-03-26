@@ -29,6 +29,7 @@ node 20201008.fix_anchor.js use_language=en "check_page=List of Latin phrases (f
 node 20201008.fix_anchor.js use_language=en "check_page=History of India" "only_modify_pages=History of Hinduism"
 node 20201008.fix_anchor.js use_language=en "check_page=Law & Order: Special Victims Unit (season 1)"
 node 20201008.fix_anchor.js use_language=en "check_page=Havana syndrome"
+node 20201008.fix_anchor.js use_language=en "check_page=Haile Selassie"
 node 20201008.fix_anchor.js use_language=en archives "check_page=Talk:BTS (band)" "only_modify_pages=Wikipedia talk:Disambiguation/Archive 50"
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
@@ -123,8 +124,6 @@ read {{cbignore}}?
 
 當某個錨點1與錨點2同時存在，就不該設定錨點1→錨點2。
 
-[[Template:Broken anchors]] 改成 [[Template:Broken anchor]]，採用 [[Template:Dead link]] 的機制。
-
  */
 
 'use strict';
@@ -148,6 +147,9 @@ const LINKS_PARAMETER = 'links';
 
 /** {String}Notification of broken anchor */
 let notification_name = 'anchor-fixing';
+
+/** 強制刪除討論頁面的提醒模板。 */
+let force_remove_note_on_talk;
 
 // Ignore these tags. 只該忽略破壞編輯本身。 'mw-reverted', 'mw-manual-revert', 'mw-undo' 可能是破壞後的矯正，不該被忽略。
 const ignore_tags = [
@@ -202,6 +204,13 @@ async function adapt_configuration(latest_task_configuration) {
 	await wiki.register_redirects(['Section link', general.broken_anchor_template, general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
 		namespace: 'Template'
 	});
+
+	force_remove_note_on_talk = general.insert_notification_template && !general.add_note_to_talk_page_for_broken_anchors;
+	if (force_remove_note_on_talk) {
+		// 實際上會刪除討論頁面的提醒模板。
+		general.add_note_to_talk_page_for_broken_anchors = true;
+	}
+
 	console.trace(wiki.latest_task_configuration.general);
 }
 
@@ -1193,6 +1202,12 @@ async function check_page(target_page_data, options) {
 							remove_reason.is_present++;
 							continue;
 						}
+
+						if (force_remove_note_on_talk) {
+							list_token.splice(index--, 1);
+							removed_anchors++;
+							continue;
+						}
 					}
 
 					if (list_token.length === 0) {
@@ -1223,8 +1238,9 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
-				// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
-				const message = CeL.gettext('Remove %1 non-defunct {{PLURAL:%1|anchor|anchors}}', removed_anchors)
+				const message = force_remove_note_on_talk ? CeL.gettext('Remove %1 {{PLURAL:%1|notification|notifications}}', removed_anchors)
+					// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
+					|| CeL.gettext('Remove %1 non-defunct {{PLURAL:%1|anchor|anchors}}', removed_anchors)
 					// 不再存在於 wikitext 中, 不在被使用
 					+ (remove_reason.non_exist > 0 ? ` (No longer used: ${remove_reason.non_exist})` : '')
 					+ (remove_reason.is_present > 0 ? ` (Anchors now working: ${remove_reason.is_present})` : '')
@@ -1578,7 +1594,9 @@ async function check_page(target_page_data, options) {
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
 
+		let changed;
 		if (wiki.latest_task_configuration.general.insert_notification_template) {
+			// [[Template:Broken anchors]] 改成 [[Template:Broken anchor]]，採用 [[Template:Dead link]] 的機制。
 			if (wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, CeL.wiki.next_meaningful_element(token.parent, token.index + 1))) {
 				// 已經提醒過了。
 				return;
@@ -1590,7 +1608,7 @@ async function check_page(target_page_data, options) {
 			// 附帶說明一下。cewbot 所列出的網頁錨點會按照原先wikitext的形式來呈現。也就是說假如原先主頁面的wikitext是未編碼形式，表現出來也沒有編碼。範例頁面所展示的是因為原先頁面就有編碼過。按照原先格式呈現的原因是為了容易查找，直接複製貼上查詢就能找到。
 			const move_to_page_title_via_link = reduced_anchor_to_page[reduce_section_title(token.anchor)];
 			const target_link = move_to_page_title_via_link && (move_to_page_title_via_link[0] + (move_to_page_title_via_link[1] ? '#' + move_to_page_title_via_link[1] : ''));
-			token.parent.splice(token.index + 1, 0, CeL.wiki.parse(`{{${wiki.latest_task_configuration.general.insert_notification_template}|date=${(new Date).format('%Y-%2m-%2d')}|bot=${wiki.latest_task_configuration.configuration_page_title}|reason=${move_to_page_title_via_link
+			token.parent.splice(token.index + 1, 0, CeL.wiki.parse(`{{${wiki.latest_task_configuration.general.insert_notification_template}|date=${(new Date).format('%Y-%2m-%2d')}|bot=${wiki.latest_task_configuration.configuration_page_title}|target_link=${token[token.article_index || 0] + '#' + token.anchor}|reason=${move_to_page_title_via_link
 				// gettext_config:{"id":"anchor-$1-links-to-a-specific-web-page-$2"}
 				? CeL.gettext('Anchor %1 links to a specific web page: %2.',
 					// 採用 JSON.stringify() 而非 CeL.wiki.title_link_of() 以避免造成循環。
@@ -1615,12 +1633,14 @@ async function check_page(target_page_data, options) {
 
 			//console.clear();
 			// 警告: 有 general.insert_notification_template 基本上就不會採用 general.add_note_to_talk_page_for_broken_anchors
-			return true;
+			changed = true;
 		}
 
 		if (!options.is_archive) {
 			talk_pages_modified += await add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
+
+		return changed;
 	}
 
 	// ------------------------------------------
