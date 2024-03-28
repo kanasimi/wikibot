@@ -130,8 +130,7 @@ var category_to_parent_hash = Object.create(null);
 		'South Pacific cyclone season',
 		'South-West Indian Ocean cyclone season',
 		'Australian region cyclone season',
-		// Category:2019 Southern Hemisphere typhoon season track maps
-		// Category:2019-20 Southern Hemisphere tropical cyclone season
+		// [[Category:2023-24 Southern Hemisphere JTWC season track maps]]
 		'Southern Hemisphere tropical cyclone season',
 
 		// parent categories
@@ -327,6 +326,7 @@ function fill_type_name(media_data) {
 	: area === 'indian' || area === 'indian ocean' ? 'tropical cyclone'
 
 	// [[User talk:Kanashimi/Archive 1#Categories of tropical cyclone seasons]]
+	// [[User talk:Kanashimi/Archive 1#Wrong names of images]]
 	: area === 'southern hemisphere' ? 'tropical cyclone'
 
 	// [[Category:2019 North Indian Ocean cyclone season]]

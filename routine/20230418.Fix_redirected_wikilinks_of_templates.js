@@ -107,9 +107,10 @@ async function main_process() {
 	}
 
 	await wiki.allpages({
+		// 遍歷所有模板。
 		namespace: 'template',
 		apfrom: start_from_page || '',
-		for_each_slice: async function (page_list) {
+		async for_each_slice(page_list) {
 			// apfrom 不一定會剛好從所指定的頁面開始，因此必須有這道篩選。
 			if (!process_all_pages) {
 				while (page_list.length > 0) {

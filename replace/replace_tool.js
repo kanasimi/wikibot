@@ -634,7 +634,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				task_configuration.list_parser = 'table_to_array';
 		}
 		for (const option of ["get_task_configuration_from",]) {
-			if (option in task_configuration) {
+			if (task_configuration[option]) {
 				// Copy property.
 				meta_configuration[option] = task_configuration[option];
 			}
@@ -706,6 +706,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				}
 			}
 		});
+
 	} else if (meta_configuration.get_task_configuration_from === 'list') {
 		await section.each('list', async list_token => {
 			//console.log(list_token);
@@ -714,6 +715,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				await parse_move_pairs_from_link(list_token, task_configuration_from_section, meta_configuration);
 			}
 		});
+
 	} else if (meta_configuration[KEY_wiki_session].is_namespace(meta_configuration.get_task_configuration_from, 'Category')) {
 		// e.g., [[Special:Diff/79100214/79123647#Category:中國科舉人物中人物添加规范控制]]
 		// {"replace_tool_configuration":{"get_task_configuration_from":"Category:中國科舉人物","depth":10,"insert_layout":"{{Authority control}}","namespace":0,"excluding_title_includes":["列表"]}}
@@ -757,6 +759,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			//console.trace(page_list);
 			main_task_configuration.page_list = page_list;
 		}
+
 	}
 	//console.trace(meta_configuration);
 	//console.trace(task_configuration_from_section);

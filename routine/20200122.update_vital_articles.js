@@ -38,7 +38,7 @@ TODO:
 report level/class change
 realigning {{WPBS}}
 use [[w:en:Module:Class/definition.json]]
-
+fix [[Category:有不必要class參數的專題橫幅]]: {{德国专题 |1=B |2=low}}
 
  */
 
@@ -2808,6 +2808,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							return;
 						}
 						CeL.wiki.parser.parser_prototype.each.call(WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]], (token, index, parent) => {
+							if (!token && token !== '') {
+								console.trace([parent, index, token]);
+								//return;
+							}
 							if (token.type === 'commit') {
 								WikiProject_templates_and_allowed_elements.push(token);
 								return parsed.each.remove_token;
