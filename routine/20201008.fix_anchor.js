@@ -1240,7 +1240,7 @@ async function check_page(target_page_data, options) {
 			if (removed_anchors > 0) {
 				const message = force_remove_note_on_talk ? CeL.gettext('Remove %1 {{PLURAL:%1|notification|notifications}}', removed_anchors)
 					// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
-					|| CeL.gettext('Remove %1 non-defunct {{PLURAL:%1|anchor|anchors}}', removed_anchors)
+					: CeL.gettext('Remove %1 non-defunct {{PLURAL:%1|anchor|anchors}}', removed_anchors)
 					// 不再存在於 wikitext 中, 不在被使用
 					+ (remove_reason.non_exist > 0 ? ` (No longer used: ${remove_reason.non_exist})` : '')
 					+ (remove_reason.is_present > 0 ? ` (Anchors now working: ${remove_reason.is_present})` : '')

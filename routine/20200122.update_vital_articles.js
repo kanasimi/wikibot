@@ -12,6 +12,7 @@ node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:00 Agent"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Timbits"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:List of municipalities in Amasya Province|Talk:List of NBL1 West awards|Talk:List of neighbourhoods in Bhubaneswar|Talk:Liberty bond"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:2019 Villa Nueva mayoral election"
+node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Al-Hamra Mosque (Kufa)|Talk:Solar eclipse of July 16, 2186"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000
@@ -39,6 +40,8 @@ report level/class change
 realigning {{WPBS}}
 use [[w:en:Module:Class/definition.json]]
 fix [[Category:有不必要class參數的專題橫幅]]: {{德国专题 |1=B |2=low}}
+條目位於[[Category:身亡者]]則去掉blp=y或living參數。
+如果listas參數為空，添加條目的DEFAULTSORT。
 
  */
 

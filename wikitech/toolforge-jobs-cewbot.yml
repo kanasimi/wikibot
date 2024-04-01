@@ -590,7 +590,19 @@
   command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=en do_PIQA=10000"
   image: node18
   mem: 2Gi
-  schedule: "12 8 * * 2"
+  schedule: "2 14 * * 2"
+
+- name: k8s-20200122.update-vital-articles.zh
+  command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "12 9 * * *"
+
+- name: k8s-20200122.update-vital-articles.zh.piqa
+  command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=zh do_PIQA=10000"
+  image: node18
+  mem: 2Gi
+  schedule: "12 18 * * 2"
 
 # Assist administrators to close AfDs. Especially discussions without participants. 協助管理員關閉刪除討論。尤其是無參與者的討論。
 - name: k8s-20200206.reminded-expired-afd
