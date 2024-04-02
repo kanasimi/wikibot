@@ -259,6 +259,8 @@ async function adapt_configuration(latest_task_configuration) {
 	const icon_order = [];
 	for (let item of general.icons_schema) {
 		if (typeof item !== 'string') {
+			// 設定檔壞了？放棄任務。
+			throw new Error('Invalid icons_schema: ' + item);
 			CeL.error('Invalid icons_schema: ' + item);
 			continue;
 		}
@@ -594,7 +596,8 @@ async function main_process() {
 	if (wiki.latest_task_configuration.general.modify_talk_pages) {
 		const talk_pages_to_edit = Object.keys(have_to_edit_its_talk_page).length;
 		if (talk_pages_to_edit > wiki.latest_task_configuration.general.talk_page_limit_for_editing
-			&& !do_PIQA && !CeL.env.arg_hash?.forced_edit) {
+			//&& !do_PIQA
+			&& !CeL.env.arg_hash?.forced_edit) {
 			no_editing_of_talk_pages = true;
 			CeL.warn(`編輯談話頁面數量${talk_pages_to_edit}篇，超越編輯數量上限${wiki.latest_task_configuration.general.talk_page_limit_for_editing}。執行時請設定命令列參數 forced_edit 以強制編輯。`);
 		} else {
