@@ -105,6 +105,7 @@ TODO:
 因為有延遲，可檢查當前版本是否為最新版本。
 fix [[Special:PermanentLink]]
 "#a" 與 "# a" 共存時，大小寫、空白出問題的處理。
+遍歷{{Broken anchors}}
 
 https://en.wikipedia.org/w/index.php?title=Talk:Anti-humor&diff=prev&oldid=1190130091
 https://en.wikipedia.org/w/index.php?title=J._B._Blanding&diff=prev&oldid=1190818420

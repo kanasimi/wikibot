@@ -2,7 +2,7 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=1000000
+node 20200122.update_vital_articles.js use_language=en do_PIQA=1000000 forced_edit
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Hongcheon County|Talk:Vogon|Talk:Thiazolidinedione"
@@ -15,7 +15,7 @@ node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:2019 Villa 
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Al-Hamra Mosque (Kufa)|Talk:Solar eclipse of July 16, 2186"
 
 node 20200122.update_vital_articles.js use_language=zh
-node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000
+node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
 node 20200122.update_vital_articles.js use_language=zh "do_PIQA=討論:截角四面體"
 node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:小行星列表/242001-243000"
 node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
