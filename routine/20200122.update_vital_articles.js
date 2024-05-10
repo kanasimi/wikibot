@@ -13,6 +13,10 @@ node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Timbits"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:List of municipalities in Amasya Province|Talk:List of NBL1 West awards|Talk:List of neighbourhoods in Bhubaneswar|Talk:Liberty bond"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:2019 Villa Nueva mayoral election"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Al-Hamra Mosque (Kufa)|Talk:Solar eclipse of July 16, 2186"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Air China"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Aeroflot Flight 418"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Bar mleczny|Talk:Badayev warehouses|Talk:Jean Augur|Talk:Jack Binion"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:America's Incredible Pizza Company"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -531,85 +535,87 @@ async function main_process() {
 	//console.log(vital_articles_list.length);
 	//console.log(vital_articles_list.map(page_data => page_data.title));
 
-	CeL.log_temporary(`Process all vital articles list. Elapsed time: ${CeL.date.age_of(start_time)}`);
+	if (!CeL.env.arg_hash?.skip_vital) {
+		CeL.log_temporary(`Process all vital articles list. Elapsed time: ${CeL.date.age_of(start_time)}`);
 
-	await wiki.for_each_page(vital_articles_list, for_each_list_page, {
-		// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
-		//redirects: 1,
-		bot: 1,
-		minor: false,
-		log_to: null,
-		multi: 'keep order',
-		skip_nochange: true,
-		// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
-		sort_function(page_data_1, page_data_2) {
-			const level_1 = page_data_1.VA_level || level_of_page_title(page_data_1, true) || max_VA_level + 1;
-			const level_2 = page_data_2.VA_level || level_of_page_title(page_data_2, true) || max_VA_level + 1;
-			//console.log('level', [level_1, page_data_1.title, level_2, page_data_2.title]);
-			if (level_1 > 0 && level_2 > 0 && level_1 !== level_2)
-				return level_1 - level_2;
+		await wiki.for_each_page(vital_articles_list, for_each_list_page, {
+			// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
+			//redirects: 1,
+			bot: 1,
+			minor: false,
+			log_to: null,
+			multi: 'keep order',
+			skip_nochange: true,
+			// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
+			sort_function(page_data_1, page_data_2) {
+				const level_1 = page_data_1.VA_level || level_of_page_title(page_data_1, true) || max_VA_level + 1;
+				const level_2 = page_data_2.VA_level || level_of_page_title(page_data_2, true) || max_VA_level + 1;
+				//console.log('level', [level_1, page_data_1.title, level_2, page_data_2.title]);
+				if (level_1 > 0 && level_2 > 0 && level_1 !== level_2)
+					return level_1 - level_2;
 
-			const page_title_1 = to_title(page_data_1);
-			const page_title_2 = to_title(page_data_2);
-			//console.log('title', [page_title_1, page_data_1, page_title_2, page_data_2]);
-			// assert: to_title(page_data_1) !== to_title(page_data_2)
-			return page_title_1 < page_title_2 ? -1 : 1;
-		},
-		summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title, 'Update the section counts and article assessment icons')
-	});
-
-	if (wiki.latest_task_configuration.general.customized_base_page) {
-		CeL.info(`Customized base page ${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.base_page)}: list pages generated.`);
-		return;
-	}
-
-	// ----------------------------------------------------
-
-	if (wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup) {
-		const page_list = await wiki.categorymembers(wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup, {
-			// exclude [[User:Fox News Brasil]]
-			namespace: 'talk'
+				const page_title_1 = to_title(page_data_1);
+				const page_title_2 = to_title(page_data_2);
+				//console.log('title', [page_title_1, page_data_1, page_title_2, page_data_2]);
+				// assert: to_title(page_data_1) !== to_title(page_data_2)
+				return page_title_1 < page_title_2 ? -1 : 1;
+			},
+			summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title, 'Update the section counts and article assessment icons')
 		});
-		page_list.forEach(talk_page_data => {
-			const talk_page_title = talk_page_data.original_title || talk_page_data.title;
-			if (wiki.remove_namespace(talk_page_title) in listed_article_info) {
-				// 登記在案的不該消除。
-				return;
-			}
-			have_to_edit_its_talk_page[talk_page_title] = {
-				reason: `The article is [[${wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup}|no longer a vital article]].`,
-				remove_vital_parameter: true,
-				no_topic_message: true,
-				do_PIQA: true,
-				key_is_talk_page: true,
-			};
-		});
-	}
 
-	// ----------------------------------------------------
-
-	await generate_all_VA_list_page();
-
-	check_page_count();
-
-	let no_editing_of_talk_pages;
-	if (wiki.latest_task_configuration.general.modify_talk_pages) {
-		const talk_pages_to_edit = Object.keys(have_to_edit_its_talk_page).length;
-		if (talk_pages_to_edit > wiki.latest_task_configuration.general.talk_page_limit_for_editing
-			//&& !do_PIQA
-			&& !CeL.env.arg_hash?.forced_edit) {
-			no_editing_of_talk_pages = true;
-			CeL.warn(`編輯談話頁面數量${talk_pages_to_edit}篇，超越編輯數量上限${wiki.latest_task_configuration.general.talk_page_limit_for_editing}。執行時請設定命令列參數 forced_edit 以強制編輯。`);
-		} else {
-			await maintain_VA_template();
+		if (wiki.latest_task_configuration.general.customized_base_page) {
+			CeL.info(`Customized base page ${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.base_page)}: list pages generated.`);
+			return;
 		}
-	}
 
-	//console.trace(wiki.latest_task_configuration.Topics);
+		// ----------------------------------------------------
+
+		if (wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup) {
+			const page_list = await wiki.categorymembers(wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup, {
+				// exclude [[User:Fox News Brasil]]
+				namespace: 'talk'
+			});
+			page_list.forEach(talk_page_data => {
+				const talk_page_title = talk_page_data.original_title || talk_page_data.title;
+				if (wiki.remove_namespace(talk_page_title) in listed_article_info) {
+					// 登記在案的不該消除。
+					return;
+				}
+				have_to_edit_its_talk_page[talk_page_title] = {
+					reason: `The article is [[${wiki.latest_task_configuration.general.category_of_non_vital_articles_to_cleanup}|no longer a vital article]].`,
+					remove_vital_parameter: true,
+					no_topic_message: true,
+					do_PIQA: true,
+					key_is_talk_page: true,
+				};
+			});
+		}
+
+		// ----------------------------------------------------
+
+		await generate_all_VA_list_page();
+
+		check_page_count();
+
+		let no_editing_of_talk_pages;
+		if (wiki.latest_task_configuration.general.modify_talk_pages) {
+			const talk_pages_to_edit = Object.keys(have_to_edit_its_talk_page).length;
+			if (talk_pages_to_edit > wiki.latest_task_configuration.general.talk_page_limit_for_editing
+				//&& !do_PIQA
+				&& !CeL.env.arg_hash?.forced_edit) {
+				no_editing_of_talk_pages = true;
+				CeL.warn(`編輯談話頁面數量${talk_pages_to_edit}篇，超越編輯數量上限${wiki.latest_task_configuration.general.talk_page_limit_for_editing}。執行時請設定命令列參數 forced_edit 以強制編輯。`);
+			} else {
+				await maintain_VA_template();
+			}
+		}
+
+		//console.trace(wiki.latest_task_configuration.Topics);
+	}
 
 	// ----------------------------------------------------
 
-	if (!do_PIQA) {
+	if (!CeL.env.arg_hash?.skip_vital && !do_PIQA) {
 		//if (wiki.latest_task_configuration.general.modify_talk_pages)
 		await generate_report({ no_editing_of_talk_pages });
 
@@ -2324,7 +2330,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			const _class = (!class_via_parameter.type || class_via_parameter.type === 'plain' ? class_via_parameter : [class_via_parameter])
 				.filter(token => token.type !== 'comment');
 			if (_class.some(token => typeof token !== 'string')) {
-				CeL.warn(`Skip invalid class ${JSON.stringify(class_via_parameter)} @ ${CeL.wiki.title_link_of(talk_page_data)}`);
+				CeL.warn(`Skip invalid class ${JSON.stringify(class_via_parameter.toString())} @ ${CeL.wiki.title_link_of(talk_page_data)}`);
 				return;
 			}
 			//console.trace(class_via_parameter, _class);
@@ -2662,9 +2668,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						return;
 					}
 
-					if ((is_opted_out || has_different_ratings) && normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class)
+					const normalize_token_class = normalize_class(
+						Array.isArray(token.parameters.class) && token.parameters.class.type === 'plain'
+							? token.parameters.class.filter(sub_token => typeof sub_token === 'string' || sub_token.type !== 'comment').join('')
+							: token.parameters.class
+					);
+					//console.trace([ token, token.parameters.class, WPBS_template_object, normalize_token_class, normalize_class(WPBS_template_object.class) ]);
+					if ((is_opted_out || has_different_ratings) && normalize_token_class !== normalize_class(WPBS_template_object.class)
 						// 有特殊 token 如 comment 不動。 e.g., [[w:en:Talk:95-10 Initiative]]
-						|| Array.isArray(token.parameters.class)) {
+						|| Array.isArray(token.parameters.class) && token.parameters.class.type !== 'plain'
+					) {
 						if (!article_info.reason.untouched_message) {
 							// gettext_config:{"id":"keep-different-ratings-in-$2"}
 							article_info.reason.untouched_message = ['Keep %1 different {{PLURAL:%1|rating|ratings}} in %2.', 0, []];
@@ -2675,8 +2688,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						return;
 					}
 
-					if (!is_standard_class(token.parameters.class)
-						&& normalize_class(token.parameters.class) !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
+					if (!is_standard_class(normalize_token_class)
+						&& normalize_token_class !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
 						// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
 						// e.g., [[Talk:HMAS Broome]]
 						return;
@@ -2690,6 +2703,40 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					}
 					article_info.reason.touched_message[2].push(token.name);
 					parameters_to_remove_Set.add('class');
+
+					if (!Array.isArray(token.parameters.class)) {
+						return;
+					}
+					// assert: token.parameters.class.type === 'plain'
+
+					let previous_element = token[token.index_of.class - 1];
+					if (!CeL.wiki.is_parsed_element(previous_element)) {
+						// assert: typeof previous_element === 'string'
+						previous_element = token[token.index_of.class - 1] = CeL.wiki.parse.set_wiki_type(
+							// 為了整行刪掉。
+							// e.g., for [[Talk:Bar mleczny]]
+							previous_element.trimEnd(), 'plain');
+					} else if (token[token.index_of.class - 1].length === 4) {
+						// assert: /^\s+$/.test(token[token.index_of.class - 1][3])
+						token[token.index_of.class - 1].pop();
+					}
+
+					// 採用 token.parameters.class 恐漏掉最後的空白字元。
+					token[token.index_of.class][2].forEach(sub_token => {
+						if (typeof sub_token === 'string') {
+							previous_element.push(sub_token.replace(new RegExp(WPBS_template_object.class, 'i'), ''));
+						} else {
+							previous_element.push(sub_token);
+						}
+					});
+					if (token[token.index_of.class][3]) {
+						// assert: token[token.index_of.class].length === 3
+						// assert: /^\s+$/.test(token[token.index_of.class][3])
+						previous_element.push(token[token.index_of.class][3]);
+					}
+
+					// 預防 `CeL.wiki.parse.replace_parameter(token, parameters_argument)` 出問題。
+					//CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
 				}
 
 				if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
@@ -2880,7 +2927,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// "consolidate the banners into one line"
 					.map(WikiProject_template => {
 						const wikitext = WikiProject_template.toString();
-						return wikitext.includes('<!--') ? wikitext : wikitext.replace(/\n/g, '');
+						// e.g., [[Talk:John J. Kelly]], [[Talk:Mohammad Bana]]
+						return /<!--|\n==|\n{{/.test(wikitext) ? wikitext : wikitext.replace(/\n/g, '');
 					}).join('\n') + '\n')
 					// 去掉太多的換行。
 					.replace(/\n{2,}/g, '\n');
