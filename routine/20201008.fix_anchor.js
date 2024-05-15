@@ -1273,6 +1273,11 @@ async function check_page(target_page_data, options) {
 				return wiki.latest_task_configuration.general.action_for_blank_talk_page || '';
 			}
 
+			// 指定 insert_notification_template 後，不編輯談話頁面導致雙重提醒。
+			if (force_remove_note_on_talk) {
+				return Wikiapi.skip_edit;
+			}
+
 			// 提醒失效連結時刪除這個模板。
 			if (wiki.latest_task_configuration.general.remove_the_template_when_reminding_broken_anchors) {
 				parsed.each(token => {
