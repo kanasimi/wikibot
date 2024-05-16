@@ -17,6 +17,7 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Aeroflot Flight 418"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Bar mleczny|Talk:Badayev warehouses|Talk:Jean Augur|Talk:Jack Binion"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:America's Incredible Pizza Company"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HMAS Yarra|Talk:Bernardas"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -2243,7 +2244,9 @@ let maintain_VA_template_count = 0;
 const class_alias_to_normalized = {
 	Dab: 'Disambig', Disamb: 'Disambig', Disambiguation: 'Disambig',
 	// [[w:en:WP:NONSTANDARDCLASS]]
-	Sia: 'SIA',
+	//Sia: 'SIA',
+	// [[w:en:User talk:Kanashimi#Redundant class parameter]]
+	Sia: 'List', SI: 'List', SL: 'List',
 };
 
 function add_class_alias(class_alias, normalized_class) {
@@ -2674,6 +2677,14 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							: token.parameters.class
 					);
 					//console.trace([ token, token.parameters.class, WPBS_template_object, normalize_token_class, normalize_class(WPBS_template_object.class) ]);
+
+					// [[w:en:User talk:Kanashimi#Redundant class parameter]]
+					if (normalize_token_class === 'NA') {
+						// remove |class=|
+						parameters_to_remove_Set.add('class');
+						return;
+					}
+
 					if ((is_opted_out || has_different_ratings) && normalize_token_class !== normalize_class(WPBS_template_object.class)
 						// 有特殊 token 如 comment 不動。 e.g., [[w:en:Talk:95-10 Initiative]]
 						|| Array.isArray(token.parameters.class) && token.parameters.class.type !== 'plain'
