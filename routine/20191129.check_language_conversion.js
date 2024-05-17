@@ -4,6 +4,9 @@
 node 20191129.check_language_conversion.js use_project=zh
 node routine/20191129.check_language_conversion.js use_project=zhmoegirl
 
+node 20191129.check_language_conversion.js use_project=zh debug_page=张学友
+
+
 2019/12/2 20:2:11	初版試營運
 2022/12/10 19:37:4	+ function check_system_conversions(), 更正繁簡轉換錯誤之公共轉換組名
 
@@ -30,7 +33,7 @@ set_language('zh');
 const wiki = new Wikiapi;
 
 // for debug
-const debug_page = undefined
+const debug_page = CeL.env.arg_hash.debug_page
 	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰' '操作系统' '上海市' '余思明'
 	;
 
@@ -726,20 +729,20 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
 		token.conversion_list.groups.forEach(
-			group_name => {
+			group_name_String => {
 				let fix_syntax;
-				if (!(group_name in conversion_of_group)) {
-					let normalized_group_name = normalize_group_name(group_name);
+				if (!(group_name_String in conversion_of_group)) {
+					let normalized_group_name = normalize_group_name(group_name_String);
 					if (conversion_of_group[normalized_group_name])
 						normalized_group_name = conversion_of_group[normalized_group_name].group_name || normalized_group_name;
 					else
-						normalized_group_name = conversion_alias[group_name] || conversion_alias[normalized_group_name];
+						normalized_group_name = conversion_alias[group_name_String] || conversion_alias[normalized_group_name];
 					if (!normalized_group_name) {
-						const matched = group_name.match(/^\[\[([^\[\]\n]+)\]\]$/);
+						const matched = group_name_String.match(/^\[\[([^\[\]\n]+)\]\]$/);
 						if (!matched) {
-							//console.trace([group_name, normalize_group_name(group_name)]);
-							CeL.warn(`${for_NoteTA_article.name}: 在${CeL.wiki.title_link_of(page_data)}中使用了未登記的公共轉換組: ${JSON.stringify(group_name)}`);
-							unregistered_groups_Set.add(group_name);
+							//console.trace([group_name_String, normalize_group_name(group_name_String)]);
+							CeL.warn(`${for_NoteTA_article.name}: 在${CeL.wiki.title_link_of(page_data)}中使用了未登記的公共轉換組: ${JSON.stringify(group_name_String)}`);
+							unregistered_groups_Set.add(group_name_String);
 							//console.trace('登記的公共轉換組: ' + Object.keys(conversion_of_group).join());
 							return;
 						}
@@ -749,21 +752,21 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 					// 已經正規化過了。
 					//normalized_group_name = conversion_of_group[normalized_group_name].group_name;
-					_this.summary += ` 更正繁簡轉換錯誤、已有模組卻重定向到模板，或格式錯誤且可修正之公共轉換組名: ${group_name}→${normalized_group_name}`;
-					const group_data = token.conversion_list.group_data[group_name];
-					group_name = normalized_group_name;
-					//token[group_data.index][2] = group_name;
+					_this.summary += ` 更正繁簡轉換錯誤、已有模組卻重定向到模板，或格式錯誤且可修正之公共轉換組名: ${group_name_String}→${normalized_group_name}`;
+					const group_data = token.conversion_list.group_data[group_name_String];
+					group_name_String = normalized_group_name;
+					//token[group_data.index][2] = group_name_String;
 					CeL.wiki.parse.replace_parameter(token, {
-						[group_data.parameter_name]: group_name,
+						[group_data.parameter_name]: group_name_String,
 					}, 'value_only');
 					changed = true;
 				}
 
 				if (!fix_syntax) {
-					//CeL.info(`${group_name}: ${conversion_of_group[group_name].length} rule(s)`);
-					// assert: {String}group_name, and {Array}conversion_of_group[group_name]
-					conversion_of_group[group_name].forEach(
-						rule => conversion_hash[rule] = group_name
+					//CeL.info(`${group_name}: ${conversion_of_group[group_name_String].length} rule(s)`);
+					// assert: {String}group_name, and {Array}conversion_of_group[group_name_String]
+					conversion_of_group[group_name_String].forEach(
+						rule => conversion_hash[rule] = group_name_String
 					);
 				}
 			}
