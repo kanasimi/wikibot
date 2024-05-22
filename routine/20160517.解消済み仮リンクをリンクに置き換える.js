@@ -8,6 +8,7 @@ node 20160517.解消済み仮リンクをリンクに置き換える.js use_lang
 
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=明智光秀"
 node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=斯堪的纳维亚历史"
+node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=en "debug_pages=Wikipedia:Sandbox"
 
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
@@ -910,8 +911,21 @@ function for_each_page(page_data, messages) {
 					}
 
 					if (foreign_title === local_title) {
-						// 可直接換成本地標題。但必須改 link_target。
-						token.use_link_target = converted_local_title;
+						if (
+						// 必須去除 foreign_title: [[T]] 相對應的 converted_local_title
+						// 為 [[T (A)]] 的情況。不過這時該改的是錯誤的多語言模板本身。
+						// CeL.wiki.data.is_DAB(local_title_data)
+						converted_local_title !== local_title) {
+							check_page(
+							// gettext_config:{"id":"the-local-title-in-the-interlanguage-template-is-same-as-the-foreign-language-title-but-the-foreign-page-directs-to-a-different-local-title"}
+							'跨語言模板的本地標題與外語標題相同，但外語頁面導向不同的本地標題。');
+							return;
+						}
+
+						if (converted_local_title !== local_title) {
+							// 可直接換成本地標題。但必須改 link_target。
+							token.use_link_target = converted_local_title;
+						}
 						// [[w:zh:Wikipedia:列明来源#文獻參考的格式]]:
 						// 如果參考了非中文文獻，請不要把該參考文獻用中文列出，而是應該使用該文獻的原始語言。
 						if (false) {
