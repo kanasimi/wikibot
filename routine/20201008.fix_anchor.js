@@ -16,6 +16,7 @@ node 20201008.fix_anchor.js use_language=zh "check_page=原神"
 node 20201008.fix_anchor.js use_language=zh "check_page=曾比特"
 node 20201008.fix_anchor.js use_language=zh "check_page=最大負同界角"
 node 20201008.fix_anchor.js use_language=zh "check_page=威世智" "only_modify_pages=威世智"
+node 20201008.fix_anchor.js use_language=zh "check_page=奇跡"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true

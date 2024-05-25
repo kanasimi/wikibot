@@ -1044,7 +1044,7 @@ function name_type(entity) {
 		return '影片名';
 
 	var type,
-	// P31: 性質, instance of
+	// P31: 隸屬於, instance of
 	property = claims.P31;
 	if (Array.isArray(property)) {
 		property.some(function(value) {

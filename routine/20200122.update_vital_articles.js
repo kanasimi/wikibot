@@ -2680,7 +2680,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 					// [[w:en:User talk:Kanashimi#Redundant class parameter]]
 					if (normalize_token_class === 'NA') {
-						// remove |class=|
+						// remove |class=NA|
 						parameters_to_remove_Set.add('class');
 						return;
 					}
