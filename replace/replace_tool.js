@@ -760,6 +760,23 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			main_task_configuration.page_list = page_list;
 		}
 
+	} else if (/^https?:\/\//.test(meta_configuration.get_task_configuration_from)) {
+		// Treat `meta_configuration.get_task_configuration_from` as URL.
+		// e.g.,
+		// node general_replace.js "CBDB批量加入{{Authority control}}"
+		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"https://pagepile.toolforge.org/api.php?id=55935&action=get_data&doit&format=text","insert_layout":"{{Authority control}}"}}</syntaxhighlight>
+		CeL.log_temporary(`Fetching page list from [${meta_configuration.get_task_configuration_from}]...`);
+		let page_list = await fetch(meta_configuration.get_task_configuration_from);
+		page_list = await page_list.text();
+		page_list = page_list.trim().split('\n');
+		//console.trace(page_list);
+
+		task_configuration_from_section[meta_configuration.get_task_configuration_from] = {
+			page_list,
+			insert_layout: CeL.wiki.parse(meta_configuration.task_configuration_from_page_JSON.insert_layout),
+			text_processor: text_processor_for_configuration_from_page,
+		};
+
 	}
 	//console.trace(meta_configuration);
 	//console.trace(task_configuration_from_section);
