@@ -35,7 +35,10 @@ node 20201008.fix_anchor.js use_language=en archives "check_page=Talk:BTS (band)
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "only_modify_pages=負整數"
+
 node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
+node 20201008.fix_anchor.js use_language=de "check_page=Olympische Sommerspiele 2004/Teilnehmer (Usbekistan)" "only_modify_pages=Rudern bei den Olympischen Spielen"
+
 node 20201008.fix_anchor.js use_language=test "check_page=Sections" "only_modify_pages=Anchor test"
 
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
