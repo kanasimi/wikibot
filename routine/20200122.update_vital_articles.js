@@ -438,7 +438,7 @@ async function main_process() {
 
 	CeL.log_temporary(`Get all redirects. Elapsed time: ${CeL.date.age_of(start_time)}`);
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
-	await wiki.register_redirects(all_WikiProject_template_list.clone().append(all_opted_out_WikiProject_template_list)
+	await wiki.register_redirects([wiki.latest_task_configuration.general.base_page].append(all_WikiProject_template_list).append(all_opted_out_WikiProject_template_list)
 		.append(wiki.append_session_to_options().session.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
 
 	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
@@ -484,6 +484,7 @@ async function main_process() {
 
 	const vital_articles_list = (await (async () => {
 		const list = await wiki.prefixsearch(wiki.latest_task_configuration.general.base_page);
+		//console.trace([wiki.latest_task_configuration.general.base_page, list.length, list.map(page_data => page_data.title).join('\n')]);
 		const additional_base_pages_Set = wiki.latest_task_configuration.general.additional_base_pages_Set;
 		if (additional_base_pages_Set) {
 			for (const additional_base_page of additional_base_pages_Set) {
@@ -540,6 +541,11 @@ async function main_process() {
 	if (!CeL.env.arg_hash?.skip_vital) {
 		CeL.log_temporary(`Process all vital articles list. Elapsed time: ${CeL.date.age_of(start_time)}`);
 
+		function level_of_page_title_for_sort(page_data) {
+			return page_data.VA_level || level_of_page_title(page_data, true) || max_VA_level + 1;
+		}
+		//console.trace(vital_articles_list.length, vital_articles_list.map(page_data => { return [page_data.title, level_of_page_title_for_sort(page_data)]; }));
+
 		await wiki.for_each_page(vital_articles_list, for_each_list_page, {
 			// prevent [[Talk:Ziaur Rahman]] redirecting to [[Talk:Ziaur Rahman (disambiguation)]]
 			//redirects: 1,
@@ -550,9 +556,9 @@ async function main_process() {
 			skip_nochange: true,
 			// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
 			sort_function(page_data_1, page_data_2) {
-				const level_1 = page_data_1.VA_level || level_of_page_title(page_data_1, true) || max_VA_level + 1;
-				const level_2 = page_data_2.VA_level || level_of_page_title(page_data_2, true) || max_VA_level + 1;
-				//console.log('level', [level_1, page_data_1.title, level_2, page_data_2.title]);
+				const level_1 = level_of_page_title_for_sort(page_data_1);
+				const level_2 = level_of_page_title_for_sort(page_data_2);
+				//console.log('sort_function: level', [level_1, page_data_1.title, level_2, page_data_2.title]);
 				if (level_1 > 0 && level_2 > 0 && level_1 !== level_2)
 					return level_1 - level_2;
 
@@ -1007,14 +1013,24 @@ const zhwiki_level_list = [, '第一級', '第二級', '第三級', '擴展', '�
 
 function level_to_page_title(level, add_level) {
 	const base_page = wiki.latest_task_configuration.general.base_page;
+	let page_title;
 
 	switch (wiki.site_name()) {
 		case 'enwiki':
-			return level === DEFAULT_LEVEL && !add_level ? base_page : base_page + '/Level/' + level;
+			page_title = /* level === DEFAULT_LEVEL && !add_level ? base_page : */ base_page + '/Level/' + level;
+			break;
 
 		case 'zhwiki':
-			return level === DEFAULT_LEVEL && !add_level ? base_page : base_page + '/' + zhwiki_level_list[level];
+			page_title = /* level === DEFAULT_LEVEL && !add_level ? base_page : */ base_page + '/' + zhwiki_level_list[level];
+			break;
 	}
+
+	if (page_title && !add_level) {
+		// 應該只有 level === DEFAULT_LEVEL 時才會重導向。
+		return wiki.redirect_target_of(page_title);
+	}
+
+	return page_title;
 }
 
 function level_page_link(level, number_only, page_title) {
@@ -1035,7 +1051,7 @@ function level_page_link(level, number_only, page_title) {
 		}
 	}
 
-	return `[[${page_title || level_to_page_title(level)}|${display_text}]]`;
+	return CeL.wiki.title_link_of(page_title || level_to_page_title(level), display_text);
 }
 
 
@@ -1372,7 +1388,7 @@ async function for_each_list_page(list_page_data) {
 				}
 
 				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
-				//if (normalized_page_title === '月球') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_list_page(list_page_data)]);
+				//if (normalized_page_title === 'Art') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_list_page(list_page_data)]);
 				// The frist link should be the main article.
 				if (list_page_or_category_level === level || is_ignored_list_page(list_page_data)) {
 					//if (normalized_page_title === '月球') console.trace('Remove level note. It is unnecessary.');
