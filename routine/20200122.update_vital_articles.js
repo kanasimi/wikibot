@@ -538,6 +538,8 @@ async function main_process() {
 	//console.log(vital_articles_list.length);
 	//console.log(vital_articles_list.map(page_data => page_data.title));
 
+	let no_editing_of_talk_pages;
+
 	if (!CeL.env.arg_hash?.skip_vital) {
 		CeL.log_temporary(`Process all vital articles list. Elapsed time: ${CeL.date.age_of(start_time)}`);
 
@@ -605,7 +607,6 @@ async function main_process() {
 
 		check_page_count();
 
-		let no_editing_of_talk_pages;
 		if (wiki.latest_task_configuration.general.modify_talk_pages) {
 			const talk_pages_to_edit = Object.keys(have_to_edit_its_talk_page).length;
 			if (talk_pages_to_edit > wiki.latest_task_configuration.general.talk_page_limit_for_editing
