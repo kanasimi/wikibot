@@ -1303,7 +1303,7 @@ async function for_each_list_page(list_page_data) {
 		function for_item_token(token, index, _item) {
 			/** 為中文維基百科的特設模板。 */
 			const is_zhwiki_VA_template = wiki.site_name() === 'zhwiki' ? function is_zh_VA_template(token) {
-				// 不包括 {{tsl}}。若本地連結存在，應已被 20160517.解消済み仮リンクをリンクに置き換える.js 轉成正規 wikilink。
+				// 不包括 {{tsl}}。若本地連結存在，應已被 20160517.interlanguage_link_to_wikilinks.js 轉成正規 wikilink。
 				return token.type === 'transclusion' && (wiki.is_template(['Va', 'Va2', 'Vae2'], token)
 					// e.g., {{/vae2}} @ [[Wikipedia:基礎條目/擴展/地理/自然地理]]
 					|| token.name === '/vae2');
@@ -1336,7 +1336,7 @@ async function for_each_list_page(list_page_data) {
 			/** 處理文章。 */
 			function register_article(normalized_page_title) {
 				simplify_link(token, normalized_page_title);
-				if (wiki.is_namespace(normalized_page_title, 'Wikipedia')
+				if (wiki.is_namespace(normalized_page_title, ['Wikipedia', 'User'])
 					// e.g., [[d:Q1]], [[en:T]]
 					|| normalized_page_title.includes(':') && wiki.append_session_to_options().session.configurations.interwiki_pattern.test(normalized_page_title)
 				) {
@@ -1389,7 +1389,7 @@ async function for_each_list_page(list_page_data) {
 				}
 
 				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
-				//if (normalized_page_title === 'Art') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_list_page(list_page_data)]);
+				//if (normalized_page_title === 'Quaoar') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_list_page(list_page_data)]);
 				// The frist link should be the main article.
 				if (list_page_or_category_level === level || is_ignored_list_page(list_page_data)) {
 					//if (normalized_page_title === '月球') console.trace('Remove level note. It is unnecessary.');
@@ -2407,8 +2407,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				WikiProject_banner_shell_token = token;
 			}
 
-			// use article_info.remove_vital_parameter
-			if (false && article_info.remove) {
+			if (article_info.remove_vital_parameter) {
 				changed = true;
 				CeL.wiki.parse.replace_parameter(token, 'vital', CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
 			}
@@ -3110,8 +3109,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	// assert: wikitext === '' && Remove empty {{WPBS}}
 
 	if (!changed) {
-		if (Date.now() - Date.parse(CeL.wiki.content_of.revision(talk_page_data).timestamp) > CeL.to_millisecond('8 hour'))
+		if (Date.now() - Date.parse(CeL.wiki.content_of.revision(talk_page_data).timestamp) > CeL.to_millisecond('8 hour')) {
 			CeL.error(`${maintain_VA_template_each_talk_page.name}: No change: ${CeL.wiki.title_link_of(talk_page_data)} (revid=${CeL.wiki.content_of.revision(talk_page_data).revid})`);
+			//console.trace(article_info);
+			// do a [[WP:NULLEDIT|null edit]].
+			this.skip_nochange = false;
+		}
 	}
 
 	return wikitext;
@@ -3165,6 +3168,7 @@ async function generate_report(options) {
 
 	// [[WP:DBR]]: 使用<onlyinclude>包裹更新時間戳。
 	// __NOTITLECONVERT__
+	// "Sometimes you may need to do a [[WP:NULLEDIT|null edit]]."
 	report_wikitext = `__NOCONTENTCONVERT__
 * Configuration: ${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title)}
 * The report will update automatically.

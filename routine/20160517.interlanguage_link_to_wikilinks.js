@@ -1,14 +1,14 @@
 ﻿/*
 解消済み仮リンクをリンクに置き換える Convert interlanguage link templates with local article to wikilinks 將跨語言連結模板轉為內部連結（一般 wikilink）
 
-(cd ~/wikibot && date && hostname && nohup time node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh; date) >> 解消済み仮リンクをリンクに置き換える/log &
+(cd ~/wikibot && date && hostname && nohup time node 20160517.interlanguage_link_to_wikilinks.js use_language=zh; date) >> interlanguage_link_to_wikilinks/log &
 
-node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh
-node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=simple
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh
+node 20160517.interlanguage_link_to_wikilinks.js use_language=simple
 
-node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=明智光秀"
-node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh "debug_pages=斯堪的纳维亚历史"
-node 20160517.解消済み仮リンクをリンクに置き換える.js use_language=en "debug_pages=Wikipedia:Sandbox"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=明智光秀"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=斯堪的纳维亚历史"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
 
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
@@ -1060,6 +1060,9 @@ function for_each_page(page_data, messages) {
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
 			foreign_title ], for_local_page, use_language, {
+				// e.g., {{Ill|George B. Sennett|George Burritt Sennett}}
+				// @ [[w:en:Special:Diff/1227543178]]
+				multi : false,
 				redirects : 1
 			});
 

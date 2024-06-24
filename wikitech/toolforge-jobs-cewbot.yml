@@ -84,28 +84,28 @@
   schedule: "9 6 * * 5"
 
 - name: k8s-20160517.interlanguage-link-to-wikilinks.ja
-  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=ja"
+  command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=ja"
   image: node18
   mem: 3Gi
   schedule: "1 20 * * 5"
 - name: k8s-20160517.interlanguage-link-to-wikilinks.en
-  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=en"
+  command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=en"
   image: node18
   mem: 3Gi
   schedule: "2 20 * * 5"
 - name: k8s-20160517.interlanguage-link-to-wikilinks.zh
-  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=zh"
+  command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=zh"
   image: node18
   mem: 3Gi
   schedule: "3 20 * * 5"
 - name: k8s-20160517.interlanguage-link-to-wikilinks.simple
-  command: "node ./wikibot/routine/20160517.解消済み仮リンクをリンクに置き換える.js use_language=simple"
+  command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=simple"
   image: node18
   mem: 3Gi
   schedule: "4 20 * * 5"
 
 # 清理導航模板的重導向內部連結，轉換模板中的內部連結為目標頁面標題。
-# 排在解消済み仮リンクをリンクに置き換える執行完後 在清理完跨語言連結後開始
+# 排在 interlanguage_link_to_wikilinks 執行完後 在清理完跨語言連結後開始
 - name: k8s-20230418.fix-redirected-wikilinks-of-templates
   command: "node ./wikibot/routine/20230418.Fix_redirected_wikilinks_of_templates.js use_language=zh"
   image: node18
