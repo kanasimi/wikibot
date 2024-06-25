@@ -10,6 +10,8 @@ node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=�
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=斯堪的纳维亚历史"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
 
+node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=1911 Revolution"
+
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
  [[:ja:Wikipedia:井戸端/subj/仮リンクの解消の作業手順について]]
@@ -351,7 +353,8 @@ function check_final_work() {
 	wiki.page('User:' + wiki.token.login_user_name
 	//
 	+ '/' + message_set.report_page, {
-		redirects : 1
+		redirects : 1,
+		converttitles : 1
 	}).edit(function() {
 		// console.trace(wiki);
 		var messages = [], listed = 0, all = 0,
@@ -799,6 +802,7 @@ function for_each_page(page_data, messages) {
 				// prop : 'revisions',
 				prop : '',
 				redirects : 1,
+				converttitles : 1,
 				// save_response : true,
 				get_creation_Date : true
 			});
@@ -1063,7 +1067,8 @@ function for_each_page(page_data, messages) {
 				// e.g., {{Ill|George B. Sennett|George Burritt Sennett}}
 				// @ [[w:en:Special:Diff/1227543178]]
 				multi : false,
-				redirects : 1
+				redirects : 1,
+				converttitles : 1
 			});
 
 		}
@@ -1128,7 +1133,7 @@ function for_each_page(page_data, messages) {
 		}
 
 		// [[w:en:User talk:Kanashimi/Archive 1#Links to draft]]
-		if (wiki.is_namespace(local_title, 'main|Template')) {
+		if (wiki.is_namespace(local_title, [ 'draft', 'Template' ])) {
 			CeL.error('Link to non-main namespace @'
 					+ CeL.wiki.title_link_of(title) + ': ' + token);
 			return;
@@ -1147,6 +1152,8 @@ function for_each_page(page_data, messages) {
 				// https://www.mediawiki.org/w/api.php?action=help&modules=query%2Bpageprops
 				query_props : 'pageprops',
 				redirects : 1,
+				// 處理繁簡轉換的情況:有可能目標頁面存在，只是繁簡不一樣。
+				converttitles : 1,
 				save_response : true,
 				get_URL_options : {
 					onfail : function(error) {
