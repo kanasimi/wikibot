@@ -17,6 +17,7 @@ node 20201008.fix_anchor.js use_language=zh "check_page=曾比特"
 node 20201008.fix_anchor.js use_language=zh "check_page=最大負同界角"
 node 20201008.fix_anchor.js use_language=zh "check_page=威世智" "only_modify_pages=威世智"
 node 20201008.fix_anchor.js use_language=zh "check_page=奇跡"
+node 20201008.fix_anchor.js use_language=zh "check_page=1000" "only_modify_pages=1005"
 // [[Political divisions of the United States#Counties in the United States|counties]]
 node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
 node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
@@ -128,6 +129,15 @@ https://zh.moegirl.org.cn/Talk:%E6%B3%9B%E5%BC%8F
 read {{cbignore}}?
 
 當某個錨點1與錨點2同時存在，就不該設定錨點1→錨點2。
+
+
+`<span id="st3"></span>
+== st ==
+<span id="st2"></span>`
+刪除 st2, st3 後將之全改成 st。
+
+`== <span id="st2"></span>st ==`
+刪除 st2 後將之全改成 st。
 
  */
 
@@ -308,7 +318,10 @@ async function main_process() {
 	}
 
 	// CeL.env.arg_hash.check_page: Only check anchors on this page.
-	if (CeL.env.arg_hash.check_page) {
+	if (CeL.env.arg_hash.check_page !== undefined) {
+		CeL.env.arg_hash.check_page = String(CeL.env.arg_hash.check_page);
+		if (CeL.env.arg_hash.only_modify_pages !== undefined)
+			CeL.env.arg_hash.only_modify_pages = String(CeL.env.arg_hash.only_modify_pages);
 		await check_page(CeL.env.arg_hash.check_page, {
 			force_check: true,
 			namespace: CeL.env.arg_hash.namespace,
@@ -1243,10 +1256,11 @@ async function check_page(target_page_data, options) {
 			});
 
 			if (removed_anchors > 0) {
+				// gettext_config:{"id":"remove-$1-notifications"}
 				const message = force_remove_note_on_talk ? CeL.gettext('Remove %1 {{PLURAL:%1|notification|notifications}}', removed_anchors)
 					// gettext_config:{"id":"remove-$1-non-defunct-anchors"}
 					: CeL.gettext('Remove %1 non-defunct {{PLURAL:%1|anchor|anchors}}', removed_anchors)
-					// 不再存在於 wikitext 中, 不在被使用
+					// 不再存在於 wikitext 中, 不再被使用。
 					+ (remove_reason.non_exist > 0 ? ` (No longer used: ${remove_reason.non_exist})` : '')
 					+ (remove_reason.is_present > 0 ? ` (Anchors now working: ${remove_reason.is_present})` : '')
 					;
@@ -1404,8 +1418,35 @@ async function check_page(target_page_data, options) {
 			|| /{{/.test(token.anchor)
 			|| section_title_history[token.anchor]?.is_present
 		) {
-			// 當前有此 anchor 或 invalid anchor。
-			return;
+			// 當前有此 anchor。或為 invalid anchor。
+
+			let changed;
+			if (wiki.latest_task_configuration.general.insert_notification_template) {
+				// 刪掉不需要的 {{Broken anchor}}。
+				CeL.wiki.parser.parser_prototype.each.call(token.parent, (notification_template, index, parent) => {
+					if (index <= token.index || typeof notification_template === 'string' && !notification_template.trim())
+						return;
+
+					if (!wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, notification_template))
+						return CeL.wiki.parser.parser_prototype.each.exit;
+
+					//console.trace(notification_template);
+					if (String(notification_template.parameters.target_link) !== String(token.page_title + '#' + token.anchor)) {
+						//console.trace([String(notification_template.parameters.target_link), String(token.page_title + '#' + token.anchor)]);
+						CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}: 強制刪除 anchor 之後的 ${notification_template}`);
+					}
+
+					if (linking_page_data.remove_notification_count) {
+						linking_page_data.remove_notification_count++;
+					} else {
+						linking_page_data.remove_notification_count = 1;
+					}
+
+					changed = true;
+					return CeL.wiki.parser.parser_prototype.each.remove_token;
+				});
+			}
+			return changed;
 		}
 		//console.log(section_title_history);
 		//console.log([!(wiki.normalize_title(page_title) in target_page_redirects),!token.anchor,section_title_history[token.anchor]?.is_present]);
@@ -1762,6 +1803,13 @@ async function check_page(target_page_data, options) {
 
 		if (!changed)
 			return Wikiapi.skip_edit;
+
+		if (linking_page_data.remove_notification_count > 0) {
+			// gettext_config:{"id":"remove-$1-notifications"}
+			const message = CeL.gettext('Remove %1 {{PLURAL:%1|notification|notifications}}', linking_page_data.remove_notification_count);
+			CeL.info(`${resolve_linking_page.name}: ${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
+			add_summary(this, message + ` (${CeL.wiki.title_link_of(target_page_data)})`);
+		}
 
 		if (!Array.isArray(this.summary))
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
