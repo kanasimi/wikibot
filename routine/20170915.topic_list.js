@@ -792,10 +792,14 @@ function general_row_style(section, section_index) {
 			return;
 		}
 
+		// TODO: use wiki.is_template(token, list)
 		if (token.type === 'transclusion' && (token.name in {
 			// enwiki, zhwiki: 下列討論已經關閉，請勿修改。
 			Atop : true,
 			'Archive top' : true,
+			'Archive top green' : true,
+			'Archive top red' : true,
+			'Archive top yellow' : true,
 			// 本框內討論文字已關閉，相關文字不再存檔。
 			TalkH : true,
 			// 本討論已經結束。請不要對這個存檔做任何編輯。

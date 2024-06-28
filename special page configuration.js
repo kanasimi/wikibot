@@ -1215,6 +1215,7 @@ function BRFA_section_filter(section) {
 // 各種 protect、各語系通用的 status。
 function check_general_status(section, section_index) {
 	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
+
 	this.each.call(section, 'template', function(token) {
 		// TODO: {{移動至|Namespace:Pagename#Topic}}
 
@@ -1226,6 +1227,35 @@ function check_general_status(section, section_index) {
 			// zhmoegirl: 模板:Movedto 需要目標頁面。
 			+ (project === 'zhmoegirl' ? '已移動' : '{{' + token.name + '}}')
 			section.moved = true;
+		}
+
+		// TODO: use wiki.is_template(token, list)
+		if (token.name in {
+			// enwiki, zhwiki: 下列討論已經關閉，請勿修改。
+			Atop : true,
+			'Archive top' : true,
+			'Archive top green' : true,
+			'Archive top red' : true,
+			'Archive top yellow' : true,
+			// 本框內討論文字已關閉，相關文字不再存檔。
+			TalkH : true,
+			// 本討論已經結束。請不要對這個存檔做任何編輯。
+			TalkendH : true,
+			Talkendh : true
+		}) {
+			var matched = token.parameters.status
+			// || token.parameters.result
+			;
+			if (matched) {
+				status = 'style="color: #888;" | ' + matched;
+			} else {
+				// e.g., "Closing, ..."
+				matched = String(token.parameters[1]).match(
+						/^([A-Z][a-z]+)[,.]/);
+				status = 'style="color: #888;" | '
+						+ (matched ? matched[1]
+								: (use_language === 'zh' ? '已關閉' : 'Closed'));
+			}
 		}
 
 	});
@@ -1387,17 +1417,6 @@ function check_BOTREQ_status(section, section_index) {
 			'BRFA filed' : true
 		}) {
 			status = token.toString();
-		}
-
-		if (token.name in {
-			Atop : true,
-			'Archive top' : true
-		}) {
-			// e.g., "Closing, ..."
-			var matched = String(token[1]).match(/^([A-Z][a-z]+)[,.]/);
-			status = 'style="color: #888;" | '
-					+ (matched ? matched[1] : (use_language === 'zh' ? '已關閉'
-							: 'Closed'));
 		}
 
 	});

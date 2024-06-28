@@ -96,7 +96,7 @@
 - name: k8s-20160517.interlanguage-link-to-wikilinks.zh
   command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=zh"
   image: node18
-  mem: 3Gi
+  mem: 6Gi
   schedule: "3 20 * * 5"
 - name: k8s-20160517.interlanguage-link-to-wikilinks.simple
   command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=simple"
