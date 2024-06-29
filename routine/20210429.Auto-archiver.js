@@ -74,28 +74,28 @@ async function adapt_configuration(latest_task_configuration) {
 })();
 
 async function for_each_discussion_page(page_data) {
-	let target_root_page = page_data;
-	//console.trace(target_root_page);
-	let parsed = target_root_page.parse();
+	let archive_root_page = page_data;
+	//console.trace(archive_root_page);
+	let parsed = archive_root_page.parse();
 	// Will use the first matched as configuration.
 	const archive_configuration = parsed.find_template(archive_template_name)?.parameters;
 	if (!archive_configuration) {
-		CeL.error(`Cannot find {{${archive_template_name}}} in ${CeL.wiki.title_link_of(page_data)}`);
+		CeL.error(`Cannot find {{${archive_template_name}}} in ${CeL.wiki.title_link_of(archive_root_page)}`);
 		return;
 	}
 	//console.log(archive_configuration);
 	if (archive_configuration.stop)
 		return;
 
-	if (archive_configuration.target_root_page && archive_configuration.target_root_page !== page_data.title) {
-		// 將頁面內容存檔至子頁面以外的地方
-		target_root_page = await wiki.page(archive_configuration.target_root_page);
-		parsed = target_root_page.parse();
+	if (archive_configuration.archive_root_page && CeL.wiki.normalize_title(archive_configuration.archive_root_page) !== archive_root_page.title) {
+		// archive template 未放置於欲存檔之頁面，須重讀欲存檔之頁面內容。
+		archive_root_page = await wiki.page(archive_configuration.archive_root_page);
+		parsed = archive_root_page.parse();
 	}
 
 	// .archive_exceed_size
 	// 紀錄/討論頁面字元數超過此大小(chars)才會被搬移存檔。
-	if (target_root_page.wikitext.length < archive_configuration.min_size_left) {
+	if (archive_root_page.wikitext.length < archive_configuration.min_size_left) {
 		return;
 	}
 
@@ -107,7 +107,7 @@ async function for_each_discussion_page(page_data) {
 	const archive_after_last_comment = CeL.date.to_millisecond(archive_configuration.archive_after_last_comment || '1 week');
 	//console.log(CeL.age_of(0, archive_after_last_comment));
 	if (!archive_after_last_comment) {
-		CeL.error(`Do not know when to archive on configuration of ${CeL.wiki.title_link_of(page_data)}`);
+		CeL.error(`Do not know when to archive on configuration of ${CeL.wiki.title_link_of(archive_root_page)}`);
 		return;
 	}
 
@@ -178,20 +178,21 @@ async function for_each_discussion_page(page_data) {
 		return;
 	}
 
-	//console.trace({ archive_configuration, sections_need_to_archive, target_root_page, parsed });
-	await archive_page({ archive_configuration, sections_need_to_archive, target_root_page, parsed });
+	//console.trace({ archive_configuration, sections_need_to_archive, archive_root_page, parsed });
+	await archive_page({ archive_configuration, sections_need_to_archive, archive_root_page, parsed });
 }
 
 async function select_archive_to_page(configuration) {
-	const { archive_configuration, target_root_page } = configuration;
+	const { archive_configuration, archive_root_page } = configuration;
 
-	const archive_prefix = target_root_page.title + '/';
+	const archive_prefix = archive_root_page.title + '/';
 	const subpages = (await wiki.prefixsearch(archive_prefix))
-		// Exclude [[target_root_page.title]]
+		// Exclude [[archive_root_page.title]]
 		.filter(page_data => page_data.title.startsWith(archive_prefix))
 		.map(page_data => page_data.title.replace(archive_prefix, ''))
 		.filter(page_title => !!page_title);
 	const patterns = CeL.detect_serial_pattern(subpages);
+	// TODO: 將頁面內容存檔至子頁面以外的地方。
 	const archive_subpage_generator = archive_configuration.archive_to_subpage ? CeL.detect_serial_pattern.parse_generator(archive_configuration.archive_to_subpage)
 		// Auto detect pattern of subpage title
 		: patterns[0]?.generator
@@ -245,7 +246,7 @@ async function select_archive_to_page(configuration) {
 }
 
 async function archive_page(configuration) {
-	const { archive_configuration, sections_need_to_archive, target_root_page, parsed } = configuration;
+	const { archive_configuration, sections_need_to_archive, archive_root_page, parsed } = configuration;
 
 	const archive_to_page = await select_archive_to_page(configuration);
 	if (!archive_to_page)
@@ -272,7 +273,7 @@ async function archive_page(configuration) {
 		,
 		// gettext_config:{"id":"archiving-operation"}
 		CeL.gettext('Archiving operation')) + ':',
-	CeL.wiki.title_link_of(target_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
+	CeL.wiki.title_link_of(archive_root_page), '→', CeL.wiki.title_link_of(archive_to_page)]
 		.join(' ');
 	const summary_tail = `: ${sections_need_to_archive.map(section => CeL.wiki.title_link_of('#' + section.section_title.link[1])).join(', ')}`;
 	//console.trace([archive_to_page, summary, summary_tail]);
@@ -293,7 +294,7 @@ async function archive_page(configuration) {
 	);
 	// 移除記錄
 	// TODO: 1件のスレッドを「%1」へ過去ログ化 (7日以上経過、過去ログ満杯)
-	await wiki.edit_page(target_root_page, parsed.toString(), {
+	await wiki.edit_page(archive_root_page, parsed.toString(), {
 		nocreate: 1, bot: 1, minor: 1, summary: summary + ': '
 			// gettext_config:{"id":"remove-$1-topics"}
 			+ CeL.gettext('Remove %1 {{PLURAL:%1|topic|topics}}', sections_need_to_archive.length) + summary_tail
