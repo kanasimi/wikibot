@@ -9,6 +9,7 @@ node 20160517.interlanguage_link_to_wikilinks.js use_language=simple
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=明智光秀"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=斯堪的纳维亚历史"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=亞丁"
 
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=1911 Revolution"
 
@@ -453,6 +454,7 @@ function check_final_work() {
 }
 
 function for_each_page(page_data, messages) {
+
 	// TODO: 處理模板，並 action=purge&forcelinkupdate=1 更新所有包含模板的頁面
 	// https://doc.wikimedia.org/mediawiki-core/master/php/ApiPurge_8php_source.html
 	this.pages_finished++;
@@ -615,6 +617,7 @@ function for_each_page(page_data, messages) {
 					+ page_remains, 2, 'check_page');
 
 			if (--template_count > 0 || !template_parsed) {
+				// console.trace([ template_count, template_parsed ]);
 				return;
 			}
 
@@ -816,6 +819,14 @@ function for_each_page(page_data, messages) {
 		function for_local_page(converted_local_title) {
 			// converted_local_title: foreign_title 所對應的本地條目。
 
+			if (wiki.is_namespace(converted_local_title,
+					[ 'Draft', 'Template' ])) {
+				CeL.error('Links to non-main namespace @'
+						+ CeL.wiki.title_link_of(title) + ': ' + token);
+				check_page(gettext('Links to non-main namespace.'));
+				return;
+			}
+
 			if (!converted_local_title || converted_local_title !== local_title
 			// Keep interlanguage link template if the target page is redirect.
 			// リダイレクトの記事化が望まれる場合。
@@ -862,7 +873,7 @@ function for_each_page(page_data, messages) {
 						} else {
 							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
 							// 此應屬正常。
-							check_page('Both Not exist', true);
+							check_page('Both not exist', true);
 						}
 						return;
 					}
@@ -1090,7 +1101,7 @@ function for_each_page(page_data, messages) {
 			for_local_page(CeL.wiki.data.title_of(entity, use_language));
 		}
 
-		// ----------------------------
+		// ------------------------------------------------------------------------------
 		// main work for each link
 
 		if (!normalized_param) {
@@ -1109,7 +1120,6 @@ function for_each_page(page_data, messages) {
 		}
 
 		// console.trace(normalized_param);
-		template_count++;
 		token.page_data = page_data;
 		// console.log(token);
 		parameters = token.parameters;
@@ -1119,7 +1129,17 @@ function for_each_page(page_data, messages) {
 		WD = normalized_param.WD;
 		CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
 
+		// [[w:en:User talk:Kanashimi/Archive 1#Links to draft]]
+		if (wiki.is_namespace(local_title, [ 'Draft', 'Template' ])
+				|| wiki.is_namespace(foreign_title, [ 'Draft', 'Template' ])) {
+			CeL.error('Links to non-main namespace @'
+					+ CeL.wiki.title_link_of(title) + ': ' + token);
+			return;
+		}
+
+		// ------------------------------------------------------------------------------
 		// `template_count++` 之後所有 return 都必須經過 check_page()。
+		template_count++;
 
 		if (/^https?:\/\//i.test(local_title)
 		// e.g., [[Special:PermanentLink/72981220|馮仁稚]]
@@ -1129,13 +1149,6 @@ function for_each_page(page_data, messages) {
 			check_page(gettext(
 			// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
 			'Syntax error in the interlanguage link template.'));
-			return;
-		}
-
-		// [[w:en:User talk:Kanashimi/Archive 1#Links to draft]]
-		if (wiki.is_namespace(local_title, [ 'draft', 'Template' ])) {
-			CeL.error('Link to non-main namespace @'
-					+ CeL.wiki.title_link_of(title) + ': ' + token);
 			return;
 		}
 
