@@ -821,9 +821,11 @@ function for_each_page(page_data, messages) {
 
 			if (wiki.is_namespace(converted_local_title,
 					[ 'Draft', 'Template' ])) {
-				CeL.error('Links to non-main namespace @'
+				// gettext_config:{"id":"links-to-non-main-namespace"}
+				CeL.error('Links to non-main namespace' + ' @ '
 						+ CeL.wiki.title_link_of(title) + ': ' + token);
-				check_page(gettext('Links to non-main namespace.'));
+				// gettext_config:{"id":"links-to-non-main-namespace"}
+				check_page(gettext('Links to non-main namespace'));
 				return;
 			}
 
@@ -1132,8 +1134,11 @@ function for_each_page(page_data, messages) {
 		// [[w:en:User talk:Kanashimi/Archive 1#Links to draft]]
 		if (wiki.is_namespace(local_title, [ 'Draft', 'Template' ])
 				|| wiki.is_namespace(foreign_title, [ 'Draft', 'Template' ])) {
-			CeL.error('Links to non-main namespace @'
+			// gettext_config:{"id":"links-to-non-main-namespace"}
+			CeL.error('Links to non-main namespace' + ' @ '
 					+ CeL.wiki.title_link_of(title) + ': ' + token);
+			// gettext_config:{"id":"links-to-non-main-namespace"}
+			check_page(gettext('Links to non-main namespace'));
 			return;
 		}
 
