@@ -556,7 +556,7 @@ async function main_process() {
 			log_to: null,
 			multi: 'keep order',
 			skip_nochange: true,
-			// 高重要度必須排前面，保證處理低重要度的列表時已知高重要度有那些文章，能 level_page_link()。
+			// 高重要度必須排前面，保證處理低重要度的基礎條目列表時已知高重要度有那些文章，能 level_page_link()。
 			sort_function(page_data_1, page_data_2) {
 				const level_1 = level_of_page_title_for_sort(page_data_1);
 				const level_2 = level_of_page_title_for_sort(page_data_2);
@@ -570,7 +570,10 @@ async function main_process() {
 				// assert: to_title(page_data_1) !== to_title(page_data_2)
 				return page_title_1 < page_title_2 ? -1 : 1;
 			},
-			summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title, 'Update the section counts and article assessment icons')
+			summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.general.report_page || wiki.latest_task_configuration.configuration_page_title,
+				// 圖標
+				// gettext_config:{"id":"update-section-counters-and-article-assessment-icons"}
+				CeL.gettext('Update section counters and article assessment icons'))
 		});
 
 		if (wiki.latest_task_configuration.general.customized_base_page) {
@@ -1351,7 +1354,7 @@ async function for_each_list_page(list_page_data) {
 				}
 				const article_info = {
 					level: level_of_page_title(list_page_data, true),
-					// detailed_level這個參數是為了準確的連結到列表頁面。現在我採用的方法其實是讀取列表頁面之後，取得頁面名稱與章節名稱再來做分類。topic、subpage 其實是從[[User:Cewbot/log/20200122/configuration#Topics]]轉換獲得的，不是靠著一頁一頁讀取文章的talk頁面。其實我一直疑惑，為何像 5/People/Entertainers, directors, producers, and screenwriters 不能夠設定成 subpage=Entertainers, directors, producers, and screenwriters，如此就能少一個轉換的過程。
+					// detailed_level這個參數是為了準確的連結到基礎條目列表頁面。現在我採用的方法其實是讀取列表頁面之後，取得頁面名稱與章節名稱再來做分類。topic、subpage 其實是從[[User:Cewbot/log/20200122/configuration#Topics]]轉換獲得的，不是靠著一頁一頁讀取文章的talk頁面。其實我一直疑惑，為何像 5/People/Entertainers, directors, producers, and screenwriters 不能夠設定成 subpage=Entertainers, directors, producers, and screenwriters，如此就能少一個轉換的過程。
 					// The <code>detailed_level</code> parameter is to link to the list page accurately. The way I'm using now is to read the list page and then get the page name and chapter name to categorize it. <code>topic</code> and <code>subpage</code> are actually converted from [[User:Cewbot/log/20200122/configuration#Topics]] instead of relying on reading the talk page of the article one by one. In fact, I've been wondering why something like <code>5/People/Entertainers, directors, producers, and screenwriters</code> can't be set to <code>subpage=Entertainers, directors, producers, and screenwriters</code>, so that there is less conversion process.
 					detailed_level: level_of_page_title(list_page_data),
 					link: latest_section_title?.link
@@ -2043,9 +2046,11 @@ async function generate_all_VA_list_page() {
 	for (const prefix in VA_data_list_via_prefix) {
 		// async function generate_VA_list_json(prefix, VA_data_list_via_prefix)
 		const VA_data_list = VA_data_list_via_prefix[prefix];
-		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/${data_directory_name}/${prefix}.json`] = [VA_data_list, 'Update list of vital articles:'
-			// gettext_config:{"id":"total-$1-articles"}
-			+ CeL.gettext('Total %1 {{PLURAL:%1|article|articles}}.', Object.keys(VA_data_list).length.toLocaleString())
+		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/${data_directory_name}/${prefix}.json`] = [VA_data_list,
+			// gettext_config:{"id":"update-list-of-vital-articles"}
+			(new CeL.gettext.Sentence_combination(['Update list of vital articles:',
+				// gettext_config:{"id":"total-$1-articles"}
+				['Total %1 {{PLURAL:%1|article|articles}}.', Object.keys(VA_data_list).length.toLocaleString()]])).toString()
 		];
 	}
 	await wiki.for_each_page(Object.keys(pages_to_edit), function (page_data) {
@@ -2060,7 +2065,8 @@ async function generate_all_VA_list_page() {
 		return data[0];
 	}, {
 		bot: 1,
-		summary: 'Update list of vital articles',
+		// gettext_config:{"id":"update-list-of-vital-articles"}
+		summary: CeL.gettext('Update list of vital articles'),
 		//nocreate: false,
 		skip_nochange: true,
 	});
@@ -2090,9 +2096,10 @@ The list contains ${count} articles. --~~~~`
 		+ report_mark_start + report_wikitext + report_mark_end;
 	await wiki.edit_page(page_name, report_wikitext, {
 		bot: 1,
-		summary: 'Update list of vital articles: '
+		// gettext_config:{"id":"update-list-of-vital-articles"}
+		summary: (new CeL.gettext.Sentence_combination(['Update list of vital articles:',
 			// gettext_config:{"id":"total-$1-articles"}
-			+ CeL.gettext('Total %1 {{PLURAL:%1|article|articles}}.', count),
+			['Total %1 {{PLURAL:%1|article|articles}}.', count]])).toString(),
 		skip_nochange: true,
 		nocreate: 1,
 	});
@@ -2563,17 +2570,17 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 	// console.trace([VA_template_token?.parameters, article_info, +VA_template_token?.parameters.level !== +article_info.level]);
 	// old style before 2023/12:
-	// 2022/6/21:	對於這三者，皆應以列表為主。若有誤應修改列表。
+	// 2022/6/21:	對於這三者，皆應以基礎條目列表為主。若有誤應修改列表。
 	if (false && (true
 		|| !(VA_template_token?.parameters.level >= 1)
 		// 高重要度層級的設定，應當覆蓋低重要度的。
-		// 2022/6/21:	但假如此文章在列表中被降格，還是應該記錄。應該遵循、修改的是列表而非談話頁面上的模板。
+		// 2022/6/21:	但假如此文章在基礎條目列表中被降格，還是應該記錄。應該遵循、修改的是列表而非談話頁面上的模板。
 		|| +VA_template_token?.parameters.level !== +article_info.level
 		|| !VA_template_token?.parameters.topic && article_info.topic)) {
 		for (const property of ['level', 'topic', 'subpage']) {
 			if ((property in article_info)
 				// 取最小 level 之設定，其他的不覆蓋原有值。
-				// 2022/6/21:	但假如此文章在列表中被降格，還是應該記錄。應該遵循、修改的是列表而非談話頁面上的模板。
+				// 2022/6/21:	但假如此文章在基礎條目列表中被降格，還是應該記錄。應該遵循、修改的是列表而非談話頁面上的模板。
 				//&& (+article_info.level <= + VA_template_token?.parameters.level || !VA_template_token?.parameters[property])
 			) {
 				VA_template_object[property] = article_info[property];
@@ -3182,6 +3189,8 @@ ${report_mark_start}${report_wikitext}${report_mark_end}
 		report_wikitext, {
 		bot: 1,
 		nocreate: 1,
-		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, `Vital articles update report`)}: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} record(s)`
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+			// gettext_config:{"id":"vital-articles-update-report"}
+			CeL.gettext('Vital articles update report'))}: ${report_count + (report_lines.skipped_records > 0 ? '+' + report_lines.skipped_records : '')} record(s)`
 	});
 }
