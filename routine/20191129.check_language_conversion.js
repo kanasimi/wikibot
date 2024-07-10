@@ -5,6 +5,8 @@ node 20191129.check_language_conversion.js use_project=zh
 node routine/20191129.check_language_conversion.js use_project=zhmoegirl
 
 node 20191129.check_language_conversion.js use_project=zh debug_page=张学友
+// zh-hk:亞歷山大·達士勒;zh-tw:亞歷山大·戴斯培;zh-cn:亚历山大·德斯普拉; @ [[Module:CGroup/Entertainer]]
+node 20191129.check_language_conversion.js use_project=zh debug_page=第83届奥斯卡金像奖
 
 
 2019/12/2 20:2:11	初版試營運
@@ -722,9 +724,13 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 		// 登記{{NoteTA}}中的轉換規則
 		// assert: token.type === 'transclusion'
-		token.conversion_list.forEach(
-			conversion => conversion_hash[conversion.toString('rule')] = token
-		);
+		token.conversion_list.forEach(conversion => {
+			const rule = conversion.toString('rule');
+			if (conversion_hash[rule]) {
+				return;
+			}
+			conversion_hash[rule] = token;
+		});
 		//console.trace(token.conversion_list);
 
 		// 清理轉換規則時，只會轉換有確實引用到的規則。例如當明確引用{{NoteTA|G1=Physics}}才會清理[[Module:CGroup/Physics]]中有的規則。也因此不會清理[[Special:前綴索引/Mediawiki:Conversiontable/]]下面的規則。
@@ -799,6 +805,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	};
 	parsed.each('Template:NoteTA', token => {
 		let _changed;
+		//console.trace(token.conversion_list);
 		for (let index = 0; index < token.conversion_list.length; index++) {
 			const conversion = token.conversion_list[index];
 			const rule = conversion.toString('rule');
@@ -806,13 +813,18 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			// assert: (rule in conversion_hash)
 			// rule 已於前面的 "登記{{NoteTA}}中的轉換規則" 登記。
 			if (typeof source !== 'string') {
-				return;
+				continue;
 			}
 
 			// CeL.wiki.title_link_of('Module:CGroup/' + source)
 			duplicate_list.與公共轉換組重複的轉換規則.push(`存在於轉換組 ${source}: ${rule}`);
 			_changed = true;
 			token[conversion.index] = '';
+
+			// 個別用詞轉換描述 / 轉換用詞描述
+			const description_index = token.index_of['d' + conversion.index];
+			if (description_index > 0)
+				token[description_index] = '';
 		}
 		if (!_changed) {
 			return;
@@ -1093,7 +1105,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 	if (!changed || debug_page) {
 		if (debug_page) {
-			CeL.info(`for_NoteTA_article: ${changed ? `跳過編輯debug頁面${CeL.wiki.title_link_of(page_data)}。` : `不會改變debug頁面${CeL.wiki.title_link_of(page_data)}。`}`);
+			CeL.info(`for_NoteTA_article: ${changed ? `跳過編輯debug頁面${CeL.wiki.title_link_of(page_data)}。` : `依正常操作將不會改變debug頁面${CeL.wiki.title_link_of(page_data)}。`}`);
 		}
 		return Wikiapi.skip_edit;
 	}
