@@ -181,7 +181,13 @@ async function for_each_FF0D_template(template_page_data) {
 	/**	link from → redirect target */
 	const convert_map = new Map;
 
-	parsed.each('link', link_token => {
+	parsed.each('link', (link_token, index, parent) => {
+		// 導航欄分組通常不需要修改重定向。
+		// [[w:zh:User talk:Kanashimi#清理导航模板的重导向内部链接]]
+		if (parent.type === 'parameter_unit' && /^group\d$/.test(parent[0].toString().trim())) {
+			return;
+		}
+
 		const link_title = link_token[0].toString();
 		// U+FF0D: '－'
 		if (!link_title.includes('\uFF0D'))
