@@ -834,18 +834,19 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				// e.g., <nowiki>[[title|display text]]</nowiki>
 				.replace(/<nowiki\s*>(.*?)<\/nowiki\s*>/g, '$1')
 				.trim().replace(/{{!}}/g, '|') : index;
-			const _link = !keep_link && match_link(link);
-			if (_link) {
-				CeL.error(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${_link}`);
-				const parsed = CeL.wiki.parse(_link);
-				CeL.assert([_link, parsed.toString()],
+			if (!keep_link && match_link(link)) {
+				CeL.error(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${link}`);
+				const parsed = CeL.wiki.parse(link);
+				//console.trace(parsed);
+				CeL.assert([link, parsed.toString()],
 					// gettext_config:{"id":"wikitext-parser-checking-$1"}
-					CeL.gettext('wikitext parser checking: %1', JSON.stringify(_link)));
+					CeL.gettext('wikitext parser checking: %1', JSON.stringify(link)));
 				// @see function prepare_operation(meta_configuration, move_configuration)
 				if (!parsed[1]) parsed[1] = '#';
 				if (!parsed[2]) parsed[2] = typeof index === 'number' && index % 2 === 1 ? '' : parsed[0];
 				link = match_link(parsed.toString());
 			}
+			//console.trace(link);
 			return link;
 		}
 

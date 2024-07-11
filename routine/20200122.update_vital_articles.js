@@ -19,6 +19,7 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:America's Incredible Pizza Company"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HMAS Yarra|Talk:Bernardas"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Fredrikstad Bryggeri"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Future Looks Good"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
