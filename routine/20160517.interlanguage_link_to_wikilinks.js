@@ -468,7 +468,8 @@ function for_each_page(page_data, messages) {
 	// 記錄確認已經有改變的文字連結。
 	changed = [];
 	// console.log(CeL.wiki.content_of(page_data));
-	process.title = page_remains + ' ' + title;
+	process.title = this.pages_finished + '/' + this.initial_target_length
+			+ ' ' + title;
 
 	if (!ignore_ns && page_data.ns !== 0
 	// file / image
@@ -1273,6 +1274,7 @@ function for_each_page(page_data, messages) {
 			T :
 			// gettext_config:{"id":"maybe-there-are-unregistered-interwiki-link-templates-or-some-transcluded-templates-articles-with-interwiki-link-templates-that-have-local-articles-(usually-in-the-last-section-of-the-page)"}
 			'也許存在未註冊的跨維基鏈接模板，或者一些包含本地文章（通常在頁面的最後部分）的跨維基鏈接模板的嵌入模板/文章？'
+		// 導航模板
 		} ]);
 		if (false) {
 			// gettext_config:{"id":"no-registered-interwiki-link-templates-were-found"}

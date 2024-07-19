@@ -517,8 +517,9 @@
 
 # 創建每日新聞摘要頁面
 - name: k8s-20221102.create-wikinews-category-and-project
-  command: "1g -once -quiet /usr/bin/node ./wikibot/routine/20221102.create_wikinews_category_and_project_pages.js month_duration=3"
+  command: "/usr/bin/node ./wikibot/routine/20221102.create_wikinews_category_and_project_pages.js month_duration=3"
   image: node18
+  mem: 1Gi
   schedule: "2 0 1 * *"
 
 
