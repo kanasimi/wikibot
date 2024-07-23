@@ -1459,7 +1459,7 @@ async function for_each_list_page(list_page_data) {
 					else
 						article_count_of_icon[icon] = 1;
 					//{{Class/icon}}
-					return `{{Icon|${icon}}}`;
+					return `{{#invoke:Icon||${icon}}}`;
 				});
 
 
@@ -1588,7 +1588,7 @@ async function for_each_list_page(list_page_data) {
 				const wikitext = (_item.type === 'list_item' || _item.type === 'plain') && _item.toString();
 				let PATTERN;
 				if (!wikitext) {
-				} else if ((PATTERN = /('{2,5})((?:{{Icon\|\w+}}\s*)+)/i).test(wikitext)) {
+				} else if ((PATTERN = /('{2,5})((?:{{(?:#invoke:)?Icon\|\|?\w+}}\s*)+)/i).test(wikitext)) {
 					// "{{Icon|B}} '''{{Icon|A}} {{Icon|C}} [[title]]'''" →
 					// "{{Icon|B}} {{Icon|A}} {{Icon|C}} '''[[title]]'''"
 					_item.truncate();
