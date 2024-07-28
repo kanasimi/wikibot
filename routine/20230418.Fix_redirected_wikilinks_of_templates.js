@@ -13,6 +13,9 @@ node 20230418.Fix_redirected_wikilinks_of_templates.js
 TODO:
 
 
+@see
+模板連結與嵌入檢查 https://templatetransclusioncheck.toolforge.org/index.php
+
 */
 
 'use strict';

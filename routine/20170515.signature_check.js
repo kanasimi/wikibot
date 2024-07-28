@@ -174,7 +174,7 @@ KEY_COUNT = '#count',
 /**
  * 非內容的元素。無正式具意義的
  * token.type。若是遇到這一些元素，就跳過、不算是正式內容。例如章節標題不能算成內文，我們也不會在章節標題之後馬上就簽名；因此處理的時候，去掉最末尾的章節標題。
- *
+ * 
  * @see CeL.wiki.is_meaningful_element()
  */
 noncontent_type = {
@@ -1126,7 +1126,12 @@ function for_each_row(row) {
 		// 由使用者名稱來檢測匿名使用者/未註冊用戶 [[WP:IP]]
 		// [[m:Special:MyLanguage/Tech/News/2021/05]]
 		// 在diffs中，IPv6位址被寫成了小寫字母。這導致了死連結，因為Special:使用者貢獻只接受大寫的IP。這個問題已經被修正。
-		var is_IP_user = CeL.is_IP(row.user);
+		var is_anonymous_user = 'anon' in row;
+		if (false) {
+			is_anonymous_user = CeL.wiki.parse.user
+					.parse_temporary_username(row.user)
+					|| CeL.is_IP(row.user);
+		}
 
 		check_log
 				.push([
@@ -1137,7 +1142,7 @@ function for_each_row(row) {
 								"The user may have appended date and signature, but it is not clear. Still '''need to append signature for %1 %2'''"
 										// gettext_config:{"id":"need-to-append-signature-for-$1-$2"}
 										: "'''Need to append signature for %1 %2'''",
-								gettext(is_IP_user
+								gettext(is_anonymous_user
 								// gettext_config:{"id":"ip-user"}
 								? 'IP user'
 								// gettext_config:{"id":"user"}
@@ -1162,7 +1167,7 @@ function for_each_row(row) {
 		// {{subst:Unsigned|用戶名或IP|時間日期}}
 		.replace(/([\s\n]*)$/, '{{' + (using_subst ? 'subst:' : '')
 				+ 'Unsigned|' + row.user + '|' + get_parsed_time(row)
-				+ (is_IP_user ? '|IP=1' : '') + '}}'
+				+ (is_anonymous_user ? '|IP=1' : '') + '}}'
 				// + '<!-- Autosigned by ' + wiki.token.login_user_name + ' -->'
 				+ '$1');
 

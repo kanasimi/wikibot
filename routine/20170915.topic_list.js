@@ -1093,7 +1093,9 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		// TODO: link to diff
 		user_shown = (additional_attributes ? '| ' : '')
 		// 對於匿名IP用戶則顯示編輯紀錄。
-		+ (CeL.is_IP(user_name)
+		+ (CeL.wiki.parse.user.parse_temporary_username(user_name)
+		//
+		|| CeL.is_IP(user_name)
 		//
 		? '[[Special:Contributions/' : '[[User:') + user_name + '|'
 		//

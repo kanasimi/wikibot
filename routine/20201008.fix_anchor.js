@@ -378,7 +378,7 @@ function filter_row(row) {
 
 	// There are too many vandalism by IP users...
 	// [[w:en:User talk:Kanashimi#Bot is now erroneously changing links and anchors]]
-	if ('anon' in row /*CeL.is_IP(row.user)*/) {
+	if ('anon' in row /* CeL.wiki.parse.user.parse_temporary_username(row.user) || CeL.is_IP(row.user) */) {
 		return;
 	}
 
