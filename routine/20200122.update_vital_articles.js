@@ -369,6 +369,36 @@ async function adapt_configuration(latest_task_configuration) {
 		//console.trace('deprecated_parameter_hash:', deprecated_parameter_hash);
 	}
 
+	//console.trace(general.remove_unnecessary_parameters);
+	if (general.remove_unnecessary_parameters) {
+		const remove_unnecessary_parameters = Object.create(null);
+		for (let [namespace, value_list] of Object.entries(general.remove_unnecessary_parameters)) {
+			namespace = wiki.namespace(namespace, { get_name: true });
+			if (!namespace)
+				continue;
+			value_list.forEach(value => {
+				value = CeL.wiki.parser(value).parse();
+				const parameter_Map = remove_unnecessary_parameters[namespace] || (remove_unnecessary_parameters[namespace] = new Map);
+				value.each('Template:Para', template_token => {
+					let key = template_token.parameters[1], value = template_token.parameters[2];
+					if (!key) return;
+					if (/[\^\[\\\]*]/.test(key)) key = key.to_RegExp();
+					if (/[\^\[\\\]*]/.test(value)) value = value.to_RegExp();
+					parameter_Map.set(key, value);
+				});
+				if (parameter_Map.size === 0)
+					delete remove_unnecessary_parameters[namespace];
+			});
+		}
+
+		if (CeL.is_empty_object(remove_unnecessary_parameters)) {
+			delete general.remove_unnecessary_parameters;
+		} else {
+			//console.trace(remove_unnecessary_parameters);
+			general.remove_unnecessary_parameters = remove_unnecessary_parameters;
+		}
+	}
+
 	//console.trace(general.replace_misspelled_parameter_name);
 	if (general.replace_misspelled_parameter_name) {
 		if (!Array.isArray(general.replace_misspelled_parameter_name))
@@ -439,7 +469,7 @@ async function main_process() {
 
 	CeL.log_temporary(`Get all redirects. Elapsed time: ${CeL.date.age_of(start_time)}`);
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
-	await wiki.register_redirects([wiki.latest_task_configuration.general.base_page].append(all_WikiProject_template_list).append(all_opted_out_WikiProject_template_list)
+	await wiki.register_redirects(['Template:Para', wiki.latest_task_configuration.general.base_page].append(all_WikiProject_template_list).append(all_opted_out_WikiProject_template_list)
 		.append(wiki.append_session_to_options().session.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
 
 	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
@@ -1709,7 +1739,7 @@ async function for_each_list_page(list_page_data) {
 						return;
 					}
 					// e.g., '=={{anchor|Architecture}}Architecture =='
-					if (wiki.is_template('Anchor', sub_token) && sub_token.parameters[1] === token.title) {
+					if (sub_token.type === 'transclusion' && wiki.is_template('Anchor', sub_token) && sub_token.parameters[1] === token.title) {
 						token[index] = '';
 						return;
 					}
@@ -2434,7 +2464,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				//console.trace([wiki.latest_task_configuration.general.replace_misspelled_parameter_name, token.index_of]);
 				for (const pattern of wiki.latest_task_configuration.general.replace_misspelled_parameter_name) {
 					for (const [parameter_name, index] of Object.entries(token.index_of)) {
-						//console.log('Test pattern:', [pattern, parameter_name]);
+						//console.log('replace_misspelled_parameter_name: Test pattern:', [pattern, parameter_name]);
 						if (pattern.test(parameter_name)) {
 							const replace_to = pattern.replace(parameter_name);
 							if (!token[index][0]) {
@@ -2454,6 +2484,28 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					all_parameters_fix_count += parameters_fix_count;
 					CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
 					//console.trace(token, token.toString());
+				}
+			}
+
+			if (CeL.is_Object(wiki.latest_task_configuration.general.remove_unnecessary_parameters)) {
+				const parameter_Map = wiki.latest_task_configuration.general.remove_unnecessary_parameters[wiki.namespace(talk_page_data, { is_page_title: true, get_name: true })];
+				if (parameter_Map) {
+					let _changed;
+					for (const [key_pattern, value_pattern] of parameter_Map.entries()) {
+						//console.log('remove_unnecessary_parameters: Test pattern:', [key_pattern, value_pattern]);
+						for (const [parameter_name, index] of Object.entries(token.index_of)) {
+							const value = token.parameters[parameter_name];
+							if ((CeL.is_RegExp(key_pattern) ? key_pattern.test(parameter_name) : key_pattern === parameter_name)
+								&& CeL.is_RegExp(value_pattern) ? value_pattern.test(value) : value_pattern === value) {
+								token[index] = '';
+								_changed = true;
+							}
+						}
+					}
+
+					if (_changed) {
+						CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options({ remove_empty_parameters: true }));
+					}
 				}
 			}
 
@@ -2905,11 +2957,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								WikiProject_templates_and_allowed_elements.push(token);
 								return parsed.each.remove_token;
 							}
-							if (wiki.is_template(all_WikiProject_template_list, token)) {
+							if (token.type === 'transclusion' && wiki.is_template(all_WikiProject_template_list, token)) {
 								return move_to_WikiProject_templates(token, index, parent);
 							}
 							// /^WikiProject /.test(token.name)
-							if (wiki.latest_task_configuration.general.preserve_template_name_in_WPBS && wiki.latest_task_configuration.general.preserve_template_name_in_WPBS.test(token.name)) {
+							if (token.type === 'transclusion' && wiki.latest_task_configuration.general.preserve_template_name_in_WPBS && wiki.latest_task_configuration.general.preserve_template_name_in_WPBS.test(token.name)) {
 								WikiProject_templates_and_allowed_elements.push(token);
 								return parsed.each.remove_token;
 							}
