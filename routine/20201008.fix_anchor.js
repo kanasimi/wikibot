@@ -1298,7 +1298,7 @@ async function check_page(target_page_data, options) {
 
 			// 提醒失效連結時刪除這個模板。
 			if (wiki.latest_task_configuration.general.remove_the_template_when_reminding_broken_anchors) {
-				parsed.each(token => {
+				parsed.each('template', token => {
 					if (wiki.is_template(token, wiki.latest_task_configuration.general.remove_the_template_when_reminding_broken_anchors)) {
 						return parsed.each.remove_token;
 					}
@@ -1427,7 +1427,7 @@ async function check_page(target_page_data, options) {
 					if (index <= token.index || typeof notification_template === 'string' && !notification_template.trim())
 						return;
 
-					if (!wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, notification_template))
+					if (notification_template.type !== 'transclusion' || !wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, notification_template))
 						return CeL.wiki.parser.parser_prototype.each.exit;
 
 					//console.trace(notification_template);
@@ -1647,8 +1647,9 @@ async function check_page(target_page_data, options) {
 
 		let changed;
 		if (wiki.latest_task_configuration.general.insert_notification_template) {
+			const next_meaningful_element = CeL.wiki.next_meaningful_element(token.parent, token.index + 1);
 			// [[Template:Broken anchors]] 改成 [[Template:Broken anchor]]，採用 [[Template:Dead link]] 的機制。
-			if (wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, CeL.wiki.next_meaningful_element(token.parent, token.index + 1))) {
+			if (next_meaningful_element.type === 'transclusion' && wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, next_meaningful_element)) {
 				// 已經提醒過了。
 				return;
 			}
