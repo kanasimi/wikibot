@@ -7,11 +7,13 @@ node 20160517.interlanguage_link_to_wikilinks.js use_language=zh
 node 20160517.interlanguage_link_to_wikilinks.js use_language=simple
 
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=明智光秀"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "start_from_page=嚴凱泰"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=斯堪的纳维亚历史"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=亞丁"
 
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=1911 Revolution"
+
 
 
  [[:ja:Wikipedia:井戸端/subj/解消済み仮リンクを自動的に削除して]]
@@ -1307,21 +1309,43 @@ function main_work() {
 		list : message_set.Category_has_local_page,
 		reget : true,
 		operator : function(list) {
-			this.list = list;
-			// console.log(this.list);
+			var start_from_page;
+			if (!CeL.env.arg_hash) {
+			} else if (CeL.env.arg_hash.debug_pages) {
+				// only for debug {{ill}}s on specified page
+				list = CeL.env.arg_hash.debug_pages.split('|');
 
-			// only for debug {{ill}}s on specified page
-			if (CeL.env.arg_hash && CeL.env.arg_hash.debug_pages) {
-				this.list = CeL.env.arg_hash.debug_pages.split('|');
+			} else if (CeL.env.arg_hash.start_from_page) {
+				var start_from_page = CeL.env.arg_hash.start_from_page;
+				if (!list.some(function(page_data, index) {
+					// 起始頁面 Skip to this page
+					if (page_data.title !== start_from_page)
+						return;
+
+					CeL.error('Start from ' + index + '/' + list.length + ' '
+					//
+					+ CeL.wiki.title_link_of(start_from_page));
+					list = list.slice(index);
+					return true;
+
+				})) {
+					CeL.error('列表中未包含起始頁面 '
+					//
+					+ CeL.wiki.title_link_of(start_from_page) + ' ！');
+				}
 			}
-			// this.list = [ 'Wikipedia:沙盒' ];
-			// this.list = [ 'Wikipedia:サンドボックス' ];
-			// this.list = [ '泉站' ];
-			// this.list = [ '2022年', '1995年电影' ];
-			// this.list = [ '好莱坞唱片' ];
-			// this.list = [ '台中藍鯨女子足球隊' ];
-			// this.list = [ '2019冠狀病毒病知名去世患者列表' ];
-			// this.list = [ 'Template:Infobox number/box' ];
+
+			// list = [ 'Wikipedia:沙盒' ];
+			// list = [ 'Wikipedia:サンドボックス' ];
+			// list = [ '泉站' ];
+			// list = [ '2022年', '1995年电影' ];
+			// list = [ '好莱坞唱片' ];
+			// list = [ '台中藍鯨女子足球隊' ];
+			// list = [ '2019冠狀病毒病知名去世患者列表' ];
+			// list = [ 'Template:Infobox number/box' ];
+
+			// console.log(list);
+			this.list = list;
 		}
 
 	}, false && {
