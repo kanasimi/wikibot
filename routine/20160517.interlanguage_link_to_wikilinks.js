@@ -456,6 +456,10 @@ function check_final_work() {
 }
 
 function for_each_page(page_data, messages) {
+	if (CeL.env.arg_hash && CeL.env.arg_hash.debug_pages) {
+		// for debug
+		CeL.info('for_each_page: ' + CeL.wiki.title_link_of(page_data));
+	}
 
 	// TODO: 處理模板，並 action=purge&forcelinkupdate=1 更新所有包含模板的頁面
 	// https://doc.wikimedia.org/mediawiki-core/master/php/ApiPurge_8php_source.html
