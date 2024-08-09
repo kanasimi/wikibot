@@ -323,6 +323,22 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
+	if (CeL.is_Object(general.PIQA_page_filter)) {
+		Object.keys(general.PIQA_page_filter).forEach(namespace => {
+			const list = general.PIQA_page_filter[namespace];
+			if (!Array.isArray(list) || list.length !== 1 || !list[0] || typeof list[0] !== 'string') {
+				CeL.error(`${adapt_configuration.name}: Skip invalid PIQA_page_filter: ` + list);
+				delete general.PIQA_page_filter[namespace];
+				return;
+			}
+			general.PIQA_page_filter[namespace] = list[0].to_RegExp();
+		});
+	} else {
+		delete general.PIQA_page_filter;
+	}
+
+	// ----------------------------------------------------
+
 	let { deprecated_parameters } = general;
 	if (deprecated_parameters) {
 		deprecated_parameter_hash = Object.create(null);
@@ -370,7 +386,7 @@ async function adapt_configuration(latest_task_configuration) {
 	}
 
 	//console.trace(general.remove_unnecessary_parameters);
-	if (general.remove_unnecessary_parameters) {
+	if (CeL.is_Object(general.remove_unnecessary_parameters)) {
 		const remove_unnecessary_parameters = Object.create(null);
 		for (let [namespace, value_list] of Object.entries(general.remove_unnecessary_parameters)) {
 			namespace = wiki.namespace(namespace, { get_name: true });
@@ -397,6 +413,8 @@ async function adapt_configuration(latest_task_configuration) {
 			//console.trace(remove_unnecessary_parameters);
 			general.remove_unnecessary_parameters = remove_unnecessary_parameters;
 		}
+	} else {
+		delete general.remove_unnecessary_parameters;
 	}
 
 	//console.trace(general.replace_misspelled_parameter_name);
@@ -762,10 +780,18 @@ async function do_PIQA_operation() {
 		//&& ['Category:Pages using WikiProject banner shell without a project-independent quality rating']
 	)) {
 		//console.trace(category_to_clean);
-		for await (const talk_page_list of (Array.isArray(do_PIQA) ? [do_PIQA] :
+		for await (let talk_page_list of (Array.isArray(do_PIQA) ? [do_PIQA] :
 			// assert: do_PIQA >= 1
 			wiki.categorymembers(category_to_clean, { namespace: wiki.latest_task_configuration.general.PIQA_namespace || 'Talk', batch_size: 500 })
 		)) {
+			if (wiki.latest_task_configuration.general.PIQA_page_filter) {
+				talk_page_list = talk_page_list.filter(talk_page_data => {
+					const namespace = wiki.namespace(talk_page_data, { is_page_title: true, get_name: true });
+					const pattern = wiki.latest_task_configuration.general.PIQA_page_filter[namespace];
+					return !pattern || pattern.test(talk_page_data.title);
+				});
+			}
+
 			total_talk_page_count += talk_page_list.length;
 			//if (total_talk_page_count < 50000) { console.trace('Skip many!'); continue; }
 			//console.trace(do_PIQA, total_talk_page_count, talk_page_list);
