@@ -456,10 +456,6 @@ function check_final_work() {
 }
 
 function for_each_page(page_data, messages) {
-	if (CeL.env.arg_hash && CeL.env.arg_hash.debug_pages) {
-		// for debug
-		CeL.info('for_each_page: ' + CeL.wiki.title_link_of(page_data));
-	}
 
 	// TODO: 處理模板，並 action=purge&forcelinkupdate=1 更新所有包含模板的頁面
 	// https://doc.wikimedia.org/mediawiki-core/master/php/ApiPurge_8php_source.html
@@ -477,17 +473,19 @@ function for_each_page(page_data, messages) {
 	process.title = this.pages_finished + '/' + this.initial_target_length
 			+ ' ' + title;
 
-	if (!ignore_ns && page_data.ns !== 0
-	// file / image
-	&& page_data.ns !== 6
+	if (CeL.env.arg_hash && CeL.env.arg_hash.start_from_page) {
+		CeL.debug(process.title, 1, 'for_each_page');
+	}
+
+	if (!ignore_ns
 	// category: 可考慮去掉 message_set.Category_has_local_page
-	&& page_data.ns !== 14
+	&& !wiki.is_namespace(page_data, [ 'main', 'File', 'Category' ])
 	// Wikipedia
-	&& (page_data.ns !== 4 ||
+	&& (!wiki.is_namespace(page_data, 'Wikipedia') ||
 	// 去掉這些頁面。 e.g., [[Wikipedia:典范条目/存档]]
 	/^Wikipedia:(?:典范条目|典範條目|特色內容|特色圖片|特色列表|優良條目|优良条目|削除依頼\/)/.test(title))
 	// template
-	&& (page_data.ns !== 10
+	&& (!wiki.is_namespace(page_data, 'Template')
 	// 不處理跨語言連結模板系列。
 	|| (title.replace(/\/[\s\S]*$/, '').replace(/^[^:]+:/, '').toLowerCase()
 	// 去掉 namespace。
@@ -1138,6 +1136,10 @@ function for_each_page(page_data, messages) {
 		WD = normalized_param.WD;
 		CeL.debug('normalized_param: ' + JSON.stringify(normalized_param));
 
+		// ------------------------------------------------------------------------------
+		// `template_count++` 之後所有 return 都必須經過 check_page()。之前皆直接 return。
+		template_count++;
+
 		// [[w:en:User talk:Kanashimi/Archive 1#Links to draft]]
 		if (wiki.is_namespace(local_title, [ 'Draft', 'Template' ])
 				|| wiki.is_namespace(foreign_title, [ 'Draft', 'Template' ])) {
@@ -1148,10 +1150,6 @@ function for_each_page(page_data, messages) {
 			check_page(gettext('Links to non-main namespace'));
 			return;
 		}
-
-		// ------------------------------------------------------------------------------
-		// `template_count++` 之後所有 return 都必須經過 check_page()。
-		template_count++;
 
 		if (/^https?:\/\//i.test(local_title)
 		// e.g., [[Special:PermanentLink/72981220|馮仁稚]]
@@ -1326,9 +1324,9 @@ function main_work() {
 					if (page_data.title !== start_from_page)
 						return;
 
-					CeL.error('Start from ' + index + '/' + list.length + ' '
+					CeL.error('Start from ' + (index + 1) + '/' + list.length
 					//
-					+ CeL.wiki.title_link_of(start_from_page));
+					+ ' ' + CeL.wiki.title_link_of(start_from_page));
 					list = list.slice(index);
 					return true;
 
