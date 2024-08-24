@@ -281,7 +281,8 @@ const work_option_switches = ['keep_display_text', 'keep_initial_case', 'skip_no
 const command_line_switches = ['diff_id', 'section_title', 'replace_text', 'replace_text_pattern', 'also_replace_text_insource', 'use_language', 'task_configuration', 'namespace',
 	'requests_page_rvlimit',
 	'no_task_configuration_from_section', 'get_task_configuration_from', 'min_list_length',
-	'caption', 'allow_eval'].append(work_option_switches);
+	'caption', 'allow_eval',
+	'do_move_page'].append(work_option_switches);
 
 const command_line_argument_alias = {
 	diff: 'diff_id',
@@ -435,7 +436,7 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 				const _section_title = revision.comment.match(/^\/\*(.+)\*\//)[1].trim();
 				// console.log([section_title, _section_title]);
 				if (section_title !== _section_title) {
-					CeL.info([get_move_configuration_from_command_line.name + ': ', {
+					CeL.info([guess_and_fulfill_meta_configuration_from_page.name + ': ', {
 						// gettext_config:{"id":"change-section-title"}
 						T: 'Change section title:'
 					}]);
@@ -490,7 +491,7 @@ function guess_and_fulfill_meta_configuration_from_page(requests_page_data, meta
 
 	if (diff_to > 0) {
 		meta_configuration.diff_id = diff_from > 0 ? diff_from + '/' + diff_to : diff_to;
-		CeL.info([get_move_configuration_from_command_line.name + ': ', {
+		CeL.info([guess_and_fulfill_meta_configuration_from_page.name + ': ', {
 			// gettext_config:{"id":"get-$1-from-edit-summary-$2"}
 			T: ['Get %1 from edit summary: %2',
 				// gettext_config:{"id":"revision-id"}
@@ -1397,7 +1398,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		//console.trace(task_configuration.summary);
 
 		// .also_move_page
-		if (task_configuration.do_move_page) {
+		if (task_configuration.do_move_page || meta_configuration.do_move_page) {
 			if (typeof move_from_link !== 'string') {
 				throw new TypeError('`move_from_link` should be {String}!');
 			}
@@ -1411,7 +1412,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			};
 			try {
 				const page_data = await wiki.page(move_from_link);
-				if (!page_data.missing && CeL.wiki.parse.redirect(page_data) !== task_configuration.move_to_link) {
+				if (!('missing' in page_data) && CeL.wiki.parse.redirect(page_data) !== task_configuration.move_to_link) {
 					// カテゴリの改名も依頼に含まれている
 					// TODO: 移動元に即時削除テンプレートを貼っていただくことはできないでしょうか。
 					await wiki.move_to(task_configuration.move_to_link, task_configuration.do_move_page);
@@ -1893,6 +1894,11 @@ async function get_list(task_configuration, list_configuration) {
 		page_list = page_list.unique(page_data => CeL.wiki.title_of(page_data));
 	}
 	//console.trace(page_list);
+
+	if (list_configuration.page_list_filter) {
+		// page_list_filter(page_data, index, page_list)
+		page_list = page_list.filter(list_configuration.page_list_filter);
+	}
 
 	if (/*list_configuration.is_tracking_category && */list_configuration.move_from.ns === wiki.namespace('Category')) {
 		page_list.forEach(page_data => {
@@ -2962,7 +2968,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 	// e.g., # [[move from]]=>[[move to]]
 	CeL.wiki.parser.parser_prototype.each.call(line, 'link', (link_token, index, parent) => {
 		// 去掉ping、簽名之後的連結。
-		if (wiki.is_namespace(link_token[0].toString(), 'User') && index > 0 && typeof parent[index - 1] === 'string' && /(?:--|@)$/.test(parent[index - 1])) {
+		if (wiki.is_namespace(link_token[0].toString(), ['User', 'User talk']) && index > 0 && typeof parent[index - 1] === 'string' && /(?:--|@)$/.test(parent[index - 1])) {
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
 
@@ -2970,7 +2976,13 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 			CeL.error(`${parse_move_pairs_from_link.name}: Link with anchor: ${line}`);
 			throw new Error(`Link with anchor: ${line}`);
 		}
+
 		link_token = preprocess_link(link_token[0].toString());
+		if (wiki.is_namespace(link_token, ['User', 'User talk'])) {
+			CeL.warn(`${parse_move_pairs_from_link.name}: Skip special namespace: (${wiki.namespace(link_token, { is_page_title: true })}) ${link_token}`);
+			return;
+		}
+
 		if (!from) {
 			from = link_token;
 		} else if (!to) {
@@ -2978,13 +2990,13 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 		} else if (!options.ignore_multiple_link_warnings) {
 			CeL.error(`${parse_move_pairs_from_link.name}: Too many links: Still process ${parent[index]}`);
 			//console.trace(`${CeL.wiki.title_link_of(from)} → ${CeL.wiki.title_link_of(to)}`);
+			//console.trace(parent[index]);
 		}
 	});
 
-	if (from && !to) from = to = null;
-
 	// e.g., # [https://...]=>[https://...]
-	if (!from && !to) {
+	if (!to) {
+		from = null;
 		CeL.wiki.parser.parser_prototype.each.call(line, 'url', (link, index, parent) => {
 			link = preprocess_link(link[0]);
 			if (!from) {
@@ -2998,7 +3010,14 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 		});
 	}
 
-	if (from && !to) from = to = null;
+	if (from) {
+		if (!to) {
+			from = null;
+		} else if (wiki.namespace(from, { is_page_title: true }) !== wiki.namespace(to, { is_page_title: true })) {
+			CeL.error(`${parse_move_pairs_from_link.name}: Skip different namespace: (${wiki.namespace(from, { is_page_title: true })}) ${from} → (${wiki.namespace(to, { is_page_title: true })}) ${to}`);
+			to = null;
+		}
+	}
 
 	// e.g., # <syntaxhighlight lang="wikitext" inline>{{BWF賽事級別索引}}</syntaxhighlight>替換為<syntaxhighlight lang="wikitext" inline>{{羽毛球賽事級別索引|super_series=1|world_tour=1}}</syntaxhighlight>
 	if (!from && !to) {
@@ -3041,6 +3060,11 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 	CeL.debug(CeL.wiki.title_link_of(from) + '	→ ' + CeL.wiki.title_link_of(to), 1, parse_move_pairs_from_link.name);
 	if (move_title_pair) {
 		//task_configuration_from_section[from] = to;
+		const from_namespace = wiki.namespace(from, { is_page_title: true });
+		if (from_namespace !== 0) {
+			CeL.info(parse_move_pairs_from_link.name + ': ' + `Special namespace (${from_namespace}) ${from}`);
+		}
+
 		if (move_title_pair[from]) {
 			CeL.error([parse_move_pairs_from_link.name + ': ', {
 				// gettext_config:{"id":"duplicate-task-name-$1!-will-overwrite-old-task-with-new-task-$2→$3"}

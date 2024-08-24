@@ -53,17 +53,15 @@ async function adapt_configuration(latest_task_configuration) {
 
 // ----------------------------------------------------------------------------
 
-const misspelling_redirect_template_name = 'Template:錯字重定向';
-
 async function main_process() {
-	CeL.log_temporary(`取得所有嵌入${CeL.wiki.title_link_of(misspelling_redirect_template_name)}的頁面並篩選...`);
+	CeL.log_temporary(`取得所有嵌入${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.misspelling_redirect_template_title)}的頁面並篩選...`);
 	const misspelling_pages = [];
 	await wiki.for_each_page(
-		await wiki.embeddedin(misspelling_redirect_template_name, { namespace: 'main|Template' }),
+		await wiki.embeddedin(wiki.latest_task_configuration.general.misspelling_redirect_template_title, { namespace: 'main|Template' }),
 		page_data => {
 			const timestamp = Date.parse(CeL.wiki.content_of.revision(page_data).timestamp);
-			// {{tl|錯誤拼寫重定向}}超過一週的頁面才處理。這間隔應當足夠編者檢核了。
-			if (Date.now() - timestamp > CeL.to_millisecond('1w')) {
+			// {{tl|錯誤拼寫重定向}}超過 delay(一週)的頁面才處理。這間隔應當足夠編者檢核了。
+			if (Date.now() - timestamp > CeL.to_millisecond(wiki.latest_task_configuration.general.delay || '1 week')) {
 				misspelling_pages.push(page_data);
 				// TODO: use correct spelling: {{R from misspelling|of=(correct spelling)}}
 			} else {
@@ -72,7 +70,7 @@ async function main_process() {
 		}, {
 	});
 
-	CeL.log_temporary(`取得所有包含錯誤拼音連結的頁面...`);
+	CeL.log_temporary(`取得所有錯誤拼寫頁面的重定向...`);
 	await wiki.register_redirects(misspelling_pages, { no_message: true });
 
 	for (const misspelling_page of misspelling_pages) {
@@ -92,6 +90,13 @@ async function main_process() {
 			[move_from_link]: {
 				namespace: 'main|Template',
 				move_to_link,
+				page_list_filter(page_data, index, page_list) {
+					if (!('parcess_this_template' in page_list)) {
+						// assert: index === 0
+						page_list.parcess_this_template = page_list.length <= wiki.latest_task_configuration.general.max_backlinks;
+					}
+					return page_list.parcess_this_template;
+				},
 			},
 		});
 	}

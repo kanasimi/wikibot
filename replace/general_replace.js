@@ -12,6 +12,7 @@ node general_replace.js "移除小天體模板所有鏈入" "task_configuration=
 node general_replace.js "将条目中使用 模板 Imdb与IMDB的替换为 IMDb name" get_task_configuration_from=list min_list_length=1
 node general_replace.js "清理{{悠遊卡}}、{{一卡通}}嵌入" "task_configuration={""Template:悠遊卡"":""DELETE_PAGE"",""Template:一卡通"":""DELETE_PAGE"",""Template:Icash"":""DELETE_PAGE""}" no_task_configuration_from_section
 node general_replace.js "羽毛球賽事級別索引模板" get_task_configuration_from=list min_list_length=1
+node general_replace.js 批量移动中国大陆省道条目 get_task_configuration_from=list do_move_page
 
 */
 
@@ -43,7 +44,7 @@ node ${script_name} "request section title" "task_configuration={""from"":""DELE
 node ${script_name} "request section title" "task_configuration={""http://url/"":""https://url/""}"
 node ${script_name} "request section title" "task_configuration={""insource:\\\\""[[T|T]]\\\\"""":""T""}"
 node ${script_name} "request section title" "task_configuration={""insource:\\\\""從文字\\\\"""":""改成文字""}"
-node ${script_name} "request section title" get_task_configuration_from=list|table
+node ${script_name} "request section title" get_task_configuration_from=list|table do_move_page min_list_length=1
 
 Show all titles:
 node general_replace.js ${KEY_show_sections} use_language=${use_language && 'ja'}
