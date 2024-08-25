@@ -354,6 +354,12 @@
   mem: 2Gi
   schedule: "6 4 * * 1"
 
+- name: k8s-20240821-clean-up-misspelling-links.zhwiki
+  command: "node ./wikibot/routine/20240821.Clean_up_misspelling_links.js use_project=zh"
+  image: node18
+  mem: 2Gi
+  schedule: "1 2 * * 6"
+
 # -----------------------------------------------------------------------------
 # zh.wikinews
 

@@ -1,5 +1,5 @@
 ﻿/*
-node 20240821.Clean_up_misspelling_link.js use_project=zh
+node 20240821.Clean_up_misspelling_links.js use_project=zh
 
 這個任務會修正拼寫錯誤的連結，修正所有指向{{錯誤拼寫重定向}}的連結。
 
@@ -91,7 +91,7 @@ async function main_process() {
 				namespace: 'main|Template',
 				move_to_link,
 				page_list_filter(page_data, index, page_list) {
-					if (!('parcess_this_template' in page_list)) {
+					if (wiki.latest_task_configuration.general.max_backlinks && !('parcess_this_template' in page_list)) {
 						// assert: index === 0
 						page_list.parcess_this_template = page_list.length <= wiki.latest_task_configuration.general.max_backlinks;
 					}
