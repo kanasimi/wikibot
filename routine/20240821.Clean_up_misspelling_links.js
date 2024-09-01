@@ -57,7 +57,9 @@ async function main_process() {
 	CeL.log_temporary(`取得所有嵌入${CeL.wiki.title_link_of(wiki.latest_task_configuration.general.misspelling_redirect_template_title)}的頁面並篩選...`);
 	const misspelling_pages = [];
 	await wiki.for_each_page(
-		await wiki.embeddedin(wiki.latest_task_configuration.general.misspelling_redirect_template_title, { namespace: 'main|Template' }),
+		await wiki.embeddedin(wiki.latest_task_configuration.general.misspelling_redirect_template_title, {
+			//namespace: 'main|Template' || '*',
+		}),
 		page_data => {
 			const timestamp = Date.parse(CeL.wiki.content_of.revision(page_data).timestamp);
 			// {{tl|錯誤拼寫重定向}}超過 delay(一週)的頁面才處理。這間隔應當足夠編者檢核了。
@@ -88,7 +90,7 @@ async function main_process() {
 			,
 		}, {
 			[move_from_link]: {
-				namespace: 'main|Template',
+				//namespace: 'main|Template',
 				move_to_link,
 				page_list_filter(page_data, index, page_list) {
 					if (wiki.latest_task_configuration.general.max_backlinks && !('parcess_this_template' in page_list)) {
