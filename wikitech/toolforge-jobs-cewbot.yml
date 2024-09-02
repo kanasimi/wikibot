@@ -597,7 +597,8 @@
   command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=en do_PIQA=10000"
   image: node18
   mem: 2Gi
-  schedule: "2 14 * * 2"
+  # [[User talk:Kanashimi#Frequency of PIQA robot operation]]
+  schedule: "2 14 * * *"
 
 - name: k8s-20200122.update-vital-articles.zh
   command: "node ./wikibot/routine/20200122.update_vital_articles.js use_language=zh"
