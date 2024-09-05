@@ -623,6 +623,10 @@ function for_each_page(page_data, messages) {
 
 			if (--template_count > 0 || !template_parsed) {
 				// console.trace([ template_count, template_parsed ]);
+				if (template_count < 0) {
+					CeL
+							.error('check_page: template_count < 0! 可能有 template_count++ 之前，沒登記到的 check_page() 呼叫？');
+				}
 				return;
 			}
 
