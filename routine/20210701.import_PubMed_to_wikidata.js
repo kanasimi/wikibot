@@ -1,5 +1,8 @@
 ﻿/*
 
+node 20210701.import_PubMed_to_wikidata.js wbeditentity_only_for_main=true
+
+
 2021/7/1 7:55:3	初版。
 2022/1/20 2:46:48	再開。
 2022/1/23 6:54:23	初版試營運。
@@ -43,6 +46,8 @@ set_language('en');
 const wiki = new Wikiapi;
 
 // ----------------------------------------------------------------------------
+
+const wbeditentity_only_for_main = CeL.env.arg_hash?.wbeditentity_only_for_main;
 
 //CeL.get_URL.default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4710.4 Safari/537.36';
 
@@ -639,10 +644,13 @@ function normalize_person_name(name) {
 	// https://en.wikipedia.org/wiki/Latin-1_Supplement
 	// https://en.wikipedia.org/wiki/Latin_Extended-A
 	// [[德語字母]], [[:de:Deutsches Alphabet]]
-	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|la |d'|da |de |del |dos |Den|Des|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-|ter )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+)(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
+	matched = name.match(/^((?:(?:(?:Mc|Mac|L'|D'|O'|La|la |d'|da |de |del |dos |Den|Des|Da|De|[Dd]e la |Di|Du|Ja|v |vd |von |[Vv]an (?:den |der )?|el-|ter )?[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+|[A-Z]{3,})(?:-[A-Z]([a-z'\u00df-\u00f6\u00f8-\u00ff\u0101-\u017f]+))?|der)\s+)+)([A-Z]+)$/);
 	//console.log(matched);
 	if (matched && matched[2] === matched[2].toLowerCase() && (!matched[3] || matched[3] === matched[3].toLowerCase())) {
 		// "Huennekens FM" → "F M Huennekens"
+		name = matched[4].split('').join(' ') + ' ' + matched[1].trimEnd();
+	} else if (matched && matched[2] === matched[2].toUpperCase() && (!matched[3] || matched[3] === matched[3].toUpperCase())) {
+		// "MAPSON LW" → "L W MAPSON"
 		name = matched[4].split('').join(' ') + ' ' + matched[1].trimEnd();
 	}
 	name = name.replace(/\./g, '')
@@ -704,6 +712,8 @@ function normalize_person_name(name) {
 	["DesRosiers C", "C. DesRosiers"],
 	["ter Laak HJ", "H. J. ter Laak"],
 	["la Labarthe B", "B. la Labarthe"],
+	// Q82053131
+	["MAPSON LW", "L. W. MAPSON"],
 	/*
 	TODO:
 	["Stephen William Hawking", "Hawking, Stephen"],
@@ -717,7 +727,7 @@ function normalize_person_name(name) {
 	["Khmelevskiĭ IaM", "Ia M. Khmelevskiĭ"],
 	["Il'inskiĭ IuA", "Iu A. Il'inskiĭ"],
 	["Chicherin IuV", "Iu V. Chicherin"],
-	[ "Kozlova IuI", "Iu I. Kozlova"],
+	["Kozlova IuI", "Iu I. Kozlova"],
 	["Korogodina IuV", "Iu V. Korogodina"],
 	["Malashenko IuR", "Iu R. Malashenko"],
 	["Chicherin IuV", "Iu V. Chicherin"],
@@ -735,7 +745,7 @@ function normalize_person_name(name) {
 	["Zadvornov IuN", "Iu N. Zadvornov"],
 	["Velichko AIa", "A. Ia Velichko"],
 	*/
-].forEach(pair => CeL.assert([normalize_person_name(pair[0]), normalize_person_name(pair[1])], `${normalize_person_name.name}: ${pair}`));
+].forEach(pair => CeL.assert([normalize_person_name(pair[0]), normalize_person_name(pair[1])], `${normalize_person_name.name}: ${pair} (${[normalize_person_name(pair[0]), normalize_person_name(pair[1])]})`));
 
 /**
  * 測試兩姓名是否等價。
@@ -818,18 +828,29 @@ const descriptions_configuration = {
 };
 // aliases / The same description pattern
 for (const [alias, language_code] of Object.entries({
-	'en-gb': 'en',
-	'pt-br': 'pt',
-	'sr-ec': 'sr',
+	// [[d:User talk:Kanashimi#Bot problems]]
+	// en-gb is a slight variation of en. The en description is fine in en-gb (we never use the short mm/dd/yyyy form, but "d month year" and "month d, year" are used interchangeably), so you should only add en.
+	// It would be helpful if you could also remove the redundant descriptions when they are the same (or equivalent, for things like en-gb).
+	//'en-gb': 'en',
+
+	//'pt-br': 'pt',
+
+	// [[d:User talk:Kanashimi#Bot problems]]
+	// sr and sr-ec are the same. Ideally we would use sr-cyrl but that isn't available yet, so I suggest only adding sr.
+	//'sr-ec': 'sr',
 
 	'zh': 'zh-hant',
+	/*
 	'zh-tw': 'zh-hant',
 	'zh-hk': 'zh-hant',
 	'zh-mo': 'zh-hant',
+	*/
 	yue: 'zh-hant',
+	/*
 	'zh-cn': 'zh-hans',
 	'zh-sg': 'zh-hans',
 	'zh-my': 'zh-hans',
+	*/
 	wuu: 'zh-hans',
 })) {
 	descriptions_configuration[alias] = descriptions_configuration[language_code];
@@ -1527,9 +1548,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				continue;
 			}
 
-			// PubMed ID=440090
-			// {"key":"10.1016/0076-6879(79)59126-5_BIB4","first-page":"81","volume":"Vol. 4","author":"Cooperman","year":"1978"}
-			CeL.error(`${for_each_PubMed_ID.name}: Skip unknown reference: ${JSON.stringify(reference_data)}`);
+			// PubMed ID=440090: {"key":"10.1016/0076-6879(79)59126-5_BIB4","first-page":"81","volume":"Vol. 4","author":"Cooperman","year":"1978"}
+			// PubMed ID=9214306: {"key":"atypb1/atypb2","volume-title":"Biochemistry 34, 3286−3299","author":"Agashe V. R.","year":"1995"}
+			CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: Skip unknown reference: ${JSON.stringify(reference_data)}`);
 		}
 	}
 
@@ -1835,6 +1856,8 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 		// 避免 cites work (P2860) 佔據太多記憶體。
 		search_without_cache: true,
 		no_skip_attributes_note: true,
+		// 合併請求。
+		wbeditentity_only: wbeditentity_only_for_main,
 	});
 	return article_item;
 }
