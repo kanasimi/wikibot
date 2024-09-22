@@ -20,6 +20,7 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HMAS Yarra|Talk:Bernardas"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Fredrikstad Bryggeri"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Future Looks Good"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Michigan State Trunkline Highway System"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -128,10 +129,22 @@ const template_name_hash = {
 	VA: 'Vital article',
 	VA_count: 'Vital article count',
 };
-// [[w:en:Template:WikiProject Biography]]
-const parameters_move_from_WPBIO_to_WPBS = new Set(['living', 'blp', 'BLP', 'activepol', 'blpo', 'listas']);
+
 // [[w:en:User talk:Kanashimi#Move listas]]
-const parameters_move_from_WikiProjects_to_WPBS = new Set(['listas']);
+const parameters_move_from_any_WikiProjects_to_WPBS = { listas: '', };
+const parameters_move_from_WikiProjects_to_WPBS = {
+	// parameters_move_from_specified_WikiProject_to_WPBS
+	// [[w:en:Template:WikiProject Biography]]
+	'WikiProject Biography': {
+		living: '', blp: '', BLP: '', activepol: '', blpo: '',
+		// 'listas' is at `parameters_move_from_any_WikiProjects_to_WPBS`
+		//listas: '',
+	},
+	// [[w:en:User talk:Kanashimi#Moving listas value]]
+	'WikiProject U.S. Roads': { sort: 'listas' },
+};
+let parameters_move_from_WikiProjects_to_WPBS__template_list;
+
 /**可安全移除的任無用的參數值字元。 @see [[w:en:User talk:Qwerfjkl#Disruptions caused by the Qwerfjkl bot]] */
 const PATTERN_invalid_parameter_value_to_remove = /(?<=[^{}]|^)[{}](?=[^{}]|$)/g;
 CeL.assert(['no', 'no}'.replace(PATTERN_invalid_parameter_value_to_remove, '')]);
@@ -485,10 +498,18 @@ async function main_process() {
 			});
 	}
 
+	parameters_move_from_WikiProjects_to_WPBS__template_list = wiki.to_namespace(Object.keys(parameters_move_from_WikiProjects_to_WPBS), 'template');
+
 	CeL.log_temporary(`Get all redirects. Elapsed time: ${CeL.date.age_of(start_time)}`);
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
-	await wiki.register_redirects(['Template:Para', wiki.latest_task_configuration.general.base_page].append(all_WikiProject_template_list).append(all_opted_out_WikiProject_template_list)
-		.append(wiki.append_session_to_options().session.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead), { namespace: 'Template', no_message: true });
+	await wiki.register_redirects(['Template:Para', wiki.latest_task_configuration.general.base_page]
+		.append(all_WikiProject_template_list)
+		.append(all_opted_out_WikiProject_template_list)
+		.append(wiki.append_session_to_options().session.setup_layout_elements.template_order_of_layout[wiki.site_name()]?.talk_page_lead)
+		.append(Object.keys(parameters_move_from_WikiProjects_to_WPBS)), { namespace: 'Template', no_message: true });
+
+	parameters_move_from_WikiProjects_to_WPBS__template_list = wiki.redirect_target_of(parameters_move_from_WikiProjects_to_WPBS__template_list);
+	//console.trace(parameters_move_from_WikiProjects_to_WPBS__template_list);
 
 	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
 	console.log('Redirect targets:', template_name_hash);
@@ -2853,50 +2874,58 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					//CeL.wiki.inplace_reparse_element(token, wiki.append_session_to_options());
 				}
 
+				// assert: token.is_opted_out === false
+				function move_parameters(parameters_to_move) {
+					for (const [parameter_name_to_remove, parameter_configuration] of Object.entries(parameters_to_move)) {
+						if (!(parameter_name_to_remove in token.parameters))
+							continue;
+						let value = token.parameters[parameter_name_to_remove];
+
+						// fix parameter value
+						if (typeof value === 'string') {
+							value = value.replace(PATTERN_invalid_parameter_value_to_remove, '');
+						}
+
+						if (!value.toString().trim()) {
+							// 直接消掉 WikiProject template token 無意義的、空的 parameter。
+							parameters_to_remove_Set.add(parameter_name_to_remove);
+							continue;
+						}
+
+						if ((!WikiProject_banner_shell_token.parameters[parameter_name_to_remove]
+							// normalize parameter value
+							|| WikiProject_banner_shell_token.parameters[parameter_name_to_remove].toString().toLowerCase() === value.toString().toLowerCase())
+							&& (!WPBS_template_object[parameter_name_to_remove]
+								|| WPBS_template_object[parameter_name_to_remove] === value)) {
+							// These parameters will move to {{WikiProject banner shell}}
+							// TODO: If contains comment...
+							const move_to_parameter_name = parameter_configuration || parameter_name_to_remove;
+							WPBS_template_object[move_to_parameter_name] = value;
+							parameters_to_remove_Set.add(parameter_name_to_remove);
+							continue;
+						}
+						// 保留 value 不同的 parameters。
+					}
+				}
+
+				// [[w:en:User talk:Kanashimi#Moving listas value]]
+				move_parameters(parameters_move_from_any_WikiProjects_to_WPBS);
+
+				if (wiki.is_template(parameters_move_from_WikiProjects_to_WPBS__template_list, token)) {
+					const template_name = wiki.remove_namespace(wiki.redirect_target_of(token));
+					const parameters_to_move = parameters_move_from_WikiProjects_to_WPBS[template_name];
+					if (parameters_to_move) {
+						move_parameters(parameters_to_move);
+					} else {
+						throw new Error(`Cannot find parameters moving configuration of {{${template_name}}}!`);
+					}
+				}
+
 				if (wiki.is_template(all_opted_out_WikiProject_template_list, token)) {
 					// assert: token.is_opted_out === true
 					// 有些選擇退出的模板有自己的展示方式，利用到class參數，不能完全用[[Module:WikiProject banner]]解決。e.g., {{WikiProject Military history}}
 					//set_remove_needless_class(true);
 				} else {
-					// assert: token.is_opted_out === false
-					function move_parameters(parameter_Set_to_move) {
-						for (const parameter_name of parameter_Set_to_move) {
-							if (!(parameter_name in token.parameters))
-								continue;
-							let value = token.parameters[parameter_name];
-
-							// fix parameter value
-							if (typeof value === 'string') {
-								value = value.replace(PATTERN_invalid_parameter_value_to_remove, '');
-							}
-
-							if (!value.toString().trim()) {
-								// 直接消掉 WikiProject template token 無意義的、空的 parameter。
-								parameters_to_remove_Set.add(parameter_name);
-								continue;
-							}
-
-							if ((!WikiProject_banner_shell_token.parameters[parameter_name]
-								// normalize parameter value
-								|| WikiProject_banner_shell_token.parameters[parameter_name].toString().toLowerCase() === value.toString().toLowerCase())
-								&& (!WPBS_template_object[parameter_name]
-									|| WPBS_template_object[parameter_name] === value)) {
-								// These parameters will move to {{WikiProject banner shell}}
-								// TODO: If contains comment...
-								WPBS_template_object[parameter_name] = value;
-								parameters_to_remove_Set.add(parameter_name);
-								continue;
-							}
-							// 保留 value 不同的 parameters。
-						}
-					}
-
-					if (wiki.is_template(template_name_hash.WPBIO, token)) {
-						move_parameters(parameters_move_from_WPBIO_to_WPBS);
-					}
-
-					move_parameters(parameters_move_from_WikiProjects_to_WPBS);
-
 					set_remove_needless_class();
 				}
 
