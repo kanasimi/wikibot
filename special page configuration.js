@@ -165,7 +165,7 @@ var localized_page_configuration = {
 };
 localized_page_configuration = Object.assign(
 		localized_page_configuration[use_language] || Object.create(null),
-		global.localized_page_configuration);
+		globalThis.localized_page_configuration);
 
 Object.assign(general_page_configuration, localized_page_configuration);
 // console.log(general_page_configuration);
@@ -180,7 +180,7 @@ localized_page_configuration = null;
 
 function is_bot_user(user_name, section, using_special_users) {
 	// TODO: using section for [[w:ja:Wikipedia:Bot/使用申請]]
-	return (user_name in (using_special_users || global.special_users).bot)
+	return (user_name in (using_special_users || globalThis.special_users).bot)
 			|| CeL.wiki.PATTERN_BOT_NAME.test(user_name);
 }
 
@@ -475,7 +475,9 @@ var default_FC_vote_configurations = {
 		status : check_FC_status
 	}
 };
-Object.assign(default_FC_vote_configurations, global.FC_vote_configurations);
+Object
+		.assign(default_FC_vote_configurations,
+				globalThis.FC_vote_configurations);
 Object.keys(default_FC_vote_configurations.cross_out_templates_footer)
 //
 .forEach(function(title) {
@@ -820,7 +822,7 @@ var jawiki_week_AFD_options = {
 				format : '%Y年%m月%d日',
 				zone : page_data.page_configuration.timezone
 			});
-			global.listen_to_sub_page(sub_page_title, page_data);
+			globalThis.listen_to_sub_page(sub_page_title, page_data);
 			wiki.page(sub_page_title, function(page_data) {
 				var parsed = CeL.wiki.parser(page_data, {
 					// set options[KEY_SESSION]
@@ -1122,7 +1124,7 @@ var page_configurations = {
 	'zh_classicalwiki:維基大典:會館' : general_page_configuration
 };
 
-global.special_page_configuration = {
+globalThis.special_page_configuration = {
 	'zhmoegirl' : Object.assign(Object.create(null),
 	//
 	general_page_configuration, {
@@ -1189,7 +1191,7 @@ function BRFA_section_filter(section) {
 						CeL.warn(section.section_title.title
 								+ ': Find 2 bots: ' + section.bot_name
 								+ ' !== ' + user_name);
-						// console.log(global.special_users.bot);
+						// console.log(globalThis.special_users.bot);
 					}
 				} else {
 					// console.log(token);
@@ -1212,25 +1214,64 @@ function BRFA_section_filter(section) {
 	return section.bot_name && applicants.length > 0;
 }
 
-// 各種 protect、各語系通用的 status。
-function check_general_status(section, section_index) {
-	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
+function general_check_section_status(section/* , options */) {
+	var topic_status = section.topic_status;
+	if (CeL.is_Object(topic_status)) {
+		// Skip section processed.
+		return topic_status;
+	}
 
-	this.each.call(section, 'template', function(token) {
-		// TODO: {{移動至|Namespace:Pagename#Topic}}
+	topic_status = section.topic_status = Object.create(null);
 
+	var to_exit = this.each.exit, project = this.page.page_configuration.project;
+
+	// console.trace(section);
+
+	// TODO: use wiki.is_template(token, list)
+	this.each.call(section, function(token) {
+		if (token.type === 'transclusion'
+		// 本主題全部或部分段落文字，已移動至...
 		// {{Moved to}}, {{Moved discussion to}}
-		if (/^Moved? ?([a-z]+ )?to/i.test(token.name)) {
-			status = 'style="color: #888;" | '
+		&& (/^Moved? ?([a-z]+ )?to/i.test(token.name) || (token.name in {
+			Switchto : true,
+			// TODO: {{移動至|Namespace:Pagename#Topic}}
+			移動至 : true
+		}))) {
+			topic_status.move_to = 'moved';
+			topic_status.style_and_status = 'style="color: #888;" | '
 			// [[File:Symbol redirect vote.svg|20px|link=|alt=]]&nbsp;
 			// + (use_language === 'zh' ? '已移動' : 'Moved')
 			// zhmoegirl: 模板:Movedto 需要目標頁面。
 			+ (project === 'zhmoegirl' ? '已移動' : '{{' + token.name + '}}')
-			section.moved = true;
+			// section.moved = true;
+			section.adding_link = token.parameters[1];
+			return;
 		}
 
-		// TODO: use wiki.is_template(token, list)
-		if (token.name in {
+		if (token.type === 'transclusion' && (token.name in {
+			// zhmoegirl: 標記已完成討論串的模板別名列表。
+			MarkAsResolved : true,
+			MAR : true,
+			标记为完成 : true
+		})) {
+			// topic_status.style = '';
+			// 此模板代表一種整個討論串決定性的狀態，可不用再檢查其他內容。
+			return to_exit;
+		}
+
+		// [[w:zh:Template:集中討論重定向]]
+		if (token.type === 'transclusion' && (token.name in {
+			CDTR : true,
+			集中讨论重定向 : true,
+			集中討論重定向 : true
+		})) {
+			section.has_集中討論重定向模板 = true;
+			return;
+		}
+
+		// ----------------------------
+
+		if (token.type === 'transclusion' && (token.name in {
 			// enwiki, zhwiki: 下列討論已經關閉，請勿修改。
 			Atop : true,
 			'Archive top' : true,
@@ -1242,25 +1283,106 @@ function check_general_status(section, section_index) {
 			// 本討論已經結束。請不要對這個存檔做任何編輯。
 			TalkendH : true,
 			Talkendh : true
-		}) {
+		})) {
+			topic_status.archived = 'start';
+			delete section.adding_link;
+
 			var matched = token.parameters.status
 			// || token.parameters.result
 			;
 			if (matched) {
-				status = 'style="color: #888;" | ' + matched;
+				topic_status.style_and_status = 'style="color: #888;" | '
+						+ matched;
 			} else {
 				// e.g., "Closing, ..."
 				matched = String(token.parameters[1]).match(
 						/^([A-Z][a-z]+)[,.]/);
-				status = 'style="color: #888;" | '
+				topic_status.style_and_status = 'style="color: #888;" | '
 						+ (matched ? matched[1]
 								: (use_language === 'zh' ? '已關閉' : 'Closed'));
 			}
+
+			return;
 		}
 
-	});
+		if (topic_status.archived === 'start'
+		//
+		&& token.type === 'transclusion' && (token.name in {
+			// 下列討論已經關閉，請勿修改。
+			Abot : true,
+			'Archive bottom' : true,
+			// 本框內討論文字已關閉，相關文字不再存檔。
+			TalkF : true,
+			// 本討論已經結束。請不要對這個存檔做任何編輯。
+			TalkendF : true,
+			Talkendf : true
+		})) {
+			topic_status.archived = 'end' && 'archived';
+			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
+			return;
+		}
 
-	return status;
+		// ----------------------------
+
+		if ((topic_status.archived === 'archived'
+		//
+		|| topic_status.move_to === 'moved') && token.toString().trim()) {
+			// console.log(token);
+			if (topic_status.move_to === 'moved') {
+				topic_status.move_to = 'extra';
+				delete topic_status.style;
+				delete topic_status.style_and_status;
+				delete section.adding_link;
+			}
+			if (topic_status.archived === 'archived') {
+				// 在結案之後還有東西。重新設定。
+				// console.log('在結案之後還有東西:');
+				topic_status.archived = 'extra';
+				delete topic_status.style;
+				delete topic_status.style_and_status;
+				if (token.type === 'section_title') {
+					section.adding_link = token;
+				}
+			}
+			// 除了 {{save to}} 之類外，有多餘的 token 就應該直接跳出。
+			// return to_exit;
+		}
+
+	}, 1);
+
+	// console.log('archived: ' + archived);
+	// console.log('move_to: ' + move_to);
+	if (topic_status.archived === 'archived'
+			|| topic_status.move_to === 'moved') {
+		section.CSS = {
+			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
+			style : configuration.closed_style.link_CSS,
+			color : configuration.closed_style.link_color,
+			'background-color' : configuration.closed_style.link_backgroundColor
+		};
+
+		// 已移動或結案的議題之顯示格式
+		topic_status.style = configuration.closed_style.line_CSS ? 'style="'
+				+ configuration.closed_style.line_CSS + '"' : '';
+
+		// 把"下列討論已經關閉"的議題用深灰色顯示。
+		'style="background-color: #ccc;"'
+		// 話題加灰底會與「更新圖例」裡面的說明混淆
+		&& 'style="text-decoration: line-through;"'
+		// 將完成話題全灰. "!important": useless
+		&& 'style="color: #888;"'
+		// 一般來說，色塊填滿應該不會超出框線，而且也不會影響框線本身的顏色
+		&& 'style="opacity: .8;"';
+	}
+
+	return topic_status;
+}
+
+// 各種 protect、各語系通用的 status。
+function check_general_status(section, section_index) {
+	var topic_status = general_check_section_status.call(this, section);
+
+	return topic_status.style_and_status;
 }
 
 function check_BOTREQ_status(section, section_index) {
@@ -2263,13 +2385,15 @@ function RFF_section_filter(section) {
 // ================================================================================================
 
 // module.exports.page_configurations
-// global.page_configurations = page_configurations;
+// globalThis.page_configurations = page_configurations;
 
 module.exports = {
 	// properties
 	page_configurations : page_configurations,
 	generate_headers : generate_headers,
 	general_page_configuration : general_page_configuration,
+
+	general_check_section_status : general_check_section_status,
 
 	// tool functions
 	is_bot_user : is_bot_user,

@@ -125,14 +125,14 @@ botop_sitelinks = {
 
 // ----------------------------------------------
 
-global.localized_page_configuration = {
+globalThis.localized_page_configuration = {
 	zh : {
 		row_style : general_row_style
 	}
 };
-global.localized_page_configuration =
-// global.localized_page_configuration[CeL.wiki.site_name(wiki)] ||
-global.localized_page_configuration[use_language];
+globalThis.localized_page_configuration =
+// globalThis.localized_page_configuration[CeL.wiki.site_name(wiki)] ||
+globalThis.localized_page_configuration[use_language];
 
 function set_update_timer(page_title, time_ms, callback) {
 	if (callback) {
@@ -144,14 +144,14 @@ function set_update_timer(page_title, time_ms, callback) {
 				time_ms);
 	}
 }
-global.set_update_timer = set_update_timer;
+globalThis.set_update_timer = set_update_timer;
 
-global.FC_vote_configurations = {
+globalThis.FC_vote_configurations = {
 	vote_closed_listener : function() {
 		wiki.page(this.title, pre_fetch_sub_pages);
 	},
 };
-Object.assign(global, require('../special page configuration.js'));
+Object.assign(globalThis, require('../special page configuration.js'));
 
 // ----------------------------------------------
 
@@ -431,7 +431,7 @@ function adapt_configuration(latest_task_configuration) {
 		// console.trace([ page_title, page_config, globalThis.use_project ]);
 		if (page_config) {
 			// e.g., {"need_time_legend":false}
-			if (!global.special_page_configuration[page_config]) {
+			if (!globalThis.special_page_configuration[page_config]) {
 				if (!CeL.is_Object(page_config)) {
 					CeL.error(
 					//
@@ -441,7 +441,7 @@ function adapt_configuration(latest_task_configuration) {
 					page_config = null;
 				}
 			}
-		} else if (use_project in global.special_page_configuration) {
+		} else if (use_project in globalThis.special_page_configuration) {
 			page_config = use_project;
 		}
 
@@ -450,8 +450,8 @@ function adapt_configuration(latest_task_configuration) {
 				+ (page_config ? ' using configuration plan: '
 						+ (typeof page_config === 'string' ? page_config : JSON
 								.stringify(page_config)) : ''));
-		if (global.special_page_configuration[page_config]) {
-			page_config = global.special_page_configuration[page_config];
+		if (globalThis.special_page_configuration[page_config]) {
+			page_config = globalThis.special_page_configuration[page_config];
 		}
 		// console.log(page_config);
 		page_configurations[page_title] = page_config ? Object.assign(Object
@@ -557,7 +557,7 @@ function start_main_work() {
 	}
 
 	function main_process(_special_users) {
-		special_users = global.special_users = _special_users;
+		special_users = globalThis.special_users = _special_users;
 
 		// 首先生成一輪討論頁面主題列表。
 		traversal_all_pages();
@@ -752,128 +752,13 @@ function get_special_users(callback, options) {
 // row_style functions
 
 function general_row_style(section, section_index) {
-	var style, to_exit = this.each.exit,
+	var topic_status = general_check_section_status.call(this, section);
+
 	// archived, move_to 兩者分開，避免{{Archive top}}中有{{Moveto}}
-	archived = section.archived && 'archived', move_to = section.moved
-			&& 'moved';
+	var archived = topic_status.archived || section.archived && 'archived', move_to = topic_status.move_to
+			|| section.moved && 'moved';
 
-	// console.trace(section);
-	this.each.call(section, function(token) {
-		if (token.type === 'transclusion'
-		// 本主題全部或部分段落文字，已移動至...
-		&& (/^Moved? ?to$/i.test(token.name) || (token.name in {
-			'Moved discussion to' : true,
-			Switchto : true,
-			移動至 : true
-		}))) {
-			move_to = 'moved';
-			section.adding_link = token.parameters[1];
-			return;
-		}
-
-		if (token.type === 'transclusion' && (token.name in {
-			// zhmoegirl: 標記已完成討論串的模板別名列表。
-			MarkAsResolved : true,
-			MAR : true,
-			标记为完成 : true
-		})) {
-			// style = '';
-			// 此模板代表一種決定性的狀態，可不用再檢查其他內容。
-			return to_exit;
-		}
-
-		// [[w:zh:Template:集中討論重定向]]
-		if (token.type === 'transclusion' && (token.name in {
-			CDTR : true,
-			集中讨论重定向 : true,
-			集中討論重定向 : true
-		})) {
-			section.has_集中討論重定向模板 = true;
-			return;
-		}
-
-		// TODO: use wiki.is_template(token, list)
-		if (token.type === 'transclusion' && (token.name in {
-			// enwiki, zhwiki: 下列討論已經關閉，請勿修改。
-			Atop : true,
-			'Archive top' : true,
-			'Archive top green' : true,
-			'Archive top red' : true,
-			'Archive top yellow' : true,
-			// 本框內討論文字已關閉，相關文字不再存檔。
-			TalkH : true,
-			// 本討論已經結束。請不要對這個存檔做任何編輯。
-			TalkendH : true,
-			Talkendh : true
-		})) {
-			archived = 'start';
-			delete section.adding_link;
-			return;
-		}
-
-		if (archived === 'start'
-		//
-		&& token.type === 'transclusion' && (token.name in {
-			// 下列討論已經關閉，請勿修改。
-			Abot : true,
-			'Archive bottom' : true,
-			// 本框內討論文字已關閉，相關文字不再存檔。
-			TalkF : true,
-			// 本討論已經結束。請不要對這個存檔做任何編輯。
-			TalkendF : true,
-			Talkendf : true
-		})) {
-			archived = 'end' && 'archived';
-			// 可能拆分為許多部分討論，但其中只有一小部分結案。繼續檢查。
-			return;
-		}
-
-		if ((archived === 'archived' || move_to === 'moved')
-				&& token.toString().trim()) {
-			// console.log(token);
-			if (move_to === 'moved') {
-				move_to = 'extra';
-				delete section.adding_link;
-			}
-			if (archived === 'archived') {
-				// 在結案之後還有東西。重新設定。
-				// console.log('在結案之後還有東西:');
-				archived = 'extra';
-				if (token.type === 'section_title') {
-					section.adding_link = token;
-				}
-			}
-			// 除了 {{save to}} 之類外，有多餘的 token 就應該直接跳出。
-			// return to_exit;
-		}
-
-	}, 1);
-
-	// console.log('archived: ' + archived);
-	// console.log('move_to: ' + move_to);
-	if (archived === 'archived' || move_to === 'moved') {
-		section.CSS = {
-			// 已移動或結案的議題，整行文字顏色。 現在已移動或結案的議題，整行會採用相同的文字顏色。
-			style : configuration.closed_style.link_CSS,
-			color : configuration.closed_style.link_color,
-			'background-color' : configuration.closed_style.link_backgroundColor
-		};
-
-		// 已移動或結案的議題之顯示格式
-		return configuration.closed_style.line_CSS ? 'style="'
-				+ configuration.closed_style.line_CSS + '"' : '';
-
-		// 把"下列討論已經關閉"的議題用深灰色顯示。
-		'style="background-color: #ccc;"'
-		// 話題加灰底會與「更新圖例」裡面的說明混淆
-		&& 'style="text-decoration: line-through;"'
-		// 將完成話題全灰. "!important": useless
-		&& 'style="color: #888;"'
-		// 一般來說，色塊填滿應該不會超出框線，而且也不會影響框線本身的顏色
-		&& 'style="opacity: .8;"';
-	}
-
-	return style || '';
+	return topic_status.style || '';
 }
 
 // ----------------------------------------------
@@ -1417,7 +1302,7 @@ function listen_to_sub_page(sub_page_data, main_page_data) {
 	}
 }
 
-global.listen_to_sub_page = listen_to_sub_page;
+globalThis.listen_to_sub_page = listen_to_sub_page;
 
 function for_each_sub_page(sub_page_data/* , messages, config */) {
 	var sub_page_title = sub_page_data.original_title || sub_page_data.title,
