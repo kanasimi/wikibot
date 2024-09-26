@@ -39,6 +39,7 @@ node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "onl
 
 node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
 node 20201008.fix_anchor.js use_language=de "check_page=Olympische Sommerspiele 2004/Teilnehmer (Usbekistan)" "only_modify_pages=Rudern bei den Olympischen Spielen"
+node 20201008.fix_anchor.js use_language=de "check_page=Akklamation|Fußball-Weltmeisterschaft"
 
 node 20201008.fix_anchor.js use_language=test "check_page=Sections" "only_modify_pages=Anchor test"
 
@@ -1809,7 +1810,8 @@ async function check_page(target_page_data, options) {
 			// gettext_config:{"id":"remove-$1-notifications"}
 			const message = CeL.gettext('Remove %1 {{PLURAL:%1|notification|notifications}}', linking_page_data.remove_notification_count);
 			CeL.info(`${resolve_linking_page.name}: ${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			add_summary(this, message + ` (${CeL.wiki.title_link_of(target_page_data)})`);
+			// 當檢查這個頁面的時候，發現...
+			add_summary(this, message + ` (When checking links to ${CeL.wiki.title_link_of(target_page_data)})`);
 		}
 
 		if (!Array.isArray(this.summary))
