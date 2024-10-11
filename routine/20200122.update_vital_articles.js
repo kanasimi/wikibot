@@ -21,6 +21,9 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Fredrikstad Bryggeri"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Future Looks Good"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Michigan State Trunkline Highway System"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Evangelos Liakos|User talk:Kepler-1229b/Books/archive/Kepler-26"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tyasha Harris"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Paula Dockery|Talk:Abebe Bikila"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -136,7 +139,11 @@ const parameters_move_from_WikiProjects_to_WPBS = {
 	// parameters_move_from_specified_WikiProject_to_WPBS
 	// [[w:en:Template:WikiProject Biography]]
 	'WikiProject Biography': {
-		living: '', blp: '', BLP: '', activepol: '', blpo: '',
+		living: { value_normalizer: 'Yesno' },
+		blp: { value_normalizer: 'Yesno' },
+		BLP: { value_normalizer: 'Yesno' },
+		activepol: { value_normalizer: 'Yesno' },
+		blpo: { value_normalizer: 'Yesno' },
 		// 'listas' is at `parameters_move_from_any_WikiProjects_to_WPBS`
 		//listas: '',
 	},
@@ -2366,8 +2373,14 @@ const class_to_namespace_map = {
 	Category: false,
 	Template: false,
 	File: false,
-	// 所有 namespace='WikiProject talk' 頁面上 {{WikiProject template|class=Project}} 的 class 都會被消除。
-	Project: 'WikiProject talk'
+
+	// [[User talk:Kanashimi#PIQA_page_filter and Category:WikiProject banners with redundant class parameter]]
+	Template: 'User talk',
+	// 所有 namespace='WikiProject talk' or User talk' 頁面上 {{WikiProject template|class=Project}} 的 class 都會被消除。
+	Project: ['WikiProject talk', 'User talk'],
+	Book: 'User talk',
+	// 所有 '?' 皆為無效 class。
+	'?': '*',
 };
 
 // @see https://zh.wikipedia.org/wiki/Module:Class/data
@@ -2390,6 +2403,20 @@ function is_standard_class(_class) {
 	_class = normalize_class(_class);
 	return standard_class_Set.has(_class);
 }
+
+/** value_of_move_to 包含與 value_to_move 等價的 value，可將 value_to_move 移到 value_of_move_to 去。 */
+function are_equivalent_parameter_values(value_to_move, value_of_move_to, parameter_configuration) {
+	if (!value_to_move)
+		return false;
+
+	return !value_of_move_to
+		// normalize parameter value. .toLowerCase().trim()
+		|| CeL.wiki.wikitext_to_plain_text(value_of_move_to).trim() === CeL.wiki.wikitext_to_plain_text(value_to_move).trim()
+		|| parameter_configuration?.value_normalizer === 'Yesno' && !CeL.wiki.Yesno(value_of_move_to) === !CeL.wiki.Yesno(value_to_move)
+		;
+}
+
+
 
 // maintain vital articles templates: FA|FL|GA|List,
 // add new {{Vital articles|class=unassessed}}
@@ -2485,6 +2512,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 
 		if (wiki.is_template(template_name_hash.WPBS, token)) {
+			if (token.parameters.category) {
+				console.trace(token.parameters);
+				throw new Error(talk_page_data.title);
+			}
 			if (WikiProject_banner_shell_token) {
 				CeL.error(`${maintain_VA_template_each_talk_page.name}: Find multiple {{${template_name_hash.WPBS}}} in ${CeL.wiki.title_link_of(talk_page_data)}!`);
 				console.trace([WikiProject_banner_shell_token.toString(), token.toString()]);
@@ -2559,7 +2590,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (token.parameters.class) {
 				const normalized_class = normalize_class(token.parameters.class);
 				if ((normalized_class in class_to_namespace_map)
-					&& wiki.is_namespace(talk_page_data, class_to_namespace_map[normalized_class] || normalized_class + ' talk')
+					&& (class_to_namespace_map[normalized_class] === '*' || wiki.is_namespace(talk_page_data, class_to_namespace_map[normalized_class] || normalized_class + ' talk'))
 				) {
 					if (CeL.wiki.parse.replace_parameter(token, { class: CeL.wiki.parse.replace_parameter.KEY_remove_parameter })) {
 						changed = true;
@@ -2797,7 +2828,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 					const normalize_token_class = normalize_class(
 						Array.isArray(token.parameters.class) && token.parameters.class.type === 'plain'
-							? token.parameters.class.filter(sub_token => typeof sub_token === 'string' || sub_token.type !== 'comment').join('')
+							? CeL.wiki.wikitext_to_plain_text(token.parameters.class).trim()
 							: token.parameters.class
 					);
 					//console.trace([ token, token.parameters.class, WPBS_template_object, normalize_token_class, normalize_class(WPBS_template_object.class) ]);
@@ -2892,15 +2923,18 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							continue;
 						}
 
-						if ((!WikiProject_banner_shell_token.parameters[parameter_name_to_remove]
-							// normalize parameter value
-							|| WikiProject_banner_shell_token.parameters[parameter_name_to_remove].toString().toLowerCase() === value.toString().toLowerCase())
-							&& (!WPBS_template_object[parameter_name_to_remove]
-								|| WPBS_template_object[parameter_name_to_remove] === value)) {
+						if (are_equivalent_parameter_values(value, WikiProject_banner_shell_token.parameters[parameter_name_to_remove], parameter_configuration)
+							&& are_equivalent_parameter_values(value, WPBS_template_object[parameter_name_to_remove], parameter_configuration)) {
 							// These parameters will move to {{WikiProject banner shell}}
 							// TODO: If contains comment...
-							const move_to_parameter_name = parameter_configuration || parameter_name_to_remove;
-							WPBS_template_object[move_to_parameter_name] = value;
+							const move_to_parameter_name = parameter_configuration?.move_to_parameter_name
+								|| typeof parameter_configuration === 'string' && parameter_configuration
+								|| parameter_name_to_remove;
+							if (!WPBS_template_object[move_to_parameter_name]
+								// 取較完整的 value。
+								|| WPBS_template_object[move_to_parameter_name].toString().trim().length < value.toString().trim().length) {
+								WPBS_template_object[move_to_parameter_name] = value;
+							}
 							parameters_to_remove_Set.add(parameter_name_to_remove);
 							continue;
 						}
