@@ -1190,7 +1190,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		// 中文條目也必須處理語言變體（繁簡轉換）情形。
 		//console.trace(meta_configuration.language);
-		if ((meta_configuration.language === 'zh' || meta_configuration.language === 'cmn') && !task_configuration.list_title
+		if (/^zh|cmn/.test(meta_configuration.language) && !task_configuration.list_title
 			// 確認是有必要轉換的，不是完全英文標題。
 			// /[\u4e00-\u9fa5]/: 匹配中文。
 			&& /[\u4e00-\u9fff]/.test(move_from_link)) {

@@ -1334,6 +1334,9 @@ function general_check_section_status(section/* , options */) {
 				delete topic_status.style_and_status;
 				delete section.adding_link;
 			}
+			// 機器人判定方法是當以{{tl|archive bottom}}結尾時，當作話題已結束。
+			// 換句話說，只要{{tl|archive bottom}}後面加任何文字或{{tl|不存檔}}，
+			// 或分割主題（各自2級）就不會認定話題已結束。
 			if (topic_status.archived === 'archived') {
 				// 在結案之後還有東西。重新設定。
 				// console.log('在結案之後還有東西:');
