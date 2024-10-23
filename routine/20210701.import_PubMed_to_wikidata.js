@@ -102,8 +102,13 @@ const main_subject_mapping__file_path = base_directory + 'main_subject_mapping.j
 const main_subject_mapping = new Map((() => {
 	let data = CeL.read_file(main_subject_mapping__file_path);
 	if (data) return JSON.parse(data.toString());
+	// 改用 async function fill_main_subject_mapping()
 	return Object.entries({
 		//'cell biology': 'Q7141',
+
+		// [[d:User talk:Kanashimi#Adding subjects that are scholarly articles]]
+		// for [[Q33956142]]: "Qualitative Methods" not Q35230960
+		'qualitative methods': 'Q839486',
 	});
 })());
 
@@ -176,6 +181,7 @@ async function main_process() {
 
 	// --------------------------------------------------------------------------------------------
 
+	// 註解此行以 debug。
 	await infinite_execution();
 
 	const start_date = new Date('2021-02-01');
@@ -195,6 +201,9 @@ async function main_process() {
 		&& [/*166623, 165946, 168322, 178485, 178486, 178685,*/178686, 178687, 178688,]
 
 		//|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
+
+		// [[d:User talk:Kanashimi#Adding subjects that are scholarly articles]]
+		&& [20811529]
 		;
 
 	const link_list = [];
@@ -280,6 +289,8 @@ WHERE
 
 }
 
+
+/** 預先登記會混淆的主題。 */
 async function fill_main_subject_mapping() {
 
 	async function set_main_subject_item_list(entity_id) {
@@ -291,7 +302,7 @@ WHERE
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 `);
-		//console.trace(main_subject_item_list);
+		//console.trace(entity_id, main_subject_item_list);
 		main_subject_item_list.forEach(main_subject_data => {
 			const main_subject = CeL.wiki.data.value_of(main_subject_data.itemLabel).toLowerCase();
 			if (!main_subject_mapping.has(main_subject)) {
@@ -301,14 +312,18 @@ WHERE
 		});
 	}
 
-	// academic discipline (Q11862829)
-	await set_main_subject_item_list('Q11862829');
-
-	// structural class of chemical compounds (Q47154513)
-	await set_main_subject_item_list('Q47154513');
-
-	// biological process (Q2996394)
-	await set_main_subject_item_list('Q2996394');
+	for (const entity_id of [
+		// study type (Q78088984)
+		'Q78088984',
+		// academic discipline (Q11862829)
+		'Q11862829',
+		// structural class of chemical compounds (Q47154513)
+		'Q47154513',
+		// biological process (Q2996394)
+		'Q2996394',
+	]) {
+		await set_main_subject_item_list(entity_id);
+	}
 
 	CeL.write_file(main_subject_mapping__file_path, JSON.stringify(Array.from(main_subject_mapping)));
 }
@@ -1430,6 +1445,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		}
 
 		key = key.trim().toLowerCase();
+		//console.trace([key, key in data_to_modify.main_subject]);
 		if (key in data_to_modify.main_subject) return;
 		data_to_modify.main_subject[key] = null;
 		// 這邊頻繁搜尋 key 可能造成 cache 肥大，且有拖延時間的問題。因此一次執行不能處理太多項目!
@@ -1442,6 +1458,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		});
 	}
 
+	//console.trace(Europe_PMC_article_data.keywordList?.keyword);
 	add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
 
 	// 醫學主題詞。
