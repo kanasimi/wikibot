@@ -2,7 +2,7 @@
 
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
-node 20200122.update_vital_articles.js use_language=en do_PIQA=1000000 forced_edit
+node 20200122.update_vital_articles.js use_language=en skip_vital do_PIQA=1000000 forced_edit
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
 node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Hongcheon County|Talk:Vogon|Talk:Thiazolidinedione"
@@ -53,6 +53,7 @@ use [[w:en:Module:Class/definition.json]]
 fix [[Category:有不必要class參數的專題橫幅]]: {{德国专题 |1=B |2=low}}
 條目位於[[Category:身亡者]]則去掉blp=y或living參數。
 如果listas參數為空，添加條目的DEFAULTSORT。
+
 
  */
 
@@ -134,16 +135,45 @@ const template_name_hash = {
 };
 
 // [[w:en:User talk:Kanashimi#Move listas]]
-const parameters_move_from_any_WikiProjects_to_WPBS = { listas: '', };
+const parameters_move_from_any_WikiProjects_to_WPBS = {
+	listas: '',
+	// [[w:en:User talk:Kanashimi#Two changes please to class and BLP]]
+	// Move |class=FM from any banners into the banner shell
+	class: { value_filter: /^FM$/ },
+};
 const parameters_move_from_WikiProjects_to_WPBS = {
 	// parameters_move_from_specified_WikiProject_to_WPBS
 	// [[w:en:Template:WikiProject Biography]]
 	'WikiProject Biography': {
-		living: { value_normalizer: 'Yesno' },
+		living: {
+			value_normalizer: 'Yesno',
+			// [[w:en:User talk:Kanashimi#Two changes please to class and BLP]]
+			// Use |blp= instead of |living=.
+			move_to_parameter_name: 'blp',
+		},
 		blp: { value_normalizer: 'Yesno' },
-		BLP: { value_normalizer: 'Yesno' },
-		activepol: { value_normalizer: 'Yesno' },
-		blpo: { value_normalizer: 'Yesno' },
+		BLP: { value_normalizer: 'Yesno', move_to_parameter_name: 'blp', },
+		activepol: {
+			value_normalizer: 'Yesno', token_modifier({ parameter_name_to_remove, value, token, WPBS_template_object }) {
+				if (typeof CeL.wiki.Yesno(value) === 'boolean') {
+					WPBS_template_object.blp = 'activepol';
+					return true;
+				}
+			},
+		},
+		blpo: {
+			value_normalizer: 'Yesno', token_modifier({ parameter_name_to_remove, value, token, WPBS_template_object }) {
+				if (typeof CeL.wiki.Yesno(value) === 'boolean') {
+					if (CeL.wiki.Yesno(value)) {
+						// [[w:en:User talk:Kanashimi#Two changes please to class and BLP]]
+						// |blp=yes should supersede |blp=other.
+					} else {
+						WPBS_template_object.blp = 'other';
+					}
+					return true;
+				}
+			},
+		},
 		// 'listas' is at `parameters_move_from_any_WikiProjects_to_WPBS`
 		//listas: '',
 	},
@@ -832,6 +862,7 @@ async function do_PIQA_operation() {
 					no_topic_message: true,
 					do_PIQA: true,
 					key_is_talk_page: true,
+					category_to_clean,
 					no_class_detected: category_to_clean === 'Category:Pages using WikiProject banner shell without a project-independent quality rating',
 				};
 			}
@@ -2412,7 +2443,7 @@ function are_equivalent_parameter_values(value_to_move, value_of_move_to, parame
 	return !value_of_move_to
 		// normalize parameter value. .toLowerCase().trim()
 		|| CeL.wiki.wikitext_to_plain_text(value_of_move_to).trim() === CeL.wiki.wikitext_to_plain_text(value_to_move).trim()
-		|| parameter_configuration?.value_normalizer === 'Yesno' && !CeL.wiki.Yesno(value_of_move_to) === !CeL.wiki.Yesno(value_to_move)
+		|| parameter_configuration?.value_normalizer === 'Yesno' && CeL.wiki.Yesno(value_of_move_to) === CeL.wiki.Yesno(value_to_move)
 		;
 }
 
@@ -2445,6 +2476,13 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			`${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`]);
 		// TODO: [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 24]]
 		return Wikiapi.skip_edit;
+	}
+
+	// 2024/10/23 15:38:53
+	// [[Template talk:WikiProject banner shell#Combine messages]]
+	// synchronizing {{para|blp}} with [[Category:Living people]] for pages in [[:Category:Pages using WikiProject Biography with conflicting living parameter]]
+	if (article_info.category_to_clean === 'Category:Pages using WikiProject Biography with conflicting living parameter') {
+		// TODO
 	}
 
 	// ------------------------------------------------------------------------
@@ -2857,7 +2895,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					if (!is_standard_class(normalize_token_class)
 						&& normalize_token_class !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
 						// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
-						// e.g., [[Talk:HMAS Broome]]
+						// e.g., |class=SI @ [[Talk:HMAS Broome]]
 						return;
 					}
 
@@ -2923,22 +2961,34 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 							continue;
 						}
 
-						if (are_equivalent_parameter_values(value, WikiProject_banner_shell_token.parameters[parameter_name_to_remove], parameter_configuration)
-							&& are_equivalent_parameter_values(value, WPBS_template_object[parameter_name_to_remove], parameter_configuration)) {
-							// These parameters will move to {{WikiProject banner shell}}
-							// TODO: If contains comment...
-							const move_to_parameter_name = parameter_configuration?.move_to_parameter_name
-								|| typeof parameter_configuration === 'string' && parameter_configuration
-								|| parameter_name_to_remove;
-							if (!WPBS_template_object[move_to_parameter_name]
-								// 取較完整的 value。
-								|| WPBS_template_object[move_to_parameter_name].toString().trim().length < value.toString().trim().length) {
-								WPBS_template_object[move_to_parameter_name] = value;
-							}
-							parameters_to_remove_Set.add(parameter_name_to_remove);
+						if (parameter_configuration.value_filter && !parameter_configuration.value_filter.test(value)) {
 							continue;
 						}
-						// 保留 value 不同的 parameters。
+
+						// These parameters will move to {{WikiProject banner shell}}
+						// TODO: If contains comment...
+						const move_to_parameter_name = parameter_configuration?.move_to_parameter_name
+							|| typeof parameter_configuration === 'string' && parameter_configuration
+							|| parameter_name_to_remove;
+
+						if (!are_equivalent_parameter_values(value, WikiProject_banner_shell_token.parameters[move_to_parameter_name], parameter_configuration)
+							|| !are_equivalent_parameter_values(value, WPBS_template_object[move_to_parameter_name], parameter_configuration)) {
+							// 保留 value 不同的 parameters。
+							continue;
+						}
+
+						if (parameter_configuration.token_modifier) {
+							if (parameter_configuration.token_modifier({ parameter_name_to_remove, value, token, WPBS_template_object }))
+								parameters_to_remove_Set.add(parameter_name_to_remove);
+							continue;
+						}
+
+						if (!WPBS_template_object[move_to_parameter_name]
+							// 取較完整的 value。
+							|| WPBS_template_object[move_to_parameter_name].toString().trim().length < value.toString().trim().length) {
+							WPBS_template_object[move_to_parameter_name] = value;
+						}
+						parameters_to_remove_Set.add(parameter_name_to_remove);
 					}
 				}
 
@@ -3203,6 +3253,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		// console.log(wikitext);
 	}
 
+	if (!wikitext && !talk_page_data.wikitext?.trim())
+		return Wikiapi.skip_edit;
+	// assert: wikitext === '' && Remove empty {{WPBS}}
+
 	if (all_parameters_fix_count > 0) {
 		changed = true;
 		article_info.reason.push(['Fix %1 misspelled {{PLURAL:%1|parameter|parameters}}.', all_parameters_fix_count]);
@@ -3253,9 +3307,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		this.summary = this.summary.toString();
 	}
 
-	if (!wikitext && !talk_page_data.wikitext?.trim())
-		return Wikiapi.skip_edit;
-	// assert: wikitext === '' && Remove empty {{WPBS}}
+	if (article_info.category_to_clean) {
+		this.summary += ` (Fix [[${article_info.category_to_clean}]])`;
+	}
 
 	if (!changed) {
 		if (Date.now() - Date.parse(CeL.wiki.content_of.revision(talk_page_data).timestamp) > CeL.to_millisecond('8 hour')) {
