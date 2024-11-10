@@ -128,9 +128,9 @@ page_allowlist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wi
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
 page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
 		'Wikisource:管理员',
-		// [[w:zh:Special:Diff/54719338]]
-		// 請讓機器人不要在Module_talk:***/testcases下自動添加簽名。
-		/Module_talk:.+\/testcases/, /萌娘百科 talk:提案\/讨论中提案\/.+/ ],
+		// [[w:zh:User talk:Kanashimi/2015#Cewbot自动添加签名的问题。]] [[wikisource:zh:User talk:Kanashimi#Module talk 名字空間免簽名]]
+		// 不在 Module_talk:***/testcases 自動添加簽名。這些頁面的主頁面用於編寫測試程式碼，談話頁面可用來展示測試結果。
+		/^Module talk:.+?\/testcases$/, /^萌娘百科 talk:提案\/讨论中提案\/./ ],
 
 user_denylist = new Set,
 
