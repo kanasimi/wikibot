@@ -578,7 +578,7 @@
   schedule: "2 0 * * 1"
 
 - name: k8s-20210701.import-pubmed-to-wikidata
-  command: "node ./wikibot/routine/20210701.import_PubMed_to_wikidata.js"
+  command: "node ./wikibot/routine/20210701.import_PubMed_to_wikidata.js wbeditentity_only_for_main=true"
   image: node18
   mem: 4Gi
   continuous: true

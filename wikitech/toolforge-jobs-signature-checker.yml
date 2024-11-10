@@ -41,12 +41,12 @@
   mem: 4Gi
   continuous: true
 - name: k8s-20170515.signature-check.wikiversity
-  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wwikiversity"
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikiversity"
   image: node18
   mem: 4Gi
   continuous: true
 - name: k8s-20170515.signature-check.wiktionary
-  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wwiktionary"
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wiktionary"
   image: node18
   mem: 4Gi
   continuous: true
