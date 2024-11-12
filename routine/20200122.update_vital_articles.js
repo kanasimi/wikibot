@@ -126,6 +126,8 @@ const listed_article_info = Object.create(null);
  */
 const have_to_edit_its_talk_page = Object.create(null);
 
+const WPBS_syntax_error_pages = [];
+
 const template_name_hash = {
 	WPBS: 'WikiProject banner shell',
 	WPDAB: 'WikiProject Disambiguation',
@@ -278,7 +280,7 @@ function get_topic_of_section(page_title_and_section, topic) {
  *            最新的任務設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	// console.log(wiki);
+	// console.log(latest_task_configuration.general);
 
 	// ----------------------------------------------------
 
@@ -435,6 +437,8 @@ async function adapt_configuration(latest_task_configuration) {
 		//console.trace('deprecated_parameter_hash:', deprecated_parameter_hash);
 	}
 
+	const PATTERN_is_RegExp = /[\^\[\\\]*]/;
+
 	//console.trace(general.remove_unnecessary_parameters);
 	if (CeL.is_Object(general.remove_unnecessary_parameters)) {
 		const remove_unnecessary_parameters = Object.create(null);
@@ -448,8 +452,16 @@ async function adapt_configuration(latest_task_configuration) {
 				value.each('Template:Para', template_token => {
 					let key = template_token.parameters[1], value = template_token.parameters[2];
 					if (!key) return;
-					if (/[\^\[\\\]*]/.test(key)) key = key.to_RegExp();
-					if (/[\^\[\\\]*]/.test(value)) value = value.to_RegExp();
+					key = key.toString().replace(/{{!}}/g, '|');
+					//console.log([namespace, key, value]);
+					if (PATTERN_is_RegExp.test(key)) {
+						key = key.to_RegExp();
+					} else if (parameter_Map.has(key)) {
+						CeL.error(`${remove_unnecessary_parameters.name}: ${namespace}: 重複設定 ${key}`);
+					}
+					value = value.toString().replace(/{{!}}/g, '|');
+					if (PATTERN_is_RegExp.test(value))
+						value = value.to_RegExp();
 					parameter_Map.set(key, value);
 				});
 				if (parameter_Map.size === 0)
@@ -890,6 +902,25 @@ async function do_PIQA_operation() {
 
 	// 處理殘餘的 `have_to_edit_its_talk_page`
 	await maintain_VA_template();
+
+	if (wiki.latest_task_configuration.general.WPBS_syntax_error_report_page) {
+		let report_wikitext;
+		if (WPBS_syntax_error_pages.length > 0) {
+			report_wikitext = WPBS_syntax_error_pages.map(title => CeL.wiki.title_link_of(title));
+			report_wikitext.unshift('Page title');
+			report_wikitext = CeL.wiki.array_to_table(report_wikitext) + `\n[[Category:Pages using WikiProject banner shell needing attention]]`;
+		} else {
+			report_wikitext = `No problems detected.`;
+		}
+
+		await wiki.edit_page(wiki.latest_task_configuration.general.WPBS_syntax_error_report_page,
+			report_wikitext, {
+			bot: 1,
+			nocreate: 1,
+			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
+				'Report WPBS syntax error pages')}: ${report_wikitext.length - 1} page(s)`
+		});
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -916,23 +947,37 @@ async function get_page_info() {
 
 	// ---------------------------------------------
 
+	// See [[Wikipedia talk:Vital articles#Categories]], [[User talk:Kanashimi#Vital Article inconsistent bolding]]
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	if (wiki.latest_task_configuration.general.category_name_of_level) {
 		for (let level = /*max_VA_level*/5; level >= 1; level--) {
-			const page_list = await wiki.categorymembers(vital_article_level_to_category(level), {
-				// exclude [[User:Fox News Brasil]]
-				namespace: 'talk'
-			});
-			page_list.forEach(page_data => {
-				const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
-				if (page_title in category_level_of_page) {
-					report_lines.push([page_title, , `${category_level_of_page[page_title]}→${level}`]);
+			const flat_subcategories = (await wiki.category_tree(vital_article_level_to_category(level), {
+				depth: 3, namespace: 'talk', get_flat_subcategories: true,
+				category_filter(page_data) {
+					//console.trace(page_data);
+					return /Wikipedia level-\d vital articles/.test(page_data.title || page_data);
 				}
-				category_level_of_page[page_title] = level;
-			});
+			})).flat_subcategories;
+			//if (level === 1) console.trace(flat_subcategories);
+			for (const [subcategory, page_list] of Object.entries(flat_subcategories)) {
+				for (const page_data of page_list) {
+					if (!wiki.is_namespace(page_data, 'talk')) {
+						console.trace(page_data);
+						continue;
+					}
+
+					// .original_title: for page_list = await wiki.categorymembers(vital_article_level_to_category(level), {})
+					const main_page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
+					if (main_page_title in category_level_of_page) {
+						report_lines.push([main_page_title, , `${category_level_of_page[main_page_title]}→${level}`]);
+					}
+					category_level_of_page[main_page_title] = level;
+				}
+			}
+
 		}
-		// console.log(category_level_of_page);
 	}
+	//console.trace(category_level_of_page);
 
 	// ---------------------------------------------
 	//CeL.info('Get pages of each icons_schema');
@@ -946,24 +991,38 @@ async function get_page_info() {
 		const { category_name } = icon_schema;
 		if (!category_name) continue;
 		//CeL.log_temporary(`Get pages of icons_schema ${category_name}...`);
-		const pages = await wiki.categorymembers(category_name);
-		pages.forEach(page_data => {
-			if (!wiki.is_namespace(page_data, 'Talk')) {
-				if (!wiki.is_namespace(page_data, 'Category') && !((category_name === 'Wikipedia former featured portals' || category_name === 'Wikipedia featured portals') && wiki.is_namespace(page_data, 'Portal talk')))
-					CeL.warn(`${get_page_info.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_data)} (${category_name})`);
-				return;
+
+		const flat_subcategories = (await wiki.category_tree(category_name, {
+			depth: 3, namespace: '*', get_flat_subcategories: true,
+			category_filter(page_data) {
+				//console.trace(page_data, !(page_data.title || page_data).includes(' by topic'));
+				return !(page_data.title || page_data).includes(' by topic');
 			}
-			const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
-			if (!(page_title in icons_of_page))
-				icons_of_page[page_title] = [];
-			if (icon in synchronize_icon_hash /* synchronize_icons.includes(icon) */) {
-				// assert: ('VA_class' in icons_of_page[page_title]) === false
-				icons_of_page[page_title].VA_class = icon.toUpperCase();
-			} else {
-				icons_of_page[page_title].push(icon);
+		})).flat_subcategories;
+
+		//console.trace(flat_subcategories);
+		for (const [subcategory, page_list] of Object.entries(flat_subcategories)) {
+			for (const page_data of page_list) {
+				if (!wiki.is_namespace(page_data, 'Talk')) {
+					if (!wiki.is_namespace(page_data, 'Category') && !((category_name === 'Wikipedia former featured portals' || category_name === 'Wikipedia featured portals') && wiki.is_namespace(page_data, 'Portal talk')))
+						CeL.warn(`${get_page_info.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_data)} (${category_name})`);
+					continue;
+				}
+
+				const page_title = wiki.talk_page_to_main(page_data.original_title || page_data);
+				if (!(page_title in icons_of_page))
+					icons_of_page[page_title] = [];
+				if (icon in synchronize_icon_hash /* synchronize_icons.includes(icon) */) {
+					// assert: ('VA_class' in icons_of_page[page_title]) === false
+					icons_of_page[page_title].VA_class = icon.toUpperCase();
+				} else {
+					icons_of_page[page_title].push(icon);
+				}
 			}
-		});
+		}
 	}
+	//console.trace(icons_of_page);
+	//console.trace(icons_of_page['Cash']);
 
 	// ---------------------------------------------
 	CeL.info(`Check VA class for ${Object.keys(icons_of_page).length} pages, synchronize FA|FL|GA|List.`);
@@ -1739,7 +1798,7 @@ async function for_each_list_page(list_page_data) {
 
 		if (!item_replace_to) {
 			CeL.error('No links in this item! ' + CeL.wiki.title_link_of(list_page_data));
-			console.trace(item);
+			console.trace(item.toString(), item);
 		}
 	}
 
@@ -2551,7 +2610,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 
 		if (wiki.is_template(template_name_hash.WPBS, token)) {
 			if (token.parameters.category) {
-				console.trace(token.parameters);
+				console.trace(CeL.wiki.title_link_of(talk_page_data), token.parameters);
 				throw new Error(talk_page_data.title);
 			}
 			if (WikiProject_banner_shell_token) {
@@ -2801,6 +2860,13 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					changed = true;
 				}
 			}
+		} else if (
+			// TODO: Test all aliases
+			/{\s*WikiProject\s*banner\s*shell/i.test(talk_page_data.wikitext)) {
+			// [[w:en:User talk:Kanashimi#Periodic GIGO report]]
+			CeL.warn(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} may contain syntax error.`);
+			WPBS_syntax_error_pages.push(talk_page_data.title);
+			return Wikiapi.skip_edit;
 		} else {
 			WikiProject_banner_shell_token = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(template_name_hash.WPBS));
 			// assert: need_insert_WPBS === true
@@ -3167,7 +3233,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		if (!WPBS_template_object.class)
 			delete WPBS_template_object.class;
 
-		// https://en.wikipedia.org/wiki/User_talk:Kanashimi#Another_bot_issue_about_|living=yes_and_|blp=yes
+		// [[w:en:User talk:Kanashimi/Archive 1#Another bot issue about |living=yes and |blp=yes]]
+		// [[w:en:User talk:Kanashimi/Archive 1#blp/living]]
 		// Only keep |blp=
 		if (WPBS_template_object.living && CeL.wiki.Yesno(WPBS_template_object.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp || WPBS_template_object.blp)) {
 			delete WPBS_template_object.living;
@@ -3347,9 +3414,10 @@ async function generate_report(options) {
 			else if (record[1] === wiki.latest_task_configuration.general.base_page)
 				record[1] = DEFAULT_LEVEL;
 		}
+		if (!record[1]) console.trace(category_level_of_page, page_title, record);
 		if (/^[1-5](?:\/.+)?$/.test(record[1])) {
 			record[1] = level_page_link(record[1], true);
-		} else if (record[1].startsWith(wiki.latest_task_configuration.general.base_page)) {
+		} else if (record[1]?.startsWith(wiki.latest_task_configuration.general.base_page)) {
 			record[1] = CeL.wiki.title_link_of(record[1]);
 		}
 	});
