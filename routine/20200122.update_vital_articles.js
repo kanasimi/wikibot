@@ -24,6 +24,7 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Evangelos Liakos|User talk:Kepler-1229b/Books/archive/Kepler-26"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tyasha Harris"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Paula Dockery|Talk:Abebe Bikila"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tom Hales (Irish republican)"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -918,7 +919,7 @@ async function do_PIQA_operation() {
 			bot: 1,
 			nocreate: 1,
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
-				'Report WPBS syntax error pages')}: ${report_wikitext.length - 1} page(s)`
+				'Report WPBS syntax error pages')}: ${WPBS_syntax_error_pages.length - 1} page(s)`
 		});
 	}
 }
@@ -3243,9 +3244,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// 很少到這邊。
 			delete WPBS_template_object.blp;
 		}
-		if (WikiProject_banner_shell_token.parameters.living && CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp)) {
-			WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+		if (WikiProject_banner_shell_token.parameters.living) {
+			if (!WikiProject_banner_shell_token.parameters.blp && !WPBS_template_object.blp) {
+				// [[w:en:Talk:Tom Hales (Irish republican)]]
+				WPBS_template_object.blp = WikiProject_banner_shell_token.parameters.living;
+				WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+			} else if (CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.living) === CeL.wiki.Yesno(WikiProject_banner_shell_token.parameters.blp)) {
+				WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+			}
 		}
+		//console.trace(WikiProject_banner_shell_token.parameters, WPBS_template_object);
 
 		if (Object.keys(WPBS_template_object).length > 0) {
 			//console.trace([WPBS_template_object, WikiProject_banner_shell_token[WikiProject_banner_shell_token.index_of[1]]]);
@@ -3265,6 +3273,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						return;
 					}
 				}
+				if (token === WikiProject_banner_shell_token)
+					WikiProject_banner_shell_token = null;
 				remove_WPBS = true;
 				return parsed.each.remove_token;
 			});
@@ -3281,6 +3291,25 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		if (WikiProject_template_Map.size > 0 && CeL.wiki.parse.redirect(talk_page_data)) {
 			CeL.error(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} redirecting to ${CeL.wiki.title_link_of(CeL.wiki.parse.redirect(talk_page_data))}`);
 			//return Wikiapi.skip_edit;
+		}
+
+		if (changed && WikiProject_banner_shell_token) {
+			CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());
+			if (WikiProject_banner_shell_token.index_of[1] > 0 && WikiProject_banner_shell_token.index_of[1] !== WikiProject_banner_shell_token.length - 1) {
+				// [[w:en:User talk:Kanashimi#Category:Pages with redundant living parameter]]
+				// 把 |1= 移到最後一個參數。
+
+				//console.trace(talk_page_data.title, WikiProject_banner_shell_token.toString(), WikiProject_banner_shell_token);
+
+				let _parameter = WikiProject_banner_shell_token[WikiProject_banner_shell_token.length - 1];
+				_parameter = _parameter.toString().replace(/\n\s*$/, '');
+				WikiProject_banner_shell_token[WikiProject_banner_shell_token.length - 1] = _parameter;
+
+				const parameter_of_1 = WikiProject_banner_shell_token.splice(WikiProject_banner_shell_token.index_of[1], 1);
+				WikiProject_banner_shell_token.push(parameter_of_1);
+
+				CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());
+			}
 		}
 
 		// TODO: resort WikiProject_banner_shell_token
