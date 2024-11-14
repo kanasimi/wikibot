@@ -25,6 +25,7 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tyasha Harris"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Paula Dockery|Talk:Abebe Bikila"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tom Hales (Irish republican)"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Cor van Aanholt"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -128,6 +129,8 @@ const listed_article_info = Object.create(null);
 const have_to_edit_its_talk_page = Object.create(null);
 
 const WPBS_syntax_error_pages = [];
+// page_title => Template:WikiProject
+const non_WikiProject_in_WPBS = new Map();
 
 const template_name_hash = {
 	WPBS: 'WikiProject banner shell',
@@ -875,8 +878,8 @@ async function do_PIQA_operation() {
 					no_topic_message: true,
 					do_PIQA: true,
 					key_is_talk_page: true,
-					category_to_clean,
-					no_class_detected: category_to_clean === 'Category:Pages using WikiProject banner shell without a project-independent quality rating',
+					category_to_clean: !Array.isArray(do_PIQA) && category_to_clean,
+					no_class_detected: !Array.isArray(do_PIQA) && category_to_clean === 'Category:Pages using WikiProject banner shell without a project-independent quality rating',
 				};
 			}
 
@@ -919,7 +922,7 @@ async function do_PIQA_operation() {
 			bot: 1,
 			nocreate: 1,
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title,
-				'Report WPBS syntax error pages')}: ${WPBS_syntax_error_pages.length - 1} page(s)`
+				'Report WPBS syntax error pages')}: ${WPBS_syntax_error_pages.length} page(s)`
 		});
 	}
 }
@@ -3215,6 +3218,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// 避免消除原有內容。
 					// TODO: https://en.wikipedia.org/w/index.php?title=Talk:Amphetamine&diff=prev&oldid=1192899833
 					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
+					if(/{{\s*WikiProject [.+]+}}/.test(extra_contents)){
+						// [[w:en:User talk:Kanashimi#Moving 'WikiProject Irish Republicanism' outside of banner shell]]
+						console.error(`${maintain_VA_template_each_talk_page.name}: WPBS 中包含 {{WikiProject}}！或許是因為執行 categorymembers 時 API 未包含這個 WikiProject？`);
+						console.trace(extra_contents);
+						throw new Error('WPBS contains {{WikiProject}}');
+					}
 				}
 				WPBS_template_object[1] = ('\n' + WikiProject_templates_and_allowed_elements
 					// [[Wikipedia:Bots/Requests for approval/Qwerfjkl (bot) 26]]
@@ -3404,7 +3413,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	}
 
 	if (article_info.category_to_clean) {
-		this.summary += ` (Fix [[${article_info.category_to_clean}]])`;
+		this.summary += ` (Fix ${CeL.wiki.title_link_of(article_info.category_to_clean)})`;
 	}
 
 	if (!changed) {
