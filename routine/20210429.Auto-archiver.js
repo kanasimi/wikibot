@@ -182,24 +182,31 @@ async function for_each_discussion_page(page_data) {
 	await archive_page({ archive_configuration, sections_need_to_archive, archive_root_page, parsed });
 }
 
-async function select_archive_to_page(configuration) {
-	const { archive_configuration, archive_root_page } = configuration;
-
+async function select_archive_to_page({ archive_configuration, archive_root_page }) {
 	const archive_prefix = archive_root_page.title + '/';
 	const subpages = (await wiki.prefixsearch(archive_prefix))
 		// Exclude [[archive_root_page.title]]
 		.filter(page_data => page_data.title.startsWith(archive_prefix))
 		.map(page_data => page_data.title.replace(archive_prefix, ''))
 		.filter(page_title => !!page_title);
-	const patterns = CeL.detect_serial_pattern(subpages);
 	// TODO: 將頁面內容存檔至子頁面以外的地方。
-	const archive_subpage_generator = archive_configuration.archive_to_subpage ? CeL.detect_serial_pattern.parse_generator(archive_configuration.archive_to_subpage)
+	const archive_subpage_generator = (() => {
+		if (archive_configuration.archive_to_subpage)
+			return CeL.detect_serial_pattern.parse_generator(archive_configuration.archive_to_subpage);
 		// Auto detect pattern of subpage title
-		: patterns[0]?.generator
+		const patterns = CeL.detect_serial_pattern(subpages);
+		//console.trace([subpages, patterns, archive_subpage_generator]);
+		if (patterns) {
+			for (const pattern of patterns) {
+				// for for [[w:en:User talk:Kanashimi#Auto-archiving seems to choose weird subpages]]
+				if (pattern.items.length > 1 || /\D\d$/.test(pattern.items[0]))
+					return pattern.generator;
+			}
+		}
 		// Default archive generator. See [[w:en:Template:Archives]]
-		|| CeL.detect_serial_pattern.parse_generator('Archive %1');
+		return CeL.detect_serial_pattern.parse_generator('Archive %1')
+	})();
 	CeL.info(`${select_archive_to_page.name}: Using generator: ${archive_subpage_generator()}`);
-	//console.trace([subpages, patterns, archive_subpage_generator]);
 	let archive_subpage_index = 0, archive_subpage;
 	while (true) {
 		const subpage = archive_subpage_generator(++archive_subpage_index);
@@ -245,10 +252,8 @@ async function select_archive_to_page(configuration) {
 	return archive_to_page;
 }
 
-async function archive_page(configuration) {
-	const { archive_configuration, sections_need_to_archive, archive_root_page, parsed } = configuration;
-
-	const archive_to_page = await select_archive_to_page(configuration);
+async function archive_page({ archive_configuration, sections_need_to_archive, archive_root_page, parsed }) {
+	const archive_to_page = await select_archive_to_page({ archive_configuration, archive_root_page });
 	if (!archive_to_page)
 		return;
 
