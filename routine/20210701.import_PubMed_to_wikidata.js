@@ -82,9 +82,10 @@ const NCBI_pubstatus_to_entity_id_mapping = {
 	medline: 'Q1540899',
 };
 
-// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%20%3Fvalue%0AWHERE%20%0A%7B%0A%20%20%3Fitem%20wdt%3AP1195%20%22pdf%22.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D
+// https://query.wikidata.org/#SELECT%20%3Fitem%20%3FitemLabel%0AWHERE%0A%7B%0A%20%20%3Fitem%20wdt%3AP31%20wd%3AQ235557.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22en%22.%20%7D%0A%7D
 const Europe_PMC_documentStyle = {
-	html: 'Q8811',
+	// NG: HTML (Q8811) 超文本標記語言
+	html: 'Q62626012',
 	pdf: 'Q42332',
 	//txt: 'Q86920',
 };
@@ -1375,7 +1376,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	}
 
 	// --------------------------------------------------------------
-	// full work available at URL (P953)
+	// full work available at URL (P953) 全作品可見於
 
 	// https://www.wikidata.org/wiki/User:PintochBot
 	if (Array.isArray(Europe_PMC_article_data.fullTextUrlList?.fullTextUrl)) {
@@ -1400,7 +1401,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			};
 
 			data_to_modify.claims.push({
-				// full work available at URL (P953)
+				// full work available at URL (P953) 全作品可見於
 				P953: document_data.url,
 				qualifiers,
 				references: Europe_PMC_article_data.wikidata_references
@@ -1422,7 +1423,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			};
 
 			data_to_modify.claims.push({
-				// full work available at URL (P953)
+				// full work available at URL (P953) 全作品可見於
 				P953: document_data.URL,
 				qualifiers,
 				references: CrossRef_article_data.wikidata_references
@@ -1675,6 +1676,7 @@ ORDER BY DESC (?item)
 	//return;
 	//CeL.set_debug(6);
 
+	// Release memory. 釋放被占用的記憶體。
 	function clean_data_to_modify() {
 		delete data_to_modify.is_non_English_title;
 		delete data_to_modify.is_book;
@@ -1684,6 +1686,7 @@ ORDER BY DESC (?item)
 		delete data_to_modify.title_list;
 		delete data_to_modify.author_list;
 		delete data_to_modify.main_subject;
+		delete data_to_modify.available_at;
 	}
 
 	if (article_item_list.length === 0) {
@@ -1847,6 +1850,29 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			});
 		}
 	}
+
+
+	data_to_modify.available_at = new Set;
+	// full work available at URL (P953) 全作品可見於
+	if (Array.isArray(article_item.claims.P953)) {
+		article_item.claims.P953.forEach(statement => {
+			// Register original value. 登記原有值
+			data_to_modify.available_at.add(CeL.wiki.data.value_of(statement));
+		});
+	}
+
+	// Remove duplicates.
+	data_to_modify.claims = data_to_modify.claims.filter(statement => {
+		// full work available at URL (P953) 全作品可見於
+		if (statement.P953) {
+			if (data_to_modify.available_at.has(statement.P953))
+				return false;
+			// Register the value set this time. 登記本次設定的值。
+			data_to_modify.available_at.add(statement.P953);
+		}
+		return true;
+	});
+
 
 	clean_data_to_modify();
 
