@@ -26,6 +26,8 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Paula Dockery|Talk:Abebe Bikila"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tom Hales (Irish republican)"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Cor van Aanholt"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Emmett Township, Michigan"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HNLMS Walrus (S802)|Talk:Wehrmacht mountain troops badge"
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -441,7 +443,15 @@ async function adapt_configuration(latest_task_configuration) {
 		//console.trace('deprecated_parameter_hash:', deprecated_parameter_hash);
 	}
 
-	const PATTERN_is_RegExp = /[\^\[\\\]*]/;
+	function normalize_pattern(pattern) {
+		// '{{!}}' → '|'
+		pattern = CeL.wiki.wikitext_to_plain_text(pattern);
+		// const PATTERN_is_RegExp
+		if (/[\^\[\\\]*]/.test(pattern)) {
+			pattern = pattern.to_RegExp();
+		}
+		return pattern;
+	}
 
 	//console.trace(general.remove_unnecessary_parameters);
 	if (CeL.is_Object(general.remove_unnecessary_parameters)) {
@@ -456,16 +466,12 @@ async function adapt_configuration(latest_task_configuration) {
 				value.each('Template:Para', template_token => {
 					let key = template_token.parameters[1], value = template_token.parameters[2];
 					if (!key) return;
-					key = key.toString().replace(/{{!}}/g, '|');
-					//console.log([namespace, key, value]);
-					if (PATTERN_is_RegExp.test(key)) {
-						key = key.to_RegExp();
-					} else if (parameter_Map.has(key)) {
+					key = normalize_pattern(key);
+					value = normalize_pattern(value);
+					//console.trace([namespace, key, value]);
+					if (parameter_Map.has(key)) {
 						CeL.error(`${remove_unnecessary_parameters.name}: ${namespace}: 重複設定 ${key}`);
 					}
-					value = value.toString().replace(/{{!}}/g, '|');
-					if (PATTERN_is_RegExp.test(value))
-						value = value.to_RegExp();
 					parameter_Map.set(key, value);
 				});
 				if (parameter_Map.size === 0)
@@ -951,6 +957,67 @@ async function get_page_info() {
 
 	// ---------------------------------------------
 
+	// See [[w:en:Wikipedia talk:WikiProject Military history/Coordinators#Cewbot removing "class=redirect" causing problems]]
+	if (wiki.latest_task_configuration.general.category_of_custom_class_WikiProject_template) {
+		const flat_subcategories = (await wiki.category_tree(wiki.latest_task_configuration.general.category_of_custom_class_WikiProject_template, {
+			depth: 3, namespace: 'template', get_flat_subcategories: true,
+		})).flat_subcategories;
+		//console.trace(flat_subcategories);
+
+		const category_of_custom_class_WikiProject_template__Set = new Set;
+
+		for (const [subcategory, page_list] of Object.entries(flat_subcategories)) {
+			for (const page_data of page_list) {
+				// assert: wiki.is_namespace(page_data, 'template')
+
+				// .original_title: for page_list = await wiki.categorymembers(vital_article_level_to_category(level), {})
+				const main_page_title = wiki.talk_page_to_main(page_data.original_title || page_data).replace(/\/class$/, '');
+				if (main_page_title.includes('/')) {
+					CeL.warn(`category_of_custom_class_WikiProject_template: Skip ${main_page_title}`);
+					continue;
+				}
+				category_of_custom_class_WikiProject_template__Set.add(main_page_title);
+			}
+		}
+
+		wiki.latest_task_configuration.general.all_custom_class_WikiProject_template_list = Array.from(category_of_custom_class_WikiProject_template__Set);
+		//console.trace(wiki.latest_task_configuration.general.all_custom_class_WikiProject_template_list);
+
+	} else {
+		delete wiki.latest_task_configuration.general.all_custom_class_WikiProject_template_list;
+	}
+
+	if (wiki.latest_task_configuration.general.category_of_custom_importance_WikiProject_template) {
+		const flat_subcategories = (await wiki.category_tree(wiki.latest_task_configuration.general.category_of_custom_importance_WikiProject_template, {
+			depth: 3, namespace: 'template', get_flat_subcategories: true,
+		})).flat_subcategories;
+		//console.trace(flat_subcategories);
+
+		const category_of_custom_importance_WikiProject_template__Set = new Set;
+
+		for (const [subcategory, page_list] of Object.entries(flat_subcategories)) {
+			for (const page_data of page_list) {
+				// assert: wiki.is_namespace(page_data, 'template')
+
+				// .original_title: for page_list = await wiki.categorymembers(vital_article_level_to_category(level), {})
+				const main_page_title = wiki.talk_page_to_main(page_data.original_title || page_data).replace(/\/importance$/, '');
+				if (main_page_title.includes('/')) {
+					CeL.warn(`category_of_custom_importance_WikiProject_template: Skip ${main_page_title}`);
+					continue;
+				}
+				category_of_custom_importance_WikiProject_template__Set.add(main_page_title);
+			}
+		}
+
+		wiki.latest_task_configuration.general.all_custom_importance_WikiProject_template_list = Array.from(category_of_custom_importance_WikiProject_template__Set);
+		//console.trace(wiki.latest_task_configuration.general.all_custom_importance_WikiProject_template_list);
+
+	} else {
+		delete wiki.latest_task_configuration.general.all_custom_importance_WikiProject_template_list;
+	}
+
+	// ---------------------------------------------
+
 	// See [[Wikipedia talk:Vital articles#Categories]], [[User talk:Kanashimi#Vital Article inconsistent bolding]]
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	if (wiki.latest_task_configuration.general.category_name_of_level) {
@@ -960,11 +1027,12 @@ async function get_page_info() {
 				category_filter(page_data) {
 					//console.trace(page_data);
 					return /Wikipedia level-\d vital articles/.test(page_data.title || page_data);
-				}
+				},
 			})).flat_subcategories;
 			//if (level === 1) console.trace(flat_subcategories);
 			for (const [subcategory, page_list] of Object.entries(flat_subcategories)) {
 				for (const page_data of page_list) {
+					// assert: wiki.is_namespace(page_data, 'talk')
 					if (!wiki.is_namespace(page_data, 'talk')) {
 						console.trace(page_data);
 						continue;
@@ -2669,12 +2737,16 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (CeL.is_Object(wiki.latest_task_configuration.general.remove_unnecessary_parameters)) {
 				const parameter_Map = wiki.latest_task_configuration.general.remove_unnecessary_parameters[wiki.namespace(talk_page_data, { is_page_title: true, get_name: true })];
 				if (parameter_Map) {
+					const all_custom_class_WikiProject_template_list = wiki.latest_task_configuration.general.all_custom_class_WikiProject_template_list;
+					const all_custom_importance_WikiProject_template_list = wiki.latest_task_configuration.general.all_custom_importance_WikiProject_template_list;
 					let _changed;
 					for (const [key_pattern, value_pattern] of parameter_Map.entries()) {
 						//console.log('remove_unnecessary_parameters: Test pattern:', [key_pattern, value_pattern]);
 						for (const [parameter_name, index] of Object.entries(token.index_of)) {
 							const value = token.parameters[parameter_name];
 							if ((CeL.is_RegExp(key_pattern) ? key_pattern.test(parameter_name) : key_pattern === parameter_name)
+								&& (!all_custom_class_WikiProject_template_list || parameter_name !== 'class' || !wiki.is_template(all_custom_class_WikiProject_template_list, token))
+								&& (!all_custom_importance_WikiProject_template_list || parameter_name !== 'importance' || !wiki.is_template(all_custom_importance_WikiProject_template_list, token))
 								&& CeL.is_RegExp(value_pattern) ? value_pattern.test(value) : value_pattern === value) {
 								token[index] = '';
 								_changed = true;
@@ -3218,7 +3290,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// 避免消除原有內容。
 					// TODO: https://en.wikipedia.org/w/index.php?title=Talk:Amphetamine&diff=prev&oldid=1192899833
 					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
-					if(/{{\s*WikiProject [.+]+}}/.test(extra_contents)){
+					if (/{{\s*WikiProject [.+]+}}/.test(extra_contents)) {
 						// [[w:en:User talk:Kanashimi#Moving 'WikiProject Irish Republicanism' outside of banner shell]]
 						console.error(`${maintain_VA_template_each_talk_page.name}: WPBS 中包含 {{WikiProject}}！或許是因為執行 categorymembers 時 API 未包含這個 WikiProject？`);
 						console.trace(extra_contents);
@@ -3231,7 +3303,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					.map(WikiProject_template => {
 						const wikitext = WikiProject_template.toString();
 						// e.g., [[Talk:John J. Kelly]], [[Talk:Mohammad Bana]]
-						return /<!--|\n==|\n{{/.test(wikitext) ? wikitext : wikitext.replace(/\n/g, '');
+						return /<\!--|\n==|\n{{/.test(wikitext) ? wikitext : wikitext.replace(/\n/g, '');
 					}).join('\n') + '\n')
 					// 去掉太多的換行。
 					.replace(/\n{2,}/g, '\n');
