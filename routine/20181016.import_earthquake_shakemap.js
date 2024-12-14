@@ -70,11 +70,9 @@ fetch(
 		iterator = iterator.then(function() {
 			// → detail
 			return fetch(feature.properties.detail).then(function(response) {
-				return Promise.all(
-				//
-				[ response, response.text(), response.json() ]);
+				return Promise.all([ response, response.text() ]);
 			}).then(function(response) {
-				var text = response[1], detail = response[2];
+				var text = response[1], detail = JSON.parse(text);
 				response = response[0];
 				// console.log(response);
 				// console.log(detail);
@@ -188,7 +186,7 @@ function check_media(media_data, product_data, detail, index, length) {
 			CeL.log('check_media: File exists: ' + media_data.filename);
 		}
 	}, {
-		prop : 'ids'
+		rvprop : 'ids'
 	});
 
 }
