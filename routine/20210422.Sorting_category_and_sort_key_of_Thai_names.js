@@ -82,7 +82,7 @@ Bernard Trink
 Ajaan Suwat Suvaco`.split('\n').forEach(t => Thai_people_page_list.add(t));
 	}
 
-	const non_biographical_page_titles = [['#', 'Page']];
+	const non_biographical_page_titles = [];
 	// run through all pages of Thai_name_categories
 	await wiki.for_each_page(Thai_people_page_list,
 		[for_each_Thai_people_page, {
@@ -90,10 +90,27 @@ Ajaan Suwat Suvaco`.split('\n').forEach(t => Thai_people_page_list.add(t));
 		}],
 		{ summary: summary_prefix });
 
-	await wiki.edit_page('Wikipedia:WikiProject Thailand/Nonbiographical pages transcluding Thai name categories',
-		'The pages below are pages transcluding Thai name categories but detect as non-biographical articles.\n'
-		+ CeL.wiki.array_to_table(non_biographical_page_titles.sort().map((page_title, index) => [index + 1, CeL.wiki.title_link_of(page_title)]), { class: 'wikitable sortable' }), {
-		summary: summary_prefix + `Report ${non_biographical_page_titles.length} non-biographical articles.`
+	const report_lines = [];
+	let summary;
+	if (non_biographical_page_titles.length > 0) {
+		summary = `Report ${non_biographical_page_titles.length} non-biographical articles.`;
+		const report_titles = non_biographical_page_titles
+			.sort()
+			.map((page_title, index) => [index + 1, CeL.wiki.title_link_of(page_title)]);
+		// free
+		non_biographical_page_titles.truncate();
+		report_titles.unshift(['#', 'Page']);
+
+		report_lines.push('The pages below are pages transcluding Thai name categories but detect as non-biographical articles.',
+			CeL.wiki.array_to_table(report_titles, { class: 'wikitable sortable' })
+		);
+	} else {
+		summary = `No non-biographical articles.`;
+		report_lines.push(summary);
+	}
+
+	await wiki.edit_page('Wikipedia:WikiProject Thailand/Nonbiographical pages transcluding Thai name categories', report_lines.join(''), {
+		summary: summary_prefix + summary
 	});
 
 	routine_task_done('1 week');
