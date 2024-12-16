@@ -171,6 +171,8 @@ function check_media(media_data, product_data, detail, index, length) {
 	wiki.page(wiki.to_namespace(
 	// 'File:' +
 	media_data.filename, 'File'), function(page_data) {
+		// console.trace(page_data, detail);
+
 		// Skip exists file on Wikimedia Commons
 		if (!CeL.wiki.content_of.page_exists(page_data) || detail.was_updated) {
 			CeL.log((index + 1) + '/' + length + '	'
@@ -184,6 +186,8 @@ function check_media(media_data, product_data, detail, index, length) {
 
 		} else {
 			CeL.log('check_media: File exists: ' + media_data.filename);
+			// 強制上傳新版本。
+			upload_media(media_data, product_data, detail);
 		}
 	}, {
 		rvprop : 'ids'
@@ -314,7 +318,9 @@ function upload_media(media_data, product_data, detail) {
 		},
 
 		structured_data : {
-			// 描繪內容 (P180) [[Commons:Structured data/Modeling/Depiction]]
+			// depicts (P180) 描繪內容
+			// earthquake (Q7944) 地震
+			// topographic map (Q216526) 地形圖
 			depicts : 'Q7944'
 		}
 	});
