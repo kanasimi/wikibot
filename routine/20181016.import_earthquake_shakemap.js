@@ -174,21 +174,21 @@ function check_media(media_data, product_data, detail, index, length) {
 		// console.trace(page_data, detail);
 
 		// Skip exists file on Wikimedia Commons
-		if (!CeL.wiki.content_of.page_exists(page_data) || detail.was_updated) {
-			CeL.log((index + 1) + '/' + length + '	'
-			//
-			+ detail.id + ' ' + detail.properties.title
-			// + ' ' + media_data.media_url
-			);
-			// CeL.log(' ' + media_data.filename);
-
-			upload_media(media_data, product_data, detail);
-
-		} else {
+		if (CeL.wiki.content_of.page_exists(page_data) && detail.was_updated) {
 			CeL.log('check_media: File exists: ' + media_data.filename);
 			// 強制上傳新版本。
-			upload_media(media_data, product_data, detail);
+			// return;
 		}
+
+		CeL.log((index + 1) + '/' + length + '	'
+		//
+		+ detail.id + ' ' + detail.properties.title
+		// + ' ' + media_data.media_url
+		);
+		// CeL.log(' ' + media_data.filename);
+
+		upload_media(media_data, product_data, detail);
+
 	}, {
 		rvprop : 'ids'
 	});
