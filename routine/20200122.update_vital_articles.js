@@ -28,6 +28,9 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Cor van Aanholt"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Emmett Township, Michigan"
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HNLMS Walrus (S802)|Talk:Wehrmacht mountain troops badge"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Battle of Afrin City"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=File talk:Aigina.JPG|Talk:Akher Gharam (song)" "category_to_clean=Category:WikiProject banners with redundant class parameter"
+
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
@@ -247,6 +250,58 @@ function sorted_keys_of_Object_by_order(object, order_Set, extra_sort_function) 
 
 // ----------------------------------------------
 
+
+function parse_remove_unnecessary_parameters(general, variable_name) {
+	function normalize_pattern(pattern) {
+		// '{{!}}' → '|'
+		pattern = CeL.wiki.wikitext_to_plain_text(pattern);
+		// const PATTERN_is_RegExp
+		if (/[\^\[\\\]*]/.test(pattern)) {
+			pattern = pattern.to_RegExp();
+		}
+		return pattern;
+	}
+
+	//console.trace(general[variable_name]);
+	if (CeL.is_Object(general[variable_name])) {
+		const remove_unnecessary_parameters = Object.create(null);
+		for (let [namespace, value_list] of Object.entries(general[variable_name])) {
+			namespace = wiki.namespace(namespace, { get_name: true });
+			if (!namespace)
+				continue;
+			value_list.forEach(value => {
+				value = CeL.wiki.parser(value).parse();
+				const parameter_Map = remove_unnecessary_parameters[namespace] || (remove_unnecessary_parameters[namespace] = new Map);
+				value.each('Template:Para', template_token => {
+					let key = template_token.parameters[1], value = template_token.parameters[2];
+					// TODO: value === undefined
+					if (!key) return;
+					key = normalize_pattern(key);
+					value = normalize_pattern(value);
+					//console.trace([namespace, key, value]);
+					if (parameter_Map.has(key)) {
+						CeL.error(`${variable_name}: ${namespace}: 重複設定 ${key}`);
+					}
+					parameter_Map.set(key, value);
+				});
+				if (parameter_Map.size === 0)
+					delete remove_unnecessary_parameters[namespace];
+			});
+		}
+
+		if (CeL.is_empty_object(remove_unnecessary_parameters)) {
+			delete general[variable_name];
+		} else {
+			//console.trace(remove_unnecessary_parameters);
+			general[variable_name] = remove_unnecessary_parameters;
+		}
+	} else {
+		delete general[variable_name];
+	}
+}
+
+
+
 function get_topic_of_section(page_title_and_section, topic) {
 	//console.trace([page_title_and_section, level, topic]);
 	const page_title_and_section_data = parse_page_title_and_section(page_title_and_section);
@@ -443,51 +498,9 @@ async function adapt_configuration(latest_task_configuration) {
 		//console.trace('deprecated_parameter_hash:', deprecated_parameter_hash);
 	}
 
-	function normalize_pattern(pattern) {
-		// '{{!}}' → '|'
-		pattern = CeL.wiki.wikitext_to_plain_text(pattern);
-		// const PATTERN_is_RegExp
-		if (/[\^\[\\\]*]/.test(pattern)) {
-			pattern = pattern.to_RegExp();
-		}
-		return pattern;
-	}
+	parse_remove_unnecessary_parameters(general, 'remove_unnecessary_WPBS_parameters');
 
-	//console.trace(general.remove_unnecessary_parameters);
-	if (CeL.is_Object(general.remove_unnecessary_parameters)) {
-		const remove_unnecessary_parameters = Object.create(null);
-		for (let [namespace, value_list] of Object.entries(general.remove_unnecessary_parameters)) {
-			namespace = wiki.namespace(namespace, { get_name: true });
-			if (!namespace)
-				continue;
-			value_list.forEach(value => {
-				value = CeL.wiki.parser(value).parse();
-				const parameter_Map = remove_unnecessary_parameters[namespace] || (remove_unnecessary_parameters[namespace] = new Map);
-				value.each('Template:Para', template_token => {
-					let key = template_token.parameters[1], value = template_token.parameters[2];
-					if (!key) return;
-					key = normalize_pattern(key);
-					value = normalize_pattern(value);
-					//console.trace([namespace, key, value]);
-					if (parameter_Map.has(key)) {
-						CeL.error(`${remove_unnecessary_parameters.name}: ${namespace}: 重複設定 ${key}`);
-					}
-					parameter_Map.set(key, value);
-				});
-				if (parameter_Map.size === 0)
-					delete remove_unnecessary_parameters[namespace];
-			});
-		}
-
-		if (CeL.is_empty_object(remove_unnecessary_parameters)) {
-			delete general.remove_unnecessary_parameters;
-		} else {
-			//console.trace(remove_unnecessary_parameters);
-			general.remove_unnecessary_parameters = remove_unnecessary_parameters;
-		}
-	} else {
-		delete general.remove_unnecessary_parameters;
-	}
+	parse_remove_unnecessary_parameters(general, 'remove_unnecessary_WP_parameters');
 
 	//console.trace(general.replace_misspelled_parameter_name);
 	if (general.replace_misspelled_parameter_name) {
@@ -884,7 +897,7 @@ async function do_PIQA_operation() {
 					no_topic_message: true,
 					do_PIQA: true,
 					key_is_talk_page: true,
-					category_to_clean: !Array.isArray(do_PIQA) && category_to_clean,
+					category_to_clean: CeL.env.arg_hash?.category_to_clean || !Array.isArray(do_PIQA) && category_to_clean,
 					no_class_detected: !Array.isArray(do_PIQA) && category_to_clean === 'Category:Pages using WikiProject banner shell without a project-independent quality rating',
 				};
 			}
@@ -1802,7 +1815,7 @@ async function for_each_list_page(list_page_data) {
 			}
 
 			if (token.type === 'transclusion' && wiki.is_template('Icon', token)) {
-				// reset icon
+				// reset icon: Should use CeL.wiki.parse.replace_parameter()
 				// _item[index] = '';
 
 				const icon = token.parameters[1];
@@ -1895,8 +1908,10 @@ async function for_each_list_page(list_page_data) {
 			parent[index] = `\n${level} ${wikitext.trim()} ${level}`;
 			if (parent.list_prefix) {
 				// remove list item prefix
-				parent.list_prefix[index] = '';;
+				// TODO: use CeL.wiki.parse.replace_parameter()
+				parent.list_prefix[index] = '';
 			} else if (next_wikitext) {
+				// TODO: use CeL.wiki.parse.replace_parameter()
 				parent[index + 1] = '';
 			}
 			return true;
@@ -1951,11 +1966,13 @@ async function for_each_list_page(list_page_data) {
 					// e.g., '==<span id="General"></span>General =='
 					let matched = sub_token.toString().match(/^<(\w+)\s+id="([^"]+)"><\/\1>$/);
 					if (matched && matched[2] === token.title) {
+						// TODO: use CeL.wiki.parse.replace_parameter()
 						token[index] = '';
 						return;
 					}
 					// e.g., '=={{anchor|Architecture}}Architecture =='
 					if (sub_token.type === 'transclusion' && wiki.is_template('Anchor', sub_token) && sub_token.parameters[1] === token.title) {
+						// TODO: use CeL.wiki.parse.replace_parameter()
 						token[index] = '';
 						return;
 					}
@@ -2444,7 +2461,7 @@ let talk_page_summary_prefix = CeL.wiki.title_link_of(login_options.task_configu
 
 async function maintain_VA_template(options) {
 	// CeL.info('have_to_edit_its_talk_page: ');
-	// console.log(have_to_edit_its_talk_page);
+	// console.trace(have_to_edit_its_talk_page);
 
 	// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
 	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
@@ -2465,8 +2482,11 @@ async function maintain_VA_template(options) {
 			delete have_to_edit_its_talk_page[page_title];
 			return false;
 		});
+		//console.trace(page_list, have_to_edit_its_talk_page);
 		if (page_list.length > 0) {
+			// e.g., items from VA list page?
 			CeL.info(`${maintain_VA_template.name}: 檢查 ${page_list.length} 個談話頁面的主頁面是否有內容、非 redirect。`);
+			//console.trace(page_list);
 			await wiki.for_each_page(page_list, function (main_page_data) {
 				const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
 				if (!main_article_exists) {
@@ -2734,20 +2754,21 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				}
 			}
 
-			if (CeL.is_Object(wiki.latest_task_configuration.general.remove_unnecessary_parameters)) {
-				const parameter_Map = wiki.latest_task_configuration.general.remove_unnecessary_parameters[wiki.namespace(talk_page_data, { is_page_title: true, get_name: true })];
+			if (CeL.is_Object(wiki.latest_task_configuration.general.remove_unnecessary_WP_parameters)) {
+				const parameter_Map = wiki.latest_task_configuration.general.remove_unnecessary_WP_parameters[wiki.namespace(talk_page_data, { is_page_title: true, get_name: true })];
 				if (parameter_Map) {
 					const all_custom_class_WikiProject_template_list = wiki.latest_task_configuration.general.all_custom_class_WikiProject_template_list;
 					const all_custom_importance_WikiProject_template_list = wiki.latest_task_configuration.general.all_custom_importance_WikiProject_template_list;
 					let _changed;
 					for (const [key_pattern, value_pattern] of parameter_Map.entries()) {
-						//console.log('remove_unnecessary_parameters: Test pattern:', [key_pattern, value_pattern]);
+						//console.log('remove_unnecessary_WP_parameters: Test pattern:', [key_pattern, value_pattern]);
 						for (const [parameter_name, index] of Object.entries(token.index_of)) {
 							const value = token.parameters[parameter_name];
 							if ((CeL.is_RegExp(key_pattern) ? key_pattern.test(parameter_name) : key_pattern === parameter_name)
 								&& (!all_custom_class_WikiProject_template_list || parameter_name !== 'class' || !wiki.is_template(all_custom_class_WikiProject_template_list, token))
 								&& (!all_custom_importance_WikiProject_template_list || parameter_name !== 'importance' || !wiki.is_template(all_custom_importance_WikiProject_template_list, token))
 								&& CeL.is_RegExp(value_pattern) ? value_pattern.test(value) : value_pattern === value) {
+								// TODO: use CeL.wiki.parse.replace_parameter()
 								token[index] = '';
 								_changed = true;
 							}
@@ -3034,6 +3055,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						return;
 					}
 
+					//console.trace(normalize_token_class, !is_standard_class(normalize_token_class), normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class));
 					if (!is_standard_class(normalize_token_class)
 						&& normalize_token_class !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
 						// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
@@ -3210,8 +3232,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 									changed = true;
 								}
 							}
-							for (let i = index; ++i <= _index;)
+							for (let i = index; ++i <= _index;) {
+								// TODO: use CeL.wiki.parse.replace_parameter()
 								parent[i] = '';
+							}
 						}
 						break;
 					}
@@ -3334,6 +3358,32 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
 			}
 		}
+
+		if (CeL.is_Object(wiki.latest_task_configuration.general.remove_unnecessary_WPBS_parameters)) {
+			const parameter_Map = wiki.latest_task_configuration.general.remove_unnecessary_WPBS_parameters[wiki.namespace(talk_page_data, { is_page_title: true, get_name: true })];
+			if (parameter_Map) {
+				for (const [key_pattern, value_pattern] of parameter_Map.entries()) {
+					//console.log('remove_unnecessary_WPBS_parameters: Test pattern:', [key_pattern, value_pattern]);
+					for (const [parameter_name, index] of Object.entries(WikiProject_banner_shell_token.index_of)) {
+						const value = WikiProject_banner_shell_token.parameters[parameter_name];
+						if ((CeL.is_RegExp(key_pattern) ? key_pattern.test(parameter_name) : key_pattern === parameter_name)
+							&& CeL.is_RegExp(value_pattern) ? value_pattern.test(value) : value_pattern === value) {
+							WPBS_template_object[parameter_name] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+						}
+					}
+
+					for (const [parameter_name, value] of Object.entries(WPBS_template_object)) {
+						if ((CeL.is_RegExp(key_pattern) ? key_pattern.test(parameter_name) : key_pattern === parameter_name)
+							&& CeL.is_RegExp(value_pattern) ? value_pattern.test(value) : value_pattern === value) {
+							// 不能光直接 delete，因 WikiProject_banner_shell_token 可能已存在此參數。
+							WPBS_template_object[parameter_name] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+						}
+					}
+				}
+
+			}
+		}
+
 		//console.trace(WikiProject_banner_shell_token.parameters, WPBS_template_object);
 
 		if (Object.keys(WPBS_template_object).length > 0) {
