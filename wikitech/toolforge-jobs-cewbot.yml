@@ -22,7 +22,7 @@
 # update bot codes. 更新軟體版本
 - name: k8s-update.wikibot
   command: "./wikibot/init.sh"
-  image: tf-bullseye-std
+  image: bookworm
   #image: node18
   #mem: 4Gi
   #cpu: 2
@@ -46,7 +46,7 @@
   #emails: onfinish
 - name: k8s-update.node
   command: "./bin/update.node.sh"
-  image: tf-bullseye-std
+  image: bookworm
   schedule: "2 19 * * *"
 
 
