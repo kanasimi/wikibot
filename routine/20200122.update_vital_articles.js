@@ -3349,7 +3349,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// 很少到這邊。
 			delete WPBS_template_object.blp;
 		}
-		if (WikiProject_banner_shell_token.parameters.living) {
+		if (WikiProject_banner_shell_token.parameters.living?.toString().trim() === '' && !WPBS_template_object.living) {
+			// [[w:en:Talk:Abdul Hai Sarker]]
+			WPBS_template_object.living = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
+		} else if (WikiProject_banner_shell_token.parameters.living) {
 			if (!WikiProject_banner_shell_token.parameters.blp && !WPBS_template_object.blp) {
 				// [[w:en:Talk:Tom Hales (Irish republican)]]
 				WPBS_template_object.blp = WikiProject_banner_shell_token.parameters.living;
