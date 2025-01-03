@@ -1307,8 +1307,8 @@ function fix_103(content, page_data, messages, config) {
 		//
 		&& typeof (link = token[0][0]) === 'string'
 		//
-		&& link.split('{{!}}').length === 2)
-			token[0][0] = link.replace('{{!}}', '|');
+		&& link.split(/{{\s*!\s*}}/).length > 1)
+			token[0][0] = link.replace(/{{\s*!\s*}}/g, '|');
 	}, true);
 
 	return parsed.toString();
