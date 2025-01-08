@@ -831,10 +831,10 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 
 		function normalize_page_token(index, keep_link) {
 			//console.log(token.parameters[index]);
-			let link = typeof index === 'number' ? token.parameters[index].toString().replace(/<!--[\s\S]*?-->/g, '')
+			let link = typeof index === 'number' ? CeL.wiki.prefix_page_name(token.parameters[index])
 				// e.g., <nowiki>[[title|display text]]</nowiki>
 				.replace(/<nowiki\s*>(.*?)<\/nowiki\s*>/g, '$1')
-				.trim().replace(/{{!}}/g, '|') : index;
+				.trim() : index;
 			if (!keep_link && match_link(link)) {
 				CeL.error(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${link}`);
 				const parsed = CeL.wiki.parse(link);
