@@ -46,7 +46,8 @@ PATTERN_DO_NOT_NOTIFY = /請?勿(?:在討論頁?中?)?[加放]入關注度/i,
 // 本bot會以此判斷是否已提報過。若您需要手動提報，可在{{tl|Findsources}}條目後手動加上此註記，即可自動跳過提醒。
 PATTERN_SKIP = /於\d{1,2}(?:\.\d+)?天前提報|已經?(?:手動|通知|提醒)/,
 // 提報關注度不足頁面 [[WP:NP]], [[Wikipedia:關注度/提報]]
-notability_report = 'Wikipedia:关注度/提报',
+// 2025/1 [[Wikipedia:互助客栈/方针#提議將WP:關注度改名]]: [[Wikipedia:关注度/提报]] → [[Wikipedia:收錄標準/提報]]
+notability_report = 'Wikipedia:收錄標準/提報',
 // 從第一個出現{{Findsources}}的line刪除到第一個未過期的line。
 // 但這需要保證所有提報皆按時間順序由舊到新，且執行中不可改變 index。
 移除過期_start_line, 移除過期_end_line,
