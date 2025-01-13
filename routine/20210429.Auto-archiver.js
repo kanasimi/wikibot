@@ -194,13 +194,27 @@ async function select_archive_to_page({ archive_configuration, archive_root_page
 		if (archive_configuration.archive_to_subpage)
 			return CeL.detect_serial_pattern.parse_generator(archive_configuration.archive_to_subpage);
 		// Auto detect pattern of subpage title
+		// 未指定 archive_to_subpage 的情況下會自動判別存檔標題模式，會選擇使用最多次的模式。
 		const patterns = CeL.detect_serial_pattern(subpages);
 		//console.trace([subpages, patterns, archive_subpage_generator]);
 		if (patterns) {
 			for (const pattern of patterns) {
 				// for for [[w:en:User talk:Kanashimi#Auto-archiving seems to choose weird subpages]]
-				if (pattern.items.length > 1 || /\D\d$/.test(pattern.items[0]))
+				if (pattern.items.length > 1 || /\D\d$/.test(pattern.items[0])) {
+					const generator_pattern = pattern.generator();
+					// e.g.,
+					// generator_pattern = CeL.detect_serial_pattern(['2024年9月','2024年11月'])[0].generator()
+					// generator_pattern === '2024年%1月'
+					// modified_pattern === '%Y年%m月'
+					const modified_pattern = generator_pattern
+						.replace(/(^|[^%\d])(?:\d{4}|%\d)年/g, '$1%Y年')
+						.replace(/(^|[^%\d])(?:\d{1,2}|%\d)月/g, '$1%m月')
+						.replace(/(^|[^%\d])(?:\d{1,2}|%\d)日/g, '$1%d日');
+					if (generator_pattern !== modified_pattern && !/%\d/.test(modified_pattern)) {
+						return () => modified_pattern;
+					}
 					return pattern.generator;
+				}
 			}
 		}
 		// Default archive generator. See [[w:en:Template:Archives]]
@@ -254,8 +268,9 @@ async function select_archive_to_page({ archive_configuration, archive_root_page
 
 async function archive_page({ archive_configuration, sections_need_to_archive, archive_root_page, parsed }) {
 	const archive_to_page = await select_archive_to_page({ archive_configuration, archive_root_page });
-	if (!archive_to_page)
+	if (!archive_to_page) {
 		return;
+	}
 
 	let archive_wikitext = sections_need_to_archive.map(section => section.section_title + section).join('');
 	if ('missing' in archive_to_page) {
