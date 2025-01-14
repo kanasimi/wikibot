@@ -201,18 +201,6 @@ async function select_archive_to_page({ archive_configuration, archive_root_page
 			for (const pattern of patterns) {
 				// for for [[w:en:User talk:Kanashimi#Auto-archiving seems to choose weird subpages]]
 				if (pattern.items.length > 1 || /\D\d$/.test(pattern.items[0])) {
-					const generator_pattern = pattern.generator();
-					// e.g.,
-					// generator_pattern = CeL.detect_serial_pattern(['2024年9月','2024年11月'])[0].generator()
-					// generator_pattern === '2024年%1月'
-					// modified_pattern === '%Y年%m月'
-					const modified_pattern = generator_pattern
-						.replace(/(^|[^%\d])(?:\d{4}|%\d)年/g, '$1%Y年')
-						.replace(/(^|[^%\d])(?:\d{1,2}|%\d)月/g, '$1%m月')
-						.replace(/(^|[^%\d])(?:\d{1,2}|%\d)日/g, '$1%d日');
-					if (generator_pattern !== modified_pattern && !/%\d/.test(modified_pattern)) {
-						return () => modified_pattern;
-					}
 					return pattern.generator;
 				}
 			}
