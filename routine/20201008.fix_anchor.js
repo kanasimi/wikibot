@@ -40,6 +40,7 @@ node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "onl
 node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
 node 20201008.fix_anchor.js use_language=de "check_page=Olympische Sommerspiele 2004/Teilnehmer (Usbekistan)" "only_modify_pages=Rudern bei den Olympischen Spielen"
 node 20201008.fix_anchor.js use_language=de "check_page=Akklamation|Fußball-Weltmeisterschaft"
+node 20201008.fix_anchor.js use_language=de "check_page=Dichotomie" "only_modify_pages=Holzobjekt von Scharfling"
 
 node 20201008.fix_anchor.js use_language=test "check_page=Sections" "only_modify_pages=Anchor test"
 
@@ -831,9 +832,37 @@ async function tracking_section_title_history(page_data, options) {
 					const from = removed_token.link.id;
 					const to = added_token.link.id;
 					const length = Math.min(from.length, to.length);
-					const edit_distance_score = 2 * CeL.edit_distance(from, to) / length;
+					const _from = from.toLowerCase(), _to = to.toLowerCase();
+					let edit_distance_score = 2 * CeL.edit_distance(_from, _to) / length;
 					if (edit_distance_score < 1)
 						replaced_anchors[from] = to;
+
+					if (length > 10) {
+						// 找尋其他可能類似的片段做比較。
+						// TODO: 不完善。
+						// [[w:de:Special:Diff/252308231#Dichotomien in anderen Gebieten]]
+						const [longer, shorter] = _from.length > _to.length ? [_from, _to] : [_to, _from];
+						// assert: length === shorter.length
+						let index = longer.indexOf(shorter.slice(0, 5));
+						if (index < 0 || index + length > longer.length) {
+							index = longer.indexOf(shorter.slice(-5));
+							if (index >= 0)
+								index -= length - 5;
+						}
+						if (index >= 0) {
+							edit_distance_score = CeL.edit_distance(longer.slice(index, index + length), shorter);
+						} else {
+							// 死馬當活馬醫: 檢測首尾是否類似。
+							edit_distance_score = Math.min(
+								CeL.edit_distance(longer.slice(0, length), shorter),
+								CeL.edit_distance(longer.slice(-length), shorter),
+							);
+						}
+						edit_distance_score = 2 * edit_distance_score / length;
+						// 這裡的標準必須比較高。
+						if (edit_distance_score < .2)
+							replaced_anchors[from] = to;
+					}
 				} else {
 					// assert: removed_token || added_token 其中一個為非標題文字。
 					previous_text_is_different = true;
@@ -974,13 +1003,19 @@ async function tracking_section_title_history(page_data, options) {
 					// 測試 from 是否已經有更匹配的 to。
 					if (modify_hash[from]) return;
 					modify_hash[from] = to;
-					if (!revision.replaced_anchors[from] || wiki.normalize_title(revision.replaced_anchors[from]) === to) {
+					const replaced_to = revision.replaced_anchors[from];
+					if (!replaced_to || wiki.normalize_title(replaced_to) === to) {
 						//revision.removed_section_titles.remove(from);
 						//revision.added_section_titles.remove(to);
 						check_rename_to(from, to);
+					} else if (from.length > 10 && replaced_to.length > 10
+						&& (from.length > replaced_to.length ? from.toLowerCase().includes(replaced_to.toLowerCase()) : replaced_to.toLowerCase().includes(from.toLowerCase()))
+					) {
+						check_rename_to(from, replaced_to);
+						modify_hash[from] = replaced_to;
 					} else {
-						// assert: !!revision.replaced_anchors[from] === true
-						CeL.warn(`判別同時修改多個標題名稱有疑義: ${JSON.stringify(from)}→${JSON.stringify(to)}, replaced_anchors to ${JSON.stringify(revision.replaced_anchors[from])}`);
+						// assert: !!replaced_to === true
+						CeL.warn(`判別同時修改多個標題名稱有疑義: ${JSON.stringify(from)}→${JSON.stringify(to)}, replaced_anchors to ${JSON.stringify(replaced_to)}`);
 						delete revision.replaced_anchors[from];
 					}
 				});
