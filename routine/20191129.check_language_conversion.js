@@ -35,7 +35,7 @@ set_language('zh');
 const wiki = new Wikiapi;
 
 // for debug
-const debug_page = CeL.env.arg_hash.debug_page
+const debug_page = CeL.env.arg_hash?.debug_page
 	//|| 'Wikipedia:沙盒' '三芝區' '衣阿华级战列舰' '操作系统' '上海市' '余思明'
 	;
 
