@@ -1448,15 +1448,30 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		key = key.trim().toLowerCase();
 		//console.trace([key, key in data_to_modify.main_subject]);
 		if (key in data_to_modify.main_subject) return;
+		// 登記已處理過。
 		data_to_modify.main_subject[key] = null;
-		// 這邊頻繁搜尋 key 可能造成 cache 肥大，且有拖延時間的問題。因此一次執行不能處理太多項目!
-		data_to_modify.claims.push({
-			// main subject (P921)
-			P921: main_subject_mapping.get(key) || key,
-			// based on heuristic (P887)
-			//references: + P887:'inferred from keyword and API search'
-			references
-		});
+
+		let main_subject = main_subject_mapping.get(key);
+		if (!main_subject) {
+			if (/\w+ \w+/.test(key)) {
+				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
+				// 對於簡單字詞寧缺勿濫。為避免錯誤，僅取用較複雜的字詞。
+				main_subject = key;
+			} else {
+				CeL.warn(`${add_main_subject.name}: ${PubMed_ID}: Unknown main subject: ${JSON.stringify(key)}. Please add it to main_subject_mapping!`);
+			}
+		}
+		if (main_subject) {
+			const claim = {
+				// main subject (P921)
+				P921: main_subject,
+				// based on heuristic (P887)
+				//references: + P887:'inferred from keyword and API search'
+				references
+			};
+			// 這邊頻繁搜尋 key 可能造成 cache 肥大，且有拖延時間的問題。因此一次執行不能處理太多項目!
+			data_to_modify.claims.push(claim);
+		}
 	}
 
 	//console.trace(Europe_PMC_article_data.keywordList?.keyword);
