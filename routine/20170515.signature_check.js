@@ -128,7 +128,8 @@ page_allowlist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wi
 // 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
 page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
 		'Wikisource:管理员',
-		// [[w:zh:User talk:Kanashimi/2015#Cewbot自动添加签名的问题。]] [[wikisource:zh:User talk:Kanashimi#Module talk 名字空間免簽名]]
+		// [[w:zh:User talk:Kanashimi/2015#Cewbot自动添加签名的问题。]]
+		// [[wikisource:zh:User talk:Kanashimi#Module talk 名字空間免簽名]]
 		// 不在 Module_talk:***/testcases 自動添加簽名。這些頁面的主頁面用於編寫測試程式碼，談話頁面可用來展示測試結果。
 		/^Module talk:.+?\/testcases$/, /^萌娘百科 talk:提案\/讨论中提案\/./ ],
 
@@ -234,12 +235,41 @@ function filter_row(row) {
 	} else if (row.user === wiki.token.login_user_name
 	// 跳過機器人的編輯。為了某些編輯不加 bot flag 的 bot。
 	|| CeL.wiki.PATTERN_BOT_NAME.test(row.user)
+	//
+	|| row.user === 'MediaWiki message delivery'
 	// 篩選編輯摘要。
 	|| PATTERN_revert_or_bot_summary.test(row.comment)) {
-		;
+		passed = false;
+
+	} else if (page_blocklist.some(function(filter) {
+		return CeL.is_RegExp(filter)
+		//
+		? filter.test(row.title) : filter === row.title;
+	})) {
+		// 黑名單直接封殺。黑名單的優先度高於白名單。
+		passed = false;
+
+	} else if (page_allowlist.includes(row.title)) {
+		// 白名單頁面可以省去其他的檢查。
+		passed = true;
 
 	} else {
-		passed = row.user !== 'MediaWiki message delivery'
+		passed =
+		// 以討論頁面為主。必須是討論頁面，
+		(CeL.wiki.is_talk_namespace(row.ns)
+		// 或額外頁面。
+		// e.g., [[Wikipedia:机器人/申请/...]]
+		// NG: [[Wikipedia:頁面存廢討論/*]], [[Wikipedia:模板消息/用戶討論命名空間]]
+		// || /(?:討論|讨论|申請|申请)\//.test(row.title)
+		|| row.title.startsWith('Wikipedia:机器人/申请/')
+		//
+		|| row.title.startsWith('Wikipedia:互助客栈/')
+		//
+		|| row.title.startsWith('Wikipedia:新条目推荐/候选')
+		// [[w:simple:User talk:Kanashimi
+		// #Does Cewbot not sign comments in Wikipedia namespace]]
+		|| row.title.startsWith('Wikipedia:Requests for deletion/Requests/'))
+
 		// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
 		// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
 		&& !/\/Editnotice(\/|$)/i.test(row.title)
@@ -252,17 +282,15 @@ function filter_row(row) {
 		// 參考過去幾年的慣例，只要投票者有列明身分、對話頁和貢獻，不用四個波浪號並沒有問題。
 		// e.g., [[Wikipedia_talk:動員令/第十六次動員令/投票]]
 		&& !/^Wikipedia(?:[ _]talk)?:動員令\/.+?\/投票$/i.test(row.title)
-		// 只標示日期的存檔
+		// 只標示日期的存檔。
 		&& !PATTERN_date_archive.test(row.title)
 		// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
 		// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
 
-		// 必須是白名單頁面，
-		&& (page_allowlist.includes(row.title)
-		// 或者討論頁面，
-		|| CeL.wiki.is_talk_namespace(row.ns)
-		// 或者只有維基百科的有額外的頁面、需要測試[[Wikipedia:]]。
-		|| row.title.startsWith('Wikipedia:'))
+		// 跳過封存/存檔頁面。 e.g., [[Wikipedia talk:首页/header/preload]]
+		&& !/\/(?:archive|存檔|存档|檔案|档案|header|preload)/i.test(row.title)
+		// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
+		// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
 
 		;
 	}
@@ -485,31 +513,8 @@ function for_each_row(row) {
 	/** {String}page content, maybe undefined. */
 	content = CeL.wiki.content_of(row, 0);
 
-	CeL.debug('做初步的篩選: 以討論頁面為主。', 5);
+	CeL.debug('做初步的內容篩選', 5);
 	if (!row.diff
-	// 跳過封存/存檔頁面。 e.g., [[Wikipedia talk:首页/header/preload]]
-	|| /\/(?:archive|存檔|存档|檔案|档案|header|preload)/i.test(row.title)
-	// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
-	// || /^Wikipedia[ _]talk:聚会\// i.test(row.title)
-
-	// 黑名單直接封殺。黑名單的優先度高於白名單。
-	|| page_blocklist.some(function(filter) {
-		return CeL.is_RegExp(filter)
-		//
-		? filter.test(row.title) : filter === row.title;
-	})
-	// 白名單頁面可以省去其他的檢查。
-	|| !page_allowlist.includes(row.title)
-	//
-	&& row.title.startsWith('Wikipedia:')
-	// e.g., [[Wikipedia:机器人/申请/...]]
-	// NG: [[Wikipedia:頁面存廢討論/*]], [[Wikipedia:模板消息/用戶討論命名空間]]
-	// && !/(?:討論|讨论|申請|申请)\//.test(row.title)
-	&& !row.title.startsWith('Wikipedia:机器人/申请/')
-	//
-	&& !row.title.startsWith('Wikipedia:互助客栈/')
-	//
-	&& !row.title.startsWith('Wikipedia:新条目推荐/候选')
 
 	// 篩選頁面內容。
 	|| !content
@@ -523,6 +528,7 @@ function for_each_row(row) {
 	|| PATTERN_ignore.test(content)) {
 		return;
 	}
+
 	if (CeL.is_debug(4)) {
 		row.revisions.forEach(function(revision) {
 			// @see CeL.wiki.revision_content(revision)
@@ -620,7 +626,7 @@ function for_each_row(row) {
 
 	// -----------------------------------------------------
 
-	var check_log = [], added_signs_or_notice = 0, write_to_log = project_name !== 'simplewiki', last_processed_index, queued_start, is_no_link_user, is_unsigned_user;
+	var check_log = [], added_signs_or_notice = 0, last_processed_index, queued_start, is_no_link_user, is_unsigned_user;
 
 	// 對於頁面每個修改的部分，比較頁面修訂差異。
 	// 有些可能只是搬移，只要任何一行有簽名即可。
@@ -647,7 +653,7 @@ function for_each_row(row) {
 		// e.g., [[w:zh:Special:Diff/71112783]]
 		if (/{{Unsigned(?:-before)?/.test(diff_pair.from_text)
 				// e.g., [[w:simple:Special:Diff/8195561]]
-				|| /<!-- Template:Unsigned(?:-before)? -->|在對話頁上簽名/
+				|| /<\!-- Template:Unsigned(?:-before)? -->|在對話頁上簽名/
 						.test(diff_pair.to_text)) {
 			CeL.debug('跳過: 手動補簽名作業。', 2, 'check_diff_pair');
 			return;
@@ -976,12 +982,11 @@ function for_each_row(row) {
 						+ '></code>，但是因為有發現簽名，因此不跳過。', 2);
 			} else {
 				// 但是既然加了，還是得提醒一下。
-				check_log
-						.push([
-								gettext(
-										// gettext_config:{"id":"skip-the-edit-for-including-wp-trans-transclusion-<code>&lt-$1&gt-<-code>"}
-										'Skip the edit for including [[WP:TRANS|transclusion]] <code>&lt;%1&gt;</code>',
-										matched[1]), section_wikitext ]);
+				check_log.push([ gettext(
+				// gettext_config:{"id":"skip-the-edit-for-including-wp-trans-transclusion-<code>&lt-$1&gt-<-code>"}
+				'Skip the edit for including [[WP:TRANS|transclusion]] <code>&lt;%1&gt;</code>'
+				//
+				, matched[1]), section_wikitext ]);
 				return;
 			}
 		}
@@ -1030,11 +1035,10 @@ function for_each_row(row) {
 		&& !/\n\s*$/.test(row.diff.to[last_diff_index_before_next_section])
 		// 分割點的前或者後應該要有換行。
 		&& !/^\s*\n/.test(row.diff.to[last_diff_index_before_next_section + 1])) {
-			CeL.debug(
-					'差異結束的地方是在段落中間，把留言結束的index向後移到段落結束之處: last_diff_index_before_next_section '
-							+ last_diff_index_before_next_section + '→'
-							+ (last_diff_index_before_next_section + 1) + '。',
-					2);
+			CeL.debug('差異結束的地方是在段落中間，把留言結束的index向後移到段落結束之處: '
+					+ 'last_diff_index_before_next_section '
+					+ last_diff_index_before_next_section + '→'
+					+ (last_diff_index_before_next_section + 1) + '。', 2);
 			last_diff_index_before_next_section++;
 			// continue; 向後尋找剛好交界在換行的 token。
 		}
@@ -1082,13 +1086,11 @@ function for_each_row(row) {
 				//
 				+ ' 代簽名、幫忙修正錯誤格式、特意提及、搬移條目討論，或是還原/撤銷編輯）';
 
-				check_log
-						.push([
-								gettext(
-										// gettext_config:{"id":"maybe-user-$1-edit-text-signed-by-$2-or-$1-help-correcting-the-text"}
-										'Maybe user %1 edit text signed by %2, or %1 help correcting the text',
-										row.user, user_list.join(', ')),
-								section_wikitext ]);
+				check_log.push([ gettext(
+				// gettext_config:{"id":"maybe-user-$1-edit-text-signed-by-$2-or-$1-help-correcting-the-text"}
+				'Maybe user %1 edit text signed by %2, or %1 help correcting the text'
+				//
+				, row.user, user_list.join(', ')), section_wikitext ]);
 			} else {
 				CeL.debug('在舊版的文字中並沒有發現簽名。或許是因為整段搬移貼上？', 2);
 			}
@@ -1227,7 +1229,9 @@ function for_each_row(row) {
 		//
 		);
 
-		if (write_to_log && added_signs_or_notice || test_mode) {
+		if (test_mode || added_signs_or_notice
+		// 不寫入紀錄頁面。
+		&& !wiki.latest_task_configuration.general.do_not_write_to_log) {
 			// 有做動作的時候才記錄，避免記錄過於繁雜。
 			wiki.page(log_to, {
 				redirects : 1
