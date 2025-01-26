@@ -1,22 +1,6 @@
 /*
 (cd ~/wikibot && date && hostname && nohup time node 20170515.signature_check.js use_language=zh-classical; date) >> modify_link/log &
 
-jstop cron-20170515.signature_check.wikinews
-jstop cron-20170515.signature_check.zh
-jstop cron-20170515.signature_check.zh-classical
-jstop cron-20170515.signature_check.wikisource
-jstop cron-20170515.signature_check.wikiversity
-jstop cron-20170515.signature_check.wikibooks
-jstop cron-20170515.signature_check.moegirl
-
-/usr/bin/jstart -N cron-20170515.signature_check.zh -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_language=zh
-/usr/bin/jstart -N cron-20170515.signature_check.zh-classical -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_language=zh-classical
-/usr/bin/jstart -N cron-20170515.signature_check.wikinews -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikinews
-/usr/bin/jstart -N cron-20170515.signature_check.wikisource -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikisource
-/usr/bin/jstart -N cron-20170515.signature_check.wikiversity -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=wikiversity
-/usr/bin/jstart -N cron-20170515.signature_check.wikibooks -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=zh.wikibooks
-/usr/bin/jstart -N cron-20170515.signature_check.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/signature-checker/wikibot/routine/20170515.signature_check.js use_project=zhmoegirl
-
 
 node 20170515.signature_check.js use_language=simple
 
@@ -113,26 +97,6 @@ project_page_prefix = {
 	zhwikisource : 'Wikisource:'
 }[project_name] || 'Wikipedia:',
 
-// 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
-// whitelist e.g., [[Wikipedia:頁面存廢討論/*]]
-page_allowlist = [ 'Wikipedia:知识问答', 'Wikipedia:存廢覆核請求', 'Wikipedia talk:首页',
-//
-'Wikisource:写字间', 'Wikisource:机器人', 'Wikisource:導入者', 'Wikisource:管理员',
-//
-'維基大典:會館', 'Wikiversity:互助客栈',
-// for 萌娘百科 zh.moegirl.org.cn
-'Talk:讨论版', 'Talk:提问求助区' ],
-
-// blacklist denylist blocklist 黑名單直接封殺。黑名單的優先度高於白名單。
-// 謝謝您的提醒，已經將此頁加入黑名單。以後不會再對這種頁面補簽名。
-// 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
-page_blocklist = [ 'Wikipedia:机器人/申请/审核小组成员指引', 'Wikipedia:机器人/申请/机械人申请指引',
-		'Wikisource:管理员',
-		// [[w:zh:User talk:Kanashimi/2015#Cewbot自动添加签名的问题。]]
-		// [[wikisource:zh:User talk:Kanashimi#Module talk 名字空間免簽名]]
-		// 不在 Module_talk:***/testcases 自動添加簽名。這些頁面的主頁面用於編寫測試程式碼，談話頁面可用來展示測試結果。
-		/^Module talk:.+?\/testcases$/, /^萌娘百科 talk:提案\/讨论中提案\/./ ],
-
 user_denylist = new Set,
 
 // ----------------------------------------------------------------------------
@@ -145,27 +109,6 @@ sign_each_section = false,
 more_separator = '...\n' + '⸻'.repeat(20) + '\n...',
 // 只有ASCII符號。
 PATTERN_symbol_only = /^[\t\n -@\[-`{-~]*$/,
-// 只標示日期的存檔頁面標題。
-PATTERN_date_archive = /\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/,
-// 跳過封存/存檔頁面: [[Template:Talk archive]] and all redirects。
-PATTERN_archive = /{{ *(?:(?:Talk ?)?archive|存檔|(?:讨论页)?存档|Aan|来自已转换的wiki文本讨论页的存档)/i,
-// 篩選編輯摘要。排除還原、自動的編輯。
-// GlobalReplace: use tool
-// https://commons.wikimedia.org/wiki/Commons:GlobalReplace
-// "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
-// @see [[Wikipedia:Twinkle]] ([[WP:TW]])
-PATTERN_revert_or_bot_summary = /還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|维护|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|Wikipedia:TW|Wikipedia:AWB|Project:AWB|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i,
-// Ignore these tags
-ignore_tags = [ 'AWB', 'twinkle',
-// @ 萌娘百科
-'Bot', 'Automation tool',
-//
-'WPCleaner', 'huggle', 'mw-new-redirect', 'mw-rollback', 'mw-reverted',
-		'mw-undo', 'mw-manual-revert', 'mw-blank', 'mw-new-redirect',
-		'mw-replace' ],
-// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
-// 請機器人注意: 本頁面不採用補簽名。
-PATTERN_ignore = /本頁面不.{0,3}補簽名/,
 // unsigned_user_hash[user][page title] = unsigned count
 unsigned_user_hash = Object.create(null),
 // no_link_user_hash[user][page title] = unsigned count
@@ -193,17 +136,51 @@ with_diff = {
 	with_list : true
 };
 
-if (test_mode) {
-	// CeL.set_debug(2);
-	page_allowlist.push('Wikipedia:沙盒');
-}
-
 function adapt_configuration(latest_task_configuration) {
 	var general = wiki.latest_task_configuration.general
 			|| (wiki.latest_task_configuration.general = Object.create(null));
 
 	if (Array.isArray(general.trusted_user_groups))
 		trusted_user_privileges = new Set(general.trusted_user_groups);
+
+	if (!general.exclude_talk_prefixes)
+		general.exclude_talk_prefixes = [];
+	else if (!Array.isArray(general.exclude_talk_prefixes))
+		general.exclude_talk_prefixes = [ general.exclude_talk_prefixes ];
+
+	general.exclude_talk_prefixes.push(
+	// [[w:zh:User talk:Kanashimi/2015#Cewbot自动添加签名的问题。]]
+	// [[wikisource:zh:User talk:Kanashimi#Module talk 名字空間免簽名]]
+	// 不在 Module_talk:***/testcases
+	// 自動添加簽名。這些頁面的主頁面用於編寫測試程式碼，談話頁面可用來展示測試結果。
+	/^Module talk:.+?\/testcases$/i,
+	// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
+	// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
+	/\/Editnotice(?:\/|$)/i,
+	// 迴避 [[Wikipedia:Preload]]
+	/\/Preload$/i,
+	// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
+	/存檔|存档/i,
+	// 跳過封存/存檔頁面。
+	// 跳過封存/存檔頁面。 e.g., [[Wikipedia talk:首页/header/preload]]
+	/\/(?:archive|檔案|档案|沙盒|header|preload)/i,
+	// 參考過去幾年的慣例，只要投票者有列明身分、對話頁和貢獻，不用四個波浪號並沒有問題。
+	// e.g., [[Wikipedia_talk:動員令/第十六次動員令/投票]]
+	/^Wikipedia(?:[ _]talk)?:動員令\/.+?\/投票$/i,
+	// 只標示日期的存檔頁面標題 PATTERN_date_archive。
+	/\/[12]\d{3}年(?:1?\d(?:[\-~～]1?\d)?月(?:[\-~～](?:[12]\d{3}年)?1?\d月)?)?(?:\/|$)/
+	//
+	);
+
+	if (!general.additional_talk_pages)
+		general.additional_talk_pages = [];
+	else if (!Array.isArray(general.additional_talk_pages))
+		general.additional_talk_pages = [ general.additional_talk_pages ];
+
+	if (!general.additional_talk_page_prefixes)
+		general.additional_talk_page_prefixes = [];
+	else if (!Array.isArray(general.additional_talk_page_prefixes))
+		general.additional_talk_page_prefixes = [ general.additional_talk_page_prefixes ];
 
 	console.trace(wiki.latest_task_configuration.general);
 }
@@ -227,72 +204,66 @@ function filter_row(row) {
 		// for test
 		passed = row.title === test_the_page_only;
 
-	} else if (ignore_tags.some(function(tag) {
+	} else if (
+	// Ignore these tags
+	[ 'AWB', 'twinkle',
+	// @ 萌娘百科
+	'Bot', 'Automation tool',
+	//
+	'WPCleaner', 'huggle', 'mw-new-redirect', 'mw-rollback', 'mw-reverted',
+			'mw-undo', 'mw-manual-revert', 'mw-blank', 'mw-new-redirect',
+			'mw-replace' ].some(function(tag) {
 		return row.tags.includes(tag);
 	})) {
-		// Ignore these tags
+		passed = false;
 
 	} else if (row.user === wiki.token.login_user_name
 	// 跳過機器人的編輯。為了某些編輯不加 bot flag 的 bot。
 	|| CeL.wiki.PATTERN_BOT_NAME.test(row.user)
 	//
-	|| row.user === 'MediaWiki message delivery'
-	// 篩選編輯摘要。
-	|| PATTERN_revert_or_bot_summary.test(row.comment)) {
+	|| row.user === 'MediaWiki message delivery') {
 		passed = false;
 
-	} else if (page_blocklist.some(function(filter) {
+	} else if (
+	// 篩選編輯摘要。排除還原、自動的編輯。 PATTERN_revert_or_bot_summary
+	// GlobalReplace: use tool
+	// https://commons.wikimedia.org/wiki/Commons:GlobalReplace
+	// "!nosign!": 已經參考、納入了一部分 [[commons:User:SignBot|]] 的做法。
+	// @see [[Wikipedia:Twinkle]] ([[WP:TW]])
+	/還原|还原|revert|回退|撤銷|撤销|取消.*(编辑|編輯)|更改回|維護|维护|暫存|暂存|臨時保存|替换引用|!nosign!|!nobot!|Wikipedia:TW|Wikipedia:AWB|Project:AWB|AutoWikiBrowser|自動維基瀏覽器|自动维基浏览器|GlobalReplace/i
+			.test(row.comment)) {
+		passed = false;
+
+	} else if (wiki.latest_task_configuration.general.exclude_talk_prefixes
+	// 篩選頁面標題。排除這些頁面。
+	.some(function(filter) {
 		return CeL.is_RegExp(filter)
-		//
+		// 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
 		? filter.test(row.title) : filter === row.title;
 	})) {
 		// 黑名單直接封殺。黑名單的優先度高於白名單。
+		// 因為預設只處理 talk pages，
+		// 其他皆需設定於 additional_talk_pages 或 additional_talk_page_prefixes，
+		// 因此 blocklist 應當全為 talk pages。
+		// 另可用 {{bots|SIGN}} 避免處理。
 		passed = false;
 
-	} else if (page_allowlist.includes(row.title)) {
-		// 白名單頁面可以省去其他的檢查。
+	} else if (wiki.latest_task_configuration.general.additional_talk_pages
+	// 白名單頁面可以省去其他的檢查。
+	// 注意: 因為本工具讀不懂文章，因此只要文章中有任何部分或規則為不需要簽名，那就不應該列入檢查。
+	.includes(row.title)) {
 		passed = true;
 
 	} else {
-		passed =
 		// 以討論頁面為主。必須是討論頁面，
-		(CeL.wiki.is_talk_namespace(row.ns)
+		passed = CeL.wiki.is_talk_namespace(row.ns)
 		// 或額外頁面。
-		// e.g., [[Wikipedia:机器人/申请/...]]
-		// NG: [[Wikipedia:頁面存廢討論/*]], [[Wikipedia:模板消息/用戶討論命名空間]]
 		// || /(?:討論|讨论|申請|申请)\//.test(row.title)
-		|| row.title.startsWith('Wikipedia:机器人/申请/')
+		|| wiki.latest_task_configuration.general.additional_talk_page_prefixes
 		//
-		|| row.title.startsWith('Wikipedia:互助客栈/')
-		//
-		|| row.title.startsWith('Wikipedia:新条目推荐/候选')
-		// [[w:simple:User talk:Kanashimi
-		// #Does Cewbot not sign comments in Wikipedia namespace]]
-		|| row.title.startsWith('Wikipedia:Requests for deletion/Requests/'))
-
-		// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
-		// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
-		&& !/\/Editnotice(\/|$)/i.test(row.title)
-		// 迴避 [[Wikipedia:Preload]]
-		&& !/\/Preload$/i.test(row.title)
-		// 篩選頁面標題。跳過封存/存檔頁面。
-		&& !/\/(?:archive|檔案|档案|沙盒)/i.test(row.title)
-		// /舊?存檔|旧?存档/ e.g., [[Talk:台北車站/2005—2010年存檔]]
-		&& !/存檔|存档/i.test(row.title)
-		// 參考過去幾年的慣例，只要投票者有列明身分、對話頁和貢獻，不用四個波浪號並沒有問題。
-		// e.g., [[Wikipedia_talk:動員令/第十六次動員令/投票]]
-		&& !/^Wikipedia(?:[ _]talk)?:動員令\/.+?\/投票$/i.test(row.title)
-		// 只標示日期的存檔。
-		&& !PATTERN_date_archive.test(row.title)
-		// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
-		// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
-
-		// 跳過封存/存檔頁面。 e.g., [[Wikipedia talk:首页/header/preload]]
-		&& !/\/(?:archive|存檔|存档|檔案|档案|header|preload)/i.test(row.title)
-		// e.g., [[Wikipedia_talk:聚会/2017青島夏聚]]
-		// || /^Wikipedia[ _]talk:聚会\//i.test(row.title)
-
-		;
+		.some(function(prefix) {
+			return row.title.startsWith(prefix);
+		});
 	}
 
 	if (!passed) {
@@ -519,13 +490,16 @@ function for_each_row(row) {
 	// 篩選頁面內容。
 	|| !content
 	// 跳過封存/存檔頁面。
-	|| PATTERN_archive.test(content)
+	|| /{{ *(?:Talk ?archive|存檔頁|存档页|(?:讨论页)?存档|過往存檔|Aan|来自已转换的wiki)/i
+	// [[Template:Talk archive]] and all redirects。
+	.test(content)
 	// 跳過重定向頁。
 	|| CeL.wiki.parse.redirect(content)
 	// [[Project:SIGN]] 可以用 "{{Bots|optout=SIGN}}" 來避免這個任務添加簽名標記。
 	|| CeL.wiki.edit.denied(row, wiki.token.login_user_name, 'SIGN')
-	//
-	|| PATTERN_ignore.test(content)) {
+	// 可以在頁面中加入 "{{NoAutosign}}" 來避免這個任務於此頁面添加簽名標記。
+	// 請機器人注意: 本頁面不採用補簽名。
+	|| /本頁面不.{0,3}補簽名/.test(content)) {
 		return;
 	}
 
