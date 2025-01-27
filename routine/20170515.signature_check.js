@@ -256,7 +256,7 @@ function filter_row(row) {
 
 	} else {
 		// 以討論頁面為主。必須是討論頁面，
-		passed = CeL.wiki.is_talk_namespace(row.ns)
+		passed = wiki.is_talk_namespace(row)
 		// 或額外頁面。
 		// || /(?:討論|讨论|申請|申请)\//.test(row.title)
 		|| wiki.latest_task_configuration.general.additional_talk_page_prefixes
@@ -396,7 +396,7 @@ function check_user_denylist() {
 	wiki.embeddedin('Template:NoAutosign', function(page_data_list) {
 		var new_user_denylist = new Set(page_data_list.filter(
 				function(page_data) {
-					return wiki.is_namespace(page_data, 'user');
+					return wiki.is_namespace(page_data, 'User');
 				}).map(function(page_data) {
 			return wiki.remove_namespace(page_data);
 		}));
@@ -698,9 +698,13 @@ function for_each_row(row) {
 			}
 			// 篩選格式排版。
 			token_list = token_list.filter(function(token) {
-				// 在改變之前就已經有這一小段的話，就排除掉之。
-				return !from_without_style.some(function(_token) {
-					return _token.includes(token);
+				// 排除掉改變前就已經有的段落。
+				return !from_without_style.some(function(_token, index) {
+					if (_token.includes(token)) {
+						// 去掉用過的，避免重複偵測。
+						from_without_style[index] = '';
+						return true;
+					}
 				});
 			}).join('').trim();
 			CeL.debug('本段篩選過的文字剩下 ' + JSON.stringify(token_list), 2,
@@ -709,7 +713,7 @@ function for_each_row(row) {
 			return PATTERN_symbol_only.test(token_list);
 		}
 
-		if (row.ns === CeL.wiki.namespace('user_talk')) {
+		if (wiki.is_namespace(row, 'User talk')) {
 			CeL.debug('測試是不是用戶在自己的討論頁添加上宣告或者維護模板。', 2, 'check_diff_pair');
 			// row.title.startsWith(row.user)
 			if (CeL.wiki.parse.user(CeL.wiki.title_link_of(row), row.user)) {
@@ -736,7 +740,7 @@ function for_each_row(row) {
 			}
 
 		} else if (row.title.startsWith(project_page_prefix)
-				|| CeL.wiki.is_talk_namespace(row.ns)) {
+				|| wiki.is_talk_namespace(row)) {
 			CeL.debug('測試是不是在條目的討論頁添加上維基專題、條目里程碑、維護、評級模板。', 2,
 					'check_diff_pair');
 			if (this_section_text_may_skip()) {
@@ -905,20 +909,54 @@ function for_each_row(row) {
 
 		CeL.debug('** 當作其他一般討論，應該加上署名。', 2);
 
-		// 從修改的地方開始，到第一個出現簽名的第一層token為止的文字。
-		var section_wikitext = row.diff.to.slice(to_diff_start_index,
-				to_diff_end_index + 1);
+		var section_wikitext;
 
-		for (var index = to_diff_end_index + 1; index < next_section_index; index++) {
-			var token = row.diff.to[index];
-			section_wikitext.push(token);
-			// TODO: 應該使用 function for_each_subelement()
-			if (CeL.wiki.parse.user(token)) {
-				break;
+		var vote_type_unsign_token = (function() {
+			if (row.diff.length !== 1) {
+				return;
 			}
-		}
+			if (row.parsed[to_diff_end_index].type !== 'list'
+					|| to_diff_end_index !== diff_pair.index[1][0]
+					|| diff_pair.index[1][0] !== diff_pair.index[1][1]) {
+				return;
+			}
+			if (diff_pair.index[0]
+					&& (diff_pair.index[0][0] !== diff_pair.index[0][1] || diff_pair.index[0][0] !== diff_pair.index[1][0])) {
+				return;
+			}
 
-		section_wikitext = section_wikitext.join('');
+			// 可能是投票之類，每個人一個 list item。
+			// e.g., [[w:simple:User talk:Kanashimi#Does Cewbot not sign
+			// comments in Wikipedia namespace]]
+			var from_wikitext = diff_pair[0].join('\n');
+			var from_list_token = CeL.wiki.parse(from_wikitext);
+			if (row.parsed[to_diff_end_index].length !== from_list_token.length + 1
+					|| row.parsed[to_diff_end_index].slice(0, -1).join('') !== from_wikitext
+							.replace(/((?:[\s\n]|<!--[\s\S]*?-->)*)$/, '')) {
+				return;
+			}
+
+			var diff_token = row.parsed[to_diff_end_index].at(-1);
+			section_wikitext = diff_token.toString();
+			return diff_token;
+		})();
+
+		if (!vote_type_unsign_token) {
+			// 從修改的地方開始，到第一個出現簽名的第一層token為止的文字。
+			section_wikitext = row.diff.to.slice(to_diff_start_index,
+					to_diff_end_index + 1);
+
+			for (var index = to_diff_end_index + 1; index < next_section_index; index++) {
+				var token = row.diff.to[index];
+				section_wikitext.push(token);
+				// TODO: 應該使用 function for_each_subelement()
+				if (CeL.wiki.parse.user(token)) {
+					break;
+				}
+			}
+
+			section_wikitext = section_wikitext.join('');
+		}
 
 		if (CeL.wiki.content_of.revision(row).length > 1
 				&& CeL.wiki.content_of(row, -1).includes(
@@ -1024,7 +1062,8 @@ function for_each_row(row) {
 
 		// --------------------------------------
 
-		var last_token = row.diff.to[last_diff_index_before_next_section];
+		var last_token = vote_type_unsign_token ? section_wikitext
+				: row.diff.to[last_diff_index_before_next_section];
 
 		// [[Wikipedia:签名]]: 簽名中必須至少包含該用戶的用戶頁、討論頁或貢獻頁其中一項的連結。
 		if (user_list.length > 0) {
@@ -1137,15 +1176,39 @@ function for_each_row(row) {
 		// 添加簽名。
 		is_unsigned_user = true;
 
-		// TODO: last_token 若為 URL 或 [[mw:Help:Magic links]]，則應該先空一格。
-		// 但是因為 {{Unsigned}} 會從 HTML 標籤開始，因此就可以跳過這個步驟了。
-		row.diff.to[last_diff_index_before_next_section] = last_token
+		var root_token_wikitext = row.diff.to[last_diff_index_before_next_section]
+				.toString();
+		var last_token_index = root_token_wikitext.indexOf(last_token);
+
+		if (vote_type_unsign_token) {
+			// assert: last_token === section_wikitext
+
+			// assert: last_token_index >= 0
+		} else {
+			// assert: row.diff.to[last_diff_index_before_next_section]
+			// === root_token_wikitext === last_token
+
+			// assert: last_token_index === 0
+
+			// TODO: last_token 若為 URL 或 [[mw:Help:Magic links]]，則應該先空一格。
+			// 但是因為 {{Unsigned}} 會從 HTML 標籤開始，因此就可以跳過這個步驟了。
+		}
+
+		last_token = last_token
 		// {{subst:Unsigned|用戶名或IP|時間日期}}
-		.replace(/([\s\n]*)$/, '{{' + (using_subst ? 'subst:' : '')
-				+ 'Unsigned|' + row.user + '|' + get_parsed_time(row)
-				+ (is_anonymous_user ? '|IP=1' : '') + '}}'
-				// + '<!-- Autosigned by ' + wiki.token.login_user_name + ' -->'
+		.replace(/((?:[\s\n]|<!--[\s\S]*?-->)*)$/, '{{'
+				+ (using_subst ? 'subst:' : '') + 'Unsigned|' + row.user + '|'
+				+ get_parsed_time(row) + (is_anonymous_user ? '|IP=1' : '')
+				+ '}}'
+				// + '<!-- Autosigned by ' + wiki.token.login_user_name + '
+				// -->'
 				+ '$1');
+
+		row.diff.to[last_diff_index_before_next_section] = root_token_wikitext
+				.slice(0, last_token_index)
+				+ last_token
+				+ root_token_wikitext.slice(last_token_index
+						+ section_wikitext.length);
 
 		CeL.info('需要在最後補簽名的編輯: ' + CeL.wiki.title_link_of(row));
 		console.log(row.diff.to.slice(to_diff_start_index,
