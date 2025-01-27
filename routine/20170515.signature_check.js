@@ -143,10 +143,16 @@ function adapt_configuration(latest_task_configuration) {
 	if (Array.isArray(general.trusted_user_groups))
 		trusted_user_privileges = new Set(general.trusted_user_groups);
 
-	if (!general.exclude_talk_prefixes)
+	if (!general.exclude_talk_prefixes) {
 		general.exclude_talk_prefixes = [];
-	else if (!Array.isArray(general.exclude_talk_prefixes))
-		general.exclude_talk_prefixes = [ general.exclude_talk_prefixes ];
+	} else {
+		if (!Array.isArray(general.exclude_talk_prefixes))
+			general.exclude_talk_prefixes = [ general.exclude_talk_prefixes ];
+		general.exclude_talk_prefixes = general.exclude_talk_prefixes
+				.filter(function(item) {
+					return !!item;
+				});
+	}
 
 	general.exclude_talk_prefixes.push(
 	// [[w:zh:User talk:Kanashimi/2015#Cewbot自动添加签名的问题。]]
@@ -174,15 +180,27 @@ function adapt_configuration(latest_task_configuration) {
 	//
 	);
 
-	if (!general.additional_talk_pages)
+	if (!general.additional_talk_pages) {
 		general.additional_talk_pages = [];
-	else if (!Array.isArray(general.additional_talk_pages))
-		general.additional_talk_pages = [ general.additional_talk_pages ];
+	} else {
+		if (!Array.isArray(general.additional_talk_pages))
+			general.additional_talk_pages = [ general.additional_talk_pages ];
+		general.additional_talk_pages = general.additional_talk_pages
+				.filter(function(item) {
+					return !!item;
+				});
+	}
 
-	if (!general.additional_talk_page_prefixes)
+	if (!general.additional_talk_page_prefixes) {
 		general.additional_talk_page_prefixes = [];
-	else if (!Array.isArray(general.additional_talk_page_prefixes))
-		general.additional_talk_page_prefixes = [ general.additional_talk_page_prefixes ];
+	} else {
+		if (!Array.isArray(general.additional_talk_page_prefixes))
+			general.additional_talk_page_prefixes = [ general.additional_talk_page_prefixes ]
+		general.additional_talk_page_prefixes = general.additional_talk_page_prefixes
+				.filter(function(item) {
+					return !!item;
+				});
+	}
 
 	console.trace(wiki.latest_task_configuration.general);
 }
