@@ -154,6 +154,8 @@ function adapt_configuration(latest_task_configuration) {
 	// 不在 Module_talk:***/testcases
 	// 自動添加簽名。這些頁面的主頁面用於編寫測試程式碼，談話頁面可用來展示測試結果。
 	/^Module talk:.+?\/testcases$/i,
+	// https://zh.wikisource.org/wiki/Index:CADAL02035393_%E5%95%8F%E4%BF%97%E9%8C%84%EF%BC%88%E4%B8%80%EF%BC%89.djvu/styles.css
+	/\.(?:js|css)$/i,
 	// 迴避 [[Wikipedia:Editnotice]] [[維基百科:編輯提示]]
 	// e.g. [[Wikipedia:新条目推荐/候选/Editnotice]]子頁面
 	/\/Editnotice(?:\/|$)/i,
