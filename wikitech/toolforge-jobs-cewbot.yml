@@ -227,51 +227,56 @@
   image: node18
   mem: 2Gi
   schedule: "12 20 * * *"
+- name: k8s-20210429.auto-archiver.de
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=de"
+  image: node18
+  mem: 2Gi
+  schedule: "13 20 * * *"
 - name: k8s-20210429.auto-archiver.simple
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=simple"
   image: node18
   mem: 2Gi
-  schedule: "13 20 * * *"
+  schedule: "14 20 * * *"
 - name: k8s-20210429.auto-archiver.wikidata
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=wikidata"
   image: node18
   mem: 2Gi
-  schedule: "14 20 * * *"
+  schedule: "15 20 * * *"
 - name: k8s-20210429.auto-archiver.commons
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=commons"
   image: node18
   mem: 2Gi
-  schedule: "15 20 * * *"
+  schedule: "16 20 * * *"
 - name: k8s-20210429.auto-archiver.zh.wikinews
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wikinews"
   image: node18
   mem: 2Gi
-  schedule: "16 20 * * *"
+  schedule: "17 20 * * *"
 - name: k8s-20210429.auto-archiver.zh.wiktionary
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wiktionary"
   image: node18
   mem: 2Gi
-  schedule: "16 20 * * *"
+  schedule: "18 20 * * *"
 - name: k8s-20210429.auto-archiver.zh.wikiversity
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wikiversity"
   image: node18
   mem: 2Gi
-  schedule: "17 20 * * *"
+  schedule: "19 20 * * *"
 - name: k8s-20210429.auto-archiver.zh.wikisource
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wikisource"
   image: node18
   mem: 2Gi
-  schedule: "18 20 * * *"
+  schedule: "20 20 * * *"
 - name: k8s-20210429.auto-archiver.ks
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=ks"
   image: node18
   mem: 2Gi
-  schedule: "19 20 * * *"
+  schedule: "21 20 * * *"
 - name: k8s-20210429.auto-archiver.zhwiktionary
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wiktionary"
   image: node18
   mem: 2Gi
-  schedule: "20 20 * * *"
+  schedule: "22 20 * * *"
 
 - name: k8s-20211203.synchronizing-common-pages.zh.wikinews
   command: "node ./wikibot/routine/20211203.synchronizing_common_pages.js use_project=zh.wikinews"
