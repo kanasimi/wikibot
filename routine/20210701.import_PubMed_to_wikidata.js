@@ -1436,6 +1436,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 	data_to_modify.main_subject = Object.create(null);
 	function add_main_subject(key, references) {
+		// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
+		// 必須採用更嚴謹的篩選方式。
+		return;
+
 		if (!key) return;
 
 		if (Array.isArray(key)) {
