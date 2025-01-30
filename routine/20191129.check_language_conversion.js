@@ -510,7 +510,8 @@ async function for_each_conversion_group_page(page_data) {
 
 	if (conversion_of_page[page_data.title])
 		conversion_list.forEach(conversion => add_conversion(conversion.item, page_data));
-	CeL.info(`${for_each_conversion_group_page.name}: ${++this.index}/${this.conversion_group_list.length} ${CeL.wiki.title_link_of(page_data)}: ${conversion_list.length}個公共轉換組`);
+	if (!conversion_list.skipped && !(conversion_list.length > 0))
+		CeL.info(`${for_each_conversion_group_page.name}: ${++this.index}/${this.conversion_group_list.length} ${CeL.wiki.title_link_of(page_data)}: ${conversion_list.length}個公共轉換組`);
 }
 
 // ----------------------------------------------------------------------------
