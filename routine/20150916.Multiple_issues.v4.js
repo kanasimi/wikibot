@@ -79,7 +79,7 @@ async function adapt_configuration(latest_task_configuration) {
 		// gettext_config:{"id":"maintenance-template-list"}
 		gettext('Maintenance template list')];
 	if (!maintenance_template_list) {
-		throw new Error(`${adapt_configuration.name}: 設定檔的標題被改變了？`);
+		throw new Error(`${adapt_configuration.name}: 設定檔的章節標題被改變了？`);
 	}
 	maintenance_template_list = (maintenance_template_list || []).filter(template_name => {
 		if (wiki.is_namespace(template_name, 'Category')) {
@@ -113,7 +113,7 @@ async function adapt_configuration(latest_task_configuration) {
 		// gettext_config:{"id":"maintenance-template-list-to-be-excluded"}
 		gettext('Maintenance template list to be excluded')];
 	if (!maintenance_template_list_to_be_excluded) {
-		throw new Error(`${adapt_configuration.name}: 設定檔的標題被改變了？`);
+		throw new Error(`${adapt_configuration.name}: 設定檔的章節標題被改變了？`);
 	}
 	maintenance_template_list_to_be_excluded = maintenance_template_list_to_be_excluded?.map(template_name => wiki.to_namespace(template_name, 'template')) || [];
 
