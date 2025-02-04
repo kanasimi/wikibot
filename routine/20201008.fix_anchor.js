@@ -50,6 +50,9 @@ node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=影之诗F
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=初音未来 NT殿堂曲" "only_modify_pages=Template:初音未来_NT殿堂曲题头"
 node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=达拉崩吧" "only_modify_pages=VOCALOID中文殿堂曲/梗曲相关"
 
+node 20201008.fix_anchor.js use_language=simple "check_page=User talk:Gordonrox24" "only_modify_pages=Wikipedia:Administrators' noticeboard/Current issues and requests archive 31"
+
+
 node routine/20201008.fix_anchor.js use_project=test
 
 
@@ -1710,7 +1713,7 @@ async function check_page(target_page_data, options) {
 						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
 						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, token.anchor) : ''
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
-					}` : ''}}}`));
+					}` : ''}|diff_id=${record.disappear.revid}}}`));
 			add_summary(this,
 				`${
 				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
