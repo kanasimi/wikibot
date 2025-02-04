@@ -1435,11 +1435,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// main subject (P921)
 
 	data_to_modify.main_subject = Object.create(null);
-	function add_main_subject(key, references) {
-		// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
-		// 必須採用更嚴謹的篩選方式。
-		return;
-
+	async function add_main_subject(key, references) {
 		if (!key) return;
 
 		if (Array.isArray(key)) {
@@ -1456,7 +1452,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		data_to_modify.main_subject[key] = null;
 
 		let main_subject = main_subject_mapping.get(key);
-		if (!main_subject) {
+		if (false && !main_subject) {
+			// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
+			// 必須採用更嚴謹的篩選方式。
+			// TODO: 順便刪除錯誤的主題。
 			if (/\w+ \w+/.test(key)) {
 				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
 				// 對於簡單字詞寧缺勿濫。為避免錯誤，僅取用較複雜的字詞。
@@ -1479,10 +1478,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	}
 
 	//console.trace(Europe_PMC_article_data.keywordList?.keyword);
-	add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
+	await add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
 
 	// 醫學主題詞。
-	add_main_subject(
+	await add_main_subject(
 		Europe_PMC_article_data.meshHeadingList?.meshHeading
 			//?.filter(data => data.majorTopic_YN === 'Y')?.map(data => data.descriptorName)
 			?.reduce((filtered, data) => {
@@ -1492,9 +1491,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		Europe_PMC_article_data.wikidata_references
 	);
 
-	//add_main_subject(Europe_PMC_article_data.subsetList?.subset, Europe_PMC_article_data.wikidata_references);
+	//await add_main_subject(Europe_PMC_article_data.subsetList?.subset, Europe_PMC_article_data.wikidata_references);
 
-	add_main_subject(CrossRef_article_data.subject, CrossRef_article_data.wikidata_references);
+	await add_main_subject(CrossRef_article_data.subject, CrossRef_article_data.wikidata_references);
 
 	// --------------------------------------------------------------
 	// cites work (P2860)
