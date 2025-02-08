@@ -306,10 +306,19 @@ WHERE
 		//console.trace(entity_id, main_subject_item_list);
 		main_subject_item_list.forEach(main_subject_data => {
 			const main_subject = CeL.wiki.data.value_of(main_subject_data.itemLabel).toLowerCase();
-			if (!main_subject_mapping.has(main_subject)) {
-				const entity_id = CeL.wiki.data.value_of(main_subject_data.item).match(/\/(Q\d+)$/)[1];
-				main_subject_mapping.set(main_subject, entity_id);
+			if (main_subject_mapping.has(main_subject)) {
+				return;
 			}
+
+			// e.g., [[L1401142]]
+			let entity_id = CeL.wiki.data.value_of(main_subject_data.item).match(/\/(Q\d+)$/);
+			if (!entity_id) {
+				CeL.warn(`${fill_main_subject_mapping.name}: Not an entity: ${CeL.wiki.title_link_of(CeL.wiki.data.value_of(main_subject_data.itemLabel))} ${main_subject_data.item}`);
+				return;
+			}
+
+			entity_id = entity_id[1];
+			main_subject_mapping.set(main_subject, entity_id);
 		});
 	}
 
@@ -1452,22 +1461,29 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		data_to_modify.main_subject[key] = null;
 
 		let main_subject = main_subject_mapping.get(key);
-		if (false && !main_subject) {
-			// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
-			// 必須採用更嚴謹的篩選方式。
-			// TODO: 順便刪除錯誤的主題。
-			if (/\w+ \w+/.test(key)) {
-				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
-				// 對於簡單字詞寧缺勿濫。為避免錯誤，僅取用較複雜的字詞。
-				main_subject = key;
-			} else {
-				CeL.warn(`${add_main_subject.name}: ${PubMed_ID}: Unknown main subject: ${JSON.stringify(key)}. Please add it to main_subject_mapping!`);
-			}
+		if (!main_subject) {
+			main_subject = key;
 		}
 		if (main_subject) {
 			const claim = {
 				// main subject (P921)
 				P921: main_subject,
+
+				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
+				// 必須採用更嚴謹的篩選方式。
+				// TODO: 順便刪除錯誤的主題。
+				// TODO: Test P31
+				async filter(item, key) {
+					if (!CeL.wiki.data.search.default_filter(item, key))
+						return false;
+
+					// episode: [[Q111180311]], [[Q112193307]], [[Q111905581]]
+					if (/scientific article|publication|episode/i.test(item.description))
+						return false;
+
+					return true;
+				},
+
 				// based on heuristic (P887)
 				//references: + P887:'inferred from keyword and API search'
 				references
@@ -1520,6 +1536,25 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 			const claim = {
 				qualifiers,
+				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
+				// 必須採用更嚴謹的篩選方式。
+				// TODO: 順便刪除錯誤的主題。
+				// TODO: Test P31
+				async filter(item, key) {
+					if (!CeL.wiki.data.search.default_filter(item, key))
+						return false;
+
+					// "Moot Point" @ https://www.wikidata.org/w/index.php?title=Q34318047&oldid=prev&diff=2299781576&diffmode=source
+					// https://www.wikidata.org/w/index.php?title=Q55056964&oldid=prev&diff=2300931637&diffmode=source
+					if (/episode/i.test(item.description))
+						return false;
+
+					if (/scientific article/i.test(item.description))
+						return true;
+
+					return true;
+				},
+
 				references: CrossRef_article_data.wikidata_references
 			};
 
