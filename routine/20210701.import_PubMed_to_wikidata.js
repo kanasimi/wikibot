@@ -131,6 +131,32 @@ const MAX_error_reported = 1000;
 
 // ----------------------------------------------
 
+
+function extract_item_ids(list) {
+	if (!Array.isArray(list))
+		return [];
+
+	const item_ids = [];
+	//console.log(list);
+	list.forEach((item_id) => {
+		if (!item_id)
+			return;
+
+		item_id = String(item_id);
+		const matched = item_id.match(/{{\s*Q\s*\|\s*Q?(\d{1,10})\s*}}/);
+		if (matched) {
+			item_id = 'Q' + matched[1];
+		} else if (!/^Q(\d{1,10})$/.test(item_id)) {
+			CeL.warn(`${extract_item_ids.name}: Ignore invalid item_id: ${item_id}`);
+			return;
+		}
+
+		item_ids.push(item_id);
+	});
+
+	return item_ids;
+}
+
 /**
  * 由設定頁面讀入手動設定 manual settings。
  * 
@@ -145,6 +171,24 @@ async function adapt_configuration(latest_task_configuration) {
 
 	const { general } = latest_task_configuration;
 
+	if (!Array.isArray(general.main_subject_types)) {
+		general.main_subject_types = [
+			// study type (Q78088984)
+			'Q78088984',
+			// academic discipline (Q11862829)
+			'Q11862829',
+			// structural class of chemical compounds (Q47154513)
+			'Q47154513',
+			// biological process (Q2996394)
+			'Q2996394',
+		];
+	}
+
+	general.main_subject_types = extract_item_ids(general.main_subject_types);
+
+	general.non_main_subject_types_Set = new Set(extract_item_ids(general.non_main_subject_types));
+
+	console.log(latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------
@@ -322,16 +366,7 @@ WHERE
 		});
 	}
 
-	for (const entity_id of [
-		// study type (Q78088984)
-		'Q78088984',
-		// academic discipline (Q11862829)
-		'Q11862829',
-		// structural class of chemical compounds (Q47154513)
-		'Q47154513',
-		// biological process (Q2996394)
-		'Q2996394',
-	]) {
+	for (const entity_id of wiki.latest_task_configuration.general.main_subject_types) {
 		await set_main_subject_item_list(entity_id);
 	}
 
@@ -1472,7 +1507,6 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
 				// 必須採用更嚴謹的篩選方式。
 				// TODO: 順便刪除錯誤的主題。
-				// TODO: Test P31
 				async filter(item, key) {
 					if (!CeL.wiki.data.search.default_filter(item, key))
 						return false;
@@ -1481,7 +1515,24 @@ async function for_each_PubMed_ID(PubMed_ID) {
 					if (/scientific article|publication|episode/i.test(item.description))
 						return false;
 
+					const item_data = await wiki.data(item.id);
+					// Test instance of (P31) or subclass of (P279)
+					// e.g., [[Q70709021]]
+					const class_ids = CeL.wiki.data.value_of(item_data?.claims?.P31 || item_data?.claims?.P279);
+					if (!class_ids
+						|| (Array.isArray(class_ids) ? class_ids : [class_ids]).some(class_id => wiki.latest_task_configuration.general.non_main_subject_types_Set.has(class_id))) {
+						return false;
+					}
+
 					return true;
+				},
+
+				// [[d:User talk:Kanashimi#Use of keywords]]
+				qualifiers: {
+					// object of statement has role (P3831) : index term (Q13422207)
+					P3831: 'Q13422207',
+					// object named as (P1932)
+					P1932: key,
 				},
 
 				// based on heuristic (P887)
@@ -1539,7 +1590,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				// [[d:User talk:Kanashimi#please check before adding properties to scholarly article items]]
 				// 必須採用更嚴謹的篩選方式。
 				// TODO: 順便刪除錯誤的主題。
-				// TODO: Test P31
+				// TODO: Test instance of (P31)
 				async filter(item, key) {
 					if (!CeL.wiki.data.search.default_filter(item, key))
 						return false;
@@ -1929,8 +1980,10 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 
 	clean_data_to_modify();
 
-	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID=${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
+	const summary_prefix = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, 'Modify PubMed ID')}: ${PubMed_ID} `;
+	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID:${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
 	//console.trace(data_to_modify);
+	const summary = `${summary_prefix}${NCBI_article_data.doctype} data${summary_source_posifix}`;
 	if (data_to_modify.descriptions && !CeL.is_empty_object(data_to_modify.descriptions)) {
 		const descriptions = data_to_modify.descriptions;
 		delete data_to_modify.descriptions;
@@ -1940,7 +1993,7 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 		}
 		//console.trace(descriptions);
 		await article_item.modify({ descriptions }, {
-			bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}`,
+			bot: 1, summary,
 			// 合併請求。
 			wbeditentity_only: true,
 		});
@@ -1948,7 +2001,7 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 
 	//console.trace(data_to_modify);
 	await article_item.modify(data_to_modify, {
-		bot: 1, summary: `Modify PubMed ID: ${PubMed_ID} ${NCBI_article_data.doctype} data${summary_source_posifix}`,
+		bot: 1, summary,
 		// 避免 cites work (P2860) 佔據太多記憶體。
 		search_without_cache: true,
 		no_skip_attributes_note: true,
