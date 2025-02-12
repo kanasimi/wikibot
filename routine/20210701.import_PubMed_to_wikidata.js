@@ -1479,12 +1479,12 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// main subject (P921)
 
 	data_to_modify.main_subject = Object.create(null);
-	async function add_main_subject(key, references) {
+	async function add_main_subject(key, references, object_of_statement_has_role) {
 		if (!key) return;
 
 		if (Array.isArray(key)) {
 			for (const _key of key) {
-				add_main_subject(_key, references);
+				add_main_subject(_key, references, object_of_statement_has_role);
 			}
 			return;
 		}
@@ -1500,6 +1500,17 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			main_subject = key;
 		}
 		if (main_subject) {
+			const qualifiers = {
+				// object named as (P1932)
+				P1932: key,
+			};
+
+			// [[d:User talk:Kanashimi#Use of keywords]]
+			if (object_of_statement_has_role) {
+				// object of statement has role (P3831)
+				qualifiers.P3831 = object_of_statement_has_role;
+			}
+
 			const claim = {
 				// main subject (P921)
 				P921: main_subject,
@@ -1527,13 +1538,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 					return true;
 				},
 
-				// [[d:User talk:Kanashimi#Use of keywords]]
-				qualifiers: {
-					// object of statement has role (P3831) : index term (Q13422207)
-					P3831: 'Q13422207',
-					// object named as (P1932)
-					P1932: key,
-				},
+				qualifiers,
 
 				// based on heuristic (P887)
 				//references: + P887:'inferred from keyword and API search'
@@ -1545,7 +1550,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	}
 
 	//console.trace(Europe_PMC_article_data.keywordList?.keyword);
-	await add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references);
+	await add_main_subject(Europe_PMC_article_data.keywordList?.keyword, Europe_PMC_article_data.wikidata_references,
+		// object of statement has role (P3831) : index term (Q13422207)
+		'Q13422207'
+	);
 
 	// 醫學主題詞。
 	await add_main_subject(
@@ -1555,7 +1563,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				if (data.majorTopic_YN === 'Y') filtered.push(data.descriptorName);
 				return filtered;
 			}, []),
-		Europe_PMC_article_data.wikidata_references
+		Europe_PMC_article_data.wikidata_references,
+		// Medical Subject Headings (Q199897) MeSH
+		'Q199897'
 	);
 
 	//await add_main_subject(Europe_PMC_article_data.subsetList?.subset, Europe_PMC_article_data.wikidata_references);
