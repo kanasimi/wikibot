@@ -60,7 +60,7 @@ use [[w:en:Module:Class/definition.json]]
 fix [[Category:有不必要class參數的專題橫幅]]: {{德国专题 |1=B |2=low}}
 條目位於[[Category:身亡者]]則去掉blp=y或living參數。
 如果listas參數為空，添加條目的DEFAULTSORT。
-
+[[User talk:Kanashimi#Merging banners]]
 
  */
 
@@ -1034,14 +1034,14 @@ async function get_page_info() {
 	// See [[Wikipedia talk:Vital articles#Categories]], [[User talk:Kanashimi#Vital Article inconsistent bolding]]
 	// Skip [[Category:All Wikipedia level-unknown vital articles]]
 	if (wiki.latest_task_configuration.general.category_name_of_level) {
+		const category_tree_options = {
+			depth: 3, namespace: 'talk', get_flat_subcategories: true,
+		};
+		if (wiki.site_name() === 'enwiki') {
+			category_tree_options.category_filter = page_data => /Wikipedia level-\d vital articles/.test(page_data.title || page_data);
+		}
 		for (let level = /*max_VA_level*/5; level >= 1; level--) {
-			const flat_subcategories = (await wiki.category_tree(vital_article_level_to_category(level), {
-				depth: 3, namespace: 'talk', get_flat_subcategories: true,
-				category_filter(page_data) {
-					//console.trace(page_data);
-					return /Wikipedia level-\d vital articles/.test(page_data.title || page_data);
-				},
-			})).flat_subcategories;
+			const flat_subcategories = (await wiki.category_tree(vital_article_level_to_category(level), category_tree_options)).flat_subcategories;
 			//if (level === 1) console.trace(flat_subcategories);
 			for (const [subcategory, page_list] of Object.entries(flat_subcategories)) {
 				for (const page_data of page_list) {
@@ -2000,6 +2000,10 @@ async function for_each_list_page(list_page_data) {
 
 	function set_section_title_count(parent_section) {
 		//if (!parent_section.page) console.log(parent_section);
+		// [[Wikipedia:基礎條目/擴展/社會和社會科學/商業經濟/vae2]] 無內容，無 .child_section_titles。
+		if (!parent_section.child_section_titles)
+			return 0;
+
 		const item_count = parent_section.child_section_titles.reduce((item_count, subsection) => item_count + set_section_title_count(subsection), parent_section.item_count || 0);
 
 		if (parent_section.type === 'section_title') {
