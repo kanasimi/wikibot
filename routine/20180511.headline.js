@@ -1240,7 +1240,7 @@ function check_queue(finished_work) {
 // @see function get_label(html) @CeL.application.net.work_crawler
 function get_label(html) {
 	return html ? CeL.HTML_to_Unicode(
-			html.replace(/<!--[\s\S]*?-->/g, '').replace(
+			html.replace(/<\!--[\s\S]*?-->/g, '').replace(
 					/<(script|style)[^<>]*>[\s\S]*?<\/\1>/g, '').replace(
 					/\s*<br(?:\/| [^<>]*)?>/ig, '\n').replace(
 					/<\/?[a-z][^<>]*>/g, '')

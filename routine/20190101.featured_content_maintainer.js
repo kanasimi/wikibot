@@ -365,7 +365,7 @@ function parse_each_FC_item_list_page(page_data) {
 
 		if (matched[4]) {
 			// 分類/類別。
-			catalog = matched[4].replace(/<!--[\s\S]*?-->/g, '').trim()
+			catalog = matched[4].replace(/<\!--[\s\S]*?-->/g, '').trim()
 					.replace(/\s*（\d+）$/, '');
 			continue;
 		}
@@ -511,7 +511,7 @@ function parse_each_FC_date_page(page_data) {
 	content = CeL.wiki.content_of(page_data),
 	//
 	FC_title, JDN = this.JDN++, matched = content
-			&& content.replace(/<!--[\s\S]*?-->/g, '').match(
+			&& content.replace(/<\!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
 	// return error
@@ -1127,7 +1127,7 @@ function check_date_page() {
 		}
 
 		// 最後檢查隔天首頁將展示的特色內容分頁，如Wikipedia:典範條目/2019年1月1日，如有破壞，通知社群：Wikipedia:互助客棧/其他。
-		var matched = content.replace(/<!--[\s\S]*?-->/g, '').match(
+		var matched = content.replace(/<\!--[\s\S]*?-->/g, '').match(
 				PATTERN_FC_transcluded);
 
 		if (!matched) {
