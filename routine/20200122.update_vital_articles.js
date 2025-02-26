@@ -3,42 +3,11 @@
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
 node 20200122.update_vital_articles.js use_language=en skip_vital do_PIQA=1000000 forced_edit
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Cyclic group"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Velocity : Design : Comfort|Talk:Canonizant"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Hongcheon County|Talk:Vogon|Talk:Thiazolidinedione"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Louisiana Highway 92"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Niagara IceDogs"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:00 Agent"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Timbits"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:List of municipalities in Amasya Province|Talk:List of NBL1 West awards|Talk:List of neighbourhoods in Bhubaneswar|Talk:Liberty bond"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:2019 Villa Nueva mayoral election"
-node 20200122.update_vital_articles.js use_language=en "do_PIQA=Talk:Al-Hamra Mosque (Kufa)|Talk:Solar eclipse of July 16, 2186"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Air China"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Aeroflot Flight 418"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Bar mleczny|Talk:Badayev warehouses|Talk:Jean Augur|Talk:Jack Binion"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:America's Incredible Pizza Company"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HMAS Yarra|Talk:Bernardas"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Fredrikstad Bryggeri"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Future Looks Good"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Michigan State Trunkline Highway System"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Evangelos Liakos|User talk:Kepler-1229b/Books/archive/Kepler-26"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tyasha Harris"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Paula Dockery|Talk:Abebe Bikila"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Tom Hales (Irish republican)"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Cor van Aanholt"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Emmett Township, Michigan"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:HNLMS Walrus (S802)|Talk:Wehrmacht mountain troops badge"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Battle of Afrin City"
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=File talk:Aigina.JPG|Talk:Akher Gharam (song)" "category_to_clean=Category:WikiProject banners with redundant class parameter"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=" "category_to_clean="
 
 
 node 20200122.update_vital_articles.js use_language=zh
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
-node 20200122.update_vital_articles.js use_language=zh "do_PIQA=討論:截角四面體"
-node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:小行星列表/242001-243000"
-node 20200122.update_vital_articles.js use_language=zh "base_page=Wikipedia:中文領域基礎條目"
-node 20200122.update_vital_articles.js use_language=zh "do_PIQA=Talk:1,1':2',1'':3'',1'''-四联苯|Talk:1,1':3',1'':3'',1'''-四联苯|Talk:小行星列表/101601-101700|Talk:张琳芃"
-node 20200122.update_vital_articles.js use_language=zh "do_PIQA=分類討論:雙門齒目"
 Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
 

@@ -2,55 +2,9 @@
 
 node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_page=醒井宿"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
-node 20201008.fix_anchor.js use_language=ja "check_page=ビルボード" "backlink_of=Billboard JAPAN"
-node 20201008.fix_anchor.js use_language=ja "check_page=念仏"
-node 20201008.fix_anchor.js use_language=ja "check_page=時刻表"
-node 20201008.fix_anchor.js use_language=ja "check_page=魔術士オーフェン (アニメ)"
-node 20201008.fix_anchor.js use_language=ja "check_page=ギャル"
-node 20201008.fix_anchor.js use_language=ja "check_page=住宅"
-node 20201008.fix_anchor.js use_language=ja "check_page=東京大空襲"
-node 20201008.fix_anchor.js use_language=ja "check_page=バスケットボール"
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
-node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:新闻动态候选"
-node 20201008.fix_anchor.js use_language=zh "check_page=原神"
-node 20201008.fix_anchor.js use_language=zh "check_page=曾比特"
-node 20201008.fix_anchor.js use_language=zh "check_page=最大負同界角"
-node 20201008.fix_anchor.js use_language=zh "check_page=威世智" "only_modify_pages=威世智"
-node 20201008.fix_anchor.js use_language=zh "check_page=奇跡"
-node 20201008.fix_anchor.js use_language=zh "check_page=1000" "only_modify_pages=1005"
-// [[Political divisions of the United States#Counties in the United States|counties]]
-node 20201008.fix_anchor.js use_language=en "check_page=Political divisions of the United States" only_modify_pages=Wikipedia:Sandbox
-node 20201008.fix_anchor.js use_language=en "check_page=Doom Patrol (TV series)" "only_modify_pages=Possibilities Patrol" check_talk_page=true
-node 20201008.fix_anchor.js use_language=en "check_page=Jacksonville, Florida"
-node 20201008.fix_anchor.js use_language=en "check_page=Treaty of Waitangi" "only_modify_pages=Robin Cooke, Baron Cooke of Thorndon"
-node 20201008.fix_anchor.js use_language=en "check_page=True Romance" "only_modify_pages=You're So Cool (Hans Zimmer song)"
-node 20201008.fix_anchor.js use_language=en "check_page=Internet in the United Kingdom"
-node 20201008.fix_anchor.js use_language=en "check_page=Sergio Pérez"
-node 20201008.fix_anchor.js use_language=en "check_page=Wikipedia:Sandbox" only_modify_pages=Wikipedia:Sandbox
-node 20201008.fix_anchor.js use_language=en "check_page=List of Latin phrases (full)" "only_modify_pages=Quod vide"
-node 20201008.fix_anchor.js use_language=en "check_page=History of India" "only_modify_pages=History of Hinduism"
-node 20201008.fix_anchor.js use_language=en "check_page=Law & Order: Special Victims Unit (season 1)"
-node 20201008.fix_anchor.js use_language=en "check_page=Havana syndrome"
-node 20201008.fix_anchor.js use_language=en "check_page=Haile Selassie"
-node 20201008.fix_anchor.js use_language=en archives "check_page=Talk:BTS (band)" "only_modify_pages=Wikipedia talk:Disambiguation/Archive 50"
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
-node 20201008.fix_anchor.js archives use_language=zh "check_page=負整數" "only_modify_pages=負整數"
-
-node 20201008.fix_anchor.js use_language=de "check_page=Scream 2" "only_modify_pages=Scream 2"
-node 20201008.fix_anchor.js use_language=de "check_page=Olympische Sommerspiele 2004/Teilnehmer (Usbekistan)" "only_modify_pages=Rudern bei den Olympischen Spielen"
-node 20201008.fix_anchor.js use_language=de "check_page=Akklamation|Fußball-Weltmeisterschaft"
-node 20201008.fix_anchor.js use_language=de "check_page=Dichotomie" "only_modify_pages=Holzobjekt von Scharfling"
-
-node 20201008.fix_anchor.js use_language=test "check_page=Sections" "only_modify_pages=Anchor test"
-
-node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=求生之路系列"
-// [[Template:MultiAnchor]]
-node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=影之诗FLAME"
-node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=初音未来 NT殿堂曲" "only_modify_pages=Template:初音未来_NT殿堂曲题头"
-node routine/20201008.fix_anchor.js use_project=zhmoegirl "check_page=达拉崩吧" "only_modify_pages=VOCALOID中文殿堂曲/梗曲相关"
-
-node 20201008.fix_anchor.js use_language=simple "check_page=User talk:Gordonrox24" "only_modify_pages=Wikipedia:Administrators' noticeboard/Current issues and requests archive 31"
 
 
 node routine/20201008.fix_anchor.js use_project=test
