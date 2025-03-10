@@ -40,7 +40,7 @@ var trace_forward_length = 'max';
 // fix only these edits.
 function filter_summary(summary, page_data) {
 	// console.log(summary);
-	return summary.includes('#平成の大合併による都道府県別市町村数推移')
+	return summary.includes('Fußball-Europameisterschaft 2012/Qualifikation')
 	// && wiki.is_namespace(page_data, 'Category')
 	;
 
