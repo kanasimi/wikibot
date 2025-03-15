@@ -1037,7 +1037,9 @@ var page_configurations = {
 			// 查詢進度狀態。
 			status : function(section) {
 				var status_token;
-				section.each('Template:ARstatus', function(token) {
+				section.each('Template:ARstatus' && 'Template:statusAR',
+				// ↑ 2025年3月12日 已改變模板，將{{statusAR}}獨立出來用於表示信號
+				function(token) {
 					status_token = token;
 				});
 				return status_token && status_token.toString();
