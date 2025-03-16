@@ -5,6 +5,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=醒井宿" "check_talk_p
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
+node 20201008.fix_anchor.js archives use_language=zh "only_modify_pages=Wikipedia talk:管理員解任投票/Mys_721tx/第2次"
 
 
 node routine/20201008.fix_anchor.js use_project=test
@@ -1634,6 +1635,23 @@ async function check_page(target_page_data, options) {
 
 		// --------------------------------------------
 
+		if (token.comment_anchor) {
+			const comment_list = await wiki.find_comment(token);
+			if (comment_list?.shouldredirect.length === 1 && token.type === 'link') {
+				const shouldredirect = comment_list.shouldredirect[0];
+				change__to_page_title(shouldredirect.title);
+				const rename_to = shouldredirect.id;
+				//console.assert('#' + rename_to === token[1]);
+				change__to_anchor(rename_to);
+				add_summary(this, CeL.gettext('%1→most alike comment link %2', original_anchor, CeL.wiki.title_link_of(shouldredirect.title + '#' + rename_to)));
+				return true;
+			}
+			CeL.info(`${check_token.name}: ${CeL.wiki.title_link_of(linking_page_data)}: Skip permalink of Discussion Tools ${token}`);
+			return;
+		}
+
+		// --------------------------------------------
+
 		CeL.warn(`${check_token.name}: Lost section ${token} @ ${CeL.wiki.title_link_of(linking_page_data)} (${original_anchor}: ${JSON.stringify(record)
 			})${rename_to && section_title_history[rename_to] ? `\n→ ${rename_to}: ${JSON.stringify(section_title_history[rename_to])}` : ''
 			}`);
@@ -1662,12 +1680,16 @@ async function check_page(target_page_data, options) {
 				: ''
 				} ${record
 					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
-					? `${record.disappear ?
+					? `${record.disappear
 						// 警告: index 以 "|" 終結會被視為 patten 明確終結，並且 "|" 將被吃掉。
 						// gettext_config:{"id":"the-anchor-($2)-has-been-deleted-by-other-users-before"}
-						CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, token.anchor) : ''
-					// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
-					}` : ''}|diff_id=${record.disappear.revid}}}`));
+						? CeL.gettext('The anchor (%2) [[Special:Diff/%1|has been deleted]].', record.disappear.revid, token.anchor)
+						// ，且現在失效中<syntaxhighlight lang="json">...</syntaxhighlight>
+
+						+ `|diff_id=` + record.disappear.revid
+						: ''
+					}`
+					: ''}}}`));
 			add_summary(this,
 				`${
 				// gettext_config:{"id":"reminder-of-an-inactive-anchor"}
