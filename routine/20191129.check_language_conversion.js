@@ -1042,6 +1042,14 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			return '';
 		}
 
+		if (!(work_config.pages_finished <= work_config.initial_target_length)) {
+			CeL.warn({
+				// gettext_config:{"id":"the-number-of-completed-pages-$1-is-not-less-than-total-$2"}
+				T: ['已完成頁面數量 %1 未小於總量 %2！', work_config.pages_finished, work_config.initial_target_length]
+			});
+			return '';
+		}
+
 		return ' ('
 			// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
 			+ CeL.gettext('The bot operation is completed %1% in total', (100 * work_config.pages_finished /
