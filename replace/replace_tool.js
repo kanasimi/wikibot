@@ -612,6 +612,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 
 	const task_configuration_from_section = Object.create(null);
 
+	// for <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table",...}}</syntaxhighlight>
 	section.each('tag', token => {
 		if (token.tag !== 'syntaxhighlight' || token.attributes.lang !== 'json')
 			return;
@@ -634,7 +635,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			if (!task_configuration.list_parser && task_configuration.get_task_configuration_from === 'table')
 				task_configuration.list_parser = 'table_to_array';
 		}
-		for (const option of ["get_task_configuration_from",]) {
+		for (const option of ["get_task_configuration_from", "namespace"]) {
 			if (task_configuration[option]) {
 				// Copy property.
 				meta_configuration[option] = task_configuration[option];
@@ -709,17 +710,20 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		});
 
 	} else if (meta_configuration.get_task_configuration_from === 'list') {
+		// e.g., [[Wikipedia:机器人/作业请求#批量替換引用所有Template:Infobox road/old]]
+		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"namespace":"main|User"}}</syntaxhighlight>
+		const min_list_length = meta_configuration.task_configuration_from_page_JSON?.min_list_length || 3;
 		await section.each('list', async list_token => {
 			//console.log(list_token);
 			//console.log(meta_configuration);
-			if (list_token.length >= (meta_configuration.min_list_length || 3)) {
+			if (list_token.length >= min_list_length) {
 				await parse_move_pairs_from_link(list_token, task_configuration_from_section, meta_configuration);
 			}
 		});
 
 	} else if (meta_configuration[KEY_wiki_session].is_namespace(meta_configuration.get_task_configuration_from, 'Category')) {
 		// e.g., [[Special:Diff/79100214/79123647#Category:中國科舉人物中人物添加规范控制]]
-		// {"replace_tool_configuration":{"get_task_configuration_from":"Category:中國科舉人物","depth":10,"insert_layout":"{{Authority control}}","namespace":0,"excluding_title_includes":["列表"]}}
+		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"Category:中國科舉人物","depth":10,"insert_layout":"{{Authority control}}","namespace":0,"excluding_title_includes":["列表"]}}</syntaxhighlight>
 		const main_task_configuration = task_configuration_from_section[meta_configuration.get_task_configuration_from] = {
 			insert_layout: CeL.wiki.parse(meta_configuration.task_configuration_from_page_JSON.insert_layout),
 			text_processor: text_processor_for_configuration_from_page,
@@ -958,6 +962,10 @@ async function notice_to_edit(wiki, meta_configuration, move_configuration) {
 			//console.trace(meta_configuration, move_configuration);
 			options.need_edit = false;
 			return;
+		}
+
+		if (!meta_configuration.discussion_link && meta_configuration.section_title && this.page?.title) {
+			meta_configuration.discussion_link = CeL.wiki.parse(`[[${this.page.title}#${meta_configuration.section_title}]]`);
 		}
 
 		const doing_message = meta_configuration.doing_message || (wiki.site_name() === 'jawiki' ?
@@ -1213,7 +1221,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			}
 		}
 
-		if (task_configuration.move_to_link === 'subst:') {
+		if (task_configuration.move_to_link?.toString().trim() === 'subst:') {
 			delete task_configuration.move_to_link;
 			Object.assign(task_configuration, {
 				//namespace: 0,
@@ -2466,9 +2474,10 @@ function for_each_file(token, index, parent) {
 
 // subst展開 [[mw:Help:Substitution]]
 async function subst_template(token, index, parent) {
-	token[0] = 'subst:' + token[0];
 	const page_title = this.page_to_edit.title;
 	//this.task_configuration[KEY_wiki_session].append_session_to_options().session;
+
+	token[0] = 'subst:' + token[0];
 
 	if (CeL.wiki.parser.token_is_children_of(parent,
 		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery'
@@ -2479,12 +2488,14 @@ async function subst_template(token, index, parent) {
 		// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
 		// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
 
-		// TODO: this.task_configuration[KEY_wiki_session].expandtemplates(), this.task_configuration[KEY_wiki_session].compare()
+		// TODO: use this.task_configuration[KEY_wiki_session].expandtemplates() instead of compare
 		// useless:
 		//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration[KEY_wiki_session].append_session_to_options()));
 
 		//console.trace(this.task_configuration[KEY_wiki_session].append_session_to_options().session);
 		//console.trace(token);
+
+		// TODO: this.task_configuration[KEY_wiki_session].compare()
 		let wikitext = await this.task_configuration[KEY_wiki_session].query({
 			action: "compare",
 			fromtitle: page_title,
@@ -2501,12 +2512,29 @@ async function subst_template(token, index, parent) {
 			// e.g., 2022/3/3:		<td class="diff-addedline diff-side-added"><div>...</div></td>
 			.all_between('<td class="diff-addedline', '</td>').map(token => token.between('<div>', { tail: '</div>' })).join('\n');
 		wikitext = CeL.HTML_to_Unicode(wikitext);
+
+		if (false && !this.task_configuration[KEY_wiki_session].is_namespace(page_title, 'Template')) {
+			// TODO: https://en.wikipedia.org/wiki/Help:Substitution#Recursive_substitution
+			// {{#if:}} → {{subst:<noinclude/>#if:}}
+			const _token = CeL.wiki.parse(wikitext);
+			CeL.wiki.parser.parser_prototype.each.call(_token, 'magic_word_function', magic_word_function_token => {
+				//return magic_word_function_token.evaluate();
+				if (magic_word_function_token[0].toString().trim() !== 'subst:')
+					magic_word_function_token[0] = 'subst:' + magic_word_function_token[0];
+			}
+				//, true
+			);
+			wikitext = _token.toString();
+		}
+
 		if (!wikitext) {
 			CeL.warn(`${subst_template.name}: Nothing get for substituting ${token.toString()} inside <${parent.tag}>!`);
 		}
 		//console.trace([page_title, token.toString(), wikitext]);
+
 		parent[index] = wikitext;
 	}
+
 	//this.discard_changes = true;
 }
 
@@ -2973,12 +3001,12 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 		}
 
 		if (link_token[1]) {
-			CeL.error(`${parse_move_pairs_from_link.name}: Link with anchor: ${line}`);
-			throw new Error(`Link with anchor: ${line}`);
+			CeL.error(`${parse_move_pairs_from_link.name}: Skip link with anchor: ${link_token}`);
+			return;
 		}
 
 		link_token = preprocess_link(link_token[0].toString());
-		if (wiki.is_namespace(link_token, ['User', 'User talk'])) {
+		if (wiki.is_namespace(link_token, ['User', 'User talk', 'Special'])) {
 			CeL.warn(`${parse_move_pairs_from_link.name}: Skip special namespace: (${wiki.namespace(link_token, { is_page_title: true })}) ${link_token}`);
 			return;
 		}
@@ -3013,6 +3041,8 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 	if (from) {
 		if (!to) {
 			from = null;
+		} else if (to === 'Subst:') {
+			to = 'subst:';
 		} else if (wiki.namespace(from, { is_page_title: true }) !== wiki.namespace(to, { is_page_title: true })) {
 			CeL.error(`${parse_move_pairs_from_link.name}: Skip different namespace: (${wiki.namespace(from, { is_page_title: true })}) ${from} → (${wiki.namespace(to, { is_page_title: true })}) ${to}`);
 			to = null;
@@ -3071,10 +3101,10 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 				T: ['Duplicate task name %1! Will overwrite old task with new task: %2→%3', CeL.wiki.title_link_of(from), CeL.wiki.title_link_of(move_title_pair[from]), CeL.wiki.title_link_of(to)]
 			}]);
 		}
-		move_title_pair[from] = to;
+		move_title_pair[from] = { move_to_link: to };
 		if (Array.isArray(options.also_replace_text_insource) ? options.also_replace_text_insource.includes(from) : options.also_replace_text_insource) {
 			// Also replace text in source of **non-linked** pages
-			move_title_pair[`insource:"${from}"`] = to;
+			move_title_pair[`insource:"${from}"`] = { move_to_link: to };
 			//console.log(move_title_pair);
 		}
 	}

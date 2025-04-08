@@ -14,6 +14,8 @@ node general_replace.js "清理{{悠遊卡}}、{{一卡通}}嵌入" "task_config
 node general_replace.js "羽毛球賽事級別索引模板" get_task_configuration_from=list min_list_length=1
 node general_replace.js 批量移动中国大陆省道条目 get_task_configuration_from=list do_move_page
 
+node general_replace.js 足球前锋分类移动
+
 */
 
 'use strict';
