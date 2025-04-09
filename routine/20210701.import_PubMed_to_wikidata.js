@@ -609,7 +609,7 @@ async function fetch_DOI_data_from_service(DOI) {
 	return results;
 }
 
-async function get_entity_id_of_ORCID(ORCID, author_name) {
+async function get_entity_id_of_ORCID({ ORCID, author_name, wanted_keys, PubMed_ID }) {
 	if (!ORCID) return;
 
 	// https://query.wikidata.org/#%23%20items%20with%20property%20P496%20and%20most%20identifiers%0A%23%20added%20by%20User%3AJura1%2C%202017-07-30%0ASELECT%20%3Fitem%20%3FitemLabel%20%3Fvalue%20%3Fids%0A%7B%0A%20%20%3Fitem%20wdt%3AP496%20%220000-0002-7122-2650%22.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D%0AORDER%20BY%20DESC%28%3Fids%29%20%3Fitem
@@ -625,11 +625,34 @@ SELECT ?item ?itemLabel
 		if (author_item_list.length > 1) {
 			CeL.warn(`${get_entity_id_of_ORCID.name}: ${author_item_list.length} authors get with ORCID=${ORCID}: ${author_item_list.id_list().join(', ')}`);
 		}
+
+		const itemLabel = CeL.wiki.data.value_of(author_item_list[0].itemLabel);
+		const get_keys = itemLabel.toLowerCase().split(/\s+/);
 		const entity_id = author_item_list.id_list()[0];
-		return entity_id;
+		if (wanted_keys.some(key => get_keys.includes(key))) {
+			return entity_id;
+		}
+
+		CeL.error(`${get_entity_id_of_ORCID.name}: The best matched author get from wikidata ${JSON.stringify(itemLabel)}, ORCID=${ORCID} do not match wanted data: author_name=${JSON.stringify(author_name)}, wanted_keys=${JSON.stringify(wanted_keys)}`);
+		// 有問題的 ORCID
+		await wiki.edit_page(log_to + '/problematic ORCIDs', `
+; PubMed_ID
+: ${PubMed_ID}
+; entity_id
+: {{Q|${entity_id}}}
+; itemLabel
+: ${itemLabel}
+; wanted author
+: ${author_name}
+; wanted keys
+: ${JSON.stringify(wanted_keys)}
+`, {
+			bot: 1, nocreate: 1, summary: `Error report for ORCID ${ORCID}`,
+			section: 'new', sectiontitle: `ORCID ${ORCID}`,
+		});
 	}
 
-	return await for_ceach_ORCID(ORCID, author_name);
+	return await for_unregistered_ORCID(ORCID, author_name);
 }
 
 async function get_entity_id_of_ISSN(ISSN) {
@@ -1196,7 +1219,12 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			author_list.push(author_name);
 			let author_item_id;
 			if (author_data.authorId?.type === "ORCID"
-				&& (author_item_id = await get_entity_id_of_ORCID(author_data.authorId.value, author_data.fullName))) {
+				&& (author_item_id = await get_entity_id_of_ORCID({
+					ORCID: author_data.authorId.value,
+					author_name: author_data.fullName,
+					wanted_keys: (author_data.firstName.toLowerCase().split(/\s+/) || []).append(author_data.lastName?.toLowerCase().split(/\s+/)),
+					PubMed_ID,
+				}))) {
 				data_to_modify.claims.push({
 					// author (P50) 作者
 					P50: author_item_id,
@@ -2064,7 +2092,7 @@ async function fetch_ORCID_data_from_service(ORCID) {
 }
 
 // https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/Orcbot
-async function for_ceach_ORCID(ORCID, author_name) {
+async function for_unregistered_ORCID(ORCID, author_name) {
 	// TODO: create author item
 	return;
 
