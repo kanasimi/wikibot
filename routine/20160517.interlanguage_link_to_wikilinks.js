@@ -442,9 +442,9 @@ function check_final_work() {
 	}, {
 		// section : 'new',
 		// sectiontitle : '結果報告',
-		summary : gettext(
+		summary : CeL.wiki.title_link_of(message_set.report_page, gettext(
 		// gettext_config:{"id":"cleanup-report-for-interlanguage-link-templates"}
-		'Cleanup report for interlanguage link templates'),
+		'Cleanup report for interlanguage link templates')),
 		nocreate : 1,
 		bot : 1
 	});
