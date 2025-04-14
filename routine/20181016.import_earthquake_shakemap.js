@@ -317,7 +317,27 @@ function upload_media(media_data, product_data, detail) {
 			}
 		},
 
-		structured_data : {
+		// TODO: {Array}structured_data
+		structured_data : [ {
+			// depicts (P180) 描繪內容
+			// earthquake (Q7944) 地震
+			// topographic map (Q216526) 地形圖
+			depicts : 'Q7944'
+		}, {
+			// adding based on Template:PD-USGov-USGS
+
+			// copyright status (P6216) : public domain (Q19652)
+			'copyright status' : 'public domain',
+			qualifiers : {
+				// applies to jurisdiction (P1001) : United States (Q30)
+				'applies to jurisdiction' : 'United States',
+				// determination method or standard (P459)
+				'determination method or standard' :
+				// work of the federal government of the United States
+				// (Q60671452)
+				'work of the federal government of the United States'
+			}
+		} ] && {
 			// depicts (P180) 描繪內容
 			// earthquake (Q7944) 地震
 			// topographic map (Q216526) 地形圖
