@@ -258,7 +258,7 @@ var default_BRFA_configurations = {
 	columns : 'NO;title;status;discussions;participants;last_user_set;last_BAG_set',
 	column_to_header : {
 		en : {
-			// [[Bot awake.svg]]
+			// 🔄 🔁 [[Bot awake.svg]] processing
 			title : '[[File:Logo wikibot.svg|20px|link=|alt=bot]] Bot request',
 			status : 'Status'
 		},

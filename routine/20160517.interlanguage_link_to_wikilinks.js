@@ -43,6 +43,7 @@ node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=19
  模板解析功能放進 CeL.application.net.wiki.template_functions。 Other configurations moving to wiki.latest_task_configuration.general
  Q6099744 [[Template:Interwiki conflict]]
 修正錯用漢字，如日文條目名稱未採用日文漢字。 [[User_talk:Kanashimi#Cewbot_清理偽藍連問題請教：日文條目名稱未採用日文漢字]]
+檢查轉換標的頁面是否正在被提刪中。是的話先不轉換。
 
  */
 

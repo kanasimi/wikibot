@@ -924,7 +924,7 @@ async function for_bot_requests_section(wiki, meta_configuration, for_section, o
 
 	if (options && options.need_edit) {
 		// console.log(parsed.toString());
-		await wiki.edit_page(requests_page, parsed.toString(), {
+		await wiki.edit_page(requests_page_data, parsed.toString(), {
 			redirects: 1,
 			sectiontitle: section_title,
 			//{{BOTREQ|着手}}

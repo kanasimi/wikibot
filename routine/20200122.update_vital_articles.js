@@ -3566,7 +3566,7 @@ async function generate_report(options) {
 			class: "wikitable sortable"
 		});
 		if (!CeL.is_empty_object(have_to_edit_its_talk_page))
-			report_wikitext = `* ${Object.keys(have_to_edit_its_talk_page).length} talk page(s) to edit${options.no_editing_of_talk_pages ? ' (The amount of talk pages to edit exceeds the value of talk_page_limit_for_editing on the configuration page. Do not edit the talk pages at all.)' : ''}.\n` + report_wikitext;
+			report_wikitext = `* ${Object.keys(have_to_edit_its_talk_page).length} talk page(s) to edit${options.no_editing_of_talk_pages ? ' (The amount of talk pages to edit exceeds the value of talk_page_limit_for_editing on the configuration page. Will not edit the talk pages at all.)' : ''}.\n` + report_wikitext;
 		if (report_lines.skipped_records > 0)
 			report_wikitext = `* Skip ${report_lines.skipped_records.toLocaleString()} record(s).\n` + report_wikitext;
 	} else {
