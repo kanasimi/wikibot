@@ -1045,7 +1045,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		if (!(work_config.pages_finished <= work_config.initial_target_length)) {
 			CeL.warn({
 				// gettext_config:{"id":"the-number-of-completed-pages-$1-is-not-less-than-total-$2"}
-				T: ['已完成頁面數量 %1 未小於總量 %2！', work_config.pages_finished, work_config.initial_target_length]
+				T: ['已完成{{PLURAL:%1|頁面}}數量 %1 未小於總量 %2！', work_config.pages_finished, work_config.initial_target_length]
 			});
 			return '';
 		}

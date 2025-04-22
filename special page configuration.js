@@ -46,6 +46,9 @@ var localized_column_to_header = {
 	zh : {
 		// 序號 Topics主題 討論名稱
 		title : '💭 話題',
+
+		sub_page : '子頁面',
+
 		// https://commons.wikimedia.org/wiki/Category:Convenient_Discussions
 		// [[File:Convenient Discussions logo color
 		// textless.svg|20px|link=|alt=發言]]
@@ -1092,6 +1095,55 @@ var page_configurations = {
 		},
 		// 要篩選的章節標題層級。 cf. .show_subtopic
 		level_filter : 3
+	}),
+	'zhwiki:Wikipedia:申请成为管理人员/申请区' : Object.assign(Object.create(null),
+	//
+	general_page_configuration, {
+		// topic_page : 'Wikipedia:沙盒',
+		columns : 'NO;sub_page;title;discussions;participants;last_user_set',
+		column_to_header : {
+			title
+			//
+			: '[[File:Vote icon prototype.svg|20px|link=|alt=]]&nbsp;候選人',
+			sub_page : '類別'
+		},
+		operators : {
+			sub_page : function(section) {
+				var section_title = section.section_title;
+				var type = section_title.sub_page_title;
+				type = type && type.match(
+				//
+				/^(?:維基百科|维基百科|Wikipedia|Project):(?:申请成为)([^\/]+)/);
+				if (!type) {
+					return;
+				}
+
+				type = type[1];
+
+				var icon = {
+					管理员 : 'Wikipedia Administrator.svg',
+					行政员 : 'Wikipedia bureaucrat.svg',
+					监督员 : 'Wikipedia Oversight (2020).png',
+					用户查核员 : 'Wikipedia Checkuser.svg',
+					界面管理员 : 'Wikipedia Interface administrator.svg'
+				}[type];
+				if (icon) {
+					type = '[[File:' + icon
+					//
+					+ '|20px|link=|alt=]]&nbsp;' + type;
+				}
+
+				return type;
+			}
+		},
+		// 要篩選的章節標題層級。 cf. .show_subtopic
+		level_filter : 4,
+		transclusion_target : function(token) {
+			// for zhwiki
+			if (/^(?:維基百科|维基百科|Wikipedia|Project):(?:申请成为)/i.test(token.name)) {
+				return token.name;
+			}
+		}
 	}),
 
 	'zhwikinews:Wikinews:茶馆' : Object.assign({

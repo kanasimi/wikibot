@@ -278,6 +278,12 @@ var section_column_operators = {
 
 		return (style ? 'style="' + style + '" | ' : '') + title;
 	},
+	// 子頁面
+	sub_page : function(section) {
+		var section_title = section.section_title;
+
+		return section_title.sub_page_title;
+	},
 	// discussions conversations, 發言次數, 発言数
 	discussions : function(section) {
 		var sign_count = section.users.length;
@@ -541,6 +547,7 @@ function start_main_work() {
 	// main_talk_pages = [ '萌娘百科 talk:讨论版/页面相关' ];
 	// main_talk_pages = [ 'Wikipedia:可靠来源/布告板' ];
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
+	// main_talk_pages = [ 'Wikipedia:申请成为管理人员/申请区' ];
 
 	// ----------------------------------------------------
 
@@ -1398,7 +1405,7 @@ function insert_sub_pages() {
 	var page_data = this.page_data;
 	if (this.transclusions > 0) {
 		// content changed. re-parse
-		CeL.wiki.parser(page_data, {
+		var parsed = CeL.wiki.parser(page_data, {
 			// set options[KEY_SESSION]
 			session : wiki,
 			preprocess_section_link_token
@@ -1406,6 +1413,21 @@ function insert_sub_pages() {
 			: page_data.page_configuration.preprocess_section_link_token,
 			wikitext : page_data.use_wikitext = page_data.parsed.toString()
 		}).parse();
+
+		var sub_page_title;
+		parsed.each(function(token) {
+			if (token.type === 'transclusion') {
+				if (token.name === 'Transclusion start')
+					sub_page_title = token.parameters[1];
+				else if (token.name === 'Transclusion end')
+					sub_page_title = null;
+				return;
+			}
+
+			if (token.type === 'section_title' && sub_page_title) {
+				token.sub_page_title = sub_page_title;
+			}
+		});
 	}
 	// console.trace(page_data.use_wikitext);
 
