@@ -1110,13 +1110,15 @@ var page_configurations = {
 		operators : {
 			sub_page : function(section) {
 				var section_title = section.section_title;
-				var type = section_title.sub_page_title;
-				type = type && type.match(
+				var sub_page_title = section_title.sub_page_title;
+				if (!sub_page_title)
+					return;
+
+				var type = sub_page_title.match(
 				//
 				/^(?:維基百科|维基百科|Wikipedia|Project):(?:申请成为)([^\/]+)/);
-				if (!type) {
+				if (!type)
 					return;
-				}
 
 				type = type[1];
 
@@ -1131,6 +1133,11 @@ var page_configurations = {
 					type = '[[File:' + icon
 					//
 					+ '|20px|link=|alt=]]&nbsp;' + type;
+
+					var times = sub_page_title.match(/\/第(\d+)次$/);
+					if (times) {
+						type += '<sub>' + times[1] + '</sub>';
+					}
 				}
 
 				return type;
