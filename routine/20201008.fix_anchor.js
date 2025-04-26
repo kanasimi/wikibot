@@ -6,7 +6,7 @@ node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "only_modify_pages=Wikipedia talk:管理員解任投票/Mys_721tx/第2次"
-
+node 20201008.fix_anchor.js archives use_language=ja check_page=江戸時代 check_talk_page=true
 
 node routine/20201008.fix_anchor.js use_project=test
 
