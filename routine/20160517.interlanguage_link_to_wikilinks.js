@@ -1,5 +1,6 @@
 ﻿/*
-解消済み仮リンクをリンクに置き換える Convert interlanguage link templates with local article to wikilinks 將跨語言連結模板轉為內部連結（一般 wikilink）
+// gettext_config:{"id":"convert-interlanguage-link-templates-to-wikilinks"}
+'Convert interlanguage link templates to wikilinks'
 
 (cd ~/wikibot && date && hostname && nohup time node 20160517.interlanguage_link_to_wikilinks.js use_language=zh; date) >> interlanguage_link_to_wikilinks/log &
 
@@ -11,6 +12,7 @@ node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "start_from_pag
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=斯堪的纳维亚历史"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=亞丁"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=公路收費站"
 
 node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=1911 Revolution"
 
@@ -234,7 +236,7 @@ message_set = {
 			ly : Object.assign({
 				'|foreign_language' : 'yue'
 			}, template_orders.LF),
-			// ** jp不是標準的ISO編碼
+			// ** 'jp' 不是標準的ISO編碼。
 			'link-jp' : Object.assign({
 				'|foreign_language' : 'ja'
 			}, template_orders.LF),
@@ -300,20 +302,29 @@ function normalize_parameter(token) {
 	// 自 parameter 取得頁面標題文字/條目名稱。
 	function set_title(index) {
 		var parameter = parameters[index];
-		if (parameter) {
-			index_order_exactly[parameter_name] = token.index_of[index];
-			// normalize
-			parameter = parameter.toString()
-			// 去除註解 comments。
-			.replace(/<\!--[\s\S]*?-->/g, '').trim();
-			try {
-				parameter = decodeURIComponent(parameter).trim();
-			} catch (e) {
-				CeL.error('URI malformed: [' + parameter + ']');
-			}
-			normalized[parameter_name] = parameter;
-			return true;
+		if (!parameter) {
+			return;
 		}
+
+		index_order_exactly[parameter_name] = token.index_of[index];
+		// normalize parameter
+		parameter = parameter.toString()
+		// 去除註解 comments。
+		.replace(/<\!--[\s\S]*?-->/g, '').trim();
+		if (parameter_name === 'foreign_language'
+				&& parameter in CeL.wiki.language_code_to_site_alias) {
+			normalized.bad_foreign_language = parameter;
+			parameter = token[index][2]
+			// 為日文特別修正: 'jp' is wrong! 'jp' 不是標準的ISO編碼。
+			= CeL.wiki.language_code_to_site_alias[parameter];
+		}
+		try {
+			parameter = decodeURIComponent(parameter).trim();
+		} catch (e) {
+			CeL.error('URI malformed: [' + parameter + ']');
+		}
+		normalized[parameter_name] = parameter;
+		return true;
 	}
 
 	for (parameter_name in index_order) {
@@ -468,8 +479,10 @@ function for_each_page(page_data, messages) {
 	var _this = this, template_count = 0, template_parsed,
 	/** {String}page title = page_data.title */
 	title = CeL.wiki.title_of(page_data),
-	// 記錄確認已經有改變的文字連結。
-	changed = [];
+	/** {Array}記錄確認已經有改變的文字連結。 changed ills. */
+	resolved_ills = [],
+	/** {Array}語言代碼錯誤的ill。將被修正。 */
+	bad_foreign_language_ills = [];
 	// console.log(CeL.wiki.content_of(page_data));
 	process.title = this.pages_finished + '/' + this.initial_target_length
 			+ ' ' + title;
@@ -634,7 +647,9 @@ function for_each_page(page_data, messages) {
 			CeL.debug('從這裡起，一個頁面應該只會執行一次: ' + CeL.wiki.title_link_of(title)
 					+ ' / ' + page_remains, 2, 'check_page');
 
-			if (changed.length === 0) {
+			if (resolved_ills.length === 0
+					&& bad_foreign_language_ills.length === 0) {
+				// 沒有需要處理的 ill template。
 				denote_page_processed();
 				return;
 			}
@@ -655,6 +670,35 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
+			var summary = [];
+			if (resolved_ills.length > 0) {
+				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
+				// gettext_config:{"id":"convert-$1-to-wikilink"}
+				summary.push(gettext('Convert %1 to wikilink',
+				// gettext_config:{"id":"Comma-separator"}
+				resolved_ills.join(gettext('Comma-separator'))));
+			}
+			if (bad_foreign_language_ills.length > 0) {
+				if (summary.length === 0) {
+					summary.push(gettext(
+					// gettext_config:{"id":"convert-interlanguage-link-templates-to-wikilinks"}
+					'Convert interlanguage link templates to wikilinks'));
+				}
+				summary.push('('
+				// gettext_config:{"id":"also-fix-bad-language-codes-$1"}
+				+ gettext('Also fix bad language codes: %1',
+				// gettext_config:{"id":"Comma-separator"}
+				bad_foreign_language_ills.join(gettext('Comma-separator')))
+						+ ')');
+			}
+			summary.push('('
+			// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
+			+ gettext('The bot operation is completed %1% in total',
+			// 整體作業進度 overall progress
+			(100 * _this.pages_finished / _this.initial_target_length)
+			//
+			.to_fixed(1)) + ')');
+
 			// console.trace(page_data);
 			// console.log(last_content);
 			wiki.page(page_data
@@ -662,17 +706,7 @@ function for_each_page(page_data, messages) {
 			).edit(last_content, {
 				// section : 'new',
 				// sectiontitle : title,
-				// [[内部リンク]]. cf. [[Help:言語間リンク#本文中]]
-				// gettext_config:{"id":"convert-$1-to-wikilink"}
-				summary : gettext('Convert %1 to wikilink',
-				// gettext_config:{"id":"Comma-separator"}
-				changed.join(gettext('Comma-separator'))) + ' ('
-				// gettext_config:{"id":"the-bot-operation-is-completed-$1$-in-total"}
-				+ gettext('The bot operation is completed %1% in total',
-				// 整體作業進度 overall progress
-				(100 * _this.pages_finished / _this.initial_target_length)
-				//
-				.to_fixed(1)) + ')',
+				summary : summary.join(' '),
 				nocreate : 1,
 				minor : 1,
 				bot : 1
@@ -717,9 +751,9 @@ function for_each_page(page_data, messages) {
 			}
 			link += ']]';
 
-			if (!changed.includes(link)) {
+			if (!resolved_ills.includes(link)) {
 				// console.trace('記錄確認已經有改變的文字連結。');
-				changed.push(link
+				resolved_ills.push(link
 						+ (token.additional_summary ? '('
 								+ token.additional_summary + ')' : ''));
 				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
@@ -1136,6 +1170,9 @@ function for_each_page(page_data, messages) {
 		// console.log(token);
 		parameters = token.parameters;
 		local_title = normalized_param.local_title;
+		if (normalized_param.bad_foreign_language) {
+			bad_foreign_language_ills.push(token.toString());
+		}
 		foreign_language = normalized_param.foreign_language;
 		foreign_title = normalized_param.foreign_title;
 		WD = normalized_param.WD;
