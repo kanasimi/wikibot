@@ -9,6 +9,7 @@ node 20211203.synchronizing_common_pages.js use_project=zh.wiktionary
 2021/12/3 17:45:55	完成。正式運用。
 
 TODO:
+[[Template:Synchronizer]]
 本地化轉換。
 有跨維基匯入權限，並且版權相容的情況下，採用匯入頁面的方式（匯入revision的方式）。
 

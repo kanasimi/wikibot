@@ -42,6 +42,7 @@ CeL.run([
 // Set default language. 改變預設之語言。 e.g., 'zh'
 set_language('en');
 
+
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 

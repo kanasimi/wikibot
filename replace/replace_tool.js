@@ -1614,8 +1614,9 @@ const default_list_types = 'backlinks|embeddedin|redirects|categorymembers|fileu
 
 // |プロジェクト
 /** {String}default namespace to search and replace */
-const default_namespace = 'main|file|module|template|category|help|portal';
-// 'talk|template_talk|category_talk'
+const default_namespace = 'main|file|module|template|category|help|portal|draft';
+/** {String}default namespace for subst templates */
+const default_namespace_for_subst = default_namespace + '|talk|template talk|category talk|user|user talk|mediawiki|mediawiki talk';
 
 async function get_list(task_configuration, list_configuration) {
 	if (!list_configuration) {
@@ -1663,7 +1664,9 @@ async function get_list(task_configuration, list_configuration) {
 		// combine_pages: for list_types = 'exturlusage'
 		// combine_pages: true,
 		// e.g., namespace : 0,
-		namespace: list_configuration.namespace ?? task_configuration.namespace ?? default_namespace,
+		namespace: list_configuration.namespace ?? task_configuration.namespace
+			// task_configuration.move_to_link?.toString().trim() === 'subst:'
+			?? (task_configuration.for_template === subst_template ? default_namespace_for_subst : default_namespace),
 	};
 
 	if (list_types.join() === 'exturlusage') {
@@ -2513,6 +2516,8 @@ async function subst_template(token, index, parent) {
 			.all_between('<td class="diff-addedline', '</td>').map(token => token.between('<div>', { tail: '</div>' })).join('\n');
 		wikitext = CeL.HTML_to_Unicode(wikitext);
 
+		// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
+
 		if (false && !this.task_configuration[KEY_wiki_session].is_namespace(page_title, 'Template')) {
 			// TODO: https://en.wikipedia.org/wiki/Help:Substitution#Recursive_substitution
 			// {{#if:}} → {{subst:<noinclude/>#if:}}
@@ -3026,7 +3031,10 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 	if (!to) {
 		from = null;
 		CeL.wiki.parser.parser_prototype.each.call(line, 'url', (link, index, parent) => {
-			link = preprocess_link(link[0]);
+			link = link[0].toString();
+			if (link.includes('&diff=')) {
+				return;
+			}
 			if (!from) {
 				from = link;
 			} else if (!to) {
