@@ -32,8 +32,9 @@ require('../wiki loader.js');
 
 CeL.run('application.storage');
 
-// 2018/11/18: 36 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。 [[Wikipedia:模板限制]]
-var MIN_COUNT = 37,
+// 2018/11/18:	36 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。 [[Wikipedia:模板限制]]
+// 2025/5/15:	37 無法執行? All 149689 items more than 38 sitelinks.
+var MIN_COUNT = 38,
 // 有 cache 會導致未更新。
 reget = true,
 //
