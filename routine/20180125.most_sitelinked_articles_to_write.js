@@ -32,8 +32,8 @@ require('../wiki loader.js');
 
 CeL.run('application.storage');
 
-// 2018/11/18:	36 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。 [[Wikipedia:模板限制]]
-// 2025/5/15:	37 無法執行? All 149689 items more than 38 sitelinks.
+// 2018/11/18: 36 就會出現 "為運行的腳本分配的時間已耗盡。" 錯誤。 [[Wikipedia:模板限制]]
+// 2025/5/15: 37 無法執行? All 149689 items more than 38 sitelinks.
 var MIN_COUNT = 38,
 // 有 cache 會導致未更新。
 reget = true,
@@ -54,6 +54,10 @@ prepare_directory(base_directory);
 setTimeout(main_process);
 
 // ----------------------------------------------------------------------------
+
+if (!CeL.wiki.SQL) {
+	throw new Error('本程式僅可於 Toolforge 執行!');
+}
 
 var items_without = Object.create(null),
 //
@@ -401,11 +405,18 @@ function for_item_list_passed(item_list, options) {
 		// \n\n
 		+ item_list.length + '條目。\n' + item_list.map(function(item_id) {
 			return '{{Illm|WD=Q' + item_id + '|preserve=1}}';
+
+			// @deprecated
 			// {{wikidata|label|edit|linked|}}不夠理想: 不會顯示連結，有些沒有標籤。
 			return '{{wikidata|label|edit|linked|Q' + item_id + '}}';
-			// @deprecated
-			return '[[{{label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
-			return '[[{{wikidata|label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
+
+			return '[[{{label|Q' + item_id + '}}]]<sub>（[[d:Q' + item_id
+			//
+			+ '#sitelinks-wikipedia|其他語言]]）</sub>';
+
+			return '[[{{wikidata|label|Q' + item_id + '}}]]<sub>（[[d:Q'
+			//
+			+ item_id + '#sitelinks-wikipedia|其他語言]]）</sub>';
 		}).join(', '));
 	});
 
