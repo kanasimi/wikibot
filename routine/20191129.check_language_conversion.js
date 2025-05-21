@@ -17,6 +17,7 @@ node 20191129.check_language_conversion.js use_project=zh debug_page=第83届奥
 TODO:
 [[Wikipedia:机器人/作业请求#修正一些条目的NoteTA中的不当中文变体]]
 {{Lan}}
+https://zh.wikipedia.org/w/index.php?title=%E7%89%B9%E7%BE%85%E4%BC%8A%C2%B7%E8%B2%9D%E5%85%8B&diff=prev&oldid=87373602
 
  */
 
@@ -167,7 +168,7 @@ async function main_process() {
 
 	await generate_conversion_alias();
 
-	await wiki.register_redirects('NoteTA', {
+	await wiki.register_redirects(CeL.wiki.NoteTA_templates, {
 		namespace: 'Template'
 	});
 
@@ -182,16 +183,12 @@ async function main_process() {
 	const latest_run_info = CeL.get_JSON(latest_run_info_file);
 
 	let total_page_count = 0, initial_target_length = latest_run_info?.total_page_count > 500 ? latest_run_info?.total_page_count : undefined;
-	for await (const page_list of (debug_page ? Array.isArray(debug_page) ? [debug_page] : [[debug_page]]
-		: wiki.embeddedin('Template:NoteTA', {
-			namespace: 0,
-			limit: debug_page >= 1 ? debug_page : 'max',
-			batch_size: 500,
-		}))) {
+	async function for_each_article_list(page_list) {
 		await wiki.for_each_page(page_list, for_NoteTA_article, {
 			no_message: true,
 			pages_finished: total_page_count,
 			initial_target_length,
+			no_work_progress: page_list.is_list_flow,
 			tags: wiki.latest_task_configuration.general.tags,
 			// 去除與公共轉換組/全文轉換重複的轉換規則
 			summary: CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '去除重複的轉換規則') + ':',
@@ -199,6 +196,23 @@ async function main_process() {
 		total_page_count += page_list.length;
 		if (total_page_count > initial_target_length)
 			initial_target_length = undefined;
+	}
+
+	if (debug_page) {
+		await for_each_article_list(Array.isArray(debug_page) ? debug_page : [debug_page]);
+		return;
+	}
+
+	for (const NoteTA_template of CeL.wiki.to_namespace(CeL.wiki.NoteTA_templates
+		//.reverse()
+		, 'Template')) {
+		for await (const page_list of wiki.embeddedin(NoteTA_template, {
+			namespace: 0,
+			//limit: debug_page >= 1 ? debug_page : 'max',
+			batch_size: 500,
+		})) {
+			await for_each_article_list(page_list);
+		}
 	}
 
 	CeL.write_file(latest_run_info_file, { total_page_count });
@@ -709,6 +723,11 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	 * @param {Array} [parent] parent token
 	 */
 	function register_NoteTA_token(token, index, parent) {
+		if (!wiki.is_template(CeL.wiki.NoteTA_templates, token)) {
+			//console.trace([token, token.type, token.name]);
+			return;
+		}
+
 		if (parent) {
 			// 紀錄最後一個{{NoteTA}}模板: 每個{{NoteTA}}只能記30條，多的會分到後面的{{NoteTA}}。
 			token.index = index;
@@ -779,7 +798,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 			}
 		);
 	}
-	parsed.each('Template:NoteTA', register_NoteTA_token);
+	parsed.each('Template', register_NoteTA_token);
 
 	// 2022/12/12	現在 -{A|...}- 與 -{H|...}- 會全部移入 {{NoteTA}}，所以不必登記。
 	if (false) {
@@ -801,10 +820,16 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 
 	const duplicate_list = {
 		與公共轉換組重複的轉換規則: [],
+		// 繁簡字詞轉換模板
 		'與{{NoteTA}}重複的內文轉換': [],
 		與內文之全文轉換重複的字詞轉換: []
 	};
-	parsed.each('Template:NoteTA', token => {
+	parsed.each('Template', token => {
+		if (!wiki.is_template(CeL.wiki.NoteTA_templates, token)) {
+			//console.trace([token, token.type, token.name]);
+			return;
+		}
+
 		let _changed;
 		//console.trace(token.conversion_list);
 		for (let index = 0; index < token.conversion_list.length; index++) {
@@ -1037,7 +1062,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	// ------------------------------------------------------------------------
 
 	function progress_message() {
-		if (!(work_config.initial_target_length >= 1)) {
+		if (!(work_config.initial_target_length >= 1) || work_config.no_work_progress) {
 			// work_config.initial_target_length is net yet set.
 			return '';
 		}
