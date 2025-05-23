@@ -7,6 +7,7 @@ node routine/20191129.check_language_conversion.js use_project=zhmoegirl
 node 20191129.check_language_conversion.js use_project=zh debug_page=张学友
 // zh-hk:亞歷山大·達士勒;zh-tw:亞歷山大·戴斯培;zh-cn:亚历山大·德斯普拉; @ [[Module:CGroup/Entertainer]]
 node 20191129.check_language_conversion.js use_project=zh debug_page=第83届奥斯卡金像奖
+node 20191129.check_language_conversion.js use_project=zh debug_page=查理·卓别林
 
 
 2019/12/2 20:2:11	初版試營運
@@ -133,20 +134,16 @@ async function main_process() {
 		}
 
 		//console.trace(conversion_list);
-		conversion_of_group[group_name] = Object.values(conversion_list).map(
-			item => (
+		conversion_of_group[group_name] = Object.values(conversion_list).map(item => {
+			const conversion = CeL.wiki.parse('-{A|' + (
+				// 正規化單向轉換規則。
 				item[KEY_rule]
-					// 正規化單向轉換規則。
-					? item[KEY_rule].toString()
-						.split(';')
-						.map(conversion => conversion.trim())
-					// 正規化雙向轉換規則。
-					: Object.entries(item)
-						.map(([language_code, words]) => language_code + ':' + words)
-			)
-				.filter(conversion => !!conversion)
-				.sort().join(';')
-		).unique();
+				// 正規化雙向轉換規則。
+				|| Object.entries(item)
+					.map(([language_code, words]) => language_code + ':' + words).join(';')
+			) + '}-');
+			return conversion.toString('normalized rule');
+		}).unique();
 		Object.assign(conversion_of_group[group_name], {
 			group_name,
 			page_title: conversion_list[KEY_page],
@@ -187,7 +184,8 @@ async function main_process() {
 		await wiki.for_each_page(page_list, for_NoteTA_article, {
 			no_message: true,
 			pages_finished: total_page_count,
-			initial_target_length,
+			// 現用 `for await (const page_list of`，不再需要。
+			//initial_target_length,
 			no_work_progress: page_list.is_list_flow,
 			tags: wiki.latest_task_configuration.general.tags,
 			// 去除與公共轉換組/全文轉換重複的轉換規則
@@ -429,9 +427,11 @@ function add_conversion(item, from_page) {
 	if (!item || item.type !== 'item')
 		return;
 
-	const parsed = CeL.wiki.parse(`-{H|${item.rule}}-`,
+	const parsed = CeL.wiki.parse(`-{H|${item.rule}}-`, {
 		// 當作 page，取得 .conversion_table。
-		'with_properties');
+		with_properties: true,
+		normalize: true,
+	});
 	let page_conversion_table = parsed.conversion_table;
 	if (!page_conversion_table) {
 		const converted = parsed.converted;
@@ -709,7 +709,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	const parsed = page_data.parse();
 	CeL.assert([CeL.wiki.content_of(page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(page_data));
 
-	// conversion_hash[conversion rule] = {Array}token || {String}group || {Array}conversion token;
+	/** conversion_hash[conversion rule] = {Array}token || {String}group || {Array}conversion token; */
 	const conversion_hash = Object.create(null);
 	//console.log([page_data.title, conversion_list]);
 	//OK: return Wikiapi.skip_edit;
@@ -738,14 +738,14 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		if (false) {
 			console.trace([page_data.title,
 			token.conversion_list.groups,
-			token.conversion_list.map(conversion => conversion.toString('rule')),
+			token.conversion_list.map(conversion => conversion.toString('normalized rule')),
 			]);
 		}
 
 		// 登記{{NoteTA}}中的轉換規則
 		// assert: token.type === 'transclusion'
 		token.conversion_list.forEach(conversion => {
-			const rule = conversion.toString('rule');
+			const rule = conversion.toString('normalized rule');
 			if (conversion_hash[rule]) {
 				return;
 			}
@@ -805,10 +805,10 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		// page 本身的 -{A|}, -{H|}
 		const page_conversion_list = CeL.wiki.template_functions.parse_conversions(page_data);
 		console.log([page_data.title,
-		page_conversion_list.map(conversion => conversion.toString('rule')),
+		page_conversion_list.map(conversion => conversion.toString('normalized rule')),
 		]);
 		page_conversion_list.forEach(conversion => {
-			const rule = conversion.toString('rule');
+			const rule = conversion.toString('normalized rule');
 			if (!(rule in conversion_hash)) {
 				// assert: conversion.type === 'convert'
 				conversion_hash[rule] = conversion;
@@ -834,7 +834,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		//console.trace(token.conversion_list);
 		for (let index = 0; index < token.conversion_list.length; index++) {
 			const conversion = token.conversion_list[index];
-			const rule = conversion.toString('rule');
+			const rule = conversion.toString('normalized rule');
 			const source = conversion_hash[rule];
 			// assert: (rule in conversion_hash)
 			// rule 已於前面的 "登記{{NoteTA}}中的轉換規則" 登記。
