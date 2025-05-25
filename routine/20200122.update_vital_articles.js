@@ -2932,7 +2932,8 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			}
 		} else if (
 			// TODO: Test all aliases
-			/{\s*WikiProject\s*banner\s*shell/i.test(talk_page_data.wikitext)) {
+			// https://en.wikipedia.org/w/index.php?title=Category_talk%3A21st-century_architecture_in_Morocco&diff=1197567269&oldid=1143023611
+			/{\s*WikiProject\s*(?:banner|{{)/i.test(talk_page_data.wikitext)) {
 			// [[w:en:User talk:Kanashimi#Periodic GIGO report]]
 			CeL.warn(`${maintain_VA_template_each_talk_page.name}: ${CeL.wiki.title_link_of(talk_page_data)} may contain syntax error.`);
 			WPBS_syntax_error_pages.push(talk_page_data.title);
