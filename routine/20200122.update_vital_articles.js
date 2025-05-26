@@ -3,7 +3,8 @@
 node 20200122.update_vital_articles.js use_language=en
 node 20200122.update_vital_articles.js use_language=en using_cache
 node 20200122.update_vital_articles.js use_language=en skip_vital do_PIQA=1000000 forced_edit
-node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=" "category_to_clean="
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:" "category_to_clean="
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Design justice"
 
 
 node 20200122.update_vital_articles.js use_language=zh
@@ -955,7 +956,7 @@ async function get_page_info() {
 				// .original_title: for page_list = await wiki.categorymembers(vital_article_level_to_category(level), {})
 				const main_page_title = wiki.talk_page_to_main(page_data.original_title || page_data).replace(/\/class$/, '');
 				if (main_page_title.includes('/')) {
-					CeL.warn(`category_of_custom_class_WikiProject_template: Skip ${main_page_title}`);
+					CeL.warn(`category_of_custom_class_WikiProject_template: Skip ${CeL.wiki.title_link_of(main_page_title)}`);
 					continue;
 				}
 				category_of_custom_class_WikiProject_template__Set.add(main_page_title);
@@ -2439,13 +2440,20 @@ async function maintain_VA_template(options) {
 	// prevent creating talk page if main article redirects to another page. These pages will be listed in the report.
 	// 警告：若缺少主 article，這會強制創建出 talk page。 We definitely do not need more orphaned talk pages
 	try {
-		const page_list = Object.keys(have_to_edit_its_talk_page).filter(page_title => {
+		const page_list = [];
+		Object.keys(have_to_edit_its_talk_page).forEach(page_title => {
 			const article_info = have_to_edit_its_talk_page[page_title];
-			// the bot only fix namespace=talk.
+			if (article_info.do_PIQA) {
+				page_list.push(wiki.to_namespace(page_title, 'main'));
+				return;
+			}
+
 			if (article_info.key_is_talk_page
-				? article_info.do_PIQA ? wiki.is_talk_namespace(page_title) : wiki.is_namespace(page_title, 'talk')
+				// the bot only fix namespace=talk.
+				? wiki.is_namespace(page_title, 'talk')
 				: wiki.is_namespace(page_title, 'main')) {
-				return wiki.is_namespace(page_title, 'main');
+				page_list.push(wiki.to_namespace(page_title, 'main'));
+				return;
 			}
 
 			//console.trace([article_info, wiki.is_talk_namespace(page_title), page_title]);
@@ -2453,19 +2461,30 @@ async function maintain_VA_template(options) {
 			CeL.warn(`${maintain_VA_template.name}: Skip invalid namespace: ${CeL.wiki.title_link_of(page_title)} ${article_info.reason}`);
 			//console.trace(article_info);
 			delete have_to_edit_its_talk_page[page_title];
-			return false;
 		});
 		//console.trace(page_list, have_to_edit_its_talk_page);
 		if (page_list.length > 0) {
 			// e.g., items from VA list page?
 			CeL.info(`${maintain_VA_template.name}: 檢查 ${page_list.length} 個談話頁面的主頁面是否有內容、非 redirect。`);
 			//console.trace(page_list);
-			await wiki.for_each_page(page_list, function (main_page_data) {
+			await wiki.for_each_page(page_list, main_page_data => {
 				const main_article_exists = !CeL.wiki.parse.redirect(main_page_data) && main_page_data.wikitext;
-				if (!main_article_exists) {
-					//console.trace([main_page_data.original_title, main_page_data.title, CeL.wiki.parse.redirect(main_page_data), main_page_data.wikitext, main_article_exists]);
-					delete have_to_edit_its_talk_page[main_page_data.original_title || main_page_data.title];
+				//console.trace([CeL.wiki.parse.redirect(main_page_data), !!main_page_data.wikitext]);
+				if (main_article_exists) {
+					return;
 				}
+				//console.trace([main_page_data.original_title, main_page_data.title, CeL.wiki.parse.redirect(main_page_data), main_page_data.wikitext, main_article_exists]);
+				const page_title = main_page_data.original_title || main_page_data.title;
+				const article_info = have_to_edit_its_talk_page[page_title] || have_to_edit_its_talk_page[wiki.to_talk_page(page_title)];
+				if (article_info.do_PIQA) {
+					article_info.main_page_redirect_to = CeL.wiki.parse.redirect(main_page_data);
+					//console.trace(article_info);
+					return;
+				}
+				if (have_to_edit_its_talk_page[page_title])
+					delete have_to_edit_its_talk_page[page_title];
+				else
+					delete have_to_edit_its_talk_page[wiki.to_talk_page(page_title)];
 			});
 		}
 	} catch (e) {
@@ -2688,6 +2707,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			if (article_info.remove_vital_parameter) {
 				changed = true;
 				CeL.wiki.parse.replace_parameter(token, 'vital', CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
+			}
+
+			if (token.parameters.class && article_info.main_page_redirect_to) {
+				changed = true;
+				CeL.wiki.parse.replace_parameter(token, 'class', CeL.wiki.parse.replace_parameter.KEY_remove_parameter);
 			}
 			return;
 		}

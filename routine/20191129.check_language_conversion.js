@@ -102,7 +102,7 @@ async function main_process() {
 	CeL.info(pages + '個公共轉換組，' + items + '個重複詞彙。');
 
 	// ---------------------------------------------
-	// 只會消除正規化後完全相同的轉換規則。
+	// 機器人會一次先載入所有規則。只會消除正規化後完全相同的轉換規則。
 
 	for (const group_name in conversion_of_group) {
 		const transclusions = conversion_of_group[group_name][KEY_transclusions];
