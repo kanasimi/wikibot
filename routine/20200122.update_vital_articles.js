@@ -2476,15 +2476,17 @@ async function maintain_VA_template(options) {
 				//console.trace([main_page_data.original_title, main_page_data.title, CeL.wiki.parse.redirect(main_page_data), main_page_data.wikitext, main_article_exists]);
 				const page_title = main_page_data.original_title || main_page_data.title;
 				const article_info = have_to_edit_its_talk_page[page_title] || have_to_edit_its_talk_page[wiki.to_talk_page(page_title)];
-				if (article_info.do_PIQA) {
-					article_info.main_page_redirect_to = CeL.wiki.parse.redirect(main_page_data);
-					//console.trace(article_info);
-					return;
+				if (article_info) {
+					if (article_info.do_PIQA) {
+						article_info.main_page_redirect_to = CeL.wiki.parse.redirect(main_page_data);
+						//console.trace(article_info);
+						return;
+					}
+					if (have_to_edit_its_talk_page[page_title])
+						delete have_to_edit_its_talk_page[page_title];
+					else
+						delete have_to_edit_its_talk_page[wiki.to_talk_page(page_title)];
 				}
-				if (have_to_edit_its_talk_page[page_title])
-					delete have_to_edit_its_talk_page[page_title];
-				else
-					delete have_to_edit_its_talk_page[wiki.to_talk_page(page_title)];
 			});
 		}
 	} catch (e) {
