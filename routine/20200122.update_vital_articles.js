@@ -5,6 +5,7 @@ node 20200122.update_vital_articles.js use_language=en using_cache
 node 20200122.update_vital_articles.js use_language=en skip_vital do_PIQA=1000000 forced_edit
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:" "category_to_clean="
 node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:Design justice"
+node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:2016 shooting of Dallas police officers"
 
 
 node 20200122.update_vital_articles.js use_language=zh
@@ -3550,6 +3551,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 	}
 
+	//console.trace(this, article_info);
 	return wikitext;
 }
 
