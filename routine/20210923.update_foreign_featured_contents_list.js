@@ -317,6 +317,10 @@ async function for_badge_to_process(options) {
 	for (let language_index = 0; language_index < all_languages_to_process.length; language_index++) {
 		const language_code = all_languages_to_process[language_index];
 		const FC_hash = await get_FC_hash({ language_code, use_language, featured_content_badges, all_featured_contents });
+		if (!FC_hash) {
+			CeL.warn(`${for_badge_to_process.name}: No featured contents for ${language_code} (${language_index + 1}/${all_languages_to_process.length})!`);
+			continue;
+		}
 		const FC_count = Object.keys(FC_hash).length;
 		console.assert(FC_count >= 1);
 		//if (FC_count < 10) continue;
@@ -324,7 +328,7 @@ async function for_badge_to_process(options) {
 		const language_name = get_language_name({ language_code, wikipedia_sites, all_wikipedia_language_codes });
 		if (!language_name) {
 			CeL.error(`Cannot find name of ${language_code}: ${FC_count} FCs!`);
-			console.log([all_wikipedia_language_codes[language_code], wikipedia_sites[language_code]]);
+			console.trace([all_wikipedia_language_codes[language_code], wikipedia_sites[language_code]]);
 			continue;
 		}
 
