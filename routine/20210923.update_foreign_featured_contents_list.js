@@ -327,7 +327,7 @@ async function for_badge_to_process(options) {
 
 		const language_name = get_language_name({ language_code, wikipedia_sites, all_wikipedia_language_codes });
 		if (!language_name) {
-			CeL.error(`Cannot find name of ${language_code}: ${FC_count} FCs!`);
+			CeL.error(`Cannot find ${use_language} name of ${language_code}: ${FC_count} FCs! Please edit the wikidata item ${wikipedia_sites[language_code]?.entity_id} to add the label of ${use_language} language!`);
 			console.trace([all_wikipedia_language_codes[language_code], wikipedia_sites[language_code]]);
 			continue;
 		}
@@ -420,7 +420,7 @@ async function get_featured_content_of_language(options) {
 	const FC_of_local_language = Object.create(null);
 	async function get_badges(badges) {
 		CeL.log_temporary(`${get_featured_content_of_language.name}: ${badges} of ${language_code} (${label_languages})`);
-		(await wiki.SPARQL(`
+		const items = await wiki.SPARQL(`
 SELECT ?lang ?name ?itemLabel ?sitelink ?linkcount ?item ?type ?sitelink_of_lang ?badge
 WHERE {
 	VALUES ?badges { ${badges.map(id => 'wd:' + id).join(' ')} }
@@ -436,7 +436,14 @@ WHERE {
 	OPTIONAL { ?sitelink_of_lang schema:about ?item; schema:isPartOf <https://${options?.use_language}.wikipedia.org/> }
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "${label_languages}" }
 }
-`)).for_id((id, item) => {
+`, {
+			split_by_slice: 5000,
+			for_each_query_slice() {
+				CeL.log_temporary(`${get_featured_content_of_language.name}: Get #${this.offset} of ${label_languages}`);
+			}
+		});
+
+		items.for_id((id, item) => {
 			parse_FC_data(id, item, FC_of_local_language);
 		});
 	}
@@ -844,7 +851,7 @@ async function update_navigation_template(options) {
 	const list = [];
 	for (const language_code of all_languages_to_process) {
 		const summary_table = summary_of_language[language_code];
-		if (summary_table.count > 0)
+		if (summary_table?.count > 0)
 			list.push([summary_table.count, CeL.wiki.title_link_of(summary_table.page_title, summary_table.language_name)]);
 	}
 	list.sort((_1, _2) => _2[0] - _1[0] || (_2[1] < _1[1] ? 1 : -1));
