@@ -773,7 +773,7 @@ async function update_all_sites_menu(options) {
 	const _badge_entity_ids_to_count = badge_entity_ids_to_count.filter(badge_entity_id => {
 		for (const language_code of all_languages_to_process) {
 			const summary_table = summary_of_language[language_code];
-			return summary_table.local_count && summary_table.local_count[badge_entity_id] > 0;
+			return summary_table && summary_table.local_count && summary_table.local_count[badge_entity_id] > 0;
 		}
 	});
 	_badge_entity_ids_to_count.forEach(badge_entity_id => local_count[badge_entity_id] = 0);
