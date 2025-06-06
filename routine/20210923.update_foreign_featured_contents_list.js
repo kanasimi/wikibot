@@ -586,7 +586,8 @@ ORDER BY DESC(?count)
 				}
 				ltem_in_local_language.badge_entity_ids.forEach(badge_entity_id => {
 					if (badge_entity_id in local_count) local_count[badge_entity_id]++;
-					label_in_local_language += ` {{icon|${Wikimedia_article_badges[badge_entity_id].icon}}}`
+					if (Wikimedia_article_badges[badge_entity_id])
+						label_in_local_language += ` {{icon|${Wikimedia_article_badges[badge_entity_id].icon}}}`
 				});
 			}
 		} else {
@@ -701,7 +702,7 @@ ORDER BY DESC(?count)
 			}));
 		if (_too_many_items) {
 			content_to_write.push(`* Only shows ${MAX_ITEMS_TO_LIST}/${count} items.`);
-			if (!sub_page_title) {
+			if (sub_page_title) {
 				console.assert(too_many_items === true);
 				content_to_write.push(`* Please refer to [[/${sub_page_title}]].`);
 			}
