@@ -123,7 +123,7 @@ async function main_process() {
 
 async function get_FC_hash(options) {
 	const { language_code, all_featured_contents } = options;
-	if (all_featured_contents[language_code].partly) {
+	if (all_featured_contents[language_code]?.partly) {
 		// Cache the result.
 		all_featured_contents[language_code] = await get_featured_content_of_language(options);
 	}
@@ -419,7 +419,7 @@ async function get_featured_content_of_language(options) {
 
 	const FC_of_local_language = Object.create(null);
 	async function get_badges(badges) {
-		CeL.log_temporary(`${get_featured_content_of_language.name}: ${badges} of ${language_code} (${label_languages})`);
+		//CeL.log_temporary(`${get_featured_content_of_language.name}: Get ${badges} of ${language_code} (${label_languages})`);
 		const items = await wiki.SPARQL(`
 SELECT ?lang ?name ?itemLabel ?sitelink ?linkcount ?item ?type ?sitelink_of_lang ?badge
 WHERE {
@@ -439,7 +439,7 @@ WHERE {
 `, {
 			split_by_slice: 5000,
 			for_each_query_slice() {
-				CeL.log_temporary(`${get_featured_content_of_language.name}: Get #${this.offset} of ${label_languages}`);
+				CeL.log_temporary(`${get_featured_content_of_language.name}: Get #${this.offset} ${badges} of ${language_code} (${label_languages})`);
 			}
 		});
 
