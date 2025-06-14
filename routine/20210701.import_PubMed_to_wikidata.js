@@ -636,7 +636,9 @@ SELECT ?item ?itemLabel
 
 		CeL.error(`${get_entity_id_of_ORCID.name}: The best matched author get from wikidata ${JSON.stringify(itemLabel)}, ORCID=${ORCID} do not match wanted data: author_name=${JSON.stringify(author_name)}, wanted_keys=${JSON.stringify(wanted_keys)}`);
 		// 有問題的 ORCID
-		await wiki.edit_page(log_to + '/problematic ORCIDs', `
+		if (false) {
+			// [[User:Cewbot/log/20210701/problematic ORCIDs]]成為 Wikidata 中編輯次數第三多的頁面。
+			await wiki.edit_page(log_to + '/problematic ORCIDs', `
 ; PubMed_ID
 : ${PubMed_ID}
 ; entity_id
@@ -648,9 +650,10 @@ SELECT ?item ?itemLabel
 ; wanted keys
 : ${JSON.stringify(wanted_keys)}
 `, {
-			bot: 1, nocreate: 1, summary: `Error report for ORCID ${ORCID}`,
-			section: 'new', sectiontitle: `ORCID ${ORCID}`,
-		});
+				bot: 1, nocreate: 1, summary: `Error report for ORCID ${ORCID}`,
+				section: 'new', sectiontitle: `ORCID ${ORCID}`,
+			});
+		}
 	}
 
 	return await for_unregistered_ORCID(ORCID, author_name);
