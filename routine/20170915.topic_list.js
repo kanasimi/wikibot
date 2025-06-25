@@ -548,6 +548,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:可靠来源/布告板' ];
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:申请成为管理人员/申请区' ];
+	// main_talk_pages = [ 'Wikipedia:互助客栈/条目探讨' ];
 
 	// ----------------------------------------------------
 
@@ -969,6 +970,10 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		}
 
 		var user_name = section.users[user_and_date_index];
+		var is_anonymous_user
+		//
+		= CeL.wiki.parse.user.parse_temporary_username(user_name)
+				|| CeL.is_IP(user_name);
 		// 16: IPv4 user
 		user_shown = user_name.length < 16 ? user_name
 		// 縮小太長的使用者名稱。
@@ -985,17 +990,15 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		// TODO: link to diff
 		user_shown = (additional_attributes ? '| ' : '')
 		// 對於匿名IP用戶則顯示編輯紀錄。
-		+ (CeL.wiki.parse.user.parse_temporary_username(user_name)
-		//
-		|| CeL.is_IP(user_name)
+		+ (is_anonymous_user
 		//
 		? '[[Special:Contributions/' : '[[User:') + user_name + '|'
 		//
-		+ (CSS_toString(section.CSS) || CeL.is_IP(user_name)
+		+ (CSS_toString(section.CSS) || is_anonymous_user
 		//
 		? '<span style="'
 		//
-		+ (CeL.is_IP(user_name) ? 'color: #f82;' : '')
+		+ (is_anonymous_user ? 'color: #f82;' : '')
 		//
 		+ CSS_toString(section.CSS) + '">' + user_shown + '</span>'
 		//
