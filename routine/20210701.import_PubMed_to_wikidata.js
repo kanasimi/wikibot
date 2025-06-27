@@ -111,7 +111,9 @@ const main_subject_mapping = new Map((() => {
 		// [[d:User talk:Kanashimi#Adding subjects that are scholarly articles]]
 		// for [[Q33956142]]: "Qualitative Methods" not Q35230960
 		'qualitative methods': 'Q839486',
-	});
+		// [[d:Talk:Q72419165#wrong links to this item]]
+		'orthopedics and sports medicine': 'Q7104851',
+	}).map(([main_subject, entity_id]) => [normalize_main_subject(main_subject), entity_id]);
 })());
 
 const published_source_mapping__file_path = base_directory + 'published_source_mapping.json';
@@ -120,7 +122,8 @@ const published_source_mapping = new Map((() => {
 	if (data) return JSON.parse(data.toString());
 	return Object.entries({
 		//Genetics: 'Q3100575',
-	});
+		'Orthopedics and sports medicine': 'Q96321268',
+	}).map(([source_key, entity_id]) => [normalize_source_name(source_key), entity_id]);
 })());
 
 const journal_title_mapping = new Map([]);
@@ -218,10 +221,24 @@ async function main_process() {
 	if (main_subject_mapping.size < 1000)
 		await fill_main_subject_mapping();
 
+	for (const [main_subject, entity_id] of Object.entries({
+		'cell biology': 'Q7141',
+		'qualitative methods': 'Q839486',
+		'orthopedics and sports medicine': 'Q7104851',
+	})) {
+		CeL.assert([main_subject_mapping.get(main_subject), entity_id], 'Check main_subject_mapping: ' + main_subject);
+	}
+
 	if (published_source_mapping.size < 1000)
 		await fill_published_source_mapping();
-	console.assert(published_source_mapping.get('genetics') === 'Q3100575');
-	console.assert(published_source_mapping.get('biochemical and biophysical research communications') === 'Q864228');
+
+	for (const [source_key, entity_id] of Object.entries({
+		genetics: 'Q3100575',
+		'biochemical and biophysical research communications': 'Q864228',
+		'orthopedics and sports medicine': 'Q96321268',
+	})) {
+		CeL.assert([published_source_mapping.get(source_key), entity_id], 'Check published_source_mapping: ' + source_key);
+	}
 
 	await load_problematic_data_list();
 
@@ -336,6 +353,10 @@ WHERE
 }
 
 
+function normalize_main_subject(main_subject) {
+	return main_subject.toString().replace(/[,;:.]/g, '').trim().toLowerCase();
+}
+
 /** 預先登記會混淆的主題。 */
 async function fill_main_subject_mapping() {
 
@@ -350,7 +371,7 @@ WHERE
 `);
 		//console.trace(entity_id, main_subject_item_list);
 		main_subject_item_list.forEach(main_subject_data => {
-			const main_subject = CeL.wiki.data.value_of(main_subject_data.itemLabel).toLowerCase();
+			const main_subject = normalize_main_subject(CeL.wiki.data.value_of(main_subject_data.itemLabel));
 			if (main_subject_mapping.has(main_subject)) {
 				return;
 			}
@@ -376,13 +397,13 @@ WHERE
 
 
 function normalize_source_name(source_name) {
-	return source_name.replace(/[,;:.]/g, '').trim().toLowerCase();
+	return source_name.toString().replace(/[,;:.]/g, '').trim().toLowerCase();
 }
 
 async function fill_published_source_mapping(id) {
 	if (!id) {
 		// read cache
-		for (id of ['Q5633421', 'Q5633421', 'Q737498']) {
+		for (id of ['Q5633421', 'Q737498']) {
 			await fill_published_source_mapping(id);
 		}
 		CeL.write_file(published_source_mapping__file_path, JSON.stringify(Array.from(published_source_mapping)));
@@ -1295,7 +1316,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	if (Europe_PMC_article_data.firstPublicationDate) {
 		// UTC+0: 確保日期不跑掉
 		const publication_date = (Europe_PMC_article_data.firstPublicationDate + ' UTC+0').to_Date();
-		if (publication_date?.getTime() > 0
+		if (!isNaN(publication_date?.getTime())
 			// 假如只能取得當月1號的日期，則直接採用 NCBI_article_data.pubdate 就好
 			&& (publication_date.getUTCDate() > 1 || !NCBI_article_data.pubdate)) {
 			data_to_modify.publication_date = publication_date;
@@ -1314,7 +1335,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			// 避免不精確的日期 "2021 May" 被認作當月1號 https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33910271
 			// "1975 Jun" https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=1
 			|| is_imprecise_date(NCBI_article_data.pubdate)) && NCBI_article_data.epubdate || NCBI_article_data.pubdate) + ' UTC+0').to_Date();
-		if (publication_date?.getTime() > 0) {
+		if (!isNaN(publication_date?.getTime())) {
 			data_to_modify.publication_date = publication_date;
 			Object.assign(data_to_modify.publication_date_claim, {
 				// publication date (P577) 出版日期
@@ -1325,24 +1346,34 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	}
 	if (!data_to_modify.publication_date_claim.P577 && Array.isArray(NCBI_article_data.history) && NCBI_article_data.history.length > 0) {
 		// e.g., NCBI_article_data.pubdate==="2021 May"
-		const PMC_publication_date = NCBI_article_data.history.filter(record => record.date && (record.pubstatus in NCBI_pubstatus_to_entity_id_mapping));
+		const PMC_publication_date = NCBI_article_data.history.filter(record => {
+			if (record.date && (record.pubstatus in NCBI_pubstatus_to_entity_id_mapping)) {
+				const time_value = Date.parse(record.date + ' UTC+0');
+				if (!isNaN(time_value)) {
+					record.time_value = time_value;
+					return true;
+				}
+			}
+		}).sort((record_1, record_2) => {
+			// 取最早的日期。
+			return record_1.time_value - record_2.time_value;
+		});
 		if (PMC_publication_date.length > 0) {
 			// assert: dates are early to late
 			const record = PMC_publication_date[0];
 			// UTC+0: 確保日期不跑掉
-			const publication_date = (record.date + ' UTC+0').to_Date();
+			const publication_date = new Date(record.time_value);
 			//console.trace([record.date, publication_date, publication_date.precision]);
-			if (publication_date?.getTime() > 0) {
-				Object.assign(data_to_modify.publication_date_claim, {
-					// publication date (P577) 出版日期
-					P577: publication_date,
-					qualifiers: {
-						// published in (P1433) 發表於
-						P1433: NCBI_pubstatus_to_entity_id_mapping[record.pubstatus],
-					},
-					references: NCBI_article_data.wikidata_references
-				});
-			}
+			// assert: !isNaN(publication_date?.getTime())
+			Object.assign(data_to_modify.publication_date_claim, {
+				// publication date (P577) 出版日期
+				P577: publication_date,
+				qualifiers: {
+					// published in (P1433) 發表於
+					P1433: NCBI_pubstatus_to_entity_id_mapping[record.pubstatus],
+				},
+				references: NCBI_article_data.wikidata_references
+			});
 		}
 	}
 
