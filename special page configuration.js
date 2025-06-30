@@ -370,8 +370,10 @@ var default_FC_vote_configurations = {
 			countdown : 'data-sort-type="number" | <span title="截止日期。從上次編輯時間起算之截止期限。非從現在起的時間！">⏲️</span>'
 		}
 	}[use_language],
+
+	// [[w:zh:Wikipedia talk:討論頁指引]] 把三級標題改為二級標題
 	// 要篩選的章節標題層級。 cf. .show_subtopic
-	level_filter : 3,
+	// level_filter : 3,
 
 	// 發言數量固定減去此數。
 	// 減去提名時嵌入的簽名。
