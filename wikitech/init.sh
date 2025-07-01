@@ -42,8 +42,10 @@ cd node_modules
 # sh has no `time`, so we can not use `time /usr/bin/unzip` @ Debian Stretch 2019/3/15
 # bash hash `time`
 
+# `toolforge jobs images` or `webservice --help` to see available images
 # node18 starts from our bookworm base and then adds nodejs and a fewmore bits.
 # everything has `curl`. Apparently we have `unzip` in bookworm based images. That should include the "node18" image.
+# use `webservice node18 shell` to get an interactive shell inside a 'node18' container
 
 /usr/bin/curl --silent --show-error --location --output CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d cejs ] && /usr/bin/diff CeJS.zip CeJS.zip.old && mv -f CeJS.zip CeJS.zip.old && echo "CeJS: No news." || ( echo "Extracting CeJS..." && /usr/bin/unzip CeJS.zip > /dev/null && mv -f CeJS.zip CeJS.zip.old && rm -rf cejs && mv CeJS-master cejs && (cp -f "cejs/_for include/_CeL.loader.nodejs.js" ~/wikibot) && ( [ -d opencc/data/dictionary ] && cp -f opencc/data/dictionary/* cejs/extension/zh_conversion/OpenCC/ || echo "No OpenCC!" ) || echo "Failed to get CeJS!" )
 
@@ -92,7 +94,7 @@ printf "$SP\nCreate links...\n"
 
 #cd ~
 
-[ -e ~/bin/node ] || ln -s /shared/bin/node ~/bin/
+[ -e ~/bin/node ] || [ ! -e /shared/bin/node ] || ln -s /shared/bin/node ~/bin/
 
 #cd ${HOME}/wikibot
 cd ~/wikibot
