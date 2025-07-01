@@ -6,7 +6,7 @@
 # update bot codes. 更新軟體版本
 - name: k8s-update.wikibot
   command: "./wikibot/init.sh"
-  image: tf-bullseye-std
+  image: bookworm
   schedule: "2 17 * * *"
 
 

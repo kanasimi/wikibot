@@ -18,10 +18,22 @@
   command: "node /data/project/cewbot/wikibot/env.js"
   image: node18
   schedule: "2 20 2 * *"
+  #           | | | | |
+  #           | | | | day of the week (0–6) (Sunday to Saturday; 
+  #           | | | month (1–12)             7 is also Sunday on some systems)
+  #           | | day of the month (1–31)
+  #           | hour (0–23)
+  #           minute (0–59)
+  # https://en.wikipedia.org/wiki/Cron
 
 # update bot codes. 更新軟體版本
+# https://wikitech.wikimedia.org/wiki/Help:Toolforge/Deploy_your_tool
 - name: k8s-update.wikibot
   command: "./wikibot/init.sh"
+  # `toolforge jobs images` or `webservice --help` to see available images
+  # node18 starts from our bookworm base and then adds nodejs and a fewmore bits.
+  # everything has `curl`. Apparently we have `unzip` in bookworm based images. That should include the "node18" image.
+  # use `webservice node18 shell` to get an interactive shell inside a 'node18' container
   image: bookworm
   #image: node18
   #mem: 4Gi
