@@ -44,6 +44,7 @@ node 20170515.signature_check.js use_language=simple
 
 TODO:
 跳過這一種把正文搬到討論區的情況. e.g., [[w:zh:Special:Diff/45401508]], [[w:zh:Special:Diff/45631002|Wikipedia talk:聚会/2017青島夏聚]]
+檢查包含 <ref> 的段落是否有 {{Reflist-talk}} 模板。 [[User talk:Kanashimi#客棧註腳裸露]]
 
  */
 
@@ -603,6 +604,8 @@ function for_each_row(row) {
 		});
 	}
 
+	// -----------------------------------------------------
+
 	// console.trace([ trusted_user_privileges, row.user_info.groups ]);
 	row.user_info.latest_edit_date = Date.now();
 	// 視您的編輯次數來判斷是否為您自動補簽。
@@ -750,12 +753,12 @@ function for_each_row(row) {
 					CeL.debug('跳過: 只幫忙加入存檔模板。', 2, 'check_diff_pair');
 					return;
 				}
-				check_log
-						.push([
-								// gettext_config:{"id":"only-inserted-or-modified-templates-section-titles-non-specific-meaning-text"}
-								gettext('Only inserted or modified templates / section titles / non-specific-meaning-text'),
-								row.diff.to.slice(to_diff_start_index,
-										to_diff_end_index + 1).join('') ]);
+				// gettext_config:{"id":"only-inserted-or-modified-templates-section-titles-non-specific-meaning-text"}
+				var message = gettext('Only inserted or modified templates / section titles / non-specific-meaning-text');
+				check_log.push([
+						message,
+						row.diff.to.slice(to_diff_start_index,
+								to_diff_end_index + 1).join('') ]);
 				return;
 			}
 
@@ -1168,29 +1171,26 @@ function for_each_row(row) {
 					|| CeL.is_IP(row.user);
 		}
 
-		check_log
-				.push([
-						gettext(
-								/([12]\d{3})年(1?\d)月([1-3]?\d)日 /
-										.test(last_token) ?
-								// gettext_config:{"id":"the-user-may-have-appended-date-and-signature-but-it-is-not-clear.-still-need-to-append-signature-for-$1-$2"}
-								"The user may have appended date and signature, but it is not clear. Still '''need to append signature for %1 %2'''"
-										// gettext_config:{"id":"need-to-append-signature-for-$1-$2"}
-										: "'''Need to append signature for %1 %2'''",
-								gettext(is_anonymous_user
-								// gettext_config:{"id":"ip-user"}
-								? 'IP user'
-								// gettext_config:{"id":"user"}
-								: 'user'),
-								// <b>中不容許有另一個<b>，只能改成<span>。
-								'<span style="color:blue">' + row.user
-										+ '</span>')
-						// 會有編輯動作時，特別加強色彩。可以只看著色的部分，這些才是真正會補簽名的。
-						.replace(/'''(.+?)'''/,
-								'<b style="color:orange">$1</b>'),
-						// 一整段的文字。
-						row.diff.to.slice(to_diff_start_index,
-						//
+		var message = gettext(
+				/([12]\d{3})年(1?\d)月([1-3]?\d)日 /.test(last_token) ?
+				// gettext_config:{"id":"the-user-may-have-appended-date-and-signature-but-it-is-not-clear.-still-need-to-append-signature-for-$1-$2"}
+				"The user may have appended date and signature, but it is not clear. Still '''need to append signature for %1 %2'''"
+						// gettext_config:{"id":"need-to-append-signature-for-$1-$2"}
+						: "'''Need to append signature for %1 %2'''",
+				gettext(is_anonymous_user
+				// gettext_config:{"id":"ip-user"}
+				? 'IP user'
+				// gettext_config:{"id":"user"}
+				: 'user'),
+				// <b>中不容許有另一個<b>，只能改成<span>。
+				'<span style="color:blue">' + row.user + '</span>')
+		// 會有編輯動作時，特別加強色彩。可以只看著色的部分，這些才是真正會補簽名的。
+		.replace(/'''(.+?)'''/, '<b style="color:orange">$1</b>');
+
+		check_log.push([
+				message,
+				// 一整段的文字。
+				row.diff.to.slice(to_diff_start_index,
 						last_diff_index_before_next_section + 1).join('') ]);
 
 		// 添加簽名。
@@ -1337,28 +1337,25 @@ function for_each_row(row) {
 						// gettext_config:{"id":"pages-that-are-not-linked-to-the-signature-such-as-$1.-thank-you-for-your-participation"}
 						'Pages that are not linked to the signature, such as %1. Thank you for your participation.',
 						pages_to_notify.join(', ')) + ' --~~~~}}';
-		wiki
-				.page('User talk:' + row.user, {
-					redirects : 1
-				})
-				.edit(
-						message,
-						{
-							// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
-							notification_name : 'SIGN',
-							section : 'new',
-							sectiontitle : gettext(
-							// gettext_config:{"id":"hi-maybe-you-can-change-the-format-of-your-signature"}
-							'Hi, maybe you can change the format of your signature'),
-							tags : edit_tags,
-							summary : gettext(
-									// gettext_config:{"id":"$1-remind-you-to-add-a-link-when-signing-such-as-the-$2-pages-listed-in-the-notification"}
-									'[[%1|Remind you to add a link when signing]], such as the %2 {{PLURAL:%2|page|pages}} listed in the notification.',
-									//
-									log_to, pages_to_notify.length)
-									// gettext_config:{"id":"if-you-have-updated-your-past-messages-please-add-a-signature-at-the-end"}
-									+ gettext('If you have updated your past messages, please add a signature at the end.')
-						});
+		var summary = gettext(
+				// gettext_config:{"id":"$1-remind-you-to-add-a-link-when-signing-such-as-the-$2-pages-listed-in-the-notification"}
+				'[[%1|Remind you to add a link when signing]], such as the %2 {{PLURAL:%2|page|pages}} listed in the notification.',
+				log_to, pages_to_notify.length)
+				// gettext_config:{"id":"if-you-have-updated-your-past-messages-please-add-a-signature-at-the-end"}
+				+ gettext('If you have updated your past messages, please add a signature at the end.');
+
+		wiki.page('User talk:' + row.user, {
+			redirects : 1
+		}).edit(message, {
+			// 若您不想接受機器人的通知、提醒或警告，請使用{{bots|optout=SIGN}}模板。
+			notification_name : 'SIGN',
+			section : 'new',
+			sectiontitle : gettext(
+			// gettext_config:{"id":"hi-maybe-you-can-change-the-format-of-your-signature"}
+			'Hi, maybe you can change the format of your signature'),
+			tags : edit_tags,
+			summary : summary
+		});
 	}
 
 	// -------------------------------------------
@@ -1401,6 +1398,11 @@ function for_each_row(row) {
 						// gettext_config:{"id":"pages-that-may-require-a-signature-such-as-$1.-thank-you-for-your-participation"}
 						'Pages that may require a signature, such as %1. Thank you for your participation.',
 						pages_to_notify.join(', ')) + ' --~~~~}}';
+		var summary = gettext(
+				// gettext_config:{"id":"$1-remind-to-sign-such-as-the-$2-pages-listed-in-the-notification"}
+				'[[%1|Remind to sign]], such as the %2 pages listed in the notification.',
+				log_to, pages_to_notify.length);
+
 		wiki.page('User talk:' + row.user, {
 			redirects : 1
 		}).edit(message, {
@@ -1411,11 +1413,7 @@ function for_each_row(row) {
 			// gettext_config:{"id":"please-remember-to-sign-when-you-leave-messages"}
 			'Please remember to sign when you leave messages'),
 			tags : edit_tags,
-			summary : gettext(
-			// gettext_config:{"id":"$1-remind-to-sign-such-as-the-$2-pages-listed-in-the-notification"}
-			'[[%1|Remind to sign]], such as the %2 pages listed in the notification.'
-			//
-			, log_to, pages_to_notify.length)
+			summary : summary
 		});
 	}
 

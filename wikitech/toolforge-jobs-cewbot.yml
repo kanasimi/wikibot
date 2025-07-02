@@ -30,6 +30,7 @@
 # https://wikitech.wikimedia.org/wiki/Help:Toolforge/Deploy_your_tool
 - name: k8s-update.wikibot
   command: "./wikibot/init.sh"
+  # [[User:BDavis (WMF)|bd808]]:
   # `toolforge jobs images` or `webservice --help` to see available images
   # node18 starts from our bookworm base and then adds nodejs and a fewmore bits.
   # everything has `curl`. Apparently we have `unzip` in bookworm based images. That should include the "node18" image.
