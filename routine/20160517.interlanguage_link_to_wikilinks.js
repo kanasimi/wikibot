@@ -208,8 +208,12 @@ message_set = {
 	},
 
 	zh : {
-		// Category:多語言連結已存在連結
-		Category_has_local_page : 'Category:有蓝链却未移除内部链接助手模板的页面',
+		Category_has_local_page : [
+		// 清理代碼錯誤的條目，之後再回歸日常作業。
+		// e.g., 'jp' 不是標準的ISO編碼。
+		'Category:內部連結助手模板語言代碼錯誤',
+		// 'Category:多語言連結已存在連結',
+		'Category:有蓝链却未移除内部链接助手模板的页面' ],
 		report_page : '需要修正的跨語言連結',
 		// fix_category : 'Category:跨語言連結有問題的頁面', Category:連結格式不正確的條目,
 		// Category:维基百科积压工作, Category:需要清理的条目, Category:维基百科条目清理
@@ -310,10 +314,11 @@ function normalize_parameter(token) {
 		// normalize parameter
 		parameter = parameter.toString()
 		// 去除註解 comments。
-		.replace(/<\!--[\s\S]*?-->/g, '').trim();
+		.replace(/<\!--[\s\S]*?-->/g, '').trim().toLowerCase();
 		if (parameter_name === 'foreign_language'
 				&& parameter in CeL.wiki.language_code_to_site_alias) {
 			normalized.bad_foreign_language = parameter;
+			normalized.bad_token_wikitext = token.toString();
 			parameter = token[index][2]
 			// 為日文特別修正: 'jp' is wrong! 'jp' 不是標準的ISO編碼。
 			= CeL.wiki.language_code_to_site_alias[parameter];
@@ -638,8 +643,8 @@ function for_each_page(page_data, messages) {
 			if (--template_count > 0 || !template_parsed) {
 				// console.trace([ template_count, template_parsed ]);
 				if (template_count < 0) {
-					CeL
-							.error('check_page: template_count < 0! 可能有 template_count++ 之前，沒登記到的 check_page() 呼叫？');
+					CeL.error('check_page: ' + 'template_count < 0! '
+							+ '可能有 template_count++ 之前，沒登記到的 check_page() 呼叫？');
 				}
 				return;
 			}
@@ -1170,8 +1175,11 @@ function for_each_page(page_data, messages) {
 		// console.log(token);
 		parameters = token.parameters;
 		local_title = normalized_param.local_title;
-		if (normalized_param.bad_foreign_language) {
-			bad_foreign_language_ills.push(token.toString());
+		if (
+		// normalized_param.bad_foreign_language
+		normalized_param.bad_token_wikitext) {
+			// 同時修正錯誤語言代碼：這邊的token已經是修正過的。
+			bad_foreign_language_ills.push(normalized_param.bad_token_wikitext);
 		}
 		foreign_language = normalized_param.foreign_language;
 		foreign_title = normalized_param.foreign_title;
@@ -1387,6 +1395,7 @@ function main_work() {
 			// list = [ '台中藍鯨女子足球隊' ];
 			// list = [ '2019冠狀病毒病知名去世患者列表' ];
 			// list = [ 'Template:Infobox number/box' ];
+			// list = [ '香港47人案' ];
 
 			// console.log(list);
 			this.list = list;
