@@ -77,7 +77,7 @@ parse_error_label_list,
 
 use_date = new Date,
 
-// 分類‎名稱。
+// 分類名稱。
 category_name = locale,
 
 // copy from data.date.
@@ -1313,6 +1313,7 @@ function parser_自由時報_頭版新聞_2019(html) {
 	return parser_自由時報_2019(html, '頭版新聞');
 }
 
+// 解析2020年版的自由時報新聞列表頁面。
 function parser_自由時報_2020(json) {
 	var data = JSON.parse(json).data, headline_list = [], not_get_next;
 	for ( var count in data) {
