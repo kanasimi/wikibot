@@ -584,9 +584,9 @@ function start_main_work() {
 			with_content : true,
 			// language : use_language,
 			// options.use_SQL: Try to use SQL. Use SQL as possibile.
-			// commonswiki 得要使用 API 才不會漏。
-			use_SQL : [ 'commonswiki', 'enwiki' ].includes(CeL.wiki
-					.site_name(wiki)),
+			// commonswiki 得要使用 API 才不會漏。其他也是使用API比較保險。
+			use_SQL : ![ 'commonswiki', 'enwiki' ].includes(CeL.wiki
+					.site_name(wiki)) && false,
 			parameters : {
 				// 跳過機器人所做的編輯。
 				// You need the "patrol" or "patrolmarks" right to request the
