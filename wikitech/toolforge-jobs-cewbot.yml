@@ -6,6 +6,8 @@
 
 # https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-deploy/-/blob/main/components/maintain-kubeusers/values/tools.yaml?ref_type=heads
 
+# For out of quota: Toolforge Resource Quotas https://phabricator.wikimedia.org/project/manage/4834/
+
 # 名稱不可重複
 
 # --------------------------------------------------------------------------------------------------

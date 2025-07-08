@@ -2287,9 +2287,9 @@ async function generate_all_VA_list_page() {
 		const VA_data_list = VA_data_list_via_prefix[prefix];
 		pages_to_edit[`${wiki.latest_task_configuration.general.base_page}/${data_directory_name}/${prefix}.json`] = [VA_data_list,
 			// gettext_config:{"id":"update-list-of-vital-articles"}
-			(new CeL.gettext.Sentence_combination(['Update list of vital articles:',
-				// gettext_config:{"id":"total-$1-articles"}
-				['Total %1 {{PLURAL:%1|article|articles}}.', Object.keys(VA_data_list).length.toLocaleString()]])).toString()
+			(new CeL.gettext.Sentence_combination([['Update list of vital articles:'],
+			// gettext_config:{"id":"total-$1-articles"}
+			['Total %1 {{PLURAL:%1|article|articles}}.', Object.keys(VA_data_list).length.toLocaleString()]])).toString(),
 		];
 	}
 	await wiki.for_each_page(Object.keys(pages_to_edit), function (page_data) {
@@ -2336,9 +2336,9 @@ The list contains ${count} articles. --~~~~`
 	await wiki.edit_page(page_name, report_wikitext, {
 		bot: 1,
 		// gettext_config:{"id":"update-list-of-vital-articles"}
-		summary: (new CeL.gettext.Sentence_combination(['Update list of vital articles:',
-			// gettext_config:{"id":"total-$1-articles"}
-			['Total %1 {{PLURAL:%1|article|articles}}.', count]])).toString(),
+		summary: (new CeL.gettext.Sentence_combination([['Update list of vital articles:'],
+		// gettext_config:{"id":"total-$1-articles"}
+		['Total %1 {{PLURAL:%1|article|articles}}.', count]])).toString(),
 		skip_nochange: true,
 		nocreate: 1,
 	});
