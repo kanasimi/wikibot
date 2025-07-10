@@ -1,6 +1,6 @@
 ﻿/*
 
-node 20211203.synchronizing_common_pages.js use_project=zh.wikinews
+node 20211203.synchronizing_common_pages.js use_project=zh.wikinews edit_recent_pages=true "debug_pages=Module:Message box|Template:Mbox|Template:Ambox|Template:Cmbox|Template:Fmbox|Template:Imbox|Template:Ombox|Template:Tmbox"
 node 20211203.synchronizing_common_pages.js use_project=zh.wiktionary
 
 本任務會同步通用頁面。並檢查工具頁面，嘗試載入相依頁面。
@@ -12,6 +12,7 @@ TODO:
 [[Template:Synchronizer]]
 本地化轉換。
 有跨維基匯入權限，並且版權相容的情況下，採用匯入頁面的方式（匯入revision的方式）。
+
 
 @see [[meta:Global templates]]
 
@@ -32,9 +33,16 @@ const wiki = new Wikiapi;
 
 const DEFAULT_min_interval = '1 week';
 
+const uses_pages_template_name = {
+	style: 'Uses TemplateStyles',
+	lua: 'Lua',
+};
+
+
 // ----------------------------------------------------------------------------
 
 let summary_prefix;
+const skip_target_pages_Set = new Set();
 
 /**
  * 由設定頁面讀入手動設定 manual settings。
@@ -48,10 +56,17 @@ async function adapt_configuration(latest_task_configuration) {
 		return;
 
 	if (Array.isArray(general.skip_pages)) {
-		general.skip_pages = general.skip_pages.map(page_title => {
+		for (let index = 0; index < general.skip_pages.length; ++index) {
+			let page_title = general.skip_pages[index];
 			const matched = typeof page_title === 'string' && page_title.match(/^\s*\[\[(.+?)\]\]/);
-			return matched ? matched[1] : page_title;
-		});
+			if (matched) {
+				page_title = matched[1];
+			}
+			general.skip_pages[index] = wiki.normalize_title(page_title);
+			skip_target_pages_Set.add(page_title);
+			await wiki.register_redirects(page_title);
+			skip_target_pages_Set.add(wiki.redirect_target_of(page_title));
+		}
 	}
 
 	// 匯入 工具頁面
@@ -81,6 +96,8 @@ const default_options = {
 	"min_interval": "檢查版本存在此時間以上才複製，避免安全隱患，例如原維基項目頁面被惡意篡改。 default: 1 week",
 };
 
+const add_pages_symbol = Symbol('add_pages');
+
 async function main_process() {
 	//console.log(wiki.append_session_to_options());
 	//console.log(wiki.append_session_to_options().session.latest_site_configurations);
@@ -89,11 +106,33 @@ async function main_process() {
 	const target_site_info = wiki.site_name({ get_all_properties: true });
 	//console.log(target_site_info);
 
-	const Pages = wiki.latest_task_configuration.Pages;
-	const page_length = Object.keys(Pages).length;
-	let page_count = 0;
-	for (const page_id in Pages) {
-		let options = Pages[page_id] || Object.create(null);
+	// For check_included_pages().
+	await wiki.register_redirects(Object.values(uses_pages_template_name), { namespace: 'Template' });
+
+	const pages_to_check = [];
+	const debug_pages = CeL.env.arg_hash?.debug_pages && new Set(CeL.env.arg_hash?.debug_pages.split('|'));
+	for (const page_id in wiki.latest_task_configuration.Pages) {
+		if (debug_pages) {
+			if (!debug_pages.has(page_id)) {
+				continue;
+			}
+		}
+		pages_to_check.push([page_id, wiki.latest_task_configuration.Pages[page_id]]);
+		if (debug_pages) {
+			debug_pages.delete(page_id);
+		}
+	}
+	if (debug_pages && debug_pages.size > 0) {
+		//CeL.warn(`${main_process.name}: The following pages are not found in the task configuration: ${Array.from(debug_pages).join(', ')}`);
+		for (const page_title of debug_pages) {
+			pages_to_check.push([page_title, null]);
+		}
+		debug_pages.clear();
+	}
+
+	for (let index = 0; index < pages_to_check.length; ++index) {
+		const page_id = pages_to_check[index][0];
+		let options = pages_to_check[index][1] || Object.create(null);
 		if (typeof options === 'string') {
 			options = options.trim();
 			if (/^:*\w+:/.test(options)) {
@@ -105,6 +144,7 @@ async function main_process() {
 				options = { target_title: options };
 			}
 		}
+
 		const site_name = options?.site || target_site_info.language + '.wikipedia';
 		//console.log(site_name);
 		let source_wiki = wiki_Map.get(site_name);
@@ -113,13 +153,15 @@ async function main_process() {
 			wiki_Map.set(site_name, source_wiki);
 			//await wiki.login(login_options);
 			source_wiki.processed_page_title_Set = new Set;
+			// For check_included_pages().
+			await source_wiki.register_redirects(Object.values(uses_pages_template_name), { namespace: 'Template' });
 
 			const skip_pages = wiki.latest_task_configuration.general.skip_pages;
 			if (Array.isArray(skip_pages)) {
 				await source_wiki.register_redirects(skip_pages);
-				source_wiki.skip_pages = skip_pages.map(page_title => source_wiki.redirect_target_of(page_title));
-				//console.trace(source_wiki.skip_pages);
-				//console.trace(source_wiki.skip_pages.includes(source_wiki.redirect_target_of('Template:doc')));
+				source_wiki.skip_pages_Set = new Set(skip_pages.map(page_title => source_wiki.redirect_target_of(page_title)));
+				//console.trace(source_wiki.skip_pages_Set);
+				//console.trace(source_wiki.skip_pages_Set.has(source_wiki.redirect_target_of('Template:doc')));
 			}
 		}
 		const source_site_info = source_wiki.site_name({ get_all_properties: true });
@@ -129,14 +171,52 @@ async function main_process() {
 
 		// --------------------------------------------------------------------
 
-		const source_page_title = options.source_title || options.title || page_id;
-		const target_page_title = options.target_title || options.title || page_id;
+		/**
+		 * 將相依頁面添加到待處理頁面。
+		 * @param {string|Array|Object} page_list 相依頁面列表。
+		 * @returns 
+		 */
+		function add_page_list(page_list) {
+			if (!page_list) {
+				return;
+			}
 
-		CeL.info(`${main_process.name}: ${++page_count}/${page_length} ${CeL.gettext(
+			if (typeof page_list === 'string') {
+				// page_list: 'page_title'
+				pages_to_check.splice(index + 1, 0, [page_list, null]);
+			} else if (Array.isArray(page_list)) {
+				// page_list: ['page_title1', 'page_title2']
+				Array.prototype.splice.apply(pages_to_check, [index + 1, 0].concat(page_list.map(page_title => [page_title, null])));
+			} else if (typeof page_list === 'object') {
+				// page_list: {page_title: options}
+				Array.prototype.splice.apply(pages_to_check, [index + 1, 0].concat(Object.entries(page_list)));
+			}
+		}
+
+		add_page_list(options.require_pages);
+		// 手動設定會影響到的頁面。
+		add_page_list(options.pages_affected);
+
+		// --------------------------------------------------------------------
+
+		const source_page_title = wiki.normalize_title(options.source_title || options.title || page_id);
+		const target_page_title = wiki.normalize_title(options.target_title || options.title || page_id);
+		if (skip_target_pages_Set.has(target_page_title)) {
+			CeL.info(`${main_process.name}: Skip target page: ${CeL.wiki.title_link_of(target_page_title)}`);
+			continue;
+		}
+		skip_target_pages_Set.add(target_page_title);
+
+		CeL.info(`${main_process.name}: ${index + 1}/${pages_to_check.length} ${CeL.gettext(
 			// gettext_config:{"id":"synchronizing-$1"}
 			'Synchronizing %1', source_page_title)}${source_page_title === target_page_title ? '' : ` → ${target_page_title}`}`);
 
 		await for_each_page_pair(source_page_title, target_page_title, options);
+
+		if (options[add_pages_symbol]) {
+			add_page_list(Array.from(options[add_pages_symbol]));
+			delete options[add_pages_symbol];
+		}
 	}
 
 	routine_task_done('1 week');
@@ -146,7 +226,7 @@ async function main_process() {
 
 function need_skip_page(page_title, source_wiki, original_title) {
 	// test magic words
-	if (page_title.endsWith(':')) {
+	if (!page_title || page_title.endsWith(':')) {
 		// e.g., {{NAMESPACE:{{...}}}}
 		return true;
 	}
@@ -160,7 +240,7 @@ function need_skip_page(page_title, source_wiki, original_title) {
 		}
 	}
 
-	return source_wiki.skip_pages.includes(source_wiki.redirect_target_of(page_title))
+	return source_wiki.skip_pages_Set.has(source_wiki.redirect_target_of(page_title))
 		|| source_wiki.processed_page_title_Set.has(page_title);
 }
 
@@ -239,6 +319,9 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 		}
 
 	} else if (wiki.is_namespace(target_page_title, 'module')) {
+
+		await edit_page(source_page_title + '/doc', target_page_title + '/doc', options);
+
 		// copy all pages prefixed with `target_page_title`
 		const sub_page_list = await source_wiki.prefixsearch(base_source_page_data.title + '/');
 		for (const sub_page_data of sub_page_list) {
@@ -248,20 +331,24 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 					// gettext_config:{"id":"$1-does-not-start-with-$2"}
 					+ CeL.gettext('%1 does not start with %2', CeL.wiki.title_link_of(sub_page_data.title), base_source_page_data.title + '/')
 				);
-				return;
+				continue;
 			}
 			const postfix = sub_page_data.title.slice((base_source_page_data.title).length);
 			console.assert(postfix.startsWith('/'));
 			if (/\/(?:sandbox|沙盒|te?mp|testcases)/i.test(postfix))
-				return;
+				continue;
 			await edit_page(source_page_title + postfix, target_page_title + postfix, options);
 		}
 
 		// 偵測並添加相依模板。 test `require('Module:module name')` in base_source_page_data
-		for (const matched of base_source_page_data.wikitext.matchAll(/(?:^|\W)require *\( *'([^'\s]+[^']*)' *\)/g)) {
+		for (const matched of base_source_page_data.wikitext.matchAll(/(?:^|\W)(?:require|mw\.loadData) *\( *'([^'\s]+[^']*)' *\)/g)) {
 			const source_module_title = source_wiki.normalize_title(matched[1]);
 			if (need_skip_page(source_module_title, source_wiki))
 				continue;
+			if (!wiki.is_namespace(source_module_title, 'module')) {
+				CeL.warn(`${for_each_page_pair.name}: Skip non-module page: ${CeL.wiki.title_link_of(source_module_title)}`);
+				continue;
+			}
 			CeL.info(`${for_each_page_pair.name}: `
 				// gettext_config:{"id":"$1-dependent-on-module-→-$2"}
 				+ CeL.gettext('%1 dependent on module → %2', CeL.wiki.title_link_of(base_source_page_data), CeL.wiki.title_link_of(source_module_title))
@@ -269,6 +356,7 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 			await for_each_page_pair(source_module_title, source_module_title, { ...options, depended_on_by: base_source_page_data });
 		}
 	}
+
 }
 
 async function edit_page(source_page_title, target_page_title, options) {
@@ -283,7 +371,7 @@ async function edit_page(source_page_title, target_page_title, options) {
 	const revision = CeL.wiki.content_of.revision(source_page_data);
 	// 檢查版本存在 min_interval 以上才複製，避免安全隱患，例如原維基項目頁面被惡意篡改。
 	const min_interval = CeL.date.to_millisecond(options.min_interval || DEFAULT_min_interval);
-	if (!(Date.now() - Date.parse(revision?.timestamp) > min_interval)) {
+	if (!CeL.env.arg_hash?.edit_recent_pages && !(Date.now() - Date.parse(revision?.timestamp) > min_interval)) {
 		if (revision?.timestamp) {
 			//console.trace(revision.timestamp);
 			CeL.warn(`${edit_page.name}: ${source_page_link}: `
@@ -351,15 +439,47 @@ async function edit_page(source_page_title, target_page_title, options) {
 		// gettext_config:{"id":"this-page-is-copied-from-$1-and-updated-regularly-by-the-robot.-please-edit-the-original-wiki-project-page-directly-or-edit-this-page-after-removing-it-from-$2-of-the-custom-page"}
 		const prefix = CeL.gettext('This page is copied from %1 and updated regularly by the robot. Please edit the original wiki project page directly, or edit this page after removing it from %2 of the custom page.', source_page_link, CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title));
 		const is_template = wiki.is_namespace(target_page_title, 'template'), is_module = wiki.is_namespace(target_page_title, 'module');
-		if ((is_template || is_module) && target_page_title.endsWith('/doc')) {
-			if (!additional_description) {
-				// gettext_config:{"id":"template-documentation-to-assist-in-understanding"}
-				additional_description = CeL.gettext('Template documentation to assist in understanding');
-			}
-			// e.g., [[Module:InfoboxImage/doc]]
-			wikitext = `<noinclude><!-- ${prefix} --></noinclude>` + wikitext;
 
-		} else if (is_template && target_page_title.endsWith('/styles.css')) {
+		let parsed_source;
+		/**
+		 * 檢查並添加 uses_pages_template_name 的模板樣式。
+		 * @see https://en.wikipedia.org/wiki/Help:TemplateStyles
+		 * @see https://en.wikipedia.org/wiki/Template:Uses_TemplateStyles
+		 */
+		function check_included_pages() {
+			if (!parsed_source) {
+				parsed_source = source_page_data.parse();
+			}
+
+			parsed_source.each('Template', template_token => {
+				function add_parameters_as_included_pages() {
+					// or uses options.require_pages
+					if (!options[add_pages_symbol])
+						options[add_pages_symbol] = new Set;
+					for (const [parameter_name, value] of Object.entries(template_token.parameters)) {
+						if (!value) return;
+						const page_title = source_wiki.normalize_title(value.toString());
+						if (!need_skip_page(page_title, source_wiki)) {
+							options[add_pages_symbol].add(page_title);
+						}
+					}
+				}
+
+				if (wiki.is_template(template_token, uses_pages_template_name.style)) {
+					add_parameters_as_included_pages();
+					return;
+				}
+
+				if (wiki.is_template(template_token, uses_pages_template_name.lua)
+					// e.g., '{{Lua{{\sandbox}}|Module:Uses TemplateStyles}}' @ [[w:en:Template:Uses TemplateStyles/doc]]
+					|| /^Lua[{{\/]/.test(template_token.name)) {
+					add_parameters_as_included_pages();
+					return;
+				}
+			});
+		}
+
+		if (/\.css$/i.test(target_page_title)) {
 			// assert: contentmodel:sanitized-css
 			if (!additional_description) {
 				// gettext_config:{"id":"required-template-style-file"}
@@ -367,7 +487,23 @@ async function edit_page(source_page_title, target_page_title, options) {
 			}
 			wikitext = `/* ${prefix} */\n` + wikitext;
 
+		} else if (/\.js$/i.test(target_page_title)) {
+			if (!additional_description) {
+				TODO
+			}
+			wikitext = `// ${prefix}\n` + wikitext;
+
+		} else if ((is_template || is_module) && target_page_title.endsWith('/doc')) {
+			check_included_pages();
+			if (!additional_description) {
+				// gettext_config:{"id":"template-documentation-to-assist-in-understanding"}
+				additional_description = CeL.gettext('Template documentation to assist in understanding');
+			}
+			// e.g., [[Module:InfoboxImage/doc]]
+			wikitext = `<noinclude><!-- ${prefix} --></noinclude>` + wikitext;
+
 		} else if (is_template) {
+			check_included_pages();
 			if (!target_page_title.includes('/')) {
 				// {{info|}}
 				wikitext = `<noinclude><!-- ${prefix} --></noinclude>` + wikitext;
