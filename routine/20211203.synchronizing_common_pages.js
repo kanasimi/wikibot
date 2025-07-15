@@ -1,7 +1,7 @@
 ﻿/*
 
 node 20211203.synchronizing_common_pages.js use_project=zh.wikinews edit_recent_pages=true "debug_pages=Module:Message box|Template:Mbox|Template:Ambox|Template:Cmbox|Template:Fmbox|Template:Imbox|Template:Ombox|Template:Tmbox"
-node 20211203.synchronizing_common_pages.js use_project=zh.wiktionary
+node 20211203.synchronizing_common_pages.js use_project=zh.wiktionary edit_recent_pages=true "debug_pages=Module:Namespace pagename"
 
 本任務會同步通用頁面。並檢查工具頁面，嘗試載入相依頁面。
 
