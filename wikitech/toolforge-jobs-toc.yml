@@ -17,55 +17,67 @@
 - name: k8s-20170915.topic-list.zh
   command: "node ./wikibot/routine/20170915.topic_list.js use_language=zh"
   image: node18
+  # https://phabricator.wikimedia.org/T398780
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.zh-classical
   command: "node ./wikibot/routine/20170915.topic_list.js use_language=zh-classical"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikinews
   command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikinews"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.ja
   command: "node ./wikibot/routine/20170915.topic_list.js use_language=ja"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.en
   command: "node ./wikibot/routine/20170915.topic_list.js use_language=en"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.testwiki
   command: "node ./wikibot/routine/20170915.topic_list.js use_language=en use_project=test"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikisource
   command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikisource"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikiversity
   command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikiversity"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.commons
   command: "node ./wikibot/routine/20170915.topic_list.js use_project=commons"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wiktionary
   command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wiktionary"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
 - name: k8s-20170915.topic-list.wikibooks
   command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks"
   image: node18
+  cpu: 0.25
   mem: 2Gi
   continuous: true
