@@ -3,6 +3,7 @@
 node 20201008.fix_anchor.js use_language=ja "check_page=帯 (出版)"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
+node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia talk:投票" "only_modify_pages=Wikipedia talk:投票"
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "only_modify_pages=Wikipedia talk:管理員解任投票/Mys_721tx/第2次"
@@ -1832,6 +1833,10 @@ async function check_page(target_page_data, options) {
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
 		if (this.minor) this.minor = this.summary.length < 5;
 		this.summary = this.summary[0] + this.summary.slice(1).join(', ');
+		if (CeL.env.arg_hash.archives) {
+			// (修復已存檔的連結)
+			this.summary += ` (Repair archived links)`;
+		}
 		main_pages_modified++;
 		return parsed.toString();
 	}
