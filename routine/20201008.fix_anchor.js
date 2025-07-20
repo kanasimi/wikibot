@@ -3,7 +3,7 @@
 node 20201008.fix_anchor.js use_language=ja "check_page=帯 (出版)"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
-node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia talk:投票" "only_modify_pages=Wikipedia talk:投票"
+node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia talk:申请成为管理人员" "only_modify_pages=Wikipedia talk:投票"
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "only_modify_pages=Wikipedia talk:管理員解任投票/Mys_721tx/第2次"
@@ -221,8 +221,8 @@ async function main_process() {
 		// [[w:zh:Special:Diff/37559912]]
 		await check_page('香港特別行政區區旗', { force_check: true });
 
-		await check_page('Wikipedia:互助客栈/技术', { force_check: true, namespace: '*', has_subpage_archives: true });
-		await check_page('Wikipedia:当前的破坏', { force_check: true, namespace: '*', has_subpage_archives: true });
+		await check_page('Wikipedia:互助客栈/技术', { force_check: true, namespace: '*', is_talk_page_with_archives: true });
+		await check_page('Wikipedia:当前的破坏', { force_check: true, namespace: '*', is_talk_page_with_archives: true });
 
 		// "&amp;"
 		await check_page('三井E&Sホールディングス', { force_check: true });
@@ -265,7 +265,7 @@ async function main_process() {
 			process.title = `${NO}/${length}${progress_to_percent(NO / length, true)} ${page_data.title}`;
 			try {
 				await check_page(page_data, {
-					is_archive: true, force_check: true, namespace: '*',
+					is_talk_page_with_archives: true, force_check: true, namespace: '*',
 					// 整體作業進度 overall progress
 					overall_progress: NO / length,
 					only_modify_pages: CeL.env.arg_hash.only_modify_pages,
@@ -344,7 +344,7 @@ function filter_row(row) {
 	}
 
 	// 處理有存檔的頁面。
-	if (get_sections_moved_to(row, { check_has_subpage_archives_only: true })) {
+	if (get_sections_moved_to(row, { check_is_talk_page_with_archives_only: true })) {
 		// RFDのBotはTemplate:RFD noticeを操作するBotとTemplate:RFDを操作するBotが別体で、通常連続稼働させていますが数分間のタイムラグが生じます。「Wikipedia:リダイレクトの削除依頼/受付#RFD」は触れぬようお願いいたします。
 		return !row.title.startsWith('Wikipedia:リダイレクトの削除依頼/受付');
 	}
@@ -412,20 +412,20 @@ async function get_sections_moved_to(page_data, options) {
 		// gettext_config:{"id":"wikitext-parser-checking-$1"}
 		CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
 
-	let { has_subpage_archives } = options;
-	if (!has_subpage_archives) {
+	let { is_talk_page_with_archives } = options;
+	if (!is_talk_page_with_archives) {
 		// check {{Archives}}, {{Archive box}}, {{Easy Archive}}
 		parsed.each('template', template_token => {
 			if (wiki.latest_task_configuration.general.archive_template_list.includes(template_token.name)) {
-				has_subpage_archives = true;
+				is_talk_page_with_archives = true;
 			}
 		});
 	}
 
-	if (!has_subpage_archives)
+	if (!is_talk_page_with_archives)
 		return;
 
-	if (options?.check_has_subpage_archives_only)
+	if (options?.check_is_talk_page_with_archives_only)
 		return true;
 
 	CeL.info(`${get_sections_moved_to.name}: Page with archives: ${CeL.wiki.title_link_of(page_data)}`);
@@ -1704,7 +1704,7 @@ async function check_page(target_page_data, options) {
 			changed = true;
 		}
 
-		if (!options.is_archive) {
+		if (!options.is_talk_page_with_archives) {
 			talk_pages_modified += await add_note_to_talk_page_for_broken_anchors(linking_page_data, token, record);
 		}
 
@@ -1833,8 +1833,9 @@ async function check_page(target_page_data, options) {
 			add_summary(this, CeL.wiki.title_link_of(target_page_data));
 		if (this.minor) this.minor = this.summary.length < 5;
 		this.summary = this.summary[0] + this.summary.slice(1).join(', ');
-		if (CeL.env.arg_hash.archives) {
-			// (修復已存檔的連結)
+		if (false && CeL.env.arg_hash.archives) {
+			// summary應該也會有 "更新指向存檔的連結："
+			// " (修復已存檔的連結)"
 			this.summary += ` (Repair archived links)`;
 		}
 		main_pages_modified++;
