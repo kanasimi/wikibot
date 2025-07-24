@@ -192,7 +192,7 @@ function main_work() {
 			reget : true,
 			file_name : base_directory + 'list_' + checking_index
 			//
-			+ '.' + use_language + '.json',
+			+ '.' + CeL.wiki.site_name(wiki) + '.json',
 			postprocessor : function(data) {
 				data = data.toString();
 				if (data.startsWith('<')) {

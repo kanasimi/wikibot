@@ -64,7 +64,7 @@ wiki = Wiki(true),
 
 /** {revision_cacher}記錄處理過的文章。 */
 processed_data = new CeL.wiki.revision_cacher(base_directory + 'processed.'
-		+ use_language + '.json'),
+		+ CeL.wiki.site_name(wiki) + '.json'),
 
 // ((Infinity)) for do all
 test_limit = 2,
@@ -1125,13 +1125,13 @@ function for_each_page(page_data, messages) {
 			}
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
-			foreign_title ], for_local_page, use_language, {
+			foreign_title ], for_local_page, CeL.wiki.add_session_to_options(wiki, {
 				// e.g., {{Ill|George B. Sennett|George Burritt Sennett}}
 				// @ [[w:en:Special:Diff/1227543178]]
 				multi : false,
 				redirects : 1,
 				converttitles : 1
-			});
+			}));
 
 		}
 

@@ -231,7 +231,10 @@ function login_options_of_API_URL(API_URL) {
 _global.set_language = function set_language(language) {
 	// assert: !!language === true
 	if (CeL.wiki.is_wiki_API(language)) {
-		language = language.language;
+		language =
+		// e.g., simplewiki
+		// language.first_damain_name ||
+		language.language;
 	}
 
 	var API_URL = CeL.env.arg_hash && CeL.env.arg_hash.API_URL || use_project
@@ -306,12 +309,6 @@ if (CeL.env.arg_hash && (CeL.env.arg_hash.set_debug || CeL.env.arg_hash.debug)) 
 
 // ----------------------------------------------------------------------------
 
-if (false) {
-	/** {revision_cacher}記錄處理過的文章。 */
-	_global.processed_data = new CeL.wiki.revision_cacher(base_directory
-			+ 'processed.' + use_language + '.json');
-}
-
 /** Wiki() return {Object}wiki operator 操作子. */
 _global.Wiki = function new_wiki(do_login, API_URL) {
 	var api = API_URL || CeL.env.arg_hash && CeL.env.arg_hash.API_URL
@@ -343,6 +340,12 @@ _global.Wiki = function new_wiki(do_login, API_URL) {
 		session.get_URL_options.headers['User-Agent'] = CeL.get_URL.default_user_agent
 				// User-Agent 不可含有中文。
 				+ ' ' + encodeURI(CeL.get_script_name());
+	}
+
+	if (false) {
+		/** {revision_cacher}記錄處理過的文章。 */
+		_global.processed_data = new CeL.wiki.revision_cacher(base_directory
+				+ 'processed.' + CeL.wiki.site_name(session) + '.json');
 	}
 
 	check_routine_task(session);
