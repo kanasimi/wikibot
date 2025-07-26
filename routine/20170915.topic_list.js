@@ -159,21 +159,23 @@ function CSS_toString(CSS) {
 	if (!CSS)
 		return '';
 
-	var style = [];
-	if (CSS.style) {
-		// e.g., "text-decoration: line-through"
-		style.push(CSS.style);
-	}
-
+	var styles = [];
 	for ( var attribute_name in {
 		color : true,
 		'background-color' : true
 	}) {
 		if (CSS[attribute_name])
-			style.push(attribute_name + ': ' + CSS[attribute_name]);
+			styles.push(attribute_name + ': ' + CSS[attribute_name]);
 	}
 
-	return style.join('; ');
+	// [[w:zh:User talk:Kanashimi#Cewbot生成的讨论页主题列表在深色模式下已解决议题链接不可见]]
+	// 將 CSS.style 放置於最後，覆蓋前面的 CSS.color。
+	if (CSS.style) {
+		// e.g., "text-decoration: line-through"
+		styles.push(CSS.style);
+	}
+
+	return styles.join('; ');
 }
 
 // 討論議題列表可以挑選的欄位。
