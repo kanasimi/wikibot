@@ -152,6 +152,7 @@ async function adapt_configuration(latest_task_configuration) {
 		general = latest_task_configuration.general = Object.create(null);
 	}
 
+	// e.g., {{Archives}}, {{Archive box}}, {{Easy Archive}}
 	general.archive_template_list = (general.archive_template_list || ['Template:Archive'])
 		// remove "Template:" prefix
 		.map(name => wiki.remove_namespace(name));
@@ -177,7 +178,14 @@ async function adapt_configuration(latest_task_configuration) {
 		general.insert_notification_template = wiki.remove_namespace(general.insert_notification_template);
 	}
 
-	await wiki.register_redirects(['Section link', general.broken_anchor_template, general.remove_the_template_when_reminding_broken_anchors].append(CeL.wiki.parse.anchor.essential_templates), {
+	await wiki.register_redirects([
+		'Section link',
+		general.broken_anchor_template,
+		general.insert_notification_template,
+		general.remove_the_template_when_reminding_broken_anchors,
+	]
+		.append(CeL.wiki.parse.anchor.essential_templates)
+		.append(general.archive_template_list), {
 		namespace: 'Template'
 	});
 
@@ -414,9 +422,9 @@ async function get_sections_moved_to(page_data, options) {
 
 	let { is_talk_page_with_archives } = options;
 	if (!is_talk_page_with_archives) {
-		// check {{Archives}}, {{Archive box}}, {{Easy Archive}}
+		// Check if page embedded in archive template.
 		parsed.each('template', template_token => {
-			if (wiki.latest_task_configuration.general.archive_template_list.includes(template_token.name)) {
+			if (wiki.is_template(wiki.latest_task_configuration.general.archive_template_list, template_token)) {
 				is_talk_page_with_archives = true;
 			}
 		});
