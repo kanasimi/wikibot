@@ -71,6 +71,10 @@ const NCBI_articleid_properties_mapping = {
 	// electronic identification?
 	eid: '',
 	pmcid: '',
+
+	// ???
+	version: '',
+	'version-id': '',
 };
 const articleid_properties_id_list = Object.entries(NCBI_articleid_properties_mapping)
 	.reduce((filtered, pair) => pair[1] ? filtered + ' ?' + pair[0] : filtered, '');
@@ -532,7 +536,7 @@ const summary_source_posifix = ` [[${problematic_data_page_title}|from NCBI, Eur
 
 async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 	// https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESummary
-	// https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33932783,33932782
+	// e.g., https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=33932783,33932782
 	const NCBI_API_URL = new CeL.URI('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi');
 	NCBI_API_URL.search_params.set_parameters({
 		db: "pubmed",
