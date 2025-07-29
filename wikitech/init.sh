@@ -5,7 +5,7 @@
 
 
 fetch_file="/usr/bin/curl --silent --show-error --location --output"
-
+extract_files="/usr/bin/unzip -o"
 
 echo "Initialize wiki bot works environment..."
 
@@ -53,7 +53,7 @@ cd node_modules
 # everything has `curl`. Apparently we have `unzip` in bookworm based images. That should include the "node18" image.
 # use `webservice node18 shell` to get an interactive shell inside a 'node18' container
 
-$fetch_file CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d cejs ] && /usr/bin/diff CeJS.zip CeJS.zip.old && mv -f CeJS.zip CeJS.zip.old && echo "CeJS: No news." || ( echo "Extracting CeJS..." && /usr/bin/unzip CeJS.zip > /dev/null && mv -f CeJS.zip CeJS.zip.old && rm -rf cejs && mv CeJS-master cejs && (cp -f "cejs/_for include/_CeL.loader.nodejs.js" ~/wikibot) && ( [ -d opencc/data/dictionary ] && cp -f opencc/data/dictionary/* cejs/extension/zh_conversion/OpenCC/ || echo "No OpenCC!" ) || echo "Failed to get CeJS!" )
+$fetch_file CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d cejs ] && /usr/bin/diff CeJS.zip CeJS.zip.old && mv -f CeJS.zip CeJS.zip.old && echo "CeJS: No news." || ( echo "Extracting CeJS..." && $extract_files CeJS.zip > /dev/null && mv -f CeJS.zip CeJS.zip.old && rm -rf cejs && mv CeJS-master cejs && (cp -f "cejs/_for include/_CeL.loader.nodejs.js" ~/wikibot) && ( [ -d opencc/data/dictionary ] && cp -f opencc/data/dictionary/* cejs/extension/zh_conversion/OpenCC/ || echo "No OpenCC!" ) || echo "Failed to get CeJS!" )
 
 
 # ---------------------------------------------------------
@@ -61,7 +61,7 @@ $fetch_file CeJS.zip https://github.com/kanasimi/CeJS/archive/master.zip && [ -d
 
 printf "$SP\nUpdate wikiapi...\n"
 
-$fetch_file wikiapi.zip https://github.com/kanasimi/wikiapi/archive/master.zip && [ -d wikiapi ] && /usr/bin/diff wikiapi.zip wikiapi.zip.old && mv -f wikiapi.zip wikiapi.zip.old && echo "wikiapi: No news." || ( echo "Extracting wikiapi..." && /usr/bin/unzip wikiapi.zip > /dev/null && mv -f wikiapi.zip wikiapi.zip.old && rm -rf wikiapi && mv wikiapi-master wikiapi || echo "Failed to get CeJS" )
+$fetch_file wikiapi.zip https://github.com/kanasimi/wikiapi/archive/master.zip && [ -d wikiapi ] && /usr/bin/diff wikiapi.zip wikiapi.zip.old && mv -f wikiapi.zip wikiapi.zip.old && echo "wikiapi: No news." || ( echo "Extracting wikiapi..." && $extract_files wikiapi.zip > /dev/null && mv -f wikiapi.zip wikiapi.zip.old && rm -rf wikiapi && mv wikiapi-master wikiapi || echo "Failed to get CeJS" )
 
 # ---------------------------------------------------------
 
@@ -90,7 +90,7 @@ cd ~
 # method 2:
 # /usr/bin/unzip -UU
 
-$fetch_file wikibot.zip https://github.com/kanasimi/wikibot/archive/master.zip && [ -d wikibot ] && /usr/bin/diff wikibot.zip wikibot.zip.old && mv -f wikibot.zip wikibot.zip.old && echo "wikibot: No news." || ( echo "Extracting wikibot..." && /usr/bin/unzip wikibot.zip > /dev/null && mv -f wikibot.zip wikibot.zip.old && rsync -a --remove-source-files wikibot-master/ wikibot && rm -rf wikibot-master || echo "Failed to get wikibot" )
+$fetch_file wikibot.zip https://github.com/kanasimi/wikibot/archive/master.zip && [ -d wikibot ] && /usr/bin/diff wikibot.zip wikibot.zip.old && mv -f wikibot.zip wikibot.zip.old && echo "wikibot: No news." || ( echo "Extracting wikibot..." && $extract_files wikibot.zip > /dev/null && mv -f wikibot.zip wikibot.zip.old && rsync -a --remove-source-files wikibot-master/ wikibot && rm -rf wikibot-master || echo "Failed to get wikibot" )
 
 [ -e wikibot/*#U* ] && /bin/rm wikibot/*#U*
 
