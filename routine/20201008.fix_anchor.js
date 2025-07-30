@@ -1422,6 +1422,12 @@ async function check_page(target_page_data, options) {
 			// for [[#anchor]]
 			|| linking_page_data.title).toString();
 
+		// 僅處理本次目標頁面。
+		if (!(wiki.normalize_title(page_title) in target_page_redirects)) {
+			// 有可能是在其他作業進程加上的提醒模板。實際上的確不存在。這時不該 `remove_needless_notification_template()` 去掉，否則在另一次作業會被加上去，造成反覆添加刪除。
+			return;
+		}
+
 		/**
 		 * 移除多餘的通知模板。
 		 * @returns {Boolean} token 被修改過。
@@ -1458,13 +1464,14 @@ async function check_page(target_page_data, options) {
 			return changed;
 		}
 
-		if (!(wiki.normalize_title(page_title) in target_page_redirects)
-			|| !token.anchor
+		if (// 無 anchor 不需提醒。
+			!token.anchor
+			// 為 invalid anchor。
 			// e.g., invalid anchor [[T#{{t}}|T]] @ template
-			|| /{{/.test(token.anchor)
+			|| /{{/.test(token.anchor) && !wiki.is_namespace(linking_page_data, ['template', 'module'])
+			// 當前已有此 anchor。
 			|| section_title_history[token.anchor]?.is_present
 		) {
-			// 當前有此 anchor。或為 invalid anchor。
 			return remove_needless_notification_template();
 		}
 		//console.log(section_title_history);
