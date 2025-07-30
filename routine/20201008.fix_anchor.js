@@ -4,6 +4,7 @@ node 20201008.fix_anchor.js use_language=ja "check_page=帯 (出版)"
 // 檢查連結到 backlink_of 頁面的 check_page 連結。例如先前已將 check_page 改名為 backlink_of 頁面的情況，欲檢查連結至 backlink_of 之頁面的 talk page 的錯誤 check_page 報告。
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:沙盒" "only_modify_pages=Wikipedia:沙盒" check_talk_page=true
 node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia talk:申请成为管理人员" "only_modify_pages=Wikipedia talk:投票"
+node 20201008.fix_anchor.js use_language=zh "check_page=Wikipedia:对管理员的意见和建议" archives
 
 node 20201008.fix_anchor.js archives use_language=zh only_modify_pages=Wikipedia:沙盒
 node 20201008.fix_anchor.js archives use_language=zh "only_modify_pages=Wikipedia talk:管理員解任投票/Mys_721tx/第2次"
@@ -1080,20 +1081,25 @@ async function check_page(target_page_data, options) {
 	await get_sections_moved_to(target_page_data, { ...options, section_title_history });
 	//console.trace(section_title_history);
 
-	link_from.append((await wiki.backlinks(options.backlink_of || target_page_data, {
-		// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章 anchor 網頁錨點。
-		namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
-	})).filter(page_data =>
-		!/\/(draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
-		// [[User:Cewbot/log/20151002/存檔5]]
-		// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
-		// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
-		&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
-		// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
-		// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
-		// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
-		&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
-	));
+	if (options.only_modify_pages) {
+		link_from.truncate();
+		link_from.append(options.only_modify_pages.split('|'));
+	} else {
+		link_from.append((await wiki.backlinks(options.backlink_of || target_page_data, {
+			// Only edit broken links in these namespaces. 只更改這些命名空間中壞掉的文章 anchor 網頁錨點。
+			namespace: options.namespace ?? (wiki.site_name() === 'enwiki' ? 0 : 'main|file|module|template|category|help|portal')
+		})).filter(page_data =>
+			!/\/(draft|sandbox|沙盒|te?mp|testcases|Archives?|存檔|存档)( ?\d+)?$/i.test(page_data.title)
+			// [[User:Cewbot/log/20151002/存檔5]]
+			// [[MediaWiki talk:Spam-blacklist/存档/2017年3月9日]]
+			// [[Wikipedia:頁面存廢討論/記錄/2020/08/04]]
+			&& !/\/(Archives?|存檔|存档|記錄|log)\//.test(page_data.title)
+			// [[Wikipedia:Articles for creation/Redirects and categories/2017-02]]
+			// [[Wikipedia:Database reports/Broken section anchors/1]] will auto-updated by bots
+			// [[Wikipedia:Articles for deletion/2014 Formula One season (2nd nomination)]]
+			&& !/^(Wikipedia:(Articles for deletion|Articles for creation|Database reports))\//.test(page_data.title)
+		));
+	}
 
 	if (!options.force_check
 		&& link_from.length > wiki.latest_task_configuration.general.MAX_LINK_FROM
@@ -1415,6 +1421,43 @@ async function check_page(target_page_data, options) {
 			|| token[0]
 			// for [[#anchor]]
 			|| linking_page_data.title).toString();
+
+		/**
+		 * 移除多餘的通知模板。
+		 * @returns {Boolean} token 被修改過。
+		 */
+		function remove_needless_notification_template() {
+			if (!wiki.latest_task_configuration.general.insert_notification_template) {
+				return;
+			}
+
+			let changed;
+			// 刪掉不需要的 {{Broken anchor}}。
+			CeL.wiki.parser.parser_prototype.each.call(token.parent, (notification_template, index, parent) => {
+				if (index <= token.index || typeof notification_template === 'string' && !notification_template.trim())
+					return;
+
+				if (notification_template.type !== 'transclusion' || !wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, notification_template))
+					return CeL.wiki.parser.parser_prototype.each.exit;
+
+				//console.trace(notification_template);
+				if (String(notification_template.parameters.target_link) !== String(token.page_title + '#' + token.anchor)) {
+					//console.trace([String(notification_template.parameters.target_link), String(token.page_title + '#' + token.anchor)]);
+					CeL.error(`${remove_needless_notification_template.name}: ${CeL.wiki.title_link_of(linking_page_data)}: ${token}: 強制刪除 anchor 之後的 ${notification_template}`);
+				}
+
+				if (linking_page_data.remove_notification_count) {
+					linking_page_data.remove_notification_count++;
+				} else {
+					linking_page_data.remove_notification_count = 1;
+				}
+
+				changed = true;
+				return CeL.wiki.parser.parser_prototype.each.remove_token;
+			});
+			return changed;
+		}
+
 		if (!(wiki.normalize_title(page_title) in target_page_redirects)
 			|| !token.anchor
 			// e.g., invalid anchor [[T#{{t}}|T]] @ template
@@ -1422,34 +1465,7 @@ async function check_page(target_page_data, options) {
 			|| section_title_history[token.anchor]?.is_present
 		) {
 			// 當前有此 anchor。或為 invalid anchor。
-
-			let changed;
-			if (wiki.latest_task_configuration.general.insert_notification_template) {
-				// 刪掉不需要的 {{Broken anchor}}。
-				CeL.wiki.parser.parser_prototype.each.call(token.parent, (notification_template, index, parent) => {
-					if (index <= token.index || typeof notification_template === 'string' && !notification_template.trim())
-						return;
-
-					if (notification_template.type !== 'transclusion' || !wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, notification_template))
-						return CeL.wiki.parser.parser_prototype.each.exit;
-
-					//console.trace(notification_template);
-					if (String(notification_template.parameters.target_link) !== String(token.page_title + '#' + token.anchor)) {
-						//console.trace([String(notification_template.parameters.target_link), String(token.page_title + '#' + token.anchor)]);
-						CeL.error(`${CeL.wiki.title_link_of(linking_page_data)}: ${token}: 強制刪除 anchor 之後的 ${notification_template}`);
-					}
-
-					if (linking_page_data.remove_notification_count) {
-						linking_page_data.remove_notification_count++;
-					} else {
-						linking_page_data.remove_notification_count = 1;
-					}
-
-					changed = true;
-					return CeL.wiki.parser.parser_prototype.each.remove_token;
-				});
-			}
-			return changed;
+			return remove_needless_notification_template();
 		}
 		//console.log(section_title_history);
 		//console.log([!(wiki.normalize_title(page_title) in target_page_redirects),!token.anchor,section_title_history[token.anchor]?.is_present]);
@@ -1512,7 +1528,8 @@ async function check_page(target_page_data, options) {
 				// 整體作業進度 overall progress
 				progress_to_percent(options.overall_progress, true), token.toString());
 			CeL.info(`${CeL.wiki.title_link_of(linking_page_data)}: ${message}`);
-			add_summary(this, message + ` (${CeL.wiki.title_link_of(target_page_data)})`);
+			add_summary(this, message + ` (When checking links to talk page ${CeL.wiki.title_link_of(target_page_data)})`);
+			remove_needless_notification_template();
 			return true;
 		}
 
@@ -1669,7 +1686,8 @@ async function check_page(target_page_data, options) {
 		if (wiki.latest_task_configuration.general.insert_notification_template) {
 			const next_meaningful_element = CeL.wiki.next_meaningful_element(token.parent, token.index + 1);
 			// [[Template:Broken anchors]] 改成 [[Template:Broken anchor]]，採用 [[Template:Dead link]] 的機制。
-			if (next_meaningful_element.type === 'transclusion' && wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, next_meaningful_element)) {
+			if (next_meaningful_element?.type === 'transclusion'
+				&& wiki.is_template(wiki.latest_task_configuration.general.insert_notification_template, next_meaningful_element)) {
 				// 已經提醒過了。
 				return;
 			}
@@ -1850,7 +1868,7 @@ async function check_page(target_page_data, options) {
 		return parsed.toString();
 	}
 
-	await wiki.for_each_page(options.only_modify_pages?.split('|') || link_from, resolve_linking_page, for_each_page_options);
+	await wiki.for_each_page(link_from, resolve_linking_page, for_each_page_options);
 
 	if (working_queue_Set) {
 		try {

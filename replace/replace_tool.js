@@ -2467,7 +2467,9 @@ function for_each_file(token, index, parent) {
 	}
 
 	//console.trace([this.move_from_link, token.link]);
-	if (this.move_from_link === token.link) {
+	if (this.move_from_link === token.link
+		// e.g., [[朝鮮民主主義人民共和国の鉄道|朝鮮民主主義人民共和国鉄道庁]]→[[朝鮮民主主義人民共和国鉄道省]]
+		&& !this.move_to_link.toString().includes('|')) {
 		// e.g., [[File:pic.jpg|link=move to.jpg]]
 		token[token.index_of.link] = 'link=' + this.move_to_link;
 	}
