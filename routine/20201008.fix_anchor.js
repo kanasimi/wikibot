@@ -634,6 +634,12 @@ async function tracking_section_title_history(page_data, options) {
 		on_page_title: page_data.title,
 		try_to_expand_templates: true,
 		ignore_variable_anchors: true,
+		expand_transclusion_filter(token) {
+			// functions_of_all_sites 不用額外開銷，並可能產生網頁錨點 anchors。
+			// e.g., [[w:zh:Wikipedia:新条目推荐/候选/header]]
+			return token.name in CeL.wiki.template_functions.functions_of_all_sites
+				|| !wiki.is_namespace(token.page_title, ['template', 'module']);
+		},
 		...options
 	});
 	//section_title_history[section_title]={appear:{revid:0},disappear:{revid:0},rename_to:''}
@@ -646,6 +652,7 @@ async function tracking_section_title_history(page_data, options) {
 
 	async function set_recent_section_title(wikitext, revision) {
 		//console.trace(options);
+		//wikitext = (await CeL.wiki.expand_transclusion(wikitext, options)).toString();
 		const anchor_list = await CeL.wiki.parse.anchor(wikitext, options);
 		//console.trace([wikitext, anchor_list, options]);
 		await mark_language_variants(anchor_list, section_title_history, revision);
@@ -1468,7 +1475,7 @@ async function check_page(target_page_data, options) {
 			!token.anchor
 			// 為 invalid anchor。
 			// e.g., invalid anchor [[T#{{t}}|T]] @ template
-			|| /{{/.test(token.anchor) && !wiki.is_namespace(linking_page_data, ['template', 'module'])
+			|| /{{/.test(token.anchor) && wiki.is_namespace(linking_page_data, ['template', 'module'])
 			// 當前已有此 anchor。
 			|| section_title_history[token.anchor]?.is_present
 		) {
