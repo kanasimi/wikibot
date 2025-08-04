@@ -30,7 +30,7 @@ var data_directory = base_directory + 'data/',
 skip_cached = false, media_directory = base_directory + 'media/',
 /** {Object}wiki operator 操作子. */
 wiki = Wiki(true, 'commons' /* && 'test' */),
-//
+/** {String}cache filename label. */
 cache_filename_label = '%4Y-%2m-%2d',
 // 因為每個風暴會持續好幾天，甚至跨月，因此只標注年份。
 filename_prefix = '%4Y ';
@@ -461,7 +461,7 @@ function start_NHC() {
 
 		html.each_between(
 		//
-		'<th align="left" nowrap><span style="font-size: 18px;">',
+		'<th align="left" nowrap>',
 		//
 		null, NHC_for_each_area);
 	});
@@ -469,16 +469,17 @@ function start_NHC() {
 
 function parse_NHC_time_string(string) {
 	// CeL.info('parse_NHC_time_string: ' + string);
-	var date = CeL.DOM.HTML_to_Unicode(string)
-	//
-	.match(/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST) ([a-zA-Z\d ]+)$/);
+	var date = CeL.DOM.HTML_to_Unicode(string).match(
+	// "<strong style="font-weight:bold;">5:00 AM AST Mon Aug 04</strong><br>"
+	/^(\d{1,2}):?(\d{2}(?: AM| PM)?) (UTC|EDT|PDT|HST|AST) ([a-zA-Z\d ]+)$/);
 	if (date) {
 		if (!/ 20\d{2}$/.test(date[4]))
 			date[4] += ' ' + (new Date).getUTCFullYear();
 		date = date[4] + ' ' + date[1] + ':' + date[2] + ' ' + ({
 			EDT : 'UTC-4',
 			PDT : 'UTC-7',
-			HST : 'UTC-10'
+			HST : 'UTC-10',
+			AST : 'UTC-4'
 		}[date[3]] || date[3]);
 		// CeL.info('parse_NHC_time_string: ' + date);
 		date = Date.parse(date);
@@ -487,6 +488,7 @@ function parse_NHC_time_string(string) {
 }
 
 function NHC_for_each_area(html) {
+	html = html.between('<span style="font-size: 18px;">');
 	// console.log(html);
 
 	// Atlantic (- Caribbean Sea - Gulf of Mexico)
@@ -534,7 +536,7 @@ function NHC_for_each_cyclones(token, area, date) {
 	id = token.between('<!--storm identification:', '-->').trim();
 	// Get all Tropical Weather Outlook / Hurricane Static Images
 	while (matched = PATTERN_link.exec(token)) {
-		if (!matched[2].endsWith('Static Images'))
+		if (!/Static Images\s*$/.test(matched[2]))
 			continue;
 
 		// delete matched.input;
