@@ -634,7 +634,8 @@ async function tracking_section_title_history(page_data, options) {
 		on_page_title: page_data.title,
 		try_to_expand_templates: true,
 		ignore_variable_anchors: true,
-		expand_transclusion_filter(token) {
+		// 不設定 filter，會嘗試展開所有嵌入的頁面與模板。
+		_expand_transclusion_filter(token) {
 			// functions_of_all_sites 不用額外開銷，並可能產生網頁錨點 anchors。
 			// e.g., [[w:zh:Wikipedia:新条目推荐/候选/header]]
 			return token.name in CeL.wiki.template_functions.functions_of_all_sites
