@@ -1027,7 +1027,10 @@ function start_CWB() {
 	var DataTime = DT_Y + DT_M + DT_D + DT_H + "-" + DT_N;
 	// console.log(DataTime);
 
-	var typhoon_data = Object.create(null), base_URL = 'https://www.cwb.gov.tw/';
+	var typhoon_data = Object.create(null),
+	// 前身機構: 交通部中央氣象局 Central Weather Bureau (CWB) https://www.cwb.gov.tw/
+	// 2023年9月15日 → 交通部中央氣象署 Central Weather Administration (CWA)
+	base_URL = 'https://www.cwa.gov.tw/';
 
 	return fetch(base_URL + 'Data/js/typhoon/TY_NEWS-Data.js?T='
 	//

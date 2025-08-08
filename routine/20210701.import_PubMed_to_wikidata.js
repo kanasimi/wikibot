@@ -9,6 +9,10 @@ node 20210701.import_PubMed_to_wikidata.js wbeditentity_only_for_main=true
 	完成。正式運用。
 
 TODO:
+刪除重複項目
+	先檢查引用。沒有引用就直接刪除，否則標記。
+
+
 添加 corrigendum / erratum (P2507) 勘誤的標示
 	https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=PMCID:PMC1201098&resulttype=core&format=json
 
@@ -614,7 +618,11 @@ async function fetch_DOI_data_from_service(DOI) {
 		CeL.fetch(CrossRef_API_URL.toString(), {
 			// https://api.crossref.org/swagger-ui/index.html
 			headers: { 'User-Agent': 'CeL; mailto:https://www.wikidata.org/wiki/User_talk:Kanashimi' },
-		}).then(result => result.json()).then(result => results.CrossRef_article_data = result.message, error => { CeL.error('fetch_DOI_data_from_service: ' + CrossRef_API_URL); console.error(error); }),
+		})
+			.then(result => result.json())
+			.then(result => results.CrossRef_article_data = result.message, error => {
+				CeL.error('fetch_DOI_data_from_service: ' + CrossRef_API_URL); console.error(error);
+			}),
 	]);
 
 	// ----------------------------------------------------
@@ -1874,6 +1882,7 @@ ORDER BY DESC (?item)
 		// no result: Need to add.
 		clean_data_to_modify();
 		CeL.info(`${for_each_PubMed_ID.name}: Create new item for PubMed ID=${PubMed_ID}: ${main_title}`);
+		//throw new Error('No existing item found');
 		return await wiki.new_data_entity(data_to_modify, { bot: 1, summary: `Import new ${NCBI_article_data.doctype} PubMed ID = ${PubMed_ID}${summary_source_posifix}` });
 	}
 
