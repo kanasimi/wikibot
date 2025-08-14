@@ -137,7 +137,7 @@ var category_to_parent_hash = Object.create(null);
 		'Category:University of Wisconsin CIMSS images',
 		'Category:NRL images of tropical cyclones',
 		'JTWC Tropical cyclone warning graphic',
-		'Category:Central Weather Bureau ROC',
+		'Category:Central Weather Administration (Taiwan)',
 		'Category:Japan Meteorological Agency',
 		'Category:Images from the Japan Meteorological Agency',
 		'Category:Images from the Philippine Atmospheric, Geophysical and Astronomical Services Administration' ]
@@ -1168,7 +1168,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			area : 'Northwest Pacific',
 			categories : [
 			//
-			'Category:Typhoon track maps by Central Weather Bureau ROC' ]
+			'Category:Typhoon track maps by Central Weather Bureau R.O.C.' ]
 		};
 		// media_data.id: e.g., "TD11"
 		search_category_by_name(media_data.id, media_data);
