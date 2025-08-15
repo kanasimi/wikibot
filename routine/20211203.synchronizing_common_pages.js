@@ -14,7 +14,9 @@ TODO:
 有跨維基匯入權限，並且版權相容的情況下，採用匯入頁面的方式（匯入revision的方式）。
 
 
-@see [[meta:Global templates]]
+@see
+[[meta:Global templates]]
+[[commons:Help:Data]], [[mw:Help:Tabular data]]
 
  */
 

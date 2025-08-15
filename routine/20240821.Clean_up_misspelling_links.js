@@ -80,6 +80,7 @@ async function main_process() {
 		const move_to_link = wiki.redirect_target_of(misspelling_page);
 		//console.log([move_from_link, move_to_link]);
 		await replace_tool.replace({
+			//[KEY_wiki_session]
 			wiki,
 			use_language,
 			work_options: { no_message: true, },
@@ -93,11 +94,11 @@ async function main_process() {
 				//namespace: 'main|Template',
 				move_to_link,
 				page_list_filter(page_data, index, page_list) {
-					if (wiki.latest_task_configuration.general.max_backlinks && !('parcess_this_template' in page_list)) {
+					if (wiki.latest_task_configuration.general.max_backlinks && !('process_this_template' in page_list)) {
 						// assert: index === 0
-						page_list.parcess_this_template = page_list.length <= wiki.latest_task_configuration.general.max_backlinks;
+						page_list.process_this_template = page_list.length <= wiki.latest_task_configuration.general.max_backlinks;
 					}
-					return page_list.parcess_this_template;
+					return page_list.process_this_template;
 				},
 			},
 		});

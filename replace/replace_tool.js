@@ -1849,6 +1849,7 @@ async function get_list(task_configuration, list_configuration) {
 			// gettext_config:{"id":"namespaces-$1"}
 			T: ['Namespaces: %1.', list_options.namespace]
 		}]);
+		// cf. list_configuration.page_list_filter
 		const list_filter = list_configuration.list_filter;
 		for (const list_title of (Array.isArray(list_title_list) ? list_title_list : [list_title_list])) {
 			for (const type of list_types) {
@@ -1906,6 +1907,7 @@ async function get_list(task_configuration, list_configuration) {
 	}
 	//console.trace(page_list);
 
+	// cf. list_configuration.list_filter
 	if (list_configuration.page_list_filter) {
 		// page_list_filter(page_data, index, page_list)
 		page_list = page_list.filter(list_configuration.page_list_filter);
@@ -2094,6 +2096,10 @@ async function for_each_page(page_data) {
 	//console.trace(this);
 	const { task_configuration } = this;
 	//console.trace(task_configuration);
+
+	if (task_configuration.page_data_filter && !task_configuration.page_data_filter(page_data)) {
+		return Wikiapi.skip_edit;
+	}
 
 	if (task_configuration.text_processor) {
 		const replace_to = task_configuration.text_processor(page_data.wikitext, page_data, /* work_config */this);
@@ -2692,6 +2698,7 @@ function replace_link_parameter(task_configuration, template_token, template_has
 
 async function for_each_template(page_data, token, index, parent) {
 	const { task_configuration } = this;
+
 	/** {Boolean}改名的來源為模板 */
 	const move_from_is_not_template = !task_configuration.move_from || task_configuration.move_from.ns && task_configuration.move_from.ns !== task_configuration[KEY_wiki_session].namespace('Template');
 	/** {Boolean}本模板正是改名來源 */
@@ -2708,6 +2715,7 @@ async function for_each_template(page_data, token, index, parent) {
 		}
 	}
 
+	// task_configuration.for_template() 設定 this.discard_changes 可取代 task_configuration.template_filter(token, index, parent, is_move_from)
 	if ((move_from_is_not_template || is_move_from) && task_configuration.for_template
 		// task_configuration.for_template() return: 改變內容，之後會做善後處理。
 		&& true === await task_configuration.for_template.call(this, token, index, parent)) {
@@ -2738,6 +2746,7 @@ async function for_each_template(page_data, token, index, parent) {
 				throw new TypeError('.replace_parameters is not a Object');
 			}
 		}
+
 		//console.trace(token.toString());
 		if (task_configuration.move_to?.page_name
 			&& task_configuration.move_from.ns === task_configuration.move_to.ns
