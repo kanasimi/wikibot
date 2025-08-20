@@ -1079,7 +1079,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	//console.trace(NCBI_article_data, Europe_PMC_article_data);
 	if (NCBI_article_data?.error) {
 		// e.g., PubMed_ID=19790808
-		CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: ${NCBI_article_data.error}`);
+		CeL.error(`${for_each_PubMed_ID.name}: PubMed ID=${PubMed_ID}: NCBI error: ${NCBI_article_data.error}`);
 		return;
 	}
 	if (!NCBI_article_data || !Europe_PMC_article_data) {

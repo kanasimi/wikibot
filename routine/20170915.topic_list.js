@@ -550,7 +550,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:可靠来源/布告板' ];
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:申请成为管理人员/申请区' ];
-	// main_talk_pages = [ 'Wikipedia:互助客栈/条目探讨' ];
+	// main_talk_pages = [ 'Wikipedia:知识问答' ];
 
 	// ----------------------------------------------------
 
