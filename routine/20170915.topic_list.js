@@ -2,30 +2,7 @@
 
 Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄。トピックリスト 見やすい議題一覧の作成。
 
-jstop cron-20170915.topic_list.zh;
-jstop cron-20170915.topic_list.zh-classical;
-jstop cron-20170915.topic_list.wikinews;
-jstop cron-20170915.topic_list.ja;
-jstop cron-20170915.topic_list.en;
-jstop cron-20170915.topic_list.test;
-jstop cron-20170915.topic_list.wikisource;
-jstop cron-20170915.topic_list.wikiversity;
-jstop cron-20170915.topic_list.commons;
-#jstop cron-20170915.topic_list.moegirl;
-jstop cron-20170915.topic_list.wiktionary;
-jstop cron-20170915.topic_list.wikibooks;
-
-/usr/bin/jstart -N cron-20170915.topic_list.zh -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh
-/usr/bin/jstart -N cron-20170915.topic_list.zh-classical -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=zh-classical
-/usr/bin/jstart -N cron-20170915.topic_list.ja -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=ja
-/usr/bin/jstart -N cron-20170915.topic_list.en -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en
-/usr/bin/jstart -N cron-20170915.topic_list.testwiki -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_language=en use_project=test
-/usr/bin/jstart -N cron-20170915.topic_list.wikinews -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikinews
-/usr/bin/jstart -N cron-20170915.topic_list.wikisource -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikisource
-/usr/bin/jstart -N cron-20170915.topic_list.wikiversity -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikiversity
-/usr/bin/jstart -N cron-20170915.topic_list.commons -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=commons
-/usr/bin/jstart -N cron-20170915.topic_list.wiktionary -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wiktionary
-/usr/bin/jstart -N cron-20170915.topic_list.wikibooks -mem 2g -once -quiet /usr/bin/node /data/project/toc/wikibot/routine/20170915.topic_list.js use_project=zh.wikibooks
+node 20170915.topic_list.js use_language=zh
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。
@@ -551,6 +528,7 @@ function start_main_work() {
 	// main_talk_pages = [ 'Wikipedia:特色列表评选/提名区' ];
 	// main_talk_pages = [ 'Wikipedia:申请成为管理人员/申请区' ];
 	// main_talk_pages = [ 'Wikipedia:知识问答' ];
+	// main_talk_pages = [ 'Wikipedia:徵求意見/2025年管理人員制度改革' ];
 
 	// ----------------------------------------------------
 
