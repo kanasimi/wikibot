@@ -1008,7 +1008,20 @@ function check_date_page() {
 
 	var index = 0, need_list_field = !using_GA, never_shown_pages = [],
 	//
-	report = FC_title_sorted.map(function(FC_title) {
+	daily_data = {
+		info : '儲存每日' + TYPE_NAME + '頁面標題的資料庫。',
+		titles : {}
+	};
+	FC_title_sorted.forEach(function(FC_title) {
+		var JDN = FC_data[KEY_LATEST_JDN];
+		if (!JDN)
+			return;
+
+		var date = CeL.Julian_day.to_Date(JDN).format('%Y-%2m-%2d');
+		daily_data.titles[date] = FC_title;
+	});
+
+	var report = FC_title_sorted.map(function(FC_title) {
 		var FC_data = FC_data_hash[FC_title],
 		//
 		JDN = FC_data[KEY_LATEST_JDN],
@@ -1109,6 +1122,22 @@ function check_date_page() {
 		//
 		? '，新出現' + new_FC_pages.length + '個條目' : '' : '')
 	});
+
+	if (TYPE_NAME === '特色內容') {
+		wiki.page('Module:TFA title/data.json')
+		//
+		.edit(JSON.stringify(daily_data), {
+			bot : 1,
+			nocreate : 1,
+			summary : CeL.wiki.title_link_of(
+			//
+			wiki.latest_task_configuration.configuration_page_title,
+			//
+			'更新每日' + TYPE_NAME + '資料庫') + ': '
+			//
+			+ Object.keys(daily_data).length + '篇' + TYPE_NAME
+		});
+	}
 
 	// [[Wikipedia:首页/明天]]是連鎖保護
 	/** {String}隔天首頁將展示的特色內容/優良條目分頁title */
