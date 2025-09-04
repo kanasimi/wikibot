@@ -1013,7 +1013,9 @@ function check_date_page() {
 		titles : {}
 	};
 	FC_title_sorted.forEach(function(FC_title) {
-		var JDN = FC_data[KEY_LATEST_JDN];
+		var FC_data = FC_data_hash[FC_title],
+		//
+		JDN = FC_data[KEY_LATEST_JDN];
 		if (!JDN)
 			return;
 
@@ -1123,7 +1125,7 @@ function check_date_page() {
 		? '，新出現' + new_FC_pages.length + '個條目' : '' : '')
 	});
 
-	if (TYPE_NAME === '特色內容') {
+	if (!using_GA) {
 		wiki.page('Module:TFA title/data.json')
 		//
 		.edit(JSON.stringify(daily_data), {
@@ -1135,7 +1137,7 @@ function check_date_page() {
 			//
 			'更新每日' + TYPE_NAME + '資料庫') + ': '
 			//
-			+ Object.keys(daily_data).length + '篇' + TYPE_NAME
+			+ Object.keys(daily_data.titles).length + '篇' + TYPE_NAME
 		});
 	}
 
