@@ -234,8 +234,8 @@ function main_work() {
 		JTWC : start_JTWC,
 		NRL : start_NRL,
 		CIMSS : start_CIMSS,
-		// CWB, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
-		CWB : start_CWB,
+		// CWA, JMA 在颱風命名後無法取得命名前之編號，因此颱風命名後會採用另一個檔案名稱。
+		CWA : start_CWA,
 		// tagged with "All Rights Reserved"...
 		JMA : start_JMA,
 		PAGASA : start_PAGASA
@@ -1006,7 +1006,7 @@ function for_each_CIMSS_typhoon(media_data, token) {
 
 // ============================================================================
 
-function start_CWB() {
+function start_CWA() {
 	// @see https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
 	function GetTimeNumber(Number_int) {
 
@@ -1041,7 +1041,7 @@ function start_CWB() {
 	}).then(function(PTA_IMGS_data) {
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('CWB ' + cache_filename_label
+		+ (new Date).format('CWA ' + cache_filename_label
 		//
 		+ ' typhoon.js'), PTA_IMGS_data);
 		// console.log(PTA_IMGS_data);
@@ -1060,11 +1060,11 @@ function start_CWB() {
 		// console.log(response);
 		CeL.write_file(data_directory
 		//
-		+ (new Date).format('CWB ' + cache_filename_label
+		+ (new Date).format('CWA ' + cache_filename_label
 		//
 		+ ' menu.json'), response.body);
 		if ((response.status / 100 | 0) === 4) {
-			throw 'start_CWB: No new data found!';
+			throw 'start_CWA: No new data found!';
 		}
 		return response.json();
 	}).then(function(json) {
@@ -1072,7 +1072,7 @@ function start_CWB() {
 	})
 	//
 	.then(function() {
-		return process_CWB_data(typhoon_data, base_URL, DataTime);
+		return process_CWA_data(typhoon_data, base_URL, DataTime);
 	})
 	//
 	['catch'](function(error) {
@@ -1082,7 +1082,7 @@ function start_CWB() {
 
 // ----------------------------------------------------------------------------
 
-function process_CWB_data(typhoon_data, base_URL, DataTime) {
+function process_CWA_data(typhoon_data, base_URL, DataTime) {
 	// https://www.cwb.gov.tw/V8/assets/js/TY_NEWS.js
 	// TY_COUNT = [ 熱帶性低氣壓, 颱風 ]
 
@@ -1124,17 +1124,17 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			id = undefined;
 		}
 		name = normalize_name(name);
-		var filename = 'CWB ' + (name || id) + ' forecast map ('
+		var filename = 'CWA ' + (name || id) + ' forecast map ('
 				+ (VER === 'E' ? 'en-US' : 'zh-TW') + ')';
 		var language_media_data = Object.assign({
 			id : id,
 			name : name,
 			media_url : url,
 			filename : date.format(filename_prefix) + filename + '.png',
-			description : [ '[[File:CWB PTA Description ' + VER + '.png]]' ],
+			description : [ '[[File:CWA PTA Description ' + VER + '.png]]' ],
 			// comment won't accept templates and external links
 			// each image has its URL
-			comment : 'Import CWB tropical cyclone forecast map'
+			comment : 'Import CWA tropical cyclone forecast map'
 		});
 
 		// media_data.id: English, name: paerhaps Chinese.
@@ -1162,13 +1162,13 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 			date : date,
 			author : author,
 			// type_name : 'typhoon',
-			license : '{{Attribution CWB}}' // + '{{LicenseReview}}'
+			license : '{{Attribution CWA}}' // + '{{LicenseReview}}'
 			,
 			// 西北太平洋
 			area : 'Northwest Pacific',
-			categories : [
+			categories : [ 'Category:' + date.getFullYear()
 			//
-			'Category:Typhoon track maps by Central Weather Bureau R.O.C.' ]
+			+ ' Typhoon track maps by Central Weather Administration R.O.C.' ]
 		};
 		// media_data.id: e.g., "TD11"
 		search_category_by_name(media_data.id, media_data);
@@ -1218,7 +1218,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 
 			if (language_media_data.name) {
 				if (language_media_data.name !== name) {
-					CeL.warn('process_CWB_data: Different name: '
+					CeL.warn('process_CWA_data: Different name: '
 							+ language_media_data.name + ' !== ' + name);
 				}
 			} else if (name) {
@@ -1271,7 +1271,7 @@ function process_CWB_data(typhoon_data, base_URL, DataTime) {
 
 	// console.log(typhoon_data.TY_LIST_1);
 	// console.log(JSON.stringify(typhoon_data.TY_LIST_1));
-	CeL.write_file(data_directory + 'CWB_' + DataTime + '.json',
+	CeL.write_file(data_directory + 'CWA_' + DataTime + '.json',
 	//
 	JSON.stringify(typhoon_data));
 
