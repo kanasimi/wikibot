@@ -265,7 +265,7 @@ function adapt_configuration(latest_task_configuration) {
 			CeL.info('設定頁面指定 '
 					+ flush_cache_before.format()
 					+ ' 前要更新 cache。'
-					+ (latest_flush_time ? '上一次更新是在'
+					+ (latest_flush_time ? '上一次更新是在 '
 							+ new Date(latest_flush_time).format() + '，' : '')
 					+ '因此清空 cache 目錄。移除 cache 重新取得資料。');
 			prepare_directory(base_directory, true);
