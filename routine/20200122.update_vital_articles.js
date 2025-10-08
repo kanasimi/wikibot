@@ -1785,15 +1785,32 @@ async function for_each_list_page(list_page_data) {
 				return;
 			}
 
-			if (token.type === 'transclusion' && wiki.is_template('Icon', token)) {
-				// reset icon: Should use CeL.wiki.parse.replace_parameter()
-				// _item[index] = '';
+			// e.g., {{Icon|FFAC}}
+			if (token.type === 'transclusion') {
+				if (wiki.is_template('Icon', token)) {
+					// reset icon: Should use CeL.wiki.parse.replace_parameter()
+					// _item[index] = '';
 
-				const icon = token.parameters[1];
-				if (icon === 'FFAC') {
-					icons.push(icon);
+					const icon = token.parameters[1];
+					if (icon === 'FFAC') {
+						icons.push(icon);
+					}
+					return;
 				}
-				return;
+			}
+
+			// e.g., {{#invoke:Icon||FFAC}}
+			if (token.type === 'magic_word_function') {
+				if (token.module_name === 'Icon') {
+					// reset icon: Should use CeL.wiki.parse.replace_parameter()
+					// _item[index] = '';
+
+					const icon = token.parameters[1];
+					if (icon === 'FFAC') {
+						icons.push(icon);
+					}
+					return;
+				}
 			}
 
 			if (item_replace_to) {
@@ -1818,7 +1835,7 @@ async function for_each_list_page(list_page_data) {
 				const wikitext = (_item.type === 'list_item' || _item.type === 'plain') && _item.toString();
 				let PATTERN;
 				if (!wikitext) {
-				} else if ((PATTERN = /('{2,5})((?:{{(?:#invoke:)?Icon\|\|?\w+}}\s*)+)/i).test(wikitext)) {
+				} else if ((PATTERN = /('{2,5})((?:{{(?:#invoke:)?Icon\|\s*\|?\w+}}\s*)+)/i).test(wikitext)) {
 					// "{{Icon|B}} '''{{Icon|A}} {{Icon|C}} [[title]]'''" →
 					// "{{Icon|B}} {{Icon|A}} {{Icon|C}} '''[[title]]'''"
 					_item.truncate();
