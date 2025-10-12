@@ -657,7 +657,7 @@ SELECT ?item ?itemLabel
 `);
 	if (author_item_list.length > 0) {
 		if (author_item_list.length > 1) {
-			CeL.warn(`${get_entity_id_of_ORCID.name}: ${author_item_list.length} authors get with ORCID=${ORCID}: ${author_item_list.id_list().join(', ')}`);
+			CeL.warn(`${get_entity_id_of_ORCID.name}: ${author_item_list.length} authors get with author_name=${author_name} ORCID=${ORCID}: ${author_item_list.id_list().join(', ')}`);
 		}
 
 		const itemLabel = CeL.wiki.data.value_of(author_item_list[0].itemLabel);
@@ -1254,14 +1254,14 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				|| author_data.collectiveName.trim();
 
 			author_list.push(author_name);
-			let author_item_id;
-			if (author_data.authorId?.type === "ORCID"
-				&& (author_item_id = await get_entity_id_of_ORCID({
+			let author_item_id = author_data.authorId?.type === "ORCID"
+				&& await get_entity_id_of_ORCID({
 					ORCID: author_data.authorId.value,
 					author_name: author_data.fullName,
 					wanted_keys: (author_data.firstName.toLowerCase().split(/\s+/) || []).append(author_data.lastName?.toLowerCase().split(/\s+/)),
 					PubMed_ID,
-				}))) {
+				});
+			if (author_item_id) {
 				data_to_modify.claims.push({
 					// author (P50) 作者
 					P50: author_item_id,

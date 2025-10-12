@@ -1358,8 +1358,11 @@ function main_work() {
 	});
 
 	CeL.wiki.cache([ {
+		// [[w:simple:User talk:Kanashimi#Capitalization issues not getting marked]]
+		//type : 'embeddedin', list : 'Template:Interlanguage link',
 		type : 'categorymembers',
 		list : message_set.Category_has_local_page,
+
 		reget : true,
 		operator : function(list) {
 			var start_from_page;
