@@ -3015,6 +3015,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			changed = true;
 		}
 
+		/**{String|Undefined}去掉 WikiProject templates 之後剩下多餘的 wikitext */
 		let extra_contents;
 
 		// merge other {{WikiProject *}} into WikiProject_banner_shell_token
@@ -3337,6 +3338,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						console.error(`${maintain_VA_template_each_talk_page.name}: WPBS 中包含 {{WikiProject}}！或許是因為執行 categorymembers 時 API 未包含這個 WikiProject？`);
 						console.trace(extra_contents);
 						throw new Error('WPBS contains {{WikiProject}}');
+					}
+					if (/^[{}\s]+$/.test(extra_contents)) {
+						// 只剩下不需要的特殊字符。
+						// [[w:en:User talk:Kanashimi#Potential bot issue: extra brackets]]
+						extra_contents = '';
 					}
 				}
 				WPBS_template_object[1] = ('\n' + WikiProject_templates_and_allowed_elements
