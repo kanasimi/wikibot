@@ -1254,6 +1254,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				|| author_data.collectiveName.trim();
 
 			author_list.push(author_name);
+			// The robot will now check for ORCID. If found, it will populate the ORCID and note the API representation. If not found, only the API representation will be entered.
 			let author_item_id = author_data.authorId?.type === "ORCID"
 				&& await get_entity_id_of_ORCID({
 					ORCID: author_data.authorId.value,
