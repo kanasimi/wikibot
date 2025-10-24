@@ -39,20 +39,16 @@ The `replace_tool.replace()` will:
 
 TODO:
 自動處理move from之繁簡轉換
-auto add section title @ summary
 除重定向頁為 (曖昧さ回避)外，將所有 move_from 的重定向也一起修正
-檢查是否為討論頁。 e.g., [[w:ja:Special:Diff/80384825]]
+檢查是否變更到使用者討論，例如有簽名。 e.g., [[w:ja:Special:Diff/80384825]]
 移動頁面相關的機器人或機器使用者需要提出對所有不同頁面內容模型的處理計畫，JSON頁沒有重新導向功能。一般頁面與模板都能重導向。分類頁面則必須移動所有包含的頁面。module 可用<code>return require( 'Module:name' );</code>重導向。
-<ref></ref> 中間的連結不會被取代。
 
 https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/General_fixes
 並非所有常規修補程序都適用於所有語言。
 
-: {{コメント}} {{tl|リンク修正依頼/改名}}を使ってみた。 --~~~~
-
 fix https://ja.wikipedia.org/w/index.php?title=%E3%82%A6%E3%82%A9%E3%83%83%E3%82%AB&diff=86465417&oldid=86454811&diffmode=source
 
-read {{cbignore}}?
+read {{cbignore}}
 
 
 感謝您的意見。這種情況必須針對個模板來做相應處置，恐怕必須得見到一個修改一個。現階段尚無此打算。
@@ -2498,6 +2494,9 @@ async function subst_template(token, index, parent) {
 		//console.trace([page_title, token.toString(), parent]);
 		// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
 		// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
+		// fix <ref></ref> 中間的連結不會被取代。
+
+		// TODO: read {{cbignore}}
 
 		// TODO: use this.task_configuration[KEY_wiki_session].expandtemplates() instead of compare
 		// useless:
@@ -2589,6 +2588,8 @@ function replace_template_parameter(value, parameter_name, template_token) {
 		return;
 	}
 	// assert: link.display_text === undefined
+
+	// TODO: fix https://ja.wikipedia.org/w/index.php?title=%E3%82%A6%E3%82%A9%E3%83%83%E3%82%AB&diff=86465417&oldid=86454811&diffmode=source
 
 	if (false && template_token.name === 'Pathnav' &&
 		// 避免 [[w:ja:Special:Diff/75582728|Xbox (ゲーム機)]]
