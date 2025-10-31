@@ -903,7 +903,7 @@ const descriptions_configuration = {
 	it: ['articolo scientifico', (type, date) => `${type} pubblicato il ${date}`],
 	es: ['artículo científico', (type, date) => `${type} publicado el ${date}`],
 	pt: ['artigo científico', (type, date) => `${type} publicado em ${date}`],
-	sq: ['artikull shkencor', (type, date) => `${type} i botuar më  ${date}`],
+	sq: ['artikull shkencor', (type, date) => `${type} i botuar më ${date}`],
 	pl: ['artykuł naukowy', (type, date) => `${type} opublikowany ${date}`],
 	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/XabatuBot
 	ast: ['artículu científicu', (type, date) => `${type} espublizáu en ${date}`, 'year'],
