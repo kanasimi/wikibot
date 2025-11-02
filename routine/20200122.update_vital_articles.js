@@ -2593,6 +2593,11 @@ function normalize_class(_class) {
 }
 
 const standard_class_Set = new Set;
+/**
+ * 測試是否為正規 class。
+ * @param {String} _class 需測試之 class。
+ * @returns {Boolean}為正規 class。
+ */
 function is_standard_class(_class) {
 	_class = normalize_class(_class);
 	return standard_class_Set.has(_class);
@@ -3077,6 +3082,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					//console.trace(normalize_token_class, !is_standard_class(normalize_token_class), normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class));
 					if (!is_standard_class(normalize_token_class)
 						&& normalize_token_class !== normalize_class(WPBS_template_object.class || WikiProject_banner_shell_token.parameters.class)) {
+						// 有衝突的 class，但非正規 class。
 						// 不該消除非正規的 class，否則可能漏失資訊。因為這些在 add_class() 不會被記入，也不會被列入 {{WPBS|class=}} 候選。
 						// e.g., |class=SI @ [[Talk:HMAS Broome]]
 						return;
