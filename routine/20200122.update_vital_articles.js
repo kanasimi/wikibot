@@ -2662,6 +2662,12 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 	/**class_from_other_templates_Map.get(class)===count */
 	let class_from_other_templates_Map = new Map();
 
+	/**
+	 * 登記 class。
+	 * @param {String} class_via_parameter class get from WikiProject template parameter |class=
+	 * @param {Boolean|Array}is_opted_out is opted out WikiProject template
+	 * @returns 
+	 */
 	function add_class(class_via_parameter, is_opted_out) {
 		if (Array.isArray(class_via_parameter)) {
 			// 處理 {{|class=<!-- Formerly assessed as Start-class -->}}
@@ -2745,6 +2751,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			// e.g., {{WikiProject Africa}}, {{AfricaProject}}, {{maths rating}}
 			//&& /project|rating/i.test(token.name)
 		) {
+			/** is opted out WikiProject template */
 			const is_opted_out = token.is_opted_out = wiki.is_template(all_opted_out_WikiProject_template_list, token);
 
 			// 應該在其他處理之前修正參數名稱。
@@ -3041,12 +3048,20 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				const parameters_to_remove_Set = new Set;
 				/**
 				 * remove class rating from wikiproject banner
+				 * @param {Boolean|Array}is_opted_out is opted out WikiProject template
 				 */
 				function set_remove_needless_class(is_opted_out) {
 					if (!('class' in token.parameters))
 						return;
+
+					if (!is_opted_out && wiki.latest_task_configuration.general.remove_WikiProject_class_parameter) {
+						// Remove {{para|class|*}} of non-opted-out WikiProject templates.
+						parameters_to_remove_Set.add('class');
+						return;
+					}
+
 					if (!token.parameters.class.toString().trim()) {
-						// remove |class=|
+						// remove |class= |
 						parameters_to_remove_Set.add('class');
 						return;
 					}
