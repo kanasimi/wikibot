@@ -3055,7 +3055,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						return;
 
 					if (!is_opted_out && wiki.latest_task_configuration.general.remove_WikiProject_class_parameter) {
-						// Remove {{para|class|*}} of non-opted-out WikiProject templates.
+						// Remove {{para|class|*}} of all non-opted-out WikiProject templates.
 						parameters_to_remove_Set.add('class');
 						return;
 					}
