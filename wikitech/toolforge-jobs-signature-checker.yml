@@ -28,31 +28,35 @@
 - name: k8s-20170515.signature-check.zh-classical
   command: "node ./wikibot/routine/20170515.signature_check.js use_language=zh-classical"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 - name: k8s-20170515.signature-check.wikinews
   command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikinews"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 - name: k8s-20170515.signature-check.wikisource
   command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikisource"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 - name: k8s-20170515.signature-check.wikiversity
   command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikiversity"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 - name: k8s-20170515.signature-check.wiktionary
   command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wiktionary"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 - name: k8s-20170515.signature-check.wikibooks
   command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikibooks"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
-
+- name: k8s-20170515.signature-check.wikivoyage
+  command: "node ./wikibot/routine/20170515.signature_check.js use_project=zh.wikivoyage"
+  image: node18
+  mem: 2Gi
+  continuous: true

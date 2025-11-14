@@ -87,3 +87,9 @@
   cpu: 0.25
   mem: 2Gi
   continuous: true
+- name: k8s-20170915.topic-list.wikivoyage
+  command: "node ./wikibot/routine/20170915.topic_list.js use_project=zh.wikivoyage"
+  image: node18
+  cpu: 0.25
+  mem: 2Gi
+  continuous: true

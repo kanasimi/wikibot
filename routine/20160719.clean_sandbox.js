@@ -223,6 +223,12 @@ if (force || JD % 2 === 0) {
 	general_announcement, 'Wikiversity:沙盒');
 }
 
+// --------------------------
+
+var zhwikivoyage_announcement = '{{/top}}\x3C!--\n＊　　　　欢迎来到涂鸦墙！　　　　＊　　　　　　歡迎來到塗鴉牆！　　　　＊\n＊　　　请勿修改此部分内容　　　　＊　　　　　請勿修改此部分內容　　　　＊\n＊　　大胆的在下面练习编辑吧　　　＊　　　　大膽地在下面練習編輯吧　　　＊\n██████████████████████████████████████████████████████-->\n';
+
+clean_wiki_sandbox('zh.wikivoyage', zhwikivoyage_announcement, 'Wikivoyage:涂鸦墙');
+
 // --------------------------------------------------------
 
 // zhmoegirl only

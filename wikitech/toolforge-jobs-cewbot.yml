@@ -130,6 +130,12 @@
   cpu: 0.25
   mem: 3Gi
   schedule: "4 20 * * 5"
+- name: k8s-20160517.interlanguage-link-to-wikilinks.zh.wikivoyage
+  command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=zh.wikivoyage"
+  image: node18
+  cpu: 0.25
+  mem: 6Gi
+  schedule: "5 20 * * 5"
 
 # 清理導航模板的重導向內部連結，轉換模板中的內部連結為目標頁面標題。
 # 排在 interlanguage_link_to_wikilinks 執行完後 在清理完跨語言連結後開始
@@ -256,7 +262,13 @@
   image: node18
   cpu: 0.25
   mem: 2Gi
-  schedule: "3 20 * * *"
+  schedule: "4 20 * * *"
+- name: k8s-20160323.archive-bot-logs.zhwikivoyage
+  command: "node ./wikibot/routine/20160323.archive_bot_logs.js use_project=zh.wikivoyage"
+  image: node18
+  cpu: 0.25
+  mem: 2Gi
+  schedule: "5 20 * * *"
 
 - name: k8s-20210429.auto-archiver.en
   command: "node ./wikibot/routine/20210429.Auto-archiver.js use_language=en"
@@ -336,6 +348,12 @@
   cpu: 0.25
   mem: 2Gi
   schedule: "22 20 * * *"
+- name: k8s-20210429.auto-archiver.zh.wikivoyage
+  command: "node ./wikibot/routine/20210429.Auto-archiver.js use_project=zh.wikivoyage"
+  image: node18
+  cpu: 0.25
+  mem: 2Gi
+  schedule: "23 20 * * *"
 
 - name: k8s-20211203.synchronizing-common-pages.zh.wikinews
   command: "node ./wikibot/routine/20211203.synchronizing_common_pages.js use_project=zh.wikinews"
@@ -349,6 +367,12 @@
   cpu: 0.25
   mem: 2Gi
   schedule: "15 21 * * *"
+- name: k8s-20211203.synchronizing-common-pages.wikivoyage
+  command: "node ./wikibot/routine/20211203.synchronizing_common_pages.js use_project=zh.wikivoyage"
+  image: node18
+  cpu: 0.25
+  mem: 2Gi
+  schedule: "25 21 * * *"
 
 
 # -----------------------------------------------------------------------------

@@ -69,4 +69,8 @@
   image: node18
   mem: 2Gi
   continuous: true
-
+- name: k8s-20201008.fix-anchor.zh.wikivoyage
+  command: "node ./wikibot/routine/20201008.fix_anchor.js use_project=zh.wikivoyage"
+  image: node18
+  mem: 2Gi
+  continuous: true
