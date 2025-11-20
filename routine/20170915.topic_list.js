@@ -4,6 +4,7 @@ Add topic list to talk page. 增加討論頁面主題列表。為議論增目錄
 
 node 20170915.topic_list.js use_language=zh
 node 20170915.topic_list.js use_language=ja
+node 20170915.topic_list.js use_project=zh.wikivoyage
 
 2017/9/10 22:31:46	開始計畫。
 2017/9/16 12:33:6	初版試營運。

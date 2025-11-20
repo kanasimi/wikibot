@@ -7,10 +7,12 @@
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh
 node 20160517.interlanguage_link_to_wikilinks.js use_language=simple
 
+node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
+node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=Wikipedia:沙盒"
+
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=明智光秀"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "start_from_page=嚴凱泰"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=斯堪的纳维亚历史"
-node 20160517.interlanguage_link_to_wikilinks.js use_language=en "debug_pages=Wikipedia:Sandbox"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=亞丁"
 node 20160517.interlanguage_link_to_wikilinks.js use_language=zh "debug_pages=公路收費站"
 
@@ -982,7 +984,11 @@ function for_each_page(page_data, messages) {
 						// 必須去除 foreign_title: [[T]] 相對應的 converted_local_title
 						// 為 [[T (A)]] 的情況。不過這時該改的是錯誤的多語言模板本身。
 						// CeL.wiki.data.is_DAB(local_title_data)
-						converted_local_title !== local_title) {
+						converted_local_title !== local_title
+						// 不包括缺省的設定。
+						&& normalized_param.index_order.foreign_title
+						//
+						!== normalized_param.index_order.local_title) {
 							check_page(
 							// gettext_config:{"id":"the-local-title-in-the-interlanguage-template-is-same-as-the-foreign-language-title-but-the-foreign-page-directs-to-a-different-local-title"}
 							'跨語言模板的本地標題與外語標題相同，但外語頁面導向不同的本地標題。');
@@ -1126,13 +1132,15 @@ function for_each_page(page_data, messages) {
 			}
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
-			foreign_title ], for_local_page, CeL.wiki.add_session_to_options(wiki, {
-				// e.g., {{Ill|George B. Sennett|George Burritt Sennett}}
-				// @ [[w:en:Special:Diff/1227543178]]
-				multi : false,
-				redirects : 1,
-				converttitles : 1
-			}));
+			foreign_title ], for_local_page, CeL.wiki.add_session_to_options(
+					wiki, {
+						// e.g., {{Ill|George B. Sennett|George Burritt
+						// Sennett}}
+						// @ [[w:en:Special:Diff/1227543178]]
+						multi : false,
+						redirects : 1,
+						converttitles : 1
+					}));
 
 		}
 
@@ -1202,9 +1210,9 @@ function for_each_page(page_data, messages) {
 			return;
 		}
 
-		if (/^https?:\/\//i.test(local_title)
+		if (local_title && /^https?:\/\//i.test(local_title)
 		// e.g., [[Special:PermanentLink/72981220|馮仁稚]]
-		|| /^https?:\/\//i.test(foreign_title)) {
+		|| foreign_title && /^https?:\/\//i.test(foreign_title)) {
 			CeL.error('Get URL @ ' + CeL.wiki.title_link_of(title) + ': '
 					+ token);
 			check_page(gettext(
@@ -1358,8 +1366,9 @@ function main_work() {
 	});
 
 	CeL.wiki.cache([ {
-		// [[w:simple:User talk:Kanashimi#Capitalization issues not getting marked]]
-		//type : 'embeddedin', list : 'Template:Interlanguage link',
+		// [[w:simple:User talk:Kanashimi#Capitalization issues not getting
+		// marked]]
+		// type : 'embeddedin', list : 'Template:Interlanguage link',
 		type : 'categorymembers',
 		list : message_set.Category_has_local_page,
 
