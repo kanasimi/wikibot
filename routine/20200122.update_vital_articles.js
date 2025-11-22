@@ -3129,13 +3129,23 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 						token[token.index_of.class - 1].pop();
 					}
 
-					// 採用 token.parameters.class 恐漏掉最後的空白字元。
+					// 添加註解，或者添加空白字元以維持格式。採用 token.parameters.class 恐漏掉最後的空白字元。
 					token[token.index_of.class][2].forEach(sub_token => {
 						if (typeof sub_token === 'string') {
-							previous_element.push(sub_token.replace(new RegExp(WPBS_template_object.class, 'i'), ''));
-						} else {
-							previous_element.push(sub_token);
+							// 去掉與WPBS相同的class。
+							sub_token = sub_token.replace(new RegExp(WPBS_template_object.class, 'i'), '');
+							if (sub_token.trim() !== '') {
+								// 不轉成註解的話可能出紕漏: [[w:en:Special:Diff/1323402092]]
+								sub_token = `<!--${sub_token}-->`;
+							}
+						} else if (sub_token.type !== 'comment') {
+							if (sub_token.includes('-->')) {
+								CeL.error(`${set_remove_needless_class.name}: Cannot convert to comment: ${JSON.stringify(sub_token)} @ ${CeL.wiki.title_link_of(talk_page_data)}`);
+							} else {
+								sub_token = `<!--${sub_token}-->`;
+							}
 						}
+						previous_element.push(sub_token);
 					});
 					if (token[token.index_of.class][3]) {
 						// assert: token[token.index_of.class].length === 3
