@@ -531,6 +531,9 @@ async function adapt_configuration(latest_task_configuration) {
 })();
 
 async function main_process() {
+	//await new Promise(resolve => wiki.append_session_to_options().session.setup_layout_elements(resolve));
+	await wiki.setup_layout_element_to_insert(`{{${template_name_hash.WPBS}}}`);
+
 	wiki.FC_data_hash = page_info_cache?.FC_data_hash;
 	if (!wiki.FC_data_hash) {
 		await get_page_info();
