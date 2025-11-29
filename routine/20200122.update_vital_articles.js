@@ -52,6 +52,8 @@ CeL.run(['application.net.wiki.featured_content',
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+// ----------------------------------------------
+
 const using_cache = CeL.env.arg_hash?.using_cache;
 
 const do_PIQA = CeL.env.arg_hash?.do_PIQA
@@ -2013,10 +2015,9 @@ async function for_each_list_page(list_page_data) {
 
 			if (parent_section.count_template) {
 				const parameters_argument = {
-					[1]: item_count
+					[1]: item_count,
+					quota,
 				};
-				if (quota)
-					parameters_argument.quota = quota;
 				CeL.wiki.parse.replace_parameter(parent_section.count_template, parameters_argument, { value_only: true, force_add: true, append_key_value: true });
 			} else if ((item_count > 0 || quota > 0) && wiki.latest_task_configuration.general.auto_add_count_template) {
 				//console.trace(parent_section.parent.slice(parent_section.index, parent_section.index + 2));
