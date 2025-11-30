@@ -27,6 +27,9 @@ const template_name_hash = {
 	Navbox_documentation: 'Navbox documentation',
 };
 
+// [[Module:Documentation/config]]	cfg['doc-subpage'] = 'doc'	cfg['doc-link-display'] = '/doc'
+const doc_subpage_postfix = '/doc';
+
 // ----------------------------------------------
 
 /**
@@ -48,6 +51,8 @@ async function adapt_configuration(latest_task_configuration) {
 	console.trace(wiki.latest_task_configuration.general);
 }
 
+let summary_prefix = '清理導航模板中裸露的可折疊選項模板';
+
 // ----------------------------------------------------------------------------
 
 (async () => {
@@ -62,6 +67,8 @@ async function adapt_configuration(latest_task_configuration) {
 // ----------------------------------------------------------------------------
 
 async function main_process() {
+	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, summary_prefix);
+
 	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
 	console.log('Redirect targets:', template_name_hash);
 
@@ -73,8 +80,7 @@ async function main_process() {
 
 
 	for await (let page_list of wiki.embeddedin('Template:' + template_name_hash.Collapsible_option, { namespace: 'template', batch_size: 500 })) {
-		// [[Module:Documentation/config]]	cfg['doc-subpage'] = 'doc'	cfg['doc-link-display'] = '/doc'
-		page_list = page_list.filter(page_data => !page_data.title.endsWith('/doc'));
+		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix));
 		await for_page_list(page_list);
 	}
 }
@@ -82,29 +88,46 @@ async function main_process() {
 async function for_page_list(page_list) {
 	await wiki.for_each_page(page_list, handle_each_template, {
 		redirects: false,
-		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '清理導航模板中裸露的可折疊選項模板')}，改用{{${template_name_hash.Navbox_documentation}}}。`,
+		summary: `${summary_prefix}，改用{{${template_name_hash.Navbox_documentation}}}。`,
 	});
 }
 
 async function handle_each_template(page_data) {
 	CeL.log_temporary(`${handle_each_template.name}: 處理頁面 ${CeL.wiki.title_link_of(page_data)}`);
 	const parsed = page_data.parse();
-	let changed = false;
+	let changed = false, template_counter = Object.create(null);
 	await parsed.each('template', async template_token => {
+		if (wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
+			template_counter.Navbox_documentation = template_counter.Navbox_documentation + 1 || 1;
+			return;
+		}
+
 		// 對於所有第一層的模板，假如是{{Collapsible option}}則直接轉成{{Navbox documentation}}。
 		if (wiki.is_template(template_token, template_name_hash.Collapsible_option)) {
-			// replace parameter name only
-			template_token[0] = template_name_hash.Navbox_documentation;
-			changed = true;
+			template_counter.Collapsible_option = template_counter.Collapsible_option + 1 || 1;
+
+			if (false) {
+				// replace parameter name only
+				template_token[0] = template_name_hash.Navbox_documentation;
+				changed = true;
+				return;
+			}
+			const Navbox_documentation_template = await handle_Documentation_content([template_token], page_data);
+			if (Navbox_documentation_template) {
+				changed = true;
+			}
 			return;
 		}
 
 		if (wiki.is_template(template_token, 'Documentation')) {
+			template_counter.Documentation = template_counter.Documentation + 1 || 1;
+
 			// [[Module:Documentation]]	:wikitext(p._content(args, env))
 			// content = args._content or mw.getCurrentFrame():expandTemplate{title = docTitle.prefixedText}
 			// parameters.content優先權高於'/doc'子頁面。
 			if (template_token.parameters.content) {
-				const Navbox_documentation_template = await handle_Documentation_content(template_token.parameters.content);
+				// e.g., [[Template:洲/doc]]
+				const Navbox_documentation_template = await handle_Documentation_content(template_token.parameters.content, page_data);
 				if (Navbox_documentation_template) {
 					changed = true;
 				}
@@ -112,34 +135,52 @@ async function handle_each_template(page_data) {
 				// parameters.content優先權高於'/doc'子頁面。不會再用到'/doc'子頁面，無須再檢查。
 			}
 
-			const doc_subpage = await wiki.page(`${page_data.title}/doc`);
-			// 避免處理過大的頁面。
-			if (doc_subpage.wikitext.trim() && doc_subpage.wikitext.trim().length < 1000) {
+			const doc_subpage = await wiki.page(`${page_data.title}${doc_subpage_postfix}`);
+			if (doc_subpage.wikitext?.trim()
+				// 本程式不處理超過1000字元的/doc頁面。
+				&& doc_subpage.wikitext.trim().length < 1000
+				// 排除含有章節的情況。 e.g., [[Template:中華民國行政區劃/doc]]
+				&& !/\n==.+==\n/.test(doc_subpage.wikitext.trim())) {
 				const parsed_doc_subpage = doc_subpage.parse();
 				parsed_doc_subpage.each('Template:Documentation subpage', template_token => CeL.wiki.parser.parser_prototype.each.remove_token);
-				const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage);
-				if (Navbox_documentation_template) {
-					changed = true;
+				const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage, page_data);
+				if (!Navbox_documentation_template) {
+					return;
 				}
+
+				// 刪除已匯入模板主頁面的/doc頁面。
+				try {
+					await wiki.delete(doc_subpage.title, { reason: `${summary_prefix}：已將內容轉入上層模板之{{${template_name_hash.Navbox_documentation}}}中。` });
+				} catch (e) {
+					CeL.error(e);
+				}
+				changed = true;
 				return Navbox_documentation_template;
 			}
+
 			return;
 		}
 
 	}, { depth: 1, modify: true });
+
+	if (Object.values(template_counter).sum() > 1) {
+		// e.g., [[Template:电磁学]]
+		CeL.console.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個頁面中發現多個說明文件！ ${JSON.stringify(template_counter)}`);
+		return;
+	}
 
 	if (changed) {
 		return parsed.toString();
 	}
 }
 
-async function handle_Documentation_content(content) {
+async function handle_Documentation_content(content, page_data) {
 	let parameters_argument;
 	// 檢查是否包含{{Collapsible option}}，將剩餘的內容轉成{{{3}}}。
 	CeL.wiki.parser.parser_prototype.each.call(content, 'Template:' + template_name_hash.Collapsible_option, template_token => {
 		//has_Collapsible_option = true;
 		if (parameters_argument) {
-			CeL.error(`${handle_Documentation_content.name}: 在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，無法處理！`);
+			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，無法處理！`);
 			parameters_argument = false;
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
@@ -159,10 +200,13 @@ async function handle_Documentation_content(content) {
 
 	content = content.toString().trim();
 	if (content) {
+		// e.g., [[Template:物理學分支]]
 		// 改成去掉{{Collapsible option}}後的內容。
 		parameters_argument[3] = `
 ${content}
 `;
+	} else {
+		// e.g., [[Template:洲/doc]]
 	}
 
 	const Navbox_documentation_template = CeL.wiki.parse.template_object_to_wikitext(template_name_hash.Navbox_documentation);
