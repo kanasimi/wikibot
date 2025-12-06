@@ -3511,16 +3511,11 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 			//CeL.info(`${CeL.wiki.title_link_of(talk_page_data)}: Add ${WikiProject_banner_shell_token.toString().trim()}`);
 
 			// [[w:en:Wikipedia:Talk page layout#Lead (bannerspace)]]
-			parsed.insert_layout_element(WikiProject_banner_shell_token, {
-				fine_tuning_layout(token) {
-					if (!extra_contents)
-						return token;
-					// Any non-project banners (i.e. not produced with Module:WikiProject banner) should be moved outside the banner shell ideally
-					return token + '\n' + extra_contents;
-				}
-			});
-		} else if (extra_contents) {
-			WikiProject_banner_shell_token.parent.splice(WikiProject_banner_shell_token.index + 1, 0, '\n' + extra_contents);
+			parsed.insert_layout_element(WikiProject_banner_shell_token);
+		}
+		if (extra_contents) {
+			// Any non-project banners (i.e. not produced with Module:WikiProject banner) should be moved outside the banner shell ideally
+			parsed.insert_layout_element(extra_contents);
 		}
 
 		//console.trace(need_insert_WPBS, WPBS_template_object, WikiProject_banner_shell_token, [extra_contents, WikiProject_banner_shell_token.toString()]);
