@@ -106,16 +106,16 @@ async function handle_each_template(page_data) {
 		if (wiki.is_template(template_token, template_name_hash.Collapsible_option)) {
 			template_counter.Collapsible_option = template_counter.Collapsible_option + 1 || 1;
 
-			if (false) {
-				// replace parameter name only
-				template_token[0] = template_name_hash.Navbox_documentation;
-				changed = true;
-				return;
-			}
+			changed = true;
+
+			// 轉成{{Navbox documentation}}。使用handle_Documentation_content()以保留parameters_argument。
 			const Navbox_documentation_template = await handle_Documentation_content([template_token], page_data);
 			if (Navbox_documentation_template) {
-				changed = true;
+				return Navbox_documentation_template;
 			}
+
+			// replace parameter name only
+			template_token[0] = template_name_hash.Navbox_documentation;
 			return;
 		}
 
@@ -139,7 +139,7 @@ async function handle_each_template(page_data) {
 			if (doc_subpage.wikitext?.trim()
 				// 本程式不處理超過1000字元的/doc頁面。
 				&& doc_subpage.wikitext.trim().length < 1000
-				// 排除含有章節的情況。 e.g., [[Template:中華民國行政區劃/doc]]
+				// 並排除含有章節的情況。 e.g., [[Template:中華民國行政區劃/doc]]
 				&& !/\n==.+==\n/.test(doc_subpage.wikitext.trim())) {
 				const parsed_doc_subpage = doc_subpage.parse();
 				parsed_doc_subpage.each('Template:Documentation subpage', template_token => CeL.wiki.parser.parser_prototype.each.remove_token);
@@ -152,6 +152,8 @@ async function handle_each_template(page_data) {
 				try {
 					await wiki.delete(doc_subpage.title, { reason: `${summary_prefix}：已將內容轉入上層模板之{{${template_name_hash.Navbox_documentation}}}中。` });
 				} catch (e) {
+					// 忽略刪除失敗。
+					CeL.error(`${handle_each_template.name}: 刪除說明文件頁面 ${CeL.wiki.title_link_of(doc_subpage)} 失敗：`);
 					CeL.error(e);
 				}
 				changed = true;
@@ -185,18 +187,32 @@ async function handle_Documentation_content(content, page_data) {
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
 
-		const parameters = template_token.parameters;
-		parameters_argument = {
-			state: parameters.parameter_name || parameters.state,
-			default: parameters[1] || parameters.state || parameters.autocollapse,
-			nobase: parameters.nobase,
-		};
+		const Collapsible_option_parameters = Object.clone(template_token.parameters);
+		for (let [parameter_name, aliases] of Object.entries({
+			state: 'parameter_name|state',
+			default: '1|state|autocollapse',
+		})) {
+			for (const alias of aliases.split('|')) {
+				if (alias in Collapsible_option_parameters) {
+					if (Collapsible_option_parameters[alias] && !(parameter_name in parameters_argument))
+						parameters_argument[parameter_name] = Collapsible_option_parameters[alias];
+					delete Collapsible_option_parameters[alias];
+				}
+			}
+		}
+
+		// e.g., [[Template:几何术语]]
+		// 保留其他參數。 e.g., nobase, statename
+		Object.assign(parameters_argument, Collapsible_option_parameters);
+
 		return CeL.wiki.parser.parser_prototype.each.remove_token;
 	});
 
 	if (!parameters_argument) {
 		return;
 	}
+
+	// TODO: 清理可包含：移除不應出現於模板文件外的內容；調整（合併）模板分類；移除冗餘代碼。
 
 	content = content.toString().trim();
 	if (content) {
