@@ -4,9 +4,10 @@ node 20251126.Move_exposed_template_Collapsible_option_to_Navbox_documentation.j
 
 這個任務會清理navbox模板中裸露的{{Collapsible option}}，改用{{Navbox documentation}}。
 
-	初版試營運
+2025/12/8 6:39:17	初版試營運
 
-
+TODO:
+整合模板分類: 另開一個常規任務清理所有分類。
 */
 
 'use strict';
@@ -26,6 +27,7 @@ const template_name_hash = {
 	Collapsible_option: 'Collapsible option',
 	Navbox_documentation: 'Navbox documentation',
 	Documentation: 'Documentation',
+	Sandbox_other: 'Sandbox other',
 };
 
 // [[Module:Documentation/config]]	cfg['doc-subpage'] = 'doc'	cfg['doc-link-display'] = '/doc'
@@ -100,7 +102,45 @@ async function for_page_list(page_list) {
 async function handle_each_template(page_data) {
 	CeL.log_temporary(`${handle_each_template.name}: 處理頁面 ${CeL.wiki.title_link_of(page_data)}`);
 	const parsed = page_data.parse();
+
+	// ------------------------------------------------------------------------
+	// 首次掃描: 先解決多個說明文件模板問題。
+
+	let template_index = {
+		Navbox_documentation: [],
+		Documentation: [],
+		Collapsible_option: [],
+	};
+
+	parsed.each('template', (template_token, index, parent) => {
+		for (let template_name in template_index) {
+			if (wiki.is_template(template_token, template_name_hash[template_name])) {
+				template_index[template_name].push(index);
+				return;
+			}
+		}
+	}, { depth: 1, modify: true });
+
+	if (template_index.Collapsible_option.length === 1 && template_index.Documentation.length + template_index.Navbox_documentation.length === 1) {
+		// e.g., [[Template:电磁学]], [[Template:苏联加盟共和国]]
+		parsed.each('template', template_token => {
+			if (wiki.is_template(template_token, template_name_hash.Collapsible_option)) {
+				if (CeL.is_empty_object(template_token.parameters)) {
+					// remove empty {{Collapsible option}}
+					return CeL.wiki.parser.parser_prototype.each.remove_token;
+				}
+			}
+		}, { depth: 1, modify: true });
+	}
+
+	// free memory
+	template_index = null;
+
+	// ------------------------------------------------------------------------
+	// 正式處理說明文件模板。
+
 	let changed = false, template_counter = Object.create(null);
+
 	await parsed.each('template', async template_token => {
 		if (wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
 			template_counter.Navbox_documentation = template_counter.Navbox_documentation + 1 || 1;
@@ -124,7 +164,7 @@ async function handle_each_template(page_data) {
 			return;
 		}
 
-		if (wiki.is_template(template_token, 'Documentation')) {
+		if (wiki.is_template(template_token, template_name_hash.Documentation)) {
 			template_counter.Documentation = template_counter.Documentation + 1 || 1;
 
 			// [[Module:Documentation]]	:wikitext(p._content(args, env))
@@ -143,7 +183,7 @@ async function handle_each_template(page_data) {
 			const doc_subpage = await wiki.page(`${page_data.title}${doc_subpage_postfix}`);
 			const parsed_doc_subpage = doc_subpage.parse();
 
-			// 排除 {{Collapsible option}} 在章節後的情況。 e.g., [[Template:中華民國行政區劃/doc]]
+			// 處理 {{Collapsible option}} 在章節後的情況。 e.g., `==參數及使用方法==` @ [[Template:中華民國行政區劃/doc]]
 			for (let index = 0, latest_section_title; index < parsed_doc_subpage.length; index++) {
 				const token = parsed_doc_subpage[index];
 				switch (token.type) {
@@ -180,12 +220,11 @@ async function handle_each_template(page_data) {
 						}
 
 						if (Collapsible_option_to_move) {
-							// 刪掉 {{Collapsible option}} 所在段落。
-							parsed_doc_subpage.splice(latest_section_title.index, _index - latest_section_title.index);
-							// 將 {{Collapsible option}} 移到最上方。會在 handle_Documentation_content() 刪掉。
-							parsed_doc_subpage.unshift(Collapsible_option_to_move, '\n');
+							// assert: 本 section 只包括 {{Collapsible option}} 一個模板。
+							// 刪掉 {{Collapsible option}} 所在 section title。
+							parsed_doc_subpage.splice(latest_section_title.index, index - latest_section_title.index);
 							// 調整 index。因為 splice() 已經刪掉一段內容；2: 因為 unshift() 新增了2個內容。
-							index = latest_section_title.index + 2;
+							//index = latest_section_title.index;
 							break;
 						}
 
@@ -202,10 +241,12 @@ async function handle_each_template(page_data) {
 					case 'tag':
 						// 把 doc_subpage 搬到主 template 頁面中，可去除 <noinclude></noinclude>。
 						if (token.tag.toLowerCase() === 'noinclude') {
+							// 去掉 <noinclude> 內的內容。
 							return CeL.wiki.parser.parser_prototype.each.remove_token;
 						}
 
 						if (token.tag.toLowerCase() === 'includeonly') {
+							// 直接搬移 <includeonly> 內的內容。
 							return token[1];
 						}
 
@@ -225,11 +266,15 @@ async function handle_each_template(page_data) {
 						if (wiki.is_template(token, exclude_doc_subpage_template_name_list)) {
 							return CeL.wiki.parser.parser_prototype.each.remove_token;
 						}
+						// 清理 Sandbox other 模板。 e.g., [[Template:中華民國行政區劃/doc]]
+						if (wiki.is_template(token, template_name_hash.Sandbox_other)) {
+							return token.parameters[2];
+						}
 						break;
 
 					case 'comment':
-						// 去掉這些註解。 e.g., [[Template:太阳系]], [[Template:洲/doc]]
-						if (/^\s*Please|thank|加入模板的|本行下/i.test(token[0])) {
+						// 去掉這些註解。 e.g., [[Template:Sandbox other]], [[Template:太阳系]], [[Template:洲/doc]]
+						if (/^\s*Please|thank|加入模板的|本行下|:\s*$/i.test(token[0])) {
 							return CeL.wiki.parser.parser_prototype.each.remove_token;
 						}
 						break;
@@ -263,19 +308,34 @@ async function handle_each_template(page_data) {
 
 	if (Object.values(template_counter).sum() > 1) {
 		// e.g., [[Template:电磁学]]
-		CeL.console.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個頁面中發現多個說明文件！ ${JSON.stringify(template_counter)}`);
+		CeL.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個頁面中發現多個說明文件！ ${JSON.stringify(template_counter)}`);
 		return;
 	}
 
-	if (changed) {
-		return parsed.toString();
+	if (!changed) {
+		return;
 	}
+
+	// 清理：移除不應出現於模板文件外的內容；調整（合併）模板分類；移除冗餘代碼。
+	parsed.get_categories({ remove_existed_duplicated: true });
+
+	let wikitext = parsed.toString();
+	// 清理多餘空行。
+	wikitext = wikitext.replace(/(?:(\n)*)(<(?:noinclude|includeonly)>)(?:(\n)*)/ig, '$1$2$3');
+	return wikitext;
 }
 
 async function handle_Documentation_content(content, page_data) {
+	if (content.type !== 'plain') {
+		// e.g., [[Template:物理學分支]]
+		content = [content];
+	}
+
 	let parameters_argument;
+	let Collapsible_option_index;
+	//let has_Collapsible_option = false;
 	// 檢查是否包含{{Collapsible option}}，將剩餘的內容轉成{{{3}}}。
-	CeL.wiki.parser.parser_prototype.each.call(content, 'Template:' + template_name_hash.Collapsible_option, template_token => {
+	CeL.wiki.parser.parser_prototype.each.call(content, 'Template:' + template_name_hash.Collapsible_option, (template_token, index, parent) => {
 		//has_Collapsible_option = true;
 		if (parameters_argument) {
 			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，無法處理！`);
@@ -302,6 +362,10 @@ async function handle_Documentation_content(content, page_data) {
 		if (parameters_argument)
 			Object.assign(parameters_argument, Collapsible_option_parameters);
 
+		if (parent === content) {
+			Collapsible_option_index = index;
+		}
+
 		return CeL.wiki.parser.parser_prototype.each.remove_token;
 	});
 
@@ -309,24 +373,33 @@ async function handle_Documentation_content(content, page_data) {
 		parameters_argument = Object.create(null);
 	}
 
-	content = content.toString().trim();
-	if (content) {
-		// e.g., [[Template:物理學分支]]
-		// 改成去掉{{Collapsible option}}後的內容。
-		parameters_argument[3] = CeL.wiki.parse(`
-${content}
-`);
-	} else {
-		// e.g., [[Template:洲/doc]]
+	const intro = Collapsible_option_index && content.splice(0, Collapsible_option_index).join('').trim()
+		// 清理多餘空行。
+		.replace(/\n{3,}/g, '\n\n');
+	if (intro) {
+		parameters_argument.intro = `
+${intro}
+`;
 	}
 
 	const Navbox_documentation_template = CeL.wiki.parse(CeL.wiki.parse.template_object_to_wikitext(template_name_hash.Navbox_documentation));
 	CeL.wiki.parse.replace_parameter(Navbox_documentation_template, parameters_argument, { value_only: true, force_add: true, append_key_value: true });
 
-	// 清理：移除不應出現於模板文件外的內容；調整（合併）模板分類；移除冗餘代碼。
-	const parsed = page_data.parse();
-	parsed.get_categories({ remove_existed_duplicated: true });
+	content = content.toString().trim()
+		// 清理多餘空行。 e.g., [[Template:土星的卫星/doc]]
+		.replace(/\n{3,}/g, '\n\n');
+	if (content) {
+		// e.g., [[Template:物理學分支]]
+		// 改成去掉{{Collapsible option}}後的內容。
+		// 這邊才用 CeL.wiki.parse.replace_parameter()，確保這個參數放在最後面。
+		CeL.wiki.parse.replace_parameter(Navbox_documentation_template, {
+			'3': `
+${content}
+`
+		}, { value_only: true, force_add: true, append_key_value: true });
+	} else {
+		// e.g., [[Template:洲/doc]]
+	}
 
 	return Navbox_documentation_template;
 }
-
