@@ -106,11 +106,7 @@ async function handle_each_template(page_data) {
 	// ------------------------------------------------------------------------
 	// 首次掃描: 先解決多個說明文件模板問題。
 
-	let template_index = {
-		Navbox_documentation: [],
-		Documentation: [],
-		Collapsible_option: [],
-	};
+	let template_index = Object.fromEntries(Object.keys(template_name_hash).map(template_name => [template_name, []]));
 
 	parsed.each('template', (template_token, index, parent) => {
 		for (let template_name in template_index) {
@@ -292,14 +288,21 @@ async function handle_each_template(page_data) {
 				return;
 			}
 
-			// 刪除已匯入模板主頁面的/doc頁面。
-			try {
-				await wiki.delete(doc_subpage.title, { reason: `${summary_prefix}：已將內容轉入上層模板之{{${template_name_hash.Navbox_documentation}}}中。` });
-			} catch (e) {
-				// 忽略刪除失敗。
-				CeL.error(`${handle_each_template.name}: 刪除說明文件頁面 ${CeL.wiki.title_link_of(doc_subpage)} 失敗：`);
-				CeL.error(e);
+			if (false) {
+				// TODO: 檢查 doc_subpage 是否為孤立頁面。
+
+				try {
+					// 刪除已匯入模板主頁面的/doc頁面。
+					await wiki.delete(doc_subpage.title, { reason: `${summary_prefix}：已將內容轉入上層模板之{{${template_name_hash.Navbox_documentation}}}中。` });
+				} catch (e) {
+					// TODO: 提報刪除。
+
+					// 忽略刪除失敗。
+					CeL.error(`${handle_each_template.name}: 刪除說明文件頁面 ${CeL.wiki.title_link_of(doc_subpage)} 失敗：`);
+					CeL.error(e);
+				}
 			}
+
 			changed = true;
 			return Navbox_documentation_template;
 		}
