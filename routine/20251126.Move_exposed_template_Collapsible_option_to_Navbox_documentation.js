@@ -342,10 +342,11 @@ async function handle_Documentation_content(content, page_data) {
 		//has_Collapsible_option = true;
 		if (parameters_argument) {
 			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，無法處理！`);
-			parameters_argument = false;
+			//parameters_argument = false;
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
 
+		parameters_argument = Object.create(null);
 		const Collapsible_option_parameters = Object.clone(template_token.parameters);
 		for (let [parameter_name, aliases] of Object.entries({
 			state: 'parameter_name|state',
@@ -362,9 +363,9 @@ async function handle_Documentation_content(content, page_data) {
 
 		// e.g., [[Template:几何术语]]
 		// 保留其他參數。 e.g., nobase, statename
-		if (parameters_argument)
-			Object.assign(parameters_argument, Collapsible_option_parameters);
+		Object.assign(parameters_argument, Collapsible_option_parameters);
 
+		// 記錄{{Collapsible option}}所在位置，以便切割說明文件內容。
 		if (parent === content) {
 			Collapsible_option_index = index;
 		}
