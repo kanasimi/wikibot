@@ -718,8 +718,14 @@ SELECT ?item ?itemLabel
 // 標題的翻譯，用方括號括起來。
 // https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=EXT_ID:33932783%20AND%20SRC:MED
 function normalize_article_title(title) {
-	if (!title) return [];
-	title = title
+	if (!title || title.includes('\ufffd')) {
+		// 不匯入含有 U+FFFD � REPLACEMENT CHARACTER 的 title。
+		// e.g., Q67435361
+		return [];
+	}
+
+	// e.g., https://www.wikidata.org/w/index.php?diff=2372466697
+	title = CeL.HTML_to_Unicode(title)
 		// remove <i>...</i>. https://www.wikidata.org/wiki/Q97521125
 		.replace(/<[\/\w][^<>]*>/g, '').trim()
 		// https://api.crossref.org/works/10.1148/rycan.2019190022
@@ -1123,6 +1129,8 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// title
 
 	// CrossRef may have the original title.
+	// But sometimes Europe_PMC has better title.
+	// e.g., https://www.wikidata.org/w/index.php?diff=2303393245	https://www.wikidata.org/w/index.php?diff=2372466697
 	let [main_title, title_converted] = normalize_article_title(CrossRef_article_data.title && CrossRef_article_data.title[0]);
 
 	// also: Europe_PMC_article_data.language, CrossRef_article_data.language
@@ -1152,12 +1160,6 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	function add_title_claim(references, title, language) {
 		if (!title)
 			title = main_title;
-
-		if (title.includes('\ufffd')) {
-			// 不匯入含有 U+FFFD � REPLACEMENT CHARACTER 的 title。
-			// e.g., Q67435361
-			return;
-		}
 
 		const claim = {
 			// title 標題 (P1476)
