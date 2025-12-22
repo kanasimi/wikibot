@@ -980,7 +980,7 @@ function add_user_name_and_date_set(section, user_and_date_index) {
 		//
 		? '<span style="'
 		//
-		+ (is_anonymous_user ? 'color: #f82;' : '')
+		+ (is_anonymous_user ? 'color: #c20;' : '')
 		//
 		+ CSS_toString(section.CSS) + '">' + user_shown + '</span>'
 		//
