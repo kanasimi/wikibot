@@ -341,7 +341,7 @@ async function adapt_configuration(latest_task_configuration) {
 		talk_page_summary_prefix = CeL.wiki.title_link_of(general.report_page, talk_page_summary_prefix_text);
 	}
 
-	if (general.pages_auto_add_summary_table && !CeL.is_RegExp(general.pages_auto_add_summary_table = general.pages_auto_add_summary_table.to_RegExp())) {
+	if (general.pages_auto_add_summary_table && !CeL.is_RegExp(general.pages_auto_add_summary_table = general.pages_auto_add_summary_table?.to_RegExp())) {
 		CeL.error(`${adapt_configuration.name}: Invalid RegExp (pages_auto_add_summary_table): ${general.pages_auto_add_summary_table}`);
 		delete general.pages_auto_add_summary_table;
 	}
