@@ -112,53 +112,18 @@ async function handle_each_template(page_data) {
 	CeL.log_temporary(`${handle_each_template.name}: 處理頁面 ${CeL.wiki.title_link_of(page_data)}`);
 	const parsed = page_data.parse();
 
-	if (false) {
-		// ------------------------------------------------------------------------
-		// 首次掃描: 先解決多個說明文件模板問題。
-		// ** 先去掉{{Collapsible option}}無法處理在章節標題之後的情況，因此這邊跳過。
-
-		let template_index = Object.fromEntries(Object.keys(template_name_hash).map(template_name => [template_name, []]));
-
-		parsed.each('template', (template_token, index, parent) => {
-			for (let template_name in template_index) {
-				if (wiki.is_template(template_token, template_name_hash[template_name])) {
-					template_index[template_name].push(index);
-					return;
-				}
-			}
-		}, { depth: 1, modify: true });
-
-		if (template_index.Collapsible_option.length === 1 && template_index.Documentation.length + template_index.Navbox_documentation.length === 1) {
-			// e.g., [[Template:电磁学]], [[Template:苏联加盟共和国]]
-			parsed.each('template', template_token => {
-				if (wiki.is_template(template_token, template_name_hash.Collapsible_option)) {
-					if (CeL.is_empty_object(template_token.parameters)) {
-						// remove empty {{Collapsible option}}
-						return CeL.wiki.parser.parser_prototype.each.remove_token;
-					}
-				}
-			}, { depth: 1, modify: true });
-		}
-
-		// free memory
-		template_index = null;
-	}
-
 	// ------------------------------------------------------------------------
 	// 正式處理說明文件模板。
 
-	let changed = false, template_counter = Object.create(null);
+	let changed = false;
 
 	await parsed.each('template', async template_token => {
 		if (wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
-			template_counter.Navbox_documentation = template_counter.Navbox_documentation + 1 || 1;
 			return;
 		}
 
 		// 對於所有第一層的模板，假如是{{Collapsible option}}則直接轉成{{Navbox documentation}}。
 		if (wiki.is_template(template_token, template_name_hash.Collapsible_option)) {
-			template_counter.Collapsible_option = template_counter.Collapsible_option + 1 || 1;
-
 			changed = true;
 
 			// 轉成{{Navbox documentation}}。使用handle_Documentation_content()以保留parameters_argument。
@@ -173,8 +138,6 @@ async function handle_each_template(page_data) {
 		}
 
 		if (wiki.is_template(template_token, template_name_hash.Documentation)) {
-			template_counter.Documentation = template_counter.Documentation + 1 || 1;
-
 			// [[Module:Documentation]]	:wikitext(p._content(args, env))
 			// content = args._content or mw.getCurrentFrame():expandTemplate{title = docTitle.prefixedText}
 			// parameters.content 優先權高於'/doc'子頁面。
@@ -219,15 +182,49 @@ async function handle_each_template(page_data) {
 
 	}, { depth: 1, modify: true });
 
-	if (Object.values(template_counter).sum() > 1) {
-		// e.g., [[Template:电磁学]]
-		CeL.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個頁面中發現多個說明文件！ ${JSON.stringify(template_counter)}`);
-		return;
+	if (!changed) {
+		return Wikiapi.skip_edit;
 	}
 
-	if (!changed) {
-		return;
+	// ------------------------------------------------------------------------
+	// 檢查說明文件模板數量。先去掉{{Collapsible option}}無法處理在章節標題之後的情況，因此放在後面。
+	const template_indexes = Object.fromEntries(Object.keys(template_name_hash).map(template_name => [template_name, []]));
+
+	await parsed.each('template', (template_token, index, parent) => {
+		for (let template_name in template_indexes) {
+			if (wiki.is_template(template_token, template_name_hash[template_name])) {
+				template_indexes[template_name].push([index, parent]);
+				return;
+			}
+		}
+	});
+
+	// 解決多個說明文件模板問題。清理多個{{Navbox documentation}}。
+	if (template_indexes.Navbox_documentation.length > 1) {
+		// e.g., [[Template:电磁学]], [[Template:苏联加盟共和国]]
+		// reset index list
+		template_indexes.Navbox_documentation = [];
+		parsed.each('template', (template_token, index, parent) => {
+			if (wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
+				if (CeL.is_empty_object(template_token.parameters)) {
+					// remove empty {{Navbox documentation}}
+					return CeL.wiki.parser.parser_prototype.each.remove_token;
+				}
+				template_indexes.Navbox_documentation.push([index, parent]);
+			}
+		});
 	}
+
+	if (template_indexes.Collapsible_option.length + template_indexes.Documentation.length + template_indexes.Navbox_documentation.length > 1) {
+		// e.g., [[Template:电磁学]]
+		CeL.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個頁面中發現多個說明文件！ ${JSON.stringify(template_indexes)}`);
+		return Wikiapi.skip_edit;
+	}
+
+	// free memory
+	//template_indexes = null;
+
+	// ------------------------------------------------------------------------
 
 	// 清理：移除不應出現於模板文件外的內容；調整（合併）模板分類；移除冗餘代碼。
 	parsed.get_categories({ remove_existed_duplicated: true });
@@ -243,6 +240,8 @@ async function handle_Documentation_content(content, page_data, template_token, 
 		// e.g., [[Template:物理學分支]]
 		content = [content];
 	}
+
+	// ------------------------------------------------------------------------
 
 	CeL.wiki.parser.parser_prototype.each.call(content, (token, index, parent) => {
 		switch (token.type) {
@@ -397,8 +396,10 @@ async function handle_Documentation_content(content, page_data, template_token, 
 		parameters_argument = Object.create(null);
 	}
 
+	// ------------------------------------------------------------------------
+
 	// e.g., [[Template:IWork]]
-	const doc_subpage_declaration = template_token?.parameters[1] ? `<!-- [[${template_token.parameters[1]}]] -->\n` : '';
+	const doc_subpage_declaration = template_token?.parameters[1] && template_token.parameters[1] !== `${page_data.title}${doc_subpage_postfix}` ? `<!-- [[${template_token.parameters[1]}]] -->\n` : '';
 
 	const intro = Collapsible_option_index && content.splice(0, Collapsible_option_index).join('').trim()
 		// 清理多餘空行。
