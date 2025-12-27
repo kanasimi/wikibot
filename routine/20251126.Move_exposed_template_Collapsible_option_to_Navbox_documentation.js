@@ -5,9 +5,11 @@ node 20251126.Move_exposed_template_Collapsible_option_to_Navbox_documentation.j
 這個任務會清理navbox模板中裸露的{{Collapsible option}}，改用{{Navbox documentation}}。
 
 2025/12/8 6:39:17	初版試營運
+2025/12/27 8:6:32	申請通過後初版
 
 TODO:
 整合模板分類: 另開一個常規任務清理所有分類。
+另開一個任務刪除無用的 /doc subpage。
 
 */
 
@@ -34,7 +36,7 @@ const template_name_hash = {
 // [[Module:Documentation/config]]	cfg['doc-subpage'] = 'doc'	cfg['doc-link-display'] = '/doc'
 const doc_subpage_postfix = '/doc';
 
-/**排除 doc subpage 的這些模板。 */
+/**排除 /doc subpage 的這些模板。 */
 const exclude_doc_subpage_template_name_list = ['Documentation subpage',];
 
 // ----------------------------------------------
@@ -118,7 +120,7 @@ async function handle_each_template(page_data) {
 	let changed = false;
 
 	await parsed.each('template', async template_token => {
-		if (wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
+		if (false && wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
 			return;
 		}
 
@@ -133,6 +135,7 @@ async function handle_each_template(page_data) {
 			}
 
 			// replace parameter name only
+			// 警告: 這邊可能已經變更過 parsed。
 			template_token[0] = template_name_hash.Navbox_documentation;
 			return;
 		}
@@ -154,6 +157,8 @@ async function handle_each_template(page_data) {
 			const doc_subpage_title = template_token.parameters[1] || `${page_data.title}${doc_subpage_postfix}`;
 			const doc_subpage = await wiki.page(doc_subpage_title);
 			const parsed_doc_subpage = doc_subpage.parse();
+
+			// TODO: Skip magic words. e.g., [[w:zh:Template:MacOS]]
 
 			const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage, page_data, template_token, true);
 			if (!Navbox_documentation_template) {
@@ -188,31 +193,41 @@ async function handle_each_template(page_data) {
 
 	// ------------------------------------------------------------------------
 	// 檢查說明文件模板數量。先去掉{{Collapsible option}}無法處理在章節標題之後的情況，因此放在後面。
-	const template_indexes = Object.fromEntries(Object.keys(template_name_hash).map(template_name => [template_name, []]));
+	let template_indexes;
 
-	await parsed.each('template', (template_token, index, parent) => {
-		for (let template_name in template_indexes) {
-			if (wiki.is_template(template_token, template_name_hash[template_name])) {
-				template_indexes[template_name].push([index, parent]);
-				return;
+	function set_template_indexes() {
+		template_indexes = Object.fromEntries(Object.keys(template_name_hash).map(template_name => [template_name, []]));
+		parsed.each('template', (template_token, index, parent) => {
+			for (let template_name in template_indexes) {
+				if (wiki.is_template(template_token, template_name_hash[template_name])) {
+					template_indexes[template_name].push([index, parent]);
+					return;
+				}
 			}
-		}
-	});
+		});
+	}
+
+	set_template_indexes();
 
 	// 解決多個說明文件模板問題。清理多個{{Navbox documentation}}。
 	if (template_indexes.Navbox_documentation.length > 1) {
 		// e.g., [[Template:电磁学]], [[Template:苏联加盟共和国]]
-		// reset index list
-		template_indexes.Navbox_documentation = [];
 		parsed.each('template', (template_token, index, parent) => {
+			if(template_indexes.Navbox_documentation.length === 1) {
+				// 保留最後一個 {{Navbox documentation}}。
+				// e.g., [[Template:臺灣總督]], [[Template:阿西莫夫小说]]
+				return CeL.wiki.parser.parser_prototype.each.exit;
+			}
 			if (wiki.is_template(template_token, template_name_hash.Navbox_documentation)) {
+				// remove empty {{Navbox documentation}}
 				if (CeL.is_empty_object(template_token.parameters)) {
-					// remove empty {{Navbox documentation}}
+					template_indexes.Navbox_documentation.shift();
 					return CeL.wiki.parser.parser_prototype.each.remove_token;
 				}
-				template_indexes.Navbox_documentation.push([index, parent]);
 			}
 		});
+		// 重新計算 template_indexes。
+		set_template_indexes();
 	}
 
 	if (template_indexes.Collapsible_option.length + template_indexes.Documentation.length + template_indexes.Navbox_documentation.length > 1) {
