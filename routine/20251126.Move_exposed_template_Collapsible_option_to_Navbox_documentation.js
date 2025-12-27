@@ -134,6 +134,7 @@ async function handle_each_template(page_data) {
 				return Navbox_documentation_template;
 			}
 
+			throw new Error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 無法將{{${template_name_hash.Collapsible_option}}}轉成{{${template_name_hash.Navbox_documentation}}}！`);
 			// replace parameter name only
 			// 警告: 這邊可能已經變更過 parsed。
 			template_token[0] = template_name_hash.Navbox_documentation;
@@ -158,7 +159,8 @@ async function handle_each_template(page_data) {
 			const doc_subpage = await wiki.page(doc_subpage_title);
 			const parsed_doc_subpage = doc_subpage.parse();
 
-			// TODO: Skip magic words. e.g., [[w:zh:Template:MacOS]]
+			// TODO: Skip magic words.
+			// e.g., [[w:zh:Template:MacOS]], [[Template:国务院/副总理/1]]
 
 			const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage, page_data, template_token, true);
 			if (!Navbox_documentation_template) {
@@ -213,7 +215,7 @@ async function handle_each_template(page_data) {
 	if (template_indexes.Navbox_documentation.length > 1) {
 		// e.g., [[Template:电磁学]], [[Template:苏联加盟共和国]]
 		parsed.each('template', (template_token, index, parent) => {
-			if(template_indexes.Navbox_documentation.length === 1) {
+			if (template_indexes.Navbox_documentation.length === 1) {
 				// 保留最後一個 {{Navbox documentation}}。
 				// e.g., [[Template:臺灣總督]], [[Template:阿西莫夫小说]]
 				return CeL.wiki.parser.parser_prototype.each.exit;
@@ -352,7 +354,7 @@ async function handle_Documentation_content(content, page_data, template_token, 
 				}
 
 				// 否則跳過本模板不處理。
-				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 發現說明文件中於章節後的{{${template_name_hash.Collapsible_option}}}，無法處理！`);
+				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 發現說明文件中，於章節後的{{${template_name_hash.Collapsible_option}}}，無法處理！`);
 				//do_not_process_doc_subpage = true;
 				return;
 			//break;

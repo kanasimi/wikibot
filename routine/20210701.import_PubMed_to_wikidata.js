@@ -447,6 +447,11 @@ WHERE
 }
 
 const MAX_slice_length = 2000;
+/**
+ * Get DOI to item id mapping
+ * @param {Array} DOI_list 
+ * @returns {Map} DOI_to_item_id_mapping.get(DOI) = [ item id, itemLabel ]
+ */
 async function search_DOIs(DOI_list) {
 	const DOI_to_item_id_mapping = new Map();
 
@@ -1703,6 +1708,9 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				const DOI = reference_data.DOI.toUpperCase();
 				if (!DOI_to_item_id_mapping.has(DOI))
 					continue;
+				const reference_item_id = DOI_to_item_id_mapping.get(DOI)[0];
+				// TODO: 去掉與自己相同的引用。 e.g., [[d:User talk:Kanashimi#Self link cites work (P2860)]]
+
 				//qualifiers[NCBI_articleid_properties_mapping.doi] = DOI;
 				cites_work_title = DOI_to_item_id_mapping.get(DOI)[0];
 
