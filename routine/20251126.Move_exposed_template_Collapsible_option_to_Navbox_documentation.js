@@ -96,7 +96,6 @@ async function main_process() {
 		return;
 	}
 
-
 	for await (let page_list of wiki.embeddedin('Template:' + template_name_hash.Collapsible_option, { namespace: 'template', batch_size: 500 })) {
 		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix));
 		await for_page_list(page_list);
@@ -329,9 +328,8 @@ async function handle_Documentation_content(content, page_data, template_token, 
 
 				// 若本 section 只包括 {{Collapsible option}} 一個模板，則刪掉整個段落，將 {{Collapsible option}} 移到最上方。
 				let Collapsible_option_to_move = token;
-				let _index = latest_section_title.index;
-				while (_index < content.length) {
-					const sibling_token = content[++_index];
+				for (let _index = latest_section_title.index; ++_index < content.length;) {
+					const sibling_token = content[_index];
 					if (sibling_token.type === 'section_title') {
 						// 遇到下一個章節標題，停止處理。
 						break;
@@ -354,7 +352,7 @@ async function handle_Documentation_content(content, page_data, template_token, 
 				}
 
 				// 否則跳過本模板不處理。
-				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 發現說明文件中，於章節後的{{${template_name_hash.Collapsible_option}}}，無法處理！`);
+				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 發現說明文件中於章節後的{{${template_name_hash.Collapsible_option}}}，無法處理！`);
 				//do_not_process_doc_subpage = true;
 				return;
 			//break;
