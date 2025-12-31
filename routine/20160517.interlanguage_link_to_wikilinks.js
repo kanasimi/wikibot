@@ -1172,9 +1172,9 @@ function for_each_page(page_data, messages) {
 						subtoken) {
 					if (CeL.wiki.is_parsed_element(subtoken))
 						subtoken.inside_hatnote = token;
-				}, {
+				}, wiki.append_session_to_options({
 					add_index : true
-				});
+				}));
 			}
 			return;
 		}

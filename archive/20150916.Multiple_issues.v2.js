@@ -346,12 +346,12 @@ function check_maintenance_template_name(page_data) {
 		if (!Multiple_issues_template_alias_list.includes(token.name))
 			return;
 
-		parsed.each.call(token.parameters[1], 'template', function(template) {
+		CeL.wiki.parser.parser_prototype.each.call(token.parameters[1], 'template', function(template) {
 			if (!(template.name in maintenance_template_hash)) {
 				maintenance_template_hash[template.name] = null;
 				changed = true;
 			}
-		});
+		}, parsed);
 	});
 
 	if (changed) {

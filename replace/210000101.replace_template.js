@@ -110,10 +110,10 @@ replace_tool.replace({
 			parsed.each('template', token => {
 				if (token.name !== '')
 					return;
-				parsed.each.call(token, 'template', (token, index, parent) => {
+				CeL.wiki.parser.parser_prototype.each.call(token, 'template', (token, index, parent) => {
 					changed = true;
 					parent[index] = '';
-				});
+				}, parsed);
 			});
 			if (changed)
 				return parsed.toString();

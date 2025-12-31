@@ -310,15 +310,15 @@ function check_maintenance_template_name(page_data) {
 		if (!(token.name in configuration.Multiple_issues_template_alias_hash))
 			return;
 
-		parsed.each.call(token.parameters[1], 'template', template => {
+		CeL.wiki.parser.parser_prototype.each.call(token.parameters[1], 'template', template => {
 			if (!(template.name in check_maintenance_template_name.maintenance_template_hash)) {
 				check_maintenance_template_name.maintenance_template_hash[template.name] = null;
 				changed = true;
 			}
-		}, {
+		}, wiki.append_session_to_options({
 			// 只探索第一層。
 			max_depth: 1
-		});
+		}));
 	}, {
 		// 只探索第一層。
 		max_depth: 1

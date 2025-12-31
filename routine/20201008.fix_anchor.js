@@ -1213,7 +1213,7 @@ async function check_page(target_page_data, options) {
 
 				//console.trace(template_token[link_index]);
 				// remove unknown anchors
-				parsed.each.call(template_token[link_index], 'list', list_token => {
+				CeL.wiki.parser.parser_prototype.each.call(template_token[link_index], 'list', list_token => {
 					//console.trace(list_token);
 					for (let index = 0; index < list_token.length; index++) {
 						const first_token = list_token[index][0]?.type && list_token[index][0];
@@ -1249,7 +1249,7 @@ async function check_page(target_page_data, options) {
 						// 移除掉本 list。
 						return parsed.each.remove_token;
 					}
-				});
+				}, wiki.append_session_to_options());
 
 				const original_text = template_token[link_index].toString();
 				if (!anchor_token
@@ -1468,7 +1468,7 @@ async function check_page(target_page_data, options) {
 
 				changed = true;
 				return CeL.wiki.parser.parser_prototype.each.remove_token;
-			});
+			}, wiki.append_session_to_options());
 			return changed;
 		}
 

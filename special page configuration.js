@@ -691,7 +691,7 @@ var jawiki_week_AFD_options = {
 
 			} else {
 				var to_exit = this.each.exit;
-				this.each.call(section, 'template', function(token) {
+				CeL.wiki.parser.parser_prototype.each.call(section, 'template', function(token) {
 					var decide = token.name;
 					if (decide === 'AFD') {
 						decide = token[1] && token[1].toString();
@@ -730,7 +730,7 @@ var jawiki_week_AFD_options = {
 		},
 		support : function(section, section_index) {
 			var vote_count = 0;
-			this.each.call(section, 'template', function(token) {
+			CeL.wiki.parser.parser_prototype.each.call(section, 'template', function(token) {
 				var vote = token.name === 'AFD' && token[1]
 						&& token[1].toString();
 				// https://ja.wikipedia.org/wiki/Template:AFD
@@ -743,7 +743,7 @@ var jawiki_week_AFD_options = {
 		},
 		oppose : function(section, section_index) {
 			var vote_count = 0;
-			this.each.call(section, 'template', function(token) {
+			CeL.wiki.parser.parser_prototype.each.call(section, 'template', function(token) {
 				var vote = token.name === 'AFD' && token[1]
 						&& token[1].toString();
 				// https://ja.wikipedia.org/wiki/Template:AFD
@@ -1242,7 +1242,7 @@ function BRFA_section_filter(section) {
 
 	// 尋找標題之外的第一個bot使用者連結。
 	if (applicants.length === 0) {
-		this.each.call(section, 'link', function(token) {
+		CeL.wiki.parser.parser_prototype.each.call(section, 'link', function(token) {
 			var user_name = CeL.wiki.parse.user(token.toString());
 			// console.log(user_name);
 			if (user_name) {
@@ -1291,7 +1291,7 @@ function general_check_section_status(section/* , options */) {
 	// console.trace(section);
 
 	// TODO: use wiki.is_template(token, list)
-	this.each.call(section, function(token) {
+	CeL.wiki.parser.parser_prototype.each.call(section, function(token) {
 		if (token.type === 'transclusion'
 		// 本主題全部或部分段落文字，已移動至...
 		// {{Moved to}}, {{Moved discussion to}}
@@ -1453,7 +1453,7 @@ function check_general_status(section, section_index) {
 
 function check_BOTREQ_status(section, section_index) {
 	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
-	this.each.call(section, 'template', function(token) {
+	CeL.wiki.parser.parser_prototype.each.call(section, 'template', function(token) {
 		if (token.name in {
 			// https://commons.wikimedia.org/wiki/Template:Section_resolved
 			'Section resolved' : true
@@ -1615,7 +1615,7 @@ function check_BOTREQ_status(section, section_index) {
 // 議體進度狀態(Status:Approved for trial/Trial complete/Approved/...)
 function check_BRFA_status(section) {
 	var status, to_exit = this.each.exit, BRFA_status;
-	this.each.call(section, 'template', function(token) {
+	CeL.wiki.parser.parser_prototype.each.call(section, 'template', function(token) {
 		var message_mapping = {
 			BAGAssistanceNeeded : '請審核小組協助',
 			'BAG assistance needed' : '請審核小組協助',
@@ -1751,7 +1751,7 @@ function check_BRFA_status(section) {
 // for zhmoegirl
 function check_MarkAsResolved_status(section, section_index) {
 	var status, to_exit = this.each.exit, project = this.page.page_configuration.project;
-	this.each.call(section, 'template', function(token) {
+	CeL.wiki.parser.parser_prototype.each.call(section, 'template', function(token) {
 		if (token.name in {
 			Saved : true
 		}) {
@@ -2047,7 +2047,7 @@ function FC_section_filter(section) {
 	var latest_vote, cross_out_vote_list, _this = this, skip_inner = this.each.exit,
 	// 預防可能有同一行裡 "{{yesFL}}<s>{{yesFA}}</s>" 的情況，前一個的日期因跳過 latest_vote 而不會被設定到。
 	votes_without_date = [];
-	this.each.call(section, function(token, index, parent) {
+	CeL.wiki.parser.parser_prototype.each.call(section, function(token, index, parent) {
 		// TODO: 投票人資格審查。
 		// assert: 先投票之後才記錄使用者以及時間。
 		if ((typeof token === 'string' || token.type === 'plain'
@@ -2426,7 +2426,7 @@ function RFF_section_filter(section) {
 
 	// 尋找標題之外的第一個bot使用者連結。
 	if (applicants.length === 0) {
-		this.each.call(section, 'link', function(token) {
+		CeL.wiki.parser.parser_prototype.each.call(section, 'link', function(token) {
 			// console.log(token);
 			var user_name = CeL.wiki.parse.user(token.toString());
 			if (user_name) {

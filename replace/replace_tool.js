@@ -567,7 +567,7 @@ async function guess_and_fulfill_meta_configuration(wiki, meta_configuration) {
 async function get_move_configuration_from_section(meta_configuration, section, options) {
 	function get_discussion_link(meta_token) {
 		let discussion_link;
-		section.each.call(meta_token, 'link', token => {
+		CeL.wiki.parser.parser_prototype.each.call(meta_token, 'link', token => {
 			//console.trace(token);
 			if (!discussion_link) {
 				//discussion_link = token[0] + token[1];
@@ -584,8 +584,8 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				['\t', token.toString()]
 			]));
 			discussion_link = null;
-			return section.each.exit;
-		});
+			return CeL.wiki.parser.parser_prototype.each.exit;
+		}, wiki.append_session_to_options());
 		return discussion_link;
 	}
 
@@ -598,7 +598,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			if (discussion_link)
 				meta_configuration.discussion_link = discussion_link;
 			// CeL.wiki.parser.parser_prototype.each.exit
-			return section.each.exit;
+			return CeL.wiki.parser.parser_prototype.each.exit;
 		});
 	}
 
@@ -2533,9 +2533,9 @@ async function subst_template(token, index, parent) {
 				//return magic_word_function_token.evaluate();
 				if (magic_word_function_token[0].toString().trim() !== 'subst:')
 					magic_word_function_token[0] = 'subst:' + magic_word_function_token[0];
-			}
-				//, true
-			);
+			}, wiki.append_session_to_options({
+				//modify: true
+			}));
 			wikitext = _token.toString();
 		}
 
@@ -3007,7 +3007,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 			return `[[:Category:${wiki.remove_namespace(template_token[1].toString())}]]`;
 			return await CeL.wiki.expand_transclusion(template_token, options);
 		}
-	}, true);
+	}, wiki.append_session_to_options({ modify: true }));
 
 	let from, to;
 	// e.g., # [[move from]]=>[[move to]]
@@ -3037,7 +3037,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 			//console.trace(`${CeL.wiki.title_link_of(from)} → ${CeL.wiki.title_link_of(to)}`);
 			//console.trace(parent[index]);
 		}
-	});
+	}, wiki.append_session_to_options());
 
 	// e.g., # [https://...]=>[https://...]
 	if (!to) {
@@ -3055,7 +3055,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 				CeL.error(`${parse_move_pairs_from_link.name}: Too many urls: Still process ${parent[index]}`);
 				//console.trace(`${CeL.wiki.title_link_of(from)} → ${CeL.wiki.title_link_of(to)}`);
 			}
-		});
+		}, wiki.append_session_to_options());
 	}
 
 	if (from) {
@@ -3085,7 +3085,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 				from = to = null;
 				return CeL.wiki.parser.parser_prototype.each.exit;
 			}
-		});
+		}, wiki.append_session_to_options());
 	}
 
 	//console.trace({ from, to });

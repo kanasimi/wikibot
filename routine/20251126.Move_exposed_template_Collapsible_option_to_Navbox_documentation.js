@@ -96,7 +96,7 @@ async function main_process() {
 		return;
 	}
 
-	for await (let page_list of wiki.embeddedin('Template:' + template_name_hash.Collapsible_option, { namespace: 'template', batch_size: 500 })) {
+	for await (let page_list of wiki.embeddedin(wiki.to_namespace(template_name_hash.Collapsible_option, 'template'), { namespace: 'template', batch_size: 500 })) {
 		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix));
 		await for_page_list(page_list);
 	}
@@ -104,6 +104,7 @@ async function main_process() {
 
 async function for_page_list(page_list) {
 	await wiki.for_each_page(page_list, handle_each_template, {
+		no_message: true,
 		redirects: false,
 		summary: `${summary_prefix}，改用{{${template_name_hash.Navbox_documentation}}}。`,
 	});
@@ -128,7 +129,7 @@ async function handle_each_template(page_data) {
 			changed = true;
 
 			// 轉成{{Navbox documentation}}。使用handle_Documentation_content()以保留parameters_argument。
-			const Navbox_documentation_template = await handle_Documentation_content([template_token], page_data);
+			const Navbox_documentation_template = await handle_Documentation_content(template_token, page_data);
 			if (Navbox_documentation_template) {
 				return Navbox_documentation_template;
 			}
@@ -254,6 +255,7 @@ async function handle_each_template(page_data) {
 async function handle_Documentation_content(content, page_data, template_token, is_doc_subpage) {
 	if (content.type !== 'plain') {
 		// e.g., [[Template:物理學分支]]
+		// assert: content is plain object. e.g., {String}
 		content = [content];
 	}
 
@@ -303,7 +305,7 @@ async function handle_Documentation_content(content, page_data, template_token, 
 				break;
 		}
 
-	}, { modify: true });
+	}, wiki.append_session_to_options({ modify: true }));
 
 	// ------------------------------------------------------------------------
 
@@ -405,7 +407,7 @@ async function handle_Documentation_content(content, page_data, template_token, 
 		}
 
 		return CeL.wiki.parser.parser_prototype.each.remove_token;
-	});
+	}, wiki.append_session_to_options());
 
 	if (!parameters_argument) {
 		parameters_argument = Object.create(null);

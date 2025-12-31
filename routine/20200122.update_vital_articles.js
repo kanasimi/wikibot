@@ -373,7 +373,7 @@ async function adapt_configuration(latest_task_configuration) {
 				icon = token.parameters[1].toString().trim();
 				icon_index = [index + 1, parent];
 			}
-		});
+		}, wiki.append_session_to_options());
 		if (icon) {
 			icon_order.push(icon);
 			if (category_name) {
@@ -1554,7 +1554,7 @@ async function for_each_list_page(list_page_data) {
 				// For token.type === 'bold', 'italic', finding the first link children.
 				// e.g., `'' [[title]] ''`, `''' [[title]] '''`,
 				// `''''' [[title]] '''''`
-				parsed.each.call(token, (_token, index, parent) => {
+				CeL.wiki.parser.parser_prototype.each.call(token, (_token, index, parent) => {
 					if (typeof _token === 'string'
 						// e.g., "{{Icon|A}} ''[[title]]''"
 						&& !/^['\s]*$/.test(_token)) {
@@ -1568,7 +1568,7 @@ async function for_each_list_page(list_page_data) {
 						token = _token;
 						return parsed.each.exit;
 					}
-				});
+				}, wiki.append_session_to_options());
 				//console.trace(token);
 			}
 
@@ -1698,9 +1698,9 @@ async function for_each_list_page(list_page_data) {
 				});
 
 
-				parsed.each.call(_item[index], (_token, index, parent) => {
+				CeL.wiki.parser.parser_prototype.each.call(_item[index], (_token, index, parent) => {
 					//console.log(_token);
-				}, { add_index: true });
+				}, wiki.append_session_to_options({ add_index: true }));
 
 				Object.assign(_item[index], { index, parent: _item });
 				function move_up() {
@@ -3324,7 +3324,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 								WikiProject_templates_and_allowed_elements.push(token);
 								return parsed.each.remove_token;
 							}
-						});
+						}, wiki.append_session_to_options());
 						// 已處理過 |1= 的內部元素，可直接跳過。剩下的元素將會被列在 extra_contents。
 						return parsed.each.skip_inner;
 					}

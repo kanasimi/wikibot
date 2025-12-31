@@ -30,7 +30,7 @@ const replace_tool = require('./replace_tool.js');
 				parsed.each('template', 駅情報_token => {
 					if (駅情報_token.name !== '駅情報')
 						return;
-					parsed.each.call(駅情報_token, 'template', (token, index, parent) => {
+					CeL.wiki.parser.parser_prototype.each.call(駅情報_token, 'template', (token, index, parent) => {
 						if (token.name !== 'Infobox mapframe' && token.name !== 'Maplink2')
 							return;
 						if (/^\s*地図\s*=\s*/.test(parent.slice(0, index).join(''))) {
@@ -44,7 +44,7 @@ const replace_tool = require('./replace_tool.js');
 						}
 						// TODO: 地図\s*=\s*
 						parent[index] = '\n|地図=' + token.toString();
-					});
+					}, parsed);
 				});
 				if (changed)
 					return parsed.toString();
