@@ -373,9 +373,10 @@ function check_final_work() {
 	}
 	check_final_work.done = true;
 
-	wiki.page('User:' + wiki.token.login_user_name
-	//
-	+ '/' + message_set.report_page, {
+	var report_page = 'User:' + wiki.token.login_user_name + '/'
+			+ message_set.report_page;
+
+	wiki.page(report_page, {
 		redirects : 1,
 		converttitles : 1
 	}).edit(function() {
@@ -462,7 +463,7 @@ function check_final_work() {
 	}, {
 		// section : 'new',
 		// sectiontitle : '結果報告',
-		summary : CeL.wiki.title_link_of(message_set.report_page, gettext(
+		summary : CeL.wiki.title_link_of(report_page, gettext(
 		// gettext_config:{"id":"cleanup-report-for-interlanguage-link-templates"}
 		'Cleanup report for interlanguage link templates')),
 		nocreate : 1,

@@ -15,8 +15,8 @@ TODO:
 
 'use strict';
 
-// Load replace tools.
-const replace_tool = require('../replace/replace_tool.js');
+// Load CeJS library and modules.
+require('../wiki loader.js');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 //set_language('zh');
@@ -96,21 +96,29 @@ async function main_process() {
 		return;
 	}
 
+	const report_lines = [];
+
 	for await (let page_list of wiki.embeddedin(wiki.to_namespace(template_name_hash.Collapsible_option, 'template'), { namespace: 'template', batch_size: 500 })) {
 		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix));
-		await for_page_list(page_list);
+		await for_page_list(page_list, { report_lines });
 	}
+
+	await generate_report({ report_lines });
 }
 
-async function for_page_list(page_list) {
+async function for_page_list(page_list, options) {
 	await wiki.for_each_page(page_list, handle_each_template, {
+		...options,
+		on_edit_error(title, error, result) {
+			options.report_lines.push([title, `編輯錯誤：${error}`]);
+		},
 		no_message: true,
 		redirects: false,
 		summary: `${summary_prefix}，改用{{${template_name_hash.Navbox_documentation}}}。`,
 	});
 }
 
-async function handle_each_template(page_data) {
+async function handle_each_template(page_data, messages, config) {
 	CeL.log_temporary(`${handle_each_template.name}: 處理頁面 ${CeL.wiki.title_link_of(page_data)}`);
 	const parsed = page_data.parse();
 
@@ -129,7 +137,7 @@ async function handle_each_template(page_data) {
 			changed = true;
 
 			// 轉成{{Navbox documentation}}。使用handle_Documentation_content()以保留parameters_argument。
-			const Navbox_documentation_template = await handle_Documentation_content(template_token, page_data);
+			const Navbox_documentation_template = await handle_Documentation_content(template_token, { ...config, page_data });
 			if (Navbox_documentation_template) {
 				return Navbox_documentation_template;
 			}
@@ -147,7 +155,7 @@ async function handle_each_template(page_data) {
 			// parameters.content 優先權高於'/doc'子頁面。
 			if (template_token.parameters.content) {
 				// e.g., [[Template:洲/doc]]
-				const Navbox_documentation_template = await handle_Documentation_content(template_token.parameters.content, page_data);
+				const Navbox_documentation_template = await handle_Documentation_content(template_token.parameters.content, { ...config, page_data });
 				if (Navbox_documentation_template) {
 					changed = true;
 				}
@@ -162,7 +170,7 @@ async function handle_each_template(page_data) {
 			// TODO: Skip magic words.
 			// e.g., [[w:zh:Template:MacOS]], [[Template:国务院/副总理/1]]
 
-			const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage, page_data, template_token, true);
+			const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage, { ...config, page_data, doc_subpage, template_token });
 			if (!Navbox_documentation_template) {
 				return;
 			}
@@ -234,7 +242,13 @@ async function handle_each_template(page_data) {
 
 	if (template_indexes.Collapsible_option.length + template_indexes.Documentation.length + template_indexes.Navbox_documentation.length > 1) {
 		// e.g., [[Template:电磁学]]
-		CeL.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個頁面中發現多個說明文件！ ${JSON.stringify(template_indexes)}`);
+		const message = `在同一個頁面中發現多個說明文件模板：` +
+			//Object.entries(template_indexes).map(([template_name, locations]) => locations.map(([index, parent]) => parent[index]));
+			Object.keys(template_indexes).filter(template_name => template_indexes[template_name].length > 0)
+				// gettext_config:{"id":"Comma-separator"}
+				.join(CeL.gettext('Comma-separator')) + `，需人工清理。`;
+		CeL.error(`${handle_each_template.name}: ${CeL.wiki.title_link_of(page_data)}: ${message}`);
+		config.report_lines.push([page_data.title, message]);
 		return Wikiapi.skip_edit;
 	}
 
@@ -252,7 +266,7 @@ async function handle_each_template(page_data) {
 	return wikitext;
 }
 
-async function handle_Documentation_content(content, page_data, template_token, is_doc_subpage) {
+async function handle_Documentation_content(content, { report_lines, page_data, doc_subpage, template_token }) {
 	if (content.type !== 'plain') {
 		// e.g., [[Template:物理學分支]]
 		// assert: content is plain object. e.g., {String}
@@ -354,7 +368,9 @@ async function handle_Documentation_content(content, page_data, template_token, 
 				}
 
 				// 否則跳過本模板不處理。
-				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 發現說明文件中於章節後的{{${template_name_hash.Collapsible_option}}}，無法處理！`);
+				const message = `發現說明文件中於章節後的 ${template_name_hash.Collapsible_option}，需人工清理。`;
+				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(doc_subpage || page_data)}: ${message}`);
+				report_lines.push([CeL.wiki.title_of(doc_subpage || page_data), message]);
 				//do_not_process_doc_subpage = true;
 				return;
 			//break;
@@ -364,7 +380,7 @@ async function handle_Documentation_content(content, page_data, template_token, 
 	// ------------------------------------------------------------------------
 
 	// 本程式不處理過大的/doc頁面。將跳過超過此chars的/doc頁面。
-	if (is_doc_subpage && content.toString().trim().length > wiki.latest_task_configuration.general.max_doc_subpage_chars_to_move) {
+	if (doc_subpage && content.toString().trim().length > wiki.latest_task_configuration.general.max_doc_subpage_chars_to_move) {
 		return;
 	}
 
@@ -377,7 +393,9 @@ async function handle_Documentation_content(content, page_data, template_token, 
 	CeL.wiki.parser.parser_prototype.each.call(content, 'Template:' + template_name_hash.Collapsible_option, (template_token, index, parent) => {
 		//has_Collapsible_option = true;
 		if (parameters_argument) {
-			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(page_data)}: 在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，無法處理！`);
+			const message = `在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，需人工清理。`;
+			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(doc_subpage || page_data)}: ${message}`);
+			report_lines.push([CeL.wiki.title_of(doc_subpage || page_data), message]);
 			//parameters_argument = false;
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
@@ -447,4 +465,34 @@ ${doc_subpage_declaration}${content}
 	}
 
 	return Navbox_documentation_template;
+}
+
+// ----------------------------------------------------------------------------
+
+async function generate_report({ report_lines }) {
+	report_lines.forEach(record => {
+		const page_title = record[0];
+		record[0] = CeL.wiki.title_link_of(page_title);
+	});
+
+	const report_count = report_lines.length;
+	let report_wikitext;
+	if (report_count > 0) {
+		report_lines.unshift(['Page title', 'Situation']);
+		report_wikitext = CeL.wiki.array_to_table(report_lines, {
+			class: "wikitable sortable"
+		});
+		report_wikitext = `List ${report_count} page(s) with issues.
+這裡列出了需人工修正的跨語言連結。本列表將由機器人自動更新。
+* ${CeL.gettext(
+			// gettext_config:{"id":"report-generation-date-$1"}
+			'Report generation date: %1', '<onlyinclude>~~~~~</onlyinclude>')}
+
+${report_wikitext}
+[[Category:维基百科模板清理]]`;
+	} else {
+		report_wikitext = "* '''So good, no news!'''";
+	}
+
+	await wiki.edit_page(log_to, report_wikitext, { redirects: true, bot: true, summary: `${summary_prefix}報告。` });
 }

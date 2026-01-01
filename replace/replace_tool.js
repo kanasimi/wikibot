@@ -76,7 +76,7 @@ CeL.run([
 
 
 // 20190913.replace.js
-log_to = log_to.replace(/\d+$/, 20190913);
+log_to = log_to.replace(/\d+$/, '20190913');
 //console.trace(log_to);
 
 // global variables using in move_configuration
