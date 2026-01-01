@@ -585,7 +585,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			]));
 			discussion_link = null;
 			return CeL.wiki.parser.parser_prototype.each.exit;
-		}, wiki.append_session_to_options());
+		}, meta_configuration[KEY_wiki_session].append_session_to_options());
 		return discussion_link;
 	}
 
