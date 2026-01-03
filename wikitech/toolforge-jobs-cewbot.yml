@@ -19,6 +19,7 @@
 # -----------------------------------------------------------------------------
 # structure
 
+# job name can't be longer than 52 characters. See the documentation for the naming rules: https://w.wiki/6YL8
 - name: env-on-jobs
   command: "node /data/project/cewbot/wikibot/env.js"
   image: node18
@@ -130,7 +131,7 @@
   cpu: 0.25
   mem: 3Gi
   schedule: "4 20 * * 5"
-- name: k8s-20160517.interlanguage-link-to-wikilinks.zh.wikivoyage
+- name: k8s-20160517.interlanguage-link-to-wikilinks.zh-voy
   command: "node ./wikibot/routine/20160517.interlanguage_link_to_wikilinks.js use_language=zh.wikivoyage"
   image: node18
   cpu: 0.25
@@ -367,7 +368,7 @@
   cpu: 0.25
   mem: 2Gi
   schedule: "15 21 * * *"
-- name: k8s-20211203.synchronizing-common-pages.wikivoyage
+- name: k8s-20211203.synchronizing-common-pages.zh-voy
   command: "node ./wikibot/routine/20211203.synchronizing_common_pages.js use_project=zh.wikivoyage"
   image: node18
   cpu: 0.25
@@ -468,6 +469,16 @@
   cpu: 0.25
   mem: 2Gi
   schedule: "1 2 * * 6"
+
+
+# 清理navbox模板中裸露的{{Collapsible option}}，改用{{Navbox documentation}}。
+- name: k8s-20251126.collapsible-option-to-navbox-doc
+  command: "node ./wikibot/routine/20251126.Move_exposed_template_Collapsible_option_to_Navbox_documentation.js use_project=zh"
+  image: node18
+  cpu: 0.25
+  mem: 1Gi
+  schedule: "15 12 * * 6"
+
 
 # -----------------------------------------------------------------------------
 # zh.wikinews
@@ -785,16 +796,6 @@
   cpu: 0.25
   mem: 2Gi
   schedule: "10 10 * * *"
-
-
-
-# 清理navbox模板中裸露的{{Collapsible option}}，改用{{Navbox documentation}}。
-- name: k8s-20251126.collapsible-option-to-navbox-doc
-  command: "node ./wikibot/routine/20251126.Move_exposed_template_Collapsible_option_to_Navbox_documentation.js use_project=zh"
-  image: node18
-  cpu: 0.25
-  mem: 1Gi
-  schedule: "15 12 * * 6"
 
 
 # -----------------------------------------------------------------------------
