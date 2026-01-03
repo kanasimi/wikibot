@@ -368,7 +368,7 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 				}
 
 				// 否則跳過本模板不處理。
-				const message = `發現說明文件中於章節後的 ${template_name_hash.Collapsible_option}，需人工清理。`;
+				const message = `發現說明文件中於章節標題後的 ${template_name_hash.Collapsible_option}，需人工清理。`;
 				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(doc_subpage || page_data)}: ${message}`);
 				report_lines.push([CeL.wiki.title_of(doc_subpage || page_data), message]);
 				//do_not_process_doc_subpage = true;
