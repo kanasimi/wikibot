@@ -91,7 +91,8 @@ async function main_process() {
 		namespace: fix_namespace,
 	})) {
 		//console.trace(page_data);
-		if (PATTERN_filter_page_title && !PATTERN_filter_page_title.test(page_data.title)) {
+		if (page_data.title === globalThis.log_to
+			|| PATTERN_filter_page_title && !PATTERN_filter_page_title.test(page_data.title)) {
 			continue;
 		}
 		await check_page_data(page_data);
@@ -102,7 +103,7 @@ async function main_process() {
 
 async function check_page_data(page_data) {
 	CeL.log_temporary(`Fetch ${CeL.wiki.title_link_of(page_data)} ${end_time > Date.parse(page_data.timestamp)
-		? `(${(100 * (Date.parse(page_data.timestamp) - start_time) / (end_time - start_time)).to_fixed(1)}%)` : ''}`);
+		? `(${(100 * (Date.parse(page_data.timestamp) - start_time) / (end_time - start_time)).to_fixed(2)}%)` : ''}`);
 	page_data = await wiki.page(page_data, {
 		rvlimit: CeL.wiki.is_page_data(page_data)
 			// 不是最新的就多取得一點。
@@ -145,7 +146,7 @@ async function check_page_data(page_data) {
 	if (revision_after_bot?.tags.includes('mw-undo')) {
 		// Already fixed?
 		if (revision_after_bot.user !== login_user_name || !revision_after_bot.comment || summary_piece.some(piece => !revision_after_bot.comment.includes(piece))) {
-			CeL.warn(CeL.wiki.title_link_of(page_data) + ' 已被 ' + revision_after_bot.user + ' undo 過' + (revision_after_bot.comment ? ': ' + revision_after_bot.comment : ''));
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)} 已被 ${revision_after_bot.user} undo 過${revision_after_bot.comment ? ': ' + revision_after_bot.comment : ''}`);
 		}
 		return;
 	}
@@ -153,8 +154,8 @@ async function check_page_data(page_data) {
 	let diff_list;
 	try {
 		//console.trace([revision_prior_to_bot, revision_of_bot]);
-		let from_wikitext = CeL.wiki.content_of(revision_prior_to_bot).replace(/^[\s\S]+?(\n==)/, '$1');
-		let to_wikitext = CeL.wiki.content_of(revision_of_bot).replace(/^[\s\S]+?(\n==)/, '$1');
+		const from_wikitext = CeL.wiki.content_of(revision_prior_to_bot).replace(/^[\s\S]+?(\n==)/, '$1');
+		const to_wikitext = CeL.wiki.content_of(revision_of_bot).replace(/^[\s\S]+?(\n==)/, '$1');
 		//console.trace([from_wikitext, to_wikitext]);
 		if (from_wikitext === to_wikitext || !from_wikitext.includes('\n==') && !to_wikitext.includes('\n==')) {
 			return;
@@ -196,6 +197,7 @@ async function check_page_data(page_data) {
 		CeL.warn(`${CeL.wiki.title_link_of(page_data)} 已被 ${revision_after_bot.user} 編輯過 [[Special:Diff/${revision_after_bot.revid}]]${revision_after_bot.comment ? ': ' + revision_after_bot.comment : ''}`);
 	}
 
+	// Show diff for manual fix.
 	CeL.info(`${check_page_data.name}: ${CeL.wiki.title_link_of(page_data)}:`);
 	console.trace(diff_list);
 }
