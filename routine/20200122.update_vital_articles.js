@@ -1694,6 +1694,8 @@ async function for_each_list_page(list_page_data) {
 					else
 						article_count_of_icon[icon] = 1;
 					//{{Class/icon}}
+					return `{{Icon|${icon}}}`;
+					// Use {{#invoke:Icon}} to reduce [[WP:PEIS]].
 					return `{{#invoke:Icon||${icon}}}`;
 				});
 
