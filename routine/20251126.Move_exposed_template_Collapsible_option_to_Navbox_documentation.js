@@ -83,6 +83,9 @@ let summary_prefix = '清理導航模板中裸露的可折疊選項模板';
 
 // ----------------------------------------------------------------------------
 
+/**{Set}重要且關鍵的模板名稱列表 */
+const essential_template_name_Set = new Set(Object.values(template_name_hash));
+
 async function main_process() {
 	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, summary_prefix);
 
@@ -99,7 +102,7 @@ async function main_process() {
 	const report_lines = [];
 
 	for await (let page_list of wiki.embeddedin(wiki.to_namespace(template_name_hash.Collapsible_option, 'template'), { namespace: 'template', batch_size: 500 })) {
-		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix));
+		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix) && !essential_template_name_Set.has(wiki.remove_namespace(page_data)));
 		await for_page_list(page_list, { report_lines });
 	}
 
