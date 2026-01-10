@@ -65,6 +65,18 @@ async function adapt_configuration(latest_task_configuration) {
 		delete general.remove_doc_subpage_comments;
 	}
 
+	// ----------------------------------------------------
+
+	// Register redirects of essential templates.
+	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
+	//console.log('Redirect targets of essential templates:', template_name_hash);
+	essential_template_name_Set.clear();
+	Object.values(template_name_hash).forEach(template_name => essential_template_name_Set.add(wiki.redirect_target_of(template_name, { namespace: 'Template' })));
+	//console.trace(essential_template_name_Set);
+
+	await wiki.register_redirects(exclude_doc_subpage_template_name_list, { namespace: 'Template', no_message: true });
+
+	// Debug:
 	console.trace(wiki.latest_task_configuration.general);
 }
 
@@ -84,14 +96,11 @@ let summary_prefix = '清理導航模板中裸露的可折疊選項模板';
 // ----------------------------------------------------------------------------
 
 /**{Set}重要且關鍵的模板名稱列表 */
-const essential_template_name_Set = new Set(Object.values(template_name_hash));
+const essential_template_name_Set = new Set();
+//essential_template_name_Set = new Set(Object.values(template_name_hash));
 
 async function main_process() {
 	summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, summary_prefix);
-
-	await wiki.register_redirects(template_name_hash, { namespace: 'Template', no_message: true, update_page_name_hash: true });
-	await wiki.register_redirects(exclude_doc_subpage_template_name_list, { namespace: 'Template', no_message: true });
-	console.log('Redirect targets:', template_name_hash);
 
 	if (CeL.env.arg_hash.check_page && typeof CeL.env.arg_hash.check_page === 'string') {
 		// for testing only
@@ -102,7 +111,7 @@ async function main_process() {
 	const report_lines = [];
 
 	for await (let page_list of wiki.embeddedin(wiki.to_namespace(template_name_hash.Collapsible_option, 'template'), { namespace: 'template', batch_size: 500 })) {
-		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix) && !essential_template_name_Set.has(wiki.remove_namespace(page_data)));
+		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix) && !essential_template_name_Set.has(page_data.title));
 		await for_page_list(page_list, { report_lines });
 	}
 
