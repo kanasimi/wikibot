@@ -744,7 +744,9 @@ function for_each_page(page_data, messages) {
 			// @see [[:en:Template:illm]], [[:ja:Template:仮リンク]],
 			// [[:en:Template:ill]]
 			/** {String}label text displayed */
-			text_displayed = normalized_param.label;
+			text_displayed = normalized_param.label
+			// [[User talk:Kanashimi#沒填寫中文名稱的跨語言連結成功被清掉]]
+			|| token.use_link_target && local_title;
 			// console.trace(normalized_param);
 			if (text_displayed) {
 				if (text_displayed !== link_target) {
@@ -1134,14 +1136,14 @@ function for_each_page(page_data, messages) {
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
 			foreign_title ], for_local_page, CeL.wiki.add_session_to_options(
-					wiki, {
-						// e.g., {{Ill|George B. Sennett|George Burritt
-						// Sennett}}
-						// @ [[w:en:Special:Diff/1227543178]]
-						multi : false,
-						redirects : 1,
-						converttitles : 1
-					}));
+			//
+			wiki, {
+				// e.g., {{Ill|George B. Sennett|George Burritt Sennett}}
+				// @ [[w:en:Special:Diff/1227543178]]
+				multi : false,
+				redirects : 1,
+				converttitles : 1
+			}));
 
 		}
 
