@@ -622,6 +622,7 @@ ${update_Variable_Map.format('report')}
 		bot: 1,
 		nocreate: 1,
 		tags: wiki.latest_task_configuration.general.tags,
+		ignore_abusefilter_warnings: true,
 		summary
 	});
 }
