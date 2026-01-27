@@ -16,9 +16,11 @@ node 20191129.check_language_conversion.js use_project=zh debug_page=查理·卓
 @see [[w:zh:Wikipedia:互助客栈/其他/存档/2019年11月#有关于公共字词转换组的若干讨论]]
 
 TODO:
-[[Wikipedia:机器人/作业请求#修正一些条目的NoteTA中的不当中文变体]]
-{{Lan}}
+[[Wikipedia:机器人/作业请求/存档6#修正一些条目的NoteTA中的不当中文变体]]
 https://zh.wikipedia.org/w/index.php?title=%E7%89%B9%E7%BE%85%E4%BC%8A%C2%B7%E8%B2%9D%E5%85%8B&diff=prev&oldid=87373602
+	[[空中杀手|-{zh-hans:空中杀手;zh-hk:青空之行者;zh-tw:空中殺手;}-]] → [[空中杀手]]
+標記並回報機器人無法解析的公共轉換組模塊
+{{Lan}}
 
  */
 
