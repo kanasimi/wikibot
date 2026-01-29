@@ -74,6 +74,9 @@ async function adapt_configuration(latest_task_configuration) {
 	if (!general.tags)
 		general.tags = '';
 
+	if (general.lite_template_name_for_PEIS)
+		general.lite_template_name_for_PEIS = wiki.remove_namespace(general.lite_template_name_for_PEIS);
+
 	console.trace(wiki.latest_task_configuration.general);
 }
 
@@ -185,6 +188,11 @@ async function main_process() {
 	async function for_each_article_list(page_list) {
 		await wiki.for_each_page(page_list, for_NoteTA_article, {
 			no_message: true,
+			page_options: wiki.latest_task_configuration.general.lite_template_name_for_PEIS && {
+				prop: 'revisions|categories',
+				//clshow: '!hidden', cllimit: 'max',
+				clcategories: wiki.latest_task_configuration.general.PEIS_category
+			},
 			pages_finished: total_page_count,
 			// 現用 `for await (const page_list of`，不再需要。
 			//initial_target_length,
@@ -827,6 +835,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		'與{{NoteTA}}重複的內文轉換': [],
 		與內文之全文轉換重複的字詞轉換: []
 	};
+	let NoteTA_template_name_changed_from;
 	parsed.each('Template', token => {
 		if (!wiki.is_template(CeL.wiki.NoteTA_templates, token)) {
 			//console.trace([token, token.type, token.name]);
@@ -834,6 +843,13 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		}
 
 		let _changed;
+
+		if (page_data.categories && wiki.is_template('NoteTA', token)) {
+			NoteTA_template_name_changed_from = token.name;
+			token[0] = wiki.latest_task_configuration.general.lite_template_name_for_PEIS + '\n';
+			_changed = true;
+		}
+
 		//console.trace(token.conversion_list);
 		for (let index = 0; index < token.conversion_list.length; index++) {
 			const conversion = token.conversion_list[index];
@@ -1134,7 +1150,9 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 				allow_blanking: 1,
 				tags: wiki.latest_task_configuration.general.tags,
 				skip_nochange: true,
-				summary: this.summary + (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`) + progress_message(),
+				summary: this.summary
+					+ (unregistered_groups_Array.length > 0 ? ` 提醒使用了未登記的公共轉換組 ${unregistered_groups_Array.join(', ')}` : ` 刪除提醒使用未登記公共轉換組的模板`)
+					+ progress_message(),
 			});
 		}
 		//console.trace(changed);
@@ -1147,6 +1165,9 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 		return Wikiapi.skip_edit;
 	}
 	//console.trace(parsed.toString());
+
+	if (NoteTA_template_name_changed_from)
+		this.summary += ` 因[[WP:PEIS]]改{{${NoteTA_template_name_changed_from}}}為{{${wiki.latest_task_configuration.general.lite_template_name_for_PEIS}}}`;
 
 	for (let [type, list] of Object.entries(duplicate_list)) {
 		if (list.length === 0) continue;
