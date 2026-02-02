@@ -795,7 +795,7 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 					//token[group_data.index][2] = group_name_String;
 					CeL.wiki.parse.replace_parameter(token, {
 						[group_data.parameter_name]: group_name_String,
-					}, 'value_only');
+					}, { value_only: true });
 					changed = true;
 				}
 

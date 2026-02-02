@@ -228,7 +228,7 @@ function for_template(token, index, parent) {
 
 		// 由於要刪除 df參數必須判別日期格式，因此順便修正可讀得懂，但是格式錯誤的日期。
 		CeL.debug(`Convert to ISO 8601: |${parameter_name}=${original_value}|	→ ${date.format('%Y-%2m-%2d')}`);
-		CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, 'value_only');
+		CeL.wiki.parse.replace_parameter(token, { [parameter_name]: date.format('%Y-%2m-%2d') }, { value_only: true });
 		date_parameters_changed.push(parameter_name);
 	}
 

@@ -178,7 +178,7 @@ async function for_each_item(talk_page_data) {
 		this.summary += 'into {{WikiProject banner shell}}';
 		CeL.wiki.parse.replace_parameter(WikiProject_banner_shell_token, {
 			'1': value => wikitext_to_add + '\n' + (value ? value.toString().trimStart() : '')
-		}, 'value_only');
+		}, { value_only: true });
 	} else {
 		this.summary += 'as a hatnote';
 		parsed.insert_layout_element(wikitext_to_add, /* talk_page_lead */'lead_templates_end');

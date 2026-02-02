@@ -1135,9 +1135,9 @@ function for_each_page(page_data, messages) {
 			}
 			CeL.wiki.langlinks([ foreign_language,
 			// check the Interlanguage link.
-			foreign_title ], for_local_page, CeL.wiki.add_session_to_options(
+			foreign_title ], for_local_page,
 			//
-			wiki, {
+			CeL.wiki.add_session_to_options(wiki, {
 				// e.g., {{Ill|George B. Sennett|George Burritt Sennett}}
 				// @ [[w:en:Special:Diff/1227543178]]
 				multi : false,
@@ -1175,7 +1175,7 @@ function for_each_page(page_data, messages) {
 						subtoken) {
 					if (CeL.wiki.is_parsed_element(subtoken))
 						subtoken.inside_hatnote = token;
-				}, wiki.append_session_to_options({
+				}, CeL.wiki.add_session_to_options(wiki, {
 					add_index : true
 				}));
 			}
