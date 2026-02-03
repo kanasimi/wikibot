@@ -767,8 +767,9 @@ function for_each_page(page_data, messages) {
 				resolved_ills.push(link
 						+ (token.additional_summary ? '('
 								+ token.additional_summary + ')' : ''));
-				CeL.log('modify_link: Adapt @ ' + CeL.wiki.title_link_of(title)
-						+ ': ' + token.toString() + ' → ' + link);
+				CeL.log('modify_link: ' + 'Adapt @ '
+						+ CeL.wiki.title_link_of(title) + ': '
+						+ token.toString() + ' → ' + link);
 			}
 
 			if (CeL.wiki.Yesno(parameters.italic)) {
@@ -926,7 +927,10 @@ function for_each_page(page_data, messages) {
 							// 存在本地頁面。e.g., redirected page
 							check_page(gettext(
 							// gettext_config:{"id":"missing-converted-local-page-or-the-foreign-local-page-is-not-link-to-wikidata"}
-							'缺少轉換後的本地頁面，或者外部/本地頁面未鏈接到維基數據。'));
+							'缺少轉換後的本地頁面，或者外部/本地頁面未鏈接到維基數據。'),
+							// [[w:ja:利用者‐会話:Kanashimi#修正が必要な仮リンクの一覧におけるredirect引数の扱いについて]]
+							// redirect引数は、preserveと同様に他言語版のリンクを残したまま仮リンク表記を行うための引数です。
+							parameters.redirect);
 						} else {
 							// 忽略本地頁面不存在，且從外語言條目連結無法取得本地頁面的情況。
 							// 此應屬正常。
@@ -1078,10 +1082,10 @@ function for_each_page(page_data, messages) {
 			}
 
 			if (!foreign_page_data.pageprops) {
-				CeL.warn(
+				CeL.debug('for_foreign_page: '
 				// 沒 .pageprops 的似乎大多是沒有 Wikidata entity 的？
-				'for_foreign_page: No foreign_page_data.pageprops: [[:'
-						+ foreign_language + ':' + foreign_title + ']] @ '
+				+ 'No foreign_page_data.pageprops: [[:' + foreign_language
+						+ ':' + foreign_title + ']] @ '
 						+ CeL.wiki.title_link_of(title));
 			} else if ('disambiguation' in foreign_page_data.pageprops) {
 				// 仮リンクに記された「他言語版へのリンク先」が曖昧さ回避であるもの
@@ -1095,8 +1099,8 @@ function for_each_page(page_data, messages) {
 			var redirect_data = foreign_page_data.response.query.redirects;
 			if (redirect_data) {
 				if (redirect_data.length !== 1) {
-					CeL.warn('for_foreign_page: Get ' + redirect_data.length
-							+ ' redirect links for '
+					CeL.warn('for_foreign_page: ' + 'Get '
+							+ redirect_data.length + ' redirect links for '
 							+ CeL.wiki.title_link_of(title) + '!');
 					console.log(redirect_data);
 				}
@@ -1117,7 +1121,8 @@ function for_each_page(page_data, messages) {
 				if (!foreign_page_data.title
 						|| foreign_title.toLowerCase() !== foreign_page_data.title
 								.toLowerCase()) {
-					CeL.log('for_foreign_page: different foreign title: '
+					CeL.log('for_foreign_page: '
+							+ 'different foreign title: '
 							+ CeL.wiki.title_link_of(foreign_language + ':'
 									+ foreign_title)
 							+ ' → '
@@ -1242,7 +1247,8 @@ function for_each_page(page_data, messages) {
 				save_response : true,
 				get_URL_options : {
 					onfail : function(error) {
-						CeL.error('for_each_page: get_URL error: '
+						CeL.error('for_each_page: '
+								+ 'get_URL error: '
 								+ CeL.wiki.title_link_of(foreign_language + ':'
 										+ foreign_title) + ':');
 						console.error(error);
@@ -1274,8 +1280,9 @@ function for_each_page(page_data, messages) {
 
 		} else if (local_title && WD) {
 			if (foreign_language) {
-				CeL.warn('for_each_page: Using language [' + foreign_language
-						+ '] in ' + CeL.wiki.title_link_of('d:' + WD) + ' @ '
+				CeL.warn('for_each_page: ' + 'Using language ['
+						+ foreign_language + '] in '
+						+ CeL.wiki.title_link_of('d:' + WD) + ' @ '
 						+ CeL.wiki.title_link_of(title) + '.');
 			}
 			// for [[d:Q1]]
