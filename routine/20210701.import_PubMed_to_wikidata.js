@@ -75,6 +75,11 @@ const NCBI_articleid_properties_mapping = {
 	// electronic identification?
 	eid: '',
 	pmcid: '',
+	// https://www.nlm.nih.gov/pubs/techbull/ja03/ja03_technote_medline_unique_identifier.html
+	// MEDLINEÂ® Unique Identifier (UI in PubMedÂ®) To Be Discontinued
+	// There is potential confusion in having two identifying numbers on the same citation. Therefore, when MEDLINE is updated with 2004 MeSH vocabulary in December, 2003, the PMID will be the only unique number used in PubMed and on records distributed to licensees.
+	// https://github.com/JabRef/jabref/issues/2379
+	medline: '',
 
 	// ???
 	version: '',
@@ -1025,6 +1030,109 @@ function adapt_time_to_descriptions(data_to_modify, publication_date) {
 
 // ----------------------------------------------------------------------------
 
+/**
+ * 根據文章 ID（如 PubMed ID、DOI、PMC ID 等）來獲取對應的 Wikidata 項目 ID，並檢查是否存在重複項目。
+ *
+ * 這個函數會根據提供的文章 ID 類型來構建 SPARQL 查詢，並使用 Wikidata 的 SPARQL 端點來執行查詢。
+ *
+ * @param {Number} PubMed_ID - 文章的 PubMed ID。
+ * @param {Object} NCBI_article_data - 包含 NCBI 文章數據的對象，應該包含 articleids 屬性，其中包含不同類型的文章 ID。
+ * @param {Object} Europe_PMC_article_data - 包含 Europe PMC 文章數據的對象，應該包含 title 屬性和其他相關信息。
+ * @param {Object} data_to_modify - 包含要修改的數據的{Object}。包含 claims 屬性，用於存儲要添加到 Wikidata 項目的聲明。
+ * @returns {Promise<Array>} 返回一個包含找到的 Wikidata 項目 ID 的數組。
+ */
+async function get_article_entities_by_ids({ PubMed_ID, NCBI_article_data, Europe_PMC_article_data, data_to_modify }) {
+
+	const id_filter = [];
+	id_filter.toString = function () { return this.join(''); };
+
+	// https://www.chinaw3c.org/REC-sparql11-overview-20130321-cn.html
+	// http://www.ruanyifeng.com/blog/2020/02/sparql.html
+	// https://longaspire.github.io/blog/%E5%9B%BE%E8%B0%B1%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B02_1/
+	const SPARQL_check_duplicates = [`
+SELECT DISTINCT ?item ?itemLabel ${articleid_properties_id_list}
+WHERE {`,
+		id_filter, `
+	{
+		?item wdt:P31 wd:Q13442814;
+			?label ${JSON.stringify(data_to_modify.labels.en)}@en.
+	}
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+	${articleid_properties_id_assignment}
+}
+ORDER BY DESC (?item)
+`];
+
+	// ids of NCBI are relatively complete
+	NCBI_article_data.articleids.forEach(articleid => {
+		const idtype = articleid.idtype;
+		//console.trace([articleid, idtype]);
+		if (!(idtype in NCBI_articleid_properties_mapping)) {
+			//console.trace(NCBI_article_data);
+			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to NCBI_articleid_properties_mapping!`);
+		}
+		let property_id = NCBI_articleid_properties_mapping[idtype];
+		if (!property_id) {
+			// Do not use this id. e.g., rid, eid
+			return;
+		}
+
+		let id = articleid.value;
+		if (!id) {
+			// 未提供本種類 ID
+			// https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id=1201098
+			return;
+		}
+
+		switch (idtype) {
+			case 'doi':
+				// https://www.wikidata.org/wiki/Property_talk:P356
+				// Uppercase recommended.
+				id = id.toUpperCase();
+				// For case-insensitive search
+				id_filter.push(`
+				{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`, `
+				{ ?item wdt:${property_id} ${JSON.stringify(id.toLowerCase())}. } UNION`);
+				break;
+
+			case 'pmc':
+				id = id.replace(/^PMC/, '');
+				if (CeL.is_digits(id)) {
+					id_filter.push(`
+					{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
+				}
+				break;
+
+			case 'pubmed':
+				if (CeL.is_digits(id)) {
+					id_filter.push(`
+						{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
+				}
+				break;
+		}
+
+		data_to_modify.claims.push({
+			[property_id]: id,
+			references: NCBI_article_data.wikidata_references
+		});
+	});
+
+	const doi = (Europe_PMC_article_data.doi || NCBI_article_data.articleids.doi || '').toUpperCase();
+	//console.trace(SPARQL_check_duplicates.join(''));
+	const article_item_list = await wiki.SPARQL(SPARQL_check_duplicates.join(''), {
+		filter(item) {
+			return item?.pubmed?.value
+				? +item.pubmed.value === PubMed_ID
+				: !item?.doi?.value || item.doi.value.toUpperCase() === doi;
+		}
+	});
+
+	return article_item_list;
+}
+
+
+// ----------------------------------------------------------------------------
+
 async function load_problematic_data_list() {
 	const page_data = await wiki.page(problematic_data_page_title);
 	const array = CeL.wiki.table_to_array(page_data);
@@ -1082,6 +1190,26 @@ async function write_problematic_data_list() {
 	await wiki.edit_page(problematic_data_page_title, wikitext, { bot: 1, nocreate: 1, summary: `Error report: ${problematic_data_list.length - 1} article(s)` });
 }
 
+
+// ----------------------------------------------------------------------------
+
+/**
+ * 清理不需要的屬性。用於釋放被占用的記憶體。
+ * @param {Object} data_to_modify - 包含要修改的數據的{Object}。包含 claims 屬性，用於存儲要添加到 Wikidata 項目的聲明。
+ */
+function clean_data_to_modify(data_to_modify) {
+	delete data_to_modify.is_non_English_title;
+	delete data_to_modify.is_book;
+	delete data_to_modify.publication_date_claim;
+	delete data_to_modify.publication_date;
+	delete data_to_modify.publication_in_claim_qualifiers;
+	delete data_to_modify.title_list;
+	delete data_to_modify.author_list;
+	delete data_to_modify.main_subject;
+	delete data_to_modify.available_at;
+}
+
+
 // ----------------------------------------------------------------------------
 
 async function for_each_PubMed_ID(PubMed_ID) {
@@ -1105,6 +1233,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		if (DOI || NCBI_article_data.articleids.some(
 			articleid => articleid.idtype === 'doi' && (DOI = articleid.value)
 		)) {
+			NCBI_article_data.articleids.doi = DOI;
 			CrossRef_article_data = (await fetch_DOI_data_from_service(DOI)).CrossRef_article_data;
 			//console.trace(CrossRef_article_data);
 		}
@@ -1117,6 +1246,16 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// @see
 	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
 
+	/**
+	 * 包含要修改的數據的{Object}。
+	 * @type {Object}
+	 * @property {Object} labels - 包含要修改的項目的標籤。鍵是語言代碼，值是對應語言的標籤文本。
+	 * @property {Array} claims - 包含要添加到 Wikidata 項目的聲明的數組。每個聲明是一個對象，包含屬性 P31（實例）和其他相關信息。
+	 * @property {Set} title_list - 用於跟踪已添加的標題，以避免添加重複的標題。
+	 * @property {Object} descriptions - 包含要修改的項目的描述。鍵是語言代碼，值是對應語言的描述文本。
+	 * @property {Boolean} is_non_English_title - 指示是否存在非英語標題的布爾值。
+	 * @property {Object} [其他屬性] - 包含其他與修改相關的屬性，例如出版日期、作者等。
+	 */
 	const data_to_modify = {
 		labels: {
 			en: normalize_article_title(NCBI_article_data.title || NCBI_article_data.booktitle)[0]
@@ -1658,6 +1797,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// --------------------------------------------------------------
 	// cites work (P2860)
 	// https://www.wikidata.org/wiki/User:Citationgraph_bot
+	// TODO: https://api.opencitations.net/
 
 	if (Array.isArray(CrossRef_article_data.reference)) {
 		// 不是每一筆記錄皆有 https://api.crossref.org/works/10.3390/genes12020166
@@ -1775,92 +1915,18 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// TODO: Europe_PMC_article_data.citedByCount
 
 	// ----------------------------------------------------------------------------------------------------------------
-	// article id + 檢查是否有重複項目
-
-	const id_filter = [];
-	id_filter.toString = function () { return this.join(''); };
-
-	// https://www.chinaw3c.org/REC-sparql11-overview-20130321-cn.html
-	// http://www.ruanyifeng.com/blog/2020/02/sparql.html
-	// https://longaspire.github.io/blog/%E5%9B%BE%E8%B0%B1%E5%AE%9E%E8%B7%B5%E7%AC%94%E8%AE%B02_1/
-	const SPARQL_check_duplicates = [`
-SELECT DISTINCT ?item ?itemLabel ${articleid_properties_id_list}
-WHERE {`,
-		id_filter, `
-	{
-		?item wdt:P31 wd:Q13442814;
-			?label ${JSON.stringify(data_to_modify.labels.en)}@en.
-	}
-	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-	${articleid_properties_id_assignment}
-}
-ORDER BY DESC (?item)
-`];
-
-	// ids of NCBI are relatively complete
-	NCBI_article_data.articleids.forEach(articleid => {
-		const idtype = articleid.idtype;
-		//console.trace([articleid, idtype]);
-		if (!(idtype in NCBI_articleid_properties_mapping)) {
-			//console.trace(NCBI_article_data);
-			throw new Error(`${PubMed_ID}: Unknown idtype: ${JSON.stringify(idtype)}. Please add it to NCBI_articleid_properties_mapping!`);
-		}
-		let property_id = NCBI_articleid_properties_mapping[idtype];
-		if (!property_id) {
-			// Do not use this id. e.g., rid, eid
-			return;
-		}
-
-		let id = articleid.value;
-		if (!id) {
-			// 未提供本種類 ID
-			// https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id=1201098
-			return;
-		}
-
-		switch (idtype) {
-			case 'doi':
-				// https://www.wikidata.org/wiki/Property_talk:P356
-				// Uppercase recommended.
-				id = id.toUpperCase();
-				// For case-insensitive search
-				id_filter.push(`
-				{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`, `
-				{ ?item wdt:${property_id} ${JSON.stringify(id.toLowerCase())}. } UNION`);
-				break;
-
-			case 'pmc':
-				id = id.replace(/^PMC/, '');
-				if (CeL.is_digits(id)) {
-					id_filter.push(`
-					{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
-				}
-				break;
-
-			case 'pubmed':
-				if (CeL.is_digits(id)) {
-					id_filter.push(`
-						{ ?item wdt:${property_id} ${JSON.stringify(id)}. } UNION`);
-				}
-				break;
-		}
-
-		data_to_modify.claims.push({
-			[property_id]: id,
-			references: NCBI_article_data.wikidata_references
-		});
-	});
+	// get article id + 檢查是否有重複項目
 
 	if (Array.isArray(Europe_PMC_article_data.fullTextIdList?.fullTextId)) {
 		// TODO:
 	}
 
-	//console.trace(SPARQL_check_duplicates.join(''));
-	const article_item_list = await wiki.SPARQL(SPARQL_check_duplicates.join(''));
+	const article_item_list = await get_article_entities_by_ids({ PubMed_ID, NCBI_article_data, Europe_PMC_article_data, data_to_modify });
 	//console.trace(article_item_list);
 	//console.trace(article_item_list.id_list());
 
 	if (article_item_list.length > 1) {
+		// 如果找到多個項目，則將它們標記為有問題的數據，以便後續處理。
 		CeL.warn(`${for_each_PubMed_ID.name}: There are ${article_item_list.length} articles that PubMed_ID=${PubMed_ID} or title=${JSON.stringify(main_title)}!${article_item_list.length < 30 ? ' (' + article_item_list.id_list().join(', ') + ')' : ''}`);
 		// count > 1: error, log the result.
 		await add_problematic_data(PubMed_ID, article_item_list.id_list().map(id => `{{Q|${id}}}`).join(', ')
@@ -1876,22 +1942,9 @@ ORDER BY DESC (?item)
 	//return;
 	//CeL.set_debug(6);
 
-	// Release memory. 釋放被占用的記憶體。
-	function clean_data_to_modify() {
-		delete data_to_modify.is_non_English_title;
-		delete data_to_modify.is_book;
-		delete data_to_modify.publication_date_claim;
-		delete data_to_modify.publication_date;
-		delete data_to_modify.publication_in_claim_qualifiers;
-		delete data_to_modify.title_list;
-		delete data_to_modify.author_list;
-		delete data_to_modify.main_subject;
-		delete data_to_modify.available_at;
-	}
-
 	if (article_item_list.length === 0) {
 		// no result: Need to add.
-		clean_data_to_modify();
+		clean_data_to_modify(data_to_modify);
 		CeL.info(`${for_each_PubMed_ID.name}: Create new item for PubMed ID=${PubMed_ID}: ${main_title}`);
 		//throw new Error('No existing item found');
 		return await wiki.new_data_entity(data_to_modify, { bot: 1, summary: `Import new ${NCBI_article_data.doctype} PubMed ID = ${PubMed_ID}${summary_source_posifix}` });
@@ -2075,7 +2128,8 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 	});
 
 
-	clean_data_to_modify();
+	// Release memory. 釋放被占用的記憶體。
+	clean_data_to_modify(data_to_modify);
 
 	const summary_prefix = `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, 'Modify PubMed ID')}: ${PubMed_ID} `;
 	CeL.info(`${for_each_PubMed_ID.name}: Modify PubMed ID:${PubMed_ID} ${article_item_list.id_list()[0]}: ${CeL.wiki.data.value_of(article_item_list[0].itemLabel)}`);
