@@ -52,7 +52,18 @@ const wiki = new Wikiapi;
 
 // ----------------------------------------------------------------------------
 
-const wbeditentity_only_for_main = CeL.env.arg_hash?.wbeditentity_only_for_main;
+/**
+ * Default options for data modification, such as creating new item or modifying existing item.
+ * @type {Object}
+ */
+const default_data_modify_options = {
+	bot: 1,
+	// 避免 cites work (P2860) 佔據太多記憶體。
+	search_without_cache: true,
+	no_skip_attributes_note: true,
+	// 合併請求。
+	wbeditentity_only: CeL.env.arg_hash?.wbeditentity_only_for_main,
+};
 
 //CeL.get_URL.default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4710.4 Safari/537.36';
 
@@ -279,7 +290,10 @@ async function main_process() {
 		//|| (await get_PubMed_ID_list(start_date, end_date)).slice(0, 10)
 
 		// [[d:User talk:Kanashimi#Adding subjects that are scholarly articles]]
-		&& [20811529]
+		//&& [20811529]
+
+		// [[d:User talk:Kanashimi#Duplicate items created for articles]]
+		&& [26121349]
 		;
 
 	const link_list = [];
@@ -1121,9 +1135,11 @@ ORDER BY DESC (?item)
 	//console.trace(SPARQL_check_duplicates.join(''));
 	const article_item_list = await wiki.SPARQL(SPARQL_check_duplicates.join(''), {
 		filter(item) {
-			return item?.pubmed?.value
-				? +item.pubmed.value === PubMed_ID
-				: !item?.doi?.value || item.doi.value.toUpperCase() === doi;
+			if (item?.pubmed?.value && +item.pubmed.value === PubMed_ID)
+				return true;
+			// [[d:User talk:Kanashimi#Duplicate items created for articles]]
+			// 有些文章具多個 PubMed ID。
+			return !item?.doi?.value || item.doi.value.toUpperCase() === doi;
 		}
 	});
 
@@ -1947,13 +1963,26 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		clean_data_to_modify(data_to_modify);
 		CeL.info(`${for_each_PubMed_ID.name}: Create new item for PubMed ID=${PubMed_ID}: ${main_title}`);
 		//throw new Error('No existing item found');
-		return await wiki.new_data_entity(data_to_modify, { bot: 1, summary: `Import new ${NCBI_article_data.doctype} PubMed ID = ${PubMed_ID}${summary_source_posifix}` });
+		return await wiki.new_data_entity(data_to_modify, Object.assign(Object.create(null), default_data_modify_options, {
+			summary: `Import new ${NCBI_article_data.doctype} PubMed ID = ${PubMed_ID}${summary_source_posifix}`,
+		}));
 	}
 
 	// assert: article_item_list.length === 1
 	// Only one result: Already added. Append.
 	const article_item = await wiki.data(article_item_list.id_list()[0]);
 	//console.trace([article_item_list[0], article_item]);
+
+	// 檢查 PubMed ID 是否一致。
+	{
+		const PubMed_IDs = CeL.wiki.data.value_of(article_item.claims[NCBI_articleid_properties_mapping.pubmed]);
+		// assert: Array.isArray(PubMed_IDs) ? PubMed_IDs.includes(article_item_list[0].pubmed.value) : PubMed_IDs === article_item_list[0].pubmed.value
+		if (PubMed_IDs && (Array.isArray(PubMed_IDs) ? !PubMed_IDs.some(pubmed => +pubmed === PubMed_ID) : PubMed_IDs !== PubMed_ID)) {
+			CeL.warn(`${for_each_PubMed_ID.name}: PubMed ID ${PubMed_ID}: Found an item [[${article_item.id}]] with different PubMed ID(s) ${PubMed_IDs}!`);
+			await add_problematic_data(PubMed_ID, `Found an item [[${article_item.id}]] with different PubMed ID(s) ${PubMed_IDs}!`);
+			return;
+		}
+	}
 
 	// 檢查標題是否差太多。
 	if (4 * CeL.edit_distance(CeL.wiki.data.value_of(article_item.labels.en), data_to_modify.labels.en) > data_to_modify.labels.en.length + 8) {
@@ -2143,22 +2172,15 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			descriptions[language_code] = { language: language_code, value: description };
 		}
 		//console.trace(descriptions);
-		await article_item.modify({ descriptions }, {
-			bot: 1, summary,
-			// 合併請求。
-			wbeditentity_only: true,
-		});
+		await article_item.modify({ descriptions }, Object.assign(Object.create(null), default_data_modify_options, {
+			summary,
+		}));
 	}
 
 	//console.trace(data_to_modify);
-	await article_item.modify(data_to_modify, {
-		bot: 1, summary,
-		// 避免 cites work (P2860) 佔據太多記憶體。
-		search_without_cache: true,
-		no_skip_attributes_note: true,
-		// 合併請求。
-		wbeditentity_only: wbeditentity_only_for_main,
-	});
+	await article_item.modify(data_to_modify, Object.assign(Object.create(null), default_data_modify_options, {
+		summary,
+	}));
 	return article_item;
 }
 
