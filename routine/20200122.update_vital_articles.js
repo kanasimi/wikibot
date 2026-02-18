@@ -549,6 +549,8 @@ async function main_process() {
 	parameters_move_from_WikiProjects_to_WPBS__template_list = wiki.to_namespace(Object.keys(parameters_move_from_WikiProjects_to_WPBS), 'template');
 
 	CeL.log_temporary(`Get all redirects. Elapsed time: ${CeL.date.age_of(start_time)}`);
+	// 有些維基百科的基準頁面直接就放 level 3，在 replace_level_note() 必須檢測此重定向。
+	await wiki.register_redirects(level_to_page_title(DEFAULT_LEVEL));
 	// all_WikiProject_template_list includes template_name_hash.WPBIO
 	await wiki.register_redirects(['Template:Para', wiki.latest_task_configuration.general.base_page]
 		.append(all_WikiProject_template_list)
@@ -1251,21 +1253,32 @@ async function get_page_info() {
 
 const zhwiki_level_list = [, '第一級', '第二級', '第三級', '擴展', '第五級'];
 
-function level_to_page_title(level, add_level) {
+/**
+ * 將級別轉換為頁面標題。
+ * e.g., level_to_page_title(1) → "Wikipedia:Vital articles/Level/1" or "Wikipedia:基礎條目/第一級"
+ * e.g., level_to_page_title(2) → "Wikipedia:Vital articles/Level/2" or "Wikipedia:基礎條目/第二級"
+ * 
+ * @param {Number} level	級別。
+ * @param {Boolean|Undefined} force_add_level	是否強制添加級別資訊。當預設級別的頁面重定向到基準頁面，這時候不強制添加級別資訊會獲得基準頁面。
+ * 
+ * @returns {String}級別所對應的頁面標題。
+ */
+function level_to_page_title(level, force_add_level) {
+	/** {String}基準頁面。 */
 	const base_page = wiki.latest_task_configuration.general.base_page;
 	let page_title;
 
 	switch (wiki.site_name()) {
 		case 'enwiki':
-			page_title = /* level === DEFAULT_LEVEL && !add_level ? base_page : */ base_page + '/Level/' + level;
+			page_title = /* level === DEFAULT_LEVEL && !force_add_level ? base_page : */ base_page + '/Level/' + level;
 			break;
 
 		case 'zhwiki':
-			page_title = /* level === DEFAULT_LEVEL && !add_level ? base_page : */ base_page + '/' + zhwiki_level_list[level];
+			page_title = /* level === DEFAULT_LEVEL && !force_add_level ? base_page : */ base_page + '/' + zhwiki_level_list[level];
 			break;
 	}
 
-	if (page_title && !add_level) {
+	if (page_title && !force_add_level) {
 		// 應該只有 level === DEFAULT_LEVEL 時才會重導向。
 		return wiki.redirect_target_of(page_title);
 	}
@@ -1376,7 +1389,7 @@ function level_of_page_title(page_title, number_only) {
 	return number_only ? page_title_and_section_data.numeric_level : page_title_and_section_data.page_title_and_section_id;
 }
 
-function replace_level_note(item, index, highest_level, new_wikitext) {
+function replace_level_note(item, index, best_level, new_wikitext) {
 	if (item.type !== 'list_item' && item.type !== 'plain')
 		return;
 
@@ -1386,16 +1399,16 @@ function replace_level_note(item, index, highest_level, new_wikitext) {
 
 	if (new_wikitext === undefined) {
 		// auto-generated
-		new_wikitext = ` (${level_page_link(highest_level, false, matched &&
-			// preserve level page. e.g.,
+		new_wikitext = ` (${level_page_link(best_level, false, matched &&
+			// preserve level page and anchor. e.g.,
 			// " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
-			(highest_level === DEFAULT_LEVEL || matched[1] && matched[1].includes(`/${highest_level}`)) && matched[1])})`;
+			(matched[1] && matched[1].startsWith(level_to_page_title(best_level) + '#')) && matched[1])})`;
 	}
 	// assert: typeof new_wikitext === 'string'
 	// || typeof new_wikitext === 'number'
 
 	if (new_wikitext) {
-		item.set_category_level = highest_level;
+		item.set_category_level = best_level;
 	}
 
 	// Decide whether we need to replace or not.
