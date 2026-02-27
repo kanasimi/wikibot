@@ -624,7 +624,8 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		if (!task_configuration)
 			return;
 
-		if (meta_configuration.task_configuration_from_page_JSON) {
+		if (meta_configuration.task_configuration_from_page_JSON
+			&& JSON.stringify(meta_configuration.task_configuration_from_page_JSON) !== JSON.stringify(task_configuration)) {
 			CeL.error([get_move_configuration_from_section.name + ': ', {
 				// TODO: gettext_config:{"id":"multiple-replace_tool_configuration-exist-in-section-$1"}
 				T: ['Multiple replace_tool_configuration exist in section %1:', CeL.wiki.title_link_of(section.section_title.title)]
@@ -2913,6 +2914,9 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 			parsed.each('<syntaxhighlight>', tag_token => {
 				// e.g., [[w:ja:Wikipedia:Bot作業依頼#Template:コンピュータゲームを使用している記事およびTemplate:Infobox animanga/Gameを使用している記事から引数除去その2]]
 				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"distributor|ratings|Rating|Discless|UseBlock"}}</syntaxhighlight>
+				// [[w:zh:Wikipedia:机器人/作业请求#請求批量刪除Template:Infobox_station的electrified=是引用]]
+				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified","replace_parameter_options":{"filter":"是"}}}</syntaxhighlight>
+				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
 				if (tag_token.attributes.lang !== 'json')
 					return;
 
@@ -2931,18 +2935,46 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 					task_configuration.remove_parameters = task_configuration.remove_parameters.split('|');
 				}
 				if (Array.isArray(task_configuration.remove_parameters)) {
+					const remove_parameters__value_filter = Object.create(null);
 					task_configuration.remove_parameters.forEach(parameter_name => {
 						if (typeof parameter_name === 'string') {
 							parameter_name = parameter_name.trim();
+							const matched = parameter_name.match(/^(.+?)=(.+)$/);
+							if (matched) {
+								// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
+								parameter_name = matched[1].trim();
+								let filter = matched[2].trim();
+								if (CeL.PATTERN_RegExp.test(filter)) {
+									filter = filter.to_RegExp();
+								}
+								remove_parameters__value_filter[parameter_name] = filter;
+							}
 							if (parameter_name) {
 								if (!task_configuration.replace_parameters) {
-									task_configuration.replace_parameters = {};
+									task_configuration.replace_parameters = Object.create(null);
 								}
 								task_configuration.replace_parameters[parameter_name] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
 							}
 						}
 					});
 					delete task_configuration.remove_parameters;
+					if (!CeL.is_empty_object(remove_parameters__value_filter)) {
+						if (!task_configuration.replace_parameter_options) {
+							task_configuration.replace_parameter_options = Object.create(null);
+						}
+						if (task_configuration.replace_parameter_options) {
+							CeL.error('Invalid task configuration: both .remove_parameters: name=value and .replace_parameter_options are set. The value filter of .remove_parameters will be used as .replace_parameter_options.filter.');
+						}
+						task_configuration.replace_parameter_options = (parameter_name, parameter_value) => {
+							if (!(parameter_name in task_configuration.replace_parameters)) {
+								// default: remove all parameters in .remove_parameters, no matter what value is.
+								return true;
+							}
+
+							const filter = remove_parameters__value_filter[parameter_name];
+							return CeL.data.fit_filter(filter, parameter_value);
+						};
+					}
 				}
 				task_configuration_from_section[page_title] = task_configuration;
 			});
