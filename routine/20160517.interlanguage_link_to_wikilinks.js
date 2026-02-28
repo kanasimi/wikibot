@@ -101,7 +101,7 @@ template_orders = {
 		// will fallback
 		foreign_title : [ 3, 1 ],
 		// {{{WD|{{{wd}}}}}}
-		WD : [ 'WD', 'wd' ],
+		WD : [ 'qid', 'WD', 'wd' ],
 		label : 'lt',
 		preserve : [ 'preserve', 'display' ]
 	},
@@ -1311,6 +1311,7 @@ function for_each_page(page_data, messages) {
 					check_page(gettext(
 					// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
 					'Syntax error in the interlanguage link template.'));
+					// console.trace([ local_title, foreign_title ]);
 					return;
 				}
 
@@ -1319,10 +1320,12 @@ function for_each_page(page_data, messages) {
 			});
 
 		} else {
+			// 模板參數更新過？
 			setImmediate(function() {
 				check_page(gettext(
 				// gettext_config:{"id":"syntax-error-in-the-interlanguage-link-template"}
 				'Syntax error in the interlanguage link template.'));
+				// console.trace([ local_title, foreign_title ]);
 			});
 		}
 
