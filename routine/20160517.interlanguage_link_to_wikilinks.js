@@ -127,6 +127,14 @@ template_orders = {
 		local_title : 1,
 		WD : 2,
 		label : 3
+	},
+	Wl : {
+		WD : 1,
+		label : 2,
+		local_title : [ 'title', 'page' ]
+	},
+	W : {
+		WD : 1
 	}
 },
 
@@ -258,7 +266,11 @@ message_set = {
 			}, template_orders.LF),
 			le : Object.assign({
 				'|foreign_language' : 'en'
-			}, template_orders.LF)
+			}, template_orders.LF),
+			// {{Link-Wikidata}}
+			'link-wikidata' : template_orders.Wl,
+			// {{WikidataLink}}
+			wikidatalink : template_orders.W
 		}
 	},
 
@@ -868,15 +880,17 @@ function for_each_page(page_data, messages) {
 		}
 
 		function remove_disambiguation_postfix(page_title) {
+			return page_title
 			// [[忍者 (電影)]] 不等同於 [[忍者 (電視劇)]]
-			return page_title.replace(/ \((?:disambiguation|消歧義|消歧义)\)$/i, '');
+			&& page_title.replace(/ \((?:disambiguation|消歧義|消歧义)\)$/i, '');
 		}
 
 		function for_local_page(converted_local_title) {
 			// converted_local_title: foreign_title 所對應的本地條目。
 
 			if (wiki.is_namespace(converted_local_title,
-					[ 'Draft', 'Template' ])) {
+					[ 'Draft', 'Template' ])
+					&& !wiki.is_namespace(title, 'Template')) {
 				// gettext_config:{"id":"links-to-non-main-namespace"}
 				CeL.error('Links to non-main namespace' + ' @ '
 						+ CeL.wiki.title_link_of(title) + ': ' + token);
@@ -1166,7 +1180,10 @@ function for_each_page(page_data, messages) {
 				return;
 			}
 
-			for_local_page(CeL.wiki.data.title_of(entity, use_language));
+			var converted_local_title = CeL.wiki.data.title_of(entity,
+					use_language)
+					|| CeL.wiki.data.title_of(entity)[0];
+			for_local_page(converted_local_title);
 		}
 
 		// ------------------------------------------------------------------------------
@@ -1278,7 +1295,9 @@ function for_each_page(page_data, messages) {
 				}
 			});
 
-		} else if (local_title && WD) {
+		} else if (WD
+		// && local_title
+		) {
 			if (foreign_language) {
 				CeL.warn('for_each_page: ' + 'Using language ['
 						+ foreign_language + '] in '

@@ -646,7 +646,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				task_configuration.list_parser = 'table_to_array';
 			}
 		}
-		for (const option of ["get_task_configuration_from", "namespace"]) {
+		for (const option of ["get_task_configuration_from", "namespace", "subst_postfix"]) {
 			if (task_configuration[option]) {
 				// Copy property.
 				meta_configuration[option] = task_configuration[option];
@@ -1117,6 +1117,15 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const { summary, section_title } = meta_configuration;
 	const _section_title = section_title ? '#' + section_title : '';
 
+	if (meta_configuration.subst_postfix) {
+		if (typeof meta_configuration.subst_postfix === 'string' && CeL.PATTERN_RegExp_replacement.test(meta_configuration.subst_postfix)) {
+			meta_configuration.subst_postfix = meta_configuration.subst_postfix.to_RegExp({ allow_replacement: true });
+		} else if (!CeL.is_RegExp(meta_configuration.subst_postfix) || !meta_configuration.subst_postfix.replace) {
+			delete meta_configuration.subst_postfix;
+		}
+	}
+
+
 	//console.trace(meta_configuration);
 	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_section);
 	move_configuration = unshift_move_configuration(move_configuration, meta_configuration.task_configuration_from_args);
@@ -1213,6 +1222,17 @@ async function prepare_operation(meta_configuration, move_configuration) {
 					add_index: 'all'
 				},
 			});
+
+			if (meta_configuration.subst_postfix && !task_configuration.subst_postfix) {
+				task_configuration.subst_postfix = meta_configuration.subst_postfix;
+			}
+			if (task_configuration.subst_postfix && !task_configuration.must_manually_expand_subst) {
+				if ('must_manually_expand_subst' in task_configuration) {
+					CeL.warn(`${prepare_operation.name}: 設定了 .subst_postfix，.must_manually_expand_subst 設定為偽！如此 .subst_postfix 將無作用！`);
+				} else {
+					task_configuration.must_manually_expand_subst = true;
+				}
+			}
 
 		} else if (task_configuration.move_to_link === REDIRECT_TARGET) {
 			task_configuration.move_to_link = await wiki.redirects_root(move_from_link);
@@ -2471,68 +2491,97 @@ async function subst_template(token, index, parent) {
 	const page_title = this.page_to_edit.title;
 	//this.task_configuration[KEY_wiki_session].append_session_to_options().session;
 
-	token[0] = 'subst:' + token[0];
-
-	if (CeL.wiki.parser.token_is_children_of(parent,
+	/** 需要手動展開模板。即使添加 subst: 仍可能無法展開，例如在 ref 標籤內。此時需手動展開模板。 */
+	const must_manually_expand_subst = this.task_configuration.must_manually_expand_subst || CeL.wiki.parser.token_is_children_of(parent,
 		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery'
 			// e.g., @ [[w:ja:Template:Round corners]]
 			|| parent.tag === 'includeonly')
-	)) {
-		//console.trace([page_title, token.toString(), parent]);
-		// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
-		// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
-		// fix <ref></ref> 中間的連結不會被取代。
+	);
 
-		// TODO: read {{cbignore}}
+	if (!must_manually_expand_subst) {
+		token[0] = 'subst:' + token[0];
 
-		// TODO: use this.task_configuration[KEY_wiki_session].expandtemplates() instead of compare
-		// useless:
-		//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration[KEY_wiki_session].append_session_to_options()));
-
-		//console.trace(this.task_configuration[KEY_wiki_session].append_session_to_options().session);
-		//console.trace(token);
-
-		// TODO: this.task_configuration[KEY_wiki_session].compare()
-		let wikitext = await this.task_configuration[KEY_wiki_session].query({
-			action: "compare",
-			fromtitle: page_title,
-			fromslots: "main",
-			'fromtext-main': "",
-			toslots: "main",
-			'totext-main': token.toString(),
-			topst: 1,
-		});
-		//console.log(wikitext);
-		wikitext = wikitext.compare['*']
-			// TODO: shoulld use HTML parser
-			// e.g., 2021/12/19:	<td class="diff-addedline"><div>...</div></td>
-			// e.g., 2022/3/3:		<td class="diff-addedline diff-side-added"><div>...</div></td>
-			.all_between('<td class="diff-addedline', '</td>').map(token => token.between('<div>', { tail: '</div>' })).join('\n');
-		wikitext = CeL.HTML_to_Unicode(wikitext);
-
-		// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
-
-		if (false && !this.task_configuration[KEY_wiki_session].is_namespace(page_title, 'Template')) {
-			// TODO: https://en.wikipedia.org/wiki/Help:Substitution#Recursive_substitution
-			// {{#if:}} → {{subst:<noinclude/>#if:}}
-			const _token = CeL.wiki.parse(wikitext);
-			CeL.wiki.parser.parser_prototype.each.call(_token, 'magic_word_function', magic_word_function_token => {
-				//return magic_word_function_token.evaluate();
-				if (magic_word_function_token[0].toString().trim() !== 'subst:')
-					magic_word_function_token[0] = 'subst:' + magic_word_function_token[0];
-			}, wiki.append_session_to_options({
-				//modify: true
-			}));
-			wikitext = _token.toString();
-		}
-
-		if (!wikitext) {
-			CeL.warn(`${subst_template.name}: Nothing get for substituting ${token.toString()} inside <${parent.tag}>!`);
-		}
-		//console.trace([page_title, token.toString(), wikitext]);
-
-		parent[index] = wikitext;
+		//this.discard_changes = true;
+		return;
 	}
+
+	// ----------------------------------------------------------
+
+	const { task_configuration } = this;
+	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({ max_template_depth: 1 }));
+
+	if (task_configuration.subst_postfix) {
+		// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用Template:港鐵顏色]]
+		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"subst_postfix":"/<nowiki>#<\\/nowiki>/#/"}}</syntaxhighlight>
+
+		// 有些模板以 "#" 開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。這時 subst 就得用上 .subst_postfix。
+		// 如[[Template:港鐵顏色]]: <includeonly><nowiki>#</nowiki>...
+		expanded_code = task_configuration.subst_postfix.replace(expanded_code);
+	}
+
+	parent[index] = expanded_code;
+	return;
+
+	// ----------------------------------------------------------
+	// @deprecated
+	// old method: using compare to get the expanded wikitext.
+
+	token[0] = 'subst:' + token[0];
+
+	//console.trace([page_title, token.toString(), parent]);
+	// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
+	// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
+	// fix <ref></ref> 中間的連結不會被取代。
+
+	// TODO: read {{cbignore}}
+
+	// TODO: use this.task_configuration[KEY_wiki_session].expandtemplates() instead of compare
+	// useless:
+	//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration[KEY_wiki_session].append_session_to_options()));
+
+	//console.trace(this.task_configuration[KEY_wiki_session].append_session_to_options().session);
+	//console.trace(token);
+
+	// TODO: this.task_configuration[KEY_wiki_session].compare()
+	let wikitext = await this.task_configuration[KEY_wiki_session].query({
+		action: "compare",
+		fromtitle: page_title,
+		fromslots: "main",
+		'fromtext-main': "",
+		toslots: "main",
+		'totext-main': token.toString(),
+		topst: 1,
+	});
+	//console.log(wikitext);
+	wikitext = wikitext.compare['*']
+		// TODO: shoulld use HTML parser
+		// e.g., 2021/12/19:	<td class="diff-addedline"><div>...</div></td>
+		// e.g., 2022/3/3:		<td class="diff-addedline diff-side-added"><div>...</div></td>
+		.all_between('<td class="diff-addedline', '</td>').map(token => token.between('<div>', { tail: '</div>' })).join('\n');
+	wikitext = CeL.HTML_to_Unicode(wikitext);
+
+	// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
+
+	if (false && !this.task_configuration[KEY_wiki_session].is_namespace(page_title, 'Template')) {
+		// TODO: https://en.wikipedia.org/wiki/Help:Substitution#Recursive_substitution
+		// {{#if:}} → {{subst:<noinclude/>#if:}}
+		const _token = CeL.wiki.parse(wikitext);
+		CeL.wiki.parser.parser_prototype.each.call(_token, 'magic_word_function', magic_word_function_token => {
+			//return magic_word_function_token.evaluate();
+			if (magic_word_function_token[0].toString().trim() !== 'subst:')
+				magic_word_function_token[0] = 'subst:' + magic_word_function_token[0];
+		}, wiki.append_session_to_options({
+			//modify: true
+		}));
+		wikitext = _token.toString();
+	}
+
+	if (!wikitext) {
+		CeL.warn(`${subst_template.name}: Nothing get for substituting ${token.toString()} inside <${parent.tag}>!`);
+	}
+	//console.trace([page_title, token.toString(), wikitext]);
+
+	parent[index] = wikitext;
 
 	//this.discard_changes = true;
 }
