@@ -31,7 +31,7 @@
 - name: k8s-20201008.fix-anchor.archives.moegirl
   command: "node ./wikibot/routine/20201008.fix_anchor.js archives use_project=zhmoegirl"
   image: node18
-  mem: 6Gi
+  mem: 2Gi
   schedule: "55 21 * * 3"
 
 # -----------------------------------------------------------------------------
@@ -39,7 +39,8 @@
 - name: k8s-20191129.check-language-conversion
   command: "node ./wikibot/routine/20191129.check_language_conversion.js use_project=zhmoegirl"
   image: node18
-  mem: 4Gi
+  cpu: 0.25
+  mem: 2Gi
   schedule: "55 21 * * 6"
 
 
@@ -60,7 +61,7 @@
 - name: k8s-20201008.fix-anchor.moegirl
   command: "node ./wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 
 # -----------------------------------------------------------------------------
@@ -68,6 +69,6 @@
 - name: k8s-20170515.signature-check.moegirl
   command: "node ./wikibot/routine/20170515.signature_check.js use_project=zhmoegirl"
   image: node18
-  mem: 4Gi
+  mem: 2Gi
   continuous: true
 
