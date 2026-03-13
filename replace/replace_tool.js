@@ -746,6 +746,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			}
 			//console.trace(page_list);
 			main_task_configuration.page_list = page_list;
+			//NG: main_task_configuration.list_types = 'categorymembers';
 		}
 
 	} else if (/^https?:\/\//.test(meta_configuration.get_task_configuration_from)) {
@@ -1086,6 +1087,21 @@ function unshift_move_configuration(move_configuration, items_to_unshift) {
 	};
 }
 
+function fix_subst_postfix(configuration) {
+	if (!configuration.subst_postfix) {
+		return;
+	}
+
+	if (typeof configuration.subst_postfix === 'string' && CeL.PATTERN_RegExp_replacement.test(configuration.subst_postfix)) {
+		configuration.subst_postfix = configuration.subst_postfix.to_RegExp({ allow_replacement: true });
+		return;
+	}
+
+	if (!CeL.is_RegExp(configuration.subst_postfix) || !configuration.subst_postfix.replace) {
+		delete configuration.subst_postfix;
+	}
+}
+
 async function prepare_operation(meta_configuration, move_configuration) {
 	/** {Object}wiki operator 操作子. */
 	const wiki = meta_configuration[KEY_wiki_session];
@@ -1117,13 +1133,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const { summary, section_title } = meta_configuration;
 	const _section_title = section_title ? '#' + section_title : '';
 
-	if (meta_configuration.subst_postfix) {
-		if (typeof meta_configuration.subst_postfix === 'string' && CeL.PATTERN_RegExp_replacement.test(meta_configuration.subst_postfix)) {
-			meta_configuration.subst_postfix = meta_configuration.subst_postfix.to_RegExp({ allow_replacement: true });
-		} else if (!CeL.is_RegExp(meta_configuration.subst_postfix) || !meta_configuration.subst_postfix.replace) {
-			delete meta_configuration.subst_postfix;
-		}
-	}
+	fix_subst_postfix(meta_configuration)
 
 
 	//console.trace(meta_configuration);
@@ -1223,6 +1233,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				},
 			});
 
+			fix_subst_postfix(task_configuration);
 			if (meta_configuration.subst_postfix && !task_configuration.subst_postfix) {
 				task_configuration.subst_postfix = meta_configuration.subst_postfix;
 			}
@@ -1619,7 +1630,10 @@ const default_list_types = 'backlinks|embeddedin|redirects|categorymembers|fileu
 /** {String}default namespace to search and replace */
 const default_namespace = 'main|file|module|template|category|help|portal|draft';
 /** {String}default namespace for subst templates */
-const default_namespace_for_subst = default_namespace + '|talk|template talk|category talk|user|user talk|mediawiki|mediawiki talk';
+const default_namespace_for_subst = default_namespace + '|talk|template talk|category talk|user|user talk|mediawiki|mediawiki talk'
+	// only for debug [[Wikipedia:Sandbox]]
+	//+ '|Wikipedia'
+	;
 
 async function get_list(task_configuration, list_configuration) {
 	if (!list_configuration) {
@@ -1649,7 +1663,7 @@ async function get_list(task_configuration, list_configuration) {
 	} else if (/^(https?:)\/\//.test(list_configuration.move_from_link)) {
 		// should have task_configuration.text_processor()
 		list_types = 'exturlusage';
-	} else if (!task_configuration.move_to_link && task_configuration.for_template
+	} else if (!task_configuration.move_to_link && task_configuration.for_template && !list_configuration.list_title
 		//&& wiki.is_namespace(task_configuration.move_from_link, 'Template')
 	) {
 		// replace template only.
@@ -1705,18 +1719,17 @@ async function get_list(task_configuration, list_configuration) {
 				...list_configuration.move_from
 			};
 			list_configuration.move_from_link = wiki.normalize_title(list_configuration.move_from_link);
+			if (list_configuration.list_title ? !wiki.is_namespace(list_configuration.list_title, 'Category') : list_configuration.move_from.ns !== wiki.namespace('Category'))
+				list_types = list_types.filter(type => type !== 'categorymembers');
 			//console.trace([task_configuration.move_from, list_configuration.list_types, list_configuration.move_from.ns]);
 			// 手動設定另當別論。
-			if (list_types.includes('embeddedin') && list_configuration.move_from.ns !== wiki.namespace('Category')) {
-				list_types = list_types.filter(type => type !== 'categorymembers');
-				if (list_configuration.move_from.ns === wiki.namespace('Template')) {
-					const redirect_list = (await wiki.register_redirects(list_configuration.move_from_link))?.redirect_list;
-					if (list_types.includes('embeddedin') && redirect_list?.length > 1
-						&& task_configuration.for_template
-						//subst:
-						&& task_configuration.for_template !== subst_template) {
-						CeL.error(`由於 ${list_configuration.move_from_link} 有 redirects，必須對所有 redirects 個別執行 embeddedin，或採用 wiki_session.is_template()，否則會有疏漏未處理之頁面！`);
-					}
+			if (list_types.includes('embeddedin') && list_configuration.move_from.ns === wiki.namespace('Template')) {
+				const redirect_list = (await wiki.register_redirects(list_configuration.move_from_link))?.redirect_list;
+				if (list_types.includes('embeddedin') && redirect_list?.length > 1
+					&& task_configuration.for_template
+					//subst:
+					&& task_configuration.for_template !== subst_template) {
+					CeL.error(`由於 ${list_configuration.move_from_link} 有 redirects，必須對所有 redirects 個別執行 embeddedin，或採用 wiki_session.is_template()，否則會有疏漏未處理之頁面！`);
 				}
 			}
 		} else {
@@ -1865,7 +1878,8 @@ async function get_list(task_configuration, list_configuration) {
 					need_unique = true;
 				} else
 					page_list = list_segment;
-				CeL.log_temporary(`${list_label}: ${page_list.length} pages`);
+				// gettext_config:{"id":"get-$1-pages-from-$2"}
+				CeL.log_temporary(CeL.gettext('Get %1 {{PLURAL:%1|page|pages}} from %2', page_list.length, list_label));
 			}
 		}
 
@@ -2510,9 +2524,20 @@ async function subst_template(token, index, parent) {
 	const { task_configuration } = this;
 	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({ max_template_depth: 1 }));
 
+	if (/{{#invoke:/.test(expanded_code)) {
+		// 模板展開之後應該也只存在模板，恐怕是出錯了。
+		throw new Error(`${subst_template.name}: Failed to expand template: ${token.toString()} → ${expanded_code}`);
+	}
+
 	if (task_configuration.subst_postfix) {
 		// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用Template:港鐵顏色]]
 		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"subst_postfix":"/<nowiki>#<\\/nowiki>/#/"}}</syntaxhighlight>
+
+		// [[w:zh:Wikipedia:机器人/作业请求#h-請求批量替換引用Category:僅使用維吾爾老文字表示維吾爾語-20260308141800]]
+		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:僅使用維吾爾老文字表示維吾爾語的Lang-ug","move_to_link":"subst:","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxh
+
+		// [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用所有{{港铁路线标志}}與{{香港輕鐵路綫}}]]
+		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:可被替換引用的港鐵路綫標誌","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxhighlight>
 
 		// 有些模板以 "#" 開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。這時 subst 就得用上 .subst_postfix。
 		// 如[[Template:港鐵顏色]]: <includeonly><nowiki>#</nowiki>...
@@ -2932,34 +2957,90 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 	// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
 	// {| table |}
 
-	const rows = CeL.wiki.table_to_array(table), page_list = [], insert_layout_Map = new Map();
+	if (meta_configuration.task_configuration_from_page_JSON.insert_layout) {
+		const rows = CeL.wiki.table_to_array(table), page_list = [], insert_layout_Map = new Map();
+		//console.trace(rows);
+		// Insert layout template on each page.
+		for (const row of rows) {
+			// row: [page_title, param1, param2, ...]
+			row.unshift(meta_configuration.task_configuration_from_page_JSON.page_title || '%1');
+			// row: [template, page_title, param1, param2, ...]
+			let move_from_title = CeL.gettext.apply(null, row);
+			const parsed = CeL.wiki.parser(move_from_title).parse();
+			CeL.assert([move_from_title, parsed.toString()],
+				// gettext_config:{"id":"wikitext-parser-checking-$1"}
+				CeL.gettext('wikitext parser checking: %1', JSON.stringify(move_from_title)));
+			// 有連結就採用連結。
+			parsed.each('link', token => { move_from_title = token[0].toString(); });
+			page_list.push(move_from_title);
+
+			// 重複利用本列之cells作為任務參數。
+			row[0] = meta_configuration.task_configuration_from_page_JSON.insert_layout;
+			// row: [template, page_title, param1, param2, ...]
+			const insert_layout = CeL.wiki.parse(CeL.gettext.apply(null, row));
+			insert_layout_Map.set(move_from_title, insert_layout);
+
+			// recover row: needless because row is not used anymore.
+			//row.shift();
+		}
+
+		task_configuration_from_section[meta_configuration.task_configuration_from_page_JSON.insert_layout] = {
+			page_list,
+			insert_layout_Map,
+			text_processor: text_processor_for_configuration_from_page,
+		};
+
+		return;
+	}
+
+	// -----------------------------------------------
+
+	const rows = CeL.wiki.table_to_array(table);
 	//console.trace(rows);
 	// Insert layout template on each page.
 	for (const row of rows) {
 		// row: [page_title, param1, param2, ...]
 		row.unshift(meta_configuration.task_configuration_from_page_JSON.page_title || '%1');
 		// row: [template, page_title, param1, param2, ...]
-		let page_title = CeL.gettext.apply(null, row);
-		const parsed = CeL.wiki.parser(page_title).parse();
-		CeL.assert([page_title, parsed.toString()],
+		let move_from_title = CeL.gettext.apply(null, row);
+		const parsed = CeL.wiki.parser(move_from_title).parse();
+		CeL.assert([move_from_title, parsed.toString()],
 			// gettext_config:{"id":"wikitext-parser-checking-$1"}
-			CeL.gettext('wikitext parser checking: %1', JSON.stringify(page_title)));
+			CeL.gettext('wikitext parser checking: %1', JSON.stringify(move_from_title)));
 		// 有連結就採用連結。
-		parsed.each('link', token => { page_title = token[0].toString(); });
-		page_list.push(page_title);
+		parsed.each('link', token => {
+			move_from_title = token[0].toString();
+			return CeL.wiki.parser.parser_prototype.each.exit;
+		});
+
+		// recover row
+		row.shift();
 
 		// 重複利用本列之cells作為任務參數。
-		if (meta_configuration.task_configuration_from_page_JSON.insert_layout) {
-			row[0] = meta_configuration.task_configuration_from_page_JSON.insert_layout;
-			// row: [template, page_title, param1, param2, ...]
-			const insert_layout = CeL.wiki.parse(CeL.gettext.apply(null, row));
-			insert_layout_Map.set(page_title, insert_layout);
-		} else {
+		for (const cell of row) {
 			// e.g., [[w:ja:Wikipedia:Bot作業依頼#Template:コンピュータゲームを使用している記事およびTemplate:Infobox animanga/Gameを使用している記事から引数除去その2]]
 			// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","list_parser":"table_to_array"}}</syntaxhighlight>
 
 			// row: [template, page_title, task configuration, ...]
-			const parsed = CeL.wiki.parser(row[2]).parse();
+			const parsed = CeL.wiki.parser(cell.toString()).parse();
+			CeL.assert([cell.toString(), parsed.toString()],
+				// gettext_config:{"id":"wikitext-parser-checking-$1"}
+				CeL.gettext('wikitext parser checking: %1', JSON.stringify(move_from_title)));
+
+			if (!task_configuration_from_section[move_from_title]?.move_to_link) {
+				parsed.each('link', token => {
+					if (move_from_title === token[0].toString())
+						return;
+
+					const move_to_link = token[0].toString();
+					if (task_configuration_from_section[move_from_title])
+						task_configuration_from_section[move_from_title].move_to_link = move_to_link;
+					else
+						task_configuration_from_section[move_from_title] = { move_to_link };
+					return CeL.wiki.parser.parser_prototype.each.exit;
+				});
+			}
+
 			parsed.each('<syntaxhighlight>', tag_token => {
 				// e.g., [[w:ja:Wikipedia:Bot作業依頼#Template:コンピュータゲームを使用している記事およびTemplate:Infobox animanga/Gameを使用している記事から引数除去その2]]
 				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"distributor|ratings|Rating|Discless|UseBlock"}}</syntaxhighlight>
@@ -3025,21 +3106,14 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 						};
 					}
 				}
-				task_configuration_from_section[page_title] = task_configuration;
+				if (task_configuration_from_section[move_from_title])
+					Object.assign(task_configuration_from_section[move_from_title], task_configuration);
+				else
+					task_configuration_from_section[move_from_title] = task_configuration;
 			});
 		}
-
-		// recover row
-		row.shift();
 	}
 
-	if (meta_configuration.task_configuration_from_page_JSON.insert_layout) {
-		task_configuration_from_section[meta_configuration.task_configuration_from_page_JSON.insert_layout] = {
-			page_list,
-			insert_layout_Map,
-			text_processor: text_processor_for_configuration_from_page,
-		};
-	}
 	//console.trace(task_configuration_from_section);
 }
 

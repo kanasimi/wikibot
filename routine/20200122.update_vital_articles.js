@@ -1715,7 +1715,7 @@ async function for_each_list_page(list_page_data) {
 
 				CeL.wiki.parser.parser_prototype.each.call(_item[index], (_token, index, parent) => {
 					//console.log(_token);
-				}, wiki.append_session_to_options({ add_index: true }));
+				}, wiki.append_session_to_options({ add_index: 'all' }));
 
 				Object.assign(_item[index], { index, parent: _item });
 				function move_up() {

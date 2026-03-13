@@ -47,23 +47,23 @@ const this_undo_timestamp = (new Date).toISOString();
 //console.trace(summary_piece);
 
 /**{Number}當機器人的編輯不是最新版本時，向前回溯取得的編輯版本數量。 */
-const backtrack_revision_number = 10;
+const backtrack_revision_number = 2;
 
 const fix_namespace = '*';
 
 /**{Number}錯誤編輯的開始時間。 */
-const start_time = Date.parse('2026/1/2 23:2 UTC+0');
+const start_time = Date.now() - .5 * 60 * 60 * 1000;
 /**{Number}錯誤編輯的結束時間。 */
-const end_time = Date.parse('2026/1/3 12:36 UTC+0');
+const end_time = Date.now();
 
 /**{RegExp}篩選符合此 title 的頁面。 */
 const PATTERN_filter_page_title = null;
 
 /**{RegExp}篩選包含此 summary 的編輯。 fix only these edits. */
-const PATTERN_filter_summary = /Template:コンピュータ/;
+const PATTERN_filter_summary = /Template:港铁路线标志/;
 
 /**{RegExp}篩選包含此 diff from 的內容。 */
-const PATTERN_filter_diff_from = /<ref/i;
+const PATTERN_filter_diff_from = /<ref/i && null;
 
 /**{RegExp}篩選包含此 diff to 的內容。 */
 const PATTERN_filter_diff_to = null;
@@ -154,10 +154,17 @@ async function check_page_data(page_data) {
 	let diff_list;
 	try {
 		//console.trace([revision_prior_to_bot, revision_of_bot]);
-		const from_wikitext = CeL.wiki.content_of(revision_prior_to_bot).replace(/^[\s\S]+?(\n==)/, '$1');
-		const to_wikitext = CeL.wiki.content_of(revision_of_bot).replace(/^[\s\S]+?(\n==)/, '$1');
+		const from_wikitext = CeL.wiki.content_of(revision_prior_to_bot)
+			// 去掉 lead section。
+			//.replace(/^[\s\S]+?(\n==)/, '$1')
+			;
+		const to_wikitext = CeL.wiki.content_of(revision_of_bot)
+			//.replace(/^[\s\S]+?(\n==)/, '$1')
+			;
 		//console.trace([from_wikitext, to_wikitext]);
-		if (from_wikitext === to_wikitext || !from_wikitext.includes('\n==') && !to_wikitext.includes('\n==')) {
+		if (from_wikitext === to_wikitext
+			// || !from_wikitext.includes('\n==') && !to_wikitext.includes('\n==')
+		) {
 			return;
 		}
 

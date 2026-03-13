@@ -1198,7 +1198,7 @@ function for_each_page(page_data, messages) {
 					if (CeL.wiki.is_parsed_element(subtoken))
 						subtoken.inside_hatnote = token;
 				}, CeL.wiki.add_session_to_options(wiki, {
-					add_index : true
+					add_index : 'all'
 				}));
 			}
 			return;
