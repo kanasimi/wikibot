@@ -16,6 +16,11 @@ TODO:
 
 @see
 [[meta:Global templates]]
+https://www.mediawiki.org/wiki/Multilingual_Templates_and_Modules
+
+https://www.mediawiki.org/wiki/Synchronizer
+	[[w:zh:Template:Synchronizer]]
+
 [[commons:Help:Data]], [[mw:Help:Tabular data]]
 
  */

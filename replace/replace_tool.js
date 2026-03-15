@@ -2999,22 +2999,7 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 	//console.trace(rows);
 	// Insert layout template on each page.
 	for (const row of rows) {
-		// row: [page_title, param1, param2, ...]
-		row.unshift(meta_configuration.task_configuration_from_page_JSON.page_title || '%1');
-		// row: [template, page_title, param1, param2, ...]
-		let move_from_title = CeL.gettext.apply(null, row);
-		const parsed = CeL.wiki.parser(move_from_title).parse();
-		CeL.assert([move_from_title, parsed.toString()],
-			// gettext_config:{"id":"wikitext-parser-checking-$1"}
-			CeL.gettext('wikitext parser checking: %1', JSON.stringify(move_from_title)));
-		// 有連結就採用連結。
-		parsed.each('link', token => {
-			move_from_title = token[0].toString();
-			return CeL.wiki.parser.parser_prototype.each.exit;
-		});
-
-		// recover row
-		row.shift();
+		let move_from_link, task_configuration_of_row;
 
 		// 重複利用本列之cells作為任務參數。
 		for (const cell of row) {
@@ -3025,28 +3010,38 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 			const parsed = CeL.wiki.parser(cell.toString()).parse();
 			CeL.assert([cell.toString(), parsed.toString()],
 				// gettext_config:{"id":"wikitext-parser-checking-$1"}
-				CeL.gettext('wikitext parser checking: %1', JSON.stringify(move_from_title)));
+				CeL.gettext('wikitext parser checking: %1', move_from_link || cell.toString()));
 
-			if (!task_configuration_from_section[move_from_title]?.move_to_link) {
+			if (!move_from_link || !task_configuration_of_row?.move_to_link) {
 				parsed.each('link', token => {
-					if (move_from_title === token[0].toString())
+					if (!move_from_link) {
+						// row: [page_title, param1, param2, ...]
+						const gettext_parameters = [meta_configuration.task_configuration_from_page_JSON.page_title || '%1'].append(row);
+						// gettext_parameters: [template, page_title, param1, param2, ...]
+						move_from_link = CeL.gettext.apply(null, gettext_parameters);
+						const _parsed = CeL.wiki.parser(move_from_link).parse();
+						CeL.assert([move_from_link, _parsed.toString()],
+							// gettext_config:{"id":"wikitext-parser-checking-$1"}
+							CeL.gettext('wikitext parser checking: %1', JSON.stringify(move_from_link)));
+						// 有連結就採用連結。
+						_parsed.each('link', token => {
+							move_from_link = token[0].toString();
+							return CeL.wiki.parser.parser_prototype.each.exit;
+						});
 						return;
+					}
 
+					// assert: !!task_configuration_of_row.move_to_link === false
 					const move_to_link = token[0].toString();
-					if (task_configuration_from_section[move_from_title])
-						task_configuration_from_section[move_from_title].move_to_link = move_to_link;
+					if (task_configuration_of_row)
+						task_configuration_of_row.move_to_link = move_to_link;
 					else
-						task_configuration_from_section[move_from_title] = { move_to_link };
+						task_configuration_of_row = { move_to_link };
 					return CeL.wiki.parser.parser_prototype.each.exit;
 				});
 			}
 
 			parsed.each('<syntaxhighlight>', tag_token => {
-				// e.g., [[w:ja:Wikipedia:Bot作業依頼#Template:コンピュータゲームを使用している記事およびTemplate:Infobox animanga/Gameを使用している記事から引数除去その2]]
-				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"distributor|ratings|Rating|Discless|UseBlock"}}</syntaxhighlight>
-				// [[w:zh:Wikipedia:机器人/作业请求#請求批量刪除Template:Infobox_station的electrified=是引用]]
-				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified","replace_parameter_options":{"filter":"是"}}}</syntaxhighlight>
-				// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
 				if (tag_token.attributes.lang !== 'json')
 					return;
 
@@ -3055,63 +3050,82 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 					task_configuration = JSON.parse(tag_token[1].toString());
 				} catch (e) {
 					CeL.error(e);
+					return;
 				}
 				//console.trace(task_configuration);
 				task_configuration = task_configuration.replace_tool_page_configuration;
 				if (!task_configuration)
 					return;
 
-				if (typeof task_configuration.remove_parameters === 'string') {
-					task_configuration.remove_parameters = task_configuration.remove_parameters.split('|');
-				}
-				if (Array.isArray(task_configuration.remove_parameters)) {
-					const remove_parameters__value_filter = Object.create(null);
-					task_configuration.remove_parameters.forEach(parameter_name => {
-						if (typeof parameter_name === 'string') {
-							parameter_name = parameter_name.trim();
-							const matched = parameter_name.match(/^(.+?)=(.+)$/);
-							if (matched) {
-								// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
-								parameter_name = matched[1].trim();
-								let filter = matched[2].trim();
-								if (CeL.PATTERN_RegExp.test(filter)) {
-									filter = filter.to_RegExp();
-								}
-								remove_parameters__value_filter[parameter_name] = filter;
-							}
-							if (parameter_name) {
-								if (!task_configuration.replace_parameters) {
-									task_configuration.replace_parameters = Object.create(null);
-								}
-								task_configuration.replace_parameters[parameter_name] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
-							}
-						}
-					});
-					delete task_configuration.remove_parameters;
-					if (!CeL.is_empty_object(remove_parameters__value_filter)) {
-						if (!task_configuration.replace_parameter_options) {
-							task_configuration.replace_parameter_options = Object.create(null);
-						}
-						if (task_configuration.replace_parameter_options) {
-							CeL.error('Invalid task configuration: both .remove_parameters: name=value and .replace_parameter_options are set. The value filter of .remove_parameters will be used as .replace_parameter_options.filter.');
-						}
-						task_configuration.replace_parameter_options = (parameter_name, parameter_value) => {
-							if (!(parameter_name in task_configuration.replace_parameters)) {
-								// default: remove all parameters in .remove_parameters, no matter what value is.
-								return true;
-							}
+				if (task_configuration_of_row)
+					Object.assign(task_configuration_of_row, task_configuration);
+				else
+					task_configuration_of_row = task_configuration;
+			});
 
-							const filter = remove_parameters__value_filter[parameter_name];
-							return CeL.data.fit_filter(filter, parameter_value);
-						};
+			if (!move_from_link && task_configuration_of_row?.move_from_link)
+				move_from_link = task_configuration_of_row.move_from_link;
+		}
+
+		if (!move_from_link || !task_configuration_of_row) {
+			CeL.warn('Cannot get move_from_link or task_configuration from table row: ' + row.toString());
+			continue;
+		}
+
+		// ------------------------------------------------
+
+		// e.g., [[w:ja:Wikipedia:Bot作業依頼#Template:コンピュータゲームを使用している記事およびTemplate:Infobox animanga/Gameを使用している記事から引数除去その2]]
+		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"distributor|ratings|Rating|Discless|UseBlock"}}</syntaxhighlight>
+		// [[w:zh:Wikipedia:机器人/作业请求#請求批量刪除Template:Infobox_station的electrified=是引用]]
+		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified","replace_parameter_options":{"filter":"是"}}}</syntaxhighlight>
+		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
+		if (typeof task_configuration_of_row.remove_parameters === 'string') {
+			task_configuration_of_row.remove_parameters = task_configuration_of_row.remove_parameters.split('|');
+		}
+		if (Array.isArray(task_configuration_of_row.remove_parameters)) {
+			const remove_parameters__value_filter = Object.create(null);
+			task_configuration_of_row.remove_parameters.forEach(parameter_name => {
+				if (typeof parameter_name === 'string') {
+					parameter_name = parameter_name.trim();
+					const matched = parameter_name.match(/^(.+?)=(.+)$/);
+					if (matched) {
+						// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
+						parameter_name = matched[1].trim();
+						let filter = matched[2].trim();
+						if (CeL.PATTERN_RegExp.test(filter)) {
+							filter = filter.to_RegExp();
+						}
+						remove_parameters__value_filter[parameter_name] = filter;
+					}
+					if (parameter_name) {
+						if (!task_configuration_of_row.replace_parameters) {
+							task_configuration_of_row.replace_parameters = Object.create(null);
+						}
+						task_configuration_of_row.replace_parameters[parameter_name] = CeL.wiki.parse.replace_parameter.KEY_remove_parameter;
 					}
 				}
-				if (task_configuration_from_section[move_from_title])
-					Object.assign(task_configuration_from_section[move_from_title], task_configuration);
-				else
-					task_configuration_from_section[move_from_title] = task_configuration;
 			});
+			delete task_configuration_of_row.remove_parameters;
+			if (!CeL.is_empty_object(remove_parameters__value_filter)) {
+				if (!task_configuration_of_row.replace_parameter_options) {
+					task_configuration_of_row.replace_parameter_options = Object.create(null);
+				}
+				if (task_configuration_of_row.replace_parameter_options) {
+					CeL.error('Invalid task configuration: both .remove_parameters: name=value and .replace_parameter_options are set. The value filter of .remove_parameters will be used as .replace_parameter_options.filter.');
+				}
+				task_configuration_of_row.replace_parameter_options = (parameter_name, parameter_value) => {
+					if (!(parameter_name in task_configuration_of_row.replace_parameters)) {
+						// default: remove all parameters in .remove_parameters, no matter what value is.
+						return true;
+					}
+
+					const filter = remove_parameters__value_filter[parameter_name];
+					return CeL.data.fit_filter(filter, parameter_value);
+				};
+			}
 		}
+
+		task_configuration_from_section[move_from_link] = task_configuration_of_row;
 	}
 
 	//console.trace(task_configuration_from_section);
