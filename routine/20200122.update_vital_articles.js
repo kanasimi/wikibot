@@ -256,7 +256,7 @@ function parse_remove_unnecessary_parameters(general, variable_name) {
 						CeL.error(`${variable_name}: ${namespace}: 重複設定 ${key}`);
 					}
 					parameter_Map.set(key, value);
-				});
+				}, wiki.append_session_to_options());
 				if (parameter_Map.size === 0)
 					delete remove_unnecessary_parameters[namespace];
 			});
@@ -335,6 +335,11 @@ async function adapt_configuration(latest_task_configuration) {
 		}
 	}
 	general.base_page = wiki.normalize_title(general.base_page.replace(/\/+$/, ''));
+
+	if (general.exclude_VA_list_pages && !CeL.is_RegExp(general.exclude_VA_list_pages = general.exclude_VA_list_pages?.to_RegExp())) {
+		CeL.error(`${adapt_configuration.name}: Invalid RegExp (exclude_VA_list_pages): ${general.exclude_VA_list_pages}`);
+		delete general.exclude_VA_list_pages;
+	}
 
 	if (false && general.report_page) {
 		// 現在多方位，不純粹以 vital article 為主。
@@ -1430,19 +1435,16 @@ function icons_and_item_toString() {
 }
 
 // Skip non-list pages.
-function is_ignored_list_page(list_page_data) {
+function is_ignored_VA_list_page(list_page_data) {
 	const page_title = list_page_data.title;
 	return CeL.wiki.parse.redirect(list_page_data)
-		|| page_title.endsWith('/Labels')
-		|| page_title.endsWith('/Removed')
-		//[[Wikipedia:Vital articles/Level/4/People/Candidates]]
-		|| page_title.endsWith('/Candidates')
+		|| wiki.latest_task_configuration.general.exclude_VA_list_pages?.test(page_title)
 		// e.g., 'json'
 		|| CeL.wiki.content_of.revision(list_page_data)?.contentmodel !== 'wikitext';
 }
 
 async function for_each_list_page(list_page_data) {
-	if (is_ignored_list_page(list_page_data)) {
+	if (is_ignored_VA_list_page(list_page_data)) {
 		// 想要更新這些被忽略的頁面，必須做更多測試，避免他們也列入索引。
 		return Wikiapi.skip_edit;
 	}
@@ -1641,9 +1643,9 @@ async function for_each_list_page(list_page_data) {
 				}
 
 				const list_page_or_category_level = list_page_level_of_page[normalized_page_title] || category_level_of_page[normalized_page_title];
-				//if (normalized_page_title === 'Quaoar') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_list_page(list_page_data)]);
+				//if (normalized_page_title === 'Quaoar') console.trace([normalized_page_title, list_page_level_of_page[normalized_page_title], category_level_of_page[normalized_page_title], list_page_or_category_level, level, is_ignored_VA_list_page(list_page_data)]);
 				// The frist link should be the main article.
-				if (list_page_or_category_level === level || is_ignored_list_page(list_page_data)) {
+				if (list_page_or_category_level === level || is_ignored_VA_list_page(list_page_data)) {
 					//if (normalized_page_title === '月球') console.trace('Remove level note. It is unnecessary.');
 					replace_level_note(_item, index, list_page_or_category_level, '');
 				} else {
@@ -3514,6 +3516,14 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 				WikiProject_banner_shell_token[WikiProject_banner_shell_token.length - 1] = _parameter;
 
 				const parameter_of_1 = WikiProject_banner_shell_token.splice(WikiProject_banner_shell_token.index_of[1], 1);
+				// 去掉空白參數 [[w:en:User talk:Kanashimi#Extra pipe]]
+				for (let i = 1; i < WikiProject_banner_shell_token.length;) {
+					if (WikiProject_banner_shell_token[i].toString().trim()) {
+						i++;
+					} else {
+						WikiProject_banner_shell_token.splice(i, 1);
+					}
+				}
 				WikiProject_banner_shell_token.push(parameter_of_1);
 
 				CeL.wiki.inplace_reparse_element(WikiProject_banner_shell_token, wiki.append_session_to_options());

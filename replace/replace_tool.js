@@ -121,7 +121,11 @@ async function get_all_sections(meta_configuration) {
 			await meta_configuration.for_section.apply(/* parsed */this, arguments);
 		}
 		if (all_section_data[section_title]) {
-			throw new Error('Duplicated section title: ' + section_title);
+			//throw new Error('Duplicated section title: ' + section_title);
+			CeL.error([for_each_section.name + ': ', {
+				T: ['Duplicated section title: %1', CeL.wiki.title_link_of(section_title)]
+			}]);
+			return;
 		}
 		const section_data = all_section_data[section_title] = Object.create(null);
 
