@@ -170,7 +170,7 @@ let parameters_move_from_WikiProjects_to_WPBS__template_list;
 const PATTERN_invalid_parameter_value_to_remove = /(?<=[^{}]|^)[{}](?=[^{}]|$)/g;
 CeL.assert(['no', 'no}'.replace(PATTERN_invalid_parameter_value_to_remove, '')]);
 
-// [[Wikipedia:Vital articles/Level/3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
+// [[Wikipedia:Vital articles/Level 3]] redirect to→ `wiki.latest_task_configuration.general.base_page`
 const DEFAULT_LEVEL = 3;
 // assert: DEFAULT_LEVEL | 0 === DEFAULT_LEVEL
 
@@ -1260,8 +1260,8 @@ const zhwiki_level_list = [, '第一級', '第二級', '第三級', '擴展', '�
 
 /**
  * 將級別轉換為頁面標題。
- * e.g., level_to_page_title(1) → "Wikipedia:Vital articles/Level/1" or "Wikipedia:基礎條目/第一級"
- * e.g., level_to_page_title(2) → "Wikipedia:Vital articles/Level/2" or "Wikipedia:基礎條目/第二級"
+ * e.g., level_to_page_title(1) → "Wikipedia:Vital articles/Level 1" or "Wikipedia:基礎條目/第一級"
+ * e.g., level_to_page_title(2) → "Wikipedia:Vital articles/Level 2" or "Wikipedia:基礎條目/第二級"
  * 
  * @param {Number} level	級別。
  * @param {Boolean|Undefined} force_add_level	是否強制添加級別資訊。當預設級別的頁面重定向到基準頁面，這時候不強制添加級別資訊會獲得基準頁面。
@@ -1275,7 +1275,8 @@ function level_to_page_title(level, force_add_level) {
 
 	switch (wiki.site_name()) {
 		case 'enwiki':
-			page_title = /* level === DEFAULT_LEVEL && !force_add_level ? base_page : */ base_page + '/Level/' + level;
+			// [[w:en:Wikipedia talk:Vital articles#Requested move 11 March 2026]]
+			page_title = /* level === DEFAULT_LEVEL && !force_add_level ? base_page : */ base_page + '/Level ' + level;
 			break;
 
 		case 'zhwiki':
@@ -1343,7 +1344,7 @@ function parse_page_title_and_section(page_title_and_section, options) {
 			page_title_and_section_id = page_title_and_section_id.slice(index + base_page.length);
 		page_title_and_section_id = page_title_and_section_id
 			// This is for `wiki.latest_task_configuration.Topics`. 由 set_latest_section_title() 呼叫的已正規化。
-			.replace(/^.*?\/Level\/?/, '').replace(/^\/+/, '')
+			.replace(/^.*?\/Level[\s\/]?/, '').replace(/^\/+/, '')
 			.replace(/\s*\]\]\s*#\s*/, '#').replace(/\s*\]\]\s*/, '').replace(/^([^#]+)#$/, '$1')
 			|| String(DEFAULT_LEVEL);
 	}
@@ -1406,7 +1407,7 @@ function replace_level_note(item, index, best_level, new_wikitext) {
 		// auto-generated
 		new_wikitext = ` (${level_page_link(best_level, false, matched &&
 			// preserve level page and anchor. e.g.,
-			// " ([[Wikipedia:Vital articles/Level/2#Society and social sciences|Level 2]])"
+			// " ([[Wikipedia:Vital articles/Level 2#Society and social sciences|Level 2]])"
 			(matched[1] && matched[1].startsWith(level_to_page_title(best_level) + '#')) && matched[1])})`;
 	}
 	// assert: typeof new_wikitext === 'string'
@@ -1667,7 +1668,7 @@ async function for_each_list_page(list_page_data) {
 						have_to_edit_its_talk_page[normalized_page_title] = {
 							...article_info,
 							level,
-							reason: `The article is listed in the level ${level} page`,
+							reason: `The article is listed in the level ${level} page.`,
 						};
 					}
 					if (level && !(list_page_or_category_level < level)) {
@@ -1897,7 +1898,7 @@ async function for_each_list_page(list_page_data) {
 		}
 	}
 
-	// e.g., [[Wikipedia:Vital articles/Level/4/People]]
+	// e.g., [[Wikipedia:Vital articles/Level 4/People]]
 	function section_text_to_title(token, index, parent) {
 		// assert: token.type !== 'section_title'
 		// console.log(token.toString());
@@ -1940,7 +1941,7 @@ async function for_each_list_page(list_page_data) {
 		}
 
 		if (token.type === 'transclusion' && wiki.is_template('Columns-list', token)) {
-			// [[Wikipedia:Vital articles/Level/5/Everyday life/Sports, games and recreation]]
+			// [[Wikipedia:Vital articles/Level 5/Everyday life/Sports, games and recreation]]
 			token = token.parameters[1];
 			// console.log(token);
 			return Array.isArray(token) && token.some(for_root_token) && parsed.each.exit;
@@ -2260,7 +2261,7 @@ async function generate_all_VA_list_page() {
 					CeL.error(`${generate_all_VA_list_page.name}: No topic and detailed_level: ${page_title} ${JSON.stringify(article_info)}`);
 				} else if (!report_lines.warned_topics.has(article_info.detailed_level)) {
 					report_lines.warned_topics.add(article_info.detailed_level);
-					report_lines.push([page_title, article_info.detailed_level, `Please set the topic/subpage in [[User:Cewbot/log/20200122/configuration#Topics]].`]);
+					report_lines.push([page_title, article_info.detailed_level, `Please set the topic/subpage in [[${login_options.task_configuration_page}#Topics]].`]);
 				}
 			}
 
@@ -2389,7 +2390,7 @@ function check_page_count() {
 		const article_info_list = listed_article_info[page_title];
 		if (!article_info_list) {
 			CeL.log(`${check_page_count.name}: ${CeL.wiki.title_link_of(page_title)}: Category level ${category_level} but not listed. Privious vital article?`);
-			// pages that is not listed in the Wikipedia:Vital articles/Level/*
+			// pages that is not listed in the [[Wikipedia:Vital articles/Level *]]
 			have_to_edit_its_talk_page[page_title] = {
 				// When an article is not listed {{Vital article}} should be removed, not just blanking the |level=.
 				remove: true,
@@ -3651,7 +3652,7 @@ async function generate_report(options) {
 			record[1] = category_level_of_page[page_title];
 		} else if (record[1].title) {
 			record[1] = record[1].title;
-			const matched = record[1].match(/Level\/([1-5](?:\/.+)?)$/);
+			const matched = record[1].match(/Level[\s\/]([1-5](?:\/.+)?)$/);
 			if (matched)
 				record[1] = matched[1];
 			else if (record[1] === wiki.latest_task_configuration.general.base_page)
