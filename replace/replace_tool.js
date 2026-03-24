@@ -290,6 +290,14 @@ const command_line_argument_alias = {
 };
 
 function convert_special_move_to(move_to_link) {
+	if (typeof move_to_link === 'object') {
+		const _move_to_link = convert_special_move_to(move_to_link?.move_to_link);
+		if (move_to_link.move_to_link !== _move_to_link) {
+			move_to_link.move_to_link = _move_to_link;
+		}
+		return move_to_link;
+	}
+
 	switch (move_to_link) {
 		// remove_page
 		case 'DELETE_PAGE':
@@ -624,6 +632,17 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			CeL.error(e);
 		}
 		//console.trace(task_configuration);
+
+		if (task_configuration.replace_tool_page_configuration) {
+			const move_configuration_from_page = convert_special_move_to(task_configuration.replace_tool_page_configuration);
+			let move_from_link = move_configuration_from_page.move_from_link;
+			if (move_from_link) {
+				task_configuration_from_section[move_from_link] = move_configuration_from_page;
+			} else {
+				meta_configuration.move_configuration_from_page_JSON = move_configuration_from_page;
+			}
+		}
+
 		task_configuration = task_configuration.replace_tool_configuration;
 		if (!task_configuration)
 			return;
@@ -711,10 +730,13 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 	} else if (meta_configuration[KEY_wiki_session].is_namespace(meta_configuration.get_task_configuration_from, 'Category')) {
 		// e.g., [[Special:Diff/79100214/79123647#Category:中國科舉人物中人物添加规范控制]]
 		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"Category:中國科舉人物","depth":10,"insert_layout":"{{Authority control}}","namespace":0,"excluding_title_includes":["列表"]}}</syntaxhighlight>
-		const main_task_configuration = task_configuration_from_section[meta_configuration.get_task_configuration_from] = {
-			insert_layout: CeL.wiki.parse(meta_configuration.task_configuration_from_page_JSON.insert_layout),
-			text_processor: text_processor_for_configuration_from_page,
-		};
+		const main_task_configuration
+			= task_configuration_from_section[meta_configuration.get_task_configuration_from]
+			= meta_configuration.task_configuration_from_page_JSON.insert_layout ? {
+				text_processor: text_processor_for_configuration_from_page,
+				insert_layout: CeL.wiki.parse(meta_configuration.task_configuration_from_page_JSON.insert_layout),
+			} : Object.create(null);
+
 		if (!options?.ignore_list && meta_configuration.task_configuration_from_page_JSON.depth >= 2) {
 			const page_list_to_test = ['葉紹袁']
 				&& null
@@ -724,34 +746,58 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				//console.trace(page_list_to_test);
 			}
 			const wiki_session = meta_configuration[KEY_wiki_session];
-			await wiki_session.setup_layout_element_to_insert(main_task_configuration.insert_layout);
+			if (main_task_configuration.insert_layout)
+				await wiki_session.setup_layout_element_to_insert(main_task_configuration.insert_layout);
 
-			let category_tree = !page_list_to_test && (await wiki_session.category_tree(meta_configuration.get_task_configuration_from, { depth: meta_configuration.task_configuration_from_page_JSON.depth, cmtype: 'subcat|page|file', get_flat_subcategories: true })).flat_subcategories;
-			//console.trace(category_tree);
 			const page_list = page_list_to_test || [];
-			const namespace = meta_configuration.task_configuration_from_page_JSON.namespace;
-			// page_filter
-			let excluding_title_includes = meta_configuration.task_configuration_from_page_JSON.excluding_title_includes;
-			if (excluding_title_includes) {
-				if (!Array.isArray(excluding_title_includes))
-					excluding_title_includes = [excluding_title_includes];
-			}
 			if (!page_list_to_test) {
-				for (let category_page_list of Object.values(category_tree)) {
-					//console.trace(category_page_list);
-					if (namespace || namespace === 0) {
-						category_page_list = category_page_list.filter(page_data => wiki_session.is_namespace(page_data, namespace));
+				if (meta_configuration.get_task_configuration_from.includes('|')) {
+					delete task_configuration_from_section[meta_configuration.get_task_configuration_from];
+				}
+
+				const namespace = meta_configuration.task_configuration_from_page_JSON.namespace;
+				const include_categories = wiki_session.is_namespace('Category:c', namespace);
+				// page_filter
+				let excluding_title_includes = meta_configuration.task_configuration_from_page_JSON.excluding_title_includes;
+				if (excluding_title_includes) {
+					if (!Array.isArray(excluding_title_includes))
+						excluding_title_includes = [excluding_title_includes];
+				}
+
+				for (const category_title of meta_configuration.get_task_configuration_from.split('|')) {
+					let category_tree = (await wiki_session.category_tree(category_title, { depth: meta_configuration.task_configuration_from_page_JSON.depth, cmtype: 'subcat|page|file', get_flat_subcategories: true })).flat_subcategories;
+					//console.trace(category_tree);
+					for (let [category_name, category_page_list] of Object.entries(category_tree)) {
+						//console.trace(category_page_list);
+						if (meta_configuration.move_configuration_from_page_JSON) {
+							// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量移除「X月X日出生」及「X月X日逝世」的分類成員]]
+							// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"Category:各日出生|Category:各日逝世","depth":2,"namespace":"Category"},"replace_tool_page_configuration":{"move_to_link":"DELETE_PAGE","namespace":"main|Category"}}</syntaxhighlight>
+							task_configuration_from_section[`Category:${category_name}`] = {
+								...meta_configuration.move_configuration_from_page_JSON,
+								page_list: category_page_list.filter(page_data => wiki_session.is_namespace(page_data, meta_configuration.move_configuration_from_page_JSON.namespace)),
+							};
+						}
+						if (namespace || namespace === 0) {
+							category_page_list = category_page_list.filter(page_data => wiki_session.is_namespace(page_data, namespace));
+							if (include_categories) {
+								// .push(): 例如在刪掉分類時，最後才處理這個分類。
+								category_page_list.push(`Category:${category_name}`);
+							}
+						}
+						if (excluding_title_includes) {
+							category_page_list = category_page_list.filter(page_data => !excluding_title_includes.some(string => page_data.title.includes(string)));
+						}
+						page_list.append(category_page_list);
 					}
-					if (excluding_title_includes) {
-						category_page_list = category_page_list.filter(page_data => !excluding_title_includes.some(string => page_data.title.includes(string)));
-					}
-					page_list.append(category_page_list);
 				}
 			}
 			//console.trace(page_list);
 			main_task_configuration.page_list = page_list;
 			//NG: main_task_configuration.list_types = 'categorymembers';
 		}
+
+		// 不會再用到了。
+		delete meta_configuration.move_configuration_from_page_JSON;
 
 	} else if (/^https?:\/\//.test(meta_configuration.get_task_configuration_from)) {
 		// Treat `meta_configuration.get_task_configuration_from` as URL.
