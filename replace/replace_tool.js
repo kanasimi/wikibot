@@ -1183,7 +1183,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	const { summary, section_title } = meta_configuration;
 	const _section_title = section_title ? '#' + section_title : '';
 
-	fix_subst_postfix(meta_configuration)
+	fix_subst_postfix(meta_configuration);
 
 
 	//console.trace(meta_configuration);
@@ -2579,18 +2579,24 @@ async function subst_template(token, index, parent) {
 		throw new Error(`${subst_template.name}: Failed to expand template: ${token.toString()} → ${expanded_code}`);
 	}
 
-	if (task_configuration.subst_postfix) {
-		// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用Template:港鐵顏色]]
-		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"subst_postfix":"/<nowiki>#<\\/nowiki>/#/"}}</syntaxhighlight>
+	if (!task_configuration.no_generally_postfix) {
+		if (/^\s*<nowiki>#<\/nowiki>/.test(expanded_code)) {
+			// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用Template:港鐵顏色]]
+			// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"subst_postfix":"/<nowiki>#<\\/nowiki>/#/"}}</syntaxhighlight>
 
+			// 有些模板以 "#" 開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。這時 subst 就得用上 .subst_postfix。
+			// 如[[Template:港鐵顏色]]: <includeonly><nowiki>#</nowiki>...
+			// {{輕鐵色彩}}
+			expanded_code = expanded_code.toString().replace(/^\s*<nowiki>#<\/nowiki>/, '#');
+		}
+	}
+
+	if (task_configuration.subst_postfix) {
 		// [[w:zh:Wikipedia:机器人/作业请求#h-請求批量替換引用Category:僅使用維吾爾老文字表示維吾爾語-20260308141800]]
 		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:僅使用維吾爾老文字表示維吾爾語的Lang-ug","move_to_link":"subst:","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxh
 
 		// [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用所有{{港铁路线标志}}與{{香港輕鐵路綫}}]]
 		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:可被替換引用的港鐵路綫標誌","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxhighlight>
-
-		// 有些模板以 "#" 開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。這時 subst 就得用上 .subst_postfix。
-		// 如[[Template:港鐵顏色]]: <includeonly><nowiki>#</nowiki>...
 		expanded_code = task_configuration.subst_postfix.replace(expanded_code);
 	}
 
