@@ -1492,3 +1492,4 @@ function main_work() {
 }
 
 wiki.run(main_work);
+//require('child_process').spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
