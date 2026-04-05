@@ -1472,6 +1472,7 @@ function main_work() {
 		wiki.work({
 			no_edit : true,
 			each : for_each_page,
+			last : final_check,
 			pages_finished : 0,
 			page_options : {
 				rvprop : 'ids|content|timestamp'
@@ -1491,5 +1492,15 @@ function main_work() {
 	});
 }
 
+function final_check(error) {
+	if (error) {
+		CeL.error('final_check: ' + error);
+		if (false)
+			require('child_process').spawn(process.argv[0],
+					process.argv.slice(1), {
+						stdio : 'inherit'
+					});
+	}
+}
+
 wiki.run(main_work);
-//require('child_process').spawn(process.argv[0], process.argv.slice(1), { stdio: 'inherit' });
