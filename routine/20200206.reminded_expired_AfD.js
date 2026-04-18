@@ -436,7 +436,9 @@ async function find_PROD_in_the_summaries(target_page_title, result_notice_data)
 // ----------------------------------------------------------------------------
 
 const PROD_MESSAGE = {
-	recommendation: 'Note to closer for soft deletion',
+	//recommendation: 'Note to closer for soft deletion',
+	// [[w:en:User talk:Kanashimi#Cewbot softmerge addition]]
+	recommendation: 'Note on soft closure',
 	previous_discussions: 'Previous discussions',
 	related_discussions: 'Related discussions',
 	logs: 'Logs',
@@ -537,7 +539,8 @@ async function for_AfD(AfD_page_data) {
 			return;
 
 		summary = task_configuration.eligible_PROD_summary || 'Seems eligible for PROD';
-		result_notice = `${PROD_MESSAGE_PREFIX}This nomination has had limited participation and falls within the standards set for [[WP:NOQUORUM|lack of quorum]]. There are no previous AfD discussions, undeletions, ${result_notice_data.redirect_to ? '' : 'or current redirects '}and no previous PRODs have been located. This nomination may be '''eligible for [[WP:SOFTDELETE|soft deletion]]''' at the end of its ${close_days}-day listing.`;
+		// [[w:en:User talk:Kanashimi#Cewbot softmerge addition]]
+		result_notice = `${PROD_MESSAGE_PREFIX}This nomination has had limited participation and falls within the standards set for [[WP:NOQUORUM|lack of quorum]]. There are no previous AfD discussions, undeletions, ${result_notice_data.redirect_to ? '' : 'or current redirects '}and no previous PRODs have been located. This nomination may be '''eligible for [[WP:SOFTDELETE|soft deletion]] or [[WP:SOFTMERGE|merging]]''' depending on the nomination, at the end of its ${close_days}-day listing.`;
 	}
 
 	const participations_report = Object.keys(participations).map(type => participations[type].length > 0 && `${participations[type].length} ${type}`).filter(text => !!text).join(', ');
