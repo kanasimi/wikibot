@@ -102,10 +102,11 @@ async function main_process() {
 		})) {
 			return badge_entity_id;
 		}
+		CeL.error(`Cannot find badge_entity_id of icon ${icon}!`);
 	}).filter(badge_entity_id => !!badge_entity_id);
 	// Should be ['Q17437796', 'Q17437798', 'Q17506997'] in zhwiki, jawiki
 	//console.trace(badges_to_process);
-	if (badges_to_process.length === 0) {
+	if (false && badges_to_process.length === 0) {
 		CeL.error('No badges_to_process set!');
 	}
 
@@ -280,11 +281,18 @@ async function get_featured_content_badges(options) {
 	const featured_content_badges = (await wiki.SPARQL(`
 SELECT ?item ?itemLabel
 WHERE {
-	# Q4387047: Portal:特色內容
+	# 包含於 Q4387047: Portal:特色內容
 	?item wdt:P279 wd:Q4387047
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],${wiki.latest_task_configuration.general.general_language_code}" }
 }
-`)).id_list();
+`)).id_list().append((await wiki.SPARQL(`
+SELECT ?item ?itemLabel
+WHERE {
+	# 話題主分類: Category:典範條目
+	?item wdt:P910 wd:Q7045856
+	SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],${wiki.latest_task_configuration.general.general_language_code}" }
+}
+`)).id_list()).sort((_1, _2) => get_numbral_entity_id(_1) - get_numbral_entity_id(_2));
 
 	//console.trace(featured_content_badges);
 	return featured_content_badges;
@@ -438,6 +446,7 @@ WHERE {
 }
 `, {
 			split_by_slice: 5000,
+			error_retry: 3,
 			for_each_query_slice() {
 				CeL.log_temporary(`${get_featured_content_of_language.name}: Get #${this.offset} ${badges} of ${language_code} (${label_languages})`);
 			}

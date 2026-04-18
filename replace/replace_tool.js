@@ -2551,6 +2551,7 @@ function for_each_file(token, index, parent) {
 // --------------------------------------------------------
 
 // subst展開 [[mw:Help:Substitution]]
+// @see [[w:en:User:AnomieBOT/docs/TemplateSubster]]
 async function subst_template(token, index, parent) {
 	const page_title = this.page_to_edit.title;
 	//this.task_configuration[KEY_wiki_session].append_session_to_options().session;

@@ -7,6 +7,7 @@
  2019/1/9 21:22:42	重構程式碼: using FC_data_hash
  2019/1/10 13:9:32	add 首頁優良條目展示
  2019/1/13 9:33:15	修正頁面
+ 2026/4/15 19:48:56	+parse_each_FFC_category() 以取得已撤銷的特色內容/優良條目列表。
 
  // 輪流展示列表
 
@@ -27,6 +28,8 @@ wiki = Wiki(true);
 
 // ---------------------------------------------------------------------//
 
+var use_cache = false;
+
 var is_production_environment = CeL.env.arg_hash
 // environment=production
 && CeL.env.arg_hash.environment === 'production',
@@ -45,21 +48,26 @@ JDN_to_generate = JDN_today
 //
 JDN_search_to = Math.max(JDN_today, JDN_to_generate - 1),
 // 開始有特色內容頁面的日期。
-JDN_start = using_GA ? CeL.Julian_day.from_YMD(2006, 9, 3, true)
-		: CeL.Julian_day.from_YMD(2013, 8, 20, true),
-// 典範JDN: 開始廢棄"特色條目"，採用"典範條目"的日期。
-典範JDN = CeL.Julian_day.from_YMD(2017, 10, 1, true),
+JDN_start = using_GA ? CeL.Julian_day.from_YMD(2006, 9, 3, 'CE')
+		: CeL.Julian_day.from_YMD(2013, 8, 20, 'CE'),
+/** 典範JDN: 開始廢棄"特色條目"，採用"典範條目"的日期。 */
+典範JDN = CeL.Julian_day.from_YMD(2017, 10, 1, 'CE'),
 // {{#time:Y年n月|+1 day}}
 // @see Template:Feature , Template:Wikidate/ymd
 月日_to_generate = CeL.Julian_day.to_Date(JDN_to_generate).format('%m月%d日'),
 
 FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
-// [[Wikipedia:已撤銷的典範條目]] 條目連結
-// 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。
-Former_FC_list_pages = (using_GA ? 'WP:DGA|WP:FA|WP:FFA' : 'WP:FFA|WP:FFL')
+/**
+ * [[Wikipedia:已撤銷的典範條目]] 條目連結。<br />
+ * [[Module_talk:Article_history/config#Module:Article_history/config自动添加Category有歧义]]之後廢除。<br />
+ * 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。高等級的放後面。
+ */
+Former_FC_list_pages = ((using_GA ? 'WP:DGA|WP:FA' : 'WP:FFL') + '|WP:FFA')
 		.split('|'), sub_FC_list_pages = [],
-// 出問題時，至此頁面提醒社群。須保證本頁面存在，並且機器人可以寫入。
-// [[Wikipedia:互助客栈/其他]], [[Wikipedia:互助客栈/条目探讨]]
+/**
+ * 出問題時，至此頁面提醒社群。須保證本頁面存在，並且機器人可以寫入。<br />
+ * e.g., [[Wikipedia:互助客栈/其他]], [[Wikipedia:互助客栈/条目探讨]]
+ */
 DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 	section : 'new',
 	sectiontitle : 月日_to_generate + '的首頁' + TYPE_NAME + '頁面似乎有問題，請幫忙處理',
@@ -71,19 +79,21 @@ DISCUSSION_PAGE = 'Wikipedia talk:首页', DISCUSSION_edit_options = {
 /** 特色內容為列表 */
 KEY_IS_LIST = 0,
 /** 為已撤銷的特色內容 */
-KEY_ISFFC = 1,
-// to {String}transcluding page title.
-// e.g., FC_data[KEY_TRANSCLUDING_PAGE]="Wikipedia:典範條目/條目"
+KEY_IS_FFC = 1,
+/**
+ * FC_data[KEY_TRANSCLUDING_PAGE] = {String}transcluding page title.<br />
+ * e.g., FC_data[KEY_TRANSCLUDING_PAGE]="Wikipedia:典範條目/條目"
+ */
 KEY_TRANSCLUDING_PAGE = 2, KEY_JDN = 3,
-// 指示用。會在 parse_each_FC_item_list_page() 之後就刪除。
+/** 指示用。會在 parse_each_FC_item_list_page() 之後就刪除。 */
 KEY_LIST_PAGE = 4,
-// 上次展示時間
+/** 上次展示時間 */
 KEY_LATEST_JDN = 4,
 /** 特色內容類別 */
 KEY_CATEGORY = 5,
-// 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
+/** 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。 */
 KEY_TITLES_TO_MOVE = 6,
-//
+/** 顯示文字 */
 KEY_DISPLAY_TEXT = 7,
 // FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
 // {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
@@ -91,15 +101,15 @@ FC_data_hash = Object.create(null), new_FC_pages,
 
 /** {Array}錯誤記錄 */
 error_logs = [], FC_title_sorted, redirects_list_to_check = [],
-// cache file of redirects
+/** cache file of redirects */
 redirects_to_file = base_directory + 'redirects_to.json',
-// redirects_to_hash[original_FC_title] = {String}FC_title 經過繁簡轉換過的最終標題
+/** redirects_to_hash[original_FC_title] = {String}FC_title 經過繁簡轉換過的最終特色內容條目標題 */
 redirects_to_hash = CeL.get_JSON(redirects_to_file) || Object.create(null),
-// JDN_hash[FC_title] = JDN
+/** JDN_hash[FC_title] = JDN */
 JDN_hash = Object.create(null),
 // @see get_FC_title_to_transclude(FC_title)
 FC_page_prefix = Object.create(null),
-// 避免採用類別
+/** 避免採用類別 */
 avoid_catalogs, hit_count,
 /**
  * {RegExp}每日特色內容頁面所允許的[[w:zh:Wikipedia:嵌入包含]]正規格式。<br />
@@ -107,6 +117,8 @@ avoid_catalogs, hit_count,
  * matched: [ all, transcluding_title, FC_page_prefix, FC_title ]
  */
 PATTERN_FC_transcluded = /^\s*\{\{\s*((?:Wikipedia|WP|維基百科|维基百科):((?:特色|典範|典范|優良|优良)(?:條目|条目|列表))\/(?:(?:s|摘要)\|)?([^{}]+))\}\}\s*$/i,
+/** {RegExp}頁面標題包含日期的格式。 */
+PATTERN_only_date = /^\d{4}年\d{1,2}月\d{1,2}日$/,
 //
 get_page_options = {
 	converttitles : 1,
@@ -130,17 +142,24 @@ function main_work() {
 		// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
 		list : Former_FC_list_pages.concat(FC_list_pages),
 		redirects : 1,
-		reget : true,
+		reget : !use_cache,
 		each : parse_each_FC_item_list_page
 	}, {
 		type : 'page',
 		list : sub_FC_list_pages,
 		redirects : 1,
-		reget : true,
+		reget : !use_cache,
 		each : parse_each_FC_item_list_page
 	}, {
+		type : 'categorymembers',
+		list : ((using_GA ? 'Category:已撤銷的優良條目|' : '')
+		// 有時"已撤銷的優良條目"可能已經被轉到"已撤銷的典範條目"，因此不能省。高等級的放後面。
+		+ 'Category:已撤銷的典範條目|Category:已撤销的特色列表').split('|'),
+		redirects : 1,
+		reget : !use_cache,
+		each : parse_each_FFC_category
+	}, {
 		type : 'redirects_here',
-		// TODO: 一次取得大量頁面。
 		list : function() {
 			CeL.debug('redirects_to_hash = '
 			//
@@ -152,35 +171,36 @@ function main_work() {
 			});
 			return new_FC_pages;
 		},
-		reget : true,
-		// 檢查特色內容列表頁面所列出的連結，其所指向的真正頁面標題。
+		reget : !use_cache,
+		// 檢查特色內容列表頁面所列出的連結，其所指向的真正特色內容條目標題。
 		each : check_FC_redirects
 	}, {
 		type : 'page',
-		// TODO: 一次取得大量頁面。
 		list : generate_FC_date_page_list,
 		redirects : 1,
 		// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
 		each : parse_each_FC_date_page
 	}, {
 		type : 'redirects_here',
-		// TODO: 一次取得大量頁面。
 		list : redirects_list_to_check,
-		reget : true,
+		reget : !use_cache,
 		// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
 		each : check_redirects
 	}, {
-		// 檢查含有特色內容、優良條目模板之頁面是否與登記項目頁面相符合。
+		// 檢查含有特色內容、優良條目模板之頁面是否與登記分類或項目頁面相符合。
 		type : 'embeddedin',
-		reget : true,
+		reget : !use_cache,
 		list : (using_GA ? 'Template:Good article'
 		//
 		: 'Template:Featured article|Template:Featured list').split('|'),
 		each : check_FC_template,
 		operator : summary_FC_template
 	} ], check_date_page, {
-		// JDN index in parse_each_FC_date_page()
-		JDN : JDN_start,
+		// this.JDN index in parse_each_FC_date_page()
+		// 警告: 執行順序不會依照 `list` 的順序，不能用 this.JDN 來取得 JDN，因此得以
+		// parse_JDN_from_FC_date_title() 解析 JDN。
+		// JDN : JDN_start,
+
 		// index in check_redirects()
 		redirects_index : 0,
 
@@ -353,7 +373,7 @@ function parse_each_FC_item_list_page(page_data) {
 				PATTERN_Featured_content ]);
 	}
 	while (matched = PATTERN_Featured_content.exec(content)) {
-		// 還沒繁簡轉換過的標題。
+		/** {String}還沒繁簡轉換過的特色內容條目標題。 */
 		var original_FC_title = CeL.wiki.normalize_title(matched[1]);
 
 		if (matched.length === 2) {
@@ -375,13 +395,13 @@ function parse_each_FC_item_list_page(page_data) {
 			continue;
 		}
 
-		// 轉換成經過繁簡轉換過的最終標題。
+		/** 轉換成經過繁簡轉換過的最終特色內容條目標題。 */
 		var FC_title = redirects_to_hash[original_FC_title]
 				|| original_FC_title;
 
 		if (FC_title in FC_data_hash) {
 			// 基本檢測與提醒。
-			if (FC_data_hash[FC_title][KEY_ISFFC] === is_FFC) {
+			if (FC_data_hash[FC_title][KEY_IS_FFC] === is_FFC) {
 				CeL.warn('parse_each_FC_item_list_page: Duplicate ' + TYPE_NAME
 						+ ' title: ' + FC_title + '; ' + FC_data_hash[FC_title]
 						+ '; ' + matched[0]);
@@ -390,9 +410,9 @@ function parse_each_FC_item_list_page(page_data) {
 						+ CeL.wiki.title_link_of(original_FC_title)
 						+ (original_FC_title === FC_title ? '' : ', '
 								+ CeL.wiki.title_link_of(FC_title)));
-			} else if (!!FC_data_hash[FC_title][KEY_ISFFC] !== !!is_FFC
-			//
-			&& (FC_data_hash[FC_title][KEY_ISFFC] !== 'UP' || is_FFC !== false)) {
+			} else if (!!FC_data_hash[FC_title][KEY_IS_FFC] !== !!is_FFC
+					//
+					&& (FC_data_hash[FC_title][KEY_IS_FFC] !== 'UP' || is_FFC !== false)) {
 				error_logs
 						.push(CeL.wiki.title_link_of(FC_title)
 								+ ' 被同時列在了現存及已撤銷的'
@@ -414,7 +434,7 @@ function parse_each_FC_item_list_page(page_data) {
 		}
 		var FC_data = FC_data_hash[FC_title] = [];
 		FC_data[KEY_IS_LIST] = is_list;
-		FC_data[KEY_ISFFC] = is_FFC;
+		FC_data[KEY_IS_FFC] = is_FFC;
 		FC_data[KEY_JDN] = [];
 		if (matched[2]
 				&& ((matched[2] = matched[2].trim()).includes('-{') || !matched[2]
@@ -428,20 +448,53 @@ function parse_each_FC_item_list_page(page_data) {
 
 // ---------------------------------------------------------------------//
 
+/**
+ * 解析已撤銷的特色內容/優良條目category，以取得已撤銷的特色內容/優良條目。
+ * 
+ * @param {Array}page_list
+ *            categorymembers 的回傳資料。包含了 categorymembers 以及 query_title (category
+ *            title)。
+ */
+function parse_each_FFC_category(page_list) {
+	// console.trace(page_list);
+	var is_list = /list|列表/.test(page_list.title);
+	var is_FFC = true;
+
+	for (var index = 0; index < page_list.length; index++) {
+		/** {String}特色內容條目標題。 */
+		var FC_title = wiki.talk_page_to_main(page_list[index].title);
+		if (FC_data_hash[FC_title]) {
+			CeL.warn('parse_each_FFC_category: 已在列表中設定過 '
+					+ CeL.wiki.title_link_of(FC_title) + '，但又在已撤銷的' + TYPE_NAME
+					+ '分類中找到。');
+		}
+		var FC_data = FC_data_hash[FC_title] = [];
+		FC_data[KEY_IS_LIST] = is_list;
+		FC_data[KEY_IS_FFC] = is_FFC;
+		FC_data[KEY_JDN] = [];
+		FC_data[KEY_LIST_PAGE] = [ page_list.title ];
+	}
+}
+
+// ---------------------------------------------------------------------//
+
 function check_FC_redirects(page_list) {
 	// console.log(page_list);
+
+	/** {String}還沒繁簡轉換過的特色內容條目標題。 */
 	var original_FC_title = page_list.query_title;
 	if (!original_FC_title) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
 	}
-	// 經過繁簡轉換過的最終標題。
+
+	/** {String}特色內容條目標題。 */
 	var FC_title = CeL.wiki.title_of(page_list[0]);
 
 	if (original_FC_title !== FC_title) {
 		CeL.debug(CeL.wiki.title_link_of(original_FC_title) + ' → '
 				+ CeL.wiki.title_link_of(FC_title));
 		redirects_to_hash[original_FC_title] = FC_title;
-		// 搬移到經過繁簡轉換過的最終標題。
+		// 搬移到經過繁簡轉換過的最終特色內容條目標題。
 		if (FC_data_hash[original_FC_title]) {
 			if (FC_data_hash[FC_title]) {
 				CeL.error('check_FC_redirects: 標題已經登記過: '
@@ -497,6 +550,14 @@ function generate_FC_date_page_list() {
 	return title_list;
 }
 
+function parse_JDN_from_FC_date_title(title) {
+	var matched = title.match(/\/(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+	if (matched) {
+		return CeL.Julian_day
+				.from_YMD(matched[1], matched[2], matched[3], 'CE');
+	}
+}
+
 function parse_each_FC_date_page(page_data) {
 	// console.trace(page_data);
 
@@ -509,8 +570,11 @@ function parse_each_FC_date_page(page_data) {
 	 * CeL.wiki.revision_content(revision)
 	 */
 	content = CeL.wiki.content_of(page_data),
-	//
-	FC_title, JDN = this.JDN++, matched = content
+	/** {String}特色內容條目標題。 */
+	FC_title,
+	// 警告: 執行順序不會依照 `list` 的順序，不能用 this.JDN 來取得 JDN，因此得以
+	// parse_JDN_from_FC_date_title() 解析 JDN。
+	JDN = parse_JDN_from_FC_date_title(title), matched = content
 			&& content.replace(/<\!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
@@ -536,6 +600,7 @@ function parse_each_FC_date_page(page_data) {
 				FC_data[KEY_TITLES_TO_MOVE].push(title);
 			} else {
 				// 日期頁面包含另外一個日期頁面，因此必須修正，以直接指向簡介頁面。
+				// 或者日期頁面本身已經包含內容，而非範本頁面，如[[Wikipedia:优良条目/2007年5月31日]]。
 				FC_data[KEY_TITLES_TO_MOVE] = [ title ];
 			}
 		} else {
@@ -634,7 +699,7 @@ function check_redirects(page_list) {
 	if (!original_FC_title) {
 		throw '無法定位的重定向資料! 照理來說這不應該發生! ' + JSON.stringify(page_list);
 	}
-	// 經過繁簡轉換過的最終特色內容標題。
+	/** {String}經過繁簡轉換過的最終特色內容條目標題。 */
 	var FC_title = CeL.wiki.title_of(page_list[0]);
 
 	var not_found;
@@ -684,7 +749,7 @@ function check_redirects(page_list) {
 	// 處理日期頁面包含/指向了另一個日期頁面的情況
 
 	if (FC_data[KEY_TRANSCLUDING_PAGE]
-			&& /^\d{4}年\d{1,2}月\d{1,2}日$/.test(original_FC_title)) {
+			&& PATTERN_only_date.test(original_FC_title)) {
 		CeL.info('check_redirects: ' + FC_data[KEY_JDN].map(function(title) {
 			return CeL.wiki.title_link_of(
 			//
@@ -729,7 +794,7 @@ function check_redirects(page_list) {
 	!FC_data[KEY_TRANSCLUDING_PAGE]
 	// 跳過已經撤銷資格、並非當前優良條目的狀況。
 	// 這種頁面太多，要全部移動的話太浪費資源。
-	&& FC_data[KEY_ISFFC] === false
+	&& FC_data[KEY_IS_FFC] === false
 	//
 	&& FC_data[KEY_TITLES_TO_MOVE] && get_FC_title_to_transclude(FC_title), from_title;
 	// console.log([ FC_title, FC_data ]);
@@ -741,25 +806,25 @@ function check_redirects(page_list) {
 	}
 
 	if (!move_to_title) {
-		if (!(KEY_ISFFC in FC_data)) {
+		if (!(KEY_IS_FFC in FC_data)) {
 			// console.log([ FC_title, FC_data ]);
 			FC_data[KEY_JDN].forEach(function(JDN) {
 				error_logs.push(CeL.wiki
 				//
 				.title_link_of(get_FC_date_title_to_transclude(JDN)) + '介紹的'
 						+ CeL.wiki.title_link_of(original_FC_title)
-						+ '似乎未登記在現存或已撤銷的' + TYPE_NAME + '項目頁面中？');
+						+ '似乎未登記在現存或已撤銷的' + TYPE_NAME + '分類或項目頁面中？');
 			});
 			if (false) {
 				CeL.warn('過去曾經在 '
 						+ CeL.Julian_day.to_Date(FC_data[KEY_JDN][0]).format(
 								'%Y年%m月%d日') + ' 包含過的' + TYPE_NAME
-						+ '，並未登記在現存或已撤銷的登記項目頁面中: '
+						+ '，並未登記在現存或已撤銷的登記分類或項目頁面中: '
 						+ CeL.wiki.title_link_of(original_FC_title) + '。'
 						+ '若原先內容轉成重定向頁，使此標題指向了重定向頁，請修改' + TYPE_NAME
-						+ '項目頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:' + NS_PREFIX
-						+ '/ 下的簡介頁面移到最終指向的標題。' + '若這是已撤銷的' + TYPE_NAME
-						+ '，請加入相應的已撤銷項目頁面。'
+						+ '分類或項目頁面上的標題，使之連結至實際標題；' + '並且將 Wikipedia:'
+						+ NS_PREFIX + '/ 下的簡介頁面移到最終指向的標題。' + '若這是已撤銷的'
+						+ TYPE_NAME + '，請加入相應的已撤銷分類或項目頁面。'
 						+ '若為標題標點符號全形半形問題，請將之移動到標點符號完全相符合的標題。');
 			}
 		}
@@ -876,6 +941,7 @@ function check_FC_template(page_data_list, operation) {
 		if (page_data.ns !== 0)
 			return;
 
+		/** {String}特色內容條目標題。 */
 		var FC_title = CeL.wiki.title_of(page_data);
 		if (!is_FC(FC_title)) {
 			error_logs.push(CeL.wiki.title_link_of(FC_title) + '一文嵌入了'
@@ -899,6 +965,7 @@ function check_FC_template(page_data_list, operation) {
 }
 
 function summary_FC_template(list, operation) {
+	/** {String}特色內容條目標題。 */
 	var FC_title_list = Object.keys(this.FC_title_hash),
 	//
 	list = operation.list;
@@ -937,7 +1004,7 @@ function generate_help_message(date_page_title, message) {
 // 不是日期頁面嵌入的、有問題的標題。
 function is_FC(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
-	return FC_data && FC_data[KEY_ISFFC] === false;
+	return FC_data && FC_data[KEY_IS_FFC] === false;
 }
 
 function check_date_page() {
@@ -1185,6 +1252,7 @@ function check_date_page() {
 			return;
 		}
 
+		/** {String}特色內容條目標題。 */
 		var FC_title = CeL.wiki.normalize_title(matched[3]);
 		FC_title = redirects_to_hash[FC_title] || FC_title;
 		if (!is_FC(FC_title)) {
@@ -1205,7 +1273,7 @@ function check_date_page() {
 
 				return generate_help_message(date_page_title,
 				//
-				/^\d{4}年\d{1,2}月\d{1,2}日$/.test(FC_title)
+				PATTERN_only_date.test(FC_title)
 				//
 				? '似乎嵌入包含了另一個日期的簡介。請幫忙改成直接嵌入頁面'
 				//
@@ -1237,6 +1305,7 @@ function fix_for_titleblacklist(page_title) {
 
 // 然後自還具有特色內容資格的條目中，挑選出沒上過首頁、抑或最後展示時間距今最早的頁面（此方法不見得會按照日期順序來展示），
 function write_date_page(date_page_title, transcluding_title_now) {
+	/** {String}特色內容條目標題。 */
 	var FC_title, candidates = [],
 	// 跳過上過首頁太多次、展示次數過多的條目。盡量使各條目展示的次數相近。
 	hit_upper_Bound = hit_count / FC_title_sorted.length + 1 | 0;
@@ -1681,6 +1750,7 @@ function update_portal() {
 
 	var index = FC_title_sorted.length, FC_articles = [], FC_lists = [];
 	while (index-- > 0) {
+		/** {String}特色內容條目標題。 */
 		var FC_title = FC_title_sorted[index], FC_data = FC_data_hash[FC_title], is_list = FC_data[KEY_IS_LIST];
 		if (is_list) {
 			if (FC_lists.length < portal_item_count)
