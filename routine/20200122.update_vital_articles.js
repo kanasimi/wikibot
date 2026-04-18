@@ -166,7 +166,7 @@ const parameters_move_from_WikiProjects_to_WPBS = {
 };
 let parameters_move_from_WikiProjects_to_WPBS__template_list;
 
-/**可安全移除的任無用的參數值字元。 @see [[w:en:User talk:Qwerfjkl#Disruptions caused by the Qwerfjkl bot]] */
+/**{RegExp}可安全移除的任無用的參數值字元。 @see [[w:en:User talk:Qwerfjkl#Disruptions caused by the Qwerfjkl bot]] */
 const PATTERN_invalid_parameter_value_to_remove = /(?<=[^{}]|^)[{}](?=[^{}]|$)/g;
 CeL.assert(['no', 'no}'.replace(PATTERN_invalid_parameter_value_to_remove, '')]);
 
@@ -178,6 +178,9 @@ const DEFAULT_LEVEL = 3;
 // [ all, quota+articles postfix, quota / target number ]
 const PATTERN_count_mark = /\([\d,]+(\/([\d,]+))?\s+articles?\)/i;
 const PATTERN_counter_title = new RegExp(/^[\w\s\-–',\/]+MARK$/.source.replace('MARK', PATTERN_count_mark.source), 'i');
+
+/**{RegExp}匹配 level note。 e.g., " ([[Wikipedia:Vital articles/Level 2#Society and social sciences|Level 2]])" */
+const PATTERN_level_note = /\s*\((?:level [1-5]|\[\[([^\[\]\|]+)\|level [1-5]\]\])\)/i;
 
 const report_lines = [];
 report_lines.skipped_records = 0;
@@ -1304,7 +1307,7 @@ function level_page_link(level, number_only, page_title) {
 
 			case 'zhwiki':
 				//display_text = zhwiki_level_list[level];
-				// 為配合 replace_level_note()，不能採用 PATTERN_level 之外的模式。
+				// 為配合 replace_level_note()，不能採用 PATTERN_level_note 之外的模式。
 				display_text = 'Level ' + level;
 				break;
 		}
@@ -1395,19 +1398,27 @@ function level_of_page_title(page_title, number_only) {
 	return number_only ? page_title_and_section_data.numeric_level : page_title_and_section_data.page_title_and_section_id;
 }
 
+/**
+ * 替換 item 的級別註記成為新的 wikitext。
+ * @param {Array}item			欲替換的項目。通常是 list_item。
+ * @param {Number}index			欲替換的項目所在之級別。
+ * @param {Number}best_level	本項目所內含 VA 之最佳級別。當 new_wikitext 未提供時，會根據 best_level 來自動生成級別註記。
+ * @param {String}new_wikitext	欲替換成的 wikitext。當未提供時，會根據 best_level 來自動生成級別註記。
+ * @returns {Boolean}是否有替換。
+ */
 function replace_level_note(item, index, best_level, new_wikitext) {
 	if (item.type !== 'list_item' && item.type !== 'plain')
 		return;
 
+	/**{String}link 連結之後剩下的  wikitext。 */
 	const rest_wikitext = item.slice(index + 1).join('').trim();
-	const PATTERN_level = /\s*\((?:level [1-5]|\[\[([^\[\]\|]+)\|level [1-5]\]\])\)/i;
-	const matched = rest_wikitext && rest_wikitext.match(PATTERN_level);
+	const matched = rest_wikitext && rest_wikitext.match(PATTERN_level_note);
 
 	if (new_wikitext === undefined) {
 		// auto-generated
 		new_wikitext = ` (${level_page_link(best_level, false, matched &&
-			// preserve level page and anchor. e.g.,
-			// " ([[Wikipedia:Vital articles/Level 2#Society and social sciences|Level 2]])"
+			// preserve level page and anchor.
+			// e.g., " ([[Wikipedia:Vital articles/Level 2#Society and social sciences|Level 2]])"
 			(matched[1] && matched[1].startsWith(level_to_page_title(best_level) + '#')) && matched[1])})`;
 	}
 	// assert: typeof new_wikitext === 'string'
@@ -1427,7 +1438,9 @@ function replace_level_note(item, index, best_level, new_wikitext) {
 
 	item.truncate(index + 1);
 	// _item.push()
-	item[index + 1] = rest_wikitext ? rest_wikitext.replace(PATTERN_level, new_wikitext) : new_wikitext;
+	item[index + 1] = matched ? rest_wikitext.replace(PATTERN_level_note, new_wikitext)
+		// 預防有註解等其他 wikitext 的情況，直接在後面添加 new_wikitext。
+		: rest_wikitext + new_wikitext;
 	return true;
 }
 
