@@ -137,6 +137,8 @@ const main_subject_mapping = new Map((() => {
 		'qualitative methods': 'Q839486',
 		// [[d:Talk:Q72419165#wrong links to this item]]
 		'orthopedics and sports medicine': 'Q7104851',
+		// [[d:User talk:Kanashimi#Cewbot doing something strange]]
+		'cost savings': 'Q3454688',
 	}).map(([main_subject, entity_id]) => [normalize_main_subject(main_subject), entity_id]);
 })());
 
