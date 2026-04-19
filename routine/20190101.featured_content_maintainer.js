@@ -1022,7 +1022,7 @@ function check_date_page() {
 			//
 			JDN = FC_data[KEY_LATEST_JDN] = FC_data[KEY_JDN].length > 0
 			//
-			? FC_data[KEY_JDN].at(-1)
+			? FC_data[KEY_JDN].sort().at(-1)
 			// : Infinity: 沒上過首頁的頁面因為不存在簡介/摘要頁面，所以必須要排在最後，不能夠列入顯示。
 			: 0;
 			if (FC_data[KEY_JDN].length > 0)
@@ -1127,7 +1127,9 @@ function check_date_page() {
 		//
 		+ CeL.Julian_day.to_Date(JDN).format('%Y年%m月%d日') + ']]'
 		//
-		+ (JDN_today > JDN ? ' (' + (JDN_today - JDN) + ' days)' : '')
+		+ (JDN_today > JDN ? ' (' + CeL.gettext(
+		// gettext_config:{"id":"$1-days-ago"}
+		'%1 {{PLURAL:%1|day|days}} ago', JDN_today - JDN) + ')' : '')
 		// 沒有展示過
 		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
