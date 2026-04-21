@@ -125,94 +125,10 @@ get_page_options = {
 	redirects : 1
 };
 
-// ---------------------------------------------------------------------//
-// main
-
 // 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
 prepare_directory(base_directory);
 
 // CeL.set_debug(6);
-
-function main_work() {
-	wiki.cache([ {
-		type : 'page',
-		// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
-		// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
-		// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
-		// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
-		list : Former_FC_list_pages.concat(FC_list_pages),
-		redirects : 1,
-		reget : !use_cache,
-		each : parse_each_FC_item_list_page
-	}, {
-		type : 'page',
-		list : sub_FC_list_pages,
-		redirects : 1,
-		reget : !use_cache,
-		each : parse_each_FC_item_list_page
-	}, {
-		type : 'categorymembers',
-		list : ((using_GA ? 'Category:已撤銷的優良條目|' : '')
-		// 有時"已撤銷的優良條目"可能已經被轉到"已撤銷的典範條目"，因此不能省。高等級的放後面。
-		+ 'Category:已撤銷的典範條目|Category:已撤销的特色列表').split('|'),
-		redirects : 1,
-		reget : !use_cache,
-		each : parse_each_FFC_category
-	}, {
-		type : 'redirects_here',
-		list : function() {
-			CeL.debug('redirects_to_hash = '
-			//
-			+ JSON.stringify(redirects_to_hash));
-			CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
-			new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
-				delete FC_data_hash[FC_title][KEY_LIST_PAGE];
-				return !(FC_title in redirects_to_hash);
-			});
-			return new_FC_pages;
-		},
-		reget : !use_cache,
-		// 檢查特色內容列表頁面所列出的連結，其所指向的真正特色內容條目標題。
-		each : check_FC_redirects
-	}, {
-		type : 'page',
-		list : generate_FC_date_page_list,
-		redirects : 1,
-		// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
-		each : parse_each_FC_date_page
-	}, {
-		type : 'redirects_here',
-		list : redirects_list_to_check,
-		reget : !use_cache,
-		// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
-		each : check_redirects
-	}, {
-		// 檢查含有特色內容、優良條目模板之頁面是否與登記分類或項目頁面相符合。
-		type : 'embeddedin',
-		reget : !use_cache,
-		list : (using_GA ? 'Template:Good article'
-		//
-		: 'Template:Featured article|Template:Featured list').split('|'),
-		each : check_FC_template,
-		operator : summary_FC_template
-	} ], check_date_page, {
-		// this.JDN index in parse_each_FC_date_page()
-		// 警告: 執行順序不會依照 `list` 的順序，不能用 this.JDN 來取得 JDN，因此得以
-		// parse_JDN_from_FC_date_title() 解析 JDN。
-		// JDN : JDN_start,
-
-		// index in check_redirects()
-		redirects_index : 0,
-
-		// default options === this
-		// [SESSION_KEY]
-		// session : wiki,
-		// cache path prefix
-		prefix : base_directory
-	});
-}
-
-wiki.run(main_work);
 
 // ---------------------------------------------------------------------//
 
@@ -299,6 +215,130 @@ function adapt_configuration(latest_task_configuration) {
 	CeL.log('Configuration:');
 	console.log(wiki.latest_task_configuration);
 }
+
+// ---------------------------------------------------------------------//
+// main
+
+/**
+ * 取得特色內容資料。
+ * 
+ * @param {String}FC_title
+ *            特色內容條目標題。
+ * @returns {Array}特色內容資料。格式: [ {Boolean}is_list, {Boolean}is former FC,
+ *          {String}transcluding page title, [ JDN list ] ]
+ */
+function get_FC_data(FC_title) {
+	var normalized_FC_title = wiki.redirect_target_of(FC_title);
+	var FC_data = FC_data_hash[normalized_FC_title];
+	return FC_data;
+}
+
+/**
+ * 設定並取得特色內容資料。
+ * 
+ * @param {String}FC_title
+ *            特色內容條目標題。
+ * @param {Boolean}with_warning
+ *            是否在已經設定過的情況下發出警告。預設為 false。
+ * @returns {Array}特色內容資料。格式: [ {Boolean}is_list, {Boolean}is former FC,
+ *          {String}transcluding page title, [ JDN list ] ]
+ */
+function set_and_get_FC_data(FC_title, with_warning) {
+	var normalized_FC_title = wiki.redirect_target_of(FC_title);
+
+	var FC_data = FC_data_hash[normalized_FC_title];
+	if (!FC_data) {
+		FC_data = FC_data_hash[normalized_FC_title] = [];
+		FC_data[KEY_JDN] = [];
+	} else if (with_warning) {
+		CeL.warn('parse_each_FC_item_list_page: 已設定過 '
+				+ CeL.wiki.title_link_of(FC_title) + ': '
+				+ JSON.stringify(FC_data));
+	}
+
+	return FC_data;
+}
+
+function main_work() {
+	wiki.cache([ {
+		type : 'page',
+		// assert: FC_list_pages 所列的頁面包含的必定是所有檢核過的特色內容標題。
+		// TODO: 檢核FC_list_pages 所列的頁面是否是所有檢核過的特色內容標題。
+		// Former_FC_list_pages: check [[Wikipedia:已撤銷的典範條目]]
+		// FC_list_pages: 檢查WP:FA、WP:FL，提取出所有特色內容的條目連結，
+		list : Former_FC_list_pages.concat(FC_list_pages),
+		redirects : 1,
+		reget : !use_cache,
+		each : parse_each_FC_item_list_page
+	}, {
+		type : 'page',
+		list : sub_FC_list_pages,
+		redirects : 1,
+		reget : !use_cache,
+		each : parse_each_FC_item_list_page
+	}, {
+		type : 'categorymembers',
+		list : ((using_GA ? 'Category:已撤銷的優良條目|' : '')
+		// 有時"已撤銷的優良條目"可能已經被轉到"已撤銷的典範條目"，因此不能省。高等級的放後面。
+		+ 'Category:已撤銷的典範條目|Category:已撤销的特色列表').split('|'),
+		redirects : 1,
+		reget : !use_cache,
+		each : parse_each_FFC_category
+	}, {
+		type : 'redirects_here',
+		list : function() {
+			CeL.debug('redirects_to_hash = '
+			//
+			+ JSON.stringify(redirects_to_hash));
+			CeL.debug('FC_data_hash = ' + JSON.stringify(FC_data_hash));
+			new_FC_pages = Object.keys(FC_data_hash).filter(function(FC_title) {
+				delete FC_data_hash[FC_title][KEY_LIST_PAGE];
+				return !(FC_title in redirects_to_hash);
+			});
+			return new_FC_pages;
+		},
+		reget : !use_cache,
+		// 檢查特色內容列表頁面所列出的連結，其所指向的真正特色內容條目標題。
+		each : check_FC_redirects
+	}, {
+		type : 'page',
+		list : generate_FC_date_page_list,
+		redirects : 1,
+		// 並且檢查/解析所有過去首頁曾經展示過的特色內容頁面，以確定特色內容頁面最後一次展示的時間。（這個動作會作cache，例行作業時只會讀取新的日期。當每天執行的時候，只會讀取最近1天的頁面。）
+		each : parse_each_FC_date_page
+	}, {
+		type : 'redirects_here',
+		list : redirects_list_to_check,
+		reget : !use_cache,
+		// 檢查出問題的頁面 (redirects_list_to_check) 是不是重定向所以才找不到。
+		each : check_redirects
+	}, {
+		// 檢查含有特色內容、優良條目模板之頁面是否與登記分類或項目頁面相符合。
+		type : 'embeddedin',
+		reget : !use_cache,
+		list : (using_GA ? 'Template:Good article'
+		//
+		: 'Template:Featured article|Template:Featured list').split('|'),
+		each : check_FC_template,
+		operator : summary_FC_template
+	} ], check_date_page, {
+		// this.JDN index in parse_each_FC_date_page()
+		// 警告: 執行順序不會依照 `list` 的順序，不能用 this.JDN 來取得 JDN，因此得以
+		// parse_JDN_from_FC_date_title() 解析 JDN。
+		// JDN : JDN_start,
+
+		// index in check_redirects()
+		redirects_index : 0,
+
+		// default options === this
+		// [SESSION_KEY]
+		// session : wiki,
+		// cache path prefix
+		prefix : base_directory
+	});
+}
+
+wiki.run(main_work);
 
 // ---------------------------------------------------------------------//
 
@@ -432,10 +472,9 @@ function parse_each_FC_item_list_page(page_data) {
 						+ FC_data_hash[FC_title]);
 			}
 		}
-		var FC_data = FC_data_hash[FC_title] = [];
+		var FC_data = set_and_get_FC_data(FC_title, true);
 		FC_data[KEY_IS_LIST] = is_list;
 		FC_data[KEY_IS_FFC] = is_FFC;
-		FC_data[KEY_JDN] = [];
 		if (matched[2]
 				&& ((matched[2] = matched[2].trim()).includes('-{') || !matched[2]
 						.includes(FC_title)))
@@ -468,10 +507,9 @@ function parse_each_FFC_category(page_list) {
 					+ CeL.wiki.title_link_of(FC_title) + '，但又在已撤銷的' + TYPE_NAME
 					+ '分類中找到。');
 		}
-		var FC_data = FC_data_hash[FC_title] = [];
+		var FC_data = set_and_get_FC_data(FC_title);
 		FC_data[KEY_IS_LIST] = is_list;
 		FC_data[KEY_IS_FFC] = is_FFC;
-		FC_data[KEY_JDN] = [];
 		FC_data[KEY_LIST_PAGE] = [ page_list.title ];
 	}
 }
@@ -501,7 +539,9 @@ function check_FC_redirects(page_list) {
 						+ CeL.wiki.title_link_of(FC_title) + ' ← '
 						+ CeL.wiki.title_link_of(original_FC_title));
 			} else {
-				FC_data_hash[FC_title] = FC_data_hash[original_FC_title];
+				// move to normalized title
+				var normalized_FC_title = wiki.redirect_target_of(FC_title);
+				FC_data_hash[normalized_FC_title] = get_FC_data(original_FC_title);
 				delete FC_data_hash[original_FC_title];
 			}
 		}
@@ -517,7 +557,7 @@ function check_FC_redirects(page_list) {
 
 // get page name of FC_title to transclude
 function get_FC_title_to_transclude(FC_title) {
-	var FC_data = FC_data_hash[FC_title];
+	var FC_data = get_FC_data(FC_title);
 	return FC_data[KEY_TRANSCLUDING_PAGE]
 			|| ('Wikipedia:'
 					+ (using_GA ? wiki.latest_task_configuration.general.NS_PREFIX_GA
@@ -582,7 +622,7 @@ function parse_each_FC_date_page(page_data) {
 	function check_NOT_FC_title(FC_title) {
 		if (!FC_title)
 			return true;
-		var FC_data = FC_data_hash[FC_title];
+		var FC_data = get_FC_data(FC_title);
 		if (FC_data) {
 			FC_data[KEY_JDN].push(JDN);
 			if (matched) {
@@ -616,7 +656,7 @@ function parse_each_FC_date_page(page_data) {
 			CeL.debug('不再是' + (using_GA ? '優良' : '特色/典範') + '了? ' + matched[2]
 					+ ' ' + CeL.wiki.title_link_of(FC_title));
 			redirects_list_to_check.push(FC_title);
-			(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
+			set_and_get_FC_data(FC_title);
 			check_NOT_FC_title(FC_title);
 		}
 		return;
@@ -664,7 +704,7 @@ function parse_each_FC_date_page(page_data) {
 		if (!redirects_to_hash[FC_title]) {
 			redirects_list_to_check.push(FC_title);
 		}
-		(FC_data_hash[FC_title] = [])[KEY_JDN] = [];
+		set_and_get_FC_data(FC_title);
 		// 無法設定 FC_data[KEY_TRANSCLUDING_PAGE]
 		// 補登記資訊。
 		check_NOT_FC_title(FC_title);
@@ -719,7 +759,9 @@ function check_redirects(page_list) {
 						FC_data_hash[original_FC_title][KEY_JDN]).sort();
 			} else {
 				not_found = true;
-				FC_data_hash[FC_title] = FC_data_hash[original_FC_title];
+				// move to normalized title
+				FC_title = wiki.redirect_target_of(FC_title);
+				FC_data_hash[FC_title] = get_FC_data(original_FC_title);
 			}
 			delete FC_data_hash[original_FC_title];
 		} else {
@@ -740,7 +782,7 @@ function check_redirects(page_list) {
 		redirects_to_hash[page_data.title] = FC_title;
 	});
 
-	var FC_data = FC_data_hash[original_FC_title] || FC_data_hash[FC_title];
+	var FC_data = get_FC_data(original_FC_title) || get_FC_data(FC_title);
 	if (!not_found && FC_data[KEY_TRANSCLUDING_PAGE]) {
 		return;
 	}
@@ -1130,7 +1172,7 @@ function check_date_page() {
 		+ (JDN_today > JDN ? ' (' + CeL.gettext(
 		// gettext_config:{"id":"$1-days-ago"}
 		'%1 {{PLURAL:%1|day|days}} ago', JDN_today - JDN) + ')' : '')
-		// 沒有展示過
+		// JDN_today 之前沒有展示過。
 		: '沒上過首頁'), FC_data[KEY_JDN].length,
 		//
 		CeL.wiki.title_link_of(transcluding_page, transcluding_display));
