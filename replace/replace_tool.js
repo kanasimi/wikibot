@@ -1972,12 +1972,18 @@ async function get_list(task_configuration, list_configuration) {
 	} else if (need_unique) {
 		page_list = page_list.unique(page_data => CeL.wiki.title_of(page_data));
 	}
-	//console.trace(page_list);
 
 	// cf. list_configuration.list_filter
 	if (list_configuration.page_list_filter) {
 		// page_list_filter(page_data, index, page_list)
 		page_list = page_list.filter(list_configuration.page_list_filter);
+	}
+	//console.trace(page_list);
+
+	if (page_list.length > list_configuration.max_pages_before_abort) {
+		// 需要處理的頁面數量太多，跳過作業不處理。
+		CeL.warn(`${get_list.name}: Too many pages to process: ${page_list.length} page(s) from ${list_label}. Skip processing.`);
+		return [];
 	}
 
 	if (/*list_configuration.is_tracking_category && */list_configuration.move_from.ns === wiki.namespace('Category')) {
@@ -1998,10 +2004,11 @@ async function get_list(task_configuration, list_configuration) {
 		});
 		//console.log(page_list);
 	}
-	if (list_configuration.page_limit >= 1) {
-		CeL.info(`${get_list.name}: Limit to ${list_configuration.page_limit}/${page_list.length} page(s) got from ${list_label}`);
+	if (list_configuration.max_pages_to_process >= 1) {
+		// 頁面限額。 .page_cap
+		CeL.info(`${get_list.name}: Limit to ${list_configuration.max_pages_to_process}/${page_list.length} page(s) got from ${list_label}`);
 		const page_list_options = page_list.options;
-		page_list = page_list.truncate(list_configuration.page_limit);
+		page_list = page_list.truncate(list_configuration.max_pages_to_process);
 		// for debug
 		//page_list = page_list.slice(1, 2);
 		if (page_list_options)
@@ -2551,9 +2558,14 @@ function for_each_file(token, index, parent) {
 // --------------------------------------------------------
 
 // subst展開 [[mw:Help:Substitution]]
-// @see [[w:en:User:AnomieBOT/docs/TemplateSubster]]
+// TODO: https://phabricator.wikimedia.org/T14974
 async function subst_template(token, index, parent) {
-	const page_title = this.page_to_edit.title;
+	if (CeL.wiki.Yesno(token.parameters.nosubst)
+		|| CeL.wiki.Yesno(token.parameters.demo)) {
+		// 本模板包含需要跳過、不替換引用的參數。
+		return;
+	}
+
 	//this.task_configuration[KEY_wiki_session].append_session_to_options().session;
 
 	/** 需要手動展開模板。即使添加 subst: 仍可能無法展開，例如在 ref 標籤內。此時需手動展開模板。 */
@@ -2566,11 +2578,18 @@ async function subst_template(token, index, parent) {
 	if (!must_manually_expand_subst) {
 		token[0] = 'subst:' + token[0];
 
+		if (!('subst' in token.parameters)) {
+			// @see [[w:en:User:AnomieBOT/docs/TemplateSubster]]
+			// 引入 {{safesubst:}} 之前，subst模板時常見的變通方法。
+			token.push('subst=subst:');
+		}
+
 		//this.discard_changes = true;
 		return;
 	}
 
 	// ----------------------------------------------------------
+	// 需要特殊處理的模板。
 
 	const { task_configuration } = this;
 	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({ max_template_depth: 1 }));
@@ -2607,6 +2626,8 @@ async function subst_template(token, index, parent) {
 	// ----------------------------------------------------------
 	// @deprecated
 	// old method: using compare to get the expanded wikitext.
+
+	const page_title = this.page_to_edit.title;
 
 	token[0] = 'subst:' + token[0];
 

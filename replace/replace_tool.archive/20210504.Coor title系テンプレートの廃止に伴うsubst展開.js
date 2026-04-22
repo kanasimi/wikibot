@@ -16,7 +16,7 @@ const task_configuration = Object.create(null);
 		for_each_template_options: {
 			add_index: 'all'
 		},
-		//page_limit: 1
+		//max_pages_to_process: 1
 	}
 );
 

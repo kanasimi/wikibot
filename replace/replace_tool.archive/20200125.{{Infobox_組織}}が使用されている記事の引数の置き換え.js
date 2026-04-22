@@ -23,7 +23,7 @@ const replace_tool = require('./replace_tool.js');
 	}, {
 		'Template:Infobox 組織': {
 			// page_list: ['仮面ライダー龍騎'],
-			// page_limit: 10,
+			// max_pages_to_process: 10,
 			for_template(token) {
 				const config = {
 					メンバー: '会員数',
