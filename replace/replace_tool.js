@@ -1455,8 +1455,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
 			task_configuration.summary.title_to_add = '';
 		} else if (move_configuration.length === 1
-			&& (typeof move_from_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(move_from_link.toLowerCase())
-				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(task_configuration.move_to_link.toLowerCase()))) {
+			&& (typeof move_from_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(wiki.remove_namespace(move_from_link).toLowerCase())
+				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(wiki.remove_namespace(task_configuration.move_to_link).toLowerCase()))) {
 			task_configuration.summary.title_to_add = '';
 		} else {
 			task_configuration.log_section_title_postfix = `(${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;

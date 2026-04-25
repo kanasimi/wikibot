@@ -139,6 +139,8 @@ const main_subject_mapping = new Map((() => {
 		'orthopedics and sports medicine': 'Q7104851',
 		// [[d:User talk:Kanashimi#Cewbot doing something strange]]
 		'cost savings': 'Q3454688',
+
+		// ** 更改這些數值必須刪除 cache！
 	}).map(([main_subject, entity_id]) => [normalize_main_subject(main_subject), entity_id]);
 })());
 
