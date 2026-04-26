@@ -11,7 +11,7 @@ node 20260422.auto_subst_templates.js use_project=zhwiki
 'use strict';
 
 const debug_pages = ['Template:Infobox Twitch streamer']
-	//&& null
+	&& null
 	;
 
 
@@ -49,6 +49,11 @@ async function adapt_configuration(latest_task_configuration) {
 		general.category_of_templates_to_be_automatically_substituted = category_name;
 	}
 
+	if (!(0 <= general.max_pages_before_abort && general.max_pages_before_abort <= 500)) {
+		// 不取代超過一定嵌入數量的模板。預設為100個。
+		general.max_pages_before_abort = 100;
+	}
+
 	console.trace(wiki.latest_task_configuration.general);
 }
 
@@ -67,29 +72,33 @@ async function adapt_configuration(latest_task_configuration) {
 
 async function main_process() {
 
-	for await (const page_data of (debug_pages
-		|| wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, { namespace: 'template' }))) {
+	for await (const page_list of (debug_pages
+		|| wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, { namespace: 'template', batch_size: 100, }))) {
 
-		const move_from_link = CeL.wiki.title_of(page_data);
-		const move_to_link = 'subst:';
-		//console.log([move_from_link, move_to_link]);
-		await replace_tool.replace({
-			//[KEY_wiki_session]
-			wiki,
-			use_language,
-			// 嵌入本模板的頁面數量太多，跳過本模板不處理。
-			max_pages_before_abort: wiki.latest_task_configuration.general.max_pages_before_abort,
-			work_options: { no_message: true, },
-			not_bot_requests: true,
-			no_move_configuration_from_command_line: true,
-			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: {{${wiki.remove_namespace(move_from_link)}}}`
-			//+ ' 人工監視檢測中 '
-			,
-		}, {
-			[move_from_link]: {
-				//namespace: 'main|Template',
-				move_to_link,
-			},
+		wiki.for_each_page(page_list, async page_data => {
+
+			const move_from_link = CeL.wiki.title_of(page_data);
+			const move_to_link = 'subst:';
+			//console.log([move_from_link, move_to_link]);
+			await replace_tool.replace({
+				//[KEY_wiki_session]
+				wiki,
+				use_language,
+				// 嵌入本模板的頁面數量太多，跳過本模板不處理。
+				max_pages_before_abort: wiki.latest_task_configuration.general.max_pages_before_abort,
+				work_options: { no_message: true, },
+				not_bot_requests: true,
+				no_move_configuration_from_command_line: true,
+				summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: {{${wiki.remove_namespace(move_from_link)}}}`
+				//+ ' 人工監視檢測中 '
+				,
+			}, {
+				[move_from_link]: {
+					//namespace: 'main|Template',
+					move_to_link,
+				},
+			});
+
 		});
 
 	}
