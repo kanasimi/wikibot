@@ -1138,7 +1138,7 @@ function unshift_move_configuration(move_configuration, items_to_unshift) {
 }
 
 function fix_subst_postfix(configuration) {
-	if (!configuration.subst_postfix) {
+	if (!configuration.subst_postfix || typeof configuration.subst_postfix === 'function') {
 		return;
 	}
 
@@ -2611,7 +2611,10 @@ async function subst_template(token, index, parent) {
 		}
 	}
 
-	if (task_configuration.subst_postfix) {
+	if (!task_configuration.subst_postfix) {
+	} else if (typeof task_configuration.subst_postfix === 'function') {
+		expanded_code = task_configuration.subst_postfix(expanded_code);
+	} else if (task_configuration.subst_postfix.replace) {
 		// [[w:zh:Wikipedia:机器人/作业请求#h-請求批量替換引用Category:僅使用維吾爾老文字表示維吾爾語-20260308141800]]
 		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:僅使用維吾爾老文字表示維吾爾語的Lang-ug","move_to_link":"subst:","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxh
 
