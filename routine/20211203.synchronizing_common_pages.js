@@ -277,7 +277,7 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 
 	if (wiki.is_namespace(target_page_title, 'template')) {
 		// ks: '/دَستاویز'
-		await edit_page(source_page_title + '/doc', target_page_title + '/doc', options);
+		await edit_page(CeL.wiki.to_TDOC(source_page_title), CeL.wiki.to_TDOC(target_page_title), options);
 		// https://en.wikipedia.org/wiki/Wikipedia:TemplateStyles
 		await edit_page(source_page_title + '/styles.css', target_page_title + '/styles.css', options);
 
@@ -327,7 +327,7 @@ async function for_each_page_pair(source_page_title, target_page_title, options)
 
 	} else if (wiki.is_namespace(target_page_title, 'module')) {
 
-		await edit_page(source_page_title + '/doc', target_page_title + '/doc', options);
+		await edit_page(CeL.wiki.to_TDOC(source_page_title), CeL.wiki.to_TDOC(target_page_title), options);
 
 		// copy all pages prefixed with `target_page_title`
 		const sub_page_list = await source_wiki.prefixsearch(base_source_page_data.title + '/');
@@ -500,7 +500,7 @@ async function edit_page(source_page_title, target_page_title, options) {
 			}
 			wikitext = `// ${prefix}\n` + wikitext;
 
-		} else if ((is_template || is_module) && target_page_title.endsWith('/doc')) {
+		} else if ((is_template || is_module) && CeL.wiki.is_TDOC(target_page_title)) {
 			check_included_pages();
 			if (!additional_description) {
 				// gettext_config:{"id":"template-documentation-to-assist-in-understanding"}

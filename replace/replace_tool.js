@@ -1991,9 +1991,9 @@ async function get_list(task_configuration, list_configuration) {
 			if (wiki.is_namespace(page_data, 'Template') || wiki.is_namespace(page_data, 'Module')) {
 				const title = CeL.wiki.title_of(page_data);
 				// ks: '/دَستاویز'
-				if (title.endsWith('/doc') || page_list.includes(title + '/doc'))
+				const doc_title = CeL.wiki.to_TDOC(title);
+				if (CeL.wiki.is_TDOC(title) || page_list.includes(doc_title))
 					return;
-				const doc_title = title + '/doc';
 				if (page_list.includes(doc_title))
 					return;
 

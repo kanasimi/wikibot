@@ -33,11 +33,8 @@ const template_name_hash = {
 	Sandbox_other: 'Sandbox other',
 };
 
-// [[Module:Documentation/config]]	cfg['doc-subpage'] = 'doc'	cfg['doc-link-display'] = '/doc'
-const doc_subpage_postfix = '/doc';
-
-/**排除 /doc subpage 的這些模板。 */
-const exclude_doc_subpage_template_name_list = ['Documentation subpage',];
+/**{Array}排除 /doc subpage 的這些模板。 e.g., [[Template:Documentation subpage]] */
+const exclude_TDOC_subpage_template_name_list = ['Documentation subpage',];
 
 // ----------------------------------------------
 
@@ -57,12 +54,12 @@ async function adapt_configuration(latest_task_configuration) {
 		latest_task_configuration.general = Object.create(null);
 	const { general } = latest_task_configuration;
 
-	if (!(0 <= general.max_doc_subpage_chars_to_move && general.max_doc_subpage_chars_to_move < 200_000)) {
-		general.max_doc_subpage_chars_to_move = 2_000;
+	if (!(0 <= general.max_TDOC_subpage_chars_to_move && general.max_TDOC_subpage_chars_to_move < 200_000)) {
+		general.max_TDOC_subpage_chars_to_move = 2_000;
 	}
 
-	if (!general.remove_doc_subpage_comments || !CeL.is_RegExp(general.remove_doc_subpage_comments = general.remove_doc_subpage_comments?.to_RegExp())) {
-		delete general.remove_doc_subpage_comments;
+	if (!general.remove_TDOC_subpage_comments || !CeL.is_RegExp(general.remove_TDOC_subpage_comments = general.remove_TDOC_subpage_comments?.to_RegExp())) {
+		delete general.remove_TDOC_subpage_comments;
 	}
 
 	// ----------------------------------------------------
@@ -74,7 +71,7 @@ async function adapt_configuration(latest_task_configuration) {
 	Object.values(template_name_hash).forEach(template_name => essential_template_name_Set.add(wiki.redirect_target_of(template_name, { namespace: 'Template' })));
 	//console.trace(essential_template_name_Set);
 
-	await wiki.register_redirects(exclude_doc_subpage_template_name_list, { namespace: 'Template', no_message: true });
+	await wiki.register_redirects(exclude_TDOC_subpage_template_name_list, { namespace: 'Template', no_message: true });
 
 	// Debug:
 	console.trace(wiki.latest_task_configuration.general);
@@ -111,7 +108,7 @@ async function main_process() {
 	const report_lines = [];
 
 	for await (let page_list of wiki.embeddedin(wiki.to_namespace(template_name_hash.Collapsible_option, 'template'), { namespace: 'template', batch_size: 500 })) {
-		page_list = page_list.filter(page_data => !page_data.title.endsWith(doc_subpage_postfix) && !essential_template_name_Set.has(page_data.title));
+		page_list = page_list.filter(page_data => !CeL.wiki.is_TDOC(page_data) && !essential_template_name_Set.has(page_data.title));
 		await for_page_list(page_list, { report_lines });
 	}
 
@@ -175,30 +172,30 @@ async function handle_each_template(page_data, messages, config) {
 				// parameters.content 優先權高於'/doc'子頁面。不會再用到'/doc'子頁面，無須再檢查。
 			}
 
-			const doc_subpage_title = template_token.parameters[1] || `${page_data.title}${doc_subpage_postfix}`;
-			const doc_subpage = await wiki.page(doc_subpage_title);
-			const parsed_doc_subpage = doc_subpage.parse();
+			const TDOC_subpage_title = template_token.parameters[1] || CeL.wiki.to_TDOC(page_data);
+			const TDOC_subpage = await wiki.page(TDOC_subpage_title);
+			const parsed_TDOC_subpage = TDOC_subpage.parse();
 
 			// TODO: Skip magic words.
 			// e.g., [[w:zh:Template:MacOS]], [[Template:国务院/副总理/1]]
 
-			const Navbox_documentation_template = await handle_Documentation_content(parsed_doc_subpage, { ...config, page_data, doc_subpage, template_token });
+			const Navbox_documentation_template = await handle_Documentation_content(parsed_TDOC_subpage, { ...config, page_data, TDOC_subpage, template_token });
 			if (!Navbox_documentation_template) {
 				return;
 			}
 
 			// 含入/doc頁面後將之刪除。
-			if (wiki.latest_task_configuration.general.delete_doc_subpage_after_move) {
-				// TODO: 檢查 doc_subpage 是否為孤立頁面。
+			if (wiki.latest_task_configuration.general.delete_TDOC_subpage_after_move) {
+				// TODO: 檢查 TDOC_subpage 是否為孤立頁面。
 
 				try {
 					// 刪除已匯入模板主頁面的/doc頁面。
-					await wiki.delete(doc_subpage.title, { reason: `${summary_prefix}：已將內容轉入上層模板之{{${template_name_hash.Navbox_documentation}}}中。` });
+					await wiki.delete(TDOC_subpage.title, { reason: `${summary_prefix}：已將內容轉入上層模板之{{${template_name_hash.Navbox_documentation}}}中。` });
 				} catch (e) {
 					// TODO: 提報刪除。
 
 					// 忽略刪除失敗。
-					CeL.error(`${handle_each_template.name}: 刪除說明文件頁面 ${CeL.wiki.title_link_of(doc_subpage)} 失敗：`);
+					CeL.error(`${handle_each_template.name}: 刪除說明文件頁面 ${CeL.wiki.title_link_of(TDOC_subpage)} 失敗：`);
 					CeL.error(e);
 				}
 			}
@@ -278,7 +275,7 @@ async function handle_each_template(page_data, messages, config) {
 	return wikitext;
 }
 
-async function handle_Documentation_content(content, { report_lines, page_data, doc_subpage, template_token }) {
+async function handle_Documentation_content(content, { report_lines, page_data, TDOC_subpage, template_token }) {
 	if (content.type !== 'plain') {
 		// e.g., [[Template:物理學分支]]
 		// assert: content is plain object. e.g., {String}
@@ -290,7 +287,7 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 	CeL.wiki.parser.parser_prototype.each.call(content, (token, index, parent) => {
 		switch (token.type) {
 			case 'tag':
-				// 把 doc_subpage 搬到主 template 頁面中，可去除 <noinclude></noinclude>。
+				// 把 TDOC_subpage 搬到主 template 頁面中，可去除 <noinclude></noinclude>。
 				if (token.tag.toLowerCase() === 'noinclude') {
 					// 去掉 <noinclude> 內的內容。
 					return CeL.wiki.parser.parser_prototype.each.remove_token;
@@ -314,7 +311,7 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 				break;
 
 			case 'transclusion':
-				if (wiki.is_template(token, exclude_doc_subpage_template_name_list)) {
+				if (wiki.is_template(token, exclude_TDOC_subpage_template_name_list)) {
 					return CeL.wiki.parser.parser_prototype.each.remove_token;
 				}
 				// 清理 Sandbox other 模板。 e.g., [[Template:中華民國行政區劃/doc]]
@@ -325,7 +322,7 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 
 			case 'comment':
 				// 去掉/doc頁面的這些註解。 e.g., [[Template:Sandbox other]], [[Template:太阳系]], [[Template:洲/doc]]
-				if (wiki.latest_task_configuration.general?.remove_doc_subpage_comments.test(token[0])) {
+				if (wiki.latest_task_configuration.general?.remove_TDOC_subpage_comments.test(token[0])) {
 					return CeL.wiki.parser.parser_prototype.each.remove_token;
 				}
 				break;
@@ -381,9 +378,9 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 
 				// 否則跳過本模板不處理。
 				const message = `發現說明文件中於章節標題後的 ${template_name_hash.Collapsible_option}，需人工清理。`;
-				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(doc_subpage || page_data)}: ${message}`);
-				report_lines.push([CeL.wiki.title_of(doc_subpage || page_data), message]);
-				//do_not_process_doc_subpage = true;
+				CeL.warn(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(TDOC_subpage || page_data)}: ${message}`);
+				report_lines.push([CeL.wiki.title_of(TDOC_subpage || page_data), message]);
+				//do_not_process_TDOC_subpage = true;
 				return;
 			//break;
 		}
@@ -392,7 +389,7 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 	// ------------------------------------------------------------------------
 
 	// 本程式不處理過大的/doc頁面。將跳過超過此chars的/doc頁面。
-	if (doc_subpage && content.toString().trim().length > wiki.latest_task_configuration.general.max_doc_subpage_chars_to_move) {
+	if (TDOC_subpage && content.toString().trim().length > wiki.latest_task_configuration.general.max_TDOC_subpage_chars_to_move) {
 		return;
 	}
 
@@ -406,8 +403,8 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 		//has_Collapsible_option = true;
 		if (parameters_argument) {
 			const message = `在同一個說明文件中發現多個{{${template_name_hash.Collapsible_option}}}，需人工清理。`;
-			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(doc_subpage || page_data)}: ${message}`);
-			report_lines.push([CeL.wiki.title_of(doc_subpage || page_data), message]);
+			CeL.error(`${handle_Documentation_content.name}: ${CeL.wiki.title_link_of(TDOC_subpage || page_data)}: ${message}`);
+			report_lines.push([CeL.wiki.title_of(TDOC_subpage || page_data), message]);
 			//parameters_argument = false;
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
@@ -446,14 +443,14 @@ async function handle_Documentation_content(content, { report_lines, page_data, 
 	// ------------------------------------------------------------------------
 
 	// e.g., [[Template:IWork]]
-	const doc_subpage_declaration = template_token?.parameters[1] && template_token.parameters[1] !== `${page_data.title}${doc_subpage_postfix}` ? `<!-- [[${template_token.parameters[1]}]] -->\n` : '';
+	const TDOC_subpage_declaration = template_token?.parameters[1] && template_token.parameters[1] !== CeL.wiki.to_TDOC(page_data) ? `<!-- [[${template_token.parameters[1]}]] -->\n` : '';
 
 	const intro = Collapsible_option_index && content.splice(0, Collapsible_option_index).join('').trim()
 		// 清理多餘空行。
 		.replace(/\n{3,}/g, '\n\n');
 	if (intro) {
 		parameters_argument.intro = `
-${doc_subpage_declaration}${intro}
+${TDOC_subpage_declaration}${intro}
 `;
 	}
 
@@ -469,7 +466,7 @@ ${doc_subpage_declaration}${intro}
 		// 這邊才用 CeL.wiki.parse.replace_parameter()，確保這個參數放在最後面。
 		CeL.wiki.parse.replace_parameter(Navbox_documentation_template, {
 			'3': `
-${doc_subpage_declaration}${content}
+${TDOC_subpage_declaration}${content}
 `
 		}, { value_only: true, force_add: true, append_key_value: true });
 	} else {

@@ -10,7 +10,7 @@ node 20260422.auto_subst_templates.js use_project=zhwiki
 
 'use strict';
 
-const debug_pages = ['Template:Infobox Twitch streamer']
+const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilibili personality', 'Template:Infobox YouTube personality']
 	//&& null
 	;
 
@@ -76,6 +76,7 @@ function remove_empty_parameters(expanded_code) {
 		let _changed;
 		for (const parameter_name in parameters) {
 			if (parameters[parameter_name].toString().trim() === '') {
+				// 警告: 當設定了重複的 parameter_name 時，只會消掉起作用的那個。
 				template_token[template_token.index_of[parameter_name]] = '';
 				_changed = changed = true;
 			}
@@ -111,12 +112,12 @@ async function main_process() {
 
 		await wiki.for_each_page(page_list.append(
 			page_list
-				.filter(page_data => !CeL.wiki.title_of(page_data).endsWith('/doc'))
-				.map(page_data => CeL.wiki.title_of(page_data) + '/doc')
+				.filter(page_data => !CeL.wiki.is_TDOC(page_data))
+				.map(page_data => CeL.wiki.to_TDOC(page_data))
 		), async page_data => {
 
 			// Read configuration from doc page.
-			const main_title = page_data.title.endsWith('/doc') ? page_data.title.slice(0, -4) : page_data.title;
+			const main_title = CeL.wiki.TDOC_to_main(page_data);
 			const parsed = page_data.parse();
 			CeL.assert([page_data.wikitext, parsed.toString()],
 				// gettext_config:{"id":"wikitext-parser-checking-$1"}
@@ -129,7 +130,7 @@ async function main_process() {
 					}
 					try {
 						const this_auto_subst_configuration = JSON.parse(template_token.parameters[KEY_auto_config_parameter]);
-						if (!auto_subst_configuration.get(main_title) || !page_data.title.endsWith('/doc')) {
+						if (!auto_subst_configuration.get(main_title) || !CeL.wiki.is_TDOC(page_data)) {
 							auto_subst_configuration.set(main_title, this_auto_subst_configuration);
 						}
 					} catch (e) {
@@ -165,8 +166,10 @@ async function main_process() {
 				not_bot_requests: true,
 				no_move_configuration_from_command_line: true,
 				subst_postfix,
+				log_to: null,
 				summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}`
-					+ ' 人工監視檢測中 ',
+				//+ ' 人工監視檢測中 '
+				,
 			}, {
 				[move_from_link]: {
 					//namespace: 'main|Template',
