@@ -1,7 +1,7 @@
 ﻿/*
 node 20260422.auto_subst_templates.js use_project=zhwiki
 
-這個任務會自動替換引用{{Needsubst|auto=yes}}的模板。
+這個任務會自動替換引用{{.template_name_to_substitute|auto=yes|auto_config=}}的模板。
 
 2026/4/25 9:31:36	初版試營運
 
@@ -11,7 +11,7 @@ node 20260422.auto_subst_templates.js use_project=zhwiki
 'use strict';
 
 const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilibili personality', 'Template:Infobox YouTube personality']
-	//&& null
+	&& null
 	;
 
 
@@ -63,121 +63,222 @@ async function adapt_configuration(latest_task_configuration) {
 
 // ----------------------------------------------------------------------------
 
-function remove_empty_parameters(expanded_code) {
-	expanded_code = expanded_code.toString();
-	const parsed = CeL.wiki.parser(expanded_code).parse();
-	CeL.assert([expanded_code, parsed.toString()],
-		// gettext_config:{"id":"wikitext-parser-checking-$1"}
-		CeL.gettext('wikitext parser checking: %1', JSON.stringify(expanded_code)));
-
-	let changed = false;
-	parsed.each('template', template_token => {
-		const parameters = template_token.parameters;
-		let _changed;
-		for (const parameter_name in parameters) {
-			if (parameters[parameter_name].toString().trim() === '') {
-				// 警告: 當設定了重複的 parameter_name 時，只會消掉起作用的那個。
-				template_token[template_token.index_of[parameter_name]] = '';
-				_changed = changed = true;
-			}
-		}
-
-		if (!_changed)
-			return;
-
-		for (let index = 1; index < template_token.length;) {
-			if (template_token[index]) {
-				index++;
-			} else {
-				template_token.splice(index, 1);
-			}
-		}
-	});
-
-	if (!changed) {
-		return expanded_code;
-	}
-
-	return parsed.toString();
-}
-
-const KEY_auto_config_parameter = 'auto_config';
-
 async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
-		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, { namespace: 'template', batch_size: 100, }))) {
+		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, { /*namespace: 'category',*/ batch_size: 100, }))) {
 
-		const auto_subst_configuration = new Map;
+		/**{Map}自動 subst 採用的手動設定 manual settings。 */
+		const auto_subst_configuration_Map = await get_auto_subst_configuration(page_list);
 
-		await wiki.for_each_page(page_list.append(
-			page_list
-				.filter(page_data => !CeL.wiki.is_TDOC(page_data))
-				.map(page_data => CeL.wiki.to_TDOC(page_data))
-		), async page_data => {
-
-			// Read configuration from doc page.
-			const main_title = CeL.wiki.TDOC_to_main(page_data);
-			const parsed = page_data.parse();
-			CeL.assert([page_data.wikitext, parsed.toString()],
-				// gettext_config:{"id":"wikitext-parser-checking-$1"}
-				CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
-
-			if (wiki.is_namespace(wiki.latest_task_configuration.general.template_name_to_substitute, 'template')) {
-				parsed.each(wiki.latest_task_configuration.general.template_name_to_substitute, template_token => {
-					if (!template_token.parameters[KEY_auto_config_parameter]) {
-						return;
-					}
-					try {
-						const this_auto_subst_configuration = JSON.parse(template_token.parameters[KEY_auto_config_parameter]);
-						if (!auto_subst_configuration.get(main_title) || !CeL.wiki.is_TDOC(page_data)) {
-							auto_subst_configuration.set(main_title, this_auto_subst_configuration);
-						}
-					} catch (e) {
-						CeL.error(`Failed to parse auto_subst_configuration: ${template_token.parameters[KEY_auto_config_parameter]}`);
-					}
-					//console.log(template_token);
-				});
-			}
-
-			if (!auto_subst_configuration.has(main_title)) {
-				auto_subst_configuration.set(main_title, undefined);
-			}
-
-		});
-
-		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration) {
-			let subst_postfix, must_manually_expand_subst;
-			if (this_auto_subst_configuration.subst_postfix === 'remove_empty_parameters') {
-				subst_postfix = remove_empty_parameters;
-				must_manually_expand_subst = true;
-			}
-
-			const move_from_link = template_title;
-			const move_to_link = 'subst:';
-			//console.log([move_from_link, move_to_link]);
-			await replace_tool.replace({
-				//[KEY_wiki_session]
-				wiki,
-				use_language,
-				// 嵌入本模板的頁面數量太多，跳過本模板不處理。
-				max_pages_before_abort: wiki.latest_task_configuration.general.max_pages_before_abort,
-				work_options: { no_message: true, },
-				not_bot_requests: true,
-				no_move_configuration_from_command_line: true,
-				subst_postfix,
-				log_to: null,
-				summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}`
-				//+ ' 人工監視檢測中 '
-				,
-			}, {
-				[move_from_link]: {
-					//namespace: 'main|Template',
-					move_to_link,
-				},
-			});
+		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
+			await do_subst_template(template_title, this_auto_subst_configuration);
 		}
 
 	}
+}
+
+
+/**{String}指定手動設定 manual settings 採用的參數名稱。 */
+const KEY_auto_config_parameter = 'auto_config';
+
+/**
+ * 由頁面之{{.template_name_to_substitute}}讀入自動 subst 採用的手動設定 manual settings。
+ * @param {Array} page_data	{{.template_name_to_substitute}}所在頁面資料。
+ * @returns {Object|Undefined} auto_subst_configuration 自動 subst 採用的手動設定 manual settings。 e.g., {subst_postfix: 'remove_empty_parameters'}
+ */
+function get_auto_subst_configuration_from_page(page_data) {
+	// Read configuration from doc page.
+	const parsed = page_data.parse();
+	CeL.assert([page_data.wikitext, parsed.toString()],
+		// gettext_config:{"id":"wikitext-parser-checking-$1"}
+		CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
+
+	if (!wiki.is_namespace(wiki.latest_task_configuration.general.template_name_to_substitute, 'template')) {
+		return;
+	}
+
+	let auto_subst_configuration;
+	parsed.each(wiki.latest_task_configuration.general.template_name_to_substitute, template_token => {
+		if (!template_token.parameters[KEY_auto_config_parameter]) {
+			return;
+		}
+		let this_auto_subst_configuration;
+		try {
+			this_auto_subst_configuration = JSON.parse(template_token.parameters[KEY_auto_config_parameter]);
+			if (CeL.is_Object(auto_subst_configuration))
+				Object.assign(auto_subst_configuration, this_auto_subst_configuration);
+			else
+				auto_subst_configuration = this_auto_subst_configuration;
+		} catch (e) {
+			CeL.error(`Failed to parse auto_subst_configuration: ${template_token.parameters[KEY_auto_config_parameter]}`);
+		}
+	});
+
+	return auto_subst_configuration;
+}
+
+function filter_page_list(page_list) {
+	// 只處理 template namespace 的頁面，且排除 sandbox。
+	page_list = page_list
+		.filter(page_data => wiki.is_namespace(page_data, 'template'))
+		.map(page_data => CeL.wiki.title_of(page_data))
+		.filter(page_title => !/\/sandbox$/i.test(page_title));
+
+	return page_list;
+}
+
+/**
+ * 由{{.template_name_to_substitute}}讀入自動 subst 採用的手動設定 manual settings。
+ * @param {Array} page_list	{{.template_name_to_substitute}}所在頁面列表。
+ * @returns {Map} auto_subst_configuration_Map Map<main_page_title, auto_subst_configuration>
+ *  auto_subst_configuration_Map.get(main_page_title) = {
+ *  	subst_postfix: 'remove_empty_parameters',
+ *  }
+ */
+async function get_auto_subst_configuration(page_list) {
+	const auto_subst_configuration_Map = new Map;
+	function merge_auto_subst_configuration(page_data, this_auto_subst_configuration) {
+		// Read configuration from doc page.
+		const main_page_title = CeL.wiki.TDOC_to_main(page_data);
+		//let this_auto_subst_configuration = get_auto_subst_configuration_from_page(page_data);
+		const old_auto_subst_configuration = auto_subst_configuration_Map.get(main_page_title);
+		if (!old_auto_subst_configuration) {
+			// 就算 this_auto_subst_configuration 是 undefined 也要設定。
+			auto_subst_configuration_Map.set(main_page_title, this_auto_subst_configuration);
+		} else if (this_auto_subst_configuration) {
+			if (old_auto_subst_configuration.ignore_duplicate_message) {
+				delete old_auto_subst_configuration.ignore_duplicate_message;
+			} else {
+				CeL.warn(`${CeL.wiki.title_link_of(page_data)} 已經有設定了，合併設定。`);
+			}
+
+			if (CeL.wiki.is_TDOC(page_data)) {
+				// 以主頁面的模板為主，TDOC 的模板為輔。
+				auto_subst_configuration_Map.set(main_page_title, Object.assign(this_auto_subst_configuration, old_auto_subst_configuration));
+			} else {
+				Object.assign(old_auto_subst_configuration, this_auto_subst_configuration);
+			}
+		}
+
+	}
+
+	for (const page_data of page_list) {
+		if (wiki.is_namespace(page_data, 'category')) {
+			const subcategory_page_list = await wiki.categorymembers(page_data, { namespace: 'template', });
+			page_list.append(subcategory_page_list);
+
+			const this_auto_subst_configuration = get_auto_subst_configuration_from_page(await wiki.page(page_data));
+			if (!this_auto_subst_configuration)
+				continue;
+
+			Object.assign(this_auto_subst_configuration, {
+				from_category: page_data.title,
+				ignore_duplicate_message: true
+			});
+			filter_page_list(subcategory_page_list)
+				.forEach(page_data => merge_auto_subst_configuration(page_data, { ...this_auto_subst_configuration }));
+		}
+	}
+
+	page_list = filter_page_list(page_list);
+	// 自動 subst 採用的手動設定可能位於 TDOC 的 {{.template_name_to_substitute}} 中。
+	page_list.append(page_list.map(page_title => CeL.wiki.to_TDOC(page_title)));
+	// 移除重複的頁面。
+	page_list = page_list.unique();
+
+	await wiki.for_each_page(page_list, page_data => {
+
+		const this_auto_subst_configuration = get_auto_subst_configuration_from_page(page_data);
+		merge_auto_subst_configuration(page_data, this_auto_subst_configuration);
+
+	});
+
+	return auto_subst_configuration_Map;
+}
+
+
+const subst_postfix_functions = {
+	remove_empty_parameters(expanded_code) {
+		expanded_code = expanded_code.toString();
+		const parsed = CeL.wiki.parser(expanded_code).parse();
+		CeL.assert([expanded_code, parsed.toString()],
+			// gettext_config:{"id":"wikitext-parser-checking-$1"}
+			CeL.gettext('wikitext parser checking: %1', JSON.stringify(expanded_code)));
+
+		let changed = false;
+		parsed.each('template', template_token => {
+			const parameters = template_token.parameters;
+			let _changed;
+			for (const parameter_name in parameters) {
+				if (parameters[parameter_name].toString().trim() === '') {
+					// 有未設定數值的參數。
+					// 警告: 當設定了重複的 parameter_name 時，只會消掉起作用的那個。
+					template_token[template_token.index_of[parameter_name]] = '';
+					_changed = changed = true;
+				}
+			}
+
+			if (!_changed)
+				return;
+
+			for (let index = 1; index < template_token.length;) {
+				if (template_token[index]) {
+					index++;
+				} else {
+					template_token.splice(index, 1);
+				}
+			}
+		});
+
+		if (!changed) {
+			return expanded_code;
+		}
+
+		return parsed.toString();
+	},
+
+};
+
+
+/**
+ * 替換引用{{.template_name_to_substitute|auto=yes}}的模板。
+ * @param {String} template_title	模板標題。 e.g., "Template:Template to be substituted"
+ * @param {Object|Undefined} this_auto_subst_configuration	自動 subst 採用的手動設定 manual settings。 e.g., {subst_postfix: 'remove_empty_parameters'}
+ */
+async function do_subst_template(template_title, this_auto_subst_configuration) {
+	let subst_postfix;
+	let must_manually_expand_subst = this_auto_subst_configuration?.must_manually_expand_subst;
+	const subst_postfix_list = this_auto_subst_configuration?.subst_postfix_list;
+	if (this_auto_subst_configuration?.subst_postfix in subst_postfix_functions) {
+		subst_postfix = subst_postfix_functions[this_auto_subst_configuration.subst_postfix];
+		if (subst_postfix)
+			must_manually_expand_subst = true;
+	}
+
+	const move_from_link = template_title;
+	const move_to_link = 'subst:';
+	//console.log([move_from_link, move_to_link]);
+	await replace_tool.replace({
+		//[KEY_wiki_session]
+		wiki,
+		use_language,
+		// 嵌入本模板的頁面數量太多，跳過本模板不處理。
+		max_pages_before_abort: wiki.latest_task_configuration.general.max_pages_before_abort,
+		work_options: { no_message: true, },
+		not_bot_requests: true,
+		no_move_configuration_from_command_line: true,
+		must_manually_expand_subst,
+		subst_postfix,
+		log_to: null,
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
+		//+ ' 人工監視檢測中 '
+		,
+	}, {
+		[move_from_link]: {
+			//namespace: 'main|Template',
+			move_to_link,
+		},
+	});
 }
 

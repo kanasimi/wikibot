@@ -1454,9 +1454,8 @@ async function prepare_operation(meta_configuration, move_configuration) {
 		}
 		if (typeof move_from_link !== 'string' && typeof task_configuration.move_to_link !== 'string') {
 			task_configuration.summary.title_to_add = '';
-		} else if (move_configuration.length === 1
-			&& (typeof move_from_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(wiki.remove_namespace(move_from_link).toLowerCase())
-				|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(wiki.remove_namespace(task_configuration.move_to_link).toLowerCase()))) {
+		} else if (typeof move_from_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(wiki.remove_namespace(move_from_link).toLowerCase())
+			|| typeof task_configuration.move_to_link === 'string' && task_configuration.summary.summary.toLowerCase().includes(wiki.remove_namespace(task_configuration.move_to_link).toLowerCase())) {
 			task_configuration.summary.title_to_add = '';
 		} else {
 			task_configuration.log_section_title_postfix = `(${typeof task_configuration.move_to_link === 'string' && task_configuration.move_to_link || move_from_link})`;
@@ -2614,6 +2613,11 @@ async function subst_template(token, index, parent) {
 	if (!task_configuration.subst_postfix) {
 	} else if (typeof task_configuration.subst_postfix === 'function') {
 		expanded_code = task_configuration.subst_postfix(expanded_code);
+		if (expanded_code === undefined || expanded_code === Wikiapi.skip_edit) {
+			// 手動放棄修改。
+			return;
+		}
+
 	} else if (task_configuration.subst_postfix.replace) {
 		// [[w:zh:Wikipedia:机器人/作业请求#h-請求批量替換引用Category:僅使用維吾爾老文字表示維吾爾語-20260308141800]]
 		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:僅使用維吾爾老文字表示維吾爾語的Lang-ug","move_to_link":"subst:","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxh

@@ -714,7 +714,7 @@ function parse_each_FC_date_page(page_data) {
 	// 連標題連結都找不到的情況。
 	error_logs.push(content ? '無法解析 ' + CeL.wiki.title_link_of(title)
 	// + (FC_title ? ': ' + FC_title : '')
-	: CeL.wiki.title_link_of(title) + ' 不存在。您可在設定頁面刪除快取來更新。');
+	: CeL.wiki.title_link_of(title) + ' 不存在或無內容。您可在設定頁面刪除快取來更新。');
 	if (CeL.is_debug())
 		CeL.error(title + ': ' + content);
 
