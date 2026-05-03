@@ -5,6 +5,8 @@ node 20260422.auto_subst_templates.js use_project=zhwiki
 
 2026/4/25 9:31:36	初版試營運
 
+TODO:
+自嵌入的狀況不會一次替換完。
 
 */
 
