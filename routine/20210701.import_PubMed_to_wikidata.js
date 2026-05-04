@@ -139,6 +139,8 @@ const main_subject_mapping = new Map((() => {
 		'orthopedics and sports medicine': 'Q7104851',
 		// [[d:User talk:Kanashimi#Cewbot doing something strange]]
 		'cost savings': 'Q3454688',
+		// [[d:User talk:Kanashimi#Linking to a sports club from scientific articles]]
+		nthi: null,
 
 		// ** 更改這些數值必須刪除 cache！
 	}).map(([main_subject, entity_id]) => [normalize_main_subject(main_subject), entity_id]);
@@ -1739,6 +1741,10 @@ async function for_each_PubMed_ID(PubMed_ID) {
 
 		let main_subject = main_subject_mapping.get(key);
 		if (!main_subject) {
+			if (main_subject === null) {
+				// 已知沒有對應的 Wikidata 項目，避免重複搜尋。
+				return;
+			}
 			main_subject = key;
 		}
 		if (main_subject) {
