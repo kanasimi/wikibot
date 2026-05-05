@@ -68,7 +68,10 @@ async function adapt_configuration(latest_task_configuration) {
 async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
-		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, { /*namespace: 'category',*/ batch_size: 100, }))) {
+		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, {
+			namespace: 'category',
+			batch_size: 100,
+		}))) {
 
 		/**{Map}自動 subst 採用的手動設定 manual settings。 */
 		const auto_subst_configuration_Map = await get_auto_subst_configuration(page_list);
@@ -273,7 +276,7 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 		must_manually_expand_subst,
 		subst_postfix,
 		log_to: null,
-		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
+		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration?.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
 		//+ ' 人工監視檢測中 '
 		,
 	}, {

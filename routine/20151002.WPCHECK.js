@@ -737,6 +737,8 @@ PATTERN_u200E = /(^|[>\s\n\da-z'"|,.;\-=\[\]{}（）《》←→])\u200E($|[<\s\
 PATTERN_LTR_lang = new RegExp('{{lang\\s*\\|\\s*(' + CeL.wiki.LTR_SCRIPTS
 		+ ')\\s*\\|\\s*([^{}\\|]+)}}', 'ig');
 
+// @see [[Template talk:Rtl-lang]]
+// [[Module:Lang]]模組的引入使{{tl|lang}}模板得以自動識別語言書寫方向，因此{{tl|rtl-lang}}模板不復必要存在。
 function replace_to_rtl_lang(all, language, text) {
 	text = text.replace(/[\u200E\u200F]/g, '').trim();
 	var matched = text.match(/^('+)([^']+)('+)$/);
@@ -744,7 +746,7 @@ function replace_to_rtl_lang(all, language, text) {
 		text = matched[2];
 		matched = matched[1];
 	}
-	all = '{{rtl-lang|' + language + '|' + text + '}}';
+	all = '{{lang|' + language + '|' + text + '}}';
 	if (matched) {
 		all = matched + all + matched;
 	}

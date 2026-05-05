@@ -1288,10 +1288,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				task_configuration.subst_postfix = meta_configuration.subst_postfix;
 			}
 			if (task_configuration.subst_postfix && !task_configuration.must_manually_expand_subst) {
-				if ('must_manually_expand_subst' in task_configuration) {
-					CeL.warn(`${prepare_operation.name}: 設定了 .subst_postfix，.must_manually_expand_subst 設定為偽！如此 .subst_postfix 將無作用！`);
-				} else {
+				if (task_configuration.must_manually_expand_subst === undefined) {
 					task_configuration.must_manually_expand_subst = true;
+				} else {
+					CeL.warn(`${prepare_operation.name}: 設定了 .subst_postfix，.must_manually_expand_subst 設定為偽！如此 .subst_postfix 將無作用！`);
 				}
 			}
 

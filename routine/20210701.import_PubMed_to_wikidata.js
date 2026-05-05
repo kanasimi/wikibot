@@ -1427,7 +1427,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 				&& await get_entity_id_of_ORCID({
 					ORCID: author_data.authorId.value,
 					author_name: author_data.fullName,
-					wanted_keys: (author_data.firstName.toLowerCase().split(/\s+/) || []).append(author_data.lastName?.toLowerCase().split(/\s+/)),
+					wanted_keys: (author_data.firstName?.toLowerCase().split(/\s+/) || []).append(author_data.lastName?.toLowerCase().split(/\s+/)),
 					PubMed_ID,
 				});
 			if (author_item_id) {
