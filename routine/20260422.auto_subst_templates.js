@@ -13,6 +13,7 @@ TODO:
 'use strict';
 
 const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilibili personality', 'Template:Infobox YouTube personality']
+	&& ['Template:台北捷運色彩']
 	&& null
 	;
 
@@ -69,12 +70,15 @@ async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, {
-			namespace: 'category',
+			//namespace: 'category',
+			//namespace: 'template',
 			batch_size: 100,
 		}))) {
 
 		/**{Map}自動 subst 採用的手動設定 manual settings。 */
-		const auto_subst_configuration_Map = await get_auto_subst_configuration(page_list);
+		const auto_subst_configuration_Map = await get_auto_subst_configuration(page_list
+			//.filter(page_data => /捷運|捷运|Rint\/Kh/.test(CeL.wiki.title_of(page_data)))
+		);
 
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
 			await do_subst_template(template_title, this_auto_subst_configuration);
@@ -110,16 +114,19 @@ function get_auto_subst_configuration_from_page(page_data) {
 		}
 		let this_auto_subst_configuration;
 		try {
-			this_auto_subst_configuration = JSON.parse(template_token.parameters[KEY_auto_config_parameter]);
+			this_auto_subst_configuration = JSON.parse(template_token.parameters[KEY_auto_config_parameter].toString());
+			//console.trace([this_auto_subst_configuration, auto_subst_configuration]);
 			if (CeL.is_Object(auto_subst_configuration))
 				Object.assign(auto_subst_configuration, this_auto_subst_configuration);
 			else
 				auto_subst_configuration = this_auto_subst_configuration;
 		} catch (e) {
-			CeL.error(`Failed to parse auto_subst_configuration: ${template_token.parameters[KEY_auto_config_parameter]}`);
+			CeL.error(`Failed to parse ${KEY_auto_config_parameter} on ${CeL.wiki.title_link_of(page_data)}: ${template_token.parameters[KEY_auto_config_parameter]}`);
+			console.error(e);
 		}
 	});
 
+	//console.trace(auto_subst_configuration, page_data);
 	return auto_subst_configuration;
 }
 
@@ -170,33 +177,47 @@ async function get_auto_subst_configuration(page_list) {
 
 	for (const page_data of page_list) {
 		if (wiki.is_namespace(page_data, 'category')) {
-			const subcategory_page_list = await wiki.categorymembers(page_data, { namespace: 'template', });
-			page_list.append(subcategory_page_list);
+			let page_list_of_category = await wiki.categorymembers(page_data, { namespace: 'template', });
 
 			const this_auto_subst_configuration = get_auto_subst_configuration_from_page(await wiki.page(page_data));
-			if (!this_auto_subst_configuration)
-				continue;
+			if (this_auto_subst_configuration) {
+				Object.assign(this_auto_subst_configuration, {
+					from_category: page_data.title,
+					ignore_duplicate_message: true
+				});
 
-			Object.assign(this_auto_subst_configuration, {
-				from_category: page_data.title,
-				ignore_duplicate_message: true
-			});
-			filter_page_list(subcategory_page_list)
-				.forEach(page_data => merge_auto_subst_configuration(page_data, { ...this_auto_subst_configuration }));
+				page_list_of_category = filter_page_list(page_list_of_category);
+
+				let nosubst_Set;
+				if (this_auto_subst_configuration.nosubst && typeof CeL.wiki.Yesno(token.parameters.nosubst) !== 'boolean') {
+					nosubst_Set = new Set(this_auto_subst_configuration.nosubst.toString().split('|'));
+					page_list_of_category = page_list_of_category.filter(page_title => !nosubst_Set.has(page_title));
+					delete this_auto_subst_configuration.nosubst;
+				}
+
+				page_list_of_category
+					.forEach(page_title => merge_auto_subst_configuration(page_title, { ...this_auto_subst_configuration }));
+			}
+
+			page_list.append(page_list_of_category);
 		}
 	}
 
 	page_list = filter_page_list(page_list);
+	await wiki.register_redirects(page_list.map(page_title => CeL.wiki.TDOC_to_main(page_title)));
 	// 自動 subst 採用的手動設定可能位於 TDOC 的 {{.template_name_to_substitute}} 中。
 	page_list.append(page_list.map(page_title => CeL.wiki.to_TDOC(page_title)));
 	// 移除重複的頁面。
 	page_list = page_list.unique();
 
 	await wiki.for_each_page(page_list, page_data => {
-
 		const this_auto_subst_configuration = get_auto_subst_configuration_from_page(page_data);
 		merge_auto_subst_configuration(page_data, this_auto_subst_configuration);
-
+		if (page_data.redirect_from) {
+			merge_auto_subst_configuration(page_data.redirect_from, this_auto_subst_configuration);
+		}
+	}, {
+		redirects: 1
 	});
 
 	return auto_subst_configuration_Map;
@@ -273,17 +294,16 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 		work_options: { no_message: true, },
 		not_bot_requests: true,
 		no_move_configuration_from_command_line: true,
-		must_manually_expand_subst,
-		subst_postfix,
 		log_to: null,
-		summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration?.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
-		//+ ' 人工監視檢測中 '
-		,
 	}, {
 		[move_from_link]: {
 			//namespace: 'main|Template',
 			move_to_link,
+			must_manually_expand_subst,
+			subst_postfix,
+			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration?.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
+			//+ ' 人工監視檢測中 '
+			,
 		},
 	});
 }
-

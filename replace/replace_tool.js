@@ -669,8 +669,12 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				task_configuration.list_parser = 'table_to_array';
 			}
 		}
-		for (const option of ["get_task_configuration_from", "namespace", "subst_postfix"]) {
-			if (task_configuration[option]) {
+		for (const option of ["get_task_configuration_from", "namespace",
+			// 在 <syntaxhighlight lang="json">{"replace_tool_configuration":{}}</syntaxhighlight> 的情況下，
+			// 直接放在 meta_configuration 會比較簡便。
+			"subst_postfix", "must_manually_expand_subst",
+		]) {
+			if (task_configuration[option] && !(option in meta_configuration)) {
 				// Copy property.
 				meta_configuration[option] = task_configuration[option];
 			}
@@ -693,8 +697,11 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			remove_duplicated: true,
 			main_template_processor(template_token) {
 				// fix for {{規范控製}}
-				if (layout.name && template_token.name.includes('控製'))
+				if (layout.name && template_token.name.includes('控製')) {
+					console.trace(template_token.name);
+					// 應可在 wiki.register_redirects() 處理？
 					CeL.wiki.parse.replace_parameter(template_token, CeL.wiki.parse.replace_parameter.KEY_template_name, layout.name);
+				}
 			}
 		});
 
@@ -1378,9 +1385,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 
 		// 議論場所 Links to relevant discussions
 		const discussion_link = task_configuration.discussion_link || meta_configuration.discussion_link;
-		const _summary = typeof summary === 'string' ? summary
-			: discussion_link ? CeL.wiki.title_link_of(discussion_link, section_title)
-				: section_title;
+		const _summary = task_configuration.summary
+			|| typeof summary === 'string' && summary
+			|| discussion_link && CeL.wiki.title_link_of(discussion_link, section_title)
+			|| section_title;
 		const _log_to = 'log_to' in task_configuration ? task_configuration.log_to
 			: 'log_to' in meta_configuration ? (task_configuration.log_to = meta_configuration.log_to)
 				: log_to;
@@ -2594,37 +2602,39 @@ async function subst_template(token, index, parent) {
 	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({ max_template_depth: 1 }));
 
 	if (/{{#invoke:/.test(expanded_code)) {
-		// 模板展開之後應該也只存在模板，恐怕是出錯了。
-		throw new Error(`${subst_template.name}: Failed to expand template: ${token.toString()} → ${expanded_code}`);
+		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code}`);
+		CeL.error('模板展開之後應該也只存在模板，恐怕是出錯了。');
+		return;
 	}
 
 	if (!task_configuration.no_generally_postfix) {
-		if (/^\s*<nowiki>#<\/nowiki>/.test(expanded_code)) {
+		const PATTERN_hash_starting = /^\s*<nowiki>#<\/nowiki>/;
+		if (PATTERN_hash_starting.test(expanded_code)) {
 			// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用Template:港鐵顏色]]
 			// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"subst_postfix":"/<nowiki>#<\\/nowiki>/#/"}}</syntaxhighlight>
 
-			// 有些模板以 "#" 開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。這時 subst 就得用上 .subst_postfix。
+			// 有些顏色/色彩模板以 "#" 開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。這時 subst 就得用上 .subst_postfix。
 			// 如[[Template:港鐵顏色]]: <includeonly><nowiki>#</nowiki>...
-			// {{輕鐵色彩}}
-			expanded_code = expanded_code.toString().replace(/^\s*<nowiki>#<\/nowiki>/, '#');
+			expanded_code = expanded_code.toString().replace(PATTERN_hash_starting, '#');
 		}
 	}
 
-	if (!task_configuration.subst_postfix) {
-	} else if (typeof task_configuration.subst_postfix === 'function') {
-		expanded_code = task_configuration.subst_postfix(expanded_code);
+	const subst_postfix = task_configuration.subst_postfix;
+	if (!subst_postfix) {
+	} else if (typeof subst_postfix === 'function') {
+		expanded_code = subst_postfix.call(this, expanded_code);
 		if (expanded_code === undefined || expanded_code === Wikiapi.skip_edit) {
 			// 手動放棄修改。
 			return;
 		}
 
-	} else if (task_configuration.subst_postfix.replace) {
+	} else if (subst_postfix.replace) {
 		// [[w:zh:Wikipedia:机器人/作业请求#h-請求批量替換引用Category:僅使用維吾爾老文字表示維吾爾語-20260308141800]]
 		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:僅使用維吾爾老文字表示維吾爾語的Lang-ug","move_to_link":"subst:","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxh
 
 		// [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用所有{{港铁路线标志}}與{{香港輕鐵路綫}}]]
 		// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"list_title":"Category:可被替換引用的港鐵路綫標誌","subst_postfix":"/\\[\\[Category:.+?\\]\\]//"}}</syntaxhighlight>
-		expanded_code = task_configuration.subst_postfix.replace(expanded_code);
+		expanded_code = subst_postfix.replace(expanded_code);
 	}
 
 	parent[index] = expanded_code;

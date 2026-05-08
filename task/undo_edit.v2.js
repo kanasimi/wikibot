@@ -1,5 +1,6 @@
 ﻿/*
 
+node undo_edit.v2.js use_language=zh
 node undo_edit.v2.js use_language=ja
 
 recover, revert error edit
@@ -52,7 +53,7 @@ const backtrack_revision_number = 2;
 const fix_namespace = '*';
 
 /**{Number}錯誤編輯的開始時間。 */
-const start_time = Date.now() - .5 * 60 * 60 * 1000;
+const start_time = Date.now() - 1 * 60 * 60 * 1000;
 /**{Number}錯誤編輯的結束時間。 */
 const end_time = Date.now();
 
@@ -60,7 +61,7 @@ const end_time = Date.now();
 const PATTERN_filter_page_title = null;
 
 /**{RegExp}篩選包含此 summary 的編輯。 fix only these edits. */
-const PATTERN_filter_summary = /Template:港铁路线标志/;
+const PATTERN_filter_summary = /捷運色彩/;
 
 /**{RegExp}篩選包含此 diff from 的內容。 */
 const PATTERN_filter_diff_from = /<ref/i && null;
@@ -138,7 +139,7 @@ async function check_page_data(page_data) {
 
 	if (!revision_prior_to_bot) {
 		if (!unrelated_edit_by_bot)
-			CeL.error(`${check_page_data.name}: 自編機器人編輯過後已經過太多次其他人的編輯，必須取得超過 ${backtrack_revision_number}個 revisions 才能確認: ${CeL.wiki.title_link_of(page_data)}`);
+			CeL.error(`${check_page_data.name}: 自編機器人編輯過後已經過太多次其他人的編輯，必須取得超過 ${backtrack_revision_number}個 revisions 才能研判: ${CeL.wiki.title_link_of(page_data)}`);
 		//console.trace(login_user_name, page_data.revisions);
 		return;
 	}
