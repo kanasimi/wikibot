@@ -2599,13 +2599,11 @@ async function subst_template(token, index, parent) {
 	// 需要特殊處理的模板。
 
 	const { task_configuration } = this;
-	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({ max_template_depth: 1 }));
-
-	if (/{{#invoke:/.test(expanded_code)) {
-		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code}`);
-		CeL.error('模板展開之後應該也只存在模板，恐怕是出錯了。');
-		return;
-	}
+	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({
+		max_template_depth: 1,
+		// for convert_parameter() 需要知道被展開的頁面。
+		transclusion_from_page: this.page_to_edit,
+	}));
 
 	if (!task_configuration.no_generally_postfix) {
 		const PATTERN_hash_starting = /^\s*<nowiki>#<\/nowiki>/;
@@ -2617,7 +2615,24 @@ async function subst_template(token, index, parent) {
 			// 如[[Template:港鐵顏色]]: <includeonly><nowiki>#</nowiki>...
 			expanded_code = expanded_code.toString().replace(PATTERN_hash_starting, '#');
 		}
+
+		// 注意: function expand_transclusion() 可能設定過 .skip_inner_traversal，之後執行 .each() 必須重新 parse。
+		expanded_code = CeL.wiki.parse(expanded_code.toString());
+		CeL.wiki.parser.parser_prototype.each.call(expanded_code, 'magic_word_function', token => {
+			if (token.module_name === 'Check for unknown parameters') {
+				return remove_token;
+			}
+		});
 	}
+
+	if (/{{#/.test(expanded_code) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
+		// 模板展開之後不該包含 magic words，恐怕是出錯了。
+		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code}`);
+		return;
+	}
+
+	// 只測試不編輯。
+	//return;
 
 	const subst_postfix = task_configuration.subst_postfix;
 	if (!subst_postfix) {

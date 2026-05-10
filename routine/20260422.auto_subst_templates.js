@@ -14,6 +14,7 @@ TODO:
 
 const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilibili personality', 'Template:Infobox YouTube personality']
 	&& ['Template:台北捷運色彩']
+	&& ['Template:无锡地铁颜色']
 	&& null
 	;
 
@@ -81,7 +82,12 @@ async function main_process() {
 		);
 
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
-			await do_subst_template(template_title, this_auto_subst_configuration);
+			await do_subst_template(template_title, this_auto_subst_configuration
+				// 測試 .expand_transclusion()。
+				//&& { ...this_auto_subst_configuration, must_manually_expand_subst: true }
+			);
+			// 只測試一個頁面。
+			//continue;
 		}
 
 	}
