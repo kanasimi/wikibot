@@ -84,10 +84,10 @@ async function main_process() {
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
 			await do_subst_template(template_title, this_auto_subst_configuration
 				// 測試 .expand_transclusion()。
-				//&& { ...this_auto_subst_configuration, must_manually_expand_subst: true }
+				&& { ...this_auto_subst_configuration, must_manually_expand_subst: true }
 			);
 			// 只測試一個頁面。
-			//continue;
+			continue;
 		}
 
 	}

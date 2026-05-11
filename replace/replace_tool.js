@@ -2632,7 +2632,7 @@ async function subst_template(token, index, parent) {
 	}
 
 	// 只測試不編輯。
-	//return;
+	return;
 
 	const subst_postfix = task_configuration.subst_postfix;
 	if (!subst_postfix) {

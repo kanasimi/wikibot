@@ -60,9 +60,9 @@ FC_list_pages = (using_GA ? 'WP:GA' : 'WP:FA|WP:FL').split('|'),
 /**
  * [[Wikipedia:已撤銷的典範條目]] 條目連結。<br />
  * [[Module_talk:Article_history/config#Module:Article_history/config自动添加Category有歧义]]之後廢除。<br />
- * 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。高等級的放後面。
+ * 典範條目很可能是優良條目進階而成，因此將他們全部列為已撤銷的。另可能有曾是典範條目被撤銷，後來重新獲得GA。高等級的放後面。
  */
-Former_FC_list_pages = ((using_GA ? 'WP:DGA|WP:FA' : 'WP:FFL') + '|WP:FFA')
+Former_FC_list_pages = ((using_GA ? 'WP:DGA|WP:FA|' : '') + 'WP:FFA|WP:FFL')
 		.split('|'), sub_FC_list_pages = [],
 /**
  * 出問題時，至此頁面提醒社群。須保證本頁面存在，並且機器人可以寫入。<br />
