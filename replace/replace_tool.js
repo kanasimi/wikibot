@@ -2603,6 +2603,7 @@ async function subst_template(token, index, parent) {
 		max_template_depth: 1,
 		// for convert_parameter() 需要知道被展開的頁面。
 		transclusion_from_page: this.page_to_edit,
+		filter_template_to_be_expanded: this.task_configuration.filter_template_to_be_expanded
 	}));
 
 	if (!task_configuration.no_generally_postfix) {
@@ -2625,14 +2626,14 @@ async function subst_template(token, index, parent) {
 		});
 	}
 
-	if (/{{#/.test(expanded_code) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
+	if (/{{#/.test(CeL.wiki.parse.wiki_element_to_key(expanded_code).toString()) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
 		// 模板展開之後不該包含 magic words，恐怕是出錯了。
 		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code}`);
 		return;
 	}
 
 	// 只測試不編輯。
-	return;
+	//return;
 
 	const subst_postfix = task_configuration.subst_postfix;
 	if (!subst_postfix) {
