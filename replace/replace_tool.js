@@ -2564,6 +2564,22 @@ function for_each_file(token, index, parent) {
 
 // --------------------------------------------------------
 
+function to_subst_code(token, options) {
+	if (typeof token === 'string') {
+		token = CeL.wiki.parse(token, options);
+	}
+
+	token[0] = 'subst:' + token[0];
+
+	if (!('subst' in token.parameters)) {
+		// @see [[w:en:User:AnomieBOT/docs/TemplateSubster]]
+		// 引入 {{safesubst:}} 之前，subst模板時常見的變通方法。
+		token.push('subst=subst:');
+	}
+
+	return token;
+}
+
 // subst展開 [[mw:Help:Substitution]]
 // TODO: https://phabricator.wikimedia.org/T14974
 async function subst_template(token, index, parent) {
@@ -2583,13 +2599,7 @@ async function subst_template(token, index, parent) {
 	);
 
 	if (!must_manually_expand_subst) {
-		token[0] = 'subst:' + token[0];
-
-		if (!('subst' in token.parameters)) {
-			// @see [[w:en:User:AnomieBOT/docs/TemplateSubster]]
-			// 引入 {{safesubst:}} 之前，subst模板時常見的變通方法。
-			token.push('subst=subst:');
-		}
+		to_subst_code(token, options);
 
 		//this.discard_changes = true;
 		return;
@@ -2598,13 +2608,37 @@ async function subst_template(token, index, parent) {
 	// ----------------------------------------------------------
 	// 需要特殊處理的模板。
 
+	//console.trace([page_title, token.toString(), parent]);
+	// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
+	// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
+	// fix <ref></ref> 中間的連結不會被取代。
+
+	// TODO: read {{cbignore}}
+
 	const { task_configuration } = this;
+
+	if (false && (new Set(['Template:无锡地铁车站编号', '山东省'])).has(CeL.wiki.title_of(this.page_to_edit))) {
+		debugger;
+	}
 	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({
 		max_template_depth: 1,
 		// for convert_parameter() 需要知道被展開的頁面。
 		transclusion_from_page: this.page_to_edit,
 		filter_template_to_be_expanded: this.task_configuration.filter_template_to_be_expanded
 	}));
+
+	if (expanded_code.toString() === token.toString()) {
+		const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit) });
+		const parsed_wikitext = await CeL.wiki.pre_save_transform(to_subst_code(token.toString(), parse_options), parse_options);
+		//console.trace([token.toString(), parsed_wikitext, expanded_code]);
+		if (expanded_code.toString() === parsed_wikitext) {
+			// No change after expand.
+			return;
+		}
+		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${parsed_wikitext}`);
+		//return;
+		expanded_code = parsed_wikitext;
+	}
 
 	if (!task_configuration.no_generally_postfix) {
 		const PATTERN_hash_starting = /^\s*<nowiki>#<\/nowiki>/;
@@ -2635,6 +2669,8 @@ async function subst_template(token, index, parent) {
 	// 只測試不編輯。
 	//return;
 
+	// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
+
 	const subst_postfix = task_configuration.subst_postfix;
 	if (!subst_postfix) {
 	} else if (typeof subst_postfix === 'function') {
@@ -2654,72 +2690,6 @@ async function subst_template(token, index, parent) {
 	}
 
 	parent[index] = expanded_code;
-	return;
-
-	// ----------------------------------------------------------
-	// @deprecated
-	// old method: using compare to get the expanded wikitext.
-
-	const page_title = this.page_to_edit.title;
-
-	token[0] = 'subst:' + token[0];
-
-	//console.trace([page_title, token.toString(), parent]);
-	// [[mw:Help:Cite#Substitution and embedded parser functions]] [[w:en:Help:Substitution#Limitation]]
-	// refタグ内ではsubst:をつけても展開されず、そのまま残ります。人間による編集の場合は一旦refタグを外して、差分から展開したソースをコピーする形になります。
-	// fix <ref></ref> 中間的連結不會被取代。
-
-	// TODO: read {{cbignore}}
-
-	// TODO: use this.task_configuration[KEY_wiki_session].expandtemplates() instead of compare
-	// useless:
-	//const expand_data = await new Promise(resolve => CeL.wiki.query(token.toString(), resolve, this.task_configuration[KEY_wiki_session].append_session_to_options()));
-
-	//console.trace(this.task_configuration[KEY_wiki_session].append_session_to_options().session);
-	//console.trace(token);
-
-	// TODO: this.task_configuration[KEY_wiki_session].compare()
-	let wikitext = await this.task_configuration[KEY_wiki_session].query({
-		action: "compare",
-		fromtitle: page_title,
-		fromslots: "main",
-		'fromtext-main': "",
-		toslots: "main",
-		'totext-main': token.toString(),
-		topst: 1,
-	});
-	//console.log(wikitext);
-	wikitext = wikitext.compare['*']
-		// TODO: shoulld use HTML parser
-		// e.g., 2021/12/19:	<td class="diff-addedline"><div>...</div></td>
-		// e.g., 2022/3/3:		<td class="diff-addedline diff-side-added"><div>...</div></td>
-		.all_between('<td class="diff-addedline', '</td>').map(token => token.between('<div>', { tail: '</div>' })).join('\n');
-	wikitext = CeL.HTML_to_Unicode(wikitext);
-
-	// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
-
-	if (false && !this.task_configuration[KEY_wiki_session].is_namespace(page_title, 'Template')) {
-		// TODO: https://en.wikipedia.org/wiki/Help:Substitution#Recursive_substitution
-		// {{#if:}} → {{subst:<noinclude/>#if:}}
-		const _token = CeL.wiki.parse(wikitext);
-		CeL.wiki.parser.parser_prototype.each.call(_token, 'magic_word_function', magic_word_function_token => {
-			//return magic_word_function_token.evaluate();
-			if (magic_word_function_token[0].toString().trim() !== 'subst:')
-				magic_word_function_token[0] = 'subst:' + magic_word_function_token[0];
-		}, wiki.append_session_to_options({
-			//modify: true
-		}));
-		wikitext = _token.toString();
-	}
-
-	if (!wikitext) {
-		CeL.warn(`${subst_template.name}: Nothing get for substituting ${token.toString()} inside <${parent.tag}>!`);
-	}
-	//console.trace([page_title, token.toString(), wikitext]);
-
-	parent[index] = wikitext;
-
-	//this.discard_changes = true;
 }
 
 // --------------------------------------------------------

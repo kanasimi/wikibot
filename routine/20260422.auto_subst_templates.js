@@ -16,6 +16,7 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:台北捷運色彩']
 	&& ['Template:无锡地铁颜色']
 	&& ['Template:Citeer web']
+	&& ['Template:Lien web']
 	&& null
 	;
 
@@ -302,9 +303,10 @@ const subst_postfix_functions = {
 function filter_template_to_be_expanded(parsed, options) {
 	let has_should_not_be_substituted;
 	CeL.wiki.parser.parser_prototype.each.call(parsed, 'magic_word_function', token => {
-		if (token.name === '#invoke'
-			// [[Template:Never substitute]]
-			&& /^Citation\/CS/.test(token.module_name)) {
+		let module_name = token.module_name;
+		if (module_name
+			&& /^(?:Citation\/CS|CS1 translator)/.test(module_name)
+		) {
 			has_should_not_be_substituted = true;
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
