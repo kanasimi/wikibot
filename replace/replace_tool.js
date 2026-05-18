@@ -634,6 +634,8 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		//console.trace(task_configuration);
 
 		if (task_configuration.replace_tool_page_configuration) {
+			// [[Wikipedia:机器人/作业请求#請求台鐵系列內容批量替換]]
+			// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"move_from_link":"insource:<nowiki>#</nowiki>{{rcr|","move_to_link":"#{{rcr|","namespace":"main"}}</syntaxhighlight>
 			const move_configuration_from_page = convert_special_move_to(task_configuration.replace_tool_page_configuration);
 			let move_from_link = move_configuration_from_page.move_from_link;
 			if (move_from_link) {
@@ -1716,6 +1718,7 @@ async function get_list(task_configuration, list_configuration) {
 	} else if (typeof list_configuration.move_from_link !== 'string') {
 		throw new Error(`Invalid move_from_link: ${JSON.stringify(list_configuration.move_from_link)}`);
 	} else if (/^-?(?:insource|intitle|incategory|linksto|hastemplate|namespace|prefix|deepcat|inlanguage|contentmodel|subpageof|morelike|prefer-recent|neartitle|boost-neartitle|filemime|filesize|filew|filewidth|fileh|fileheight|fileres|filebits):/.test(list_configuration.move_from_link)) {
+		// [[mw:Help:CirrusSearch]], [[Template:Search link]], [[w:en:Template:Regex]]
 		list_types = 'search';
 	} else if (/^(https?:)\/\//.test(list_configuration.move_from_link)) {
 		// should have task_configuration.text_processor()
@@ -2599,7 +2602,7 @@ async function subst_template(token, index, parent) {
 	);
 
 	if (!must_manually_expand_subst) {
-		to_subst_code(token, options);
+		to_subst_code(token);
 
 		//this.discard_changes = true;
 		return;
@@ -2631,18 +2634,21 @@ async function subst_template(token, index, parent) {
 		const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit) });
 		const parsed_wikitext = await CeL.wiki.pre_save_transform(to_subst_code(token.toString(), parse_options), parse_options);
 		//console.trace([token.toString(), parsed_wikitext, expanded_code]);
-		if (expanded_code.toString() === parsed_wikitext) {
+		if (false && expanded_code.toString() === parsed_wikitext) {
 			// No change after expand.
 			return;
 		}
-		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${parsed_wikitext}`);
+		//CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${parsed_wikitext}`);
+		//console.log(CeL.LCS(parsed_wikitext, expanded_code.toString(), 'diff'));
 		//return;
 		expanded_code = parsed_wikitext;
 	}
 
 	if (!task_configuration.no_generally_postfix) {
 		const PATTERN_hash_starting = /^\s*<nowiki>#<\/nowiki>/;
-		if (PATTERN_hash_starting.test(expanded_code)) {
+		// 模板中，去掉 <nowiki> 會導致一些以 "#" 開頭的模板被展開成以換行開頭，這些模板必須改成 <nowiki> 開頭以避免被當成重定向頁面。
+		if (!this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')
+			&& PATTERN_hash_starting.test(expanded_code)) {
 			// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求批量替換引用Template:港鐵顏色]]
 			// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"list","min_list_length":1,"subst_postfix":"/<nowiki>#<\\/nowiki>/#/"}}</syntaxhighlight>
 
@@ -2652,17 +2658,18 @@ async function subst_template(token, index, parent) {
 		}
 
 		// 注意: function expand_transclusion() 可能設定過 .skip_inner_traversal，之後執行 .each() 必須重新 parse。
-		expanded_code = CeL.wiki.parse(expanded_code.toString());
+		expanded_code = CeL.wiki.parse(expanded_code.toString(), options);
 		CeL.wiki.parser.parser_prototype.each.call(expanded_code, 'magic_word_function', token => {
 			if (token.module_name === 'Check for unknown parameters') {
 				return remove_token;
 			}
-		});
+		}, this.task_configuration[KEY_wiki_session].append_session_to_options());
 	}
 
 	if (/{{#/.test(CeL.wiki.parse.wiki_element_to_key(expanded_code).toString()) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
 		// 模板展開之後不該包含 magic words，恐怕是出錯了。
 		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code}`);
+		// 跳出，不編輯。
 		return;
 	}
 

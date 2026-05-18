@@ -17,6 +17,7 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:无锡地铁颜色']
 	&& ['Template:Citeer web']
 	&& ['Template:Lien web']
+	&& ['Template:Audio-IPA']
 	&& null
 	;
 
