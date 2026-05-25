@@ -454,7 +454,10 @@ WHERE
 	SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 #LIMIT 10
-`);
+`, {
+		split_by_slice: 5000,
+		error_retry: 3,
+	});
 
 	for (const source_data of source_item_list) {
 		const entity_id = CeL.wiki.data.value_of(source_data.item).match(/\/(Q\d+)$/)[1];
