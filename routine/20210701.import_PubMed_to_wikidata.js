@@ -141,6 +141,8 @@ const main_subject_mapping = new Map((() => {
 		'cost savings': 'Q3454688',
 		// [[d:User talk:Kanashimi#Linking to a sports club from scientific articles]]
 		nthi: null,
+		// [[d:User talk:Kanashimi#Cewbot still making errors]]
+		'pathogen resistance': null,
 
 		// ** 更改這些數值必須刪除 cache！
 	}).map(([main_subject, entity_id]) => [normalize_main_subject(main_subject), entity_id]);
