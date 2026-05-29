@@ -95,9 +95,16 @@ KEY_CATEGORY = 5,
 KEY_TITLES_TO_MOVE = 6,
 /** 顯示文字 */
 KEY_DISPLAY_TEXT = 7,
-// FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
-// {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
+/**
+ * 特色內容資料，包含已撤銷的特色內容。格式: FC_data_hash[redirected FC_title] = [ {Boolean}is_list,
+ * {Boolean}is former FC, {String}transcluding page title, [ JDN list ] ]
+ * 
+ * @type {Object}
+ */
 FC_data_hash = Object.create(null), new_FC_pages,
+
+/** {String}曾經進階到更高級 */
+Symbol_UPGRADED_FC = 'UP',
 
 /** {Array}錯誤記錄 */
 error_logs = [], FC_title_sorted, redirects_list_to_check = [],
@@ -362,7 +369,7 @@ function parse_each_FC_item_list_page(page_data) {
 	is_FFC = [ page_data.original_title, title ].join('|');
 
 	// 對於進階的條目，採用不同的 is_FFC 表示法。
-	is_FFC = using_GA && /:FF?A/.test(is_FFC) && 'UP'
+	is_FFC = using_GA && /:FF?A/.test(is_FFC) && Symbol_UPGRADED_FC
 			|| /:[DF][FG][AL]|已撤消的|已撤销的/.test(is_FFC);
 
 	if (is_FFC
@@ -452,7 +459,7 @@ function parse_each_FC_item_list_page(page_data) {
 								+ CeL.wiki.title_link_of(FC_title)));
 			} else if (!!FC_data_hash[FC_title][KEY_IS_FFC] !== !!is_FFC
 					//
-					&& (FC_data_hash[FC_title][KEY_IS_FFC] !== 'UP' || is_FFC !== false)) {
+					&& (FC_data_hash[FC_title][KEY_IS_FFC] !== Symbol_UPGRADED_FC || is_FFC !== false)) {
 				error_logs
 						.push(CeL.wiki.title_link_of(FC_title)
 								+ ' 被同時列在了現存及已撤銷的'
@@ -497,7 +504,10 @@ function parse_each_FC_item_list_page(page_data) {
 function parse_each_FFC_category(page_list) {
 	// console.trace(page_list);
 	var is_list = /list|列表/.test(page_list.title);
-	var is_FFC = true;
+	var is_FFC = using_GA
+			&& !page_list.title
+					.includes(wiki.latest_task_configuration.general.NS_PREFIX_GA)
+			&& Symbol_UPGRADED_FC || true;
 
 	for (var index = 0; index < page_list.length; index++) {
 		/** {String}特色內容條目標題。 */
@@ -561,22 +571,22 @@ function get_FC_title_to_transclude(FC_title) {
 	return FC_data[KEY_TRANSCLUDING_PAGE]
 			|| ('Wikipedia:'
 					+ (using_GA ? wiki.latest_task_configuration.general.NS_PREFIX_GA
-							|| '優良條目'
+							|| /* '優良條目' */NS_PREFIX
 							: FC_data[KEY_IS_LIST] ? wiki.latest_task_configuration.general.NS_PREFIX_FL
 									|| '特色列表'
 									: wiki.latest_task_configuration.general.NS_PREFIX_FA
-											|| '典範條目') + '/' + FC_title);
+											|| /* '典範條目' */NS_PREFIX) + '/' + FC_title);
 }
 
 // get page name of JDN to transclude
 function get_FC_date_title_to_transclude(JDN) {
 	return 'Wikipedia:'
 			+ (using_GA ? wiki.latest_task_configuration.general.NS_PREFIX_GA
-					|| '優良條目'
+					|| /* '優良條目' */NS_PREFIX
 			// 典範JDN: 開始廢棄"特色條目"，採用"典範條目"的日期。
 			: JDN < 典範JDN ? '特色條目'
 					: wiki.latest_task_configuration.general.NS_PREFIX_FA
-							|| '典範條目')
+							|| /* '典範條目' */NS_PREFIX)
 			+ CeL.Julian_day.to_Date(JDN).format('/%Y年%m月%d日');
 }
 
@@ -764,14 +774,14 @@ function check_redirects(page_list) {
 				FC_data_hash[FC_title] = get_FC_data(original_FC_title);
 			}
 			delete FC_data_hash[original_FC_title];
-		} else {
+		} else if (!FC_data_hash[FC_title]) {
 			CeL.log('redirects_list_to_check = '
 					+ JSON.stringify(redirects_list_to_check));
 			CeL.log('redirects_to_hash = ' + JSON.stringify(redirects_to_hash));
 			CeL.log('FC_data_hash = ' + JSON.stringify(FC_data_hash));
 			console.log(page_list);
-			throw '未發現' + CeL.wiki.title_link_of(original_FC_title)
-					+ '的資料! 照理來說這不應該發生!';
+			throw new Error('未發現' + CeL.wiki.title_link_of(original_FC_title)
+					+ '的資料! 照理來說這不應該發生!');
 		}
 	} else {
 		not_found = true;
@@ -985,14 +995,15 @@ function check_FC_template(page_data_list, operation) {
 
 		/** {String}特色內容條目標題。 */
 		var FC_title = CeL.wiki.title_of(page_data);
-		if (!is_FC(FC_title)) {
+		var FC_data = FC_data_hash[FC_title];
+		if (!FC_data || !is_FC(FC_title)
+				&& FC_data[KEY_IS_FFC] !== Symbol_UPGRADED_FC) {
 			error_logs.push(CeL.wiki.title_link_of(FC_title) + '一文嵌入了'
 					+ template_links(operation.list) + '，卻沒登記在' + TYPE_NAME
-					+ '項目中？');
+					+ '或已撤銷的更高級別項目中？');
 			return;
 		}
 
-		var FC_data = FC_data_hash[FC_title];
 		if (FC_data[KEY_IS_LIST] !== is_list) {
 			error_logs.push(CeL.wiki.title_link_of(FC_title) + ' 嵌入了'
 					+ template_links(operation.list) + '，在' + TYPE_NAME
@@ -1043,7 +1054,13 @@ function generate_help_message(date_page_title, message) {
 	+ '。 --~~~~';
 }
 
-// 不是日期頁面嵌入的、有問題的標題。
+/**
+ * 判斷是否為特色內容條目，不是日期頁面嵌入的、有問題的標題。不包括已撤銷的特色內容條目。
+ * 
+ * @param {String}
+ *            FC_title
+ * @returns
+ */
 function is_FC(FC_title) {
 	var FC_data = FC_data_hash[FC_title];
 	return FC_data && FC_data[KEY_IS_FFC] === false;
