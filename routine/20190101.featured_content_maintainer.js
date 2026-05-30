@@ -624,7 +624,7 @@ function parse_each_FC_date_page(page_data) {
 	FC_title,
 	// 警告: 執行順序不會依照 `list` 的順序，不能用 this.JDN 來取得 JDN，因此得以
 	// parse_JDN_from_FC_date_title() 解析 JDN。
-	JDN = parse_JDN_from_FC_date_title(title), matched = content
+	JDN = parse_JDN_from_FC_date_title(page_data.original_title || title), matched = content
 			&& content.replace(/<\!--[\s\S]*?-->/g, '').match(
 					PATTERN_FC_transcluded);
 
@@ -1125,9 +1125,10 @@ function check_date_page() {
 	}
 
 	FC_title_sorted = FC_title_sorted.sort(function(FC_title_1, FC_title_2) {
-		return FC_data_hash[FC_title_1][KEY_LATEST_JDN]
+		var diff = FC_data_hash[FC_title_1][KEY_LATEST_JDN]
 		// TODO: 檢查簡介/摘要頁面是否存在。
 		- FC_data_hash[FC_title_2][KEY_LATEST_JDN];
+		return diff;
 	});
 	avoid_catalogs = avoid_catalogs.unique();
 	CeL.log('避免採用類別: ' + avoid_catalogs);
