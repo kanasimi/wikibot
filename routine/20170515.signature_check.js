@@ -150,9 +150,12 @@ function adapt_configuration(latest_task_configuration) {
 		if (!Array.isArray(general.exclude_talk_prefixes))
 			general.exclude_talk_prefixes = [ general.exclude_talk_prefixes ];
 		general.exclude_talk_prefixes = general.exclude_talk_prefixes
-				.filter(function(item) {
-					return !!item;
-				});
+		//
+		.filter(function(item) {
+			return !!item;
+		}).map(function(item) {
+			return CeL.wiki.title_of(item);
+		});
 	}
 
 	general.exclude_talk_prefixes.push(
@@ -260,7 +263,7 @@ function filter_row(row) {
 	.some(function(filter) {
 		return CeL.is_RegExp(filter)
 		// 因為發現有直接添加在首段的留言，發生次數也比更改說明的情況多，因此後來還是決定幫忙添加簽名。若是有說明的話，或許外面加個模板會比較好，這樣既美觀，而且也不會被當作是留言。
-		? filter.test(row.title) : filter === row.title;
+		? filter.test(row.title) : row.title.startsWith(filter);
 	})) {
 		// 黑名單直接封殺。黑名單的優先度高於白名單。
 		// 因為預設只處理 talk pages，
