@@ -338,11 +338,14 @@ function normalize_parameter(token) {
 			// 為日文特別修正: 'jp' is wrong! 'jp' 不是標準的ISO編碼。
 			= CeL.wiki.language_code_to_site_alias[parameter.toLowerCase()];
 		}
-		try {
-			parameter = decodeURIComponent(parameter).trim();
-		} catch (e) {
-			CeL.error('URI malformed: [' + parameter + ']');
+		if (/%[\dA-F]{2}/i.test(parameter)) {
+			try {
+				parameter = decodeURIComponent(parameter);
+			} catch (e) {
+				CeL.error('URI malformed: [' + parameter + ']');
+			}
 		}
+		parameter = parameter.trim();
 		normalized[parameter_name] = parameter;
 		return true;
 	}
@@ -1350,13 +1353,66 @@ function for_each_page(page_data, messages) {
 
 	}
 
-	// 這一步頗耗時間。
-	var parsed = CeL.wiki.parser(page_data).parse();
+	var parsed = CeL.wiki.parser(page_data,
+			CeL.wiki.add_session_to_options(wiki)).parse();
 	if (CeL.wiki.content_of(page_data) !== parsed.toString()) {
 		CeL.error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 		// debug 用. check parser, test if parser working properly.
 		throw new Error('Parser error: ' + CeL.wiki.title_link_of(page_data));
 	}
+
+	function for_each_link(link_token, index, parent) {
+		if (!link_token.is_link) {
+			return;
+		}
+
+		var interwiki_data = CeL.wiki.parse.interwiki_link(link_token, CeL.wiki
+				.add_session_to_options(wiki));
+		if (!interwiki_data.interlanguage_prefix
+		// e.g., [[s:es:Circular a las provincias del interior del 27 de mayo de
+		// 1810|1810年5月27日发给内陆各省的通知]] @ [[五月革命]]
+		|| interwiki_data.interlanguage_prefix
+		//
+		!== interwiki_data.interwiki_prefix) {
+			return;
+		}
+
+		// console.trace(link_token.page_title.match(wiki.configurations.PATTERN_language_startup));
+		// wiki.latest_site_configurations.interwikimap.mapper[interwiki_data.interwiki_prefix]
+
+		var template_name, parameters;
+		switch (use_language) {
+		case 'zh':
+			// [[w:zh:Wikipedia:机器人/作业请求#請求建機器人批次處置不合規範的跨語言連結]]
+			template_name = 'tsl';
+			parameters = [ , interwiki_data.interlanguage_prefix,
+					interwiki_data.interlanguage_title ];
+			if (link_token.display_text
+					&& link_token.display_text !== interwiki_data.interlanguage_title) {
+				parameters[4] = link_token.display_text;
+			}
+			break;
+
+		case 'en':
+			break;
+
+		case 'ja':
+			break;
+
+		}
+
+		if (template_name) {
+			var wikitext = CeL.wiki.parse.template_object_to_wikitext(
+					template_name, parameters);
+			resolved_ills.push(link_token.toString());
+			return wikitext;
+		}
+	}
+
+	parsed.each('link', for_each_link, {
+		modify : true
+	});
+
 	parsed.each('template', for_each_template);
 	template_parsed = true;
 	// console.trace([ page_remains, title, template_count ]);

@@ -143,6 +143,8 @@ const main_subject_mapping = new Map((() => {
 		nthi: null,
 		// [[d:User talk:Kanashimi#Cewbot still making errors]]
 		'pathogen resistance': null,
+		// [[d:User talk:Kanashimi#Links to Dutch dental clinic chain 'Dental Clinics']]
+		'dental clinics': null,
 
 		// ** 更改這些數值必須刪除 cache！
 	}).map(([main_subject, entity_id]) => [normalize_main_subject(main_subject), entity_id]);

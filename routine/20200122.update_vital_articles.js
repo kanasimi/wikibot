@@ -9,6 +9,7 @@ node 20200122.update_vital_articles.js use_language=en skip_vital "do_PIQA=Talk:
 
 
 node 20200122.update_vital_articles.js use_language=zh
+node 20200122.update_vital_articles.js use_language=zh forced_edit
 node 20200122.update_vital_articles.js use_language=zh do_PIQA=1000000 forced_edit
 Deprecated:
 node 20200122.update_vital_articles.js use_language=en "base_page=Wikipedia:Vital people"
@@ -3399,7 +3400,7 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					// 避免消除原有內容。
 					// TODO: https://en.wikipedia.org/w/index.php?title=Talk:Amphetamine&diff=prev&oldid=1192899833
 					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
-					if (/{{\s*WikiProject [.+]+}}/.test(extra_contents)) {
+					if (/{{\s*WikiProject [^{}]+}}/.test(extra_contents.replace(/<\!--[\s\S]*?-->/g, ''))) {
 						// [[w:en:User talk:Kanashimi#Moving 'WikiProject Irish Republicanism' outside of banner shell]]
 						console.error(`${maintain_VA_template_each_talk_page.name}: WPBS 中包含 {{WikiProject}}！或許是因為執行 categorymembers 時 API 未包含這個 WikiProject？`);
 						console.trace(extra_contents);
@@ -3554,7 +3555,10 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 		}
 		if (extra_contents) {
 			// Any non-project banners (i.e. not produced with Module:WikiProject banner) should be moved outside the banner shell ideally
-			parsed.insert_layout_element(extra_contents);
+			parsed.insert_layout_element(extra_contents, {
+				reference_anchor_node: WikiProject_banner_shell_token,
+				reference_anchor_position: 'after'
+			});
 		}
 
 		//console.trace(need_insert_WPBS, WPBS_template_object, WikiProject_banner_shell_token, [extra_contents, WikiProject_banner_shell_token.toString()]);
