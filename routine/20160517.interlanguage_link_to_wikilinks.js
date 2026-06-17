@@ -1368,27 +1368,27 @@ function for_each_page(page_data, messages) {
 
 		var interwiki_data = CeL.wiki.parse.interwiki_link(link_token, CeL.wiki
 				.add_session_to_options(wiki));
-		if (!interwiki_data.interlanguage_prefix
+		if (!interwiki_data.interlanguage || !interwiki_data.interwiki
 		// e.g., [[s:es:Circular a las provincias del interior del 27 de mayo de
 		// 1810|1810年5月27日发给内陆各省的通知]] @ [[五月革命]]
-		|| interwiki_data.interlanguage_prefix
+		|| interwiki_data.interlanguage.prefix
 		//
-		!== interwiki_data.interwiki_prefix) {
+		!== interwiki_data.interwiki.prefix) {
 			return;
 		}
 
 		// console.trace(link_token.page_title.match(wiki.configurations.PATTERN_language_startup));
-		// wiki.latest_site_configurations.interwikimap.mapper[interwiki_data.interwiki_prefix]
+		// wiki.latest_site_configurations.interwikimap.mapper[interwiki_data.interwiki.prefix]
 
 		var template_name, parameters;
 		switch (use_language) {
 		case 'zh':
 			// [[w:zh:Wikipedia:机器人/作业请求#請求建機器人批次處置不合規範的跨語言連結]]
 			template_name = 'tsl';
-			parameters = [ , interwiki_data.interlanguage_prefix,
-					interwiki_data.interlanguage_title ];
+			parameters = [ , interwiki_data.interlanguage.prefix,
+					interwiki_data.interlanguage.title ];
 			if (link_token.display_text
-					&& link_token.display_text !== interwiki_data.interlanguage_title) {
+					&& link_token.display_text !== interwiki_data.interlanguage.title) {
 				parameters[4] = link_token.display_text;
 			}
 			break;
