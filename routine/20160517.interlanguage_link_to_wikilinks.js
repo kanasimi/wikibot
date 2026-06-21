@@ -327,9 +327,7 @@ function normalize_parameter(token) {
 
 		index_order_exactly[parameter_name] = token.index_of[index];
 		// normalize parameter
-		parameter = parameter.toString()
-		// 去除註解 comments。
-		.replace(/<\!--[\s\S]*?-->/g, '').trim();
+		parameter = CeL.wiki.parse.wiki_element_to_key(parameter);
 		if (parameter_name === 'foreign_language'
 				&& parameter.toLowerCase() in CeL.wiki.language_code_to_site_alias) {
 			normalized.bad_foreign_language = parameter.toLowerCase();

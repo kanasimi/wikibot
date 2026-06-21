@@ -18,7 +18,8 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:Citeer web']
 	&& ['Template:Lien web']
 	&& ['Template:Audio-IPA']
-	&& null
+	&& ['Template:越南省市']
+	//&& null
 	;
 
 
@@ -87,7 +88,7 @@ async function main_process() {
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
 			await do_subst_template(template_title, this_auto_subst_configuration
 				// 強制測試 .expand_transclusion()。
-				//&& { ...this_auto_subst_configuration, must_manually_expand_subst: true }
+				&& { ...this_auto_subst_configuration, must_manually_expand_subst: true }
 			);
 			// 只測試一個頁面。
 			//continue;
@@ -306,13 +307,25 @@ function filter_template_to_be_expanded(parsed, options) {
 	CeL.wiki.parser.parser_prototype.each.call(parsed, 'magic_word_function', token => {
 		let module_name = token.module_name;
 		if (module_name
-			&& /^(?:Citation\/CS|CS1 translator)/.test(module_name)
+			&& /^(?:Citation\/CS1(?:\/.+)?|CS1 translator|Ilh)$/.test(module_name)
 		) {
 			has_should_not_be_substituted = true;
 			return CeL.wiki.parser.parser_prototype.each.exit;
 		}
 	});
 	return !has_should_not_be_substituted;
+}
+
+/**
+ * 這些模板不受模板深度限制，就算超過模板深度限制也還是展開。
+ * @param {Array} token  模板 token。
+ * @returns 
+ */
+function ignore_template_depth_limit(token) {
+	const page_title = token.page_title.toString();
+	if (wiki.is_template(page_title, ['Template:Str left', 'Template:Str right'])) {
+		return true;
+	}
 }
 
 /**
@@ -350,6 +363,7 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 			must_manually_expand_subst,
 			subst_postfix,
 			filter_template_to_be_expanded,
+			ignore_template_depth_limit,
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration?.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
 			//+ ' 人工監視檢測中 '
 			,

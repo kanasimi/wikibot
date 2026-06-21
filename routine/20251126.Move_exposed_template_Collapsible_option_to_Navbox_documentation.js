@@ -18,6 +18,11 @@ TODO:
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+// Load modules.
+CeL.run([
+	// for CeL.assert()
+	'application.debug.log']);
+
 // Set default language. 改變預設之語言。 e.g., 'zh'
 //set_language('zh');
 
@@ -130,6 +135,9 @@ async function for_page_list(page_list, options) {
 async function handle_each_template(page_data, messages, config) {
 	CeL.log_temporary(`${handle_each_template.name}: 處理頁面 ${CeL.wiki.title_link_of(page_data)}`);
 	const parsed = page_data.parse();
+	CeL.assert([page_data.wikitext, parsed.toString()],
+		// gettext_config:{"id":"wikitext-parser-checking-$1"}
+		CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
 
 	// ------------------------------------------------------------------------
 	// 正式處理說明文件模板。

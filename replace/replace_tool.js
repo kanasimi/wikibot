@@ -2630,8 +2630,8 @@ async function subst_template(token, index, parent) {
 		filter_template_to_be_expanded: this.task_configuration.filter_template_to_be_expanded
 	}));
 
+	const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit) });
 	if (expanded_code.toString() === token.toString()) {
-		const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit) });
 		const parsed_wikitext = await CeL.wiki.pre_save_transform(to_subst_code(token.toString(), parse_options), parse_options);
 		//console.trace([token.toString(), parsed_wikitext, expanded_code]);
 		if (false && expanded_code.toString() === parsed_wikitext) {
@@ -2658,7 +2658,7 @@ async function subst_template(token, index, parent) {
 		}
 
 		// 注意: function expand_transclusion() 可能設定過 .skip_inner_traversal，之後執行 .each() 必須重新 parse。
-		expanded_code = CeL.wiki.parse(expanded_code.toString(), options);
+		expanded_code = CeL.wiki.parse(expanded_code.toString(), parse_options);
 		CeL.wiki.parser.parser_prototype.each.call(expanded_code, 'magic_word_function', token => {
 			if (token.module_name === 'Check for unknown parameters') {
 				return remove_token;
@@ -2674,7 +2674,8 @@ async function subst_template(token, index, parent) {
 	}
 
 	// 只測試不編輯。
-	//return;
+	this.discard_changes = true;
+	return;
 
 	// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
 
