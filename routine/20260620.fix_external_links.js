@@ -105,36 +105,50 @@ async function for_each_page(page_data) {
 
 	let changed = false;
 
-	parsed.each('external_link', external_link_token => {
+	function check_external_link(external_link_token) {
 		const interwiki_data = CeL.wiki.parse.interwiki_url(external_link_token, wiki.append_session_to_options());
 		if (!interwiki_data)
 			return;
 
 		if (interwiki_data.wikilink) {
 			CeL.log(`${CeL.wiki.title_link_of(page_data)}: ${interwiki_data.wikilink} ← ${external_link_token.toString()}`);
-			changed = true;
-			return interwiki_data.wikilink;
+			const token = CeL.wiki.parse(interwiki_data.wikilink, wiki.append_session_to_options());
+			token.changed = true;
+			return token;
 		}
 
-		if (interwiki_data.url_magic_word && !interwiki_data.display_text) {
-			CeL.log(`${CeL.wiki.title_link_of(page_data)}: ${interwiki_data.url_magic_word} ← ${external_link_token.toString()}`);
-			changed = true;
-			return interwiki_data.url_magic_word;
+		if (interwiki_data.url_magic_word) {
+			CeL.log(`${CeL.wiki.title_link_of(page_data)}: [${interwiki_data.url_magic_word}] ← ${external_link_token.toString()}`);
+			external_link_token[0] = interwiki_data.url_magic_word + decodeURIComponent(interwiki_data.url.hash);
+			external_link_token.changed = true;
+			return external_link_token;
 		}
 
-	}, { modify: true });
+	}
 
-	// ------------------------------------------------------------------------
-
-	parsed.each('link', link_token => {
+	function check_wikilink(link_token, index, parent_token) {
 		if (!link_token.is_link) {
 			return;
+		}
+
+		if (false) {
+			// 問題並非出在位於 <ref> 中。
+			// [[w:zh:Special:Diff/93081490]]
+			let _parent_token = parent_token;
+			while (_parent_token) {
+				if (parent_token.type === 'tag' && parent_token.tag === 'ref') {
+					return;
+				}
+				parent_token = parent_token.parent;
+			}
 		}
 
 		const interwiki_data = CeL.wiki.parse.interwiki_link(link_token, wiki.append_session_to_options());
 		if (!interwiki_data.interlanguage || !interwiki_data.interwiki
 			// e.g., [[s:es:Circular a las provincias del interior del 27 de mayo de 1810|1810年5月27日发给内陆各省的通知]] @ [[五月革命]]
-			|| interwiki_data.interlanguage.prefix !== interwiki_data.interwiki.prefix) {
+			|| interwiki_data.interlanguage.prefix !== interwiki_data.interwiki.prefix
+			// e.g., [[w:en:ABC]]
+			&& !interwiki_data.localinterwiki_prefix) {
 			return;
 		}
 
@@ -165,10 +179,29 @@ async function for_each_page(page_data) {
 		if (template_name) {
 			const wikitext = CeL.wiki.parse.template_object_to_wikitext(template_name, parameters);
 			CeL.log(`${CeL.wiki.title_link_of(page_data)}: ${link_token} → ${wikitext}`);
-			changed = true;
-			return wikitext;
+			const token = CeL.wiki.parse(wikitext, wiki.append_session_to_options());
+			token.changed = true;
+			return token;
 		}
-	}, { modify: true });
+	}
+
+	parsed.each(token => {
+		let _changed;
+		if (token.type === 'external_link') {
+			token = check_external_link(token) || token;
+			if (token.changed) _changed = true;
+		}
+
+		if (token.type === 'link') {
+			token = check_wikilink(token) || token;
+			if (token.changed) _changed = true;
+		}
+
+		if (_changed) {
+			changed = _changed;
+			return token;
+		}
+	}, { modify: true, add_index: true });
 
 	// ------------------------------------------------------------------------
 
