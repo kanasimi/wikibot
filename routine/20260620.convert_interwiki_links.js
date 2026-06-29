@@ -1,7 +1,7 @@
 ﻿/*
-node 20260620.fix_external_links.js use_project=zhwiki
+node 20260620.convert_interwiki_links.js use_project=zhwiki
 
-這個任務會將維基姐妹計畫的外部連結轉為 wikilink。
+這個任務會將所有 interwiki links （如維基姐妹計畫）的外部連結轉為 wiki計畫間連結（wikilinks）。
 
 2026/6/20 11:29:59	初版試營運
 
@@ -110,6 +110,13 @@ async function for_each_page(page_data) {
 		if (!interwiki_data)
 			return;
 
+		if (interwiki_data.is_interlanguage ? !wiki.latest_task_configuration.general.convert_interlanguage_links
+			: interwiki_data.is_wiki_family ? !wiki.latest_task_configuration.general.convert_wiki_family_links
+				: !wiki.latest_task_configuration.general.convert_non_local_interwiki_links
+		) {
+			return;
+		}
+
 		if (interwiki_data.wikilink) {
 			CeL.log(`${CeL.wiki.title_link_of(page_data)}: ${interwiki_data.wikilink} ← ${external_link_token.toString()}`);
 			const token = CeL.wiki.parse(interwiki_data.wikilink, wiki.append_session_to_options());
@@ -117,7 +124,7 @@ async function for_each_page(page_data) {
 			return token;
 		}
 
-		if (interwiki_data.url_magic_word) {
+		if (interwiki_data.url_magic_word && wiki.latest_task_configuration.general.convert_to_magic_word) {
 			CeL.log(`${CeL.wiki.title_link_of(page_data)}: [${interwiki_data.url_magic_word}] ← ${external_link_token.toString()}`);
 			external_link_token[0] = interwiki_data.url_magic_word + decodeURIComponent(interwiki_data.url.hash);
 			external_link_token.changed = true;
@@ -127,7 +134,7 @@ async function for_each_page(page_data) {
 	}
 
 	function check_wikilink(link_token, index, parent_token) {
-		if (!link_token.is_link) {
+		if (!wiki.latest_task_configuration.general.convert_interlanguage_links_to_templates || !link_token.is_link) {
 			return;
 		}
 
@@ -192,6 +199,7 @@ async function for_each_page(page_data) {
 			if (token.changed) _changed = true;
 		}
 
+		// 可能跑完 check_external_link() 後再跑 check_wikilink()，因此不能用 switch。
 		if (token.type === 'link') {
 			token = check_wikilink(token) || token;
 			if (token.changed) _changed = true;
