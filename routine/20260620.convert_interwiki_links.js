@@ -1,9 +1,10 @@
 ﻿/*
 node 20260620.convert_interwiki_links.js use_project=zhwiki
 
-這個任務會將所有 interwiki links （如維基姐妹計畫）的外部連結轉為 wiki計畫間連結（wikilinks）。
+這個任務會將所有 interwiki links （如 Wikimedia projects）的外部連結轉為 wiki計畫間連結（wikilinks）。
 
 2026/6/20 11:29:59	初版試營運
+2026/6/29 20:48:49	增加 general.* 設定
 
 TODO:
 
@@ -13,8 +14,8 @@ TODO:
 
 const debug_pages =
 	['澤蘭宮']
-	&& ['Wikipedia:沙盒']
-	//&& null
+	&& ['Wikipedia:沙盒'] && ['User:Cewbot/log/20260620/testcases']
+	&& null
 	;
 
 
@@ -23,10 +24,15 @@ const debug_pages =
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+CeL.env.ignore_COM_error = true;
+
 // Load modules.
 CeL.run([
 	// for CeL.assert()
-	'application.debug.log']);
+	'application.debug.log',
+	// for CeL.guess_text_language()
+	'application.locale.encoding',
+]);
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 //set_language('zh');
@@ -69,14 +75,28 @@ async function adapt_configuration(latest_task_configuration) {
 
 // ----------------------------------------------------------------------------
 
+const task_name = '整理跨語言連結與 Wikimedia projects 連結';
+
+let local_language_code;
+function same_as_local_language(text) {
+	const full_language_code = CeL.guess_text_language(text.toString());
+	if (!full_language_code) {
+		CeL.warn(`Cannot guess language of ${text}`);
+		return false;
+	}
+	return full_language_code.replace(/-.*$/, '') === local_language_code;
+}
 
 async function main_process() {
-	let summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '整理維基姐妹計畫的外部連結');
+	local_language_code = CeL.gettext.to_standard(use_language).replace(/-.*$/, '');
+	let summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, task_name);
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
+			apfrom: '1959年臺灣',
 			//namespace: 'category',
 			//namespace: 'template',
+			namespace: wiki.latest_task_configuration.general.namespace,
 			batch_size: 100,
 		}))) {
 
@@ -107,8 +127,12 @@ async function for_each_page(page_data) {
 
 	function check_external_link(external_link_token) {
 		const interwiki_data = CeL.wiki.parse.interwiki_url(external_link_token, wiki.append_session_to_options());
-		if (!interwiki_data)
+		if (!interwiki_data) {
+			if (external_link_token[0].url.includes('wikipedia') && !external_link_token[0].url.includes('/https://')) {
+				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Cannot parse ${external_link_token.toString()}`);
+			}
 			return;
+		}
 
 		if (interwiki_data.is_interlanguage ? !wiki.latest_task_configuration.general.convert_interlanguage_links
 			: interwiki_data.is_wiki_family ? !wiki.latest_task_configuration.general.convert_wiki_family_links
@@ -169,9 +193,13 @@ async function for_each_page(page_data) {
 				template_name = 'tsl';
 				parameters = [, interwiki_data.interlanguage.prefix,
 					interwiki_data.interlanguage.title];
-				if (link_token.display_text
-					&& link_token.display_text !== interwiki_data.interlanguage.title) {
-					parameters[4] = link_token.display_text;
+				const display_text = link_token.display_text;
+				if (display_text && display_text !== interwiki_data.interlanguage.title) {
+					if (typeof display_text === 'string' && !/維基|维基|百科/.test(display_text) && same_as_local_language(display_text)) {
+						parameters[3] = display_text;
+					} else {
+						parameters[4] = display_text;
+					}
 				}
 				break;
 

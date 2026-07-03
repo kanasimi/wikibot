@@ -19,7 +19,8 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:Lien web']
 	&& ['Template:Audio-IPA']
 	&& ['Template:越南省市']
-	//&& null
+	&& ['Template:Jp']
+	&& null
 	;
 
 
@@ -86,9 +87,10 @@ async function main_process() {
 		);
 
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
-			await do_subst_template(template_title, this_auto_subst_configuration
+			await do_subst_template(template_title,
 				// 強制測試 .expand_transclusion()。
-				&& { ...this_auto_subst_configuration, must_manually_expand_subst: true }
+				debug_pages ? { ...this_auto_subst_configuration, must_manually_expand_subst: true } :
+					this_auto_subst_configuration
 			);
 			// 只測試一個頁面。
 			//continue;
@@ -352,13 +354,14 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 		use_language,
 		// 嵌入本模板的頁面數量太多，跳過本模板不處理。
 		max_pages_before_abort: wiki.latest_task_configuration.general.max_pages_before_abort,
-		work_options: { no_message: true, },
+		work_options: { no_message: !debug_pages, },
 		not_bot_requests: true,
 		no_move_configuration_from_command_line: true,
 		log_to: null,
 	}, {
 		[move_from_link]: {
 			//namespace: 'main|Template',
+			namespace: '*',
 			move_to_link,
 			must_manually_expand_subst,
 			subst_postfix,

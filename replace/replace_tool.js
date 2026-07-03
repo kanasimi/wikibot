@@ -883,7 +883,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 				.replace(/<nowiki\s*>(.*?)<\/nowiki\s*>/g, '$1')
 				.trim() : index;
 			if (!keep_link && match_link(link)) {
-				CeL.error(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${link}`);
+				CeL.info(`${get_move_configuration_from_section.name}: 指定了精確的連結形式，將僅處理完全符合此形式的連結：${link}`);
 				const parsed = CeL.wiki.parse(link);
 				//console.trace(parsed);
 				CeL.assert([link, parsed.toString()],
@@ -2592,10 +2592,14 @@ async function subst_template(token, index, parent) {
 		return;
 	}
 
-	//this.task_configuration[KEY_wiki_session].append_session_to_options().session;
+	const { task_configuration } = this;
+
+	//task_configuration[KEY_wiki_session].append_session_to_options().session;
 
 	/** 需要手動展開模板。即使添加 subst: 仍可能無法展開，例如在 ref 標籤內。此時需手動展開模板。 */
-	const must_manually_expand_subst = this.task_configuration.must_manually_expand_subst || CeL.wiki.parser.token_is_children_of(parent,
+	const must_manually_expand_subst = task_configuration.must_manually_expand_subst || CeL.wiki.parser.token_is_children_of(parent,
+		// https://www.mediawiki.org/wiki/Help:Pre-save_transform
+		// Automatic conversions of wikitext won't happen in <ref>...</ref> and <gallery>...</gallery> tags.
 		parent => parent.type === 'tag' && (parent.tag === 'ref' || parent.tag === 'gallery'
 			// e.g., @ [[w:ja:Template:Round corners]]
 			|| parent.tag === 'includeonly')
@@ -2618,12 +2622,16 @@ async function subst_template(token, index, parent) {
 
 	// TODO: read {{cbignore}}
 
-	const { task_configuration } = this;
-
 	if (false && (new Set(['Template:无锡地铁车站编号', '山东省'])).has(CeL.wiki.title_of(this.page_to_edit))) {
 		debugger;
 	}
+
+	// 可用 {{ifsubst}} 來調整 subst 與一般嵌入時相異的代碼。
+	// https://en.wikipedia.org/wiki/Help:Substitution#Making_templates_behave_differently_when_transcluded_or_substituted
+	// https://www.mediawiki.org/wiki/Help:Pre-save_transform
+
 	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({
+		mode: 'PST',
 		max_template_depth: 1,
 		// for convert_parameter() 需要知道被展開的頁面。
 		transclusion_from_page: this.page_to_edit,
@@ -2674,8 +2682,8 @@ async function subst_template(token, index, parent) {
 	}
 
 	// 只測試不編輯。
-	this.discard_changes = true;
-	return;
+	//this.discard_changes = true;
+	//return;
 
 	// TODO: 檢查 subst: 時被捨棄的 parameters 資料。
 
