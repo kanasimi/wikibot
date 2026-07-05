@@ -7,6 +7,16 @@ node 20260620.convert_interwiki_links.js use_project=zhwiki
 2026/6/29 20:48:49	增加 general.* 設定
 
 TODO:
+[[1993年]]
+[[1993年國際足協U-17世界錦標賽]]
+
+
+
+
+
+
+
+
 
 */
 
@@ -80,20 +90,26 @@ const task_name = '整理跨語言連結與 Wikimedia projects 連結';
 let local_language_code;
 function same_as_local_language(text) {
 	const full_language_code = CeL.guess_text_language(text.toString());
-	if (!full_language_code) {
-		CeL.warn(`Cannot guess language of ${text}`);
-		return false;
+	if (full_language_code) {
+		return full_language_code.replace(/-.*$/, '') === local_language_code;
 	}
-	return full_language_code.replace(/-.*$/, '') === local_language_code;
+
+	if (/[^\w\d\s_\-–\\\/&:'"()\[\],.!×]/.test(text)) {
+		// English?
+		CeL.warn(`Cannot guess language of ${JSON.stringify(text)}.`);
+	}
+	return false;
 }
 
 async function main_process() {
 	local_language_code = CeL.gettext.to_standard(use_language).replace(/-.*$/, '');
 	let summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, task_name);
 
+	await wiki.register_redirects(['Template:Translating']);
+
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
-			apfrom: '1959年臺灣',
+			apfrom: '原鱷龍科',
 			//namespace: 'category',
 			//namespace: 'template',
 			namespace: wiki.latest_task_configuration.general.namespace,
@@ -123,12 +139,23 @@ async function for_each_page(page_data) {
 
 	// ------------------------------------------------------------------------
 
-	let changed = false;
+	let changed_tokens = [];
 
 	function check_external_link(external_link_token) {
 		const interwiki_data = CeL.wiki.parse.interwiki_url(external_link_token, wiki.append_session_to_options());
 		if (!interwiki_data) {
-			if (external_link_token[0].url.includes('wikipedia') && !external_link_token[0].url.includes('/https://')) {
+			const url = external_link_token[0].url;
+			/**
+			 * <code>
+
+			[[丘昌泰]]: Cannot parse [https://zh.wikipedia-on-ipfs.org/wiki/張四明 張四明]
+			[[中国历史]]: Cannot parse [http://www.chinawikipedia.com/chinesehistorytimeline.html 中國歷史時間表]
+			[[亚伦·斯沃茨]]: Cannot parse [http://thewikipedian.net/2013/01/14/remembering-aaron-swartz/ 纪念亚伦斯沃]
+			[[伊里斯]]: Cannot parse [https://www-loebclassics-com.wikipedialibrary.idm.oclc.org/view/valerius_flaccus-argonautica/1934/pb_LCL286.191.xml 4.60-78 ff]
+
+			</code>
+			 */
+			if (url && !url.includes('/http') && /\/\/[^\/]*?wikipedia[^\/]*\/.+/i.test(url)) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Cannot parse ${external_link_token.toString()}`);
 			}
 			return;
@@ -158,7 +185,7 @@ async function for_each_page(page_data) {
 	}
 
 	function check_wikilink(link_token, index, parent_token) {
-		if (!wiki.latest_task_configuration.general.convert_interlanguage_links_to_templates || !link_token.is_link) {
+		if (!wiki.latest_task_configuration.general.convert_interlanguage_links_to_templates || !link_token.is_link || link_token.anchor) {
 			return;
 		}
 
@@ -186,21 +213,33 @@ async function for_each_page(page_data) {
 		// console.trace(link_token.page_title.match(wiki.configurations.PATTERN_language_startup));
 		// wiki.latest_site_configurations.interwikimap.mapper[interwiki_data.interwiki.prefix]
 
-		let template_name, parameters;
+		function set_template(template_name) {
+			const foreign_title = interwiki_data.interlanguage.title;
+			if (same_as_local_language(foreign_title)) {
+				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: 外語標題 ${JSON.stringify(foreign_title)} 似乎非外語，而是本地語言？`);
+			}
+			parameters = [template_name, interwiki_data.interlanguage.prefix, foreign_title];
+
+			const display_text = link_token.display_text;
+			if (display_text && display_text !== interwiki_data.interlanguage.title) {
+				if (wiki.latest_task_configuration.general.detect_display_text_as_title
+					&& typeof display_text === 'string'
+					// e.g., 日語 原始数据
+					&& !/維基|维基|百科|wiki|[語语]|数据|數據|資料/.test(display_text)
+					// 若 display_text 與本地語言（中文）相同，則將之視為標題。
+					&& same_as_local_language(display_text)) {
+					parameters[3] = display_text;
+				} else {
+					parameters[4] = display_text;
+				}
+			}
+		}
+
+		let parameters;
 		switch (use_language) {
 			case 'zh':
 				// [[w:zh:Wikipedia:机器人/作业请求#請求建機器人批次處置不合規範的跨語言連結]]
-				template_name = 'tsl';
-				parameters = [, interwiki_data.interlanguage.prefix,
-					interwiki_data.interlanguage.title];
-				const display_text = link_token.display_text;
-				if (display_text && display_text !== interwiki_data.interlanguage.title) {
-					if (typeof display_text === 'string' && !/維基|维基|百科/.test(display_text) && same_as_local_language(display_text)) {
-						parameters[3] = display_text;
-					} else {
-						parameters[4] = display_text;
-					}
-				}
+				set_template('tsl');
 				break;
 
 			case 'en':
@@ -211,8 +250,8 @@ async function for_each_page(page_data) {
 
 		}
 
-		if (template_name) {
-			const wikitext = CeL.wiki.parse.template_object_to_wikitext(template_name, parameters);
+		if (parameters) {
+			const wikitext = CeL.wiki.parse.template_object_to_wikitext(parameters);
 			CeL.log(`${CeL.wiki.title_link_of(page_data)}: ${link_token} → ${wikitext}`);
 			const token = CeL.wiki.parse(wikitext, wiki.append_session_to_options());
 			token.changed = true;
@@ -220,29 +259,42 @@ async function for_each_page(page_data) {
 		}
 	}
 
-	parsed.each(token => {
+	parsed.each((token, index, parent) => {
 		let _changed;
+		if (!token?.type && typeof token !== 'string') {
+			// e.g., "'''b''bi'''i''"
+			while (parent.parent?.toString().length < 200) {
+				parent = parent.parent;
+			}
+			CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Invalid wikitext? ${JSON.stringify(parent.toString())}`);
+			return;
+		}
+
 		if (token.type === 'external_link') {
 			token = check_external_link(token) || token;
 			if (token.changed) _changed = true;
 		}
 
 		// 可能跑完 check_external_link() 後再跑 check_wikilink()，因此不能用 switch。
-		if (token.type === 'link') {
+		if (token.type === 'link'
+			// token.parent: parameter_unit
+			&& !wiki.is_template(token.parent?.parent, 'Translating')) {
 			token = check_wikilink(token) || token;
 			if (token.changed) _changed = true;
 		}
 
 		if (_changed) {
-			changed = _changed;
+			changed_tokens.push(token);
 			return token;
 		}
 	}, { modify: true, add_index: true });
 
 	// ------------------------------------------------------------------------
 
-	if (!changed)
+	if (changed_tokens.length === 0)
 		return Wikiapi.skip_edit;
+
+	this.summary += `: (${changed_tokens.length}) ${changed_tokens.map(token => token.toString()).join(', ')}`;
 
 	//return Wikiapi.skip_edit;
 	return parsed.toString();

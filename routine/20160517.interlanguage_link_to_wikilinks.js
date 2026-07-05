@@ -82,7 +82,7 @@ hatnote_list = [ 'Main', 'See also', 'Further' ],
 
 // default parameters 預設index/次序集
 // c: foreign_language: foreign language code 外文語言代號
-// F: foreign_title: foreign title 外文條目名
+// F: foreign_title: foreign-language title 外文條目名
 // L: local_title: local title 中文條目名
 // W: wikidata_entity_id: wikidata entity id 維基數據實體id
 // label: label text displayed 顯示名
