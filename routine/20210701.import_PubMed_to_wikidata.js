@@ -965,7 +965,9 @@ const descriptions_configuration = {
 	vi: ['bài báo khoa học', (type, date) => `${type} xuất bản ngày ${date}`],
 	tr: ['bilimsel makale', (type, date) => `${date}'de yayımlanmış ${type}`],
 
-	de: ['wissenschaftlicher Artikel', (type, date) => `im ${date} veröffentlichter ${type}`],
+	// [[w:zh:User talk:Kanashimi#Article, published inside April 15, 2010]]
+	// 不合適: `im ${date} veröffentlichter ${type}`
+	de: ['wissenschaftlicher Artikel', (type, date) => `${type}, ${date}`],
 
 	'zh-hant': [is_book => '學術' + (is_book ? '書籍' : '文章'), (type, year) => `${year}年${type}`, 'year'],
 	'zh-hans': [is_book => '学术' + (is_book ? '书籍' : '文章'), (type, year) => `${year}年${type}`, 'year'],

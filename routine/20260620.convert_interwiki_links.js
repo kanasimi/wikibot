@@ -7,15 +7,6 @@ node 20260620.convert_interwiki_links.js use_project=zhwiki
 2026/6/29 20:48:49	增加 general.* 設定
 
 TODO:
-[[1993年]]
-[[1993年國際足協U-17世界錦標賽]]
-
-
-
-
-
-
-
 
 
 */
@@ -109,7 +100,7 @@ async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
-			apfrom: '原鱷龍科',
+			apfrom: '安都陵',
 			//namespace: 'category',
 			//namespace: 'template',
 			namespace: wiki.latest_task_configuration.general.namespace,
@@ -142,22 +133,36 @@ async function for_each_page(page_data) {
 	let changed_tokens = [];
 
 	function check_external_link(external_link_token) {
-		const interwiki_data = CeL.wiki.parse.interwiki_url(external_link_token, wiki.append_session_to_options());
+		const interwiki_data = CeL.wiki.parse.interwiki_url(external_link_token, wiki.append_session_to_options({
+			page_data,
+			postfix_url(url) {
+				// [[丘昌泰]]: [https://zh.wikipedia-on-ipfs.org/wiki/張四明 張四明]
+				url = url.replace('.wikipedia-on-ipfs.org', '.wikipedia.org');
+				// [[史托龍科]]: [https://en.m.wikipedia-mirror.org/wiki/Digital_object_identifier dio]
+				url = url.replace('.wikipedia-mirror.org', '.wikipedia.org');
+				return url;
+			}
+		}));
 		if (!interwiki_data) {
 			const url = external_link_token[0].url;
-			/**
-			 * <code>
-
-			[[丘昌泰]]: Cannot parse [https://zh.wikipedia-on-ipfs.org/wiki/張四明 張四明]
-			[[中国历史]]: Cannot parse [http://www.chinawikipedia.com/chinesehistorytimeline.html 中國歷史時間表]
-			[[亚伦·斯沃茨]]: Cannot parse [http://thewikipedian.net/2013/01/14/remembering-aaron-swartz/ 纪念亚伦斯沃]
-			[[伊里斯]]: Cannot parse [https://www-loebclassics-com.wikipedialibrary.idm.oclc.org/view/valerius_flaccus-argonautica/1934/pb_LCL286.191.xml 4.60-78 ff]
-
-			</code>
-			 */
-			if (url && !url.includes('/http') && /\/\/[^\/]*?wikipedia[^\/]*\/.+/i.test(url)) {
+			if (url && !url.includes('/http') && /^[^\/]*\/\/[^\/]*?wikipedia[^\/]*\/.+/i.test(url)
+				// 不警告非 Wikimedia projects 維基姐妹計畫的網站網址。
+				// [[中国历史]]: [http://www.chinawikipedia.com/chinesehistorytimeline.html 中國歷史時間表]
+				// [[安都陵]]: [http://www.chinawikipedia.com/chinahistory.html History of China:  A good catalogue of info]
+				&& !(url.includes('.chinawikipedia.com')
+					// [[亚伦·斯沃茨]]: [http://thewikipedian.net/2013/01/14/remembering-aaron-swartz/ 纪念亚伦斯沃]
+					|| url.includes('.thewikipedian.net')
+					// [[刻托]]: [https://www-loebclassics-com.wikipedialibrary.idm.oclc.org/view/hesiod-theogony/2018/pb_LCL057.21.xml 21&ndash;23]
+					// [[伊里斯]]: [https://www-loebclassics-com.wikipedialibrary.idm.oclc.org/view/valerius_flaccus-argonautica/1934/pb_LCL286.191.xml 4.60-78 ff]
+					|| url.includes('.wikipedialibrary.idm.oclc.org')
+				)
+			) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Cannot parse ${external_link_token.toString()}`);
 			}
+			return;
+		}
+
+		if (interwiki_data.is_invalid_page_title) {
 			return;
 		}
 
@@ -277,6 +282,8 @@ async function for_each_page(page_data) {
 
 		// 可能跑完 check_external_link() 後再跑 check_wikilink()，因此不能用 switch。
 		if (token.type === 'link'
+			// 不處理{{Translating}}中的 wikilinks，避免誤判。
+			// e.g., [[1993年國際足協U-17世界錦標賽]]
 			// token.parent: parameter_unit
 			&& !wiki.is_template(token.parent?.parent, 'Translating')) {
 			token = check_wikilink(token) || token;
