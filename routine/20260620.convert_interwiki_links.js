@@ -16,6 +16,7 @@ TODO:
 const debug_pages =
 	['澤蘭宮']
 	&& ['Wikipedia:沙盒'] && ['User:Cewbot/log/20260620/testcases']
+	&& ['聖顯者', '胡锡进', '撒奇萊雅族']
 	&& null
 	;
 
@@ -79,10 +80,23 @@ async function adapt_configuration(latest_task_configuration) {
 const task_name = '整理跨語言連結與 Wikimedia projects 連結';
 
 let local_language_code;
-function same_as_local_language(text) {
+/**
+ * 測試文字是否與本地語言相同。
+ * @param {String} text	欲測試的文字。
+ * @param {String} specified_language_code	原連結所指定，`text` 的語言代碼。
+ * @returns {Boolean} 若與本地語言相同，則回傳 true。
+ */
+function same_as_local_language(text, specified_language_code) {
 	const full_language_code = CeL.guess_text_language(text.toString());
 	if (full_language_code) {
-		return full_language_code.replace(/-.*$/, '') === local_language_code;
+		if (full_language_code.replace(/-.*$/, '') === local_language_code) {
+			if (local_language_code === 'cmn' && specified_language_code === 'ja') {
+				// 有時日文會被誤判為中文，這時不警告。
+				return false;
+			}
+			return true;
+		}
+		return false;
 	}
 
 	if (/[^\w\d\s_\-–\\\/&:'"()\[\],.!×]/.test(text)) {
@@ -100,7 +114,7 @@ async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
-			apfrom: '安都陵',
+			apfrom: '臺中市立臺中第二高級中等學校',
 			//namespace: 'category',
 			//namespace: 'template',
 			namespace: wiki.latest_task_configuration.general.namespace,
@@ -144,17 +158,30 @@ async function for_each_page(page_data) {
 			}
 		}));
 		if (!interwiki_data) {
-			const url = external_link_token[0].url;
-			if (url && !url.includes('/http') && /^[^\/]*\/\/[^\/]*?wikipedia[^\/]*\/.+/i.test(url)
+			let url = external_link_token[0].url;
+			url = url && CeL.URI(CeL.HTML_to_Unicode(url));
+			const hostname = url && url.hostname;
+			if (hostname && hostname.includes('wikipedia')
 				// 不警告非 Wikimedia projects 維基姐妹計畫的網站網址。
-				// [[中国历史]]: [http://www.chinawikipedia.com/chinesehistorytimeline.html 中國歷史時間表]
-				// [[安都陵]]: [http://www.chinawikipedia.com/chinahistory.html History of China:  A good catalogue of info]
-				&& !(url.includes('.chinawikipedia.com')
+				// [[最受欢迎网站列表]]: [https://Wikipedia.org wikipedia.org]
+				&& !(hostname === 'wikipedia.org'
+					// [[中国历史]]: [http://www.chinawikipedia.com/chinesehistorytimeline.html 中國歷史時間表]
+					// [[安都陵]]: [http://www.chinawikipedia.com/chinahistory.html History of China:  A good catalogue of info]
+					|| hostname.includes('.chinawikipedia.com')
 					// [[亚伦·斯沃茨]]: [http://thewikipedian.net/2013/01/14/remembering-aaron-swartz/ 纪念亚伦斯沃]
-					|| url.includes('.thewikipedian.net')
+					|| hostname.includes('.thewikipedian.net')
 					// [[刻托]]: [https://www-loebclassics-com.wikipedialibrary.idm.oclc.org/view/hesiod-theogony/2018/pb_LCL057.21.xml 21&ndash;23]
 					// [[伊里斯]]: [https://www-loebclassics-com.wikipedialibrary.idm.oclc.org/view/valerius_flaccus-argonautica/1934/pb_LCL286.191.xml 4.60-78 ff]
-					|| url.includes('.wikipedialibrary.idm.oclc.org')
+					// [[种族清洗]]: [https://wikipedialibrary.idm.oclc.org/login?auth=production&url=https://search.ebscohost.com/login.aspx?direct=true&db=hft&AN=509635905&site=eds-live&scope=site "Nagorno Karabakh: Forgotten People in a Forgotten War."]
+					|| hostname.includes('wikipedialibrary.idm.oclc.org')
+					// [[广州湾]]: [https://zh.wikipedia.ecnu.cf/w/index.php?title=%E5%B9%BF%E5%B7%9E%E6%B9%BE&direction=next&oldid=14679025#/media/File:Indochine_fran%C3%A7aise_(1913).jpg 1913年之法属印度支那及广州湾]
+					|| hostname.includes('.wikipedia.ecnu.cf')
+					// [[打印维基百科]]: [http://printwikipedia.com printwikipedia官方網站]
+					|| hostname.includes('printwikipedia.com')
+					// [[新格罗夫音乐与音乐家辞典]]: [https://wikipedialibrary.wmflabs.org/partners/90/ 维基百科图书馆：牛津音乐在线]
+					|| hostname.includes('wikipedialibrary.wmflabs.org')
+					// [[維基競賽]]: [http://wikipediagame.org The Wiki Game]
+					|| hostname.includes('wikipediagame.org')
 				)
 			) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Cannot parse ${external_link_token.toString()}`);
@@ -208,6 +235,10 @@ async function for_each_page(page_data) {
 
 		const interwiki_data = CeL.wiki.parse.interwiki_link(link_token, wiki.append_session_to_options());
 		if (!interwiki_data.interlanguage || !interwiki_data.interwiki
+			// 非文章不採用 {{tsl}}
+			|| interwiki_data.interlanguage.NAMESPACENUMBER
+			// e.g., [[:zh:wikt:和稀泥|此處]]
+			|| interwiki_data.interlanguage.wiki_family
 			// e.g., [[s:es:Circular a las provincias del interior del 27 de mayo de 1810|1810年5月27日发给内陆各省的通知]] @ [[五月革命]]
 			|| interwiki_data.interlanguage.prefix !== interwiki_data.interwiki.prefix
 			// e.g., [[w:en:ABC]]
@@ -220,7 +251,7 @@ async function for_each_page(page_data) {
 
 		function set_template(template_name) {
 			const foreign_title = interwiki_data.interlanguage.title;
-			if (same_as_local_language(foreign_title)) {
+			if (same_as_local_language(foreign_title, interwiki_data.interlanguage.prefix)) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: 外語標題 ${JSON.stringify(foreign_title)} 似乎非外語，而是本地語言？`);
 			}
 			parameters = [template_name, interwiki_data.interlanguage.prefix, foreign_title];
@@ -232,7 +263,7 @@ async function for_each_page(page_data) {
 					// e.g., 日語 原始数据
 					&& !/維基|维基|百科|wiki|[語语]|数据|數據|資料/.test(display_text)
 					// 若 display_text 與本地語言（中文）相同，則將之視為標題。
-					&& same_as_local_language(display_text)) {
+					&& same_as_local_language(display_text, interwiki_data.interlanguage.prefix)) {
 					parameters[3] = display_text;
 				} else {
 					parameters[4] = display_text;
