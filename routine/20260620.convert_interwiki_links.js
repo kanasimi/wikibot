@@ -7,7 +7,8 @@ node 20260620.convert_interwiki_links.js use_project=zhwiki
 2026/6/29 20:48:49	增加 general.* 設定
 
 TODO:
-
+[[Super Wings]]: {{作品名稱|name=[[:ja:]] 不該轉為模板
+對於有本地頁面的使用者連結直接替換為本地連結 
 
 */
 
@@ -41,6 +42,8 @@ CeL.run([
 
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
+
+const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
 
 // ----------------------------------------------
 
@@ -110,11 +113,11 @@ async function main_process() {
 	local_language_code = CeL.gettext.to_standard(use_language).replace(/-.*$/, '');
 	let summary_prefix = CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, task_name);
 
-	await wiki.register_redirects(['Template:Translating']);
+	await wiki.register_redirects(['Translating', 'Webarchive', 'Wayback'], { namespace: 'Template' });
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
-			apfrom: '臺中市立臺中第二高級中等學校',
+			//apfrom: '乌尔都语维基百科',
 			//namespace: 'category',
 			//namespace: 'template',
 			namespace: wiki.latest_task_configuration.general.namespace,
@@ -124,7 +127,7 @@ async function main_process() {
 		await wiki.for_each_page(page_list, for_each_page, {
 			no_message: true,
 			redirects: false,
-			summary: `${summary_prefix}`,
+			summary: `${summary_prefix}: `,
 		});
 	}
 }
@@ -145,6 +148,7 @@ async function for_each_page(page_data) {
 	// ------------------------------------------------------------------------
 
 	let changed_tokens = [];
+	changed_tokens.remove_archive_template_count = 0;
 
 	function check_external_link(external_link_token) {
 		const interwiki_data = CeL.wiki.parse.interwiki_url(external_link_token, wiki.append_session_to_options({
@@ -182,6 +186,14 @@ async function for_each_page(page_data) {
 					|| hostname.includes('wikipedialibrary.wmflabs.org')
 					// [[維基競賽]]: [http://wikipediagame.org The Wiki Game]
 					|| hostname.includes('wikipediagame.org')
+					// [[韓語維基百科]]: [//ko.wikipedia.com ko.wikipedia.com]
+					|| hostname.includes('.wikipedia.com')
+					// [[頁面存廢討論]]: [https://wikipediaart.org/legal/032309-Isenberg.pdf Giga Law Firm letter]
+					|| hostname.includes('wikipediaart.org')
+					// [[LibreOffice]]: [http://en.wikipedia.hfut.cf/wiki/Pylaia-Chortiatis Pylaia-Chortiatis]ct on the teacher]]  
+					|| hostname.includes('.wikipedia.hfut.cf')
+					// [[亚伦·斯沃茨]]: [http://thewikipedian.net/2013/01/14/remembering-aaron-swartz/ 纪念亚伦斯沃]
+					|| hostname.includes('thewikipedian.net')
 				)
 			) {
 				CeL.warn(`${CeL.wiki.title_link_of(page_data)}: Cannot parse ${external_link_token.toString()}`);
@@ -295,6 +307,30 @@ async function for_each_page(page_data) {
 		}
 	}
 
+	function check_archive_template(template_token, index, parent_token) {
+		while (index > 0) {
+			const previous_element = parent_token[--index];
+			switch (previous_element.type) {
+				case 'link':
+				// TODO: test if the link target is the same as template_token
+
+				case 'transclusion':
+				// TODO: test if the target is the same as template_token
+
+				case 'comment':
+					continue;
+			}
+
+			if (typeof previous_element === 'string') {
+				if (previous_element.trim())
+					return;
+				continue;
+			}
+
+			return;
+		}
+	}
+
 	parsed.each((token, index, parent) => {
 		let _changed;
 		if (!token?.type && typeof token !== 'string') {
@@ -306,12 +342,12 @@ async function for_each_page(page_data) {
 			return;
 		}
 
+		// 可能跑完 check_external_link() 後再跑 check_wikilink()，因此不能用 switch。
 		if (token.type === 'external_link') {
 			token = check_external_link(token) || token;
 			if (token.changed) _changed = true;
 		}
 
-		// 可能跑完 check_external_link() 後再跑 check_wikilink()，因此不能用 switch。
 		if (token.type === 'link'
 			// 不處理{{Translating}}中的 wikilinks，避免誤判。
 			// e.g., [[1993年國際足協U-17世界錦標賽]]
@@ -325,14 +361,33 @@ async function for_each_page(page_data) {
 			changed_tokens.push(token);
 			return token;
 		}
+
+		if (wiki.is_template(token, ['Webarchive', 'Wayback'])) {
+			_changed = check_archive_template(token);
+			if (_changed) {
+				changed_tokens.remove_archive_template_count++;
+				return remove_token;
+			}
+		}
 	}, { modify: true, add_index: true });
 
 	// ------------------------------------------------------------------------
 
-	if (changed_tokens.length === 0)
+	const summary_note = [];
+	if (changed_tokens.remove_archive_template_count > 0) {
+		//為何要移除存檔模板
+		//這些存檔模板存檔的內容為 Wikimedia projects，且因其參照之 external link 轉為 wikilink 或模板，已不再更新而失去作用。
+		summary_note.push(`移除${changed_tokens.remove_archive_template_count}個存檔模板`);
+	}
+
+	if (changed_tokens.length > 0) {
+		summary_note.push(`(${changed_tokens.length}) ${changed_tokens.map(token => token.toString()).join(', ')}`);
+	}
+
+	if (summary_note.length === 0)
 		return Wikiapi.skip_edit;
 
-	this.summary += `: (${changed_tokens.length}) ${changed_tokens.map(token => token.toString()).join(', ')}`;
+	this.summary += summary_note.join(', ');
 
 	//return Wikiapi.skip_edit;
 	return parsed.toString();

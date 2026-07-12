@@ -1218,7 +1218,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 			if (/^\s*{{/.test(move_from_link) && /}}\s*$/.test(move_from_link)) {
 				// e.g., {{from|...}}→{{to|...}}
 				const move_from_template_pattern = CeL.wiki.parse(move_from_link.toString().trim());
-				if (move_from_template_pattern?.type === "transclusion") {
+				if (move_from_template_pattern?.type === 'transclusion') {
 					//console.trace(move_from_template_pattern);
 					if (!CeL.is_Object(pair[1])) {
 						pair[1] = {
@@ -1234,7 +1234,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 					if (/^\s*{{/.test(move_to_link) && /}}\s*$/.test(move_to_link)) {
 						const move_to_template_pattern = CeL.wiki.parse(move_to_link.toString().trim());
 						//console.trace(move_to_template_pattern);
-						if (move_to_template_pattern?.type === "transclusion") {
+						if (move_to_template_pattern?.type === 'transclusion') {
 							Object.assign(pair[1], {
 								move_to_link: move_to_template_pattern.page_title,
 								replace_parameters: Object.keys(move_to_template_pattern.parameters).length > 0 && move_to_template_pattern.parameters,
@@ -3339,7 +3339,7 @@ async function parse_move_pairs_from_link(line, move_title_pair, options) {
 	}
 
 	// e.g., [[w:ja:Template:Category link with count]]
-	await wiki.register_redirects(wiki.to_namespace(['C', 'Cl', 'Clc', 'Cls'], 'Template'));
+	await wiki.register_redirects(['C', 'Cl', 'Clc', 'Cls'], { namespace: 'Template' });
 
 	await CeL.wiki.parser.parser_prototype.each.call(line, 'Template', async template_token => {
 		if (wiki.is_template(template_token, ['C', 'Cl', 'Clc', 'Cls'])) {
