@@ -2017,10 +2017,21 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 		const original_value = CeL.wiki.data.value_of(article_item.descriptions[language_code]);
 		//console.log([original_value, modify_to]);
 
-		// [[d:User talk:Kanashimi#On descriptions for scientific articles in Ukrainian]]
-		// appropriate substitutions in Wikidata
-		if (language_code === 'uk' && original_value && original_value.replace(/\s*р\.$/, '').length < modify_to.length)
-			continue;
+		switch (language_code) {
+			case 'uk':
+				// [[d:User talk:Kanashimi#On descriptions for scientific articles in Ukrainian]]
+				// appropriate substitutions in Wikidata
+				if (original_value && original_value.replace(/\s*р\.$/, '').length < modify_to.length)
+					continue;
+				break;
+
+			case 'de':
+				// [[w:zh:User talk:Kanashimi#Article, published inside April 15, 2010]]
+				// 不合適: `im ${date} veröffentlichter ${type}`
+				if (/^im .+? veröffentlichter/i.test(original_value))
+					continue;
+				break;
+		}
 
 		if (original_value?.length >= modify_to.length)
 			delete data_to_modify.descriptions[language_code];
