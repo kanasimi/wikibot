@@ -20,7 +20,9 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:Audio-IPA']
 	&& ['Template:越南省市']
 	&& ['Template:Jp']
-	&& null
+	&& ['Template:台北捷運色彩']
+	&& ['Template:Singlenotice']
+	//&& null
 	;
 
 
@@ -92,8 +94,6 @@ async function main_process() {
 				debug_pages ? { ...this_auto_subst_configuration, must_manually_expand_subst: true } :
 					this_auto_subst_configuration
 			);
-			// 只測試一個頁面。
-			//continue;
 		}
 
 	}
@@ -370,6 +370,8 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration?.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
 			//+ ' 人工監視檢測中 '
 			,
+			// 只測試幾個頁面。
+			//limit: 3,
 		},
 	});
 }

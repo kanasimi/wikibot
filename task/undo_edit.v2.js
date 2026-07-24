@@ -50,21 +50,35 @@ const this_undo_timestamp = (new Date).toISOString();
 /**{Number}當機器人的編輯不是最新版本時，向前回溯取得的編輯版本數量。 */
 const backtrack_revision_number = 2;
 
-const fix_namespace = '*';
+const fix_namespace = '*'
+	//&& 'template'
+	;
+
+// @see VeL.data.date
+const ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 /**{Number}錯誤編輯的開始時間。 */
-const start_time = Date.now() - 1 * 60 * 60 * 1000;
+const start_time = Date.now() - 1 * 60 * 60 * 1000
+	//- 90 * ONE_DAY_LENGTH_VALUE
+	//&& Date.parse('2026-05-09T20:46:44Z')
+	;
 /**{Number}錯誤編輯的結束時間。 */
-const end_time = Date.now();
+const end_time = Date.now()
+	//&& Date.parse('2026-05-09T20:59:00Z')
+	;
 
 /**{RegExp}篩選符合此 title 的頁面。 */
 const PATTERN_filter_page_title = null;
 
-/**{RegExp}篩選包含此 summary 的編輯。 fix only these edits. */
-const PATTERN_filter_summary = /捷運色彩/;
+/**{RegExp}篩選包含此 summary 的編輯。 fix only edits with the summary. */
+const PATTERN_filter_summary = /自動替換引用模板.*Template:Singlenotice/;
+/**{RegExp}跳過包含此內容之頁面時，提出警告。 */
+const PATTERN_warning_the_content_when_skip = /{{\s*Single ?notice/
+	&& null;
 
 /**{RegExp}篩選包含此 diff from 的內容。 */
-const PATTERN_filter_diff_from = /<ref/i && null;
+const PATTERN_filter_diff_from = /<ref/i
+	&& null;
 
 /**{RegExp}篩選包含此 diff to 的內容。 */
 const PATTERN_filter_diff_to = null;
@@ -103,8 +117,8 @@ async function main_process() {
 
 
 async function check_page_data(page_data) {
-	CeL.log_temporary(`Fetch ${CeL.wiki.title_link_of(page_data)} ${end_time > Date.parse(page_data.timestamp)
-		? `(${(100 * (Date.parse(page_data.timestamp) - start_time) / (end_time - start_time)).to_fixed(2)}%)` : ''}`);
+	CeL.log_temporary(`Fetching ${CeL.wiki.title_link_of(page_data)} ${end_time > Date.parse(page_data.timestamp)
+		? `(${(100 * (Date.parse(page_data.timestamp) - start_time) / (end_time - start_time)).to_fixed(2)}%)...` : ''}`);
 	page_data = await wiki.page(page_data, {
 		rvlimit: CeL.wiki.is_page_data(page_data)
 			// 不是最新的就多取得一點。
@@ -138,8 +152,15 @@ async function check_page_data(page_data) {
 	}
 
 	if (!revision_prior_to_bot) {
-		if (!unrelated_edit_by_bot)
-			CeL.error(`${check_page_data.name}: 自編機器人編輯過後已經過太多次其他人的編輯，必須取得超過 ${backtrack_revision_number}個 revisions 才能研判: ${CeL.wiki.title_link_of(page_data)}`);
+		const parsed = page_data.parse();
+		CeL.assert([page_data.wikitext, parsed.toString()],
+			// gettext_config:{"id":"wikitext-parser-checking-$1"}
+			CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_data)));
+		if (PATTERN_warning_the_content_when_skip?.test(page_data.wikitext)) {
+			CeL.error(`${check_page_data.name}: 包含要回退的關鍵詞語，可能必須手動修復: ${CeL.wiki.title_link_of(page_data)}`);
+		} else if (!unrelated_edit_by_bot) {
+			CeL.warn(`${check_page_data.name}: 自編機器人編輯過後已經過太多次其他人的編輯，必須取得超過 ${backtrack_revision_number}個 revisions 才能研判: ${CeL.wiki.title_link_of(page_data)}`);
+		}
 		//console.trace(login_user_name, page_data.revisions);
 		return;
 	}

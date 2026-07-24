@@ -629,13 +629,15 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		try {
 			task_configuration = JSON.parse(tag_token[1].toString());
 		} catch (e) {
-			CeL.error(e);
+			CeL.error(`${get_move_configuration_from_section.name}: ${e}`);
 		}
 		//console.trace(task_configuration);
 
 		if (task_configuration.replace_tool_page_configuration) {
-			// [[Wikipedia:机器人/作业请求#請求台鐵系列內容批量替換]]
+			// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求台鐵系列內容批量替換]]
 			// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"move_from_link":"insource:<nowiki>#</nowiki>{{rcr|","move_to_link":"#{{rcr|","namespace":"main"}}</syntaxhighlight>
+			// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求移除WPNL大量信息分發的分類標記]]
+			// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"Category:維基百科社群簡報存檔","namespace":"*"},"replace_tool_page_configuration":{"move_to_link":"DELETE_PAGE","page_list_filter":"!/^Wikipedia:維基百科社群簡報/"}}</syntaxhighlight>
 			const move_configuration_from_page = convert_special_move_to(task_configuration.replace_tool_page_configuration);
 			let move_from_link = move_configuration_from_page.move_from_link;
 			if (move_from_link) {
@@ -666,9 +668,15 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		if (task_configuration.insert_layout) {
 			if (!task_configuration.optioation_type)
 				task_configuration.optioation_type = 'insert_layout';
-			if (!task_configuration.list_parser && task_configuration.get_task_configuration_from === 'table') {
+		}
+		if (task_configuration.get_task_configuration_from === 'table') {
+			if (!task_configuration.list_parser) {
 				// CeL.wiki.table_to_array(table)
 				task_configuration.list_parser = 'table_to_array';
+			}
+			if (task_configuration.list_parser !== 'table_to_array') {
+				CeL.error(get_move_configuration_from_section.name + ': '
+					+ `從表格獲取頁面清單，卻指定 task_configuration.list_parser = ${task_configuration.list_parser}。`);
 			}
 		}
 		for (const option of ["get_task_configuration_from", "namespace",
@@ -803,6 +811,13 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			//console.trace(page_list);
 			main_task_configuration.page_list = page_list;
 			//NG: main_task_configuration.list_types = 'categorymembers';
+
+		} else if (meta_configuration.move_configuration_from_page_JSON) {
+			for (const category_title of meta_configuration.get_task_configuration_from.split('|')) {
+				task_configuration_from_section[category_title] = {
+					...meta_configuration.move_configuration_from_page_JSON,
+				};
+			}
 		}
 
 		// 不會再用到了。
@@ -1151,11 +1166,7 @@ function fix_subst_postfix(configuration) {
 		return;
 	}
 
-	if (typeof configuration.subst_postfix === 'string' && CeL.PATTERN_RegExp_replacement.test(configuration.subst_postfix)) {
-		configuration.subst_postfix = configuration.subst_postfix.to_RegExp({ allow_replacement: true });
-		return;
-	}
-
+	configuration.subst_postfix = CeL.preprocessing_filter(configuration.subst_postfix);
 	if (!CeL.is_RegExp(configuration.subst_postfix) || !configuration.subst_postfix.replace) {
 		delete configuration.subst_postfix;
 	}
@@ -1553,8 +1564,10 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				// Prevent replace page title in wikilink 必須排除 {{Redirect|text}}, [[text|]] 之類！
 				// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Assertions#other_assertions
 				task_configuration.replace_text_pattern = new RegExp(/(?<!{{ *|\[\[ *)(?:key)/.source.replace('key', Object.keys(task_configuration.replace_text).join('|')), 'g');
-			} else if (typeof task_configuration.replace_text_pattern === 'string' && CeL.PATTERN_RegExp_replacement.test(task_configuration.replace_text_pattern)) {
-				task_configuration.replace_text_pattern = task_configuration.replace_text_pattern.to_RegExp({ allow_replacement: true });
+			} else {
+				const replace_text_pattern = CeL.preprocessing_filter(task_configuration.replace_text_pattern);
+				if (CeL.is_RegExp(replace_text_pattern) && replace_text_pattern.replace)
+					task_configuration.replace_text_pattern = replace_text_pattern;
 			}
 			if (!CeL.is_RegExp(task_configuration.replace_text_pattern) || !task_configuration.replace_text_pattern.global) {
 				CeL.error(`${prepare_operation.name}: "replace_text_pattern" should have global flag! The operation will continue anyway.`);
@@ -1589,31 +1602,36 @@ async function finish_work(meta_configuration, move_configuration) {
 
 // separate namespace and page name
 function parse_move_link(link, session) {
-	// /^(?<namespace>[^:]+):(?<page_name>.+)$/
-	const matched = typeof link === 'string' && session.normalize_title(link, { no_upper_case_initial: true, keep_anchor: true })
-		// TODO: use wiki.parse()
-		.match(/^((?:([^:]+):)?([^#\|]+))(?:#([^\|]*))?(?:\|(.*))?$/);
-	if (!matched)
+	if (!link || typeof link !== 'string')
 		return;
-	//console.trace([link, matched]);
 
-	const _session = session || CeL.wiki;
-	const ns = _session.namespace(matched[2]) || _session.namespace('Main');
+	if (!session) {
+		console.warn(`${parse_move_link.name}: Did not set session!`);
+		session = CeL.wiki;
+	}
+	const link_token = CeL.wiki.parse(`[[${link}]]`, session.append_session_to_options());
+	if (!link_token || link_token.type !== 'link')
+		return;
+
+	const normalized_title = session.normalize_title(link, {
+		// 維持原有的表達方式。
+		no_upper_case_initial: true,
+		//keep_anchor: true,
+	});
+	//console.trace([link, link_token]);
+
 	return {
-		// "ns:page_name#anchor|display_text"
-		// link: matched[0],
-
 		// page_title: 'ns:page_name'	{{FULLPAGENAME}}
-		page_title: matched[1],
+		page_title: normalized_title/* || link_token.page_title */,
 		// namespace	{{NAMESPACE}}
-		ns: ns,
+		ns: session.namespace(link_token.page_title),
 		// page name only, without namespace {{PAGENAME}}
-		page_name: matched[3],
+		page_name: session.remove_namespace(normalized_title),
 		// anchor without '#'
-		anchor: matched[4],
-		display_text: matched[5],
+		anchor: link_token.anchor,
+		display_text: link_token.display_text,
 
-		need_check_colon: ns === _session.namespace('Category') || ns === _session.namespace('File')
+		need_check_colon: session.is_namespace(link_token.page_title, ['Category', 'File']),
 	};
 }
 
@@ -1745,6 +1763,9 @@ async function get_list(task_configuration, list_configuration) {
 			// task_configuration.move_to_link?.toString().trim() === 'subst:'
 			?? (task_configuration.for_template === subst_template ? default_namespace_for_subst : default_namespace),
 	};
+
+	if (list_configuration.limit)
+		list_options.limit = list_configuration.limit;
 
 	if (list_types.join() === 'exturlusage') {
 		list_configuration.move_from = {
@@ -1945,8 +1966,7 @@ async function get_list(task_configuration, list_configuration) {
 
 		if (false) {
 			page_list = page_list.filter((page_data) => {
-				return !wiki.is_namespace(page_data, 'Wikipedia')
-					&& !wiki.is_namespace(page_data, 'User')
+				return !wiki.is_namespace(page_data, ['Wikipedia', 'User'])
 					// && !page_data.title.includes('/過去ログ')
 					;
 			});
@@ -1985,8 +2005,15 @@ async function get_list(task_configuration, list_configuration) {
 
 	// cf. list_configuration.list_filter
 	if (list_configuration.page_list_filter) {
-		// page_list_filter(page_data, index, page_list)
-		page_list = page_list.filter(list_configuration.page_list_filter);
+		let page_list_filter = list_configuration.page_list_filter;
+		if (typeof page_list_filter === 'function') {
+			// page_list_filter(page_data, index, page_list)
+			page_list = page_list.filter(page_list_filter);
+		} else {
+			// e.g., [[w:zh:Wikipedia:机器人/作业请求#請求移除WPNL大量信息分發的分類標記]]
+			page_list_filter = CeL.preprocessing_filter(page_list_filter);
+			page_list = page_list.filter((page_data, index, page_list) => CeL.data.fit_filter(page_list_filter, page_data.title));
+		}
 	}
 	//console.trace(page_list);
 
@@ -1998,7 +2025,7 @@ async function get_list(task_configuration, list_configuration) {
 
 	if (/*list_configuration.is_tracking_category && */list_configuration.move_from.ns === wiki.namespace('Category')) {
 		page_list.forEach(page_data => {
-			if (wiki.is_namespace(page_data, 'Template') || wiki.is_namespace(page_data, 'Module')) {
+			if (wiki.is_namespace(page_data, ['Template', 'Module'])) {
 				const title = CeL.wiki.title_of(page_data);
 				// ks: '/دَستاویز'
 				const doc_title = CeL.wiki.to_TDOC(title);
@@ -2638,7 +2665,8 @@ async function subst_template(token, index, parent) {
 		filter_template_to_be_expanded: this.task_configuration.filter_template_to_be_expanded
 	}));
 
-	const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit) });
+	const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit), template_token_called: token });
+	//CeL.wiki.evaluate_parser_function_token.call(expanded_code, parse_options);
 	if (expanded_code.toString() === token.toString()) {
 		const parsed_wikitext = await CeL.wiki.pre_save_transform(to_subst_code(token.toString(), parse_options), parse_options);
 		//console.trace([token.toString(), parsed_wikitext, expanded_code]);
@@ -2674,9 +2702,9 @@ async function subst_template(token, index, parent) {
 		}, this.task_configuration[KEY_wiki_session].append_session_to_options());
 	}
 
-	if (/{{#/.test(CeL.wiki.parse.wiki_element_to_key(expanded_code).toString()) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
+	if (/{{\s*#\w{2}/.test(CeL.wiki.parse.wiki_element_to_key(expanded_code).toString()) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
 		// 模板展開之後不該包含 magic words，恐怕是出錯了。
-		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code}`);
+		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code.toString()}`);
 		// 跳出，不編輯。
 		return;
 	}
@@ -3054,6 +3082,15 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 	// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table","page_title":"%1","insert_layout":"{{Vfd|%2|date=%3}}"}}</syntaxhighlight>
 	// {| table |}
 
+	/**<code>
+
+<syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"table"}}</syntaxhighlight>
+{| class="wikitable"
+|-
+| [[from]] || [[to]] || <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"namespace":"main"}}</syntaxhighlight>
+|}
+
+	</code>*/
 	if (meta_configuration.task_configuration_from_page_JSON.insert_layout) {
 		const rows = CeL.wiki.table_to_array(table), page_list = [], insert_layout_Map = new Map();
 		//console.trace(rows);
@@ -3146,10 +3183,11 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 				try {
 					task_configuration = JSON.parse(tag_token[1].toString());
 				} catch (e) {
-					CeL.error(e);
+					CeL.error(`${parse_task_configuration_from_table.name}: ${e}`);
 					return;
 				}
 				//console.trace(task_configuration);
+
 				task_configuration = task_configuration.replace_tool_page_configuration;
 				if (!task_configuration)
 					return;
@@ -3189,9 +3227,7 @@ async function parse_task_configuration_from_table(table, task_configuration_fro
 						// <syntaxhighlight lang="json">{"replace_tool_page_configuration":{"remove_parameters":"electrified=是"}}</syntaxhighlight>
 						parameter_name = matched[1].trim();
 						let filter = matched[2].trim();
-						if (CeL.PATTERN_RegExp.test(filter)) {
-							filter = filter.to_RegExp();
-						}
+						filter = CeL.preprocessing_filter(filter);
 						remove_parameters__value_filter[parameter_name] = filter;
 					}
 					if (parameter_name) {
