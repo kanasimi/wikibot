@@ -44,9 +44,7 @@ async function main_process() {
 	// console.log(wiki.latest_task_configuration);
 	// console.log(wiki.task_configuration);
 	// process.exit(1);
-	if (!wiki.latest_task_configuration.general) {
-		wiki.latest_task_configuration.general = Object.create(null);
-	}
+	prepare_general_configuration(wiki.latest_task_configuration);
 
 	if (false) {
 		await for_AfD('Wikipedia:Articles for deletion/Quintana Olleras');

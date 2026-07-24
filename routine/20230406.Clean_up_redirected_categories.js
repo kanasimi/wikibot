@@ -38,9 +38,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
-	const { general } = latest_task_configuration;
+	const general = prepare_general_configuration(latest_task_configuration);
 
 	if (!general.redirect_template_name)
 		general.redirect_template_name = 'Template:Category redirect';

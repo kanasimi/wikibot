@@ -29,8 +29,7 @@ function adapt_configuration(latest_task_configuration) {
 	// console.log(latest_task_configuration);
 	// console.log(wiki);
 
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
+	prepare_general_configuration(latest_task_configuration);
 
 	CeL.log('Task configuration:');
 	console.log(wiki.latest_task_configuration);

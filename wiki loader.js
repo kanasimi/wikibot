@@ -373,6 +373,15 @@ _global.prepare_directory = function prepare_directory(directory, clean) {
 	CeL.create_directory(directory);
 };
 
+// 確保 latest_task_configuration.general 存在並回傳之。
+// Ensure `.general` of the task configuration exists, then return it.
+// e.g., const general = prepare_general_configuration(latest_task_configuration);
+_global.prepare_general_configuration = function prepare_general_configuration(
+		latest_task_configuration) {
+	return latest_task_configuration.general
+			|| (latest_task_configuration.general = Object.create(null));
+};
+
 if (!_global.fetch) {
 	_global.fetch = function fetch(url) {
 		if (CeL.platform.is_interactive) {

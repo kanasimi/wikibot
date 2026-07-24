@@ -49,9 +49,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
-	const { general } = latest_task_configuration;
+	const general = prepare_general_configuration(latest_task_configuration);
 
 	if (!(0 <= general.max_pages_before_abort && general.max_pages_before_abort <= 500)) {
 		// 不取代超過一定嵌入數量的模板。預設為100個。

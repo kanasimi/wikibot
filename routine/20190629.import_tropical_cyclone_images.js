@@ -48,8 +48,7 @@ function adapt_configuration(latest_task_configuration) {
 	// console.log(wiki);
 
 	// 一般設定
-	var general = latest_task_configuration.general
-			|| (latest_task_configuration.general = Object.create(null));
+	var general = prepare_general_configuration(latest_task_configuration);
 	if (!general) {
 		// CeL.info('No configuration.');
 	}

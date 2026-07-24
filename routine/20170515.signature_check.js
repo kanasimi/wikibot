@@ -138,8 +138,7 @@ with_diff = {
 };
 
 function adapt_configuration(latest_task_configuration) {
-	var general = wiki.latest_task_configuration.general
-			|| (wiki.latest_task_configuration.general = Object.create(null));
+	var general = prepare_general_configuration(wiki.latest_task_configuration);
 
 	if (Array.isArray(general.trusted_user_groups))
 		trusted_user_privileges = new Set(general.trusted_user_groups);

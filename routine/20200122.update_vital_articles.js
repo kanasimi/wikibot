@@ -322,7 +322,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	const general = latest_task_configuration.general || (latest_task_configuration.general = Object.create(null));
+	const general = prepare_general_configuration(latest_task_configuration);
 
 	if (CeL.env.arg_hash?.base_page) {
 		// 自訂基準頁面。
