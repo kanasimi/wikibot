@@ -39,7 +39,7 @@ async function adapt_configuration(latest_task_configuration) {
 
 	// ----------------------------------------------------
 
-	const general = prepare_general_configuration(latest_task_configuration);
+	prepare_general_configuration(latest_task_configuration);
 
 	//console.trace(wiki.latest_task_configuration.general);
 }
