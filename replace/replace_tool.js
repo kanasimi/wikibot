@@ -1668,7 +1668,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 		// .all_link_pattern
 		// [\/]: 避免 https://web.archive.org/web/000000/http://www.example.com/
 		// TODO: flag: 'ig'
-		const PATTERN_url = new RegExp('(^|\W)' + CeL.to_RegExp_pattern(move_from_link), 'g');
+		const PATTERN_url = new RegExp('(^|\\W)' + CeL.to_RegExp_pattern(move_from_link), 'g');
 		// console.trace(PATTERN_url);
 		wikitext = wikitext.replace(PATTERN_url, function (all, prefix) {
 			changed = true;
@@ -3549,6 +3549,14 @@ module.exports = {
 	// for modify
 	replace: replace_tool__replace,
 	remove_duplicated_display_text,
+
+	// tool functions
+	convert_special_move_to,
+	unshift_move_configuration,
+	normalize_page_title_token,
+	remove_slash_tail,
+	text_processor_for_search,
+	text_processor_for_exturlusage,
 
 	// for move
 	parse_move_pairs_from_page,
