@@ -750,7 +750,13 @@ ORDER BY DESC(?count)
 			if (e.code === 'contenttoobig') {
 				console.trace((Buffer.from(content_to_write, 'utf8')).length + ' bytes to write.');
 			}
-			//console.trace(e);
+			// nocreate: 頁面不存在時不創建頁面，屬預期中的情況。
+			if (e.code === 'missingtitle') {
+				CeL.debug(`Skip the non-existent page ${CeL.wiki.title_link_of(page_title)}.`, 1);
+			} else {
+				CeL.error(`Cannot edit ${CeL.wiki.title_link_of(page_title)}:`);
+				console.error(e);
+			}
 		}
 
 		return page_title;

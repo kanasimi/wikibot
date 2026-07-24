@@ -2544,6 +2544,8 @@ async function maintain_VA_template(options) {
 			});
 		}
 	} catch (e) {
+		CeL.error(`${maintain_VA_template.name}: 檢查談話頁面的主頁面時出錯：`);
+		console.error(e);
 	}
 
 	CeL.info(`${maintain_VA_template.name}: 處理 ${Object.keys(have_to_edit_its_talk_page).length} 個談話頁面。`);

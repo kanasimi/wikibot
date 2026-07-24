@@ -82,7 +82,15 @@ require('./wiki configuration.js');
 try {
 	require('./_CeL.loader.nodejs.js');
 } catch (e) {
-	require('cejs');
+	try {
+		require('cejs');
+	} catch (e_npm) {
+		console.error('wiki loader: Cannot load local CeJS loader:');
+		console.error(e);
+		console.error('wiki loader: Cannot load the `cejs` module either. '
+				+ 'Please run `npm i cejs`.');
+		throw e_npm;
+	}
 }
 
 // for i18n: define gettext() user domain resources location.
@@ -117,7 +125,9 @@ if (_global.on_load_CeL) {
 		// e.g., in `./wiki configuration.js`
 		_global.on_load_CeL();
 	} catch (e) {
-		// TODO: handle exception
+		CeL.error('wiki loader: on_load_CeL() failed. '
+				+ 'Please check `./wiki configuration.js`:');
+		console.error(e);
 	}
 	delete _global.on_load_CeL;
 }
@@ -127,7 +137,10 @@ if (!_global.Wikiapi) {
 		// Load wikiapi module.
 		_global.Wikiapi = require('wikiapi');
 	} catch (e) {
-		// TODO: handle exception
+		// The `wikiapi` module is optional: only tasks using Wikiapi need it.
+		CeL.warn('wiki loader: Cannot load the `wikiapi` module. '
+				+ 'Tasks using Wikiapi will fail. Please run `npm i wikiapi`: '
+				+ e);
 	}
 }
 
@@ -289,7 +302,10 @@ _global.set_language = function set_language(language) {
 			// change to the bot directory.
 			process.chdir(bot_directory);
 		} catch (e) {
-			// TODO: handle exception
+			// 無法切換工作目錄時，衍生檔案將被寫到非預期的位置。
+			CeL.error('wiki loader: Cannot change working directory to ['
+					+ bot_directory + ']. Will keep using [' + original_directory
+					+ ']: ' + e);
 		}
 	}
 };

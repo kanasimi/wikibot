@@ -554,7 +554,10 @@ async function edit_page(source_page_title, target_page_title, options) {
 					)})` : '')
 			});
 		} catch (e) {
-			//CeL.error(e);
+			CeL.error(`${edit_page.name}: `
+				// gettext_config:{"id":"cannot-edit-$1"}
+				+ CeL.gettext('Cannot edit %1', CeL.wiki.title_link_of(target_page_title)));
+			console.error(e);
 		}
 	}
 

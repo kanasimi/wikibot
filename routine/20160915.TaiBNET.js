@@ -27,16 +27,13 @@ var now = new Date(),
 TaiBNET_CSV_path = base_directory + 'TaiwanSpecies_UTF8.'
 		+ now.format('%Y%2m%2d') + '.csv';
 
-try {
-	var node_fs = require('fs');
-	// check if file exists
-	if (node_fs.statSync(TaiBNET_CSV_path)) {
-		import_data();
-	}
-} catch (e) {
-	// console.error(e);
-	// throw e;
+var node_fs = require('fs');
+// check if file exists. 檔案不存在時才下載，因此不可將 import_data() 的錯誤也當作檔案不存在。
+var CSV_file_exists = node_fs.existsSync(TaiBNET_CSV_path);
 
+if (CSV_file_exists) {
+	import_data();
+} else {
 	// http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=
 	var url = 'http://taibnet.sinica.edu.tw/chi/taibnet_xcsv.php?R1=name&D1=&D2=&D3=&T1=&T2=%25&id=&sy=y&pi=&da=', spawn = require('child_process').spawn, get_TaiBNET_file = spawn(
 			'/usr/bin/wget', [ '--output-document=' + TaiBNET_CSV_path + '',
@@ -51,12 +48,19 @@ try {
 		// console.error(data.toString());
 	});
 
+	get_TaiBNET_file.on('error', function(error) {
+		// e.g., /usr/bin/wget does not exist.
+		CeL.error('Cannot execute wget to get [' + url + ']:');
+		console.error(error);
+		process.exitCode = 1;
+	});
+
 	get_TaiBNET_file.on('close', function(exit) {
 		if (exit === 0) {
 			import_data();
 		} else {
-			throw 'Cannot get file [' + TaiBNET_CSV_path + ']: exit code '
-					+ exit;
+			throw new Error('Cannot get file [' + TaiBNET_CSV_path
+					+ ']: exit code ' + exit);
 		}
 	});
 }

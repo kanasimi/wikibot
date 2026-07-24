@@ -19,8 +19,12 @@
 require('./wiki loader.js');
 
 function process_data(error) {
-	if (error)
-		CeL.error(error);
+	if (error) {
+		CeL.error('process_data: Cannot setup the database connection:');
+		console.error(error);
+		process.exitCode = 1;
+		return;
+	}
 
 	var start_read_time = Date.now(),
 	// max_length = 0,
@@ -102,8 +106,12 @@ function process_data(error) {
 				revision.timestamp.slice(0, -1).replace('T', ' '),
 						content ]
 			}, function(error) {
-				if (error)
-					CeL.error(error);
+				if (error) {
+					CeL.error('process_data: Cannot insert [[' + page_data.title
+							+ ']] into the database:');
+					console.error(error);
+					process.exitCode = 1;
+				}
 			});
 		}
 
@@ -155,16 +163,25 @@ function process_data(error) {
 
 				if (!do_realtime_import) {
 					setup_SQL(function(error) {
-						if (error)
-							CeL.error(error);
+						if (error) {
+							CeL.error('process_data: Cannot setup the database:');
+							console.error(error);
+							process.exitCode = 1;
+							endding();
+							return;
+						}
 
 						CeL.info('process_data: Import data to database...');
 						var SQL = LOAD_DATA_SQL + file_stream.path
 								+ LOAD_DATA_SQL_post;
 						CeL.log(SQL.replace(/\n/g, '\\n'));
 						connection.query(SQL, function(error, rows) {
-							if (error)
-								CeL.error(error);
+							if (error) {
+								CeL.error('process_data: Cannot import data'
+										+ ' to the database:');
+								console.error(error);
+								process.exitCode = 1;
+							}
 							endding();
 						});
 					});
@@ -179,10 +196,18 @@ function process_data(error) {
 function setup_SQL(callback) {
 	CeL.info('setup_SQL: Re-creating database...');
 	SQL_session = new CeL.wiki.SQL(database_name, function(error) {
-		if (error)
-			CeL.error(error);
+		if (error) {
+			// 無法連線時不可繼續使用 connection。
+			callback(error);
+			return;
+		}
 
 		connection.query('DROP TABLE `' + table_name + '`', function(error) {
+			if (error) {
+				// 資料表本來就不存在時也會出錯，因此僅記錄而不中斷作業。
+				CeL.debug('setup_SQL: Cannot drop table `' + table_name + '`: '
+						+ error, 1);
+			}
 			connection.query(CREATE_SQL, callback);
 		});
 
@@ -263,8 +288,10 @@ lastest_revid = [];
 
 if (do_realtime_import) {
 	setup_SQL(function(error) {
-		if (error)
-			CeL.error(error);
+		if (error) {
+			process_data(error);
+			return;
+		}
 
 		// FATAL ERROR: JS Allocation failed - process out of memory
 		// Aborted

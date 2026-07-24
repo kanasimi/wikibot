@@ -1889,7 +1889,8 @@ async function check_page(target_page_data, options) {
 		try {
 			await tracking_section_title_history(target_page_data, { section_title_history });
 		} catch (e) {
-			console.error(error);
+			CeL.error(`${check_page.name}: Cannot track the section title history of ${CeL.wiki.title_link_of(target_page_data)}:`);
+			console.error(e);
 		}
 		CeL.info(`${check_page.name}: There are ${Object.keys(section_title_history).length} section title records in page revisions of ${CeL.wiki.title_link_of(target_page_data)}. Continue to check ${working_queue_Set.size} page(s).`);
 		//console.trace(section_title_history);

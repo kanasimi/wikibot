@@ -2226,6 +2226,8 @@ async function fetch_ORCID_data_from_service(ORCID) {
 			JSON.from_XML((await (await CeL.fetch(`https://pub.orcid.org/v3.0/${ORCID}/${type}`)).text()).replace(/(<\/?)(\w+):\2([ >])/g, '$1$2$3'))[type]
 				.forEach(item => put_to_data(type === 'record' ? ORC_data : (ORC_data.person[type] = Object.create(null)), item));
 		} catch (e) {
+			// e.g., 該 ORCID 不存在，或 pub.orcid.org 無回應。無資料可用，因此放棄本 ORCID。
+			CeL.warn(`${fetch_ORCID_data_from_service.name}: Cannot get the ${type} of ORCID ${ORCID}: ${e}`);
 			return;
 		}
 	}

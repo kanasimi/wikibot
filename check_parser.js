@@ -34,6 +34,13 @@ var skip_exists = false,
 //
 check_OK = 0, check_error = 0;
 
+function report_write_error(error) {
+	if (error) {
+		CeL.error('Cannot write file:');
+		console.error(error);
+	}
+}
+
 function check_page(page_data) {
 	if (!CeL.wiki.content_of.page_exists(page_data))
 		return;
@@ -79,8 +86,10 @@ function check_page(page_data) {
 		check_OK++;
 	} else {
 		CeL.warn('[[' + title + ']]: different contents!');
-		node_fs.writeFile(file_name_prefix + 'original.txt', content);
-		node_fs.writeFile(file_name_prefix + 'parsed.txt', parsed_String);
+		node_fs.writeFile(file_name_prefix + 'original.txt', content,
+				report_write_error);
+		node_fs.writeFile(file_name_prefix + 'parsed.txt', parsed_String,
+				report_write_error);
 		if (check_error++ > 9)
 			throw new Error('check_page: Too many errors');
 	}
@@ -102,7 +111,13 @@ var node_fs = require('fs');
 
 function check_index(index) {
 	CeL.get_URL_cache(checkwiki_api_URL + index, function(page_list) {
-		page_list = JSON.parse(page_list);
+		try {
+			page_list = JSON.parse(page_list);
+		} catch (e) {
+			CeL.error('check_index: Invalid page list of index ' + index + ': '
+					+ e);
+			return;
+		}
 		// CeL.set_debug(3);
 		if (page_list.length === 0)
 			return;

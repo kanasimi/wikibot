@@ -630,6 +630,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 			task_configuration = JSON.parse(tag_token[1].toString());
 		} catch (e) {
 			CeL.error(`${get_move_configuration_from_section.name}: ${e}`);
+			return;
 		}
 		//console.trace(task_configuration);
 
@@ -871,12 +872,15 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 					});
 					eval('task_options = ' + task_options);
 					//console.trace(task_options);
-				} else if (!options?.no_export) {
+				} else {
 					CeL.error({
 						// gettext_config:{"id":"not-json-you-may-want-to-set-allow_eval=true-$1"}
 						T: ['Not JSON, you may want to set "allow_eval=true": %1', task_options]
 					});
-					throw e;
+					if (!options?.no_export)
+						throw e;
+					// 匯出設定時不中斷作業，但亦不可採用無法解析的設定。
+					task_options = undefined;
 				}
 			}
 			//console.log(task_options);
