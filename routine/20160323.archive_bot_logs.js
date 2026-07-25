@@ -11,6 +11,8 @@
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // globalThis.no_task_date_warning = true;
 
 // Load CeJS library and modules.

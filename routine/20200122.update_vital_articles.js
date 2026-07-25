@@ -38,6 +38,8 @@ fix [[Category:有不必要class參數的專題橫幅]]: {{德国专题 |1=B |2=
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // Load CeJS library and modules.
 require('../wiki loader.js');
 

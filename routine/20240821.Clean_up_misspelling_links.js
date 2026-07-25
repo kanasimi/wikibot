@@ -10,6 +10,8 @@ node 20240821.Clean_up_misspelling_links.js use_project=zh
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // Load replace tools.
 const replace_tool = require('../replace/replace_tool.js');
 

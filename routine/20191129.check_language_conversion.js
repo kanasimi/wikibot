@@ -26,6 +26,8 @@ https://zh.wikipedia.org/w/index.php?title=%E7%89%B9%E7%BE%85%E4%BC%8A%C2%B7%E8%
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // Load CeJS library and modules.
 require('../wiki loader.js');
 

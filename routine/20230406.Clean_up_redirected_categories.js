@@ -13,6 +13,8 @@ node 20230406.Clean_up_redirected_categories.js use_project=zh.wikinews
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // Load replace tools.
 const replace_tool = require('../replace/replace_tool.js');
 

@@ -14,6 +14,8 @@ TODO:
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 const debug_pages =
 	['澤蘭宮']
 	&& ['Wikipedia:沙盒'] && ['User:Cewbot/log/20260620/testcases']

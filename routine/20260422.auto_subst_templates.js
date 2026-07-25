@@ -12,6 +12,8 @@ TODO:
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilibili personality', 'Template:Infobox YouTube personality']
 	&& ['Template:台北捷運色彩']
 	&& ['Template:无锡地铁颜色']

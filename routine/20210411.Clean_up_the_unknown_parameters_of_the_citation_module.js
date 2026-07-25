@@ -8,6 +8,8 @@ TODO:
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // Load replace tools.
 const replace_tool = require('../replace/replace_tool.js');
 

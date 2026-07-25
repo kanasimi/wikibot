@@ -20,6 +20,8 @@ TODO:
 
 'use strict';
 
+/* global prepare_general_configuration */
+
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
