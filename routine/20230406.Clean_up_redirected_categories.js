@@ -30,16 +30,10 @@ const MULTIPLE_TARGETS = { MULTIPLE_TARGETS: true };
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(latest_task_configuration);
-	// console.log(wiki);
-
-	// ----------------------------------------------------
-
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
+	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
 
 	if (!general.redirect_template_name)
@@ -48,7 +42,8 @@ async function adapt_configuration(latest_task_configuration) {
 	if (!(min_interval >= 0))
 		general.min_interval = CeL.to_millisecond('1d');
 
-	console.trace(wiki.latest_task_configuration.general);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------

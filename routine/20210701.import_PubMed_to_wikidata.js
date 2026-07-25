@@ -199,14 +199,10 @@ function extract_item_ids(list) {
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(latest_task_configuration);
-	// console.log(wiki);
-
-	// ----------------------------------------------------
-
+	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
 
 	if (!Array.isArray(general.main_subject_types)) {
@@ -226,7 +222,8 @@ async function adapt_configuration(latest_task_configuration) {
 
 	general.non_main_subject_types_Set = new Set(extract_item_ids(general.non_main_subject_types));
 
-	console.log(latest_task_configuration);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------
@@ -2226,6 +2223,8 @@ async function fetch_ORCID_data_from_service(ORCID) {
 			JSON.from_XML((await (await CeL.fetch(`https://pub.orcid.org/v3.0/${ORCID}/${type}`)).text()).replace(/(<\/?)(\w+):\2([ >])/g, '$1$2$3'))[type]
 				.forEach(item => put_to_data(type === 'record' ? ORC_data : (ORC_data.person[type] = Object.create(null)), item));
 		} catch (e) {
+			// e.g., 該 ORCID 不存在，或 pub.orcid.org 無回應。無資料可用，因此放棄本 ORCID。
+			CeL.warn(`${fetch_ORCID_data_from_service.name}: Cannot get the ${type} of ORCID ${ORCID}: ${e}`);
 			return;
 		}
 	}

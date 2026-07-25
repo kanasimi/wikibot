@@ -146,15 +146,8 @@ prepare_directory(base_directory);
  *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 function adapt_configuration(latest_task_configuration) {
-	// console.log(wiki.latest_task_configuration);
-	// console.log(wiki);
-
-	// 一般設定
-	var general = wiki.latest_task_configuration.general;
-	if (!general) {
-		CeL.info('No configuration');
-		return;
-	}
+	/** {Object}一般性設定。 general settings. */
+	var general = latest_task_configuration.general;
 
 	if (general.stop_working && general.stop_working !== 'false') {
 		CeL.info('stop_working setted. exiting...');
@@ -219,7 +212,7 @@ function adapt_configuration(latest_task_configuration) {
 		}
 	}
 
-	CeL.log('Configuration:');
+	CeL.log('Task configurations:');
 	console.log(wiki.latest_task_configuration);
 }
 

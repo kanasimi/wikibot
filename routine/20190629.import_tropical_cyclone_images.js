@@ -41,18 +41,11 @@ filename_prefix = '%4Y ';
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 function adapt_configuration(latest_task_configuration) {
-	// console.log(latest_task_configuration);
-	// console.log(wiki);
-
-	// 一般設定
-	var general = latest_task_configuration.general
-			|| (latest_task_configuration.general = Object.create(null));
-	if (!general) {
-		// CeL.info('No configuration.');
-	}
+	/** {Object}一般性設定。 general settings. */
+	var general = latest_task_configuration.general;
 
 	// 衛星圖像優先度 https://www.nrlmry.navy.mil/tcdat/tc2021/
 	var satellite_image_priority = latest_task_configuration['NRL satellite image priority'];

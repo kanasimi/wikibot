@@ -24,15 +24,15 @@ wiki = Wiki(true);
 
 // ---------------------------------------------------------------------//
 
-// 讀入手動設定 manual settings。
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。設定頁面所獲得之手動設定。
+ */
 function adapt_configuration(latest_task_configuration) {
-	// console.log(latest_task_configuration);
-	// console.log(wiki);
 
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
-
-	CeL.log('Task configuration:');
+	CeL.log('Task configurations:');
 	console.log(wiki.latest_task_configuration);
 }
 

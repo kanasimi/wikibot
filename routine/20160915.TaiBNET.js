@@ -29,7 +29,7 @@ TaiBNET_CSV_path = base_directory + 'TaiwanSpecies_UTF8.'
 
 try {
 	var node_fs = require('fs');
-	// check if file exists
+	// check if file exists and readable.
 	if (node_fs.statSync(TaiBNET_CSV_path)) {
 		import_data();
 	}
@@ -43,6 +43,13 @@ try {
 					url ]);
 	CeL.log('Try to get [' + url + ']...');
 
+	get_TaiBNET_file.on('error', function(error) {
+		// e.g., /usr/bin/wget does not exist.
+		CeL.error('Cannot execute wget to get [' + url + ']:');
+		console.error(error);
+		process.exitCode = 1;
+	});
+
 	get_TaiBNET_file.stdout.on('data', function(data) {
 		// console.log(data.toString());
 	});
@@ -55,8 +62,8 @@ try {
 		if (exit === 0) {
 			import_data();
 		} else {
-			throw 'Cannot get file [' + TaiBNET_CSV_path + ']: exit code '
-					+ exit;
+			throw new Error('Cannot get file [' + TaiBNET_CSV_path
+					+ ']: exit code ' + exit);
 		}
 	});
 }

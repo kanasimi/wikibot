@@ -137,9 +137,15 @@ with_diff = {
 	with_list : true
 };
 
+/**
+ * 由設定頁面讀入手動設定 manual settings。
+ * 
+ * @param {Object}latest_task_configuration
+ *            最新的任務設定。設定頁面所獲得之手動設定。
+ */
 function adapt_configuration(latest_task_configuration) {
-	var general = wiki.latest_task_configuration.general
-			|| (wiki.latest_task_configuration.general = Object.create(null));
+	/** {Object}一般性設定。 general settings. */
+	var general = latest_task_configuration.general;
 
 	if (Array.isArray(general.trusted_user_groups))
 		trusted_user_privileges = new Set(general.trusted_user_groups);
@@ -206,7 +212,8 @@ function adapt_configuration(latest_task_configuration) {
 				});
 	}
 
-	console.trace(wiki.latest_task_configuration.general);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 function show_page(row) {

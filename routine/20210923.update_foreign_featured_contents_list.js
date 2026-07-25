@@ -47,13 +47,10 @@ console.assert(MAX_ITEMS_TO_LIST > 1000);
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(wiki.latest_task_configuration);
-
-	// ----------------------------------------------------
-
+	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
 
 }
@@ -750,7 +747,13 @@ ORDER BY DESC(?count)
 			if (e.code === 'contenttoobig') {
 				console.trace((Buffer.from(content_to_write, 'utf8')).length + ' bytes to write.');
 			}
-			//console.trace(e);
+			// nocreate: 頁面不存在時不創建頁面，屬預期中的情況。
+			if (e.code === 'missingtitle') {
+				CeL.debug(`Skip the non-existent page ${CeL.wiki.title_link_of(page_title)}.`, 1);
+			} else {
+				CeL.error(`Cannot edit ${CeL.wiki.title_link_of(page_title)}:`);
+				console.error(e);
+			}
 		}
 
 		return page_title;

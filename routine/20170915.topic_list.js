@@ -324,7 +324,7 @@ var had_adapted;
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 function adapt_configuration(latest_task_configuration) {
 	configuration = latest_task_configuration;
@@ -332,12 +332,8 @@ function adapt_configuration(latest_task_configuration) {
 	// console.log(wiki);
 	adapt_configuration_to_page(configuration);
 
-	// 一般設定
-	var general = configuration.general
-			|| (configuration.general = Object.create(null));
-	if (!general) {
-		CeL.info('No configuration.');
-	}
+	/** {Object}一般性設定。 general settings. */
+	var general = configuration.general;
 
 	if (general.stop_working && general.stop_working !== 'false') {
 		CeL.info('stop_working setted. exiting...');
@@ -453,8 +449,8 @@ function adapt_configuration(latest_task_configuration) {
 		Object.keys(configuration_now).forEach(adapt_listen_to_page);
 	}
 
-	CeL.log('Configuration:');
-	console.log(configuration);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 
 	if (had_adapted) {
 		// 每次更改過設定之後重新生成一輪討論頁面主題列表。

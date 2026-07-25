@@ -54,16 +54,10 @@ prepare_directory(base_directory);
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(latest_task_configuration);
-	// console.log(wiki);
-
-	// ----------------------------------------------------
-
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
+	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
 
 	let main_category_list = general.main_category;
@@ -77,7 +71,8 @@ async function adapt_configuration(latest_task_configuration) {
 	if (general.lite_template_name_for_PEIS)
 		general.lite_template_name_for_PEIS = wiki.remove_namespace(general.lite_template_name_for_PEIS);
 
-	console.trace(wiki.latest_task_configuration.general);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------

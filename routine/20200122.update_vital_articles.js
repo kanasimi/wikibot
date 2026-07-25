@@ -315,14 +315,11 @@ function get_topic_of_section(page_title_and_section, topic) {
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	// console.log(latest_task_configuration.general);
-
-	// ----------------------------------------------------
-
-	const general = latest_task_configuration.general || (latest_task_configuration.general = Object.create(null));
+	/** {Object}一般性設定。 general settings. */
+	const general = latest_task_configuration.general;
 
 	if (CeL.env.arg_hash?.base_page) {
 		// 自訂基準頁面。
@@ -527,7 +524,8 @@ async function adapt_configuration(latest_task_configuration) {
 		latest_task_configuration.no_topic_summary = true;
 	}
 
-	console.log(latest_task_configuration);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------
@@ -2544,6 +2542,8 @@ async function maintain_VA_template(options) {
 			});
 		}
 	} catch (e) {
+		CeL.error(`${maintain_VA_template.name}: 檢查談話頁面的主頁面時出錯：`);
+		console.error(e);
 	}
 
 	CeL.info(`${maintain_VA_template.name}: 處理 ${Object.keys(have_to_edit_its_talk_page).length} 個談話頁面。`);

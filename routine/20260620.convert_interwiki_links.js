@@ -51,20 +51,15 @@ const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(latest_task_configuration);
-	// console.log(wiki);
-
-	// ----------------------------------------------------
-
-	if (!latest_task_configuration.general)
-		latest_task_configuration.general = Object.create(null);
+	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
 
-
-	console.trace(wiki.latest_task_configuration.general);
+	// Debug:
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------

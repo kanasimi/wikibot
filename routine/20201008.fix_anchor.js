@@ -139,19 +139,11 @@ const ignore_tags = [
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
-	//console.log(latest_task_configuration);
-	//console.log(wiki);
-
-	// ----------------------------------------------------
-
-	let { general } = latest_task_configuration;
-	if (!general) {
-		CeL.error(`${adapt_configuration.name}: No general configuration got!`);
-		general = latest_task_configuration.general = Object.create(null);
-	}
+	/** {Object}一般性設定。 general settings. */
+	const { general } = latest_task_configuration;
 
 	// e.g., {{Archives}}, {{Archive box}}, {{Easy Archive}}
 	general.archive_template_list = (general.archive_template_list || ['Template:Archive'])
@@ -196,7 +188,8 @@ async function adapt_configuration(latest_task_configuration) {
 		general.add_note_to_talk_page_for_broken_anchors = true;
 	}
 
-	console.trace(wiki.latest_task_configuration.general);
+	CeL.log('Task configurations:');
+	console.log(wiki.latest_task_configuration);
 }
 
 // ----------------------------------------------------------------------------
@@ -1889,7 +1882,8 @@ async function check_page(target_page_data, options) {
 		try {
 			await tracking_section_title_history(target_page_data, { section_title_history });
 		} catch (e) {
-			console.error(error);
+			CeL.error(`${check_page.name}: Cannot track the section title history of ${CeL.wiki.title_link_of(target_page_data)}:`);
+			console.error(e);
 		}
 		CeL.info(`${check_page.name}: There are ${Object.keys(section_title_history).length} section title records in page revisions of ${CeL.wiki.title_link_of(target_page_data)}. Continue to check ${working_queue_Set.size} page(s).`);
 		//console.trace(section_title_history);

@@ -240,6 +240,9 @@ function try_decode(title) {
 		try {
 			return decodeURIComponent(title);
 		} catch (e) {
+			// e.g., URIError: URI malformed. 不是合法的 URI encoding，改用原文。
+			CeL.debug('try_decode: Cannot decode ' + JSON.stringify(title)
+					+ ': ' + e, 2);
 		}
 	}
 	// for '&#x0259;'
@@ -1727,7 +1730,11 @@ try {
 	require('fs').unlinkSync(
 			base_directory + 'all_pages.' + CeL.wiki.site_name(wiki) + '.json');
 } catch (e) {
-	// TODO: handle exception
+	if (e.code !== 'ENOENT') {
+		// 尚未建立 cache 時 (ENOENT) 屬正常情況；其餘例如權限問題則必須報告。
+		CeL.error('Cannot delete the cache of all pages:');
+		console.error(e);
+	}
 }
 
 if (!modify_Wikipedia) {

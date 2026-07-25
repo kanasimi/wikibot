@@ -871,12 +871,15 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 					});
 					eval('task_options = ' + task_options);
 					//console.trace(task_options);
-				} else if (!options?.no_export) {
+				} else {
 					CeL.error({
 						// gettext_config:{"id":"not-json-you-may-want-to-set-allow_eval=true-$1"}
 						T: ['Not JSON, you may want to set "allow_eval=true": %1', task_options]
 					});
-					throw e;
+					if (!options?.no_export)
+						throw e;
+					// 不可採用無法解析的設定。
+					task_options = undefined;
 				}
 			}
 			//console.log(task_options);
@@ -1668,7 +1671,7 @@ function text_processor_for_exturlusage(wikitext, page_data) {
 		// .all_link_pattern
 		// [\/]: 避免 https://web.archive.org/web/000000/http://www.example.com/
 		// TODO: flag: 'ig'
-		const PATTERN_url = new RegExp('(^|\W)' + CeL.to_RegExp_pattern(move_from_link), 'g');
+		const PATTERN_url = new RegExp('(^|\\W)' + CeL.to_RegExp_pattern(move_from_link), 'g');
 		// console.trace(PATTERN_url);
 		wikitext = wikitext.replace(PATTERN_url, function (all, prefix) {
 			changed = true;

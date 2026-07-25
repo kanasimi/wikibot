@@ -55,12 +55,11 @@ const skip_target_pages_Set = new Set();
  * 由設定頁面讀入手動設定 manual settings。
  * 
  * @param {Object}latest_task_configuration
- *            最新的任務設定。
+ *            最新的任務設定。設定頁面所獲得之手動設定。
  */
 async function adapt_configuration(latest_task_configuration) {
+	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
-	if (!general)
-		return;
 
 	if (Array.isArray(general.skip_pages)) {
 		for (let index = 0; index < general.skip_pages.length; ++index) {
@@ -81,6 +80,7 @@ async function adapt_configuration(latest_task_configuration) {
 		// gettext_config:{"id":"synchronizing-common-pages"}
 		CeL.gettext('Synchronizing common pages')) + ': ';
 
+	CeL.log('Task configurations:');
 	console.log(wiki.latest_task_configuration);
 }
 
@@ -554,7 +554,8 @@ async function edit_page(source_page_title, target_page_title, options) {
 					)})` : '')
 			});
 		} catch (e) {
-			//CeL.error(e);
+			CeL.error(`${edit_page.name}: Cannot edit ${CeL.wiki.title_link_of(target_page_title)}`);
+			console.error(e);
 		}
 	}
 
