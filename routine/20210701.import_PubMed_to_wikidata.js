@@ -960,7 +960,8 @@ const descriptions_configuration = {
 	// [[d:User talk:Kanashimi#On descriptions for scientific articles in Ukrainian]]
 	uk: ['наукова стаття', (type, date) => `${type}, опублікована ${date.replace(/\s*р\.$/, '')}`],
 	vi: ['bài báo khoa học', (type, date) => `${type} xuất bản ngày ${date}`],
-	tr: ['bilimsel makale', (type, date) => `${date}'de yayımlanmış ${type}`],
+	// [[d:User talk:Kanashimi#About Turkish descriptions]]
+	tr: ['bilimsel makale', (type, date) => `${date} tarihinde yayımlanmış ${type}`],
 
 	// [[w:zh:User talk:Kanashimi#Article, published inside April 15, 2010]]
 	// 不合適: `im ${date} veröffentlichter ${type}`

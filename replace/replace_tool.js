@@ -2365,6 +2365,8 @@ function for_each_link(token, index, parent) {
 	}
 	//console.trace(token);
 
+	//@see CeL.wiki.simplify_wikilink(wikilink, options)
+
 	//console.trace(this.keep_display_text, token);
 	if (this.keep_display_text) {
 		// e.g., [[.move_from.page_title]] →
