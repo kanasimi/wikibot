@@ -762,14 +762,16 @@ function normalize_article_title(title) {
 	title = CeL.HTML_to_Unicode(title)
 		// remove <i>...</i>. https://www.wikidata.org/wiki/Q97521125
 		.replace(/<[\/\w][^<>]*>/g, '').trim()
-		// https://api.crossref.org/works/10.1148/rycan.2019190022
-		// Do not need too many spaces.
-		.replace(/\s+/g, ' ').trim()
+		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A10615162
+		.replace(/\s*\[In Process Citation\]/i, '')
 		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A33915672
 		// [title].
 		.replace(/\s*\.$/, '')
-		// https://www.ebi.ac.uk/europepmc/webservices/rest/search?resulttype=core&format=json&query=SRC%3AMED%20AND%20EXT_ID%3A10615162
-		.replace(/\s*\[In Process Citation\]/i, '');
+		// https://api.crossref.org/works/10.1148/rycan.2019190022
+		// Do not need too many spaces.
+		.replace(/\s+/g, ' ')
+		// [modification-failed] String should not start or end with whitespace nor include vertical whitespace or tabs: ***
+		.trim();
 	const title_converted = /^\[([^\[\]]+)\]/.test(title);
 	if (title_converted) {
 		title = title
