@@ -3555,6 +3555,14 @@ module.exports = {
 	replace: replace_tool__replace,
 	remove_duplicated_display_text,
 
+	// tool functions
+	convert_special_move_to,
+	unshift_move_configuration,
+	normalize_page_title_token,
+	remove_slash_tail,
+	text_processor_for_search,
+	text_processor_for_exturlusage,
+
 	// for move
 	parse_move_pairs_from_page,
 	//	parse_move_pairs_from_link,
