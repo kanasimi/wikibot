@@ -167,6 +167,10 @@ const problematic_data_page_title = log_to + '/problematic articles';
 let problematic_data_list = [['PubMed ID', 'Problem']];
 const MAX_error_reported = 1000;
 
+// [modification-failed] Label must be no more than 250 characters long [wikibase-validator-label-too-long] Label must be no more than 250 characters long
+/**{Number}wikidata所容許的最大label長度。 */
+const MAX_TITLE_LENGTH = 250;
+
 // ----------------------------------------------
 
 
@@ -559,7 +563,13 @@ async function get_PubMed_ID_list(start_date, end_date) {
 	});
 
 	//console.trace(NCBI_API_URL.toString());
-	const esearchresult = (await (await CeL.fetch(NCBI_API_URL.toString())).json()).esearchresult;
+	let esearchresult;
+	try {
+		esearchresult = (await (await fetch(NCBI_API_URL.toString())).json()).esearchresult;
+	} catch (error) {
+		CeL.error('get_PubMed_ID_list: ' + NCBI_API_URL.toString());
+		console.error(error);
+	}
 	const PubMed_ID_list = esearchresult.idlist
 		// 轉成從舊到新。
 		.reverse();
@@ -596,9 +606,13 @@ async function fetch_PubMed_ID_data_from_service(PubMed_ID) {
 
 	const results = Object.create(null);
 	await Promise.allSettled([
-		//(await (await CeL.fetch(NCBI_API_URL.toString())).json()).result[PubMed_ID]
-		CeL.fetch(NCBI_API_URL.toString()).then(result => result.json()).then(result => results.NCBI_article_data = result.result[PubMed_ID], error => { CeL.error('fetch_PubMed_ID_data_from_service: ' + NCBI_API_URL.toString()); console.error(error); }),
-		CeL.fetch(Europe_PMC_API_URL.toString()).then(result => result.json()).then(result => results.Europe_PMC_article_data = result.resultList.result[0], error => { CeL.error('fetch_PubMed_ID_data_from_service: ' + Europe_PMC_API_URL.toString()); console.error(error); }),
+		//(await (await fetch(NCBI_API_URL.toString())).json()).result[PubMed_ID]
+		fetch(NCBI_API_URL.toString()).then(result => result.json())
+			.then(result => results.NCBI_article_data = result.result[PubMed_ID])
+			.catch(error => { CeL.error('fetch_PubMed_ID_data_from_service: ' + NCBI_API_URL.toString()); console.error(error); }),
+		fetch(Europe_PMC_API_URL.toString()).then(result => result.json())
+			.then(result => results.Europe_PMC_article_data = result.resultList.result[0])
+			.catch(error => { CeL.error('fetch_PubMed_ID_data_from_service: ' + Europe_PMC_API_URL.toString()); console.error(error); }),
 	]);
 
 	// ----------------------------------------------------
@@ -649,13 +663,19 @@ async function fetch_DOI_data_from_service(DOI) {
 
 	const results = Object.create(null);
 	await Promise.allSettled([
-		CeL.fetch(CrossRef_API_URL.toString(), {
+		fetch(CrossRef_API_URL.toString(), {
 			// https://api.crossref.org/swagger-ui/index.html
 			headers: { 'User-Agent': 'CeL; mailto:https://www.wikidata.org/wiki/User_talk:Kanashimi' },
 		})
-			.then(result => result.json())
-			.then(result => results.CrossRef_article_data = result.message, error => {
-				CeL.error('fetch_DOI_data_from_service: ' + CrossRef_API_URL); console.error(error);
+			.then(response => response.text())
+			.then(result => {
+				if (result !== 'Resource not found.') {
+					results.CrossRef_article_data = JSON.parse(result).message;
+				}
+			})
+			.catch(error => {
+				CeL.error('fetch_DOI_data_from_service: ' + CrossRef_API_URL);
+				console.error(error);
 			}),
 	]);
 
@@ -754,7 +774,7 @@ SELECT ?item ?itemLabel
 function normalize_article_title(title) {
 	if (!title || title.includes('\ufffd')) {
 		// 不匯入含有 U+FFFD � REPLACEMENT CHARACTER 的 title。
-		// e.g., Q67435361
+		// e.g., [[Q67435361]], [[Q66913035]]
 		return [];
 	}
 
@@ -772,13 +792,16 @@ function normalize_article_title(title) {
 		.replace(/\s+/g, ' ')
 		// [modification-failed] String should not start or end with whitespace nor include vertical whitespace or tabs: ***
 		.trim();
+
 	const title_converted = /^\[([^\[\]]+)\]/.test(title);
 	if (title_converted) {
 		title = title
 			.replace(/\[([^\[\]]+)\]/g, '$1')
 			// https://www.wikidata.org/w/index.php?title=Q42169511&oldid=1565788442
-			.replace(/\s*\.$/, '');
+			.replace(/\s*\.$/, '')
+			.trim();
 	}
+
 	return [title, title_converted];
 }
 
@@ -1277,6 +1300,15 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	// @see
 	// https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/LargeDatasetBot
 
+	function set_label(title, language = 'en') {
+		if (title.length > MAX_TITLE_LENGTH) {
+			CeL.error(`${for_each_PubMed_ID.name}: PubMed ID ${PubMed_ID}: Label is too long: (${title.length} > ${MAX_TITLE_LENGTH}) ${JSON.stringify(title)}. Truncate to ${MAX_TITLE_LENGTH} characters.`);
+			data_to_modify.labels[language] = title.slice(0, MAX_TITLE_LENGTH);
+		} else {
+			data_to_modify.labels[language] = title;
+		}
+	}
+
 	/**
 	 * 包含要修改的數據的{Object}。
 	 * @type {Object}
@@ -1299,6 +1331,8 @@ async function for_each_PubMed_ID(PubMed_ID) {
 			},
 		]
 	};
+
+	set_label(data_to_modify.labels.en, 'en');
 
 	// --------------------------------------------------------------
 	// title
@@ -1329,24 +1363,25 @@ async function for_each_PubMed_ID(PubMed_ID) {
 	data_to_modify.title_list = new Set();
 
 	function title_to_id(title) {
-		return title.toUpperCase();
+		return title?.toUpperCase();
 	}
 
 	function add_title_claim(references, title, language) {
 		if (!title)
 			title = main_title;
 
+		const title_id = title_to_id(title);
+		if (!title_id
+			// 無須添加重複的標題。
+			|| data_to_modify.title_list.has(title_id)) {
+			return;
+		}
+
 		const claim = {
 			// title 標題 (P1476)
 			P1476: title,
 			references
 		};
-
-		const title_id = title_to_id(title);
-		if (data_to_modify.title_list.has(title_id)) {
-			// 無須添加重複的標題。
-			return;
-		}
 
 		data_to_modify.title_list.add(title_id);
 		if (!data_to_modify.title_list.preferred_claim) {
@@ -1376,7 +1411,7 @@ async function for_each_PubMed_ID(PubMed_ID) {
 		&& main_title !== main_title.toUpperCase()) {
 		// No .language @ https://api.crossref.org/works/10.1107/s0108768100019121
 		const language = CrossRef_article_data.language || use_language;
-		data_to_modify.labels[language] = main_title;
+		set_label(main_title, language);
 		//const language_entity_id = language_code_mapping.get(language);
 		add_title_claim(CrossRef_article_data.wikidata_references, null, language);
 	} else {
@@ -2047,6 +2082,8 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			const original_title = CeL.wiki.data.value_of(statement);
 			const normalized_title = normalize_article_title(original_title)[0];
 			const title_id = title_to_id(normalized_title);
+			if (!title_id)
+				continue;
 			//console.trace([normalized_title, title_id, original_title === normalized_title, data_to_modify.title_list.has(title_id), original_title_list.has(title_id)]);
 			if (original_title === normalized_title) {
 				// 要以現在這個原有的標題為主。
@@ -2202,6 +2239,8 @@ wiki 標題	${JSON.stringify(article_item.labels.en)}
 			descriptions[language_code] = { language: language_code, value: description };
 		}
 		//console.trace(descriptions);
+
+		// [[Q66915746]], [[Q44422309]] PubMed ID 1119603 會出問題
 		await article_item.modify({ descriptions }, Object.assign(Object.create(null), default_data_modify_options, {
 			summary,
 		}));
@@ -2223,7 +2262,7 @@ async function fetch_ORCID_data_from_service(ORCID) {
 	// https://info.orcid.org/documentation/api-tutorials/api-tutorial-searching-the-orcid-registry/#easy-faq-2707
 	for (const type of ['record',/* 'external-identifiers', 'researcher-urls' */]) {
 		try {
-			JSON.from_XML((await (await CeL.fetch(`https://pub.orcid.org/v3.0/${ORCID}/${type}`)).text()).replace(/(<\/?)(\w+):\2([ >])/g, '$1$2$3'))[type]
+			JSON.from_XML((await (await fetch(`https://pub.orcid.org/v3.0/${ORCID}/${type}`)).text()).replace(/(<\/?)(\w+):\2([ >])/g, '$1$2$3'))[type]
 				.forEach(item => put_to_data(type === 'record' ? ORC_data : (ORC_data.person[type] = Object.create(null)), item));
 		} catch (e) {
 			// e.g., 該 ORCID 不存在，或 pub.orcid.org 無回應。無資料可用，因此放棄本 ORCID。

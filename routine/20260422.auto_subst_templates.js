@@ -22,6 +22,7 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:Jp']
 	&& ['Template:台北捷運色彩']
 	&& ['Template:Singlenotice']
+	&& ['Template:Engname']
 	//&& null
 	;
 

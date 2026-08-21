@@ -16,8 +16,9 @@ TODO:
 
 const debug_pages =
 	['澤蘭宮']
-	&& ['Wikipedia:沙盒'] && ['User:Cewbot/log/20260620/testcases']
 	&& ['聖顯者', '胡锡进', '撒奇萊雅族']
+	&& ['白鹭']
+	&& ['Wikipedia:沙盒'] && ['User:Cewbot/log/20260620/testcases']
 	&& null
 	;
 
@@ -35,7 +36,13 @@ CeL.run([
 	'application.debug.log',
 	// for CeL.guess_text_language()
 	'application.locale.encoding',
+	// CeL.character.load(), 僅在要設定 this.charset 時才需要載入。
+	'data.character',
 ]);
+
+// 視需要載入字元集。
+CeL.character.load('big5');
+CeL.character.load('gb2312');
 
 // Set default language. 改變預設之語言。 e.g., 'zh'
 //set_language('zh');
@@ -112,7 +119,7 @@ async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
-			//apfrom: '乌尔都语维基百科',
+			//apfrom: '指南客運',
 			//namespace: 'category',
 			//namespace: 'template',
 			namespace: wiki.latest_task_configuration.general.namespace,
@@ -248,7 +255,7 @@ async function for_each_page(page_data) {
 			|| interwiki_data.interlanguage.wiki_family
 			// e.g., [[s:es:Circular a las provincias del interior del 27 de mayo de 1810|1810年5月27日发给内陆各省的通知]] @ [[五月革命]]
 			|| interwiki_data.interlanguage.prefix !== interwiki_data.interwiki.prefix
-			// e.g., [[w:en:ABC]]
+			// e.g., [[w:en:title]]
 			&& !interwiki_data.localinterwiki_prefix) {
 			return;
 		}
