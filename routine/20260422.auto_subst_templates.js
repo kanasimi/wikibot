@@ -23,7 +23,7 @@ const debug_pages = ['Template:Infobox Twitch streamer', 'Template:Infobox bilib
 	&& ['Template:台北捷運色彩']
 	&& ['Template:Singlenotice']
 	&& ['Template:Engname']
-	//&& null
+	&& null
 	;
 
 
@@ -72,6 +72,37 @@ async function adapt_configuration(latest_task_configuration) {
 
 async function main_process() {
 
+	const subst_allowlist_Set = new Set(
+		CeL.wiki.table_to_array(await wiki.page(wiki.latest_task_configuration.general.subst_allowlist))
+			.map(row => {
+				let page_title = row[0];
+				const parsed = CeL.wiki.parser(page_title).parse();
+				CeL.assert([page_title, parsed.toString()],
+					// gettext_config:{"id":"wikitext-parser-checking-$1"}
+					CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_title)));
+				page_title = null;
+				parsed.each('link', link_token => {
+					page_title = link_token.page_title.toString();
+					return CeL.wiki.parser.parser_prototype.each.exit;
+				});
+
+				if (!page_title) {
+					//CeL.warn(`無法解析 ${row}，跳過。`);
+					return;
+				}
+
+				if (!wiki.is_namespace(page_title, 'template')) {
+					CeL.warn(`${CeL.wiki.title_link_of(page_title)} 不在 template namespace 中，跳過。`);
+					return;
+				}
+				if (page_title) {
+					//page_title = CeL.wiki.title_of(page_title);
+				}
+				return page_title;
+			})
+			.filter(page_title => !!page_title)
+	);
+
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, {
 			//namespace: 'category',
@@ -80,11 +111,21 @@ async function main_process() {
 		}))) {
 
 		/**{Map}自動 subst 採用的手動設定 manual settings。 */
-		const auto_subst_configuration_Map = await get_auto_subst_configuration(page_list
+		const auto_subst_configuration_Map = await get_auto_subst_configuration({
+			page_list
 			//.filter(page_data => /捷運|捷运|Rint\/Kh/.test(CeL.wiki.title_of(page_data)))
+			,
+			subst_allowlist_Set,
+		}
 		);
 
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
+			if (this_auto_subst_configuration?.not_in_allowlist) {
+				// category_of_templates_to_be_automatically_substituted 中的模板不在 subst_allowlist 中，跳過。
+				CeL.warn(`${CeL.wiki.title_link_of(template_title)} 雖在分類中，但不在 subst_allowlist 中，跳過。`);
+				continue;
+			}
+
 			await do_subst_template(template_title,
 				// 強制測試 .expand_transclusion()。
 				debug_pages ? { ...this_auto_subst_configuration, must_manually_expand_subst: true } :
@@ -156,11 +197,16 @@ function filter_page_list(page_list) {
  *  	subst_postfix: 'remove_empty_parameters',
  *  }
  */
-async function get_auto_subst_configuration(page_list) {
+async function get_auto_subst_configuration({ page_list, subst_allowlist_Set }) {
 	const auto_subst_configuration_Map = new Map;
 	function merge_auto_subst_configuration(page_data, this_auto_subst_configuration) {
 		// Read configuration from doc page.
 		const main_page_title = CeL.wiki.TDOC_to_main(page_data);
+		if (!subst_allowlist_Set.has(main_page_title)) {
+			auto_subst_configuration_Map.set(main_page_title, { not_in_allowlist: true });
+			return;
+		}
+
 		//let this_auto_subst_configuration = get_auto_subst_configuration_from_page(page_data);
 		const old_auto_subst_configuration = auto_subst_configuration_Map.get(main_page_title);
 		if (!old_auto_subst_configuration) {
@@ -356,8 +402,7 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 		log_to: null,
 	}, {
 		[move_from_link]: {
-			//namespace: 'main|Template',
-			namespace: '*',
+			namespace: wiki.latest_task_configuration.general.edit_namespace || 'main',
 			move_to_link,
 			must_manually_expand_subst,
 			subst_postfix,
