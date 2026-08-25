@@ -464,7 +464,7 @@
   schedule: "6 4 * * 1"
 
 - name: k8s-20240821-clean-up-misspelling-links.zhwiki
-  command: "node ./wikibot/routine/20240821.Clean_up_misspelling_links.js use_project=zh"
+  command: "node ./wikibot/routine/20240821.Clean_up_misspelling_links.js use_project=zhwiki"
   image: node18
   cpu: 0.25
   mem: 2Gi
@@ -473,11 +473,20 @@
 
 # 清理navbox模板中裸露的{{Collapsible option}}，改用{{Navbox documentation}}。
 - name: k8s-20251126.collapsible-option-to-navbox-doc
-  command: "node ./wikibot/routine/20251126.Move_exposed_template_Collapsible_option_to_Navbox_documentation.js use_project=zh"
+  command: "node ./wikibot/routine/20251126.Move_exposed_template_Collapsible_option_to_Navbox_documentation.js use_project=zhwiki"
   image: node18
   cpu: 0.25
   mem: 1Gi
   schedule: "15 12 * * 6"
+
+
+# 將所有 interwiki links （如 Wikimedia projects）的外部連結轉為 wiki計畫間連結（wikilinks）。
+- name: k8s-20260620.convert-interwiki-links
+  command: "node ./wikibot/routine/20260620.convert_interwiki_links.js use_project=zhwiki"
+  image: node18
+  cpu: 0.25
+  mem: 1Gi
+  schedule: "5 17 * * 6"
 
 
 # -----------------------------------------------------------------------------
