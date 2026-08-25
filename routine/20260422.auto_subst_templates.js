@@ -36,6 +36,8 @@ const replace_tool = require('../replace/replace_tool.js');
 /** {Object}wiki operator 操作子. */
 const wiki = new Wikiapi;
 
+const remove_token = CeL.wiki.parser.parser_prototype.each.remove_token;
+
 // ----------------------------------------------
 
 /**
@@ -328,7 +330,7 @@ const subst_postfix_functions = {
 		let changed = false;
 		parsed.each('comment', comment_token => {
 			changed = true;
-			return CeL.wiki.parser.parser_prototype.each.remove_token;
+			return remove_token;
 		});
 
 		if (!changed) {
