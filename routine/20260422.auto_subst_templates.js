@@ -50,8 +50,8 @@ async function adapt_configuration(latest_task_configuration) {
 	/** {Object}一般性設定。 general settings. */
 	const { general } = latest_task_configuration;
 
+	// 不取代超過一定嵌入數量的模板。預設為100個。硬限制為500個。
 	if (!(0 <= general.max_pages_before_abort && general.max_pages_before_abort <= 500)) {
-		// 不取代超過一定嵌入數量的模板。預設為100個。
 		general.max_pages_before_abort = 100;
 	}
 
@@ -397,7 +397,7 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 		wiki,
 		use_language,
 		// 嵌入本模板的頁面數量太多，跳過本模板不處理。
-		max_pages_before_abort: wiki.latest_task_configuration.general.max_pages_before_abort,
+		max_pages_before_abort: this_auto_subst_configuration?.max_pages_before_abort || wiki.latest_task_configuration.general.max_pages_before_abort,
 		work_options: { no_message: !debug_pages, },
 		not_bot_requests: true,
 		no_move_configuration_from_command_line: true,
