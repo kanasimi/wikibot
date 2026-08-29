@@ -338,6 +338,7 @@ async function main_process() {
 }
 
 async function infinite_execution() {
+	/**{String}記錄最近一次處理進度的檔案路徑。 */
 	const latest_processed_file_path = base_directory + 'latest_processed.json';
 	let latest_processed_data = CeL.read_file(latest_processed_file_path);
 	latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);

@@ -82,6 +82,22 @@ async function adapt_configuration(latest_task_configuration) {
 
 // ----------------------------------------------------------------------------
 
+// 先創建出/準備好本任務獨有的目錄，以便後續將所有的衍生檔案，如記錄檔、cache 等置放此目錄下。
+prepare_directory(base_directory);
+// prepare_directory(base_directory, true);
+
+/**{String}記錄最近一次處理進度的檔案路徑。 */
+const latest_processed_file_path = base_directory + 'latest_processed.json';
+let latest_processed_data = CeL.read_file(latest_processed_file_path);
+latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);
+if (latest_processed_data.title) {
+	CeL.info(`從 ${latest_processed_file_path} 讀入最近一次處理進度: ${CeL.wiki.title_link_of(latest_processed_data.title)}`);
+} else {
+	CeL.info(`不存在 ${JSON.stringify(latest_processed_file_path)}，尚未有最近一次處理進度紀錄。將從頭開始處理。`);
+}
+
+
+/**{String}本次任務名稱。 */
 const task_name = '整理跨語言連結與 Wikimedia projects 連結';
 
 let local_language_code;
@@ -119,7 +135,7 @@ async function main_process() {
 
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
-			//apfrom: '指南客運',
+			apfrom: latest_processed_data.title,
 			//namespace: 'category',
 			//namespace: 'template',
 			namespace: wiki.latest_task_configuration.general.namespace,
@@ -131,7 +147,14 @@ async function main_process() {
 			redirects: false,
 			summary: `${summary_prefix}: `,
 		});
+
+		if (!debug_pages && page_list.length > 0) {
+			latest_processed_data.title = CeL.wiki.title_of(page_list[0]);
+			CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
+		}
 	}
+
+	CeL.remove_file(latest_processed_file_path);
 }
 
 
