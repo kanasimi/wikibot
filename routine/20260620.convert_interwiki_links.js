@@ -91,9 +91,11 @@ const latest_processed_file_path = base_directory + 'latest_processed.json';
 let latest_processed_data = CeL.read_file(latest_processed_file_path);
 latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);
 if (latest_processed_data.title) {
-	CeL.info(`從 ${latest_processed_file_path} 讀入最近一次處理進度: ${CeL.wiki.title_link_of(latest_processed_data.title)}`);
+	CeL.info(`從 ${latest_processed_file_path} 讀入最近一次處理進度: [${latest_processed_data.count}] ${CeL.wiki.title_link_of(latest_processed_data.title)} (${new Date(latest_processed_data.date).toISOString()})`);
 } else {
 	CeL.info(`不存在 ${JSON.stringify(latest_processed_file_path)}，尚未有最近一次處理進度紀錄。將從頭開始處理。`);
+	latest_processed_data.count = 0;
+	latest_processed_data.date = Date.now();
 }
 
 
@@ -133,6 +135,8 @@ async function main_process() {
 
 	await wiki.register_redirects(['Translating', 'Webarchive', 'Wayback'], { namespace: 'Template' });
 
+	/**{Number}上一次處理的頁面數量。 */
+	let latest_slice_processed_count = 0;
 	for await (const page_list of (debug_pages ? [debug_pages]
 		: wiki.allpages({
 			apfrom: latest_processed_data.title,
@@ -150,6 +154,9 @@ async function main_process() {
 
 		if (!debug_pages && page_list.length > 0) {
 			latest_processed_data.title = CeL.wiki.title_of(page_list[0]);
+			latest_processed_data.date = Date.now();
+			latest_processed_data.count += latest_slice_processed_count;
+			latest_slice_processed_count = page_list.length;
 			CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
 		}
 	}
