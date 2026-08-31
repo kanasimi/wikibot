@@ -823,8 +823,8 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		// 不會再用到了。
 		delete meta_configuration.move_configuration_from_page_JSON;
 
-	} else if (/^https?:\/\//.test(meta_configuration.get_task_configuration_from)) {
-		// Treat `meta_configuration.get_task_configuration_from` as URL.
+	} else if (/^https:\/\/([^/]+\.)?(toolforge|wikimedia)\.org\//.test(meta_configuration.get_task_configuration_from)) {
+		// Treat `meta_configuration.get_task_configuration_from` as URL. SSRF防護: 僅允許 toolforge.org / wikimedia.org 上的 https 主機。
 		// e.g.,
 		// node general_replace.js "CBDB批量加入{{Authority control}}"
 		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"https://pagepile.toolforge.org/api.php?id=55935&action=get_data&doit&format=text","insert_layout":"{{Authority control}}"}}</syntaxhighlight>
