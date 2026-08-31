@@ -1,7 +1,7 @@
 ﻿/*
 node 20260422.auto_subst_templates.js use_project=zhwiki
 
-這個任務會自動替換引用{{.template_name_to_substitute|auto=yes|auto_config=}}的模板。
+這個任務會自動替換引用 subst_allowlist 的模板。
 
 2026/4/25 9:31:36	初版試營運
 

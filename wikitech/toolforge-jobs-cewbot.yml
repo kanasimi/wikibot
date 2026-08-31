@@ -489,6 +489,15 @@
   schedule: "5 17 * * 6"
 
 
+# 自動替換引用 subst_allowlist 的模板。
+- name: k8s-20260422.auto-subst-templates
+  command: "node ./wikibot/routine/20260422.auto_subst_templates.js use_project=zhwiki"
+  image: node18
+  cpu: 0.25
+  mem: 1Gi
+  schedule: "5 18 * * 6"
+
+
 # -----------------------------------------------------------------------------
 # zh.wikinews
 
