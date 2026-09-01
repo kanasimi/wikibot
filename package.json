@@ -20,6 +20,11 @@
 		"url" : "https://github.com/kanasimi/wikibot.git"
 	},
 
+	"scripts" : {
+		"test" : "node --test test/",
+		"test:coverage" : "node --test --experimental-test-coverage test/"
+	},
+
 	"devDependencies" : {
 	},
 	"dependencies" : {
