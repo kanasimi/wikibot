@@ -58,7 +58,7 @@ const fix_namespace = '*'
 const ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 /**{Number}錯誤編輯的開始時間。 */
-const start_time = Date.now() - 1 * 60 * 60 * 1000
+const start_time = Date.now() - 3 * 60 * 60 * 1000
 	//- 90 * ONE_DAY_LENGTH_VALUE
 	//&& Date.parse('2026-05-09T20:46:44Z')
 	;
@@ -71,14 +71,16 @@ const end_time = Date.now()
 const PATTERN_filter_page_title = null;
 
 /**{RegExp}篩選包含此 summary 的編輯。 fix only edits with the summary. */
-const PATTERN_filter_summary = /自動替換引用模板.*Template:Singlenotice/;
+const PATTERN_filter_summary = /自動替換引用模板.*Template:/;
 /**{RegExp}跳過包含此內容之頁面時，提出警告。 */
 const PATTERN_warning_the_content_when_skip = /{{\s*Single ?notice/
-	&& null;
+	&& null
+	;
 
 /**{RegExp}篩選包含此 diff from 的內容。 */
 const PATTERN_filter_diff_from = /<ref/i
-	&& null;
+	&& null
+	;
 
 /**{RegExp}篩選包含此 diff to 的內容。 */
 const PATTERN_filter_diff_to = null;
