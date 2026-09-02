@@ -63,6 +63,9 @@ read {{cbignore}}
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
+const dns = require('node:dns').promises;
+const net = require('node:net');
+
 // Load modules.
 CeL.run([
 	'application.net.wiki.template_functions',
@@ -823,13 +826,16 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		// 不會再用到了。
 		delete meta_configuration.move_configuration_from_page_JSON;
 
-	} else if (/^https:\/\/([^/]+\.)?(toolforge|wikimedia)\.org\//.test(meta_configuration.get_task_configuration_from)) {
-		// Treat `meta_configuration.get_task_configuration_from` as URL. SSRF防護: 僅允許 toolforge.org / wikimedia.org 上的 https 主機。
+	} else if (/^https:\/\//.test(meta_configuration.get_task_configuration_from)) {
+		// Treat `meta_configuration.get_task_configuration_from` as URL.
+		// SSRF 防護: 驗證目的地不會落在內部/保留位址範圍，而非限制網域，
+		// 以便支援基金會以外的任意 MediaWiki 站台。
 		// e.g.,
 		// node general_replace.js "CBDB批量加入{{Authority control}}"
 		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"https://pagepile.toolforge.org/api.php?id=55935&action=get_data&doit&format=text","insert_layout":"{{Authority control}}"}}</syntaxhighlight>
+		const task_configuration_url = await assert_safe_task_configuration_url(meta_configuration.get_task_configuration_from);
 		CeL.log_temporary(`Fetching page list from [${meta_configuration.get_task_configuration_from}]...`);
-		let page_list = await fetch(meta_configuration.get_task_configuration_from);
+		let page_list = await fetch(task_configuration_url, { redirect: 'error' });
 		page_list = await page_list.text();
 		page_list = page_list.trim().split('\n');
 		//console.trace(page_list);
@@ -1646,6 +1652,126 @@ function text_processor_for_search(wikitext, page_data) {
 }
 
 // ------------------------------------
+
+// SSRF 防護: 以純數字運算（而非 net.BlockList，其行為在本專案載入的執行環境下不穩定）
+// 判斷 IP 位址是否落在 loopback / private / link-local (含雲端 metadata 服務
+// 169.254.169.254) / CGNAT / documentation / multicast 等保留位址範圍內
+// (IPv4 與 IPv6，包含 IPv4-mapped IPv6 位址如 ::ffff:127.0.0.1)。
+
+function ipv4_to_uint32(address) {
+	return address.split('.').reduce((accumulator, part) => (accumulator << 8) + Number(part), 0) >>> 0;
+}
+
+function ipv6_to_bigint(address) {
+	// 展開內嵌的 IPv4 部分，例如 '::ffff:127.0.0.1' 結尾的 '127.0.0.1'。
+	const ipv4_tail_match = address.match(/(?:^|:)(\d+\.\d+\.\d+\.\d+)$/);
+	if (ipv4_tail_match) {
+		const ipv4_uint32 = ipv4_to_uint32(ipv4_tail_match[1]);
+		address = address.slice(0, address.length - ipv4_tail_match[1].length)
+			+ (ipv4_uint32 >>> 16).toString(16) + ':' + (ipv4_uint32 & 0xFFFF).toString(16);
+	}
+
+	let groups;
+	if (address.includes('::')) {
+		const [head, tail] = address.split('::');
+		const head_groups = head ? head.split(':') : [];
+		const tail_groups = tail ? tail.split(':') : [];
+		const missing_group_count = 8 - head_groups.length - tail_groups.length;
+		groups = [...head_groups, ...Array(missing_group_count).fill('0'), ...tail_groups];
+	} else {
+		groups = address.split(':');
+	}
+
+	return groups.reduce((accumulator, group) => (accumulator << 16n) + BigInt(parseInt(group || '0', 16)), 0n);
+}
+
+function is_in_ipv4_range(address_uint32, [base_address, prefix_length]) {
+	const mask = prefix_length === 0 ? 0 : (0xFFFFFFFF << (32 - prefix_length)) >>> 0;
+	return (address_uint32 & mask) >>> 0 === (ipv4_to_uint32(base_address) & mask) >>> 0;
+}
+
+function is_in_ipv6_range(address_bigint, [base_address, prefix_length]) {
+	const full_mask = (1n << 128n) - 1n;
+	const mask = prefix_length === 0 ? 0n : (full_mask << BigInt(128 - prefix_length)) & full_mask;
+	return (address_bigint & mask) === (ipv6_to_bigint(base_address) & mask);
+}
+
+const reserved_ipv4_ranges = [
+	['0.0.0.0', 8],
+	['10.0.0.0', 8],
+	['100.64.0.0', 10],
+	['127.0.0.0', 8],
+	['169.254.0.0', 16],
+	['172.16.0.0', 12],
+	['192.0.0.0', 24],
+	['192.0.2.0', 24],
+	['192.168.0.0', 16],
+	['198.18.0.0', 15],
+	['198.51.100.0', 24],
+	['203.0.113.0', 24],
+	['224.0.0.0', 4],
+	['240.0.0.0', 4],
+];
+
+const reserved_ipv6_ranges = [
+	['::', 128],
+	['::1', 128],
+	// IPv4-mapped IPv6 addresses, e.g. ::ffff:127.0.0.1
+	['::ffff:0:0', 96],
+	['64:ff9b::', 96],
+	['100::', 64],
+	['fc00::', 7],
+	['fe80::', 10],
+];
+
+// 判斷 IP 位址字面值是否落在內部/保留位址範圍內。
+function is_reserved_ip_address(address) {
+	if (net.isIPv4(address)) {
+		const address_uint32 = ipv4_to_uint32(address);
+		return reserved_ipv4_ranges.some(range => is_in_ipv4_range(address_uint32, range));
+	}
+	if (net.isIPv6(address)) {
+		const address_bigint = ipv6_to_bigint(address);
+		return reserved_ipv6_ranges.some(range => is_in_ipv6_range(address_bigint, range));
+	}
+	// 無法辨識的位址格式：預設視為不安全。
+	return true;
+}
+
+// SSRF 防護: 驗證 task configuration URL 的目的地不會落在內部/保留位址範圍，
+// 而非限制網域，以便支援任意（非僅基金會）MediaWiki 站台。
+// `lookup` 可於測試時注入，避免依賴真實 DNS 解析。
+async function assert_safe_task_configuration_url(url_string, { lookup = dns.lookup } = {}) {
+	const url = new URL(url_string);
+
+	if (url.protocol !== 'https:') {
+		throw new Error(`Task configuration URL must use HTTPS: ${url_string}`);
+	}
+
+	if (url.username || url.password) {
+		throw new Error(`Task configuration URL must not contain credentials: ${url_string}`);
+	}
+
+	if (url.port) {
+		// `new URL()` 已將明確指定的預設連接埠 (443) 正規化為空字串，
+		// 因此任何殘留值皆為非預設連接埠。
+		throw new Error(`Task configuration URL must use the default HTTPS port: ${url_string}`);
+	}
+
+	// `url.hostname` 對 IPv6 字面位址會保留中括號，例如 '[::1]'。
+	const hostname = url.hostname.replace(/^\[|\]$/g, '');
+	const addresses = net.isIP(hostname)
+		? [{ address: hostname }]
+		: await lookup(hostname, { all: true, verbatim: true });
+
+	for (const { address } of addresses) {
+		if (is_reserved_ip_address(address)) {
+			throw new Error(`Task configuration URL resolves to a private/reserved address (${address}): ${url_string}`);
+		}
+	}
+
+	return url;
+}
 
 function remove_slash_tail(url) {
 	// 'http://www.example.com/' → 'http://www.example.com'
@@ -3560,4 +3686,8 @@ module.exports = {
 	//	parse_move_pairs_from_link,
 	parse_move_pairs_from_reverse_moved_page,
 	move_via_title_pair,
+
+	// SSRF protection for get_task_configuration_from URLs
+	is_reserved_ip_address,
+	assert_safe_task_configuration_url,
 };
