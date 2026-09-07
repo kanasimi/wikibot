@@ -629,7 +629,7 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		try {
 			task_configuration = JSON.parse(tag_token[1].toString());
 		} catch (e) {
-			CeL.error(`${get_move_configuration_from_section.name}: ${e}`);
+			CeL.error(`${get_move_configuration_from_section.name}: Invalid JSON in ${section.section_title}: ${e}`);
 		}
 		//console.trace(task_configuration);
 
@@ -824,6 +824,13 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		delete meta_configuration.move_configuration_from_page_JSON;
 
 	} else if (/^https?:\/\//.test(meta_configuration.get_task_configuration_from)) {
+		if (section.API_URL
+			&& !/^https:\/\/([^/]+\.)?(toolforge|wikimedia)\.org\//.test(meta_configuration.get_task_configuration_from)) {
+			CeL.warn([get_move_configuration_from_section.name + ': ', {
+				// _gettext_config:{"id":"get-task-configuration-from-external-url-$1"}
+				T: ['Get task configuration from external URL: %1', meta_configuration.get_task_configuration_from]
+			}]);
+		}
 		// Treat `meta_configuration.get_task_configuration_from` as URL.
 		// e.g.,
 		// node general_replace.js "CBDB批量加入{{Authority control}}"
@@ -1289,7 +1296,7 @@ async function prepare_operation(meta_configuration, move_configuration) {
 				move_configuration.splice(move_configuration_index + 1, 0, [pair[0], {
 					...task_configuration,
 					//is_additional_task_for_varianttitles: true,
-					list_title: move_from_link,
+					list_title: varianttitle,
 					move_from_link: varianttitle
 				}]);
 				//console.trace(move_configuration);

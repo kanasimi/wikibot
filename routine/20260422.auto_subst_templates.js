@@ -74,52 +74,80 @@ async function adapt_configuration(latest_task_configuration) {
 
 async function main_process() {
 
-	const subst_allowlist_Set = new Set(
-		CeL.wiki.table_to_array(await wiki.page(wiki.latest_task_configuration.general.subst_allowlist))
-			.map(row => {
-				let page_title = row[0];
-				const parsed = CeL.wiki.parser(page_title).parse();
-				CeL.assert([page_title, parsed.toString()],
-					// gettext_config:{"id":"wikitext-parser-checking-$1"}
-					CeL.gettext('wikitext parser checking: %1', CeL.wiki.title_link_of(page_title)));
-				page_title = null;
-				parsed.each('link', link_token => {
+	const subst_allowlist_Map = new Map();
+	CeL.wiki.table_to_array(await wiki.page(wiki.latest_task_configuration.general.subst_allowlist), {
+		cell_processor(cell, options) {
+			// preserve parsed tokens for later processing.
+			return cell;
+		},
+		row_processor(row, options) {
+			let page_title = null;
+			CeL.wiki.parser.parser_prototype.each.call(row[0], 'template', template_token => {
+				if (template_token.name === 'Tl') {
+					page_title = wiki.to_namespace(template_token.parameters[1].toString(), 'Template');
+					return CeL.wiki.parser.parser_prototype.each.exit;
+				}
+			});
+			if (!page_title) {
+				CeL.wiki.parser.parser_prototype.each.call(row[0], 'link', link_token => {
 					page_title = link_token.page_title.toString();
 					return CeL.wiki.parser.parser_prototype.each.exit;
 				});
+			}
 
-				if (!page_title) {
-					//CeL.warn(`無法解析 ${row}，跳過。`);
-					return;
-				}
+			if (!page_title) {
+				//CeL.warn(`無法解析 ${row}，跳過。`);
+				return;
+			}
 
-				if (!wiki.is_namespace(page_title, 'template')) {
-					CeL.warn(`${CeL.wiki.title_link_of(page_title)} 不在 template namespace 中，跳過。`);
+			if (!wiki.is_namespace(page_title, 'template')) {
+				CeL.warn(`${CeL.wiki.title_link_of(page_title)} 不在 template namespace 中，跳過。`);
+				return;
+			}
+			if (false && page_title) {
+				page_title = CeL.wiki.title_of(page_title);
+			}
+
+			let auto_subst_configuration;
+			CeL.wiki.parser.parser_prototype.each.call(row[1], '<syntaxhighlight>', tag_token => {
+				if (tag_token.attributes.lang !== 'json')
 					return;
+
+				try {
+					let json = JSON.parse(tag_token[1].toString());
+					if (json?.auto_subst_configuration) {
+						auto_subst_configuration = json.auto_subst_configuration;
+					} else {
+						auto_subst_configuration = json;
+					}
+				} catch (e) {
+					CeL.error(`Invalid JSON in ${CeL.wiki.title_link_of(page_title)}: ${e}`);
 				}
-				if (page_title) {
-					//page_title = CeL.wiki.title_of(page_title);
-				}
-				return page_title;
-			})
-			.filter(page_title => !!page_title)
-	);
+			});
+
+			subst_allowlist_Map.set(page_title, auto_subst_configuration);
+
+			return row;
+		}
+	});
 
 	for await (const page_list of (debug_pages ? [debug_pages]
-		: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, {
-			//namespace: 'category',
-			//namespace: 'template',
-			batch_size: 100,
-		}))) {
+		: wiki.latest_task_configuration.general.ignore_template_to_substitute ? subst_allowlist_Map.keys()
+			: wiki.categorymembers(wiki.latest_task_configuration.general.category_of_templates_to_be_automatically_substituted, {
+				//namespace: 'category',
+				//namespace: 'template',
+				batch_size: 100,
+			}))) {
 
 		/**{Map}自動 subst 採用的手動設定 manual settings。 */
-		const auto_subst_configuration_Map = await get_auto_subst_configuration({
-			page_list
-			//.filter(page_data => /捷運|捷运|Rint\/Kh/.test(CeL.wiki.title_of(page_data)))
-			,
-			subst_allowlist_Set,
-		}
-		);
+		const auto_subst_configuration_Map = wiki.latest_task_configuration.general.ignore_template_to_substitute ? subst_allowlist_Map
+			: await get_auto_subst_configuration({
+				page_list
+				//.filter(page_data => /捷運|捷运|Rint\/Kh/.test(CeL.wiki.title_of(page_data)))
+				,
+				subst_allowlist_Map,
+			}
+			);
 
 		for (const [template_title, this_auto_subst_configuration] of auto_subst_configuration_Map) {
 			if (this_auto_subst_configuration?.not_in_allowlist) {
@@ -199,14 +227,20 @@ function filter_page_list(page_list) {
  *  	subst_postfix: 'remove_empty_parameters',
  *  }
  */
-async function get_auto_subst_configuration({ page_list, subst_allowlist_Set }) {
+async function get_auto_subst_configuration({ page_list, subst_allowlist_Map }) {
 	const auto_subst_configuration_Map = new Map;
 	function merge_auto_subst_configuration(page_data, this_auto_subst_configuration) {
 		// Read configuration from doc page.
 		const main_page_title = CeL.wiki.TDOC_to_main(page_data);
-		if (!subst_allowlist_Set.has(main_page_title)) {
+		if (!subst_allowlist_Map.has(main_page_title)) {
 			auto_subst_configuration_Map.set(main_page_title, { not_in_allowlist: true });
 			return;
+		}
+
+		if (this_auto_subst_configuration) {
+			Object.assign(this_auto_subst_configuration, subst_allowlist_Map.get(main_page_title));
+		} else {
+			this_auto_subst_configuration = subst_allowlist_Map.get(main_page_title);
 		}
 
 		//let this_auto_subst_configuration = get_auto_subst_configuration_from_page(page_data);
