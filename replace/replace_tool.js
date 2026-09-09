@@ -824,17 +824,20 @@ async function get_move_configuration_from_section(meta_configuration, section, 
 		delete meta_configuration.move_configuration_from_page_JSON;
 
 	} else if (/^https?:\/\//.test(meta_configuration.get_task_configuration_from)) {
-		if (section.API_URL
-			&& !/^https:\/\/([^/]+\.)?(toolforge|wikimedia)\.org\//.test(meta_configuration.get_task_configuration_from)) {
-			CeL.warn([get_move_configuration_from_section.name + ': ', {
-				// _gettext_config:{"id":"get-task-configuration-from-external-url-$1"}
-				T: ['Get task configuration from external URL: %1', meta_configuration.get_task_configuration_from]
-			}]);
-		}
 		// Treat `meta_configuration.get_task_configuration_from` as URL.
 		// e.g.,
 		// node general_replace.js "CBDB批量加入{{Authority control}}"
 		// <syntaxhighlight lang="json">{"replace_tool_configuration":{"get_task_configuration_from":"https://pagepile.toolforge.org/api.php?id=55935&action=get_data&doit&format=text","insert_layout":"{{Authority control}}"}}</syntaxhighlight>
+
+		// TODO: SSRF 防護: 驗證目的地不會落在內部/保留位址範圍，而非限制網域，支援基金會以外的任意 MediaWiki 站台。
+		// https://github.com/kanasimi/wikibot/pull/64/commits/e3c0ef5f98f9ded46a112aa3014d2f6e45329db9
+
+		// SSRF防護: 僅允許 toolforge.org / wikimedia.org 上的 https 主機。
+		if (!/^https:\/\/([^/]+\.)?(toolforge|wikimedia)\.org\//.test(meta_configuration.get_task_configuration_from)) {
+			throw new Error('Get task configuration from non-WMF or insecure URL: %1' + meta_configuration.get_task_configuration_from);
+			return;
+		}
+
 		CeL.log_temporary(`Fetching page list from [${meta_configuration.get_task_configuration_from}]...`);
 		let page_list = await fetch(meta_configuration.get_task_configuration_from);
 		page_list = await page_list.text();
