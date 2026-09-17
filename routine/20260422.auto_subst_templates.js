@@ -438,12 +438,13 @@ async function do_subst_template(template_title, this_auto_subst_configuration) 
 		log_to: null,
 	}, {
 		[move_from_link]: {
-			namespace: wiki.latest_task_configuration.general.edit_namespace || 'main',
+			namespace: this_auto_subst_configuration?.namespace || wiki.latest_task_configuration.general.edit_namespace || 'main',
 			move_to_link,
 			must_manually_expand_subst,
 			subst_postfix,
 			filter_template_to_be_expanded,
 			ignore_template_depth_limit,
+			detect_user_and_date_via_content: this_auto_subst_configuration?.detect_user_and_date_via_content,
 			summary: `${CeL.wiki.title_link_of(wiki.latest_task_configuration.configuration_page_title, '自動替換引用模板')}: ${CeL.wiki.title_link_of(move_from_link)}${this_auto_subst_configuration?.from_category ? ` (from ${CeL.wiki.title_link_of(this_auto_subst_configuration.from_category)})` : ''}`
 			//+ ' 人工監視檢測中 '
 			,

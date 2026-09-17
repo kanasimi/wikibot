@@ -19,6 +19,13 @@ Does not operate if an article level-2 section has more than one {{Multiple issu
 
 'use strict';
 
+const debug_pages = ['Wikipedia:Sandbox']
+	&& ['List of Cars characters',]
+	&& ['Far-right politics in Slovenia',]
+	&& ['Khalid Duran',]
+	&& null
+	;
+
 // Load CeJS library and modules.
 require('../wiki loader.js');
 
@@ -185,12 +192,8 @@ async function main_process() {
 	});
 
 	// for debug specified article
-	if (false) {
-		setTimeout(() => check_articles_embeddedin_template([
-			'Wikipedia:Sandbox',
-			//'List of Cars characters',
-			'Far-right politics in Slovenia',
-		]), 0);
+	if (debug_pages) {
+		setTimeout(() => check_articles_embeddedin_template(debug_pages), 0);
 		return;
 	}
 
@@ -232,15 +235,19 @@ function is_maintenance_template(template_name) {
 
 async function check_articles_embeddedin_template(template_name) {
 	const configuration = wiki.latest_task_configuration;
-	for await (const pages_including_maintenance_template of (Array.isArray(template_name) ? [template_name] : wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
-		// for debug
-		// limit: 20,
-		// 本作業僅處理條目命名空間
-		namespace: 0,
-		batch_size: 500,
-		page_filter: configuration.pageid_processed ? page_data => !(page_data.pageid in configuration.pageid_processed)
-			: page_data => !configuration.count_list.some(list_Set => list_Set.has(page_data.title)),
-	}))) {
+	for await (const pages_including_maintenance_template of (
+		// `debug_pages`
+		Array.isArray(template_name) ? [template_name]
+			: wiki.embeddedin(wiki.to_namespace(template_name, 'template'), {
+				// for debug
+				// limit: 20,
+				// 本作業僅處理條目命名空間
+				namespace: 0,
+				batch_size: 500,
+				page_filter: configuration.pageid_processed ? page_data => !(page_data.pageid in configuration.pageid_processed)
+					: page_data => !configuration.count_list.some(list_Set => list_Set.has(page_data.title)),
+			}))) {
+
 		await wiki.for_each_page(pages_including_maintenance_template, check_pages_including_maintenance_template, {
 			log_to,
 			// 規範多個問題模板
@@ -253,6 +260,7 @@ async function check_articles_embeddedin_template(template_name) {
 			// for debug
 			// tags: wiki.site_name() === 'enwiki' ? 'bot trial' : '',
 		});
+
 	}
 }
 

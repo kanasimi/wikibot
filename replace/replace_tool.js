@@ -2672,12 +2672,17 @@ async function subst_template(token, index, parent) {
 	// https://en.wikipedia.org/wiki/Help:Substitution#Making_templates_behave_differently_when_transcluded_or_substituted
 	// https://www.mediawiki.org/wiki/Help:Pre-save_transform
 
+	const detect_user_and_date_via_content = 'detect_user_and_date_via_content' in task_configuration ? task_configuration.detect_user_and_date_via_content
+		// e.g., {{subst:REVISIONUSER}} @ [[Template:Uw-ai1]]
+		: /REVISIONUSER/.test(token);
 	let expanded_code = await CeL.wiki.expand_transclusion(token.toString(), task_configuration[KEY_wiki_session].append_session_to_options({
 		mode: 'PST',
 		max_template_depth: 1,
 		// for convert_parameter() 需要知道被展開的頁面。
 		transclusion_from_page: this.page_to_edit,
-		filter_template_to_be_expanded: this.task_configuration.filter_template_to_be_expanded
+		filter_template_to_be_expanded: task_configuration.filter_template_to_be_expanded,
+		//detect_user_and_date_via_content,
+		detect_user_and_date_using_template: /*detect_user_and_date_via_content &&*/ token,
 	}));
 
 	const parse_options = task_configuration[KEY_wiki_session].append_session_to_options({ title: CeL.wiki.title_of(this.page_to_edit), template_token_called: token });
@@ -2710,14 +2715,23 @@ async function subst_template(token, index, parent) {
 
 		// 注意: function expand_transclusion() 可能設定過 .skip_inner_traversal，之後執行 .each() 必須重新 parse。
 		expanded_code = CeL.wiki.parse(expanded_code.toString(), parse_options);
-		CeL.wiki.parser.parser_prototype.each.call(expanded_code, 'magic_word_function', token => {
-			if (token.module_name === 'Check for unknown parameters') {
+		CeL.wiki.parser.parser_prototype.each.call(expanded_code, token => {
+			if (token.type === 'magic_word_function' && token.module_name === 'Check for unknown parameters') {
+				return remove_token;
+			}
+			if (token.type === 'tag' && token.tag in {
+				b: true,
+				i: true,
+				s: true,
+				span: true,
+			} && !token[1].toString()) {
 				return remove_token;
 			}
 		}, this.task_configuration[KEY_wiki_session].append_session_to_options());
 	}
 
-	if (/{{\s*#\w{2}/.test(CeL.wiki.parse.wiki_element_to_key(expanded_code).toString()) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
+	// e.g., REVISIONUSER, REVISIONID, REVISIONTIMESTAMP, REVISIONCOMMENT
+	if (/{{\s*(?:#\w{2}|REVISION)/.test(CeL.wiki.parse.wiki_element_to_key(expanded_code).toString()) && !this.task_configuration[KEY_wiki_session].is_namespace(this.page_to_edit, 'template')) {
 		// 模板展開之後不該包含 magic words，恐怕是出錯了。
 		CeL.error(`${subst_template.name}: Failed to expand template on ${CeL.wiki.title_link_of(this.page_to_edit)}: ${token.toString()} → ${expanded_code.toString()}`);
 		// 跳出，不編輯。

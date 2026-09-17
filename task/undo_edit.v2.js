@@ -58,7 +58,7 @@ const fix_namespace = '*'
 const ONE_DAY_LENGTH_VALUE = new Date(0, 0, 2) - new Date(0, 0, 1);
 
 /**{Number}錯誤編輯的開始時間。 */
-const start_time = Date.now() - 3 * 60 * 60 * 1000
+const start_time = Date.now() - 1 * 60 * 60 * 1000
 	//- 90 * ONE_DAY_LENGTH_VALUE
 	//&& Date.parse('2026-05-09T20:46:44Z')
 	;
