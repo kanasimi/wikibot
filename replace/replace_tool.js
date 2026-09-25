@@ -1227,9 +1227,16 @@ async function prepare_operation(meta_configuration, move_configuration) {
 	// Object.entries(move_configuration).forEach(main_move_process);
 	if (CeL.is_Object(move_configuration)) {
 		move_configuration = Object.entries(move_configuration);
-	} else {
-		// assert: Array.isArray(move_configuration)
+	} else if (!Array.isArray(move_configuration)) {
+		// e.g., 指定 section_title，但未找到此 section。
+		CeL.error([prepare_operation.name + ': ', {
+			// gettext_config:{"id":"invalid-move-configuration-$1"}
+			T: ['Invalid move configuration: %1', JSON.stringify(move_configuration)]
+		}]);
+		throw new Error('Invalid move configuration: ' + JSON.stringify(move_configuration));
+		return;
 	}
+	// assert: Array.isArray(move_configuration)
 
 	for (let move_configuration_index = 0; move_configuration_index < move_configuration.length; move_configuration_index++) {
 		const pair = move_configuration[move_configuration_index];
@@ -1626,7 +1633,7 @@ function parse_move_link(link, session) {
 	if (!link_token || link_token.type !== 'link')
 		return;
 
-	const normalized_title = session.normalize_title(link, {
+	const normalized_title = session.normalize_title(link_token[0].toString(), {
 		// 維持原有的表達方式。
 		no_upper_case_initial: true,
 		//keep_anchor: true,
@@ -1639,7 +1646,10 @@ function parse_move_link(link, session) {
 		// namespace	{{NAMESPACE}}
 		ns: session.namespace(link_token.page_title),
 		// page name only, without namespace {{PAGENAME}}
-		page_name: session.remove_namespace(normalized_title),
+		page_name: session.remove_namespace(normalized_title, {
+			// 維持原有的表達方式。
+			no_upper_case_initial: true,
+		}),
 		// anchor without '#'
 		anchor: link_token.anchor,
 		display_text: link_token.display_text,

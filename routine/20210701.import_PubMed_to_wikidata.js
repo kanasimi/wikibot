@@ -356,7 +356,9 @@ async function infinite_execution() {
 		CeL.log_temporary(process.title = `PubMed ID ${latest_processed_data.id}`);
 		try {
 			const result = await for_each_PubMed_ID(latest_processed_data.id++);
-			CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
+			if (!(CeL.env.arg_hash?.debug_id >= 1)) {
+				CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
+			}
 		} catch (e) {
 			// Still import next article.
 			console.error(e);
