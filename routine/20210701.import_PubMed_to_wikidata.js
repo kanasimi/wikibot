@@ -348,8 +348,10 @@ async function infinite_execution() {
 	} else {
 		latest_processed_data = CeL.read_file(latest_processed_file_path);
 		latest_processed_data = latest_processed_data ? JSON.parse(latest_processed_data.toString()) : Object.create(null);
-		if (!(latest_processed_data.id >= 1))
+		if (!(latest_processed_data.id >= 1)) {
 			latest_processed_data.id = 1;
+		}
+		latest_processed_data.count = 0;
 	}
 
 	while (true) {
@@ -357,6 +359,8 @@ async function infinite_execution() {
 		try {
 			const result = await for_each_PubMed_ID(latest_processed_data.id++);
 			if (!(CeL.env.arg_hash?.debug_id >= 1)) {
+				latest_processed_data.count++;
+				latest_processed_data.date = (new Date).toISOString();
 				CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
 			}
 		} catch (e) {

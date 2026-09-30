@@ -332,7 +332,8 @@ function normalize_parameter(token) {
 				&& parameter.toLowerCase() in CeL.wiki.language_code_to_site_alias) {
 			normalized.bad_foreign_language = parameter.toLowerCase();
 			normalized.bad_token_wikitext = token.toString();
-			parameter = token[index][2]
+			// TODO: use CeL.wiki.parse.replace_parameter() to replace parameter.
+			parameter = token[token.index_of[index]][2]
 			// 為日文特別修正: 'jp' is wrong! 'jp' 不是標準的ISO編碼。
 			= CeL.wiki.language_code_to_site_alias[parameter.toLowerCase()];
 		}

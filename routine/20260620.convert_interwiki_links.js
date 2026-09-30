@@ -95,7 +95,7 @@ if (latest_processed_data.title) {
 } else {
 	CeL.info(`不存在 ${JSON.stringify(latest_processed_file_path)}，尚未有最近一次處理進度紀錄。將從頭開始處理。`);
 	latest_processed_data.count = 0;
-	latest_processed_data.date = Date.now();
+	latest_processed_data.date = (new Date).toISOString();
 }
 
 
@@ -154,7 +154,7 @@ async function main_process() {
 
 		if (!debug_pages && page_list.length > 0) {
 			latest_processed_data.title = CeL.wiki.title_of(page_list[0]);
-			latest_processed_data.date = Date.now();
+			latest_processed_data.date = (new Date).toISOString();
 			latest_processed_data.count += latest_slice_processed_count;
 			latest_slice_processed_count = page_list.length;
 			CeL.write_file(latest_processed_file_path, JSON.stringify(latest_processed_data));
