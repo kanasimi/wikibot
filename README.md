@@ -190,6 +190,20 @@ wiki.edit_data(function(entity) {
 ```
 
 
+### Tests
+
+Unit tests of the tool functions are put in [test/](https://github.com/kanasimi/wikibot/tree/master/test) and run with the [node:test](https://nodejs.org/api/test.html) runner. They do not contact any wiki.
+
+```bash
+npm install
+npm test
+# with a coverage report:
+npm run test:coverage
+```
+
+The tests need `wiki configuration.js`; it is created from `wiki configuration.sample.js` automatically when missing.
+
+
 ## Screenshot
 Screenshot of [WPCHECK.js](https://github.com/kanasimi/wikibot/blob/master/routine/20151002.WPCHECK.js) (fix_16 only):
 
