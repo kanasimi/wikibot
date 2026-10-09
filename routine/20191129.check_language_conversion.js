@@ -85,6 +85,7 @@ async function adapt_configuration(latest_task_configuration) {
 	await main_process();
 })();
 
+/**{Set}所有talk page包含{{Unregistered CGroup}}的頁面。 */
 let talk_pages_transclusion_notification;
 
 async function main_process() {
@@ -720,7 +721,9 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	//console.log([page_data.title, conversion_list]);
 	//OK: return Wikiapi.skip_edit;
 
-	let changed, NoteTA_token, unregistered_groups_Set = new Set;
+	let changed, NoteTA_token;
+	/**{Set}本文章中使用的未登記公共轉換組。 */
+	const unregistered_groups_Set = new Set;
 	const _this = this;
 	/**
 	 * register rules of {{NoteTA}} to conversion_hash, unregistered_groups_Set, etc.
@@ -1099,16 +1102,19 @@ async function for_NoteTA_article(page_data, messages, work_config) {
 	if (unregistered_groups_Set.size > 0 || talk_pages_transclusion_notification.has(page_data.title)) {
 		const unregistered_groups_template_name = wiki.latest_task_configuration.general.unregistered_groups_template_name;
 		if (unregistered_groups_template_name) {
+			/**{Array}本文章中使用的未登記公共轉換組。 */
 			const unregistered_groups_Array = Array.from(unregistered_groups_Set);
 			//CeL.set_debug(6);
 			// 編輯條目討論頁上的提示模板。
 			await wiki.edit_page(wiki.to_talk_page(page_data), talk_page_data => {
 				const parsed = talk_page_data.parse();
 				CeL.assert([CeL.wiki.content_of(talk_page_data), parsed.toString()], 'wikitext parser check for ' + CeL.wiki.title_link_of(talk_page_data));
+				/** talk page 所包含的 {{Unregistered CGroup}} element。 */
 				let unregistered_groups_template = parsed.find_template(unregistered_groups_template_name);
 				if (unregistered_groups_Array.length === 0) {
 					if (!unregistered_groups_template)
 						return Wikiapi.skip_edit;
+					// Remove all {{Unregistered CGroup}} templates. 刪除提醒使用未登記公共轉換組的模板。
 					parsed.each(wiki.to_namespace(unregistered_groups_template_name, 'Template'), token => parsed.each.remove_token);
 					const wikitext = parsed.toString();
 					if (!wikitext.trim()) {

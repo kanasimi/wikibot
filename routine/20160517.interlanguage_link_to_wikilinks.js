@@ -332,7 +332,8 @@ function normalize_parameter(token) {
 				&& parameter.toLowerCase() in CeL.wiki.language_code_to_site_alias) {
 			normalized.bad_foreign_language = parameter.toLowerCase();
 			normalized.bad_token_wikitext = token.toString();
-			// TODO: use CeL.wiki.parse.replace_parameter() to replace parameter.
+			// TODO: use CeL.wiki.parse.replace_parameter() to replace
+			// parameter.
 			parameter = token[token.index_of[index]][2]
 			// 為日文特別修正: 'jp' is wrong! 'jp' 不是標準的ISO編碼。
 			= CeL.wiki.language_code_to_site_alias[parameter.toLowerCase()];
@@ -786,9 +787,17 @@ function for_each_page(page_data, messages) {
 						+ token.toString() + ' → ' + link);
 			}
 
-			if (CeL.wiki.Yesno(parameters.italic)) {
+			// [[w:en:Template:Interlanguage link]]
+			if (CeL.wiki.Yesno(parameters.italic)
+					|| CeL.wiki.Yesno(parameters.italics)) {
 				// retain italic formatting `|italic=y`
 				link = "''" + link + "''";
+			}
+
+			// [[w:en:Template:Interlanguage link]]
+			if (CeL.wiki.Yesno(parameters.quote)
+					|| CeL.wiki.Yesno(parameters.quotes)) {
+				link = '"' + link + '"';
 			}
 
 			if (token.inside_hatnote) {

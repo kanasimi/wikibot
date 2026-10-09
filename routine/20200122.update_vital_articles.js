@@ -3402,9 +3402,9 @@ function maintain_VA_template_each_talk_page(talk_page_data, main_page_title) {
 					extra_contents = WikiProject_banner_shell_token.parameters[1].toString().trim();
 					if (/{{\s*WikiProject [^{}]+}}/.test(extra_contents.replace(/<\!--[\s\S]*?-->/g, ''))) {
 						// [[w:en:User talk:Kanashimi#Moving 'WikiProject Irish Republicanism' outside of banner shell]]
-						console.error(`${maintain_VA_template_each_talk_page.name}: WPBS 中包含 {{WikiProject}}！或許是因為執行 categorymembers 時 API 未包含這個 WikiProject？`);
+						console.error(`${maintain_VA_template_each_talk_page.name}: WPBS 中包含 {{WikiProject *}}！或許是因為執行 categorymembers 時 API 未包含這個 WikiProject？`);
 						console.trace(extra_contents);
-						throw new Error('WPBS contains {{WikiProject}}');
+						throw new Error('WPBS contains {{WikiProject *}}');
 					}
 					if (/^[{}\s]+$/.test(extra_contents)) {
 						// 只剩下不需要的特殊字符。
