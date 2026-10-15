@@ -1028,7 +1028,7 @@ async function notice_to_edit(wiki, meta_configuration, move_configuration) {
 		) {
 			CeL.warn([notice_to_edit.name + ': ', {
 				// gettext_config:{"id":"the-section-does-not-set-the-task-configuration-$1"}
-				T: ['本章節未設定任務內容: %1', meta_configuration.section_title]
+				T: ['本章節未設定任務組態: %1', meta_configuration.section_title]
 			}]);
 			//console.trace(meta_configuration, move_configuration);
 			options.need_edit = false;
