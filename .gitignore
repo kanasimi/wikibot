@@ -1,0 +1,4 @@
+node_modules/
+package-lock.json
+# private: contains the bot account name and password
+wiki configuration.js
