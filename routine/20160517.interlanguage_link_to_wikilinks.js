@@ -345,7 +345,7 @@ function normalize_parameter(token) {
 				CeL.error('URI malformed: [' + parameter + ']');
 			}
 		}
-		parameter = parameter.trim();
+		parameter = String(parameter).trim();
 		normalized[parameter_name] = parameter;
 		return true;
 	}
