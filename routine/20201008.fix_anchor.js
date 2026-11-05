@@ -148,7 +148,7 @@ async function adapt_configuration(latest_task_configuration) {
 	// e.g., {{Archives}}, {{Archive box}}, {{Easy Archive}}
 	general.archive_template_list = (general.archive_template_list || ['Template:Archive'])
 		// remove "Template:" prefix
-		.map(name => wiki.remove_namespace(name));
+		.map(name => wiki.is_namespace(name, 'template') ? wiki.remove_namespace(name) : wiki.normalize_title(name));
 	//"User:ClueBot III/ArchiveThis", "User:MiszaBot/config",
 	//[[Category:有存档的讨论页]]
 	//console.log(wiki.latest_task_configuration.general.archive_template_list);

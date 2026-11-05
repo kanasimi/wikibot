@@ -814,8 +814,15 @@ function normalize_time_style_hash(time_style_hash) {
 
 function setup_list_legend_special_status(list_legend_used) {
 	// @see general_row_style()
-	var guide = configuration.closed_style.line_CSS ? '| ' + 'style="'
-			+ configuration.closed_style.line_CSS + '" ' : '';
+	var guide = '| ';
+
+	if (configuration.closed_style.line_class) {
+		guide += ' class=' + JSON.stringify(configuration.closed_style.line_class);
+	}
+
+	if (configuration.closed_style.line_CSS) {
+		guide += ' style=' + JSON.stringify(configuration.closed_style.line_CSS);
+	}
 
 	// TODO: CSS_toString(section.CSS)
 	if (configuration.closed_style.show_subtopic) {
