@@ -13,27 +13,6 @@ node 20201008.fix_anchor.js archives use_language=ja check_page=江戸時代 che
 node routine/20201008.fix_anchor.js use_project=test
 
 
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.en
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.de
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.simple
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.zh
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.ja
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary
-jstop cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks
-
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.en -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=en
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.de -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=de
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.simple -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=simple
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.zh -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=zh
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.ja -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_language=ja
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wiktionary -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=wiktionary
-/usr/bin/jstart -N cron-tools.anchor-corrector-20201008.fix_anchor.wikibooks -mem 4g -once -quiet /shared/bin/node /data/project/anchor-corrector/wikibot/routine/20201008.fix_anchor.js use_project=zh.wikibooks
-
-
-jstop cron-tools.mgp-cewbot-20201008.fix_anchor.moegirl
-/usr/bin/jstart -N cron-tools.mgp-cewbot-20201008.fix_anchor.moegirl -mem 4g -once -quiet /shared/bin/node /data/project/mgp-cewbot/wikibot/routine/20201008.fix_anchor.js use_project=zhmoegirl
-
-
 node 20201008.fix_anchor.js use_language=en
 node 20201008.fix_anchor.js use_language=de
 node 20201008.fix_anchor.js use_language=zh
@@ -455,10 +434,11 @@ async function for_each_row(row) {
 		ignore_variable_anchors: true,
 	});
 	for (const diff of diff_list) {
-		//const [removed_text, added_text] = diff;
+		const [removed_text, added_text] = diff;
+		//console.log({ removed_text, added_text });
 		// all_converted: 避免遺漏。 e.g., [[w:en:Special:Diff/812844088]]
-		await CeL.wiki.parse.anchor(diff[0], { ...options, anchor_list: removed_section_titles });
-		await CeL.wiki.parse.anchor(diff[1], { ...options, anchor_list: added_section_titles });
+		await CeL.wiki.parse.anchor(removed_text, { ...options, anchor_list: removed_section_titles });
+		await CeL.wiki.parse.anchor(added_text, { ...options, anchor_list: added_section_titles });
 	}
 	//console.trace({ title: row.title, removed_section_titles, added_section_titles, diff_list });
 
