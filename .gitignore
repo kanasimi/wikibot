@@ -1,0 +1,28 @@
+# Private credential / configuration files.
+# The README instructs users to copy "wiki configuration.sample.js" to
+# "wiki configuration.js" and fill in real bot usernames / passwords.
+# Never commit that file (or any local secrets).
+wiki configuration.js
+*.local.js
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Logs / caches / runtime artifacts
+*.log
+npm-debug.log*
+*.csv
+*.lst
+dumps/
+cache/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

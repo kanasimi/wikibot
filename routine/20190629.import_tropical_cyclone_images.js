@@ -1323,7 +1323,16 @@ function start_JMA() {
 		/** ************************************************************************** */
 		// -->
 		// </script>
-		eval(html.between('var typhoonList=', '</script>').between(';', '/*'));
+		// Extract the `typhoonList[index]="id";` assignments from the remote
+		// page without eval(), so a manipulated/compromised response cannot
+		// execute arbitrary code on the bot host.
+		var typhoon_list_code = html.between('var typhoonList=', '</script>')
+				.between(';', '/*'),
+		//
+		PATTERN_typhoon_id = /typhoonList\s*\[\s*\d+\s*\]\s*=\s*(["'])([^"']*)\1/g, matched_typhoon_id;
+		while (matched_typhoon_id = PATTERN_typhoon_id.exec(typhoon_list_code)) {
+			typhoonList.push(matched_typhoon_id[2]);
+		}
 		typhoonList.forEach(function(id) {
 			var media_data = {
 				id : id,
